@@ -182,7 +182,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('renders board with the kanban columns and cards distributed by status', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -199,7 +199,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('displays progress pill with percentage and done count', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -210,7 +210,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('labels cards by scope item and filters the board by scope', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -230,7 +230,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('admin can open the import JSON modal and close it', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -245,7 +245,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('clicking a card opens the detail modal with description and meta', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -259,7 +259,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('backlog section toggles visibility', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -276,7 +276,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('breadcrumb links back to the projects list', {
-    tag: [...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });

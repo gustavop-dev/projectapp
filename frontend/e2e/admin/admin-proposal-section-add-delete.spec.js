@@ -141,7 +141,7 @@ test.describe('Admin Proposal Section Add/Delete', () => {
   });
 
   test('surfaces the backend guard when deletion is blocked', {
-    tag: [...ADMIN_PROPOSAL_SECTION_ADD_DELETE, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_SECTION_ADD_DELETE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ deleteStatus: 400 }));
     await openSectionsTab(page);

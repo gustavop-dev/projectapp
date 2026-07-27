@@ -145,7 +145,7 @@ test.describe('Proposal Executive to Detailed View Switch', () => {
   });
 
   test('clicking "Ver Propuesta Completa" shows transition overlay and switches to detailed mode', {
-    tag: [...PROPOSAL_EXECUTIVE_TO_DETAILED, '@role:guest'],
+    tag: [...PROPOSAL_EXECUTIVE_TO_DETAILED, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposal));
     const proposalReq = page.waitForResponse((r) => r.url().includes(`proposals/${MOCK_UUID}/`));

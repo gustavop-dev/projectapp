@@ -70,7 +70,7 @@ test.describe('Admin Proposal — Document Preview (eye icon)', () => {
   });
 
   test('eye icon is visible next to a previewable PDF document', {
-    tag: [...ADMIN_PROPOSAL_DOCUMENT_PREVIEW, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DOCUMENT_PREVIEW, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;
@@ -89,7 +89,7 @@ test.describe('Admin Proposal — Document Preview (eye icon)', () => {
   });
 
   test('clicking the eye icon opens the preview modal with the document title', {
-    tag: [...ADMIN_PROPOSAL_DOCUMENT_PREVIEW, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DOCUMENT_PREVIEW, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authOk;

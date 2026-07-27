@@ -80,7 +80,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('markdown attachment button is absent when diagnostic is in draft status', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'draft' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -92,7 +92,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('markdown attachment button is visible in Correos tab when diagnostic is negotiating', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -105,7 +105,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('clicking the button opens the markdown attachment modal', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -117,7 +117,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('modal contains title input, markdown textarea, and cover checkboxes', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -135,7 +135,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('Vista previa button is disabled when title and markdown are empty', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -151,7 +151,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('modal closes when Cancelar button is clicked', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -167,7 +167,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('modal shows 3 Plantillas base copy buttons in the correct order', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(buildDiagnostic({ status: 'negotiating' })));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -184,7 +184,7 @@ test.describe('Admin Diagnostic — Markdown attachment button in Correos tab', 
   });
 
   test('clicking a Plantillas base button shows Copiado feedback after fetch', {
-    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       const base = await baseHandler(buildDiagnostic({ status: 'negotiating' }))({ apiPath, method });

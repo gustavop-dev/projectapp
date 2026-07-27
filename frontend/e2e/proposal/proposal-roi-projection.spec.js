@@ -96,7 +96,7 @@ test.describe('Proposal ROI Projection', () => {
   });
 
   test('renders KPI cards, scenarios, and CTA note when enabled', {
-    tag: [...PROPOSAL_ROI_PROJECTION, '@role:guest'],
+    tag: [...PROPOSAL_ROI_PROJECTION, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     const proposal = buildProposal({ uuid: MOCK_UUID_ENABLED, roiEnabled: true });

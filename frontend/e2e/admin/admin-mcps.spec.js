@@ -91,7 +91,7 @@ test.describe('Panel MCPs', () => {
   });
 
   test('renders the blog connector card with its tools', {
-    tag: [...ADMIN_MCPS, '@role:admin'],
+    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
@@ -128,7 +128,7 @@ test.describe('Panel MCPs', () => {
   });
 
   test('generates a token and shows the one-time connector URL modal', {
-    tag: [...ADMIN_MCPS, '@role:admin'],
+    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
@@ -146,7 +146,7 @@ test.describe('Panel MCPs', () => {
   });
 
   test('activates the connector via the toggle', {
-    tag: [...ADMIN_MCPS, '@role:admin'],
+    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });
@@ -157,7 +157,7 @@ test.describe('Panel MCPs', () => {
   });
 
   test('staff non-superuser is redirected away from /panel/mcps', {
-    tag: [...ADMIN_MCPS, '@role:admin'],
+    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ isSuperuser: false }));
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });

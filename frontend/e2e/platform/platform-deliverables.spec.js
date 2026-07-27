@@ -95,7 +95,7 @@ test.describe('Platform Deliverables — Client', () => {
   });
 
   test('renders deliverable list with file names and categories', {
-    tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — deliverable list renders file names and categories)
     await setupMocks(page, { user: mockPlatformClient });
@@ -107,7 +107,7 @@ test.describe('Platform Deliverables — Client', () => {
   });
 
   test('client can upload a resource', {
-    tag: [...PLATFORM_DELIVERABLES, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_DELIVERABLES, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the upload control renders for the client)
     await setupMocks(page, { user: mockPlatformClient });
@@ -122,7 +122,7 @@ test.describe('Platform Deliverables — Admin', () => {
   test.setTimeout(60_000);
 
   test('admin sees upload button and deliverable list', {
-    tag: [...PLATFORM_DELIVERABLES, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_DELIVERABLES, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin sees the upload control and deliverable list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });

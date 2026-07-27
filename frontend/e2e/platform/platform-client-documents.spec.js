@@ -83,7 +83,7 @@ test.describe('Platform Client Document Portal', () => {
   });
 
   test('lists the main contract first and its annexes', {
-    tag: [...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { emailVerified: true });
     await page.goto('/platform/documents', { waitUntil: 'domcontentloaded' });
@@ -110,7 +110,7 @@ test.describe('Platform Client Document Portal', () => {
   });
 
   test('shows empty state when the client has no documents', {
-    tag: [...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { emailVerified: true, empty: true });
     await page.goto('/platform/documents', { waitUntil: 'domcontentloaded' });
@@ -142,7 +142,7 @@ test.describe('Platform Client Email Validation', () => {
   });
 
   test('shows an error when the code is invalid', {
-    tag: [...PLATFORM_CLIENT_EMAIL_VALIDATION, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_CLIENT_EMAIL_VALIDATION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, {
       emailVerified: false,

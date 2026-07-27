@@ -54,7 +54,7 @@ test.describe('Proposal Post-Acceptance Welcome Kit', () => {
   });
 
   test('accepted proposal shows celebration and welcome kit elements', {
-    tag: [...PROPOSAL_POST_ACCEPTANCE_WELCOME, '@role:guest'],
+    tag: [...PROPOSAL_POST_ACCEPTANCE_WELCOME, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === `proposals/${MOCK_UUID}/`) {

@@ -50,7 +50,7 @@ test.describe('Admin Document Folders and Tags', () => {
   });
 
   test('sidebar filters list by folder id via query param', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const requestedUrls = [];
 
@@ -88,7 +88,7 @@ test.describe('Admin Document Folders and Tags', () => {
   });
 
   test('tag chip toggle filters list via tags query param', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const requestedUrls = [];
 
@@ -124,7 +124,7 @@ test.describe('Admin Document Folders and Tags', () => {
   });
 
   test('Sin carpeta entry filters for uncategorized documents', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const requestedUrls = [];
 
@@ -159,7 +159,7 @@ test.describe('Admin Document Folders and Tags', () => {
   });
 
   test('new folder form pre-selects the active folder as parent', {
-    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_FOLDERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === 'auth/check/') return authCheck;

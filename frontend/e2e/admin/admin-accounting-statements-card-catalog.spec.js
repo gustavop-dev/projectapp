@@ -249,7 +249,7 @@ test.describe('Admin Accounting Statements', () => {
   });
 
   test('the grid marks months before statements_since as No aplica', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the 12-month grid marks pre-statements_since months as "No aplica" and shows each statement's status)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -261,7 +261,7 @@ test.describe('Admin Accounting Statements', () => {
   });
 
   test('clicking a chip loads the statement detail', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoStatements(page);
@@ -273,7 +273,7 @@ test.describe('Admin Accounting Statements', () => {
   });
 
   test('a manual transaction is added to a draft through the modal', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -295,7 +295,7 @@ test.describe('Admin Accounting Statements', () => {
   });
 
   test('finalizing a balanced draft marks it as processed', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -313,7 +313,7 @@ test.describe('Admin Accounting Statements', () => {
   });
 
   test('deleting the bank PDF asks for confirmation first', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -348,7 +348,7 @@ test.describe('Admin Accounting Card Catalog', () => {
   }
 
   test('lists the catalog rows with their cupo', {
-    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the catalog lists card rows with their cupo; the create/edit/delete interactions are covered below)
     await mockApi(page, buildHandler({ calls: [] }));
@@ -359,7 +359,7 @@ test.describe('Admin Accounting Card Catalog', () => {
   });
 
   test('a new card is created from a draft row', {
-    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -378,7 +378,7 @@ test.describe('Admin Accounting Card Catalog', () => {
   });
 
   test('editing the cupo patches the existing card', {
-    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -395,7 +395,7 @@ test.describe('Admin Accounting Card Catalog', () => {
   });
 
   test('a referenced card cannot be deleted and explains why', {
-    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_CARD_CATALOG, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));

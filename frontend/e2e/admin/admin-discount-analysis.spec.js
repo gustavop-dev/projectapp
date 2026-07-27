@@ -54,7 +54,7 @@ test.describe('Admin Discount Analysis Enhanced', () => {
   });
 
   test('renders discount card with sample sizes and average discount', {
-    tag: [...ADMIN_DISCOUNT_ANALYSIS_ENHANCED, '@role:admin'],
+    tag: [...ADMIN_DISCOUNT_ANALYSIS_ENHANCED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await openKpiDashboard(page);
@@ -71,7 +71,7 @@ test.describe('Admin Discount Analysis Enhanced', () => {
   });
 
   test('shows warning when discount does not improve close rate', {
-    tag: [...ADMIN_DISCOUNT_ANALYSIS_ENHANCED, '@role:admin'],
+    tag: [...ADMIN_DISCOUNT_ANALYSIS_ENHANCED, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // discount_close_rate (50) <= no_discount_close_rate (55) → delta <= 0
     await setupMock(page);

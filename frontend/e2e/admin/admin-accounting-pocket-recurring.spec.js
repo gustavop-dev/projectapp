@@ -128,7 +128,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('pocket balance card shows the ledger balance', {
-    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
@@ -141,7 +141,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('ledger renders movements with a running balance column', {
-    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
@@ -152,7 +152,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('linked movements open the edit modal with direction locked', {
-    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
@@ -174,7 +174,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('new movement modal offers the ledger selector for egresos', {
-    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
@@ -200,7 +200,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('recurring subview shows monthly cost and breakdown cards', {
-    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
@@ -215,7 +215,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('cop_equivalent field only appears for USD payments in the modal', {
-    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
@@ -236,7 +236,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test('creates a recurring payment through the modal', {
-    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));

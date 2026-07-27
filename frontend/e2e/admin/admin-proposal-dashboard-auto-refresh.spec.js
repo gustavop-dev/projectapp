@@ -36,7 +36,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
   });
 
   test('dashboard toggle shows KPI cards with metrics', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -58,7 +58,7 @@ test.describe('Admin Proposal Dashboard Auto-Refresh', () => {
   });
 
   test('clicking "Actualizar" refreshes dashboard data', {
-    tag: [...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH, '@role:admin'],
   }, async ({ page }) => {
     let dashboardCalls = 0;
 

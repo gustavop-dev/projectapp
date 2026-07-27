@@ -134,7 +134,7 @@ test.describe('Admin Accounting Collections', () => {
   });
 
   test('the status counters combine list meta and overdue rows', {
-    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
@@ -147,7 +147,7 @@ test.describe('Admin Accounting Collections', () => {
   });
 
   test('the Vencidas filter keeps only overdue rows with their badge', {
-    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
@@ -162,7 +162,7 @@ test.describe('Admin Accounting Collections', () => {
   });
 
   test('marking an issued account as paid confirms and updates the badge', {
-    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -181,7 +181,7 @@ test.describe('Admin Accounting Collections', () => {
   });
 
   test('cancelling an issued account confirms and shows Anulada', {
-    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -200,7 +200,7 @@ test.describe('Admin Accounting Collections', () => {
   });
 
   test('resending a paid account notifies without a confirm step', {
-    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));

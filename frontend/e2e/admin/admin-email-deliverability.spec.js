@@ -39,7 +39,7 @@ test.describe('Admin Email Deliverability Dashboard', () => {
   });
 
   test('renders deliverability dashboard with stats and email log', {
-    tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin'],
+    tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (dashboard is populated straight from a GET on load; no action changes what renders)
     await mockApi(page, async ({ apiPath }) => {
@@ -60,7 +60,7 @@ test.describe('Admin Email Deliverability Dashboard', () => {
   });
 
   test('page is accessible and renders heading', {
-    tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin'],
+    tag: [...ADMIN_EMAIL_DELIVERABILITY, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (accessibility/heading-structure check on load; no action changes the heading)
     await mockApi(page, async ({ apiPath }) => {

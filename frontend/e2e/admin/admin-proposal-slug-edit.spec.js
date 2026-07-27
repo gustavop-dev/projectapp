@@ -110,7 +110,7 @@ test.describe('Admin Proposal — Slug Edit', () => {
   });
 
   test('slug input shows a validation error for invalid format (spaces/uppercase)', {
-    tag: [...ADMIN_PROPOSAL_SLUG_EDIT, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_SLUG_EDIT, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal()));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);

@@ -84,7 +84,7 @@ test.describe('Admin Proposal Email — Branded', () => {
   });
 
   test('branded email tab is visible for negotiating proposal', {
-    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (checks the Correos tab's status-gated visibility for a negotiating proposal; the send action itself is driven in the dedicated send test below)
     test.setTimeout(60_000);
@@ -98,7 +98,7 @@ test.describe('Admin Proposal Email — Branded', () => {
   });
 
   test('branded email composer renders sections editor', {
-    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'negotiating' });
@@ -118,7 +118,7 @@ test.describe('Admin Proposal Email — Branded', () => {
   });
 
   test('sending branded email calls POST branded-email/send/ and shows success toast', {
-    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_BRANDED_EMAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'negotiating' });
@@ -156,7 +156,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
   });
 
   test('proposal email tab is visible for sent proposal', {
-    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (checks the Correos tab's status-gated visibility for a sent proposal; the send action itself is driven in the dedicated send test below)
     test.setTimeout(60_000);
@@ -170,7 +170,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
   });
 
   test('proposal email tab is not visible for draft proposal', {
-    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (checks the Correos tab stays hidden for a draft proposal; permission/display check — there is no send action to drive before the tab exists)
     test.setTimeout(60_000);
@@ -187,7 +187,7 @@ test.describe('Admin Proposal Email — Proposal Mode', () => {
   });
 
   test('sending proposal follow-up email calls POST proposal-email/send/ and shows success toast', {
-    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin'],
+    tag: [...ADMIN_SEND_PROPOSAL_EMAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     const proposal = makeProposal({ status: 'sent' });

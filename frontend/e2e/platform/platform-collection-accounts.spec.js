@@ -131,7 +131,7 @@ test.describe('Platform collection accounts', () => {
   });
 
   test('user sees project-scoped collection account list', {
-    tag: [...PLATFORM_PROJECT_COLLECTION_ACCOUNTS, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_PROJECT_COLLECTION_ACCOUNTS, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — project-scoped collection account list renders its rows)
     await setPlatformAuth(page, { user: mockPlatformClient });

@@ -43,7 +43,7 @@ test.describe('Admin Document Delete', () => {
   });
 
   test('confirming deletes the document and shows the success toast', {
-    tag: [...ADMIN_DOCUMENT_DELETE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_DELETE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let deleteCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
@@ -82,7 +82,7 @@ test.describe('Admin Document Delete', () => {
   });
 
   test('shows the error toast when the DELETE fails', {
-    tag: [...ADMIN_DOCUMENT_DELETE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_DELETE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'documents/1/delete/' && method === 'DELETE') {

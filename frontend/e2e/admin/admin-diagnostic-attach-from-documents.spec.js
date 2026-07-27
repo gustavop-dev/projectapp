@@ -106,7 +106,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('"Adjuntar desde Documentos" button is visible in the Correos tab', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -118,7 +118,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('clicking the button opens the AttachFromDocumentsModal', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -131,7 +131,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('modal shows diagnostic template items loaded from API', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -144,7 +144,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('modal shows NDA items when a generated NDA attachment exists', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const diagnostic = makeDiagnostic({ attachments: [generatedNda] });
     await mockApi(page, baseHandler(diagnostic));
@@ -158,7 +158,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('modal shows uploaded attachment items', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const diagnostic = makeDiagnostic({ attachments: [uploadedAttachment] });
     await mockApi(page, baseHandler(diagnostic));
@@ -171,7 +171,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('selecting a document and confirming adds a ref badge to the composer', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeDiagnostic()));
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -192,7 +192,7 @@ test.describe('Admin Diagnostic — Adjuntar desde Documentos', () => {
   });
 
   test('POST to email/send/ includes doc_refs when a ref is selected', {
-    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let capturedDocRefs = null;
 

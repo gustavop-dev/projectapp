@@ -184,7 +184,7 @@ test.describe('Admin Accounting Hosting Billing', () => {
   });
 
   test('the send action requires a client email', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoHostings(page);
@@ -194,7 +194,7 @@ test.describe('Admin Accounting Hosting Billing', () => {
   });
 
   test('sending the cuenta de cobro confirms, POSTs and shows the badge', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
@@ -216,7 +216,7 @@ test.describe('Admin Accounting Hosting Billing', () => {
   });
 
   test('a failed email keeps the document issued and warns the user', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [], emailSent: false }));
     await gotoHostings(page);
@@ -239,7 +239,7 @@ test.describe('Admin Accounting Hosting Cycles', () => {
   });
 
   test('opens the history with the consolidated backfill badge', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(
       page,
@@ -257,7 +257,7 @@ test.describe('Admin Accounting Hosting Cycles', () => {
   });
 
   test('registers a cycle payment from the prefilled form', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls, cycles: [BACKFILL_CYCLE] }));
@@ -276,7 +276,7 @@ test.describe('Admin Accounting Hosting Cycles', () => {
   });
 
   test('deletes a cycle after the confirm warns about recalculation', {
-    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CYCLES, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls, cycles: [BACKFILL_CYCLE] }));

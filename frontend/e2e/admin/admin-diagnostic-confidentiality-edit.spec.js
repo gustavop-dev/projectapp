@@ -105,7 +105,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
   });
 
   test('opens modal pre-filled with saved confidentiality_params on "Editar parámetros" click', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
@@ -127,7 +127,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
   });
 
   test('submits modified field and closes modal on success', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let capturedPayload = null;
     await setupMock(page, {
@@ -159,7 +159,7 @@ test.describe('Admin Diagnostic — Edit NDA Params', () => {
   });
 
   test('surfaces server error when POST returns 400 and keeps modal open', {
-    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page, {
       onPost: () => ({

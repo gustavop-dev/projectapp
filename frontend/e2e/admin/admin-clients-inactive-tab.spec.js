@@ -88,7 +88,7 @@ test.describe('Admin Clients Inactive Tab', () => {
   });
 
   test('Inactivos tab requests inactive=true and lists only deactivated clients', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin'],
+    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
@@ -107,7 +107,7 @@ test.describe('Admin Clients Inactive Tab', () => {
   });
 
   test('pause toggle PATCHes is_inactive=true and notifies', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin'],
+    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onUpdate: (clientId, body) => updates.push({ clientId, body }) });
@@ -121,7 +121,7 @@ test.describe('Admin Clients Inactive Tab', () => {
   });
 
   test('play toggle from the Inactivos tab reactivates the client', {
-    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin'],
+    tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
     await setupMock(page, { onUpdate: (clientId, body) => updates.push({ clientId, body }) });

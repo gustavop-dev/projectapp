@@ -32,7 +32,7 @@ test.describe('Admin Portfolio List', () => {
   });
 
   test('renders portfolio works list with titles and status badges', {
-    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — portfolio list renders works with status badges; the list's interaction is covered by the create-link test)
     await setupMock(page);
@@ -46,7 +46,7 @@ test.describe('Admin Portfolio List', () => {
   });
 
   test('the new-project button navigates to the create page', {
-    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // Fails if the "Nuevo Proyecto" button stops linking to the create page.
     await setupMock(page);
@@ -58,7 +58,7 @@ test.describe('Admin Portfolio List', () => {
   });
 
   test('shows empty state when no works exist', {
-    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — empty state renders when no works exist)
     await setupMock(page, { works: [] });

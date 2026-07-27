@@ -65,7 +65,7 @@ test.describe('Proposal Onboarding Mobile Swipe', () => {
   });
 
   test('tapping "Siguiente" advances to next onboarding step', {
-    tag: [...PROPOSAL_ONBOARDING_MOBILE_SWIPE, '@role:guest'],
+    tag: [...PROPOSAL_ONBOARDING_MOBILE_SWIPE, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

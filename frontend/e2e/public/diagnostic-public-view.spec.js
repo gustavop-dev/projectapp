@@ -112,7 +112,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   test.setTimeout(60_000);
 
   test('initial phase renders initial/both sections and hides executive_summary', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
     await mockPublicApi(page, diagnostic);
@@ -133,7 +133,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   });
 
   test('final phase exposes the executive_summary section', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'final' });
     await mockPublicApi(page, diagnostic);
@@ -150,7 +150,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   });
 
   test('sidebar toggle opens and closes the index panel', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
     await mockPublicApi(page, diagnostic);
@@ -174,7 +174,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   });
 
   test('clicking a sidebar item navigates to that section', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
     await mockPublicApi(page, diagnostic);
@@ -217,7 +217,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   });
 
   test('clicking next advances the active section', {
-    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'final' });
     await mockPublicApi(page, diagnostic);

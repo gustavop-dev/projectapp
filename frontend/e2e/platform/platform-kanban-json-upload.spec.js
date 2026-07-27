@@ -70,7 +70,7 @@ test.describe('Platform Kanban JSON Upload — Admin', () => {
   });
 
   test('admin sees Ejemplo and Importar JSON buttons on the board', {
-    tag: [...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_JSON_UPLOAD, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (control-visibility smoke; the JSON-import workflow interaction is covered by the example-download test below)
     await setupMocks(page, { user: mockPlatformAdmin });

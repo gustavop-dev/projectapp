@@ -9,7 +9,7 @@ import { PUBLIC_PRIVACY_POLICY } from '../helpers/flow-tags.js';
 
 test.describe('Privacy Policy Page', () => {
   test('renders privacy policy page with content', {
-    tag: [...PUBLIC_PRIVACY_POLICY, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PRIVACY_POLICY, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (static legal page — render asserted by the route and a non-empty heading)
     await page.goto('/privacy-policy');

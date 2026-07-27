@@ -110,7 +110,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('renders pulse, radar and module sections for a superuser payload', {
-    tag: [...ADMIN_DASHBOARD, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (dashboard-composition smoke; the dashboard's interactions are covered by the stats-modal, quick-create and error-retry tests)
     await mockDashboard(page, summaryFixture);
@@ -126,7 +126,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('pulse tiles open the finance and proposals stats modals', {
-    tag: [...ADMIN_DASHBOARD_STATS_MODALS, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_STATS_MODALS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -168,7 +168,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('renders the pipeline pulse tile with value and count', {
-    tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the pipeline tile renders its value/count from the dashboard payload)
     await mockDashboard(page, summaryFixture);
@@ -180,7 +180,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('pipeline tile shows a dash when pipeline_value is null', {
-    tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_PIPELINE_VALUE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — asserts the null-value dash rendering via toHaveText)
     const noPipeline = {
@@ -197,7 +197,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('hides the finance section for staff without finance data', {
-    tag: [...ADMIN_DASHBOARD_FINANCE_GATE, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_FINANCE_GATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (permission-gated display — asserts the finance section is withheld for non-superuser staff, by absence)
     const staffAuth = {
@@ -220,7 +220,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('attention radar lists items with severity copy and module links', {
-    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — asserts the radar renders each attention item's copy and module link from the payload)
     await mockDashboard(page, summaryFixture);
@@ -236,7 +236,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('shows the positive empty radar when nothing needs attention', {
-    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ATTENTION_RADAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — asserts the empty-radar state when the attention payload is empty)
     await mockDashboard(page, { ...summaryFixture, attention: [] });
@@ -248,7 +248,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('recovers from a failed load with the retry button', {
-    tag: [...ADMIN_DASHBOARD_ERROR_RETRY, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_ERROR_RETRY, '@role:admin', '@outcome:failure', '@outcome:display'],
   }, async ({ page }) => {
     let calls = 0;
     await mockApi(page, async ({ apiPath }) => {
@@ -273,7 +273,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('the quick-create menu lists the four destinations', {
-    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockDashboard(page, summaryFixture);
     await page.goto('/panel', { waitUntil: 'domcontentloaded' });
@@ -298,7 +298,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('choosing Gasto navigates to the accounting expenses page', {
-    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin'],
+    tag: [...ADMIN_DASHBOARD_QUICK_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

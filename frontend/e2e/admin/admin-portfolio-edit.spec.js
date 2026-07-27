@@ -56,7 +56,7 @@ test.describe('Admin Portfolio Edit', () => {
   });
 
   test('loads existing work and populates all fields', {
-    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the edit form loads and populates its fields from the API; the edit interaction is covered by the save test)
     await setupMock(page);
@@ -73,7 +73,7 @@ test.describe('Admin Portfolio Edit', () => {
   });
 
   test('edits title and saves successfully', {
-    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/portfolio/1/edit');
@@ -86,7 +86,7 @@ test.describe('Admin Portfolio Edit', () => {
   });
 
   test('SEO section shows meta fields', {
-    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the SEO section renders its meta fields populated from the work)
     await setupMock(page);
@@ -98,7 +98,7 @@ test.describe('Admin Portfolio Edit', () => {
   });
 
   test('view-in-public link has correct href', {
-    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the view-in-public link renders with the work's public href)
     await setupMock(page);
@@ -110,7 +110,7 @@ test.describe('Admin Portfolio Edit', () => {
   });
 
   test('shows content_json_es populated in textarea', {
-    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the content_json textarea is populated from the work)
     await setupMock(page);

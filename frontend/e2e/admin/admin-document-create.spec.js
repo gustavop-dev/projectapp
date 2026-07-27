@@ -22,7 +22,7 @@ test.describe('Admin Document Create', () => {
   });
 
   test('renders create page with Pegar Markdown and Cargar Archivo tabs', {
-    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -36,7 +36,7 @@ test.describe('Admin Document Create', () => {
   });
 
   test('back link navigates to documents list', {
-    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -50,7 +50,7 @@ test.describe('Admin Document Create', () => {
   });
 
   test('submitting paste mode form creates document and redirects to list', {
-    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -72,7 +72,7 @@ test.describe('Admin Document Create', () => {
   });
 
   test('upload mode loads the file content into the readonly preview', {
-    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -94,7 +94,7 @@ test.describe('Admin Document Create', () => {
   });
 
   test('upload mode submits the loaded markdown and redirects to the list', {
-    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let postBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {

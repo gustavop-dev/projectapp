@@ -83,7 +83,7 @@ test.describe('Admin Proposal Delete', () => {
   });
 
   test('a 409 (project-linked) delete surfaces the backend error and keeps the row', {
-    tag: [...ADMIN_PROPOSAL_DELETE, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_DELETE, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return json({ user: { username: 'admin', is_staff: true } });

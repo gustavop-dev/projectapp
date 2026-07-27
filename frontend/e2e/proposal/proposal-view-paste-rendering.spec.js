@@ -131,7 +131,7 @@ test.describe('Proposal View — Paste Mode Rendering', () => {
   });
 
   test('paste-mode section renders RawContentSection with markdown', {
-    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_PASTE_RENDERING, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     const proposal = buildMockProposal();
     await mockApi(page, buildMockHandler(proposal));

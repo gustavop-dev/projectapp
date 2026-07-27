@@ -168,7 +168,7 @@ test.describe('Admin Proposal Project Schedule (Cronograma)', () => {
   });
 
   test('shows inline error when start_date is after end_date', {
-    tag: [...ADMIN_PROPOSAL_PROJECT_SCHEDULE, '@role:admin'],
+    tag: ['@outcome:error', ...ADMIN_PROPOSAL_PROJECT_SCHEDULE, '@role:admin'],
   }, async ({ page }) => {
     let updateCalled = false;
     await mockApi(page, buildApiHandler({

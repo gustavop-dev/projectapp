@@ -68,7 +68,7 @@ test.describe('Admin Proposal Advanced Filters', () => {
   });
 
   test('filter toggle button opens and closes the filter panel', {
-    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -87,7 +87,7 @@ test.describe('Admin Proposal Advanced Filters', () => {
   });
 
   test('filter panel shows filter dropdowns for status and project type', {
-    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -103,7 +103,7 @@ test.describe('Admin Proposal Advanced Filters', () => {
   });
 
   test('Todas tab is active by default and shows all proposals', {
-    tag: [...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_ADVANCED_FILTERS, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });

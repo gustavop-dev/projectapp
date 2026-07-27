@@ -33,7 +33,7 @@ test.describe('Admin User Management', () => {
   });
 
   test('renders admin list with name, email, status badges and action buttons', {
-    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the seeded admin list from a mocked GET; no action changes it)
     await mockApi(page, async ({ apiPath }) => {
@@ -51,7 +51,7 @@ test.describe('Admin User Management', () => {
   });
 
   test('shows status filter tabs: Todos, Activos, Pendientes, Inactivos', {
-    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (asserts the static filter-tab labels render; no action is required to reveal them)
     await mockApi(page, async ({ apiPath }) => {
@@ -67,7 +67,7 @@ test.describe('Admin User Management', () => {
   });
 
   test('invite modal opens when Agregar Administrador is clicked', {
-    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -83,7 +83,7 @@ test.describe('Admin User Management', () => {
   });
 
   test('shows empty state when no admins exist', {
-    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin'],
+    tag: [...ADMIN_ADMIN_MANAGEMENT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (asserts the empty-list render for a zero-admin GET response; no action is involved)
     await mockApi(page, async ({ apiPath }) => {

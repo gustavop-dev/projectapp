@@ -24,7 +24,7 @@ test.describe('Platform Layout — Browser Tab Title', () => {
   });
 
   test('shows "Proyectos" on /platform/projects', {
-    tag: [...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (routing/title-mapping — asserts the browser tab title for the route; no in-page action applies)
     await mockApi(page, async ({ apiPath }) => {
@@ -36,7 +36,7 @@ test.describe('Platform Layout — Browser Tab Title', () => {
   });
 
   test('shows "Proyecto" on /platform/projects/:id — dynamic regex route', {
-    tag: [...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (routing/title-mapping — asserts the tab title for the dynamic project route)
     await mockApi(page, async ({ apiPath }) => {
@@ -48,7 +48,7 @@ test.describe('Platform Layout — Browser Tab Title', () => {
   });
 
   test('shows "Tablero" on /platform/projects/:id/board — nested dynamic regex beats project base', {
-    tag: [...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_LAYOUT_TITLE_MAPPING, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (routing/title-mapping — asserts the tab title for the nested board route)
     await mockApi(page, async ({ apiPath }) => {

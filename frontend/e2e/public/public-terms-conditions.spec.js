@@ -9,7 +9,7 @@ import { PUBLIC_TERMS_CONDITIONS } from '../helpers/flow-tags.js';
 
 test.describe('Terms and Conditions Page', () => {
   test('renders terms and conditions page with content', {
-    tag: [...PUBLIC_TERMS_CONDITIONS, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_TERMS_CONDITIONS, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (static legal page — render asserted by the route and a non-empty heading)
     await page.goto('/terms-and-conditions');

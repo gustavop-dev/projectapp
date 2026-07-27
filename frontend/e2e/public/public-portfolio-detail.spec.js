@@ -59,7 +59,7 @@ function setupMock(page) {
 
 test.describe('Portfolio Case Study Detail', () => {
   test('renders case study with title, excerpt, and content sections', {
-    tag: [...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the case-study page renders content from the fetched work; the detail's interaction is covered by the back-link test)
     await setupMock(page);
@@ -74,7 +74,7 @@ test.describe('Portfolio Case Study Detail', () => {
   });
 
   test('the back link returns from the case study to the portfolio listing', {
-    tag: [...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     // Fails if the "All projects" back link stops navigating away from the case study.
     await setupMock(page);
@@ -86,7 +86,7 @@ test.describe('Portfolio Case Study Detail', () => {
   });
 
   test('shows visit site link when project_url exists', {
-    tag: [...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the external "Visit Site" link is asserted by its href)
     await setupMock(page);
@@ -98,7 +98,7 @@ test.describe('Portfolio Case Study Detail', () => {
   });
 
   test('shows 404 for nonexistent slug', {
-    tag: [...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
+    tag: ['@outcome:failure', ...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (deep-link entry — asserts the not-found state renders for an unknown slug)
     await setupMock(page);
@@ -109,7 +109,7 @@ test.describe('Portfolio Case Study Detail', () => {
   });
 
   test('CTA section is visible', {
-    tag: [...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — asserts the closing CTA renders with its quote link)
     await setupMock(page);

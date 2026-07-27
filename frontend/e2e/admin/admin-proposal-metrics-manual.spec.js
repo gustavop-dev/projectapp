@@ -30,7 +30,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
   });
 
   test('floating ? button opens metrics manual slide-over', {
-    tag: [...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });
@@ -51,7 +51,7 @@ test.describe('Admin Proposal Metrics Manual', () => {
   });
 
   test('search filters metric definitions', {
-    tag: [...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_METRICS_MANUAL, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/proposals', { waitUntil: 'domcontentloaded' });

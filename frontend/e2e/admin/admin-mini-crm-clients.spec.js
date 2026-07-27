@@ -227,7 +227,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('renders client list with names, emails, and stats', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
@@ -241,7 +241,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('expanding a client shows their proposals table', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
@@ -258,7 +258,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('the refresh button re-fetches an already-expanded client (cache invalidation)', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // Isolated, mutable detail so we can simulate a server-side rename after expansion.
     const details = { 101: JSON.parse(JSON.stringify(mockClientDetails[101])) };
@@ -279,7 +279,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('search filters clients by name or email', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
@@ -291,7 +291,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('empty state shows message when no clients exist', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, { clients: [] });
     await gotoClients(page);
@@ -311,7 +311,7 @@ test.describe('Admin Clients — Tab filtering', () => {
   });
 
   test('Huérfanos tab shows only orphan clients', {
-    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const allClients = [...mockClients, mockOrphanClient];
     await setupMock(page, { clients: allClients });
@@ -325,7 +325,7 @@ test.describe('Admin Clients — Tab filtering', () => {
   });
 
   test('Activos tab hides orphan clients', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const allClients = [...mockClients, mockOrphanClient];
     await setupMock(page, { clients: allClients });
@@ -349,7 +349,7 @@ test.describe('Admin Clients — Create standalone client', () => {
   });
 
   test('opens create modal, fills form, and new client appears in list', {
-    tag: [...ADMIN_CLIENT_CREATE_STANDALONE, '@role:admin'],
+    tag: [...ADMIN_CLIENT_CREATE_STANDALONE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // Use a mutable array so the list endpoint reflects the newly created client
     // after the page calls loadClients() post-creation.
@@ -390,7 +390,7 @@ test.describe('Admin Clients — Create standalone client', () => {
   });
 
   test('create client without email generates placeholder badge', {
-    tag: [...ADMIN_CLIENT_CREATE_STANDALONE, '@role:admin'],
+    tag: [...ADMIN_CLIENT_CREATE_STANDALONE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const dynamicClients = [...mockClients];
     await setupMock(page, {
@@ -435,7 +435,7 @@ test.describe('Admin Clients — Delete orphan client', () => {
   });
 
   test('trash icon is visible on every client row (type-to-confirm prevents accidents)', {
-    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     const allClients = [...mockClients, mockOrphanClient];
     await setupMock(page, { clients: allClients });
@@ -447,7 +447,7 @@ test.describe('Admin Clients — Delete orphan client', () => {
   });
 
   test('deleting orphan removes it from the list after confirmation', {
-    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DELETE_ORPHAN, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const allClients = [...mockClients, mockOrphanClient];
     await setupMock(page, { clients: allClients });
@@ -468,7 +468,7 @@ test.describe('Admin Clients — Delete orphan client', () => {
   });
 
   test('active client delete shows a blocked-info modal instead of the delete confirm', {
-    tag: [...ADMIN_CLIENT_DELETE_PROTECTED, '@role:admin'],
+    tag: [...ADMIN_CLIENT_DELETE_PROTECTED, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);

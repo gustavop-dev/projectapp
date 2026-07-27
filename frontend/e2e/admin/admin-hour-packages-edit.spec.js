@@ -59,7 +59,7 @@ test.describe('Admin Hour Packages Edit', () => {
   });
 
   test('prefills the form from the detail endpoint', {
-    tag: [...ADMIN_HOUR_PACKAGES_EDIT, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     setupMock(page);
     await page.goto('/panel/hour-packages/3/edit');
@@ -72,7 +72,7 @@ test.describe('Admin Hour Packages Edit', () => {
   });
 
   test('edits rate and discount, preview recalculates, and PATCH is sent', {
-    tag: [...ADMIN_HOUR_PACKAGES_EDIT, '@role:admin'],
+    tag: [...ADMIN_HOUR_PACKAGES_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const { getLastPatchBody } = setupMock(page);
     await page.goto('/panel/hour-packages/3/edit');

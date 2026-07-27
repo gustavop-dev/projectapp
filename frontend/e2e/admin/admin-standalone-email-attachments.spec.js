@@ -39,7 +39,7 @@ test.describe('Admin Standalone Email Attachments', () => {
   });
 
   test('attaches a valid file and sends it in the multipart POST', {
-    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let sendBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -64,7 +64,7 @@ test.describe('Admin Standalone Email Attachments', () => {
   });
 
   test('rejects a disallowed file type with a validation error', {
-    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath));
     await openComposer(page);
@@ -80,7 +80,7 @@ test.describe('Admin Standalone Email Attachments', () => {
   });
 
   test('removes an attached file from the list', {
-    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin'],
+    tag: [...ADMIN_STANDALONE_EMAIL_ATTACHMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath));
     await openComposer(page);

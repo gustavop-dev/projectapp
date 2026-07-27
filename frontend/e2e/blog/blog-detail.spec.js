@@ -78,7 +78,7 @@ function setupMock(page) {
 
 test.describe('Blog Post Detail', () => {
   test('renders JSON content sections (headings, lists, timeline)', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
@@ -94,7 +94,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('shows category badge and read time', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
@@ -104,7 +104,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('renders sources section with links', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
@@ -115,7 +115,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('renders HTML fallback for posts without JSON content', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/legacy-html-post');
@@ -125,7 +125,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('shows 404 for nonexistent slug', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:failure', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/nonexistent-post');
@@ -134,7 +134,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('back to blog link navigates to /blog', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');
@@ -147,7 +147,7 @@ test.describe('Blog Post Detail', () => {
   });
 
   test('CTA contact button is visible', {
-    tag: [...BLOG_DETAIL, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_DETAIL, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog/ai-trends-2026');

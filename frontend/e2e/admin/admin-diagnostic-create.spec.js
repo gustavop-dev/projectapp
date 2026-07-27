@@ -80,7 +80,7 @@ test.describe('Admin Diagnostic Create', () => {
   });
 
   test('selecting a client from search results enables submit and redirects to edit', {
-    tag: [...ADMIN_DIAGNOSTIC_CREATE, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let createCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {

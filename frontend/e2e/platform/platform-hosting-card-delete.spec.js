@@ -118,7 +118,7 @@ test.describe('Platform Hosting Card Delete', () => {
   });
 
   test('shows the backend error inside the modal on failure', {
-    tag: [...PLATFORM_HOSTING_CARD_DELETE, '@role:client'],
+    tag: ['@outcome:failure', ...PLATFORM_HOSTING_CARD_DELETE, '@role:client'],
   }, async ({ page }) => {
     const { state, routing } = setupDeleteMocks(page, { removeStatus: 500 });
     await routing;

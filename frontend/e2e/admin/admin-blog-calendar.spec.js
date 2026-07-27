@@ -31,7 +31,7 @@ test.describe('Admin Blog Calendar', () => {
   });
 
   test('renders calendar page with week grid and day columns', {
-    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin'],
+    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -52,7 +52,7 @@ test.describe('Admin Blog Calendar', () => {
   });
 
   test('displays color-coded post cards for published, scheduled, and draft', {
-    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin'],
+    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -75,7 +75,7 @@ test.describe('Admin Blog Calendar', () => {
   });
 
   test('week navigation buttons change displayed week', {
-    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin'],
+    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     let calendarRequestCount = 0;
 
@@ -108,7 +108,7 @@ test.describe('Admin Blog Calendar', () => {
   });
 
   test('shows empty state text for days without posts', {
-    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin'],
+    tag: [...ADMIN_BLOG_CALENDAR, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

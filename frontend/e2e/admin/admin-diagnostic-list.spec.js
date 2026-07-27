@@ -65,7 +65,7 @@ test.describe('Admin Diagnostic List', () => {
   });
 
   test('renders diagnostic rows and "Nuevo diagnóstico" button', {
-    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics/');
@@ -76,7 +76,7 @@ test.describe('Admin Diagnostic List', () => {
   });
 
   test('shows empty state message when no diagnostics exist', {
-    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, []);
     await page.goto('/panel/diagnostics/');
@@ -85,7 +85,7 @@ test.describe('Admin Diagnostic List', () => {
   });
 
   test('search input filters the displayed diagnostics', {
-    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin'],
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/panel/diagnostics/');

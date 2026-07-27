@@ -154,7 +154,7 @@ test.describe('Admin Proposal Send', () => {
   });
 
   test('shows a warning toast when the email delivery fails on send', {
-    tag: [...ADMIN_PROPOSAL_SEND, '@role:admin'],
+    tag: ['@outcome:failure', ...ADMIN_PROPOSAL_SEND, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };

@@ -56,7 +56,7 @@ test.describe('Proposal Slug Access', () => {
   });
 
   test('proposal loads when accessed via slug URL', {
-    tag: [...PROPOSAL_SLUG_ACCESS, '@role:guest'],
+    tag: [...PROPOSAL_SLUG_ACCESS, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (slug routing is a deep-link entry; the behavior under test is that the slug resolves and the proposal renders instead of a 404 — asserted by page content)
     await mockApi(page, slugHandler(baseProposal));
@@ -80,7 +80,7 @@ test.describe('Proposal Slug Access', () => {
   });
 
   test('unknown slug renders the not-found state', {
-    tag: [...PROPOSAL_SLUG_ACCESS, '@role:guest'],
+    tag: [...PROPOSAL_SLUG_ACCESS, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (deep-link entry; the behavior under test is that an unknown slug renders the not-found state, asserted by page content)
     await mockApi(page, async ({ apiPath }) => {

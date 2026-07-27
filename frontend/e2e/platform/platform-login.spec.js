@@ -73,7 +73,7 @@ test.describe('Platform Login', () => {
   });
 
   test('shows validation error for invalid email format', {
-    tag: [...PLATFORM_LOGIN, '@role:guest'],
+    tag: ['@outcome:error', ...PLATFORM_LOGIN, '@role:guest'],
   }, async ({ page }) => {
     await setupGuestMocks(page);
     await page.goto('/platform/login', { waitUntil: 'domcontentloaded' });
@@ -89,7 +89,7 @@ test.describe('Platform Login', () => {
   });
 
   test('shows error message on invalid credentials', {
-    tag: [...PLATFORM_LOGIN, '@role:guest'],
+    tag: ['@outcome:error', ...PLATFORM_LOGIN, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/login/' && method === 'POST') {
@@ -275,7 +275,7 @@ test.describe('Platform Login', () => {
   });
 
   test('shows deactivated account error message', {
-    tag: [...PLATFORM_LOGIN, '@role:guest'],
+    tag: ['@outcome:error', ...PLATFORM_LOGIN, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/login/' && method === 'POST') {

@@ -70,7 +70,7 @@ test.describe('Platform Notifications — Admin', () => {
   });
 
   test('renders notification list with unread and read items', {
-    tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — notification list renders unread and read items; the filter interaction is covered below)
     await setupMocks(page, { user: mockPlatformAdmin });
@@ -83,7 +83,7 @@ test.describe('Platform Notifications — Admin', () => {
   });
 
   test('filtering to unread hides the read notifications', {
-    tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
     // Fails if the "Sin leer" filter stops hiding already-read notifications.
     await setupMocks(page, { user: mockPlatformAdmin });
@@ -96,7 +96,7 @@ test.describe('Platform Notifications — Admin', () => {
   });
 
   test('shows unread count in header', {
-    tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_NOTIFICATIONS, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — unread count shown in header)
     await setupMocks(page, { user: mockPlatformAdmin });
@@ -111,7 +111,7 @@ test.describe('Platform Notifications — Client', () => {
   test.setTimeout(60_000);
 
   test('client sees their notifications', {
-    tag: [...PLATFORM_NOTIFICATIONS, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_NOTIFICATIONS, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — client sees their notifications)
     await setPlatformAuth(page, { user: mockPlatformClient });

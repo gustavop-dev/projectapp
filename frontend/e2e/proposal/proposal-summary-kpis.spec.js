@@ -67,7 +67,7 @@ test.describe('Proposal Summary Cards', () => {
   });
 
   test('renders standard summary cards', {
-    tag: [...PROPOSAL_SUMMARY_KPIS, '@role:guest'],
+    tag: [...PROPOSAL_SUMMARY_KPIS, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto(`/proposal/${MOCK_UUID}`);

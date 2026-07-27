@@ -44,7 +44,7 @@ test.describe('Platform Verify & Onboarding', () => {
   });
 
   test('shows error when code is incomplete', {
-    tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
     await page.goto('/platform/verify', { waitUntil: 'domcontentloaded' });
 
@@ -56,7 +56,7 @@ test.describe('Platform Verify & Onboarding', () => {
   });
 
   test('shows error when password is too short', {
-    tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
     await page.goto('/platform/verify', { waitUntil: 'domcontentloaded' });
 
@@ -73,7 +73,7 @@ test.describe('Platform Verify & Onboarding', () => {
   });
 
   test('shows error when passwords do not match', {
-    tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
     await page.goto('/platform/verify', { waitUntil: 'domcontentloaded' });
 
@@ -174,7 +174,7 @@ test.describe('Platform Verify & Onboarding', () => {
   });
 
   test('shows API error on invalid verification code', {
-    tag: [...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
+    tag: ['@outcome:error', ...PLATFORM_VERIFY_ONBOARDING, '@role:platform-client'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'accounts/verify/' && method === 'POST') {

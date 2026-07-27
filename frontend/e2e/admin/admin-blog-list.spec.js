@@ -30,7 +30,7 @@ test.describe('Admin Blog List', () => {
   });
 
   test('renders blog post list with new fields', {
-    tag: [...ADMIN_BLOG_LIST, '@role:admin'],
+    tag: [...ADMIN_BLOG_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — blog list renders posts with their fields; the list's interaction is covered by the calendar-link test)
     await mockApi(page, async ({ apiPath }) => {
@@ -46,7 +46,7 @@ test.describe('Admin Blog List', () => {
   });
 
   test('shows pagination controls when total pages exceeds 1', {
-    tag: [...ADMIN_BLOG_LIST, '@role:admin'],
+    tag: [...ADMIN_BLOG_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — pagination controls render when total pages exceed 1)
     await mockApi(page, async ({ apiPath }) => {
@@ -64,7 +64,7 @@ test.describe('Admin Blog List', () => {
   });
 
   test('the calendar link navigates to the blog calendar', {
-    tag: [...ADMIN_BLOG_LIST, '@role:admin'],
+    tag: [...ADMIN_BLOG_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // Fails if the blog calendar link stops routing to the calendar page.
     await mockApi(page, async ({ apiPath }) => {

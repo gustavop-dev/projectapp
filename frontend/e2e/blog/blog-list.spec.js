@@ -62,7 +62,7 @@ function setupMock(page) {
 
 test.describe('Blog Listing', () => {
   test('renders featured post hero and post grid', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
@@ -76,7 +76,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('filters posts by category', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');
@@ -89,7 +89,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('searches posts by text', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
@@ -106,7 +106,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('clears filters when clicking clear button', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     const blogReq = page.waitForResponse((r) => r.url().includes('/api/blog/'));
@@ -125,7 +125,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('renders with Spanish locale', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/es-co/blog');
@@ -135,7 +135,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('shows empty state when no posts', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await mockApi(page, async ({ _route, apiPath }) => {
       if (apiPath.startsWith('blog/')) {
@@ -149,7 +149,7 @@ test.describe('Blog Listing', () => {
   });
 
   test('navigates to post detail on card click', {
-    tag: [...BLOG_LIST, '@role:guest'],
+    tag: ['@outcome:display', ...BLOG_LIST, '@role:guest'],
   }, async ({ page }) => {
     await setupMock(page);
     await page.goto('/blog');

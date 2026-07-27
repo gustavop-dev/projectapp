@@ -58,7 +58,7 @@ test.describe('Proposal Payment Plan in Closing', () => {
   });
 
   test('displays payment milestones when payment_options is an array', {
-    tag: [...PROPOSAL_PAYMENT_PLAN_CLOSING, '@role:guest'],
+    tag: [...PROPOSAL_PAYMENT_PLAN_CLOSING, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     const proposal = buildProposal([
       { label: 'Firma del contrato', amount: '$2,500,000' },

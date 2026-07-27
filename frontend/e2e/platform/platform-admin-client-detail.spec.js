@@ -69,7 +69,7 @@ test.describe('Platform Admin Client Detail', () => {
   });
 
   test('renders client detail page with profile card and edit form', {
-    tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — client detail renders the profile card; the back-link interaction covers this flow)
     await setupClientDetailMocks(page);
@@ -94,7 +94,7 @@ test.describe('Platform Admin Client Detail', () => {
   });
 
   test('shows not found message for invalid client ID', {
-    tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:failure', ...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — not-found state renders for an invalid client id)
     await mockApi(page, async ({ apiPath, method }) => {
@@ -114,7 +114,7 @@ test.describe('Platform Admin Client Detail', () => {
   });
 
   test('shows action buttons for admin operations', {
-    tag: [...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin action controls render on the detail page)
     await setupClientDetailMocks(page);

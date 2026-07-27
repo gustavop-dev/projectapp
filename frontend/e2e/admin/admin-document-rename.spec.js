@@ -42,7 +42,7 @@ test.describe('Admin Document Rename', () => {
   });
 
   test('opens the modal prefilled with the current title', {
-    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath));
     await openRenameModal(page);
@@ -51,7 +51,7 @@ test.describe('Admin Document Rename', () => {
   });
 
   test('saves the new title through the update PATCH', {
-    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
     await mockApi(page, async ({ route, apiPath, method }) => {
@@ -71,7 +71,7 @@ test.describe('Admin Document Rename', () => {
   });
 
   test('keeps the modal open with an inline error when the PATCH fails', {
-    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_RENAME, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'documents/1/update/' && method === 'PATCH') {

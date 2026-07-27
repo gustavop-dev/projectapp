@@ -73,7 +73,7 @@ test.describe('Expired Proposal Graceful Page', () => {
   });
 
   test('renders expired message with client name', {
-    tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest'],
+    tag: [...PROPOSAL_EXPIRED_GRACEFUL, '@role:guest', '@outcome:failure'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the client views the expired proposal; there is no in-page action, the render is asserted by concrete content)
     await setup410Mock(page);

@@ -45,7 +45,7 @@ test.describe('Admin Proposal List', () => {
   });
 
   test('filtering by client name narrows the table to the matching proposal', {
-    tag: [...ADMIN_PROPOSAL_LIST, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_LIST, '@role:admin'],
   }, async ({ page }) => {
     // Fails if the search box stops filtering the proposal table by title/client.
     await mockApi(page, buildMockHandler([proposalA, proposalB]));
@@ -62,7 +62,7 @@ test.describe('Admin Proposal List', () => {
   });
 
   test('shows the empty state when the proposal list is empty', {
-    tag: [...ADMIN_PROPOSAL_LIST, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_LIST, '@role:admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (empty-state render assertion; the list's
     // interaction is covered by the filter test above)

@@ -81,7 +81,7 @@ test.describe('Platform Change Requests — Client', () => {
   });
 
   test('renders change request list with status tabs', {
-    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_CHANGE_REQUESTS, '@role:platform-client'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display list — asserts the change requests render with their titles; the create interaction is covered below)
     await setupMocks(page, { user: mockPlatformClient });
@@ -114,7 +114,7 @@ test.describe('Platform Change Requests — Admin', () => {
   test.setTimeout(60_000);
 
   test('admin sees change requests and can evaluate', {
-    tag: [...PLATFORM_CHANGE_REQUESTS, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_CHANGE_REQUESTS, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — admin view of the change-request list)
     await setPlatformAuth(page, { user: mockPlatformAdmin });

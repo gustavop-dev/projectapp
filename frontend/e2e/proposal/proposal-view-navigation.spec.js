@@ -107,7 +107,7 @@ test.describe('Proposal View Navigation', () => {
   });
 
   test('clicking an index item navigates to that section', {
-    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest'],
+    tag: [...PROPOSAL_VIEW_NAVIGATION, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

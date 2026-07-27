@@ -100,7 +100,7 @@ test.describe('Admin Proposal Section Reorder', () => {
   });
 
   test('failed reorder snaps the list back and notifies', {
-    tag: [...ADMIN_PROPOSAL_SECTION_REORDER, '@role:admin'],
+    tag: ['@outcome:failure', ...ADMIN_PROPOSAL_SECTION_REORDER, '@role:admin'],
   }, async ({ page }) => {
     const captured = [];
     await mockApi(page, buildHandler({ reorderStatus: 500, capturedReorders: captured }));

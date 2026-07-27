@@ -129,7 +129,7 @@ test.describe('Proposal Client Autocomplete', () => {
   });
 
   test('typing in autocomplete shows matching client suggestions', {
-    tag: [...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoCreate(page);
@@ -142,7 +142,7 @@ test.describe('Proposal Client Autocomplete', () => {
   });
 
   test('selecting a client from dropdown auto-fills name, email, phone, company', {
-    tag: [...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoCreate(page);
@@ -159,7 +159,7 @@ test.describe('Proposal Client Autocomplete', () => {
   });
 
   test('no match shows "Crear nuevo" button that sets the client name', {
-    tag: [...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE, '@role:admin'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoCreate(page);

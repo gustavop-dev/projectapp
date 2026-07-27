@@ -20,7 +20,7 @@ test.describe('Admin Portfolio Delete', () => {
   });
 
   test('renders portfolio list with delete-capable work', {
-    tag: [...ADMIN_PORTFOLIO_DELETE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_DELETE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the list renders a work with its delete control; the delete interaction is covered below)
     await mockApi(page, async ({ apiPath, route }) => {
@@ -41,7 +41,7 @@ test.describe('Admin Portfolio Delete', () => {
   });
 
   test('delete button triggers confirm dialog', {
-    tag: [...ADMIN_PORTFOLIO_DELETE, '@role:admin'],
+    tag: [...ADMIN_PORTFOLIO_DELETE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let deleteApiCalled = false;
     await mockApi(page, async ({ apiPath, route }) => {

@@ -20,7 +20,7 @@ test.describe('Admin Blog Delete', () => {
   });
 
   test('confirming the delete calls the API and closes the dialog', {
-    tag: [...ADMIN_BLOG_DELETE, '@role:admin'],
+    tag: [...ADMIN_BLOG_DELETE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // Fails if confirming the delete stops calling the delete endpoint or leaves the dialog open.
     let deleteCalled = false;

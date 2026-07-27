@@ -97,7 +97,7 @@ test.describe('Platform Admin Client List', () => {
   });
 
   test('renders client table with columns and data', {
-    tag: [...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — client table renders rows from the API; the flow's interaction is the invite-modal test)
     await setupClientMocks(page);
@@ -110,7 +110,7 @@ test.describe('Platform Admin Client List', () => {
   });
 
   test('renders status filter tabs', {
-    tag: [...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — status filter tabs render)
     await setupClientMocks(page);
@@ -120,7 +120,7 @@ test.describe('Platform Admin Client List', () => {
   });
 
   test('shows invite client button', {
-    tag: [...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the invite-client control renders)
     await setupClientMocks(page);
@@ -130,7 +130,7 @@ test.describe('Platform Admin Client List', () => {
   });
 
   test('opening the invite-client modal shows the invite form', {
-    tag: [...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     // Fails if the "Invitar cliente" button stops opening the invite modal.
     await setupClientMocks(page);
@@ -142,7 +142,7 @@ test.describe('Platform Admin Client List', () => {
   });
 
   test('shows empty state when no clients exist', {
-    tag: [...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_ADMIN_CLIENT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — empty state renders when no clients exist)
     await mockApi(page, async ({ apiPath, method }) => {

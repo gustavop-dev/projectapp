@@ -40,7 +40,7 @@ test.describe('Admin Document Move Folder', () => {
   });
 
   test('move modal renders folder list with Sin carpeta option', {
-    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -64,7 +64,7 @@ test.describe('Admin Document Move Folder', () => {
   });
 
   test('selecting a folder PATCHes documents/{id}/update/ with folder_id', {
-    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
 
@@ -95,7 +95,7 @@ test.describe('Admin Document Move Folder', () => {
   });
 
   test('"Sin carpeta" PATCHes documents/{id}/update/ with folder_id null', {
-    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin'],
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
 

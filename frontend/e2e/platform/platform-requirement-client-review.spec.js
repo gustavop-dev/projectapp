@@ -80,7 +80,7 @@ test.describe('Platform Requirement Client Review', () => {
   });
 
   test('client sees completed requirements in the Aprobado column', {
-    tag: [...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -91,7 +91,7 @@ test.describe('Platform Requirement Client Review', () => {
   });
 
   test('clicking a completed card shows review actions (approve, change, bug)', {
-    tag: [...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -106,7 +106,7 @@ test.describe('Platform Requirement Client Review', () => {
   });
 
   test('solicitar cambio link navigates to change requests with pre-filled data', {
-    tag: [...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -120,7 +120,7 @@ test.describe('Platform Requirement Client Review', () => {
   });
 
   test('reportar bug link navigates to bugs with pre-filled data', {
-    tag: [...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
+    tag: ['@outcome:display', ...PLATFORM_REQUIREMENT_CLIENT_REVIEW, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });

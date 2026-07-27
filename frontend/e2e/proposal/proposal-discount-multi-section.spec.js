@@ -77,7 +77,7 @@ test.describe('Proposal Discount Multi-Section', () => {
   });
 
   test('discount badge is visible in Investment section when proposal has active discount', {
-    tag: [...PROPOSAL_DISCOUNT_MULTI_SECTION, '@role:guest'],
+    tag: [...PROPOSAL_DISCOUNT_MULTI_SECTION, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page, mockProposalWithDiscount);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);

@@ -81,7 +81,7 @@ test.describe('Admin Accounting Empty State CTA', () => {
   });
 
   test('zero records shows the create CTA that opens the modal', {
-    tag: [...ADMIN_ACCOUNTING_EMPTY_STATE_CTA, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EMPTY_STATE_CTA, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ rows: [] }));
     await gotoIncomes(page);
@@ -97,7 +97,7 @@ test.describe('Admin Accounting Empty State CTA', () => {
   });
 
   test('filtered-with-no-match swaps the CTA for Limpiar filtros and resets', {
-    tag: [...ADMIN_ACCOUNTING_EMPTY_STATE_CTA, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_EMPTY_STATE_CTA, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ rows: [incomeRow()] }));
     await gotoIncomes(page);

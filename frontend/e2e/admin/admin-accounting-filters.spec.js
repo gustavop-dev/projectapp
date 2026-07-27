@@ -152,7 +152,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('date range keeps only rows inside the period', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -167,7 +167,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('amount range filters by total', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -182,7 +182,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('partner segmented filter distinguishes Gustavo from ProjectApp', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -197,7 +197,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('active filter count badge reflects applied filters', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -209,7 +209,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('reset restores the full list', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -222,7 +222,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('free search filters by concept', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
 
@@ -232,7 +232,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('search highlights occurrences with <mark> in the table', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
 
@@ -243,7 +243,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('shows the filtered results count', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await expect(page.getByTestId('accounting-results-count')).toHaveText('4 resultados');
@@ -254,7 +254,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('applied filters render removable chips that restore the rows', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);
@@ -272,7 +272,7 @@ test.describe('Admin Accounting Filters', () => {
   });
 
   test('amount range filters live while typing (no blur needed)', {
-    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin'],
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await gotoIncomes(page);
     await openFilterPanel(page);

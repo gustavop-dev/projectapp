@@ -83,7 +83,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('Documentos tab is hidden for draft proposals', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'draft' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -93,7 +93,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('Documentos tab is visible for sent proposals', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'sent' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -102,7 +102,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('documents tab renders unified list with contract, commercial and technical entries', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -116,7 +116,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('documents tab shows generate contract button when no contract doc exists', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating', proposal_documents: [] })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -127,7 +127,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('documents tab shows Documentos adjuntos section with upload form', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -139,7 +139,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('documents tab does not show Enviar al cliente section', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     await mockApi(page, baseHandler(makeProposal({ status: 'negotiating' })));
     await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
@@ -151,7 +151,7 @@ test.describe('Admin Proposal — Documentos tab', () => {
   });
 
   test('uploaded non-contract documents appear in the adjuntos list', {
-    tag: [...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
+    tag: ['@outcome:display', ...ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES, '@role:admin'],
   }, async ({ page }) => {
     const proposal = makeProposal({
       status: 'negotiating',

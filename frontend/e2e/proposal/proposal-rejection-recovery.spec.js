@@ -154,7 +154,7 @@ test.describe('Proposal Rejection Smart Recovery', () => {
   });
 
   test('rejecting with "Encontré otra opción" shows farewell card', {
-    tag: [...PROPOSAL_REJECTION_SMART_RECOVERY, '@role:guest'],
+    tag: [...PROPOSAL_REJECTION_SMART_RECOVERY, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler());
     await openClosingPanel(page);

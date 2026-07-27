@@ -279,7 +279,7 @@ test.describe('Proposal Calculator Modules (PWA, AI, Reports)', () => {
   });
 
   test('default selected module group appears before unselected groups', {
-    tag: [...PROPOSAL_CALCULATOR_SELECTED_FIRST, '@role:guest'],
+    tag: [...PROPOSAL_CALCULATOR_SELECTED_FIRST, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     await setupMock(page);
     await openCalculatorModal(page);

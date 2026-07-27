@@ -24,7 +24,7 @@ const mockWork = {
 
 test.describe('Portfolio Works', () => {
   test('the portfolio listing renders published works', {
-    tag: [...PUBLIC_PORTFOLIO, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the listing renders published works fetched from the API)
     await mockApi(page, async ({ apiPath }) => {
@@ -42,7 +42,7 @@ test.describe('Portfolio Works', () => {
 
 test.describe('Landing Web Design', () => {
   test('renders landing web design page', {
-    tag: [...PUBLIC_LANDING_WEB_DESIGN, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_LANDING_WEB_DESIGN, '@role:guest'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (marketing landing page — render smoke asserted by the localized route and hero heading)
     await page.goto('/landing-web-design');

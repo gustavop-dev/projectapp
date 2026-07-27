@@ -138,7 +138,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('shows disconnected state with connect button', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — disconnected state renders the connect button; the connect interaction is covered below)
     await setupEditPageMock(page, { linkedinStatus: disconnectedStatus });
@@ -150,7 +150,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('connect button opens OAuth popup', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupEditPageMock(page, { linkedinStatus: disconnectedStatus });
     await page.goto('/panel/blog/1/edit');
@@ -165,7 +165,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('callback page shows success state after successful code exchange', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the OAuth callback page renders its success state after the code exchange)
     await mockApi(page, async ({ apiPath, route }) => {
@@ -187,7 +187,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('callback page shows error state when LinkedIn returns error param', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the callback page renders its error state for a LinkedIn error param)
     await page.goto('/auth/linkedin/callback?error=access_denied&error_description=User+denied+access');
@@ -197,7 +197,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('callback page shows error when no code is received', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the callback page renders an error when no code is received)
     await page.goto('/auth/linkedin/callback');
@@ -207,7 +207,7 @@ test.describe('Admin Blog LinkedIn — Connect', () => {
   });
 
   test('opener updates to connected state after popup postMessage', {
-    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_CONNECT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (integration — the opener transitions to connected state on the popup's postMessage; simulated via postMessage, no direct UI action)
     await setupEditPageMock(page, { linkedinStatus: disconnectedStatus });
@@ -234,7 +234,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('shows connected state with profile name and publish controls', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — connected state renders the profile name and publish controls; the publish interaction is covered below)
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
@@ -246,7 +246,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('language selector defaults to English', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the language selector defaults to English)
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
@@ -257,7 +257,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('publish button is disabled when summary is empty', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — the publish button is disabled while the summary is empty; the publish interaction is covered below)
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
@@ -269,7 +269,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('publish button is enabled after filling summary', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
     await page.goto('/panel/blog/1/edit');
@@ -281,7 +281,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('publish shows success message after API call', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
     await page.goto('/panel/blog/1/edit');
@@ -294,7 +294,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('publish API error renders inline error message', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, route }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -327,7 +327,7 @@ test.describe('Admin Blog LinkedIn — Publish', () => {
   });
 
   test('character counter reflects typed summary length', {
-    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin'],
+    tag: [...ADMIN_BLOG_LINKEDIN_PUBLISH, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await setupEditPageMock(page, { linkedinStatus: connectedStatus });
     await page.goto('/panel/blog/1/edit');

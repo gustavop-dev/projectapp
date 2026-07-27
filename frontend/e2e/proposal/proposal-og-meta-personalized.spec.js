@@ -44,7 +44,7 @@ test.describe('Proposal OG Meta Personalized', () => {
   });
 
   test('page title includes client name after proposal loads', {
-    tag: ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3', '@role:guest'],
+    tag: ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3', '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (SEO/meta assertion — the page title reflects the client name after load; meta tags have no user interaction)
     await setupMock(page);
