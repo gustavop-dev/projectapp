@@ -4,7 +4,12 @@ from decimal import Decimal
 
 import pytest
 
-from content.models import HostingRecord, IncomeRecord, RecurringPayment
+from content.models import (
+    HostingRecord,
+    IncomeRecord,
+    PocketMovement,
+    RecurringPayment,
+)
 from content.serializers.accounting import (
     AccountingSettingsSerializer,
     CardBalanceSnapshotCreateUpdateSerializer,
@@ -290,6 +295,85 @@ class TestIncomeRules:
         make_income(kind=IncomeRecord.Kind.LOST, expected_income=expected)
         serializer = IncomeRecordCreateUpdateSerializer(
             expected, data={'kind': 'lost'}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+
+
+@pytest.mark.django_db
+class TestZeroAmountPocketGuard:
+    """PocketMovement.amount requires >= 0.01; the sync writers bypass model
+    validators, so the boundary serializers must reject zero-amount records
+    that would mirror a movement."""
+
+    def expense_payload(self, **overrides):
+        payload = {
+            'concept': 'Ajuste',
+            'period_date': '2026-02',
+            'total_amount': '0.00',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_zero_expense_with_pocket_default_is_rejected(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            data=self.expense_payload(),
+        )
+        assert not serializer.is_valid()
+        assert 'total_amount' in serializer.errors
+
+    def test_zero_expense_without_pocket_is_valid(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            data=self.expense_payload(register_in_pocket=False),
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_linked_expense_cannot_be_updated_to_zero(self, make_expense):
+        movement = PocketMovement.objects.create(
+            concept='Claude Code 20x',
+            movement_date=date(2026, 3, 1),
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('800000.00'),
+        )
+        expense = make_expense(pocket_movement=movement)
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            expense,
+            data={
+                'total_amount': '0.00',
+                'gustavo_amount': '0.00',
+                'carlos_amount': '0.00',
+            },
+            partial=True,
+        )
+        assert not serializer.is_valid()
+        assert 'total_amount' in serializer.errors
+
+    def test_unlinked_expense_can_be_updated_to_zero(self, make_expense):
+        expense = make_expense()
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            expense,
+            data={
+                'total_amount': '0.00',
+                'gustavo_amount': '0.00',
+                'carlos_amount': '0.00',
+            },
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_zero_liquid_pocket_income_is_rejected(self):
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(
+                kind='liquid', destination='pocket', total_amount='0.00',
+            ),
+        )
+        assert not serializer.is_valid()
+        assert 'total_amount' in serializer.errors
+
+    def test_zero_partners_income_remains_valid(self):
+        serializer = IncomeRecordCreateUpdateSerializer(
+            data=income_payload(
+                kind='liquid', destination='partners', total_amount='0.00',
+            ),
         )
         assert serializer.is_valid(), serializer.errors
 
