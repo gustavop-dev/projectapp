@@ -109,33 +109,53 @@ describe('IncomeLiquidateModal', () => {
       .toContain('600.000');
   });
 
-  it('leaves the month empty so the real payment month is chosen', () => {
-    const wrapper = mountModal();
+  it('defaults to the exact payment date prefilled with today', () => {
+    // 20:00 local: toISOString() would already be tomorrow in Bogotá
+    // (UTC-5) — this pins the local-date formatting.
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-27T20:00:00'));
+    try {
+      const wrapper = mountModal();
 
-    expect(wrapper.find('input[type="month"]').element.value).toBe('');
+      const dateInput = wrapper.find('input[type="date"]');
+      expect(dateInput.exists()).toBe(true);
+      expect(dateInput.element.value).toBe('2026-07-27');
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
-  it('switches to an exact payment date when the toggle is enabled', async () => {
+  it('downgrades to month-only via the toggle and back', async () => {
     const wrapper = mountModal();
 
-    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('input[type="date"]').setValue('2026-11-17');
+    await wrapper
+      .find('[data-testid="income-liquidate-exact-date"]')
+      .setValue(false);
+
+    // The typed date is kept, reduced to the month the user can fix.
+    expect(wrapper.find('input[type="month"]').element.value).toBe('2026-11');
+
     await wrapper
       .find('[data-testid="income-liquidate-exact-date"]')
       .setValue(true);
+    expect(wrapper.find('input[type="date"]').element.value).toBe('2026-11-01');
+  });
 
-    // The typed month is kept, upgraded to a full date the user can fix.
-    const dateInput = wrapper.find('input[type="date"]');
-    expect(dateInput.element.value).toBe('2026-11-01');
+  it('submits the exact payment date', async () => {
+    const wrapper = mountModal();
 
-    await dateInput.setValue('2026-11-17');
+    await wrapper.find('input[type="date"]').setValue('2026-11-17');
     await wrapper.find('form').trigger('submit');
 
     expect(wrapper.emitted('submit')[0][0].period_date).toBe('2026-11-17');
   });
 
-  it('submits a liquid record linked to the expected one', async () => {
+  it('submits a month-only liquid record linked to the expected one', async () => {
     const wrapper = mountModal();
 
+    await wrapper
+      .find('[data-testid="income-liquidate-exact-date"]')
+      .setValue(false);
     await wrapper.find('input[type="month"]').setValue('2026-11');
     await wrapper.find('form').trigger('submit');
 
@@ -150,7 +170,7 @@ describe('IncomeLiquidateModal', () => {
   it('defaults the destination to pocket and omits the untouched split', async () => {
     const wrapper = mountModal();
 
-    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('input[type="date"]').setValue('2026-11-17');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -168,7 +188,7 @@ describe('IncomeLiquidateModal', () => {
 
     await wrapper.find('[data-testid="split-gustavo"]').setValue('400000');
     await wrapper.find('[data-testid="split-carlos"]').setValue('200000');
-    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('input[type="date"]').setValue('2026-11-17');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -180,7 +200,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('250000');
-    await wrapper.find('input[type="month"]').setValue('2026-09');
+    await wrapper.find('input[type="date"]').setValue('2026-09-15');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -204,7 +224,7 @@ describe('IncomeLiquidateModal', () => {
     expect(wrapper.find('[data-testid="partner-split-stub"]').exists()).toBe(false);
     expect(wrapper.text()).not.toContain('Destino');
 
-    await wrapper.find('input[type="month"]').setValue('2026-11');
+    await wrapper.find('input[type="date"]').setValue('2026-11-17');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];

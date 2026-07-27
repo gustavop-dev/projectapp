@@ -377,7 +377,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     // Defaults to what is still owed, not the full projection.
     await expect(page.getByTestId('partner-split-total')).toHaveValue('600.000');
 
-    await page.getByTestId('income-liquidate-period').fill('2026-11');
+    // The period input asks for the exact payment date by default.
+    await page.getByTestId('income-liquidate-period').fill('2026-11-17');
     await page.getByTestId('income-liquidate-submit').click();
 
     await expect.poll(() => calls.filter((c) => c.method === 'POST').length)
@@ -385,7 +386,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     const body = calls.find((c) => c.method === 'POST').body;
     expect(body.kind).toBe('liquid');
     expect(body.expected_income).toBe(11);
-    expect(body.period_date).toBe('2026-11');
+    expect(body.period_date).toBe('2026-11-17');
     // Liquidated money defaults into the pocket.
     expect(body.destination).toBe('pocket');
 
