@@ -2232,13 +2232,13 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid with backend-driven `year_options`; months before `statements_since` show "No aplica" and card chips show Procesado/Borrador.
   2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars, the PDF block and the transactions table (unidentified lines flagged).
-  3. On a draft: "Editar encabezado" (modal PATCH `.../update/`), "Agregar transacción" (tx modal in create mode → POST `.../transactions/batch/`), per-line Editar (modal PATCH `.../transactions/:txId/update/`) and Eliminar; Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
+  3. On a draft: "Editar encabezado" (modal PATCH `.../update/`), "Agregar transacción" (tx modal in create mode → POST `.../transactions/batch/`), per-line Editar (modal PATCH `.../transactions/:txId/update/` — notes, original currency and negative amounts) and Eliminar, plus dblclick inline editing of fecha/descripción/comercio/categoría/cuota/valor directly in the table (same PATCH; clearing comercio restores the "Sin identificar" badge, cuota accepts "n/total", processed statements render read-only cells); Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
   4. On a processed statement: Reabrir returns it to draft.
   5. "Documento del extracto": Subir PDF / Ver PDF / Reemplazar / Eliminar (with confirm) manage the bank PDF kept as documentation; the statement reminder email nags every 8 days until the previous month is processed with its PDF attached.
   6. "Comercios aprendidos" lists merchant aliases with delete.
   7. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
-- **Coverage:** ✅ Covered (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm; header-edit modal, forced close, reopen and aliases remain unasserted)
-- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`
+- **Coverage:** ✅ Covered (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm, inline merchant edit with PATCH body, invalid-cuota client error, backend 400 surfaced in Spanish, processed read-only gate; header-edit modal, forced close, reopen and aliases remain unasserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`, `e2e/admin/admin-accounting-statements-inline-edit.spec.js`
 
 ### FLOW: `admin-clients-config-tab`
 
@@ -5734,7 +5734,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
   6. An expected row shows its fulfilment state, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + outstanding amount) or Pendiente (untinted).
-  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period is a month by default with a "Registrar el día exacto de pago" toggle that switches the input to a full date. Submitting POSTs a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
+  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period asks for the exact date by default, prefilled with today (the "Registrar el día exacto de pago" toggle downgrades the input to month-only when only the month is known). Submitting POSTs a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
   8. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
@@ -5742,7 +5742,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch C] Personal ledger: selecting "Personal Gustavo/Carlos" hides the partner split and the pocket destination, shows a single "Valor" field, and the backend normalizes the split to the owner (pocket destination rejected).
   - [Branch D] Partial payment: liquidating for less than the pending amount leaves the expected row Parcial; liquidating again accumulates against the same parent.
   - [Branch E] Write-off is not offered once a row has liquidations — the backend rejects it, because it would drop the full expected amount while its liquid children keep counting. The remainder is registered as a separate lost record instead.
-  - [Branch F] Written-off rows are excluded from the "Todos" working set and from the export, and drop out of the expected projection and the utility; they surface via the "Pérdidas" filter, the "Total perdido" chip and the "Perdido (año)" KPI.
+  - [Branch F] Written-off rows drop out of the expected projection and the utility but stay visible (and searchable/exportable) under "Todos"; a builtin "Perdidos" quick tab (never persisted server-side, no rename/delete menu) isolates them with one click, alongside the "Pérdidas" segment in the filter panel, the "Total perdido" chip and the "Perdido (año)" KPI. (Until Jul 2026 they were hidden from the Todos working set and the export.)
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 

@@ -76,8 +76,8 @@ function makeDetail(overrides = {}) {
   };
 }
 
-function buildHandler({ calls }) {
-  const state = { detail: makeDetail() };
+function buildHandler({ calls, patchError = null }) {
+  const state = { detail: makeDetail(), patchError };
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -121,6 +121,13 @@ function buildHandler({ calls }) {
     ) {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
+      if (state.patchError) {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: state.patchError }),
+        };
+      }
       const updated = { ...state.detail.transactions[0], ...body };
       state.detail = makeDetail({ transactions: [updated] });
       return {
@@ -182,6 +189,50 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
       merchant_name: 'Hetzner Cloud',
       is_identified: true,
     });
+  });
+
+  test('an invalid cuota format shows an error and sends no PATCH', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoStatements(page);
+
+    await page.getByTestId('statement-chip-2').click();
+    await expect(page.getByTestId('statement-detail')).toBeVisible();
+
+    const cell = page.getByTestId('tx-cell-installment_label-10');
+    await cell.getByTestId('inline-cell-display').dblclick();
+    const input = cell.locator('input');
+    await input.fill('5/3');
+    await input.press('Enter');
+
+    await expect(page.getByText('Formato de cuota inválido')).toBeVisible();
+    expect(calls).toHaveLength(0);
+  });
+
+  test('a backend 400 on the inline PATCH surfaces the Spanish error', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      patchError: 'El extracto ya está procesado. Reábrelo antes de modificar sus transacciones.',
+    }));
+    await gotoStatements(page);
+
+    await page.getByTestId('statement-chip-2').click();
+    await expect(page.getByTestId('statement-detail')).toBeVisible();
+
+    const cell = page.getByTestId('tx-cell-merchant_name-10');
+    await cell.getByTestId('inline-cell-display').dblclick();
+    const input = cell.locator('input');
+    await input.fill('Otro comercio');
+    await input.press('Enter');
+
+    await expect(page.getByText(/ya está procesado/)).toBeVisible();
+    // The row keeps its original value.
+    await expect(cell).toContainText('Hetzner');
   });
 
   test('a processed statement opens no inline editor on dblclick', {
