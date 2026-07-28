@@ -166,7 +166,7 @@ def noop_reverse(_apps, _schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0165_update_default_contract_template_v5'),
+        ('content', '0166_hourpackagesettings_base_rates'),
     ]
 
     operations = [

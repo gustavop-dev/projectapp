@@ -394,7 +394,7 @@ class TestLegalTermsMigration:
         from django.apps import apps as global_apps
 
         migration = importlib.import_module(
-            'content.migrations.0166_value_added_legal_terms_clauses')
+            'content.migrations.0167_value_added_legal_terms_clauses')
         migration.apply_legal_terms(global_apps, None)
 
     def _section(self, proposal, section_type):
