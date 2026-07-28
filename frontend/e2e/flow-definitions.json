@@ -1729,10 +1729,11 @@
         "guest"
       ],
       "priority": "P2",
-      "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing.",
+      "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing, and jumps to a section from the cover index.",
       "expectedSpecs": 1,
       "outcomes": [
-        "display"
+        "display",
+        "success"
       ]
     },
     "platform-login": {
@@ -4062,8 +4063,13 @@
         "admin"
       ],
       "priority": "P3",
-      "description": "Admin opens the Configuración section of /panel/hour-packages: saves the default view mode (PATCH /api/hour-packages/admin/settings/update/, toast on save) and restores one nationality's catalog to the canonical DEFAULT_PACKAGES ladder behind a ConfirmModal (POST /api/hour-packages/admin/restore-defaults/, destructive replace).",
-      "expectedSpecs": 0
+      "description": "Admin opens the Configuración section of /panel/hour-packages: edits the per-nationality base hourly rates (COL/EXT/USA) and saves — PATCH /api/hour-packages/admin/settings/update/ propagates the rate to every package of that nationality and the catalog reflects it; invalid rates (<= 0) are rejected client-side and a server failure surfaces an error toast. Also saves the default view mode and restores one nationality's catalog to the canonical DEFAULT_PACKAGES ladder behind a ConfirmModal (POST /api/hour-packages/admin/restore-defaults/, destructive replace; restore also resets that nationality's base rate).",
+      "outcomes": [
+        "success",
+        "error",
+        "failure",
+        "display"
+      ]
     },
     "admin-clients-config-tab": {
       "name": "Admin Clients — Configuraciones Tab",

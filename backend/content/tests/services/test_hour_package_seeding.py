@@ -179,3 +179,36 @@ class TestProposalCreationSeeding:
         section = create_section_for_proposal(proposal, 'commercial_conditions')
         assert section.content_json['currency'] == 'USD'
         assert section.content_json['packages'][0]['hourlyRate'] == 40.0
+
+
+class TestBaseRatePropagationReachesNewProposals:
+    def test_new_proposal_seeds_with_propagated_rate(self):
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+        )
+        _ext_packages()
+        apply_base_rates_to_catalog({'EXT': 55})
+        result = seed_commercial_conditions_from_catalog(
+            BASE_CONTENT, nationality='EXT', language='es',
+        )
+        assert result['hourlyRate'] == 55.0
+        assert [p['hourlyRate'] for p in result['packages']] == [55.0, 55.0]
+
+    def test_existing_proposal_snapshot_survives_propagation(self):
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+        )
+        _ext_packages()
+        proposal, _ = build_proposal_from_json({
+            'title': 'Snapshot MX', 'client_name': 'Cliente',
+            'nationality': 'EXT', 'language': 'es',
+            'sections': {},
+        })
+        section = proposal.sections.get(section_type='commercial_conditions')
+        snapshot = section.content_json
+        assert snapshot['hourlyRate'] == 40.0
+
+        apply_base_rates_to_catalog({'EXT': 55})
+        section.refresh_from_db()
+        assert section.content_json == snapshot
+        assert section.content_json['hourlyRate'] == 40.0

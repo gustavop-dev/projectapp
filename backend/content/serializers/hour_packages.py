@@ -67,4 +67,21 @@ class HourPackageSettingsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = HourPackageSettings
-        fields = ('default_view_mode', 'updated_at')
+        fields = (
+            'default_view_mode', 'base_rate_col', 'base_rate_ext',
+            'base_rate_usa', 'updated_at',
+        )
+
+    def _validate_base_rate(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('La tarifa base debe ser mayor a 0.')
+        return value
+
+    def validate_base_rate_col(self, value):
+        return self._validate_base_rate(value)
+
+    def validate_base_rate_ext(self, value):
+        return self._validate_base_rate(value)
+
+    def validate_base_rate_usa(self, value):
+        return self._validate_base_rate(value)

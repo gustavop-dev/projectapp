@@ -201,6 +201,47 @@ class TestRenderCommercialConditions:
         assert any('$100.000 COP/h' in r for r in recorded)
         assert any('$90.000 COP/h' in r for r in recorded)
 
+    def test_pdf_shows_rate_propagated_from_settings(self, pdf_canvas, monkeypatch):
+        """Base-rate propagation → catalog → seeding → PDF end to end."""
+        from content.models import HourPackage
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+            seed_commercial_conditions_from_catalog,
+        )
+
+        HourPackage.objects.filter(nationality='COL').delete()
+        HourPackage.objects.create(
+            nationality='COL', name_es='Hora Puntual', name_en='Single Hour',
+            hours=1, hourly_rate=30000, discount_percent=0, order=1,
+        )
+        HourPackage.objects.create(
+            nationality='COL', name_es='Paquete Ágil', name_en='Agile Pack',
+            hours=20, hourly_rate=30000, discount_percent=10, order=2,
+        )
+        apply_base_rates_to_catalog({'COL': Decimal('35000')})
+
+        base = {
+            'index': '17', 'title': 'Condiciones comerciales',
+            'hourlyRate': 30000, 'currency': 'COP', 'packages': [],
+        }
+        data = seed_commercial_conditions_from_catalog(
+            base, nationality='COL', language='es',
+        )
+
+        recorded = []
+        orig = pdf_canvas.drawString
+
+        def rec(x, y, text, *a, **k):
+            recorded.append(str(text))
+            return orig(x, y, text, *a, **k)
+
+        monkeypatch.setattr(pdf_canvas, 'drawString', rec)
+        _render_commercial_conditions(
+            pdf_canvas, data, None, ps={'num': 1, 'client': 'X'},
+            y=PAGE_H - MARGIN_T)
+        assert any('$35.000 COP/h' in r for r in recorded)
+        assert not any('$30.000 COP/h' in r for r in recorded)
+
 
 # ---------------------------------------------------------------------------
 # PDF: value_added gating ("condicionado")

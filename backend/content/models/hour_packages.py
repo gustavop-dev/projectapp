@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 
 
@@ -13,6 +15,13 @@ CURRENCY_BY_NATIONALITY = {
     Nationality.COL: 'COP',
     Nationality.EXT: 'USD',
     Nationality.USA: 'USD',
+}
+
+# Settings field holding the base hourly rate for each nationality.
+BASE_RATE_FIELD_BY_NATIONALITY = {
+    Nationality.COL: 'base_rate_col',
+    Nationality.EXT: 'base_rate_ext',
+    Nationality.USA: 'base_rate_usa',
 }
 
 
@@ -66,6 +75,10 @@ class HourPackageSettings(models.Model):
     Usage:
         settings = HourPackageSettings.load()
         settings.default_view_mode  # → 'table' | 'cards' | 'compare'
+        settings.base_rate_col      # → base hourly rate applied to COL packages
+
+    Saving a base rate through the panel propagates it to every package of
+    that nationality (see ``hour_package_service.apply_base_rates_to_catalog``).
     """
 
     class ViewMode(models.TextChoices):
@@ -75,6 +88,18 @@ class HourPackageSettings(models.Model):
 
     default_view_mode = models.CharField(
         max_length=10, choices=ViewMode.choices, default=ViewMode.TABLE,
+    )
+
+    # Base hourly rate per nationality. Defaults mirror the July 2026 ladder
+    # in hour_package_service.DEFAULT_PACKAGES — keep both in lockstep.
+    base_rate_col = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('30000'),
+    )
+    base_rate_ext = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('18'),
+    )
+    base_rate_usa = models.DecimalField(
+        max_digits=14, decimal_places=2, default=Decimal('30'),
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
