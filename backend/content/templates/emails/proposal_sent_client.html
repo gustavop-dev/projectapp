@@ -15,7 +15,8 @@
 <style>
 body,table,td,a{-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%}
 table,td{mso-table-lspace:0;mso-table-rspace:0;border-collapse:collapse}
-img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none;display:block}
+img{-ms-interpolation-mode:bicubic;border:0;outline:none;text-decoration:none}
+.img-block{display:block}
 body{margin:0;padding:0;width:100%!important;background:#f4f1ea}
 a{text-decoration:none}
 @media only screen and (max-width:520px){
@@ -78,8 +79,8 @@ a{text-decoration:none}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
 {% for option in payment_options %}<tr><td style="padding:12px 0;{% if not forloop.last %}border-bottom:1px solid #ece8db;{% endif %}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-<td valign="top" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.label }}</td>
-{% if option.description %}<td valign="top" align="right" style="font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.description }}</td>{% endif %}
+<td valign="top" style="width:65%;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.label }}</td>
+{% if option.description %}<td valign="top" align="right" style="white-space:nowrap;font-family:Ubuntu,Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;color:#001713;">{{ option.description }}</td>{% endif %}
 </tr></table></td></tr>{% endfor %}
 </table></td></tr>
 {% endif %}
