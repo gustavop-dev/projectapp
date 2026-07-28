@@ -599,6 +599,47 @@ class TestUpdateCommercialConditionsSection:
         assert section.content_json['hourPackagesMode'] == 'manual'
         assert 'hourlyRate' not in section.content_json['packages'][0]
 
+    def test_persists_manual_rate_keys(self, admin_client, prop):
+        """The «Tarifa por hora» tab writes its rate keys through this PATCH."""
+        section = _create_section(prop, 'commercial_conditions')
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        payload = {
+            'content_json': {
+                'index': '17',
+                'title': 'Condiciones comerciales',
+                'hourPackagesMode': 'manual',
+                'manualHourlyRate': 45000,
+                'manualCurrency': 'COP',
+                'manualPackageRates': [{'packageId': 7, 'hourlyRate': 52000}],
+                'packages': [
+                    {'id': 7, 'name': 'Ágil', 'hours': 20,
+                     'discountPercent': 10, 'note': ''},
+                ],
+            },
+        }
+        response = admin_client.patch(url, payload, format='json')
+        assert response.status_code == 200
+        section.refresh_from_db()
+        assert section.content_json['manualHourlyRate'] == 45000
+        assert section.content_json['manualCurrency'] == 'COP'
+        assert section.content_json['manualPackageRates'] == [
+            {'packageId': 7, 'hourlyRate': 52000},
+        ]
+        assert section.content_json['packages'][0]['id'] == 7
+
+    def test_rejects_non_numeric_manual_rate(self, admin_client, prop):
+        section = _create_section(prop, 'commercial_conditions')
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        payload = {
+            'content_json': {
+                'index': '17',
+                'title': 'Condiciones comerciales',
+                'manualHourlyRate': 'gratis',
+            },
+        }
+        response = admin_client.patch(url, payload, format='json')
+        assert response.status_code == 400
+
     def test_roundtrips_paste_data_across_updates(self, admin_client, prop):
         """Save paste data, then update again and verify persistence."""
         section = _create_section(prop, 'design_ux')

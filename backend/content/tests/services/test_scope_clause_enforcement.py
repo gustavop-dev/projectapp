@@ -135,6 +135,53 @@ class TestUpdateFromJson:
         assert content['scopeParagraphs'] == _default_scope('es')['scopeParagraphs']
         assert content['hourlyRate'] == 123456
 
+    def test_a_payload_rewriting_the_section_keeps_the_manual_hour_rate(self):
+        """The manual rate is panel-only, so no JSON payload ever carries it.
+
+        Without the carry-over, one save from the JSON tab would silently
+        return the proposal to catalog pricing.
+        """
+        proposal = self._proposal_with_stale_clause()
+        section = proposal.sections.get(section_type='commercial_conditions')
+        section.content_json = {
+            **section.content_json,
+            'hourPackagesMode': 'manual',
+            'manualHourlyRate': 45000,
+            'manualCurrency': 'COP',
+            'manualPackageRates': [{'packageId': 7, 'hourlyRate': 52000}],
+        }
+        section.save(update_fields=['content_json'])
+
+        apply_proposal_json_update(proposal, {
+            'sections': {'commercialConditions': _stale_payload_section()},
+        })
+
+        content = proposal.sections.get(
+            section_type='commercial_conditions').content_json
+        assert content['hourPackagesMode'] == 'manual'
+        assert content['manualHourlyRate'] == 45000
+        assert content['manualCurrency'] == 'COP'
+        assert content['manualPackageRates'] == [
+            {'packageId': 7, 'hourlyRate': 52000},
+        ]
+
+    def test_a_payload_stating_the_mode_still_wins(self):
+        proposal = self._proposal_with_stale_clause()
+        section = proposal.sections.get(section_type='commercial_conditions')
+        section.content_json = {
+            **section.content_json, 'hourPackagesMode': 'manual',
+        }
+        section.save(update_fields=['content_json'])
+
+        payload = {**_stale_payload_section(), 'hourPackagesMode': 'auto'}
+        apply_proposal_json_update(proposal, {
+            'sections': {'commercialConditions': payload},
+        })
+
+        content = proposal.sections.get(
+            section_type='commercial_conditions').content_json
+        assert content['hourPackagesMode'] == 'auto'
+
     def test_a_payload_omitting_the_section_leaves_it_untouched(self):
         proposal = self._proposal_with_stale_clause(status='sent')
 

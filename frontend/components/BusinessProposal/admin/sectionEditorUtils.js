@@ -160,10 +160,23 @@ export function buildFormFromJson(json, type, proposalData) {
         title: j.title || '',
         packagesTitle: j.packagesTitle || '',
         packagesIntro: j.packagesIntro || '',
+        // Hour rates and packages are owned by the «Tarifa por hora» tab and
+        // by the catalog; this form no longer renders them. They stay on the
+        // form purely so formToJson can hand them back untouched — dropping
+        // them here would wipe the proposal's packages on the next save.
         hourPackagesMode: j.hourPackagesMode === 'manual' ? 'manual' : 'auto',
         hourlyRate: j.hourlyRate ?? '',
         currency: j.currency || proposalData?.currency || 'COP',
+        manualHourlyRate: j.manualHourlyRate ?? '',
+        manualCurrency: j.manualCurrency || '',
+        manualPackageRates: Array.isArray(j.manualPackageRates)
+          ? j.manualPackageRates.map((e) => ({
+            packageId: e?.packageId,
+            hourlyRate: e?.hourlyRate,
+          }))
+          : [],
         packages: packages.map((p) => ({
+          id: p.id,
           name: p.name || '',
           hours: p.hours ?? '',
           discountPercent: p.discountPercent ?? 0,
@@ -329,11 +342,28 @@ export function formToJson(formData, type) {
         title: f.title,
         packagesTitle: f.packagesTitle || '',
         packagesIntro: f.packagesIntro || '',
+        // Carried through untouched — owned by the «Tarifa por hora» tab, not
+        // by this form. Emitting them back is what keeps a save here from
+        // resetting the proposal's rates and packages.
         hourPackagesMode: f.hourPackagesMode === 'manual' ? 'manual' : 'auto',
         hourlyRate: f.hourlyRate === '' || f.hourlyRate == null
           ? 0 : Number(f.hourlyRate),
         currency: f.currency || 'COP',
+        // Omitted when empty rather than coerced to 0: a 0 manual rate would
+        // print $0 packages in the PDF instead of falling back to the catalog.
+        ...(f.manualHourlyRate === '' || f.manualHourlyRate == null
+          ? {} : { manualHourlyRate: Number(f.manualHourlyRate) }),
+        ...(f.manualCurrency ? { manualCurrency: f.manualCurrency } : {}),
+        ...(Array.isArray(f.manualPackageRates) && f.manualPackageRates.length
+          ? {
+            manualPackageRates: f.manualPackageRates.map((e) => ({
+              packageId: e.packageId,
+              hourlyRate: Number(e.hourlyRate),
+            })),
+          }
+          : {}),
         packages: packages.map((p) => ({
+          ...(p.id == null ? {} : { id: p.id }),
           name: p.name || '',
           hours: p.hours === '' || p.hours == null ? 0 : Number(p.hours),
           discountPercent: p.discountPercent === '' || p.discountPercent == null

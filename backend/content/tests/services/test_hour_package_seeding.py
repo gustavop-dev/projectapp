@@ -1,4 +1,6 @@
 """Tests for seeding proposal commercial conditions from the hour-package catalog."""
+from copy import deepcopy
+
 import pytest
 from django.urls import reverse
 
@@ -273,27 +275,80 @@ class TestPdfLiveReseed:
         assert [p['hourlyRate'] for p in data['packages']] == [40.0, 45.0]
         assert data['packagesTitle'] == 'Título editado'
 
-    def test_pdf_manual_mode_keeps_snapshot(self, monkeypatch):
-        from content.services.hour_package_service import (
-            apply_base_rates_to_catalog,
-        )
-        _ext_packages()
-        proposal = self._proposal_with_snapshot()
+    def _set_content(self, proposal, **fields):
         section = proposal.sections.get(section_type='commercial_conditions')
         content = dict(section.content_json)
-        content['hourPackagesMode'] = 'manual'
-        content['packages'] = [
-            {'name': 'Manual', 'hours': 5, 'discountPercent': 0,
-             'note': '', 'hourlyRate': 999},
-        ]
+        content.update(fields)
         section.content_json = content
         section.save(update_fields=['content_json'])
-        apply_base_rates_to_catalog({'EXT': 55})
+        return section
+
+    def test_pdf_manual_mode_overrides_rates_but_keeps_catalog_structure(
+            self, monkeypatch):
+        """Manual mode is a rate override, not a frozen snapshot.
+
+        Names, hours and discounts keep coming from the catalog and keep
+        refreshing with it; only the price of the hour is per-proposal.
+        """
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=77)
 
         data = self._generate_and_capture(proposal, monkeypatch)
-        assert [p['name'] for p in data['packages']] == ['Manual']
-        assert data['packages'][0]['hourlyRate'] == 999
-        assert data['hourlyRate'] == 40.0
+        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Ágil MX']
+        assert [p['hourlyRate'] for p in data['packages']] == [77, 77]
+        assert data['hourlyRate'] == 77
+
+    def test_pdf_manual_per_package_override_beats_base_rate(self, monkeypatch):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        target = HourPackage.objects.get(nationality='EXT', name_es='Pro MX').pk
+        self._set_content(
+            proposal,
+            hourPackagesMode='manual',
+            manualHourlyRate=77,
+            manualPackageRates=[{'packageId': target, 'hourlyRate': 120}],
+        )
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        by_id = {p['id']: p['hourlyRate'] for p in data['packages']}
+        assert by_id[target] == 120
+        assert all(rate == 77 for pid, rate in by_id.items() if pid != target)
+
+    def test_pdf_manual_override_for_unknown_package_is_ignored(self, monkeypatch):
+        """A package removed from the catalog leaves an inert override entry."""
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        self._set_content(
+            proposal,
+            hourPackagesMode='manual',
+            manualHourlyRate=77,
+            manualPackageRates=[{'packageId': 999999, 'hourlyRate': 120}],
+        )
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['hourlyRate'] for p in data['packages']] == [77, 77]
+
+    def test_pdf_manual_without_base_rate_keeps_catalog_rates(self, monkeypatch):
+        """An empty manual rate must never render $0 packages."""
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=0)
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['hourlyRate'] for p in data['packages']] == [40.0, 45.0]
+
+    def test_pdf_manual_mode_does_not_mutate_stored_section(self, monkeypatch):
+        """Generating a PDF must never write back into content_json."""
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        section = self._set_content(
+            proposal, hourPackagesMode='manual', manualHourlyRate=77)
+        before = deepcopy(section.content_json)
+
+        self._generate_and_capture(proposal, monkeypatch)
+        section.refresh_from_db()
+        assert section.content_json == before
 
     @pytest.mark.parametrize('mode', ['auto', 'unexpected'])
     def test_pdf_explicit_auto_mode_still_reseeds(self, monkeypatch, mode):

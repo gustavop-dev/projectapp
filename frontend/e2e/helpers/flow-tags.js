@@ -47,6 +47,7 @@ export const ADMIN_PROPOSAL_MULTI_SEND = ['@flow:admin-proposal-multi-send', '@m
 export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_EDIT_FORM = ['@flow:admin-proposal-section-edit-form', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_SECTION_EDIT_PASTE = ['@flow:admin-proposal-section-edit-paste', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_HOUR_RATE = ['@flow:admin-proposal-hour-rate', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_SECTION_REORDER = ['@flow:admin-proposal-section-reorder', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_DIRTY_GUARD = ['@flow:admin-proposal-section-dirty-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_SECTION_ADD_DELETE = ['@flow:admin-proposal-section-add-delete', '@module:admin', '@priority:P2'];

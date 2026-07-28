@@ -29,7 +29,7 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from content.services.hour_package_service import (
-    seed_commercial_conditions_from_catalog,
+    resolve_commercial_conditions_content,
 )
 from content.services.proposal_service import normalize_hosting_plan
 from content.services.pdf_utils import (  # noqa: F401 — re-exported
@@ -2545,7 +2545,10 @@ class ProposalPdfService:
                 stype = sec.section_type
                 if stype in ('technical_document', 'greeting'):
                     continue
-                data = sec.content_json or {}
+                # Shallow copy: the index/title defaults below write into
+                # ``data``, and without this they would mutate the stored
+                # ``sec.content_json`` for every section that is not re-seeded.
+                data = dict(sec.content_json or {})
 
                 # Hour packages are catalog-driven, not a frozen snapshot:
                 # re-seed currency/hourlyRate/packages on every generation so
@@ -2553,13 +2556,13 @@ class ProposalPdfService:
                 # effort badge and scope clause stay from the stored section.
                 # Empty catalog → seed returns its input untouched (snapshot
                 # fallback); any failure → keep the stored snapshot.
-                # Sections with hourPackagesMode == 'manual' opt out: their
-                # stored snapshot is authoritative and the catalog never
-                # touches it (absent/unknown values behave as 'auto').
-                if (stype == 'commercial_conditions'
-                        and data.get('hourPackagesMode') != 'manual'):
+                # hourPackagesMode == 'manual' does NOT opt out of seeding:
+                # the catalog still owns names/hours/discounts/currency and
+                # only the rates are overlaid from the proposal's manual
+                # values (absent/unknown values behave as 'auto').
+                if stype == 'commercial_conditions':
                     try:
-                        data = seed_commercial_conditions_from_catalog(
+                        data = resolve_commercial_conditions_content(
                             data,
                             nationality=proposal.nationality,
                             language=ps['_pdf_lang'],

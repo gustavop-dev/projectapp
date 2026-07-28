@@ -105,4 +105,30 @@ describe('commercial_conditions roundtrip', () => {
     expect(form.hourPackagesMode).toBe('auto');
     expect(formToJson(form, 'commercial_conditions').hourPackagesMode).toBe('auto');
   });
+
+  it('carries the manual rate keys and package ids through untouched', () => {
+    const form = buildFormFromJson({
+      ...json,
+      hourPackagesMode: 'manual',
+      manualHourlyRate: 45000,
+      manualCurrency: 'COP',
+      manualPackageRates: [{ packageId: 7, hourlyRate: 52000 }],
+      packages: [{ id: 7, name: 'Ágil', hours: 20, discountPercent: 0, note: '' }],
+    }, 'commercial_conditions', { currency: 'COP' });
+
+    const out = formToJson(form, 'commercial_conditions');
+    expect(out.manualHourlyRate).toBe(45000);
+    expect(out.manualCurrency).toBe('COP');
+    expect(out.manualPackageRates).toEqual([{ packageId: 7, hourlyRate: 52000 }]);
+    expect(out.packages[0].id).toBe(7);
+  });
+
+  it('omits an empty manual rate instead of writing a zero that would print $0', () => {
+    const form = buildFormFromJson(json, 'commercial_conditions', { currency: 'COP' });
+    expect(form.manualHourlyRate).toBe('');
+
+    const out = formToJson(form, 'commercial_conditions');
+    expect('manualHourlyRate' in out).toBe(false);
+    expect('manualPackageRates' in out).toBe(false);
+  });
 });

@@ -368,14 +368,16 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     expect(captured.length).toBe(0);
   });
 
-  test('commercial_conditions: manual mode applies base rate to all packages and saves the mode', {
+  test('commercial_conditions: the section editor owns the texts and hands the pricing back untouched', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
     const proposalWithConditions = JSON.parse(JSON.stringify(mockProposal));
     proposalWithConditions.sections.push(_buildSection(113, 'commercial_conditions', '📋 Condiciones comerciales', 12, {
       index: '12', title: 'Condiciones comerciales', packagesTitle: 'Paquetes de horas',
       packagesIntro: '', hourlyRate: 30000, currency: 'COP',
-      packages: [{ name: 'Ágil', hours: 20, discountPercent: 10, note: '', hourlyRate: 35000 }],
+      hourPackagesMode: 'manual', manualHourlyRate: 45000, manualCurrency: 'COP',
+      manualPackageRates: [{ packageId: 7, hourlyRate: 52000 }],
+      packages: [{ id: 7, name: 'Ágil', hours: 20, discountPercent: 10, note: '', hourlyRate: 35000 }],
       effortBadge: '', scopeTitle: 'Alcance', scopeParagraphs: ['p1'],
     }));
 
@@ -399,25 +401,26 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
     const editor = page.getByTestId('section-editor');
 
-    // Auto mode ships disabled catalog-owned fields.
-    await expect(editor.getByLabel('Tarifa base por hora')).toBeDisabled();
+    // Rates and packages moved to the «Tarifa por hora» tab; this editor only
+    // points at them.
+    await expect(editor.getByTestId('hour-rate-tab-hint')).toContainText('Tarifa por hora');
+    await expect(editor.getByTestId('hour-packages-mode-manual')).toHaveCount(0);
+    await expect(editor.getByTestId('apply-base-rate-all')).toHaveCount(0);
+    await expect(editor.getByLabel('Tarifa base por hora')).toHaveCount(0);
 
-    await editor.getByTestId('hour-packages-mode-manual').click();
-    await expect(editor.getByLabel('Tarifa base por hora')).toBeEnabled();
-
-    await editor.getByLabel('Tarifa base por hora').fill('40000');
-    await editor.getByTestId('apply-base-rate-all').click();
-    // Preview reflects the base rate driving the arithmetic (10% off 40000).
-    await expect(editor.getByTestId('hour-package-preview-0')).toContainText('36.000');
-
+    await editor.getByLabel('Título de los paquetes').fill('Paquetes editados');
     await editor.getByRole('button', { name: 'Guardar Sección' }).click();
     await expect(editor).toHaveCount(0);
 
+    // Saving the texts must not disturb the pricing this form no longer edits.
     expect(captured).toHaveLength(1);
     const cj = captured[0].body.content_json;
+    expect(cj.packagesTitle).toBe('Paquetes editados');
     expect(cj.hourPackagesMode).toBe('manual');
-    expect(cj.hourlyRate).toBe(40000);
-    expect(cj.packages[0]).not.toHaveProperty('hourlyRate');
+    expect(cj.manualHourlyRate).toBe(45000);
+    expect(cj.manualCurrency).toBe('COP');
+    expect(cj.manualPackageRates).toEqual([{ packageId: 7, hourlyRate: 52000 }]);
+    expect(cj.packages[0]).toMatchObject({ id: 7, name: 'Ágil', hours: 20, hourlyRate: 35000 });
     expect(cj._editMode).toBe('form');
   });
 
