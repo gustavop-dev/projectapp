@@ -274,6 +274,9 @@ test.describe('Proposal Value Added Modules', () => {
   test('reads the categorised legal clauses in the terms modal', {
     tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the proposal link is the client's only real entry
+    // point — it is shared via email/WhatsApp, there is no in-app UI to browse to
+    // it from; gotoValueAdded still reaches this section by clicking nav-next)
     await gotoValueAdded(page, makeLegalTermsProposal());
 
     await page.getByTestId('value-added-terms-ai_automation_module').click();
@@ -295,6 +298,9 @@ test.describe('Proposal Value Added Modules', () => {
   test('expands the general provisions at the end of the section', {
     tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the proposal link is the client's only real entry
+    // point — it is shared via email/WhatsApp, there is no in-app UI to browse to
+    // it from; gotoValueAdded still reaches this section by clicking nav-next)
     await gotoValueAdded(page, makeLegalTermsProposal());
 
     const block = page.getByTestId('value-added-general-terms');
