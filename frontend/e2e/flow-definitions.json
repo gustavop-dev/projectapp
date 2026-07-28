@@ -1,6 +1,6 @@
 {
-  "version": "2.60.0",
-  "lastUpdated": "2026-07-27",
+  "version": "2.60.1",
+  "lastUpdated": "2026-07-28",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
