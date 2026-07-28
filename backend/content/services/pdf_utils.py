@@ -1761,6 +1761,24 @@ def _clean_inline_bold(text):
     return text
 
 
+def _clean_cell_text(text):
+    """Single-line-safe cell text for raw drawString: strips emoji/HTML,
+    removes **bold** markers and collapses tabs/newlines/runs of spaces."""
+    if not text:
+        return ''
+    return ' '.join(_clean_inline_bold(_strip_emoji(str(text))).split())
+
+
+def _priority_pill_width(priority, lang='es'):
+    """Width _draw_priority_pill will occupy; 0.0 when it draws nothing."""
+    key = str(priority or '').strip().lower()
+    if not key:
+        return 0.0
+    labels = _REQ_PRIORITY_LABELS.get(lang) or _REQ_PRIORITY_LABELS['es']
+    label = labels.get(key) or key.capitalize()
+    return _string_width_mixed(label, _font('medium'), 7) + 16  # +16 = 2×padding_h
+
+
 # ─────────────────────────────────────────────────────────────
 # New drawing functions
 # ─────────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ from content.services.pdf_utils import (
     MARGIN_B,
     _break_token_by_width,
     _check_y_with_redraw,
+    _clean_cell_text,
     _draw_feature_row,
     _draw_kpi_tile_row,
     _draw_line_with_links,
@@ -28,6 +29,7 @@ from content.services.pdf_utils import (
     _fit_text_ellipsis,
     _font,
     _measure_inline_width,
+    _priority_pill_width,
     _register_fonts,
     _section_header_height,
     _split_lines_for_page,
@@ -271,3 +273,28 @@ def test_priority_pill_semantics(pdf_canvas):
     # Empty is a no-op.
     assert _draw_priority_pill(c, 100, 440, '') == (100, 440)
     assert _draw_priority_pill(c, 100, 440, None) == (100, 440)
+
+
+class TestCleanCellText:
+    def test_collapses_tabs_and_newlines(self):
+        assert _clean_cell_text('Foo\tBar\nBaz') == 'Foo Bar Baz'
+
+    def test_strips_bold_markers_and_html(self):
+        assert _clean_cell_text('<b>Alta</b> de **usuarios**') == 'Alta de usuarios'
+
+    def test_none_and_empty_return_empty(self):
+        assert _clean_cell_text(None) == ''
+        assert _clean_cell_text('') == ''
+
+
+def test_priority_pill_width_matches_drawn_pill(pdf_canvas):
+    c = pdf_canvas
+    right, _ = _draw_priority_pill(c, 100, 500, 'high')
+    assert right - 100 == pytest.approx(_priority_pill_width('high'))
+    right, _ = _draw_priority_pill(c, 100, 480, 'critical', lang='en')
+    assert right - 100 == pytest.approx(_priority_pill_width('critical', lang='en'))
+
+
+def test_priority_pill_width_zero_for_empty():
+    assert _priority_pill_width('') == 0.0
+    assert _priority_pill_width(None) == 0.0
