@@ -1007,8 +1007,11 @@ export const useProposalStore = defineStore('proposals', {
      * @param {string} lang - 'es' or 'en'.
      * @param {Array|null} sectionsJson - Full array of section dicts.
      * @param {Object|null} generalConfig - Optional general defaults payload.
+     * @param {string|null} baseUpdatedAt - updated_at of the version being
+     *   edited. Sent with a wholesale sections_json write so the backend
+     *   answers 409 ('stale_defaults') instead of overwriting a newer version.
      */
-    async saveProposalDefaults(lang, sectionsJson, generalConfig = null) {
+    async saveProposalDefaults(lang, sectionsJson, generalConfig = null, baseUpdatedAt = null) {
       this.isUpdating = true;
       this.error = null;
       try {
@@ -1017,6 +1020,9 @@ export const useProposalStore = defineStore('proposals', {
         };
         if (Array.isArray(sectionsJson)) {
           payload.sections_json = sectionsJson;
+          if (baseUpdatedAt) {
+            payload.base_updated_at = baseUpdatedAt;
+          }
         }
         if (generalConfig && typeof generalConfig === 'object') {
           const fieldMap = {

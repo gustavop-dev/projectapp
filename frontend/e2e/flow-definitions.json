@@ -1489,11 +1489,12 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Manage default section configurations for new proposals (ES/EN), with save and reset-to-hardcoded.",
+      "description": "Manage default section configurations for new proposals (ES/EN), with save and reset-to-hardcoded. Saving sections states the version loaded, so a snapshot left open across another write is refused instead of rewinding the stored defaults.",
       "expectedSpecs": 1,
       "outcomes": [
         "success",
-        "display"
+        "display",
+        "failure"
       ]
     },
     "admin-email-templates-config": {

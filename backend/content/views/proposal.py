@@ -3209,6 +3209,44 @@ def dismiss_proposal_alert(request, alert_id):
 # Proposal Default Config
 # ---------------------------------------------------------------------------
 
+def _stale_defaults_response(config, base_updated_at):
+    """Reject a defaults write based on a version that is no longer current.
+
+    ``sections_json`` is saved wholesale from the snapshot the panel loaded when
+    the page opened. A tab left open across a migration — or another admin's
+    save — would otherwise rewind the stored defaults without a trace, and every
+    proposal created afterwards would inherit the rewound content.
+
+    The comparison is exact: the value travels back untouched from the one this
+    endpoint serialised, so anything older than the stored ``updated_at`` means
+    the caller never saw the current version.
+
+    Returns a ``Response`` when the write must be refused, ``None`` when it may
+    proceed.
+    """
+    parsed = parse_datetime(base_updated_at) if base_updated_at else None
+    if parsed is None:
+        return error_response(
+            'La versión de referencia enviada no es una fecha válida.',
+            code='invalid_base_updated_at',
+            hint='Recarga la página de valores por defecto e intenta de nuevo.',
+        )
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed)
+
+    if config.updated_at <= parsed:
+        return None
+
+    return error_response(
+        'Los valores por defecto cambiaron desde que abriste esta página.',
+        code='stale_defaults',
+        hint=(
+            'Recarga para ver la versión actual; si guardas ahora perderías '
+            'esos cambios.'
+        ),
+        status=status.HTTP_409_CONFLICT,
+    )
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAdminUser])
@@ -3217,6 +3255,9 @@ def proposal_defaults(request):
     GET  — Retrieve the default section config for a language.
            Falls back to the hardcoded defaults when no DB config exists.
     PUT  — Save (create or update) the default section config for a language.
+           Callers that rewrite ``sections_json`` may send ``base_updated_at``
+           (the ``updated_at`` they loaded) to get a 409 instead of silently
+           overwriting a newer version.
     """
     from content.services.proposal_service import ProposalService
 
@@ -3259,6 +3300,11 @@ def proposal_defaults(request):
     # PUT
     config = ProposalDefaultConfig.objects.filter(language=lang).first()
     payload = dict(request.data)
+    base_updated_at = payload.pop('base_updated_at', None)
+    if config and base_updated_at and 'sections_json' in payload:
+        stale = _stale_defaults_response(config, base_updated_at)
+        if stale is not None:
+            return stale
     payload['language'] = lang
     if 'sections_json' not in payload:
         if config:

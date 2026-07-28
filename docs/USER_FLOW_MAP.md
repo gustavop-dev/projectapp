@@ -1103,13 +1103,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Admin expands a section and edits its content using SectionEditor (form or paste mode).
   6. Section is marked as "Modificado" locally.
   7. Admin clicks "Guardar Todos los Cambios".
-  8. API call to `PUT /api/proposals/defaults/` with the full sections_json array.
+  8. API call to `PUT /api/proposals/defaults/` with the full sections_json array plus `base_updated_at`, the version loaded in step 2.
   9. Success feedback displays.
 - **Branches:**
   - [Branch A — Reset] Admin clicks "Restaurar valores originales" → confirmation modal → `POST /api/proposals/defaults/reset/` → sections reload from hardcoded defaults.
   - [Branch B — Language switch with unsaved changes] Confirmation prompt warns about losing changes.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js`
+  - [Branch C — Stale snapshot (failure)] The stored config moved on since step 2 (a migration, or another admin saving) → `PUT` answers `409 stale_defaults` → the panel shows "Los valores por defecto cambiaron desde que abriste esta página." and **keeps the pending edits on screen**, so the admin chooses between refreshing and re-applying them. Without this the snapshot would rewind the stored defaults and every proposal created afterwards would inherit the rewound content.
+- **Coverage:** ⚠️ Partial — `display` covered; `success` and `failure` have no qualifying E2E test.
+- **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js` (5 tests, all `@outcome:display`)
 - **Backend Tests:** `content/tests/views/test_proposal_defaults_views.py`, `content/tests/models/test_proposal_default_config.py`, `content/tests/services/test_proposal_service.py::TestGetDefaultSectionsFromDB`
 
 ### FLOW: `admin-proposal-defaults-slug-pattern`
