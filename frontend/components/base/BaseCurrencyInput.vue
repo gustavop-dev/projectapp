@@ -7,6 +7,8 @@ import { oneOf } from './propValidators'
  * Money input that live-formats es-CO thousands separators while typing
  * (1234567 -> "1.234.567") and emits the numeric value (null when empty).
  * With decimals > 0 a single comma is accepted as decimal separator.
+ * With `allowNegative` a leading minus survives sanitising, so refunds and
+ * chargebacks keep their sign instead of being silently flipped positive.
  */
 const props = defineProps({
   modelValue: { type: [Number, String], default: null },
@@ -15,6 +17,8 @@ const props = defineProps({
   error: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  /** Keep a leading "-" so negative amounts can be typed and edited. */
+  allowNegative: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -22,30 +26,41 @@ const emit = defineEmits(['update:modelValue'])
 const display = ref('')
 
 function sanitize(raw) {
-  let clean = String(raw ?? '').replace(/[^\d,]/g, '')
-  if (props.decimals === 0) return clean.replace(/,/g, '')
-  const firstComma = clean.indexOf(',')
-  if (firstComma !== -1) {
-    clean =
-      clean.slice(0, firstComma + 1) +
-      clean.slice(firstComma + 1).replace(/,/g, '').slice(0, props.decimals)
+  const text = String(raw ?? '')
+  // Only a minus in the first position counts — "1-2" is a typo, not a sign.
+  const negative = props.allowNegative && text.trimStart().startsWith('-')
+  let clean = text.replace(/[^\d,]/g, '')
+  if (props.decimals === 0) {
+    clean = clean.replace(/,/g, '')
+  } else {
+    const firstComma = clean.indexOf(',')
+    if (firstComma !== -1) {
+      clean =
+        clean.slice(0, firstComma + 1) +
+        clean.slice(firstComma + 1).replace(/,/g, '').slice(0, props.decimals)
+    }
   }
-  return clean
+  // A bare "-" is kept so the sign can be typed before the digits.
+  return negative ? `-${clean}` : clean
 }
 
 function toNumber(clean) {
-  if (!clean || clean === ',') return null
+  if (!clean || clean === ',' || clean === '-' || clean === '-,') return null
   const numeric = Number(clean.replace(',', '.'))
   return Number.isFinite(numeric) ? numeric : null
 }
 
 function formatDisplay(clean) {
   if (!clean) return ''
-  const [intPart, decPart] = clean.split(',')
+  const negative = clean.startsWith('-')
+  const body = negative ? clean.slice(1) : clean
+  if (!body) return negative ? '-' : ''
+  const [intPart, decPart] = body.split(',')
   const formattedInt = new Intl.NumberFormat('es-CO').format(
     intPart ? parseInt(intPart, 10) : 0,
   )
-  return decPart !== undefined ? `${formattedInt},${decPart}` : formattedInt
+  const formatted = decPart !== undefined ? `${formattedInt},${decPart}` : formattedInt
+  return negative ? `-${formatted}` : formatted
 }
 
 function fromModel(value) {
@@ -59,14 +74,14 @@ function fromModel(value) {
 }
 
 function restoreCaret(el, previousValue, previousCaret) {
-  // Keep the caret after the same count of significant chars (digits/comma).
+  // Keep the caret after the same count of significant chars (digits/comma/sign).
   const significantLeft = previousValue
     .slice(0, previousCaret)
-    .replace(/[^\d,]/g, '').length
+    .replace(/[^\d,-]/g, '').length
   let position = 0
   let seen = 0
   while (position < display.value.length && seen < significantLeft) {
-    if (/[\d,]/.test(display.value[position])) seen += 1
+    if (/[\d,-]/.test(display.value[position])) seen += 1
     position += 1
   }
   el.setSelectionRange(position, position)

@@ -427,6 +427,32 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * learnMerchantAlias: remember a hand-typed merchant for future statements.
+     *
+     * Upserts by normalized descriptor, so re-mapping a descriptor that already
+     * has an alias corrects it instead of failing — that is exactly the case a
+     * manual fix produces. With `statement_id` the backend also back-applies the
+     * alias to the other unidentified rows of the same draft statement.
+     */
+    async learnMerchantAlias(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          'accounting/merchant-aliases/learn/', payload,
+        );
+        await this.fetchRecords('merchantAliases');
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'alias_learn_failed';
+        console.error('Error learning merchant alias:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * fetchSummary: Dashboard payload for a year (defaults to selectedYear).
      */
     async fetchSummary(year) {

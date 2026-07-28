@@ -4023,12 +4023,13 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: backend-driven year options (from the catalog's statements_since; months before it show 'No aplica') + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines, 'Documento del extracto' PDF block with upload/view/replace/delete), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, header edit modal and manual add-transaction on drafts, per-line edit/delete on drafts (modal for notes/original currency/negative amounts, plus dblclick inline editing of fecha/descripción/comercio/categoría/cuota/valor directly in the table — processed statements render read-only cells), collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
+      "description": "Superuser reviews the monthly credit-card statement ledger at /panel/accounting/statements: backend-driven year options (from the catalog's statements_since; months before it show 'No aplica') + card filters over a 12-month grid (Procesado/Borrador/Pendiente chips per card), inline statement detail (totals stat cards, category bars, transactions table flagging unidentified lines, 'Documento del extracto' PDF block with upload/view/replace/delete), finalize with forced-close confirm on total mismatch (POST /api/accounting/statements/:id/finalize/), reopen, delete, header edit modal and manual add-transaction on drafts, per-line delete on drafts, and single-click inline editing of fecha/descripcion/comercio/categoria/cuota/valor directly in the table (dashed underline + hover pencil as the affordance): comercio is a combobox over the learned merchant catalog that offers to remember the alias afterwards (POST /api/accounting/merchant-aliases/learn/) and can carry its default category, cuota is captured as a structured number/total pair, and negative amounts (refunds) edit inline keeping their sign. Editing a processed statement is allowed through a reopen-and-edit confirmation, since the backend keeps refusing writes on non-draft statements. Also: the per-line modal covering fecha, descripcion, comercio, categoria, cuota, valor and notas, collapsible learned merchant aliases with delete, and a 'Copiar prompt' button for the MCP chat kick-off. Statements are normally created from the claude.ai chat via the accounting MCP connector (create_statement).",
       "expectedSpecs": 9,
       "outcomes": [
         "display",
         "success",
-        "error"
+        "error",
+        "failure"
       ]
     },
     "admin-accounting-card-catalog": {

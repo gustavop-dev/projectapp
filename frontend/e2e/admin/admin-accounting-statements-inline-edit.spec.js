@@ -2,8 +2,10 @@
  * E2E tests for inline editing of statement transaction rows.
  *
  * FLOWS: admin-accounting-statements
- * Covers: dblclick inline merchant edit on a draft statement (PATCH body +
- *         updated cell), and the processed gate (no editor opens).
+ * Covers: single-click inline merchant edit on a draft statement (PATCH body +
+ *         updated cell), learning the merchant alias afterwards, the structured
+ *         cuota validation, negative amounts, a backend 400, and editing a
+ *         processed statement through the reopen confirmation.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -47,12 +49,20 @@ function makeTx(overrides = {}) {
     category: 'software',
     category_label: 'Software y suscripciones',
     installment_label: '',
+    installment_number: null,
+    installments_total: null,
     original_amount: null,
     original_currency: '',
     is_identified: true,
     ...overrides,
   };
 }
+
+const REFUND_TX = makeTx({
+  id: 11,
+  raw_description: 'DEVOLUCION HETZNER',
+  amount: '-120000.00',
+});
 
 function makeDetail(overrides = {}) {
   return {
@@ -76,72 +86,93 @@ function makeDetail(overrides = {}) {
   };
 }
 
-function buildHandler({ calls, patchError = null }) {
-  const state = { detail: makeDetail(), patchError };
+function processedDetail(transactions) {
+  return makeDetail({
+    id: 1,
+    period: '2026-05',
+    period_label: 'Mayo 2026',
+    status: 'processed',
+    status_label: 'Procesado',
+    ...(transactions ? { transactions } : {}),
+  });
+}
+
+/**
+ * @param calls      collector for every PATCH/POST the page issues
+ * @param patchError Spanish message the PATCH should fail with
+ * @param aliases    merchant catalog served to the combobox
+ * @param extraTx    extra rows appended to the draft statement
+ */
+function buildHandler({ calls, patchError = null, aliases = [], extraTx = [] }) {
+  const state = {
+    detail: makeDetail({ transactions: [makeTx(), ...extraTx] }),
+    // Reopening flips statement 1 to draft, exactly like the backend does.
+    statement1Status: 'processed',
+  };
+  const json = (body) => ({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify(body),
+  });
+
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          user: { username: 'admin', is_staff: true, is_superuser: true },
-        }),
-      };
+      return json({
+        user: { username: 'admin', is_staff: true, is_superuser: true },
+      });
     }
     if (apiPath.startsWith('accounting/statements/status/')) {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(statusPayload()),
-      };
+      return json(statusPayload());
     }
     if (apiPath === 'accounting/statements/1/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(makeDetail({
-          id: 1,
-          period: '2026-05',
-          period_label: 'Mayo 2026',
-          status: 'processed',
-          status_label: 'Procesado',
-        })),
-      };
+      const detail = processedDetail();
+      detail.status = state.statement1Status;
+      detail.status_label = state.statement1Status === 'draft' ? 'Borrador' : 'Procesado';
+      return json(detail);
+    }
+    if (apiPath === 'accounting/statements/1/reopen/' && method === 'POST') {
+      calls.push({ apiPath, method, body: {} });
+      state.statement1Status = 'draft';
+      const detail = processedDetail();
+      detail.status = 'draft';
+      detail.status_label = 'Borrador';
+      return json(detail);
     }
     if (apiPath === 'accounting/statements/2/' && method === 'GET') {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(state.detail),
-      };
+      return json(state.detail);
     }
-    if (
-      apiPath === 'accounting/statements/2/transactions/10/update/'
-      && method === 'PATCH'
-    ) {
+
+    const patchMatch = apiPath.match(
+      /^accounting\/statements\/(\d+)\/transactions\/(\d+)\/update\/$/,
+    );
+    if (patchMatch && method === 'PATCH') {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
-      if (state.patchError) {
+      if (patchError) {
         return {
           status: 400,
           contentType: 'application/json',
-          body: JSON.stringify({ detail: state.patchError }),
+          body: JSON.stringify({ detail: patchError }),
         };
       }
-      const updated = { ...state.detail.transactions[0], ...body };
-      state.detail = makeDetail({ transactions: [updated] });
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(updated),
-      };
+      const txId = Number(patchMatch[2]);
+      const rows = state.detail.transactions.map(
+        (tx) => (tx.id === txId ? { ...tx, ...body } : tx),
+      );
+      state.detail = makeDetail({ transactions: rows });
+      return json(rows.find((tx) => tx.id === txId));
+    }
+
+    if (apiPath === 'accounting/merchant-aliases/learn/' && method === 'POST') {
+      calls.push({ apiPath, method, body: route.request().postDataJSON() });
+      return json({
+        alias: { id: 5, match_text: 'PAGO SERVIDOR HETZNER', merchant_name: 'Hetzner Cloud' },
+        applied: 0,
+        warning: '',
+      });
     }
     if (apiPath.startsWith('accounting/merchant-aliases')) {
-      return {
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ results: [], meta: {} }),
-      };
+      return json({ results: aliases, meta: {} });
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
       return { status: 200, contentType: 'application/json', body: '[]' };
@@ -157,6 +188,11 @@ async function gotoStatements(page) {
   ).toBeVisible({ timeout: 25_000 });
 }
 
+async function openDraft(page) {
+  await page.getByTestId('statement-chip-2').click();
+  await expect(page.getByTestId('statement-detail')).toBeVisible();
+}
+
 test.describe('Admin Accounting Statements: inline row editing', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -165,21 +201,23 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
     });
   });
 
-  test('dblclick edits the merchant of a draft row and PATCHes it', {
+  test('a single click edits the merchant of a draft row and PATCHes it', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
     await gotoStatements(page);
-
-    await page.getByTestId('statement-chip-2').click();
-    await expect(page.getByTestId('statement-detail')).toBeVisible();
+    await openDraft(page);
 
     const cell = page.getByTestId('tx-cell-merchant_name-10');
-    await cell.getByTestId('inline-cell-display').dblclick();
+    await cell.getByTestId('inline-cell-display').click();
     const input = cell.locator('input');
     await input.fill('Hetzner Cloud');
     await input.press('Enter');
+
+    // The save offers to remember the merchant; decline it here.
+    await expect(page.getByText('Recordar este comercio')).toBeVisible();
+    await page.getByRole('button', { name: 'No, solo esta vez' }).click();
 
     await expect(cell).toContainText('Hetzner Cloud');
     const patchCall = calls.find(
@@ -191,28 +229,138 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
     });
   });
 
-  test('an invalid cuota format shows an error and sends no PATCH', {
+  test('accepting the prompt learns the merchant alias for future statements', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoStatements(page);
+    await openDraft(page);
+
+    const cell = page.getByTestId('tx-cell-merchant_name-10');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('Hetzner Cloud');
+    await input.press('Enter');
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Comercio recordado')).toBeVisible();
+    const learnCall = calls.find(
+      (call) => call.apiPath === 'accounting/merchant-aliases/learn/',
+    );
+    expect(learnCall.body).toEqual({
+      raw_description: 'PAGO SERVIDOR HETZNER',
+      merchant_name: 'Hetzner Cloud',
+      category: 'software',
+      statement_id: 2,
+    });
+  });
+
+  test('picking a catalog merchant fills the category of an "other" row', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      aliases: [{
+        id: 3,
+        match_text: 'TERPEL',
+        merchant_name: 'Terpel',
+        default_category: 'fuel',
+        default_category_label: 'Gasolina',
+      }],
+      extraTx: [makeTx({
+        id: 12,
+        raw_description: 'COMPRA TERPEL 4471',
+        merchant_name: '',
+        category: 'other',
+        category_label: 'Otros',
+        is_identified: false,
+      })],
+    }));
+    await gotoStatements(page);
+    await openDraft(page);
+
+    const cell = page.getByTestId('tx-cell-merchant_name-12');
+    await cell.getByTestId('inline-cell-display').click();
+    await cell.getByTestId('merchant-input-option-0').click();
+
+    const patchCall = calls.find(
+      (call) => call.apiPath === 'accounting/statements/2/transactions/12/update/',
+    );
+    expect(patchCall.body).toEqual({
+      merchant_name: 'Terpel',
+      is_identified: true,
+      category: 'fuel',
+    });
+  });
+
+  test('an invalid cuota shows an error and sends no PATCH', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
     await gotoStatements(page);
-
-    await page.getByTestId('statement-chip-2').click();
-    await expect(page.getByTestId('statement-detail')).toBeVisible();
+    await openDraft(page);
 
     const cell = page.getByTestId('tx-cell-installment_label-10');
-    await cell.getByTestId('inline-cell-display').dblclick();
-    const input = cell.locator('input');
-    await input.fill('5/3');
-    await input.press('Enter');
+    await cell.getByTestId('inline-cell-display').click();
+    await cell.getByTestId('inline-cell-installment-number').fill('5');
+    await cell.getByTestId('inline-cell-installment-total').fill('3');
+    await cell.getByTestId('inline-cell-installment-number').press('Enter');
 
-    await expect(page.getByText('Formato de cuota inválido')).toBeVisible();
+    await expect(page.getByText('Cuota inválida')).toBeVisible();
     expect(calls).toHaveLength(0);
   });
 
+  test('a valid cuota PATCHes the structured installment pair', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoStatements(page);
+    await openDraft(page);
+
+    const cell = page.getByTestId('tx-cell-installment_label-10');
+    await cell.getByTestId('inline-cell-display').click();
+    await cell.getByTestId('inline-cell-installment-number').fill('3');
+    await cell.getByTestId('inline-cell-installment-total').fill('12');
+    await cell.getByTestId('inline-cell-installment-number').press('Enter');
+
+    const patchCall = calls.find(
+      (call) => call.apiPath === 'accounting/statements/2/transactions/10/update/',
+    );
+    expect(patchCall.body).toEqual({
+      installment_number: 3,
+      installments_total: 12,
+    });
+  });
+
+  test('a negative amount stays negative when edited inline', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, extraTx: [REFUND_TX] }));
+    await gotoStatements(page);
+    await openDraft(page);
+
+    const cell = page.getByTestId('tx-cell-amount-11');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await expect(input).toHaveValue('-120.000');
+
+    await input.fill('-150000');
+    await input.press('Enter');
+
+    const patchCall = calls.find(
+      (call) => call.apiPath === 'accounting/statements/2/transactions/11/update/',
+    );
+    expect(patchCall.body).toEqual({ amount: -150000 });
+  });
+
   test('a backend 400 on the inline PATCH surfaces the Spanish error', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:error'],
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({
@@ -220,12 +368,10 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
       patchError: 'El extracto ya está procesado. Reábrelo antes de modificar sus transacciones.',
     }));
     await gotoStatements(page);
-
-    await page.getByTestId('statement-chip-2').click();
-    await expect(page.getByTestId('statement-detail')).toBeVisible();
+    await openDraft(page);
 
     const cell = page.getByTestId('tx-cell-merchant_name-10');
-    await cell.getByTestId('inline-cell-display').dblclick();
+    await cell.getByTestId('inline-cell-display').click();
     const input = cell.locator('input');
     await input.fill('Otro comercio');
     await input.press('Enter');
@@ -235,23 +381,58 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
     await expect(cell).toContainText('Hetzner');
   });
 
-  test('a processed statement opens no inline editor on dblclick', {
-    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display'],
+  test('editing a processed statement asks to reopen it first', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // quality: allow-deep-link (reaching /panel/accounting/statements through
     // the subnav is exercised by the accounting navigation specs; this test
-    // pins the processed read-only gate on the transaction cells)
-    await mockApi(page, buildHandler({ calls: [] }));
+    // pins the reopen-to-edit gate on the transaction cells)
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
     await gotoStatements(page);
 
     await page.getByTestId('statement-chip-1').click();
     await expect(page.getByTestId('statement-detail')).toBeVisible();
 
     const cell = page.getByTestId('tx-cell-merchant_name-10');
-    await expect(cell).toContainText('Hetzner');
-    await cell.dblclick();
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('Hetzner Cloud');
+    await input.press('Enter');
 
-    await expect(cell.locator('input')).toHaveCount(0);
-    await expect(cell.getByTestId('inline-cell-display')).toHaveCount(0);
+    await expect(page.getByText('Extracto finalizado')).toBeVisible();
+    await page.getByRole('button', { name: 'Reabrir y editar' }).click();
+
+    // Reopen and PATCH are chained, so wait for the save to land before
+    // asserting the order instead of racing the request chain.
+    await expect(page.getByText('Recordar este comercio')).toBeVisible();
+
+    // Reopening happens before the edit is applied.
+    expect(calls.map((call) => call.apiPath)).toEqual([
+      'accounting/statements/1/reopen/',
+      'accounting/statements/1/transactions/10/update/',
+    ]);
+  });
+
+  test('cancelling the reopen prompt leaves the processed row untouched', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoStatements(page);
+
+    await page.getByTestId('statement-chip-1').click();
+    await expect(page.getByTestId('statement-detail')).toBeVisible();
+
+    const cell = page.getByTestId('tx-cell-merchant_name-10');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('Hetzner Cloud');
+    await input.press('Enter');
+
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    expect(calls).toHaveLength(0);
+    await expect(cell).toContainText('Hetzner');
   });
 });

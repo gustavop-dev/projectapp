@@ -206,6 +206,100 @@ class TestMerchantAliasEndpoints:
         assert response.data['match_text'] == 'PRIMAX'
 
 
+class TestLearnMerchantAlias:
+    """The panel learns aliases from hand-typed merchant corrections."""
+
+    URL = '/api/accounting/merchant-aliases/learn/'
+
+    def test_learns_a_new_alias_from_the_raw_description(self, super_client):
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'primax 881100', 'merchant_name': 'Primax',
+             'category': 'fuel'},
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+        assert response.data['alias']['match_text'] == 'PRIMAX'
+        assert response.data['alias']['merchant_name'] == 'Primax'
+        assert response.data['applied'] == 0
+
+    def test_rewrites_an_existing_alias_instead_of_failing(self, super_client):
+        """A manual fix must be able to correct a wrong mapping."""
+        MerchantAlias.objects.create(
+            match_text='PRIMAX', merchant_name='Equivocado',
+            default_category='other',
+        )
+
+        # Normalizing drops the 6-digit token, so this lands on 'PRIMAX'.
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'primax 881100', 'merchant_name': 'Primax',
+             'category': 'fuel'},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert MerchantAlias.objects.filter(match_text='PRIMAX').count() == 1
+        alias = MerchantAlias.objects.get(match_text='PRIMAX')
+        assert alias.merchant_name == 'Primax'
+        assert alias.default_category == 'fuel'
+
+    def test_back_applies_to_the_unidentified_rows_of_the_statement(
+        self, super_client,
+    ):
+        statement = _create_statement(super_client)
+
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'PRIMAX 8811', 'merchant_name': 'Primax',
+             'category': 'fuel', 'statement_id': statement['id']},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['applied'] == 1
+        tx = CreditCardTransaction.objects.get(raw_description='PRIMAX 8811')
+        assert tx.merchant_name == 'Primax'
+        assert tx.category == 'fuel'
+        assert tx.is_identified is True
+
+    def test_rejects_a_blank_merchant(self, super_client):
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'PRIMAX 8811', 'merchant_name': '   '},
+            format='json',
+        )
+        assert response.status_code == 400
+        assert not MerchantAlias.objects.exists()
+
+    def test_rejects_an_unknown_category(self, super_client):
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'PRIMAX 8811', 'merchant_name': 'Primax',
+             'category': 'crypto'},
+            format='json',
+        )
+        assert response.status_code == 400
+        assert not MerchantAlias.objects.exists()
+
+    def test_rejects_a_non_numeric_statement_id(self, super_client):
+        response = super_client.post(
+            self.URL,
+            {'raw_description': 'PRIMAX 8811', 'merchant_name': 'Primax',
+             'statement_id': 'abc'},
+            format='json',
+        )
+        assert response.status_code == 400
+
+    def test_staff_without_superuser_is_rejected(self, admin_client):
+        response = admin_client.post(
+            self.URL,
+            {'raw_description': 'PRIMAX 8811', 'merchant_name': 'Primax'},
+            format='json',
+        )
+        assert response.status_code in (401, 403)
+
+
 class TestStatementPdfEndpoints:
     def _upload(self, client, statement_id, name='extracto.pdf', size=4):
         from django.core.files.uploadedfile import SimpleUploadedFile

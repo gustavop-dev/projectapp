@@ -284,7 +284,7 @@ test.describe('Admin Accounting Statements', () => {
     await page.getByTestId('tx-date-input').fill('2026-06-20');
     await page.getByTestId('tx-description-input').fill('COMPRA EXITO CALLE 80');
     await page.getByTestId('tx-merchant-input').fill('Éxito');
-    await page.locator('input[step="0.01"]').fill('120000');
+    await page.getByTestId('tx-amount-input').fill('120000');
     await page.getByTestId('tx-save').click();
 
     await expect(page.getByTestId('statement-tx-99')).toContainText('COMPRA EXITO CALLE 80');
@@ -292,6 +292,8 @@ test.describe('Admin Accounting Statements', () => {
       (call) => call.apiPath === 'accounting/statements/2/transactions/batch/',
     );
     expect(batchCall.body.transactions[0].raw_description).toBe('COMPRA EXITO CALLE 80');
+    // The currency input emits a number, not the raw typed string.
+    expect(batchCall.body.transactions[0].amount).toBe(120000);
   });
 
   test('finalizing a balanced draft marks it as processed', {

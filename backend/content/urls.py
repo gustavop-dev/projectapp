@@ -49,7 +49,8 @@ from content.views.portfolio_works import (
 from content.views.accounting_statement import (
     batch_create_transactions, create_merchant_alias, create_statement,
     delete_merchant_alias, delete_statement, delete_statement_transaction,
-    finalize_statement, list_merchant_aliases, list_statements,
+    finalize_statement, learn_merchant_alias, list_merchant_aliases,
+    list_statements,
     reopen_statement, resolve_merchant_aliases, retrieve_statement,
     statements_status, update_merchant_alias, update_statement,
     update_statement_transaction, upload_statement_pdf, delete_statement_pdf,
@@ -552,6 +553,7 @@ urlpatterns = [
 
     path('accounting/merchant-aliases/', list_merchant_aliases, name='list-merchant-aliases'),
     path('accounting/merchant-aliases/create/', create_merchant_alias, name='create-merchant-alias'),
+    path('accounting/merchant-aliases/learn/', learn_merchant_alias, name='learn-merchant-alias'),
     path('accounting/merchant-aliases/resolve/', resolve_merchant_aliases, name='resolve-merchant-aliases'),
     path('accounting/merchant-aliases/<int:record_id>/update/', update_merchant_alias, name='update-merchant-alias'),
     path('accounting/merchant-aliases/<int:record_id>/delete/', delete_merchant_alias, name='delete-merchant-alias'),

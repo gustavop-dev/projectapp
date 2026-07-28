@@ -13,7 +13,12 @@ from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
 from content.api_errors import error_response, error_response_from_exc
-from content.models import CreditCardStatement, CreditCardTransaction, MerchantAlias
+from content.models import (
+    CreditCardStatement,
+    CreditCardTransaction,
+    MerchantAlias,
+    TransactionCategory,
+)
 from content.permissions import IsSuperUser
 from content.serializers.accounting_statement import (
     CreditCardStatementDetailSerializer,
@@ -283,6 +288,53 @@ def create_merchant_alias(request):
     return Response(
         MerchantAliasSerializer(alias).data, status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def learn_merchant_alias(request):
+    """Remember one merchant from a hand-typed correction in the panel.
+
+    Unlike ``create_merchant_alias`` this accepts a descriptor that already has
+    an alias: fixing a wrong mapping is precisely what a manual edit produces,
+    so the write must upsert instead of failing on uniqueness. That is why the
+    payload skips ``MerchantAliasWriteSerializer`` — ``save_merchant_aliases``
+    already normalizes the descriptor and upserts on it.
+    """
+    raw_description = str(request.data.get('raw_description') or '').strip()
+    merchant_name = str(request.data.get('merchant_name') or '').strip()
+    if not raw_description or not merchant_name:
+        return error_response(
+            'La descripción del extracto y el comercio son obligatorios.'
+        )
+    category = request.data.get('category') or None
+    if category is not None and category not in TransactionCategory.values:
+        return error_response('La categoría indicada no es válida.')
+
+    statement_id = request.data.get('statement_id')
+    if statement_id is not None:
+        try:
+            statement_id = int(statement_id)
+        except (TypeError, ValueError):
+            return error_response('El id del extracto no es válido.')
+
+    try:
+        result = accounting_statement_service.save_merchant_aliases(
+            [{
+                'raw_description': raw_description,
+                'merchant_name': merchant_name,
+                'category': category,
+            }],
+            request.user,
+            statement_id=statement_id,
+        )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+    return Response({
+        'alias': MerchantAliasSerializer(result['aliases'][0]).data,
+        'applied': result['updated_transactions'],
+        'warning': result['warning'],
+    })
 
 
 @api_view(['POST'])
