@@ -19,6 +19,9 @@ cares about, copying their current values from code:
   - value_added_modules.module_ids                         (display order)
   - features group title/description/items                 (atomic Google auth:
     registration and sign-in as two separate items)
+  - functional_requirements groups/additionalModules       (default entries the
+    stored snapshot predates are re-injected in code order; stored entries win
+    per id, so operator customizations survive)
 
 Everything else in sections_json is left untouched.
 
@@ -73,6 +76,47 @@ def _module(section, module_id):
     return None
 
 
+def _reinject_missing_fr_entries(fr, code_fr):
+    """Re-inject default FR groups/modules the stored config predates.
+
+    Only runs when an id from code is absent in the stored array. The array is
+    then rebuilt following code order: the stored entry wins per id (operator
+    customizations survive), code fills the gaps, and stored-only extras keep
+    their relative order at the end. With nothing missing the stored array is
+    left untouched, order included.
+    """
+    changes = []
+    cj = (fr or {}).get('content_json')
+    code_cj = (code_fr or {}).get('content_json')
+    if not isinstance(cj, dict) or not isinstance(code_cj, dict):
+        return changes
+
+    for arr in ('groups', 'additionalModules'):
+        stored = [g for g in (cj.get(arr) or []) if isinstance(g, dict)]
+        code_list = [
+            g for g in (code_cj.get(arr) or [])
+            if isinstance(g, dict) and g.get('id')
+        ]
+        if not code_list:
+            continue
+        stored_by_id = {g.get('id'): g for g in stored if g.get('id')}
+        code_ids = [g['id'] for g in code_list]
+        missing = [gid for gid in code_ids if gid not in stored_by_id]
+        if not missing:
+            continue
+        rebuilt = [
+            stored_by_id.get(g['id']) or copy.deepcopy(g) for g in code_list
+        ]
+        rebuilt += [
+            g for g in stored
+            if not g.get('id') or g.get('id') not in set(code_ids)
+        ]
+        cj[arr] = rebuilt
+        changes.append(
+            f'functional_requirements.{arr}: re-injected missing {missing}')
+    return changes
+
+
 def _patch(sections, code):
     """Mutate *sections* in place with the targeted fields from *code*.
 
@@ -103,6 +147,7 @@ def _patch(sections, code):
     # --- functional_requirements modules ---
     fr = _section(sections, 'functional_requirements')
     code_fr = _section(code, 'functional_requirements')
+    changes += _reinject_missing_fr_entries(fr, code_fr)
     for mid in PATCHED_MODULE_IDS:
         g, code_g = _module(fr, mid), _module(code_fr, mid)
         if not isinstance(g, dict) or not isinstance(code_g, dict):
