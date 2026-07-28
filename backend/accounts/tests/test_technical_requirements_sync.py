@@ -662,7 +662,8 @@ def test_sync_updates_existing_requirement_on_second_sync():
 
 @pytest.mark.django_db
 def test_sync_skips_requirement_without_title_or_flow_key():
-    """Requirements missing title or flowKey increment requirements_skipped counter."""
+    """Requirements missing title or flowKey increment requirements_skipped;
+    non-dict rows are dropped earlier by the selection filter and never sync."""
     project, admin, _, _ = _make_full_sync_setup('u3', epics=[
         {'epicKey': 'eup3', 'title': 'E', 'requirements': [
             {'flowKey': 'flow-ok', 'title': 'Valid Req'},
@@ -674,8 +675,9 @@ def test_sync_skips_requirement_without_title_or_flow_key():
 
     result = sync_technical_requirements_for_project(project, admin)
 
-    assert result['requirements_skipped'] >= 3
+    assert result['requirements_skipped'] >= 2
     assert result['requirements_created'] == 1
+    assert Requirement.objects.filter(phase__project=project).count() == 1
 
 
 @pytest.mark.django_db
