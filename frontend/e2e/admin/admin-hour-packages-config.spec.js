@@ -67,6 +67,9 @@ test.describe('Admin Hour Packages Config — base rates', () => {
   test('prefills the base-rate inputs from settings', {
     tag: [...ADMIN_HOUR_PACKAGES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/hour-packages through the
+    // panel nav is exercised by the shared navigation specs; this test pins
+    // the settings-driven prefill values of the config section)
     setupMock(page);
     await page.goto('/panel/hour-packages', { waitUntil: 'domcontentloaded' });
 

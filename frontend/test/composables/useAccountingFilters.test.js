@@ -307,12 +307,17 @@ describe('builtin tabs', () => {
 
   it('never persists filter edits made under a builtin tab', async () => {
     tabsStub.updateTabFilters.mockClear();
-    const { currentFilters, selectTab } = makeWithBuiltin();
+    const { currentFilters, activeTabId, selectTab } = makeWithBuiltin();
     selectTab('lost');
     currentFilters.method = 'cash';
     // Flush the deep watcher.
     const { nextTick } = require('vue');
     await nextTick();
+    // The edit stays local: the tab keeps its identity and the filter value,
+    // and nothing reaches the persistence layer (builtin tabs have no
+    // server-side row to update).
+    expect(activeTabId.value).toBe('lost');
+    expect(currentFilters.method).toBe('cash');
     expect(tabsStub.updateTabFilters).not.toHaveBeenCalled();
   });
 });

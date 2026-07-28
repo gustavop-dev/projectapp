@@ -238,6 +238,9 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
   test('a processed statement opens no inline editor on dblclick', {
     tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/statements through
+    // the subnav is exercised by the accounting navigation specs; this test
+    // pins the processed read-only gate on the transaction cells)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoStatements(page);
 

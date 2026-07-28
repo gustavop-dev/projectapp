@@ -331,6 +331,9 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   test('shows written-off income in Todos and isolates it with the Perdidos tab', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/incomes through the
+    // subnav is exercised by the accounting navigation specs; this test pins
+    // the written-off row data under Todos and the builtin Perdidos tab)
     await mockApi(page, buildHandler({
       rows: [incomeRow(), lostRow()],
       calls: [],
@@ -420,6 +423,10 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
   test('shows no row actions on a written-off income', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display — a written-off row must offer no
+    // liquidate/write-off actions; since Jul 2026 it is visible under Todos,
+    // so there is no filter to click before asserting)
+    // quality: allow-deep-link (same subnav-entry rationale as above)
     await mockApi(page, buildHandler({ rows: [lostRow()], calls: [] }));
     await gotoIncomes(page);
 
