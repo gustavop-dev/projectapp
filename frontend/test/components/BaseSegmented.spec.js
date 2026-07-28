@@ -31,6 +31,25 @@ describe('BaseSegmented', () => {
     expect(wrapper.emitted('update:modelValue')[0]).toEqual(['json'])
   })
 
+  it('lets multi-word labels wrap by default', () => {
+    const wrapper = mount(BaseSegmented, {
+      props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }] },
+    })
+    expect(wrapper.findAll('button')[0].classes()).not.toContain('whitespace-nowrap')
+    expect(wrapper.find('[role="tablist"]').classes()).not.toContain('overflow-x-auto')
+  })
+
+  it('keeps labels on a single line when nowrap is set, scrolling instead of breaking', () => {
+    const wrapper = mount(BaseSegmented, {
+      props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }], nowrap: true },
+    })
+    expect(wrapper.findAll('button')[0].classes()).toContain('whitespace-nowrap')
+    // The container absorbs the extra width so the page never gains a scrollbar.
+    expect(wrapper.find('[role="tablist"]').classes()).toEqual(
+      expect.arrayContaining(['max-w-full', 'overflow-x-auto']),
+    )
+  })
+
   it('accepts string options too', () => {
     const wrapper = mount(BaseSegmented, { props: { modelValue: 'a', options: ['a', 'b', 'c'] } })
     const buttons = wrapper.findAll('button')

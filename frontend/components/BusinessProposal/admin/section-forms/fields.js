@@ -4,7 +4,7 @@ import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 // --- Inline sub-components (render functions for prod compatibility) ---
 // Moved verbatim from SectionEditor.vue.
 export const FieldInput = {
-  props: { modelValue: [String, Number], label: String, placeholder: String },
+  props: { modelValue: [String, Number], label: String, placeholder: String, disabled: Boolean },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
     return () => h('label', { class: 'block' }, [
@@ -12,7 +12,8 @@ export const FieldInput = {
       h('input', {
         value: props.modelValue,
         placeholder: props.placeholder,
-        class: 'w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none',
+        disabled: props.disabled,
+        class: 'w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-focus-ring outline-none disabled:opacity-60 disabled:cursor-not-allowed',
         onInput: (e) => emit('update:modelValue', e.target.value),
       }),
     ]);
@@ -25,6 +26,7 @@ export const FieldCurrency = {
     label: String,
     placeholder: String,
     decimals: { type: Number, default: 0 },
+    disabled: { type: Boolean, default: false },
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
@@ -34,6 +36,7 @@ export const FieldCurrency = {
         modelValue: props.modelValue,
         decimals: props.decimals,
         placeholder: props.placeholder,
+        disabled: props.disabled,
         'onUpdate:modelValue': (value) => emit('update:modelValue', value),
       }),
     ]);

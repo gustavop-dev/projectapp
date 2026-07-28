@@ -358,6 +358,12 @@ SECTION_CONTENT_SCHEMAS = {
         'title': str,
         'packagesTitle': str,
         'packagesIntro': str,
+        # Hour-packages source: 'auto' (default — the PDF re-seeds packages,
+        # rate and currency from the HourPackage catalog on every generation)
+        # or 'manual' (the stored snapshot is authoritative; the catalog never
+        # touches it). Absent or unknown values behave as 'auto'. Type-only
+        # check by design, like every other field here.
+        'hourPackagesMode': str,
         'hourlyRate': NUMERIC,
         'currency': str,
         'packages': [{

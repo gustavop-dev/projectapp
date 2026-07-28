@@ -84,6 +84,16 @@ class TestSchemas:
             {'packages': [{'hourlyRate': 'not-a-number'}]})
         assert any('hourlyRate' in e for e in errors)
 
+    def test_commercial_conditions_accepts_hour_packages_mode(self):
+        for mode in ('auto', 'manual'):
+            assert validate_section_content(
+                'commercial_conditions', {'hourPackagesMode': mode}) == []
+
+    def test_commercial_conditions_rejects_non_string_mode(self):
+        errors = validate_section_content(
+            'commercial_conditions', {'hourPackagesMode': 123})
+        assert any('hourPackagesMode' in e for e in errors)
+
     def test_value_added_conditions_dict_ok(self):
         content = {'module_ids': ['ai_automation_module'],
                    'conditions': {'ai_automation_module': {

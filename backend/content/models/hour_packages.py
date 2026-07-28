@@ -5,7 +5,7 @@ from django.db import models
 
 class Nationality(models.TextChoices):
     COL = 'COL', 'Colombia'
-    EXT = 'EXT', 'Extranjero'
+    EXT = 'EXT', 'Extranjeros'
     USA = 'USA', 'Estados Unidos'
 
 

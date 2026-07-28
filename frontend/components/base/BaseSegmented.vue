@@ -11,6 +11,9 @@ const props = defineProps({
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
+  // Options whose labels must stay on one line (e.g. "Colombia (COP)"), at the
+  // cost of an internal horizontal scroll when the control cannot fit.
+  nowrap: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
 })
 
@@ -32,7 +35,7 @@ const sizeClass = computed(() =>
 <template>
   <div
     class="inline-flex gap-1 bg-surface-raised rounded-xl p-1"
-    :class="{ 'w-full': fullWidth }"
+    :class="[{ 'w-full': fullWidth }, nowrap ? 'max-w-full overflow-x-auto' : '']"
     role="tablist"
   >
     <button
@@ -46,6 +49,7 @@ const sizeClass = computed(() =>
       :class="[
         'flex-1 rounded-lg transition-all outline-none focus:ring-2 focus:ring-focus-ring/40',
         sizeClass,
+        nowrap ? 'whitespace-nowrap' : '',
         modelValue === opt.value
           ? 'bg-surface shadow-sm font-medium text-text-default'
           : 'text-text-muted hover:text-text-default',

@@ -4,8 +4,9 @@
  * FLOWS: admin-accounting-statements
  * Covers: single-click inline merchant edit on a draft statement (PATCH body +
  *         updated cell), learning the merchant alias afterwards, the structured
- *         cuota validation, negative amounts, a backend 400, and editing a
- *         processed statement through the reopen confirmation.
+ *         cuota validation, negative amounts, a backend 400, editing a
+ *         processed statement through the reopen confirmation, and inline
+ *         editing of the learned merchants table.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -102,12 +103,16 @@ function processedDetail(transactions) {
  * @param patchError Spanish message the PATCH should fail with
  * @param aliases    merchant catalog served to the combobox
  * @param extraTx    extra rows appended to the draft statement
+ * @param aliasError Spanish message the alias PATCH should fail with
  */
-function buildHandler({ calls, patchError = null, aliases = [], extraTx = [] }) {
+function buildHandler({
+  calls, patchError = null, aliases = [], extraTx = [], aliasError = null,
+}) {
   const state = {
     detail: makeDetail({ transactions: [makeTx(), ...extraTx] }),
     // Reopening flips statement 1 to draft, exactly like the backend does.
     statement1Status: 'processed',
+    aliases: [...aliases],
   };
   const json = (body) => ({
     status: 200,
@@ -171,8 +176,34 @@ function buildHandler({ calls, patchError = null, aliases = [], extraTx = [] }) 
         warning: '',
       });
     }
+    const aliasMatch = apiPath.match(
+      /^accounting\/merchant-aliases\/(\d+)\/update\/$/,
+    );
+    if (aliasMatch && method === 'PATCH') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      if (aliasError) {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ match_text: [aliasError] }),
+        };
+      }
+      const aliasId = Number(aliasMatch[1]);
+      // The backend answers with the stored record, so `match_text` comes back
+      // normalized regardless of what was typed.
+      const updated = {
+        ...state.aliases.find((alias) => alias.id === aliasId),
+        ...body,
+        ...(body.match_text ? { match_text: body.match_text.toUpperCase() } : {}),
+      };
+      state.aliases = state.aliases.map(
+        (alias) => (alias.id === aliasId ? updated : alias),
+      );
+      return json(updated);
+    }
     if (apiPath.startsWith('accounting/merchant-aliases')) {
-      return json({ results: aliases, meta: {} });
+      return json({ results: state.aliases, meta: {} });
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
       return { status: 200, contentType: 'application/json', body: '[]' };
@@ -434,5 +465,124 @@ test.describe('Admin Accounting Statements: inline row editing', () => {
 
     expect(calls).toHaveLength(0);
     await expect(cell).toContainText('Hetzner');
+  });
+});
+
+const LEARNED_ALIAS = {
+  id: 3,
+  match_text: 'TERPEL',
+  merchant_name: 'Terpel',
+  default_category: 'fuel',
+  default_category_label: 'Gasolina',
+};
+
+async function openLearnedMerchants(page) {
+  await page.getByTestId('statements-aliases-toggle').click();
+  await expect(page.getByTestId('statement-alias-3')).toBeVisible();
+}
+
+test.describe('Admin Accounting Statements: learned merchants inline editing', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('renaming a learned merchant PATCHes it and updates the row', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, aliases: [LEARNED_ALIAS] }));
+    await gotoStatements(page);
+    await openLearnedMerchants(page);
+
+    const cell = page.getByTestId('alias-cell-merchant_name-3');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('Terpel Colombia');
+    await input.press('Enter');
+
+    await expect(page.getByText('Comercio actualizado')).toBeVisible();
+    await expect(cell).toContainText('Terpel Colombia');
+    expect(calls).toEqual([{
+      apiPath: 'accounting/merchant-aliases/3/update/',
+      method: 'PATCH',
+      body: { merchant_name: 'Terpel Colombia' },
+    }]);
+  });
+
+  test('the descriptor comes back normalized by the backend', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, aliases: [LEARNED_ALIAS] }));
+    await gotoStatements(page);
+    await openLearnedMerchants(page);
+
+    const cell = page.getByTestId('alias-cell-match_text-3');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('primax estacion');
+    await input.press('Enter');
+
+    await expect(cell).toContainText('PRIMAX ESTACION');
+    expect(calls[0].body).toEqual({ match_text: 'primax estacion' });
+  });
+
+  test('changing the default category PATCHes the option value', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, aliases: [LEARNED_ALIAS] }));
+    await gotoStatements(page);
+    await openLearnedMerchants(page);
+
+    const cell = page.getByTestId('alias-cell-default_category-3');
+    await expect(cell).toContainText('Gasolina');
+    await cell.getByTestId('inline-cell-display').click();
+    await cell.locator('select').selectOption('travel');
+
+    expect(calls[0].body).toEqual({ default_category: 'travel' });
+  });
+
+  test('clearing the merchant name shows an error and sends no PATCH', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, aliases: [LEARNED_ALIAS] }));
+    await gotoStatements(page);
+    await openLearnedMerchants(page);
+
+    const cell = page.getByTestId('alias-cell-merchant_name-3');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('  ');
+    await input.press('Enter');
+
+    await expect(page.getByText('El comercio no puede quedar vacío')).toBeVisible();
+    expect(calls).toHaveLength(0);
+  });
+
+  test('a duplicated descriptor surfaces the backend error and keeps the row', {
+    tag: [...ADMIN_ACCOUNTING_STATEMENTS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      aliases: [LEARNED_ALIAS],
+      aliasError: 'Ya existe un alias para ese texto.',
+    }));
+    await gotoStatements(page);
+    await openLearnedMerchants(page);
+
+    const cell = page.getByTestId('alias-cell-match_text-3');
+    await cell.getByTestId('inline-cell-display').click();
+    const input = cell.locator('input');
+    await input.fill('NETFLIX');
+    await input.press('Enter');
+
+    await expect(page.getByText('Ya existe un alias para ese texto')).toBeVisible();
+    await expect(cell).toContainText('TERPEL');
   });
 });
