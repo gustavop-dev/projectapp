@@ -82,4 +82,27 @@ describe('commercial_conditions roundtrip', () => {
     expect(Array.isArray(out.scopeParagraphs)).toBe(true);
     expect(out.scopeParagraphs).toEqual(['p1', 'p2']);
   });
+
+  it('defaults hourPackagesMode to auto and always writes it back explicitly', () => {
+    const form = buildFormFromJson(json, 'commercial_conditions', { currency: 'COP' });
+    expect(form.hourPackagesMode).toBe('auto');
+    const out = formToJson(form, 'commercial_conditions');
+    expect(out.hourPackagesMode).toBe('auto');
+  });
+
+  it('preserves manual mode through the roundtrip', () => {
+    const form = buildFormFromJson(
+      { ...json, hourPackagesMode: 'manual' }, 'commercial_conditions', { currency: 'COP' },
+    );
+    expect(form.hourPackagesMode).toBe('manual');
+    expect(formToJson(form, 'commercial_conditions').hourPackagesMode).toBe('manual');
+  });
+
+  it('normalizes unknown mode values to auto', () => {
+    const form = buildFormFromJson(
+      { ...json, hourPackagesMode: 'catalog' }, 'commercial_conditions', { currency: 'COP' },
+    );
+    expect(form.hourPackagesMode).toBe('auto');
+    expect(formToJson(form, 'commercial_conditions').hourPackagesMode).toBe('auto');
+  });
 });

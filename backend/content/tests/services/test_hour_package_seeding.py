@@ -273,6 +273,47 @@ class TestPdfLiveReseed:
         assert [p['hourlyRate'] for p in data['packages']] == [40.0, 45.0]
         assert data['packagesTitle'] == 'Título editado'
 
+    def test_pdf_manual_mode_keeps_snapshot(self, monkeypatch):
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+        )
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        section = proposal.sections.get(section_type='commercial_conditions')
+        content = dict(section.content_json)
+        content['hourPackagesMode'] = 'manual'
+        content['packages'] = [
+            {'name': 'Manual', 'hours': 5, 'discountPercent': 0,
+             'note': '', 'hourlyRate': 999},
+        ]
+        section.content_json = content
+        section.save(update_fields=['content_json'])
+        apply_base_rates_to_catalog({'EXT': 55})
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Manual']
+        assert data['packages'][0]['hourlyRate'] == 999
+        assert data['hourlyRate'] == 40.0
+
+    @pytest.mark.parametrize('mode', ['auto', 'unexpected'])
+    def test_pdf_explicit_auto_mode_still_reseeds(self, monkeypatch, mode):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        section = proposal.sections.get(section_type='commercial_conditions')
+        content = dict(section.content_json)
+        content['hourPackagesMode'] = mode
+        content['packagesTitle'] = 'Título editado'
+        content['packages'] = [
+            {'name': 'Manual', 'hours': 5, 'discountPercent': 0,
+             'note': '', 'hourlyRate': 999},
+        ]
+        section.content_json = content
+        section.save(update_fields=['content_json'])
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Ágil MX']
+        assert data['packagesTitle'] == 'Título editado'
+
     def test_pdf_falls_back_to_snapshot_when_catalog_empty(self, monkeypatch):
         _ext_packages()
         proposal = self._proposal_with_snapshot()

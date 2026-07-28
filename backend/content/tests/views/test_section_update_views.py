@@ -573,6 +573,32 @@ class TestUpdateSectionPasteMode:
         assert section.content_json['_editMode'] == 'form'
         assert 'rawText' not in section.content_json
 
+
+class TestUpdateCommercialConditionsSection:
+    """hourPackagesMode persists through the section PATCH like _editMode."""
+
+    def test_persists_hour_packages_mode_and_omitted_pkg_rates(self, admin_client, prop):
+        section = _create_section(prop, 'commercial_conditions')
+        url = reverse('update-proposal-section', kwargs={'section_id': section.id})
+        payload = {
+            'content_json': {
+                'index': '17',
+                'title': 'Condiciones comerciales',
+                'hourlyRate': 90000,
+                'currency': 'COP',
+                'hourPackagesMode': 'manual',
+                'packages': [
+                    {'name': 'Ágil', 'hours': 20, 'discountPercent': 10, 'note': ''},
+                ],
+                '_editMode': 'form',
+            },
+        }
+        response = admin_client.patch(url, payload, format='json')
+        assert response.status_code == 200
+        section.refresh_from_db()
+        assert section.content_json['hourPackagesMode'] == 'manual'
+        assert 'hourlyRate' not in section.content_json['packages'][0]
+
     def test_roundtrips_paste_data_across_updates(self, admin_client, prop):
         """Save paste data, then update again and verify persistence."""
         section = _create_section(prop, 'design_ux')
