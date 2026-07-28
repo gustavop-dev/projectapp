@@ -28,6 +28,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from content.services.hour_package_service import (
+    seed_commercial_conditions_from_catalog,
+)
 from content.services.proposal_service import normalize_hosting_plan
 from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _register_fonts,
@@ -2527,6 +2530,26 @@ class ProposalPdfService:
                 if stype in ('technical_document', 'greeting'):
                     continue
                 data = sec.content_json or {}
+
+                # Hour packages are catalog-driven, not a frozen snapshot:
+                # re-seed currency/hourlyRate/packages on every generation so
+                # catalog edits reach every downloaded PDF. Titles, intros,
+                # effort badge and scope clause stay from the stored section.
+                # Empty catalog → seed returns its input untouched (snapshot
+                # fallback); any failure → keep the stored snapshot.
+                if stype == 'commercial_conditions':
+                    try:
+                        data = seed_commercial_conditions_from_catalog(
+                            data,
+                            nationality=proposal.nationality,
+                            language=ps['_pdf_lang'],
+                        )
+                    except Exception:
+                        logger.warning(
+                            'Hour-package re-seed failed for proposal %s; '
+                            'using stored snapshot', proposal.pk,
+                            exc_info=True,
+                        )
 
                 if 'title' not in data or not data['title']:
                     data['title'] = sec.title
