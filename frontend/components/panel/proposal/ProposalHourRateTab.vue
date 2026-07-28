@@ -77,15 +77,32 @@
           Es la tarifa <span class="font-medium">antes del descuento</span>: el descuento de
           cada paquete se aplica encima. Moneda: {{ currency }} (la define el catálogo).
         </p>
-        <button
-          v-if="hasOverrides"
-          type="button"
-          data-testid="hour-rate-clear-overrides"
-          class="text-xs font-medium text-text-brand hover:underline"
-          @click="clearOverrides"
-        >
-          Aplicar esta tarifa a todos los paquetes
-        </button>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <button
+            v-if="hasOverrides"
+            type="button"
+            data-testid="hour-rate-clear-overrides"
+            class="text-xs font-medium text-text-brand hover:underline"
+            @click="clearOverrides"
+          >
+            Aplicar esta tarifa a todos los paquetes
+          </button>
+          <button
+            v-if="catalogDefaults"
+            type="button"
+            data-testid="hour-rate-reset-catalog"
+            class="text-xs font-medium text-text-brand hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
+            :disabled="isAtCatalogDefaults"
+            @click="resetToCatalogDefaults"
+          >
+            Restablecer a los valores del catálogo
+          </button>
+        </div>
+        <p v-if="catalogDefaults" class="text-[11px] text-text-subtle">
+          Restablecer copia las tarifas del catálogo pero la propuesta
+          <span class="font-medium">sigue en manual</span>: queda con los valores de hoy y
+          no vuelve a seguir al catálogo hasta que pases a automático.
+        </p>
       </div>
 
       <div
@@ -307,6 +324,43 @@ function clearOverrides() {
   overrides.value = {};
 }
 
+// The manual configuration that reproduces automatic mode exactly.
+//
+// Catalog packages can carry different rates from one another, so this is NOT
+// "the base rate with no overrides" — that would flatten every package onto the
+// first one's rate and quietly price the proposal differently from auto. It
+// mirrors the seeder instead (hour_package_service.seed_commercial_conditions_
+// from_catalog): the first package's rate is the baseline, and any package that
+// charges something else carries its own override. Packages that match the base
+// get no entry, so the table does not fill up with redundant inputs.
+const catalogDefaults = computed(() => {
+  const packages = catalogPackages.value;
+  if (!packages.length) return null;
+  const base = Number(packages[0].hourly_rate) || 0;
+  if (base <= 0) return null;
+  const result = {};
+  for (const pkg of packages) {
+    const rate = Number(pkg.hourly_rate) || 0;
+    if (rate > 0 && rate !== base) result[String(pkg.id)] = rate;
+  }
+  return { base, overrides: result };
+});
+
+// Compared through the same serializer the dirty tracker uses, so "already at
+// the defaults" and "no unsaved changes" can never disagree about equality.
+const isAtCatalogDefaults = computed(() => {
+  const defaults = catalogDefaults.value;
+  if (!defaults) return false;
+  return snapshot() === snapshotOf(defaults.base, defaults.overrides);
+});
+
+function resetToCatalogDefaults() {
+  const defaults = catalogDefaults.value;
+  if (!defaults) return;
+  manualHourlyRate.value = defaults.base;
+  overrides.value = { ...defaults.overrides };
+}
+
 // --- load / dirty tracking ------------------------------------------------
 
 function overridesFromContent(json) {
@@ -341,12 +395,23 @@ function loadFromSection() {
 
 const baseline = ref('');
 
-function snapshot() {
+// Canonical serialization of the editable state. Override keys are sorted and
+// the rate is coerced: JSON.stringify preserves insertion order, so two maps
+// holding the same rates would otherwise compare as different depending on the
+// order they were typed in.
+function snapshotOf(rate, overrideMap) {
+  const numeric = Number(rate);
   return JSON.stringify({
     mode: mode.value,
-    rate: manualHourlyRate.value ?? null,
-    overrides: overrides.value,
+    rate: Number.isFinite(numeric) && rate !== null && rate !== '' ? numeric : null,
+    overrides: Object.keys(overrideMap || {}).sort().map(
+      (id) => [id, Number(overrideMap[id])],
+    ),
   });
+}
+
+function snapshot() {
+  return snapshotOf(manualHourlyRate.value, overrides.value);
 }
 
 const isDirty = computed(() => baseline.value !== '' && baseline.value !== snapshot());
