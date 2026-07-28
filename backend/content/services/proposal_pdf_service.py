@@ -1559,6 +1559,31 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     return y
 
 
+def _clause_bullets(clauses, fallback_terms=None):
+    """Turn a `terms_clauses` list into bullet strings for the PDF annex.
+
+    Each clause becomes `**Label.** text`, matching what the web modal shows so
+    both surfaces read identically. Proposals created before the clause format
+    only carry the flat `terms` string: those fall back to one bullet per line,
+    which is exactly how flatten_terms_clauses() writes them.
+    """
+    items = []
+    for clause in (clauses or []):
+        if not isinstance(clause, dict):
+            continue
+        text = str(clause.get('text') or '').strip()
+        if not text:
+            continue
+        label = str(clause.get('label') or '').strip()
+        items.append(f'**{label}.** {text}' if label else text)
+    if items:
+        return items
+    fallback = str(fallback_terms or '').strip()
+    if not fallback:
+        return []
+    return [line.strip() for line in fallback.split('\n') if line.strip()]
+
+
 def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
     """Render the "Incluido sin costo adicional" section as cards.
 
@@ -1754,19 +1779,28 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
 
         y = card_bottom - 12
 
-    # Consolidated terms & conditions for the included modules (Req 3).
-    # The web shows these in a per-module modal; the PDF has no modal, so the
-    # terms are printed here as a closing block.
-    tc_items = []
+    # Terms & conditions annex for the included modules (Req 3).
+    # The web shows the same clauses per module in a modal; the PDF has no
+    # modal, so they are printed here as a closing annex. Both surfaces read the
+    # very same source (conditions[mid].terms_clauses + general_terms), so the
+    # wording, the clause order and the **bold** emphasis stay identical.
+    tc_blocks = []
     for mid in module_ids:
         cond = conditions.get(mid) if isinstance(conditions, dict) else None
-        terms = cond.get('terms') if isinstance(cond, dict) else None
-        if not terms:
+        if not isinstance(cond, dict):
+            continue
+        items = _clause_bullets(cond.get('terms_clauses'), cond.get('terms'))
+        if not items:
             continue
         module = catalog.get(mid) or {}
         mtitle = _strip_emoji(_safe(module, 'title')) or str(mid)
-        tc_items.append(f'**{mtitle}** — {terms}')
-    if tc_items:
+        tc_blocks.append((mtitle, items))
+
+    general = _safe(data, 'general_terms', {}) or {}
+    general_items = _clause_bullets(
+        general.get('clauses') if isinstance(general, dict) else None)
+
+    if tc_blocks or general_items:
         y -= 6
         tc_title = ('Términos y condiciones de los módulos incluidos'
                     if lang != 'en'
@@ -1774,7 +1808,25 @@ def _render_value_added_modules(c, data, _proposal, ps=None, y=None):
         if ps:
             y = _check_y(c, y, ps, need=40)
         y = _draw_subtitle(c, y, tc_title, ps=ps)
-        y = _draw_bullet_list(c, y, tc_items, ps=ps, font_size=8, leading=11)
+        for mtitle, items in tc_blocks:
+            if ps:
+                y = _check_y(c, y, ps, need=34)
+            y = _draw_paragraphs(c, y, [f'**{mtitle}**'], ps=ps,
+                                 font_size=9, leading=12, color=ESMERALD)
+            y = _draw_bullet_list(c, y, items, ps=ps, font_size=8, leading=11)
+            y -= 2
+        if general_items:
+            gtitle = (str(general.get('title') or '').strip()
+                      if isinstance(general, dict) else '')
+            if not gtitle:
+                gtitle = ('Disposiciones generales aplicables a los módulos incluidos'
+                          if lang != 'en'
+                          else 'General provisions applicable to the included modules')
+            if ps:
+                y = _check_y(c, y, ps, need=40)
+            y = _draw_subtitle(c, y, gtitle, ps=ps)
+            y = _draw_bullet_list(c, y, general_items, ps=ps,
+                                  font_size=8, leading=11)
         y -= 4
 
     footer_note = _safe(data, 'footer_note')

@@ -134,9 +134,22 @@ export function buildFormFromJson(json, type, proposalData) {
           return acc;
         }, {}),
         conditions: ids.reduce((acc, id) => {
-          if (conditions[id]) acc[id] = { ...conditions[id] };
+          if (conditions[id]) {
+            const cond = { ...conditions[id] };
+            // Deep-copy the clause list so the editor never mutates the section.
+            cond.terms_clauses = Array.isArray(cond.terms_clauses)
+              ? cond.terms_clauses.map((c) => ({ label: c?.label || '', text: c?.text || '' }))
+              : [];
+            acc[id] = cond;
+          }
           return acc;
         }, {}),
+        general_terms: {
+          title: j.general_terms?.title || '',
+          clauses: Array.isArray(j.general_terms?.clauses)
+            ? j.general_terms.clauses.map((c) => ({ label: c?.label || '', text: c?.text || '' }))
+            : [],
+        },
         footer_note: j.footer_note || '',
       };
     }
@@ -286,7 +299,10 @@ export function formToJson(formData, type) {
           conditions[id] = { ...cond };
         }
       }
-      return {
+      const generalClauses = Array.isArray(f.general_terms?.clauses)
+        ? f.general_terms.clauses.filter((c) => String(c?.text || '').trim())
+        : [];
+      const payload = {
         index: f.index,
         title: f.title,
         intro: f.intro,
@@ -295,6 +311,15 @@ export function formToJson(formData, type) {
         conditions,
         footer_note: f.footer_note || '',
       };
+      // Only persist general_terms when it carries content, so an empty editor
+      // state never wipes a block the section already had.
+      if (generalClauses.length || String(f.general_terms?.title || '').trim()) {
+        payload.general_terms = {
+          title: f.general_terms?.title || '',
+          clauses: generalClauses,
+        };
+      }
+      return payload;
     }
     case 'commercial_conditions': {
       const packages = Array.isArray(f.packages) ? f.packages : [];

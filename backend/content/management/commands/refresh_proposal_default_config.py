@@ -135,6 +135,26 @@ def _patch(sections, code):
             old_ids = va_cj.get('module_ids')
             va_cj['module_ids'] = copy.deepcopy(code_ids)
             changes.append(f'module_ids {old_ids} -> {code_ids}')
+
+        # --- value_added_modules general legal provisions ---
+        code_general = code_va_cj.get('general_terms')
+        if isinstance(code_general, dict) and va_cj.get('general_terms') != code_general:
+            va_cj['general_terms'] = copy.deepcopy(code_general)
+            changes.append('general_terms -> code')
+
+    # --- commercial_conditions scope clause ---
+    # The scope wording was corrected in code but had no sync path, so stored
+    # configs kept serving the stale paragraph in the generated PDF.
+    cc = _section(sections, 'commercial_conditions')
+    code_cc = _section(code, 'commercial_conditions')
+    cc_cj = (cc or {}).get('content_json') if cc else None
+    code_cc_cj = (code_cc or {}).get('content_json') if code_cc else None
+    if isinstance(cc_cj, dict) and isinstance(code_cc_cj, dict):
+        for field in ('scopeTitle', 'scopeParagraphs', 'effortBadge'):
+            if field in code_cc_cj and cc_cj.get(field) != code_cc_cj[field]:
+                cc_cj[field] = copy.deepcopy(code_cc_cj[field])
+                changes.append(f'commercial_conditions.{field} -> code')
+
     return changes
 
 

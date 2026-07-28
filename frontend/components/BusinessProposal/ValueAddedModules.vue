@@ -72,9 +72,12 @@
                     🔒 {{ card.minimumNote }}
                   </span>
                 </div>
-                <p v-if="card.discretionaryNote" class="text-[11px] text-text-default/55 italic leading-relaxed mb-3">
-                  {{ card.discretionaryNote }}
-                </p>
+                <!-- eslint-disable-next-line vue/no-v-html — renderInlineBold escapes all HTML first -->
+                <p
+                  v-if="card.discretionaryNote"
+                  class="text-[11px] text-text-default/55 italic leading-relaxed mb-3 [&_strong]:font-semibold [&_strong]:not-italic"
+                  v-html="renderInlineBold(card.discretionaryNote)"
+                />
 
                 <!-- Bottom row: "Ver detalle" (left) · "Términos y condiciones" (right) -->
                 <div class="flex items-center justify-between gap-3 mt-1">
@@ -85,7 +88,7 @@
                     </svg>
                   </span>
                   <button
-                    v-if="card.terms || card.minimumNote || card.durationLabel"
+                    v-if="card.termsClauses.length || card.terms || card.minimumNote || card.durationLabel"
                     type="button"
                     class="inline-flex items-center gap-1 text-xs font-medium text-text-subtle hover:text-text-brand transition-colors"
                     :data-testid="`value-added-terms-${card.id}`"
@@ -102,6 +105,42 @@
             </div>
           </article>
         </div>
+
+        <!-- General legal provisions — same block, same order as the PDF annex.
+             Collapsed by default so the section stays readable. -->
+        <details
+          v-if="generalClauses.length"
+          data-animate="fade-up"
+          class="group border border-border-default rounded-xl bg-surface-raised"
+          data-testid="value-added-general-terms"
+        >
+          <summary class="flex items-center justify-between gap-3 px-5 py-4 cursor-pointer list-none">
+            <span class="text-sm font-medium text-text-brand">{{ generalTermsTitle }}</span>
+            <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </summary>
+          <ol class="px-5 pb-5 space-y-4 border-t border-border-muted pt-4">
+            <li
+              v-for="(clause, idx) in generalClauses"
+              :key="idx"
+              class="border-l-2 border-border-default pl-4"
+            >
+              <p
+                v-if="clause.label"
+                class="text-[11px] font-semibold uppercase tracking-wider text-text-subtle mb-1"
+                data-testid="value-added-general-label"
+              >
+                {{ clause.label }}
+              </p>
+              <!-- eslint-disable-next-line vue/no-v-html — renderInlineBold escapes all HTML first -->
+              <p
+                class="text-sm text-text-default/75 font-light leading-relaxed [&_strong]:font-semibold [&_strong]:text-text-default"
+                v-html="renderInlineBold(clause.text)"
+              />
+            </li>
+          </ol>
+        </details>
 
         <!-- Footer note -->
         <div v-if="content.footer_note" data-animate="fade-up" class="bg-primary-soft border border-primary/20 rounded-xl px-5 py-4 text-center">
@@ -125,6 +164,8 @@
       :title="termsCard.title"
       :icon="termsCard.icon"
       :terms="termsCard.terms"
+      :clauses="termsCard.clauses"
+      :general-terms-title="generalClauses.length ? generalTermsTitle : ''"
       :notes="termsCard.notes"
       :language="language"
       @close="termsModalVisible = false"
@@ -136,6 +177,7 @@
 import { computed, ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { trackRequirementClick } from '~/utils/trackRequirementClick';
+import { renderInlineBold } from '~/utils/renderInlineBold';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';
 import ModuleTermsModal from './ModuleTermsModal.vue';
 
@@ -244,6 +286,7 @@ const resolvedCards = computed(() => {
         : '';
       const discretionaryNote = cond.discretionary_note || '';
       const terms = cond.terms || '';
+      const termsClauses = Array.isArray(cond.terms_clauses) ? cond.terms_clauses : [];
       const notes = [durationLabel, minimumNote].filter(Boolean);
       return {
         id,
@@ -256,6 +299,7 @@ const resolvedCards = computed(() => {
         durationLabel,
         discretionaryNote,
         terms,
+        termsClauses,
         notes,
       };
     })
@@ -272,13 +316,32 @@ function openModal(card) {
 }
 
 const termsModalVisible = ref(false);
-const termsCard = ref({ title: '', icon: '', terms: '', notes: [] });
+const termsCard = ref({ title: '', icon: '', terms: '', clauses: [], notes: [] });
+
+// Cross-cutting legal provisions; same source the PDF annex reads.
+const generalTerms = computed(() => content.value.general_terms || {});
+
+const generalClauses = computed(() => {
+  const list = generalTerms.value?.clauses;
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((c) => c && typeof c === 'object' && String(c.text || '').trim())
+    .map((c) => ({ label: String(c.label || '').trim(), text: String(c.text) }));
+});
+
+const generalTermsTitle = computed(() => (
+  String(generalTerms.value?.title || '').trim()
+  || (language.value === 'en'
+    ? 'General provisions applicable to the included modules'
+    : 'Disposiciones generales aplicables a los módulos incluidos')
+));
 
 function openTerms(card) {
   termsCard.value = {
     title: card.title,
     icon: card.icon,
     terms: card.terms,
+    clauses: card.termsClauses,
     notes: card.notes,
   };
   termsModalVisible.value = true;

@@ -345,8 +345,13 @@ SECTION_CONTENT_SCHEMAS = {
         'footer_note': str,
         # Per-module gating/terms keyed by module id. Free shape (dict) because
         # keys are dynamic module ids; each value carries {min_price_usd,
-        # min_price_cop, duration_months, discretionary_note, terms}.
+        # min_price_cop, duration_months, discretionary_note, terms_clauses,
+        # terms}. `terms_clauses` is [{label, text}] and is the canonical legal
+        # wording; `terms` is the flattened legacy string kept in sync from it.
         'conditions': dict,
+        # Cross-cutting legal provisions for the whole section:
+        # {title, clauses: [{label, text}]}.
+        'general_terms': dict,
     },
     # PDF-only section (no web component): hour packages + scope-exclusion text.
     'commercial_conditions': {
