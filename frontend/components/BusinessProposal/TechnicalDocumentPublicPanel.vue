@@ -1,28 +1,71 @@
 <template>
   <section ref="sectionRef" class="technical-doc-public min-h-screen w-full bg-surface flex items-center">
     <div class="w-full px-6 md:px-12 lg:px-24 py-12 md:py-10">
-      <div class="max-w-5xl mx-auto">
-        <!-- Intro -->
+      <div :class="fragment === 'intro' ? 'max-w-6xl mx-auto' : 'max-w-5xl mx-auto'">
+        <!-- Intro — cover of the technical document: title, purpose and a
+             navigable index where each entry carries the weight of its section. -->
         <template v-if="fragment === 'intro'">
-          <div data-animate="fade-up" class="mb-8">
-            <h2 class="text-text-brand font-light text-3xl md:text-5xl leading-tight mb-6">
+          <div data-animate="fade-up" class="flex items-baseline gap-4 mb-6">
+            <span
+              v-if="index"
+              data-testid="tech-cover-index"
+              class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm"
+            >
+              {{ index }}
+            </span>
+            <h2 class="text-text-brand font-light text-4xl md:text-6xl leading-tight">
               {{ titles.intro }}
             </h2>
-            <p v-if="purposeText" class="text-text-default/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap">
-              {{ purposeText }}
-            </p>
           </div>
-          <div v-if="anchorLabels.length" data-animate="fade-up" class="rounded-2xl border border-esmerald/15 bg-esmerald/5 p-6 md:p-8">
-            <h3 class="text-xs uppercase tracking-[0.2em] text-green-light font-medium mb-4">
-              {{ language === 'en' ? 'In this document' : 'En este documento' }}
-            </h3>
-            <ul class="space-y-2">
-              <li v-for="(label, i) in anchorLabels" :key="i" class="text-text-default/90 font-light text-sm md:text-base flex gap-2">
-                <span class="text-text-default/40 font-mono text-xs mt-0.5">{{ i + 1 }}.</span>
-                <span>{{ label }}</span>
-              </li>
-            </ul>
+
+          <p
+            v-if="purposeText"
+            data-animate="fade-up"
+            class="max-w-3xl text-text-default/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap mb-6"
+          >
+            {{ purposeText }}
+          </p>
+
+          <p
+            v-if="coverStatsLine"
+            data-animate="fade-up"
+            data-testid="tech-cover-stats"
+            class="text-text-muted text-2xs uppercase tracking-[0.15em] mb-10"
+          >
+            {{ coverStatsLine }}
+          </p>
+
+          <!-- One fade for the whole grid, not fade-up-stagger: the shared 0.25s
+               stagger is tuned for the 4-5 item lists in the commercial sections
+               and would leave the 13th card invisible for ~5s. -->
+          <div v-if="anchorEntries.length" data-animate="fade-up" class="grid gap-3 sm:grid-cols-2">
+            <button
+              v-for="(entry, i) in anchorEntries"
+              :key="entry.fragment"
+              type="button"
+              data-testid="tech-index-card"
+              :data-fragment="entry.fragment"
+              class="group flex items-start gap-4 text-left rounded-2xl border border-border-default bg-surface-raised
+                     p-5 shadow-card transition-all hover:shadow-raised hover:border-primary/30
+                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring"
+              @click="$emit('navigate', entry.fragment)"
+            >
+              <span class="shrink-0 w-8 h-8 rounded-full bg-primary-soft text-text-brand flex items-center justify-center text-2xs font-medium">
+                {{ String(i + 1).padStart(2, '0') }}
+              </span>
+              <span class="min-w-0 flex-1">
+                <span class="block text-text-brand font-medium text-base md:text-lg leading-snug">{{ entry.label }}</span>
+                <span v-if="entry.summary" class="block text-text-muted font-light text-xs mt-1">{{ entry.summary }}</span>
+              </span>
+              <svg
+                class="shrink-0 w-4 h-4 mt-1 text-text-subtle transition-transform group-hover:translate-x-0.5"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
+
           <p class="mt-10 text-center text-xs text-text-default/50 font-light">
             {{ supportLine }}
           </p>
@@ -579,8 +622,10 @@ import { computed, ref, watch, onUnmounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import {
   technicalFragmentHasContent,
+  technicalFragmentSummary,
   FRAGMENT_ORDER,
   TECH_PANEL_TITLES,
+  TECH_READING_TIME,
 } from '~/utils/technicalProposalPanels';
 import { priorityLabel as sharedPriorityLabel } from '~/utils/requirementPriority';
 
@@ -591,7 +636,12 @@ const props = defineProps({
   fragment: { type: String, required: true },
   contentJson: { type: Object, default: () => ({}) },
   language: { type: String, default: 'es' },
+  // Padded position in the deck ('01'), matching the commercial sections.
+  index: { type: String, default: '' },
 });
+
+// Emitted with a fragment key; the page resolves it to a panel position.
+defineEmits(['navigate']);
 
 const titles = computed(() => TECH_PANEL_TITLES[props.language] || TECH_PANEL_TITLES.es);
 
@@ -606,12 +656,34 @@ const purposeText = computed(() => {
   return typeof p === 'string' ? p.trim() : '';
 });
 
-const anchorLabels = computed(() => {
+const anchorEntries = computed(() => {
   const doc = props.contentJson || {};
   const loc = titles.value;
   return FRAGMENT_ORDER
     .filter((f) => f !== 'intro' && technicalFragmentHasContent(f, doc))
-    .map((f) => loc[f]);
+    .map((f) => ({
+      fragment: f,
+      label: loc[f],
+      summary: technicalFragmentSummary(f, doc, props.language),
+    }));
+});
+
+// What the reader is committing to before they start: how many sections, how
+// much product sits inside them, and how long it takes.
+const coverStatsLine = computed(() => {
+  const en = props.language === 'en';
+  const parts = [];
+  const count = anchorEntries.value.length;
+  if (count) {
+    const noun = en
+      ? (count === 1 ? 'section' : 'sections')
+      : (count === 1 ? 'sección' : 'secciones');
+    parts.push(`${count} ${noun}`);
+  }
+  const scope = technicalFragmentSummary('epics', props.contentJson || {}, props.language);
+  if (scope) parts.push(scope);
+  parts.push(TECH_READING_TIME[en ? 'en' : 'es']);
+  return parts.join(' · ');
 });
 
 function filterRows(rows, keys) {

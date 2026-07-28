@@ -72,6 +72,54 @@ export const TECH_PANEL_TITLES = {
   },
 };
 
+/**
+ * Single source for the "how long is this document" promise. Rendered both on
+ * the mode gateway card and on the technical cover, which must never disagree.
+ */
+export const TECH_READING_TIME = {
+  es: '~30 min de lectura',
+  en: '~30 min read',
+};
+
+// [singular, plural] per counted noun, used to build the per-section weight
+// shown on the technical cover index ("7 capas", "6 módulos · 38 requerimientos").
+const FRAGMENT_COUNT_NOUNS = {
+  es: {
+    layers: ['capa', 'capas'],
+    patterns: ['patrón', 'patrones'],
+    entities: ['entidad', 'entidades'],
+    dimensions: ['dimensión', 'dimensiones'],
+    modules: ['módulo', 'módulos'],
+    requirements: ['requerimiento', 'requerimientos'],
+    domains: ['dominio', 'dominios'],
+    included: ['incluida', 'incluidas'],
+    excluded: ['no incluida', 'no incluidas'],
+    environments: ['ambiente', 'ambientes'],
+    aspects: ['aspecto', 'aspectos'],
+    metrics: ['métrica', 'métricas'],
+    practices: ['práctica', 'prácticas'],
+    testTypes: ['tipo de prueba', 'tipos de prueba'],
+    decisions: ['decisión', 'decisiones'],
+  },
+  en: {
+    layers: ['layer', 'layers'],
+    patterns: ['pattern', 'patterns'],
+    entities: ['entity', 'entities'],
+    dimensions: ['dimension', 'dimensions'],
+    modules: ['module', 'modules'],
+    requirements: ['requirement', 'requirements'],
+    domains: ['domain', 'domains'],
+    included: ['included', 'included'],
+    excluded: ['not included', 'not included'],
+    environments: ['environment', 'environments'],
+    aspects: ['aspect', 'aspects'],
+    metrics: ['metric', 'metrics'],
+    practices: ['practice', 'practices'],
+    testTypes: ['test type', 'test types'],
+    decisions: ['decision', 'decisions'],
+  },
+};
+
 function _nonEmptyStr(v) {
   return typeof v === 'string' && v.trim().length > 0;
 }
@@ -153,6 +201,100 @@ export function technicalFragmentHasContent(fragment, doc) {
       return Array.isArray(d.decisions) && d.decisions.some((r) => _rowHasValues(r, ['decision', 'alternative', 'reason']));
     default:
       return false;
+  }
+}
+
+function _countRows(rows, keys) {
+  if (!Array.isArray(rows)) return 0;
+  return rows.filter((r) => _rowHasValues(r, keys)).length;
+}
+
+const _EPIC_REQ_KEYS = ['title', 'description', 'configuration', 'usageFlow', 'flowKey'];
+
+// Mirrors the `epicsList` computed in TechnicalDocumentPublicPanel: a module
+// counts when it is named or carries at least one requirement that survives
+// the same row filter the table applies.
+function _countEpics(epics) {
+  let modules = 0;
+  let requirements = 0;
+  if (!Array.isArray(epics)) return { modules, requirements };
+  for (const ep of epics) {
+    if (!ep || typeof ep !== 'object') continue;
+    const reqs = Array.isArray(ep.requirements)
+      ? ep.requirements.filter((rq) => _rowHasValues(rq, _EPIC_REQ_KEYS))
+      : [];
+    const named = _nonEmptyStr(ep.title) || _nonEmptyStr(ep.epicKey) || _nonEmptyStr(ep.description);
+    if (!named && !reqs.length) continue;
+    modules += 1;
+    requirements += reqs.length;
+  }
+  return { modules, requirements };
+}
+
+/**
+ * How much substance a technical section holds, for the cover index.
+ *
+ * Counts only rows the section would actually render, so the promise on the
+ * cover matches what the reader finds after the jump. Returns '' when there is
+ * nothing countable (free-text sections, or a section present only because of a
+ * loose summary) — callers omit the line rather than print "0 patrones".
+ *
+ * @param {string} fragment
+ * @param {object} doc — merged technical document content_json
+ * @param {string} lang — 'es' | 'en'
+ * @returns {string}
+ */
+export function technicalFragmentSummary(fragment, doc, lang) {
+  const d = doc && typeof doc === 'object' ? doc : {};
+  const nouns = FRAGMENT_COUNT_NOUNS[lang] || FRAGMENT_COUNT_NOUNS.es;
+  const part = (n, key) => (n > 0 ? `${n} ${nouns[key][n === 1 ? 0 : 1]}` : '');
+  const join = (...parts) => parts.filter(Boolean).join(' · ');
+
+  switch (fragment) {
+    case 'stack':
+      return part(_countRows(d.stack, ['layer', 'technology', 'rationale']), 'layers');
+    case 'architecture':
+      return part(_countRows(d.architecture?.patterns, ['component', 'pattern', 'description']), 'patterns');
+    case 'dataModel':
+      return part(_countRows(d.dataModel?.entities, ['name', 'description', 'keyFields']), 'entities');
+    case 'growthReadiness':
+      return part(_countRows(d.growthReadiness?.strategies, ['dimension', 'preparation', 'evolution']), 'dimensions');
+    case 'epics': {
+      const { modules, requirements } = _countEpics(d.epics);
+      return join(part(modules, 'modules'), part(requirements, 'requirements'));
+    }
+    case 'api':
+      return part(_countRows(d.apiDomains, ['domain', 'summary']), 'domains');
+    case 'integrations': {
+      const integ = d.integrations || {};
+      return join(
+        part(_countRows(integ.included, ['service', 'provider', 'connection', 'dataExchange', 'accountOwner']), 'included'),
+        part(_countRows(integ.excluded, ['service', 'reason', 'availability']), 'excluded'),
+      );
+    }
+    case 'environments':
+      return part(_countRows(d.environments, ['name', 'purpose', 'url', 'database', 'whoAccesses']), 'environments');
+    case 'security':
+      return part(_countRows(d.security, ['aspect', 'implementation']), 'aspects');
+    case 'performance': {
+      const pq = d.performanceQuality || {};
+      return join(
+        part(_countRows(pq.metrics, ['metric', 'target', 'howMeasured']), 'metrics'),
+        part(_countRows(pq.practices, ['strategy', 'description']), 'practices'),
+      );
+    }
+    case 'quality': {
+      const q = d.quality || {};
+      return join(
+        part(_countRows(q.dimensions, ['dimension', 'evaluates', 'standard']), 'dimensions'),
+        part(_countRows(q.testTypes, ['type', 'validates', 'tool', 'whenRun']), 'testTypes'),
+      );
+    }
+    case 'decisions':
+      return part(_countRows(d.decisions, ['decision', 'alternative', 'reason']), 'decisions');
+    default:
+      // intro (never listed) and backups (a single free-text note) carry no count.
+      return '';
   }
 }
 

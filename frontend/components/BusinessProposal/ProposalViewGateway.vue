@@ -108,6 +108,7 @@
 
 <script setup>
 import { computed } from 'vue';
+import { TECH_READING_TIME } from '~/utils/technicalProposalPanels';
 
 const props = defineProps({
   language: {
@@ -140,7 +141,7 @@ const i18n = {
     detailedCta: 'Ver todo el detalle',
     technicalTitle: 'Detalle técnico',
     technicalSub: 'Documentación técnica completa: arquitectura del sistema, stack tecnológico, modelo de datos, módulos y especificaciones de requerimientos.',
-    technicalTime: '~30 min de lectura',
+    technicalTime: TECH_READING_TIME.es,
     technicalCta: 'Ver detalle técnico',
   },
   en: {
@@ -156,7 +157,7 @@ const i18n = {
     detailedCta: 'See all the details',
     technicalTitle: 'Technical detail',
     technicalSub: 'Full technical documentation: system architecture, tech stack, data model, product modules, and requirement specifications.',
-    technicalTime: '~30 min read',
+    technicalTime: TECH_READING_TIME.en,
     technicalCta: 'View technical detail',
   },
 };

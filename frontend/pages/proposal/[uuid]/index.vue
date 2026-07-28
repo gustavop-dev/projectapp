@@ -889,6 +889,7 @@ function getSectionProps(section, displayIndex) {
       fragment: section._technicalFragment || 'intro',
       contentJson: section.content_json || {},
       language: proposal.value?.language || 'es',
+      index: paddedIndex,
     };
   }
 
@@ -1110,6 +1111,9 @@ function getSectionListeners(section) {
     listeners.selectionConfirmed = onModuleSelectionConfirmed;
     listeners.switchToDetailed = handleSwitchToDetailed;
   }
+  if (type === 'technical_document_public') {
+    listeners.navigate = handleNavigateToFragment;
+  }
   return listeners;
 }
 
@@ -1163,6 +1167,14 @@ function handleNavigate(index) {
 
 function handleNavigateToRequirements() {
   const idx = displayPanels.value.findIndex(p => p.section_type === 'functional_requirements');
+  if (idx !== -1) navigateTo(idx);
+}
+
+// Jumps from the technical cover index. Resolved by fragment key rather than by
+// position, so the jump stays correct when filterTechnicalDocumentByModules
+// drops fragments the client deselected in the calculator.
+function handleNavigateToFragment(fragment) {
+  const idx = displayPanels.value.findIndex(p => p._technicalFragment === fragment);
   if (idx !== -1) navigateTo(idx);
 }
 
