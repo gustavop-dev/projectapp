@@ -10,6 +10,499 @@ from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
 logger = logging.getLogger(__name__)
 
 
+def flatten_terms_clauses(clauses):
+    """Flatten [{'label', 'text'}] into the legacy single-string `terms` value.
+
+    `terms_clauses` is the canonical shape for the value-added module terms,
+    but `terms` is kept in sync so proposals that were never migrated (and any
+    consumer that only knows the old key) keep rendering the same content.
+    One line per clause, the label emphasised with the `**bold**` markers both
+    renderers already understand (web: utils/renderInlineBold.js, PDF:
+    pdf_utils._draw_line_with_links).
+    """
+    if not isinstance(clauses, (list, tuple)):
+        return ''
+    lines = []
+    for clause in clauses:
+        if not isinstance(clause, dict):
+            continue
+        text = (clause.get('text') or '').strip()
+        if not text:
+            continue
+        label = (clause.get('label') or '').strip()
+        lines.append(f'**{label}.** {text}' if label else text)
+    return '\n'.join(lines)
+
+
+def _clauses(*pairs):
+    """Build a terms_clauses list from (label, text) pairs."""
+    return [{'label': label, 'text': text} for label, text in pairs]
+
+
+def merge_value_added_legal_terms(new_content, previous_content):
+    """Keep the value-added legal terms when an incoming payload omits them.
+
+    JSON/MCP payloads carry seller copy (``module_ids``, ``justifications``),
+    but the seller prompt never documents ``conditions``/``general_terms``. A
+    payload that simply round-trips the visible fields would therefore wipe the
+    legal wording from the proposal without anyone noticing. Anything the
+    payload does state explicitly still wins; only the gaps are filled.
+
+    ``previous_content`` is the stored content_json on update, or the language
+    defaults on creation.
+    """
+    if not isinstance(new_content, dict) or not isinstance(previous_content, dict):
+        return new_content
+
+    previous_conds = previous_content.get('conditions')
+    if isinstance(previous_conds, dict):
+        conds = new_content.get('conditions')
+        if not isinstance(conds, dict):
+            conds = {}
+        for module_id, previous_cond in previous_conds.items():
+            if module_id not in conds:
+                conds[module_id] = deepcopy(previous_cond)
+        if conds:
+            new_content['conditions'] = conds
+
+    if not new_content.get('general_terms'):
+        previous_general = previous_content.get('general_terms')
+        if isinstance(previous_general, dict):
+            new_content['general_terms'] = deepcopy(previous_general)
+
+    return new_content
+
+
+def _module_condition(clauses, *, min_price_usd=None, min_price_cop=None,
+                      duration_months=None, discretionary_note=''):
+    """Build one `conditions[module_id]` entry.
+
+    `terms` is always derived from `terms_clauses` so the two can never drift.
+    """
+    return {
+        'min_price_usd': min_price_usd,
+        'min_price_cop': min_price_cop,
+        'duration_months': duration_months,
+        'discretionary_note': discretionary_note,
+        'terms_clauses': deepcopy(clauses),
+        'terms': flatten_terms_clauses(clauses),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Legal texts for the value-added modules section.
+#
+# Each module's terms are a list of categorised clauses ({label, text}) instead
+# of a single paragraph, so the client can tell the nature of each obligation
+# apart (eligibility, scope, term, third-party dependency, liability). The very
+# same list feeds the public web modal and the PDF annex — one source, two
+# renderers — and `**bold**` markers work in both.
+#
+# ES and EN are independent literals and MUST stay in parity.
+# ---------------------------------------------------------------------------
+
+_KPI_CLAUSES_ES = _clauses(
+    ('Naturaleza del beneficio',
+     'El Dashboard de KPIs y Métricas se otorga como una **liberalidad comercial** '
+     'incluida dentro del precio total del proyecto. No constituye un servicio '
+     'contratado de forma independiente y su no aplicación no genera descuento, '
+     'reembolso, crédito ni compensación económica alguna a favor del cliente.'),
+    ('Elegibilidad',
+     'Aplica exclusivamente a proyectos cuya inversión total supere los **1.500 USD** '
+     '(o su equivalente en COP), calculada sobre el valor efectivo del proyecto en la '
+     'moneda de esta propuesta.'),
+    ('Condición de viabilidad',
+     'Su implementación está sujeta a que la lógica de negocio del proyecto permita y '
+     'haga pertinente la definición y medición de indicadores clave. Si el negocio no '
+     'cuenta con indicadores que tenga sentido medir, el beneficio **no resulta '
+     'exigible**.'),
+    ('Requisito de disponibilidad de datos',
+     'Este módulo **captura, cuantifica y procesa datos** para exponerlos de forma '
+     'resumida como indicadores. Su entrega presupone que el sistema genere '
+     'información susceptible de ser medida. **Si no existe data que procesar ni '
+     'magnitudes que cuantificar, el módulo no es técnicamente entregable, aun cuando '
+     'el valor del proyecto habilite el beneficio.**'),
+    ('Alcance y límites',
+     'Comprende hasta **8 KPIs, 4 gráficos y 5 alertas**, definidos de común acuerdo '
+     'durante el levantamiento de requerimientos. Todo indicador, visualización o '
+     'alerta adicional constituye un requerimiento independiente y se cotiza por '
+     'separado.'),
+    ('Exclusiones',
+     'No comprende la depuración, migración o saneamiento de datos históricos '
+     'preexistentes, ni la integración con fuentes de datos externas no contempladas '
+     'dentro del alcance aprobado.'),
+)
+
+_ANALYTICS_CLAUSES_ES = _clauses(
+    ('Naturaleza del beneficio',
+     'El Módulo de Analítica se otorga como una **liberalidad comercial** incluida '
+     'dentro del precio total del proyecto. No constituye un servicio contratado de '
+     'forma independiente y su no aplicación no genera descuento, reembolso, crédito '
+     'ni compensación económica alguna a favor del cliente.'),
+    ('Elegibilidad',
+     'Aplica exclusivamente a proyectos cuya inversión total supere los **1.800 USD** '
+     '(o su equivalente en COP), calculada sobre el valor efectivo del proyecto en la '
+     'moneda de esta propuesta.'),
+    ('Condición de viabilidad',
+     'Su implementación está sujeta a que exista tráfico o comportamiento de usuarios '
+     'que resulte pertinente analizar. Si el proyecto no genera actividad susceptible '
+     'de análisis, el beneficio **no resulta exigible**.'),
+    ('Requisito de disponibilidad de datos',
+     'Este módulo **captura, cuantifica y procesa** eventos de uso para exponerlos de '
+     'forma agregada. **La ausencia o insuficiencia de datos impide la entrega del '
+     'módulo, aun cuando el valor del proyecto habilite el beneficio**, sin que ello '
+     'constituya incumplimiento.'),
+    ('Alcance y límites',
+     'Comprende hasta **6 reportes estándar** con datos de los últimos **12 meses**. '
+     'Los reportes personalizados adicionales constituyen requerimientos '
+     'independientes y se cotizan por separado.'),
+    ('Dependencia de proveedores externos',
+     'Cuando la analítica se apoye en plataformas o servicios de terceros, su '
+     'funcionamiento queda supeditado a la disponibilidad, condiciones técnicas y '
+     'políticas que dichos terceros definan de forma unilateral.'),
+    ('Exclusiones',
+     'No comprende auditorías de calidad de datos, ni la adecuación del proyecto a '
+     'normativas o certificaciones específicas exigidas por terceros.'),
+)
+
+_ADMIN_CLAUSES_ES = _clauses(
+    ('Naturaleza del beneficio',
+     'El Módulo Administrativo se otorga como una **liberalidad comercial** incluida '
+     'dentro del precio total del proyecto y **sin monto mínimo de inversión**. No '
+     'constituye un servicio contratado de forma independiente.'),
+    ('Condición de viabilidad',
+     'Su implementación está sujeta a que la lógica de negocio del proyecto permita '
+     'administrar contenido u operación de forma autónoma.'),
+    ('Alcance y límites',
+     'Se circunscribe a las entidades, flujos y gestores de contenido **expresamente '
+     'listados en la sección de requerimientos funcionales** de esta propuesta.'),
+    ('Exclusiones',
+     'Toda entidad, flujo o gestor no listado dentro del alcance aprobado constituye '
+     'un requerimiento independiente y se cotiza por separado.'),
+)
+
+_MANUAL_CLAUSES_ES = _clauses(
+    ('Naturaleza del beneficio',
+     'El Manual de Usuario Interactivo se otorga como una **liberalidad comercial** '
+     'incluida dentro del precio total del proyecto y **sin monto mínimo de '
+     'inversión**.'),
+    ('Alcance y límites',
+     'Documenta los procesos, flujos y roles comprendidos en el alcance aprobado, con '
+     'un máximo de **15 artículos** y **una (1)** actualización de contenido.'),
+    ('Vigencia de la actualización incluida',
+     'La actualización de contenido incluida deberá solicitarse **a más tardar al '
+     'cierre del proyecto**. Las actualizaciones posteriores constituyen '
+     'requerimientos independientes y se cotizan por separado.'),
+    ('Exclusiones',
+     'No comprende capacitación presencial o sincrónica, producción de material '
+     'audiovisual, ni traducción del contenido a otros idiomas.'),
+)
+
+_AI_CLAUSES_ES = _clauses(
+    ('Naturaleza del beneficio',
+     'La Automatización con Asistente de IA consiste en **integrar un proceso que hoy '
+     'se ejecuta de forma manual con un asistente de IA (Claude o ChatGPT)**, de modo '
+     'que pueda controlarse desde el chat del asistente y ejecutarse de forma '
+     'desatendida mediante tareas programadas dentro del propio asistente. Se otorga '
+     'como una **liberalidad comercial** incluida dentro del precio total del '
+     'proyecto.'),
+    ('Elegibilidad',
+     'Aplica exclusivamente a proyectos cuya inversión total supere los **2.900 USD** '
+     '(o su equivalente en COP), calculada sobre el valor efectivo del proyecto en la '
+     'moneda de esta propuesta.'),
+    ('Condición de viabilidad',
+     'Su implementación está sujeta a que la lógica de negocio del proyecto permita y '
+     'haga pertinente automatizar el proceso conectándolo a un asistente de IA.'),
+    ('Requisito de disponibilidad de datos',
+     'La automatización opera sobre datos e información del sistema. **Si el proceso '
+     'no expone datos susceptibles de ser consultados o modificados de forma '
+     'estructurada, no es técnicamente automatizable, aun cuando el valor del proyecto '
+     'habilite el beneficio.**'),
+    ('Alcance y límites',
+     'Comprende **un (1) proceso de negocio**, definido de común acuerdo durante el '
+     'levantamiento de requerimientos. Todo proceso adicional constituye un '
+     'requerimiento independiente y se cotiza por separado.'),
+    ('Vigencia',
+     'El beneficio está disponible por un periodo de **6 meses contados a partir de la '
+     'fecha de despliegue del proyecto en producción** (puesta en operación), y **no** '
+     'desde la aceptación de esta propuesta ni desde la suscripción del contrato. '
+     'Vencido dicho término, la continuidad del servicio se cotiza por separado.'),
+    ('Dependencia de proveedores externos',
+     'La integración depende de que el proveedor del asistente de IA (Anthropic para '
+     'Claude u OpenAI para ChatGPT) **ofrezca y mantenga disponible** dicha capacidad '
+     'de integración, en los planes, condiciones técnicas y términos de servicio que '
+     'ese proveedor determine de forma unilateral. Su disponibilidad, alcance y '
+     'continuidad son ajenos a nuestro control.'),
+    ('Exclusión de responsabilidad',
+     'Si el proveedor del asistente restringe, modifica, suspende o discontinúa esa '
+     'capacidad de integración, o condiciona su uso a planes, cupos o requisitos '
+     'distintos, la automatización podrá dejar de estar disponible total o '
+     'parcialmente. **Dicha circunstancia no constituye incumplimiento** de nuestra '
+     'parte y no genera responsabilidad, indemnización, reembolso ni obligación de '
+     'sustitución a nuestro cargo.'),
+    ('Costos de terceros',
+     'Las suscripciones, licencias o consumos que cobre el proveedor del asistente de '
+     'IA son por cuenta exclusiva del cliente y no están incluidos en el precio del '
+     'proyecto.'),
+)
+
+_VALUE_ADDED_GENERAL_TERMS_ES = {
+    'title': 'Disposiciones generales aplicables a los módulos incluidos',
+    'clauses': _clauses(
+        ('Naturaleza de los beneficios',
+         'Los módulos descritos en esta sección se otorgan como una **liberalidad '
+         'comercial** incluida dentro del precio total del proyecto y no fueron '
+         'cotizados de forma separada. Su no aplicación no da lugar a descuento, '
+         'reembolso, crédito ni compensación económica alguna.'),
+        ('Condición de viabilidad y pertinencia técnica',
+         'Cada módulo se implementa **únicamente si la lógica de negocio del proyecto '
+         'lo permite** y si su incorporación resulta técnica y funcionalmente '
+         'pertinente. Dicha valoración se realiza durante el levantamiento de '
+         'requerimientos y se documenta como parte del alcance.'),
+        ('Disponibilidad y suficiencia de datos',
+         'Los módulos de KPIs, analítica y automatización con IA **operan sobre '
+         'datos**: los capturan, los cuantifican y los procesan para exponer '
+         'información resumida. En consecuencia, su entrega presupone la existencia de '
+         'datos suficientes y pertinentes. **La ausencia o insuficiencia de datos '
+         'impide la entrega del módulo, aun cuando el valor del proyecto satisfaga el '
+         'umbral de elegibilidad**, sin que ello constituya incumplimiento.'),
+        ('Dependencia de proveedores y servicios de terceros',
+         'Cuando un módulo dependa de plataformas, APIs o servicios prestados por '
+         'terceros, su funcionamiento queda supeditado a la disponibilidad, '
+         'condiciones técnicas, políticas comerciales y términos de servicio que esos '
+         'terceros definan de forma unilateral. **No respondemos por su modificación, '
+         'suspensión o discontinuación.**'),
+        ('Ausencia de garantía sobre resultados de negocio',
+         'Los módulos son herramientas de gestión, medición y automatización. **No se '
+         'garantiza resultado comercial alguno**, ni incremento de ventas, ahorro o '
+         'rendimiento derivado de su uso.'),
+        ('Tratamiento de datos personales',
+         'Cuando la operación de un módulo implique tratamiento de datos personales, '
+         'el cliente actúa como **responsable** del tratamiento y nosotros como '
+         '**encargados**, en los términos de la **Ley 1581 de 2012** y del **Decreto '
+         '1074 de 2015**. Corresponde al cliente contar con las autorizaciones, '
+         'políticas y avisos de privacidad exigidos por la normativa aplicable.'),
+        ('Fuerza mayor y caso fortuito',
+         'No habrá responsabilidad por el incumplimiento o el retardo derivado de '
+         'hechos constitutivos de **fuerza mayor o caso fortuito**, conforme al '
+         'artículo 64 del Código Civil colombiano, incluidas las fallas de proveedores '
+         'de infraestructura o de servicios de terceros.'),
+        ('Intransferibilidad y no canje',
+         'Los beneficios son personales del cliente y del proyecto descritos en esta '
+         'propuesta. **No son acumulables** entre propuestas, **no son cedibles** a '
+         'terceros y **no son canjeables por dinero**, descuento ni por otros '
+         'entregables.'),
+        ('Modificación por cambio de alcance',
+         'Toda variación del alcance aprobado que afecte la viabilidad, el '
+         'dimensionamiento o los límites de un módulo dará lugar a la revisión de las '
+         'condiciones aquí previstas.'),
+        ('Prevalencia del contrato y vigencia',
+         'Estas condiciones complementan la propuesta comercial y su detalle técnico. '
+         'En caso de discrepancia, **prevalece lo pactado en el contrato** suscrito '
+         'entre las partes. Las condiciones aquí descritas se entienden vigentes por '
+         'el término de validez de esta propuesta.'),
+    ),
+}
+
+_KPI_CLAUSES_EN = _clauses(
+    ('Nature of the benefit',
+     'The KPIs & Metrics Dashboard is granted as a **commercial courtesy** included '
+     'within the total price of the project. It is not an independently contracted '
+     'service, and its non-application gives rise to no discount, refund, credit or '
+     'financial compensation whatsoever in favour of the client.'),
+    ('Eligibility',
+     'It applies exclusively to projects whose total investment exceeds **1,500 USD** '
+     '(or its equivalent in COP), calculated on the effective value of the project in '
+     'the currency of this proposal.'),
+    ('Feasibility condition',
+     'Its implementation is subject to the project business logic allowing and '
+     'warranting the definition and measurement of key indicators. If the business has '
+     'no indicators worth measuring, the benefit **is not enforceable**.'),
+    ('Data availability requirement',
+     'This module **captures, quantifies and processes data** in order to surface it '
+     'in summarised form as indicators. Its delivery presupposes that the system '
+     'produces information capable of being measured. **If there is no data to process '
+     'and no magnitudes to quantify, the module is not technically deliverable, even '
+     'where the value of the project enables the benefit.**'),
+    ('Scope and limits',
+     'It covers up to **8 KPIs, 4 charts and 5 alerts**, agreed upon during '
+     'requirements gathering. Any additional indicator, visualisation or alert '
+     'constitutes an independent requirement and is quoted separately.'),
+    ('Exclusions',
+     'It does not cover the cleansing, migration or remediation of pre-existing '
+     'historical data, nor integration with external data sources not contemplated '
+     'within the approved scope.'),
+)
+
+_ANALYTICS_CLAUSES_EN = _clauses(
+    ('Nature of the benefit',
+     'The Analytics Module is granted as a **commercial courtesy** included within the '
+     'total price of the project. It is not an independently contracted service, and '
+     'its non-application gives rise to no discount, refund, credit or financial '
+     'compensation whatsoever in favour of the client.'),
+    ('Eligibility',
+     'It applies exclusively to projects whose total investment exceeds **1,800 USD** '
+     '(or its equivalent in COP), calculated on the effective value of the project in '
+     'the currency of this proposal.'),
+    ('Feasibility condition',
+     'Its implementation is subject to the existence of traffic or user behaviour '
+     'worth analysing. If the project generates no activity capable of analysis, the '
+     'benefit **is not enforceable**.'),
+    ('Data availability requirement',
+     'This module **captures, quantifies and processes** usage events in order to '
+     'surface them in aggregate form. **The absence or insufficiency of data prevents '
+     'delivery of the module, even where the value of the project enables the '
+     'benefit**, and this shall not constitute a breach.'),
+    ('Scope and limits',
+     'It covers up to **6 standard reports** with data from the last **12 months**. '
+     'Additional custom reports constitute independent requirements and are quoted '
+     'separately.'),
+    ('Third-party provider dependency',
+     'Where analytics relies on third-party platforms or services, its operation is '
+     'subject to the availability, technical conditions and policies that those third '
+     'parties unilaterally define.'),
+    ('Exclusions',
+     'It does not cover data quality audits, nor bringing the project into line with '
+     'specific regulations or certifications required by third parties.'),
+)
+
+_ADMIN_CLAUSES_EN = _clauses(
+    ('Nature of the benefit',
+     'The Admin Module is granted as a **commercial courtesy** included within the '
+     'total price of the project and **with no minimum investment**. It is not an '
+     'independently contracted service.'),
+    ('Feasibility condition',
+     'Its implementation is subject to the project business logic allowing content or '
+     'operations to be administered autonomously.'),
+    ('Scope and limits',
+     'It is confined to the entities, flows and content managers **expressly listed in '
+     'the functional requirements section** of this proposal.'),
+    ('Exclusions',
+     'Any entity, flow or manager not listed within the approved scope constitutes an '
+     'independent requirement and is quoted separately.'),
+)
+
+_MANUAL_CLAUSES_EN = _clauses(
+    ('Nature of the benefit',
+     'The Interactive User Manual is granted as a **commercial courtesy** included '
+     'within the total price of the project and **with no minimum investment**.'),
+    ('Scope and limits',
+     'It documents the processes, flows and roles comprised within the approved scope, '
+     'up to a maximum of **15 articles** and **one (1)** content update.'),
+    ('Term of the included update',
+     'The included content update must be requested **no later than project closure**. '
+     'Subsequent updates constitute independent requirements and are quoted '
+     'separately.'),
+    ('Exclusions',
+     'It does not cover in-person or synchronous training, audiovisual material '
+     'production, or translation of the content into other languages.'),
+)
+
+_AI_CLAUSES_EN = _clauses(
+    ('Nature of the benefit',
+     'AI Assistant Automation consists of **integrating a process currently performed '
+     'manually with an AI assistant (Claude or ChatGPT)**, so that it can be driven '
+     'from the assistant chat and run unattended via scheduled tasks within the '
+     'assistant itself. It is granted as a **commercial courtesy** included within the '
+     'total price of the project.'),
+    ('Eligibility',
+     'It applies exclusively to projects whose total investment exceeds **2,900 USD** '
+     '(or its equivalent in COP), calculated on the effective value of the project in '
+     'the currency of this proposal.'),
+    ('Feasibility condition',
+     'Its implementation is subject to the project business logic allowing and '
+     'warranting automation of the process by connecting it to an AI assistant.'),
+    ('Data availability requirement',
+     'The automation operates on system data and information. **If the process does '
+     'not expose data capable of being queried or modified in a structured way, it is '
+     'not technically automatable, even where the value of the project enables the '
+     'benefit.**'),
+    ('Scope and limits',
+     'It covers **one (1) business process**, agreed upon during requirements '
+     'gathering. Any additional process constitutes an independent requirement and is '
+     'quoted separately.'),
+    ('Term',
+     'The benefit is available for a period of **6 months counted from the date the '
+     'project is deployed to production** (go-live), and **not** from acceptance of '
+     'this proposal nor from execution of the contract. Once that term expires, '
+     'continuity of the service is quoted separately.'),
+    ('Third-party provider dependency',
+     'The integration depends on the AI assistant provider (Anthropic for Claude or '
+     'OpenAI for ChatGPT) **offering and keeping available** that integration '
+     'capability, under the plans, technical conditions and terms of service that the '
+     'provider unilaterally determines. Its availability, scope and continuity are '
+     'beyond our control.'),
+    ('Limitation of liability',
+     'Should the assistant provider restrict, modify, suspend or discontinue that '
+     'integration capability, or condition its use on different plans, quotas or '
+     'requirements, the automation may cease to be available in whole or in part. '
+     '**Such circumstance does not constitute a breach** on our part and gives rise to '
+     'no liability, indemnity, refund or obligation to provide a substitute on our '
+     'account.'),
+    ('Third-party costs',
+     'Subscriptions, licences or usage charged by the AI assistant provider are borne '
+     'exclusively by the client and are not included in the price of the project.'),
+)
+
+_VALUE_ADDED_GENERAL_TERMS_EN = {
+    'title': 'General provisions applicable to the included modules',
+    'clauses': _clauses(
+        ('Nature of the benefits',
+         'The modules described in this section are granted as a **commercial '
+         'courtesy** included within the total price of the project and were not '
+         'quoted separately. Their non-application gives rise to no discount, refund, '
+         'credit or financial compensation whatsoever.'),
+        ('Feasibility and technical relevance condition',
+         'Each module is implemented **only if the project business logic allows it** '
+         'and if its incorporation is technically and functionally relevant. That '
+         'assessment is carried out during requirements gathering and documented as '
+         'part of the scope.'),
+        ('Data availability and sufficiency',
+         'The KPIs, analytics and AI automation modules **operate on data**: they '
+         'capture it, quantify it and process it in order to surface summarised '
+         'information. Their delivery therefore presupposes the existence of '
+         'sufficient and relevant data. **The absence or insufficiency of data '
+         'prevents delivery of the module, even where the value of the project meets '
+         'the eligibility threshold**, and this shall not constitute a breach.'),
+        ('Dependency on third-party providers and services',
+         'Where a module depends on platforms, APIs or services provided by third '
+         'parties, its operation is subject to the availability, technical conditions, '
+         'commercial policies and terms of service that those third parties '
+         'unilaterally define. **We are not liable for their modification, suspension '
+         'or discontinuation.**'),
+        ('No warranty as to business results',
+         'The modules are management, measurement and automation tools. **No '
+         'commercial result is warranted**, nor any increase in sales, savings or '
+         'performance derived from their use.'),
+        ('Personal data processing',
+         'Where the operation of a module involves the processing of personal data, '
+         'the client acts as **data controller** and we act as **data processor**, '
+         'under **Law 1581 of 2012** and **Decree 1074 of 2015** of Colombia. It is '
+         'incumbent on the client to hold the authorisations, policies and privacy '
+         'notices required by the applicable regulations.'),
+        ('Force majeure and fortuitous event',
+         'There shall be no liability for non-performance or delay arising from events '
+         'constituting **force majeure or a fortuitous event**, under article 64 of '
+         'the Colombian Civil Code, including failures of infrastructure providers or '
+         'third-party services.'),
+        ('Non-transferability and no cash equivalent',
+         'The benefits are personal to the client and the project described in this '
+         'proposal. They **are not cumulative** across proposals, **are not '
+         'assignable** to third parties and **are not exchangeable for cash**, '
+         'discounts or other deliverables.'),
+        ('Amendment upon change of scope',
+         'Any variation of the approved scope affecting the feasibility, sizing or '
+         'limits of a module shall give rise to a review of the conditions set out '
+         'herein.'),
+        ('Precedence of the contract and validity',
+         'These conditions supplement the commercial proposal and its technical '
+         'detail. In the event of any discrepancy, **the terms agreed in the contract** '
+         'executed between the parties shall prevail. The conditions described herein '
+         'are understood to be in force for the validity period of this proposal.'),
+    ),
+}
+
+
 # ---------------------------------------------------------------------------
 # Default section configurations extracted from existing Vue component props.
 # Each entry maps to the content_json stored in ProposalSection.
@@ -361,76 +854,39 @@ DEFAULT_SECTIONS = [
             # applies solo si la lógica de negocio lo permite y tiene sentido
             # medir/automatizar. Los mínimos se comparan contra el total efectivo
             # en la moneda de la propuesta ("condicionado", nunca se oculta).
+            # The legal wording lives in the _*_CLAUSES_ES catalog above.
             'conditions': {
-                'kpi_dashboard_module': {
-                    'min_price_usd': 1500,
-                    'min_price_cop': 6000000,
-                    'duration_months': None,
-                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido definir y medir KPIs.',
-                    'terms': (
-                        'El Dashboard de KPIs y Métricas se incluye sin costo adicional en proyectos cuya '
-                        'inversión total supere los **1.500 USD** (o su equivalente en COP). Su implementación '
-                        'está sujeta a que el negocio cuente con indicadores clave que tenga sentido medir; '
-                        'si no existen métricas relevantes, este beneficio no aplica. **Importante:** el '
-                        'beneficio cubre hasta **8 KPIs, 4 gráficos y 5 alertas**; indicadores adicionales '
-                        'se cotizan por separado.'
-                    ),
-                },
-                'analytics_dashboard': {
-                    'min_price_usd': 1800,
-                    'min_price_cop': 7200000,
-                    'duration_months': None,
-                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido recolectar y analizar datos de uso.',
-                    'terms': (
-                        'El Módulo de Analítica se incluye sin costo adicional en proyectos cuya inversión total '
-                        'supere los **1.800 USD** (o su equivalente en COP). Su implementación está sujeta a que '
-                        'exista tráfico o comportamiento de usuarios que tenga sentido analizar. **Importante:** '
-                        'el beneficio cubre hasta **6 reportes estándar** con datos de los últimos 12 meses; '
-                        'reportes personalizados adicionales se cotizan por separado.'
-                    ),
-                },
-                'admin_module': {
-                    'min_price_usd': None,
-                    'min_price_cop': None,
-                    'duration_months': None,
-                    'discretionary_note': 'Se implementa si la lógica de negocio permite gestionar contenido u operación de forma autónoma.',
-                    'terms': (
-                        'El Módulo Administrativo se incluye sin costo adicional y sin monto mínimo de proyecto. '
-                        'Su alcance se ajusta a las entidades y flujos definidos dentro del alcance de la propuesta. '
-                        'Cubre únicamente los gestores de contenido listados en la sección de requerimientos funcionales.'
-                    ),
-                },
-                'manual_module': {
-                    'min_price_usd': None,
-                    'min_price_cop': None,
-                    'duration_months': None,
-                    'discretionary_note': 'Se implementa sobre los procesos y roles definidos dentro del alcance de la propuesta.',
-                    'terms': (
-                        'El Manual de Usuario Interactivo se incluye sin costo adicional y sin monto mínimo de '
-                        'proyecto. Documenta los procesos, flujos y roles que hacen parte del alcance aprobado. '
-                        'Incluye hasta 15 artículos y una (1) actualización de contenido al cierre del proyecto; '
-                        'actualizaciones posteriores se cotizan por separado.'
-                    ),
-                },
-                'ai_automation_module': {
-                    'min_price_usd': 2900,
-                    'min_price_cop': 10400000,
-                    'duration_months': 6,
-                    'discretionary_note': 'Se implementa si la lógica de negocio permite y tiene sentido automatizar el proceso conectándolo a un asistente de IA.',
-                    'terms': (
-                        'La Automatización con Asistente de IA se incluye sin costo adicional en proyectos cuya '
-                        'inversión total supere los **2.900 USD** (o su equivalente en COP), y está disponible por '
-                        'un periodo de **6 meses**. Consiste en integrar un proceso que hoy se realiza de forma '
-                        'manual con un asistente de IA (Claude o ChatGPT), de modo que pueda controlarse desde el '
-                        'chat y ejecutarse solo mediante tareas programadas dentro del propio asistente. '
-                        'Cubre **un (1) proceso de negocio**; procesos adicionales se cotizan por separado. '
-                        '**Importante:** esta integración depende de que el proveedor del asistente de IA '
-                        '(Claude o ChatGPT) ofrezca y mantenga disponible dicha capacidad de integración; si deja '
-                        'de soportarla, la automatización podría dejar de estar disponible, situación que escapa '
-                        'a nuestro control y de la cual no somos responsables.'
-                    ),
-                },
+                'kpi_dashboard_module': _module_condition(
+                    _KPI_CLAUSES_ES,
+                    min_price_usd=1500,
+                    min_price_cop=6000000,
+                    discretionary_note='Se implementa si la lógica de negocio permite y tiene sentido definir y medir KPIs.',
+                ),
+                'analytics_dashboard': _module_condition(
+                    _ANALYTICS_CLAUSES_ES,
+                    min_price_usd=1800,
+                    min_price_cop=7200000,
+                    discretionary_note='Se implementa si la lógica de negocio permite y tiene sentido recolectar y analizar datos de uso.',
+                ),
+                'admin_module': _module_condition(
+                    _ADMIN_CLAUSES_ES,
+                    discretionary_note='Se implementa si la lógica de negocio permite gestionar contenido u operación de forma autónoma.',
+                ),
+                'manual_module': _module_condition(
+                    _MANUAL_CLAUSES_ES,
+                    discretionary_note='Se implementa sobre los procesos y roles definidos dentro del alcance de la propuesta.',
+                ),
+                'ai_automation_module': _module_condition(
+                    _AI_CLAUSES_ES,
+                    min_price_usd=2900,
+                    min_price_cop=10400000,
+                    duration_months=6,
+                    discretionary_note='Se implementa si la lógica de negocio permite y tiene sentido automatizar el proceso conectándolo a un asistente de IA.',
+                ),
             },
+            # Cross-cutting legal provisions rendered after the module cards in
+            # both the web section and the PDF annex.
+            'general_terms': deepcopy(_VALUE_ADDED_GENERAL_TERMS_ES),
             'footer_note': 'Total adicional: $0. Ya está cotizado dentro del precio del proyecto.',
         },
     },
@@ -1383,10 +1839,10 @@ DEFAULT_SECTIONS = [
             'scopeParagraphs': [
                 'El trabajo aprobado y cotizado corresponde únicamente a lo descrito dentro del '
                 'alcance de esta propuesta comercial y de su detalle técnico. Cualquier conversación, '
-                'mensaje, reunión, idea, recurso, archivo, referencia o solicitud que surja antes '
-                'o durante el proyecto y que no esté explícitamente descrita dentro de dicho alcance no '
-                'constituye, por sí sola, un compromiso de implementación ni hace parte del trabajo '
-                'contratado.',
+                'mensaje, correo electrónico, reunión, idea, recurso, archivo, referencia o solicitud '
+                'que surja **antes o durante** el proyecto y que no esté explícitamente descrita dentro '
+                'de dicho alcance no constituye, por sí sola, un compromiso de implementación ni hace '
+                'parte del trabajo contratado.',
                 'Lo anterior no limita la comunicación: podemos conversar y explorar ideas libremente. '
                 'Sin embargo, para que una funcionalidad, cambio o entregable pase a formar parte del '
                 'trabajo aprobado, debe quedar documentado y cotizado como parte del alcance o como un '
@@ -1734,74 +2190,38 @@ DEFAULT_SECTIONS_EN = [
                 'manual_module': 'So anyone on your team can understand the system without training sessions.',
                 'ai_automation_module': 'So a task you do by hand today can be driven from an AI assistant chat and run on its own via scheduled tasks.',
             },
+            # Legal wording lives in the _*_CLAUSES_EN catalog above; must stay
+            # in parity with the ES section.
             'conditions': {
-                'kpi_dashboard_module': {
-                    'min_price_usd': 1500,
-                    'min_price_cop': 6000000,
-                    'duration_months': None,
-                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to define and measure KPIs.',
-                    'terms': (
-                        'The KPIs & Metrics Dashboard is included at no extra cost in projects whose total '
-                        'investment exceeds **1,500 USD** (or the COP equivalent). Its implementation is subject '
-                        'to the business having key indicators worth measuring; if no relevant metrics exist, '
-                        'this benefit does not apply. **Important:** the benefit covers up to **8 KPIs, 4 charts '
-                        'and 5 alerts**; additional indicators are quoted separately.'
-                    ),
-                },
-                'analytics_dashboard': {
-                    'min_price_usd': 1800,
-                    'min_price_cop': 7200000,
-                    'duration_months': None,
-                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to collect and analyze usage data.',
-                    'terms': (
-                        'The Analytics Module is included at no extra cost in projects whose total investment '
-                        'exceeds **1,800 USD** (or the COP equivalent). Its implementation is subject to there '
-                        'being traffic or user behavior worth analyzing. **Important:** the benefit covers up to '
-                        '**6 standard reports** with data from the last 12 months; additional custom reports are '
-                        'quoted separately.'
-                    ),
-                },
-                'admin_module': {
-                    'min_price_usd': None,
-                    'min_price_cop': None,
-                    'duration_months': None,
-                    'discretionary_note': 'Implemented if the business logic allows managing content or operations autonomously.',
-                    'terms': (
-                        'The Admin Module is included at no extra cost and with no minimum project amount. '
-                        'Its scope is limited to the entities and flows defined within the proposal scope. '
-                        'It covers only the content managers listed in the functional requirements section.'
-                    ),
-                },
-                'manual_module': {
-                    'min_price_usd': None,
-                    'min_price_cop': None,
-                    'duration_months': None,
-                    'discretionary_note': 'Implemented over the processes and roles defined within the proposal scope.',
-                    'terms': (
-                        'The Interactive User Manual is included at no extra cost and with no minimum project '
-                        'amount. It documents the processes, flows and roles within the approved scope. '
-                        'It includes up to 15 articles and one (1) content update at project close; '
-                        'later updates are quoted separately.'
-                    ),
-                },
-                'ai_automation_module': {
-                    'min_price_usd': 2900,
-                    'min_price_cop': 10400000,
-                    'duration_months': 6,
-                    'discretionary_note': 'Implemented if the business logic allows and it makes sense to automate the process by connecting it to an AI assistant.',
-                    'terms': (
-                        'AI Assistant Automation is included at no extra cost in projects whose total investment '
-                        'exceeds **2,900 USD** (or the COP equivalent), and is available for a period of '
-                        '**6 months**. It connects a currently manual process to an AI assistant (Claude or '
-                        'ChatGPT), so it can be controlled from the chat and run on its own via scheduled tasks '
-                        'inside the assistant itself. It covers **one (1) business process**; additional '
-                        'processes are quoted separately. **Important:** this integration depends on the AI '
-                        'assistant provider (Claude or ChatGPT) offering and keeping that integration capability '
-                        'available; if the provider stops supporting it, the automation may become unavailable — '
-                        'a situation beyond our control and for which we are not responsible.'
-                    ),
-                },
+                'kpi_dashboard_module': _module_condition(
+                    _KPI_CLAUSES_EN,
+                    min_price_usd=1500,
+                    min_price_cop=6000000,
+                    discretionary_note='Implemented if the business logic allows and it makes sense to define and measure KPIs.',
+                ),
+                'analytics_dashboard': _module_condition(
+                    _ANALYTICS_CLAUSES_EN,
+                    min_price_usd=1800,
+                    min_price_cop=7200000,
+                    discretionary_note='Implemented if the business logic allows and it makes sense to collect and analyze usage data.',
+                ),
+                'admin_module': _module_condition(
+                    _ADMIN_CLAUSES_EN,
+                    discretionary_note='Implemented if the business logic allows managing content or operations autonomously.',
+                ),
+                'manual_module': _module_condition(
+                    _MANUAL_CLAUSES_EN,
+                    discretionary_note='Implemented over the processes and roles defined within the proposal scope.',
+                ),
+                'ai_automation_module': _module_condition(
+                    _AI_CLAUSES_EN,
+                    min_price_usd=2900,
+                    min_price_cop=10400000,
+                    duration_months=6,
+                    discretionary_note='Implemented if the business logic allows and it makes sense to automate the process by connecting it to an AI assistant.',
+                ),
             },
+            'general_terms': deepcopy(_VALUE_ADDED_GENERAL_TERMS_EN),
             'footer_note': 'Additional total: $0. Already priced inside the project budget.',
         },
     },
@@ -2745,9 +3165,9 @@ DEFAULT_SECTIONS_EN = [
             'scopeParagraphs': [
                 'The approved and quoted work corresponds solely to what is described within the scope '
                 'of this commercial proposal and its technical detail. Any conversation, message, '
-                'meeting, idea, resource, file, reference or request that arises before or during the project and '
-                'is not explicitly described within that scope does not, by itself, constitute a '
-                'commitment to implement it, nor is it part of the contracted work.',
+                'email, meeting, idea, resource, file, reference or request that arises **before or '
+                'during** the project and is not explicitly described within that scope does not, by '
+                'itself, constitute a commitment to implement it, nor is it part of the contracted work.',
                 'This does not limit communication: we can talk and explore ideas freely. However, for '
                 'a feature, change or deliverable to become part of the approved work, it must be '
                 'documented and quoted as part of the scope or as an independent requirement. This '
@@ -3612,6 +4032,13 @@ def build_proposal_from_json(validated_data):
             if general.get('inspirationalQuote'):
                 content_json['inspirationalQuote'] = general['inspirationalQuote']
 
+        if section_type == 'value_added_modules' and json_key in sections_data:
+            # The payload replaces content_json wholesale; without this the
+            # legal terms would be dropped on every JSON/MCP import.
+            content_json = merge_value_added_legal_terms(
+                content_json, section_cfg['content_json'],
+            )
+
         if section_type == 'functional_requirements' and json_key in sections_data:
             default_cj = copy.deepcopy(section_cfg['content_json'])
             default_groups = default_cj.get('groups', [])
@@ -3794,6 +4221,13 @@ def apply_proposal_json_update(proposal, validated_data):
                 new_content.setdefault('clientName', proposal.client_name)
                 if general.get('inspirationalQuote'):
                     new_content['inspirationalQuote'] = general['inspirationalQuote']
+
+            if section.section_type == 'value_added_modules':
+                # Preserve the legal terms already stored on the proposal — the
+                # payload never carries them.
+                new_content = merge_value_added_legal_terms(
+                    new_content, section.content_json,
+                )
 
             if section.section_type == 'functional_requirements':
                 final_groups = []

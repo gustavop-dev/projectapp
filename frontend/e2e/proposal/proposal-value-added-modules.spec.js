@@ -205,6 +205,39 @@ test.describe('Proposal Value Added Modules', () => {
     return proposal;
   }
 
+  /** Same proposal, with the categorised legal clauses the backend now ships. */
+  function makeLegalTermsProposal() {
+    const proposal = makeConditionsProposal();
+    proposal.sections[1].content_json.conditions.ai_automation_module.terms_clauses = [
+      {
+        label: 'Elegibilidad',
+        text: 'Aplica a proyectos que superen los **2.900 USD**.',
+      },
+      {
+        label: 'Vigencia',
+        text: 'Disponible por **6 meses** contados a partir del despliegue en producción.',
+      },
+      {
+        label: 'Exclusión de responsabilidad',
+        text: 'Si el proveedor discontinúa la integración no somos responsables.',
+      },
+    ];
+    proposal.sections[1].content_json.general_terms = {
+      title: 'Disposiciones generales aplicables a los módulos incluidos',
+      clauses: [
+        {
+          label: 'Fuerza mayor y caso fortuito',
+          text: 'No hay responsabilidad por hechos de **fuerza mayor**.',
+        },
+        {
+          label: 'Intransferibilidad y no canje',
+          text: 'Los beneficios no son canjeables por dinero.',
+        },
+      ],
+    };
+    return proposal;
+  }
+
   async function gotoValueAdded(page, proposal) {
     await setupMock(page, proposal);
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
@@ -236,5 +269,55 @@ test.describe('Proposal Value Added Modules', () => {
     const body = page.getByTestId('module-terms-body');
     await expect(body).toBeVisible({ timeout: 10000 });
     await expect(body).toContainText('asistente de IA');
+  });
+
+  test('reads the categorised legal clauses in the terms modal', {
+    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the proposal link is the client's only real entry
+    // point — it is shared via email/WhatsApp, there is no in-app UI to browse to
+    // it from; gotoValueAdded still reaches this section by clicking nav-next)
+    await gotoValueAdded(page, makeLegalTermsProposal());
+
+    await page.getByTestId('value-added-terms-ai_automation_module').click();
+    await expect(page.getByTestId('module-terms-clauses')).toBeVisible({ timeout: 10000 });
+
+    await expect(page.getByTestId('module-terms-clause-label')).toHaveText([
+      'Elegibilidad',
+      'Vigencia',
+      'Exclusión de responsabilidad',
+    ]);
+    // The term must read as counted from the production deployment, and the
+    // emphasis must render as markup rather than literal ** markers.
+    const body = page.getByTestId('module-terms-body');
+    await expect(body).toContainText('contados a partir del despliegue en producción');
+    await expect(body).not.toContainText('**');
+    await expect(body.locator('strong', { hasText: '6 meses' })).toBeVisible();
+  });
+
+  test('expands the general provisions at the end of the section', {
+    tag: [...PROPOSAL_VALUE_ADDED_MODULES, '@role:client', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the proposal link is the client's only real entry
+    // point — it is shared via email/WhatsApp, there is no in-app UI to browse to
+    // it from; gotoValueAdded still reaches this section by clicking nav-next)
+    await gotoValueAdded(page, makeLegalTermsProposal());
+
+    const block = page.getByTestId('value-added-general-terms');
+    await expect(block).toBeVisible({ timeout: 10000 });
+    await expect(block).toContainText('Disposiciones generales aplicables a los módulos incluidos');
+
+    // Collapsed by default: the clause bodies are not readable until opened.
+    const firstClause = page.getByTestId('value-added-general-label').first();
+    await expect(firstClause).toBeHidden();
+
+    await block.locator('summary').click();
+
+    await expect(page.getByTestId('value-added-general-label')).toHaveText([
+      'Fuerza mayor y caso fortuito',
+      'Intransferibilidad y no canje',
+    ]);
+    await expect(block).toContainText('no son canjeables por dinero');
+    await expect(block.locator('strong', { hasText: 'fuerza mayor' })).toBeVisible();
   });
 });

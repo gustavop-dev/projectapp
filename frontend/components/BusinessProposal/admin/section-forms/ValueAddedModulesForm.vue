@@ -67,17 +67,152 @@
               :isSingle="true"
               @update:modelValue="setCond(id, 'discretionary_note', $event)"
             />
-            <FieldTextarea
-              :modelValue="getCond(id, 'terms')"
-              label="Términos y condiciones"
-              help="Texto que verá el cliente en el modal de T&C de este módulo."
-              :rows="4"
-              :isSingle="true"
-              @update:modelValue="setCond(id, 'terms', $event)"
-            />
+            <!-- Cláusulas legales categorizadas (fuente única web + PDF) -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between gap-2">
+                <label class="block text-xs font-medium text-text-muted uppercase tracking-wider">
+                  Términos y condiciones
+                </label>
+                <button
+                  type="button"
+                  class="text-[11px] font-medium text-text-brand hover:underline"
+                  @click="addClause(id)"
+                >
+                  + Añadir cláusula
+                </button>
+              </div>
+              <p class="text-[11px] text-text-muted">
+                Cada cláusula lleva una categoría (Elegibilidad, Alcance, Vigencia…). Se muestran
+                igual en el modal de la vista pública y en el anexo del PDF. Usa
+                <code>**negrilla**</code> para resaltar.
+              </p>
+
+              <div
+                v-for="(clause, idx) in getClauses(id)"
+                :key="idx"
+                class="border border-border-default dark:border-white/[0.08] rounded-lg p-2 bg-surface space-y-2"
+              >
+                <div class="flex items-start gap-2">
+                  <div class="flex-1">
+                    <FieldInput
+                      :modelValue="clause.label"
+                      label="Categoría"
+                      placeholder="Ej: Elegibilidad"
+                      @update:modelValue="setClauseField(id, idx, 'label', $event)"
+                    />
+                  </div>
+                  <div class="flex items-center gap-1 pt-6">
+                    <button
+                      type="button"
+                      class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+                      :disabled="idx === 0"
+                      title="Subir"
+                      @click="moveClause(id, idx, -1)"
+                    >↑</button>
+                    <button
+                      type="button"
+                      class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+                      :disabled="idx === getClauses(id).length - 1"
+                      title="Bajar"
+                      @click="moveClause(id, idx, 1)"
+                    >↓</button>
+                    <button
+                      type="button"
+                      class="w-6 h-6 rounded text-text-muted hover:text-red-500 hover:bg-surface-raised"
+                      title="Eliminar"
+                      @click="removeClause(id, idx)"
+                    >×</button>
+                  </div>
+                </div>
+                <FieldTextarea
+                  :modelValue="clause.text"
+                  label="Texto de la cláusula"
+                  :rows="3"
+                  :isSingle="true"
+                  @update:modelValue="setClauseField(id, idx, 'text', $event)"
+                />
+              </div>
+
+              <p v-if="!getClauses(id).length" class="text-[11px] text-text-muted italic">
+                Sin cláusulas. Añade al menos una para que el módulo muestre términos.
+              </p>
+            </div>
           </div>
         </template>
       </div>
+    </div>
+  </div>
+
+  <!-- Disposiciones generales de la sección (web + anexo PDF) -->
+  <div class="border border-border-default dark:border-white/[0.08] rounded-xl p-3 bg-surface-raised space-y-2">
+    <div class="flex items-center justify-between gap-2">
+      <label class="block text-xs font-medium text-text-muted uppercase tracking-wider">
+        Disposiciones generales
+      </label>
+      <button
+        type="button"
+        class="text-[11px] font-medium text-text-brand hover:underline"
+        @click="addGeneralClause"
+      >
+        + Añadir cláusula
+      </button>
+    </div>
+    <p class="text-[11px] text-text-muted">
+      Cláusulas transversales a todos los módulos incluidos. Se muestran al cierre de la sección
+      pública y como bloque final del anexo del PDF.
+    </p>
+
+    <FieldInput
+      :modelValue="form.general_terms?.title || ''"
+      label="Título del bloque"
+      placeholder="Disposiciones generales aplicables a los módulos incluidos"
+      @update:modelValue="setGeneralTitle"
+    />
+
+    <div
+      v-for="(clause, idx) in generalClauses"
+      :key="idx"
+      class="border border-border-default dark:border-white/[0.08] rounded-lg p-2 bg-surface space-y-2"
+    >
+      <div class="flex items-start gap-2">
+        <div class="flex-1">
+          <FieldInput
+            :modelValue="clause.label"
+            label="Categoría"
+            placeholder="Ej: Fuerza mayor y caso fortuito"
+            @update:modelValue="setGeneralClauseField(idx, 'label', $event)"
+          />
+        </div>
+        <div class="flex items-center gap-1 pt-6">
+          <button
+            type="button"
+            class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+            :disabled="idx === 0"
+            title="Subir"
+            @click="moveGeneralClause(idx, -1)"
+          >↑</button>
+          <button
+            type="button"
+            class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+            :disabled="idx === generalClauses.length - 1"
+            title="Bajar"
+            @click="moveGeneralClause(idx, 1)"
+          >↓</button>
+          <button
+            type="button"
+            class="w-6 h-6 rounded text-text-muted hover:text-red-500 hover:bg-surface-raised"
+            title="Eliminar"
+            @click="removeGeneralClause(idx)"
+          >×</button>
+        </div>
+      </div>
+      <FieldTextarea
+        :modelValue="clause.text"
+        label="Texto de la cláusula"
+        :rows="3"
+        :isSingle="true"
+        @update:modelValue="setGeneralClauseField(idx, 'text', $event)"
+      />
     </div>
   </div>
 
@@ -151,5 +286,93 @@ function setCondNum(id, key, value) {
   // Empty → null (no minimum / no limit); otherwise store a Number.
   const cond = ensureCond(id);
   cond[key] = value === '' || value == null ? null : Number(value);
+}
+
+// --- Legal clauses (terms_clauses) -----------------------------------------
+// `terms_clauses` is canonical; `terms` is kept in sync as the flattened
+// legacy string so proposals rendered by older code keep the same content.
+function getClauses(id) {
+  const clauses = props.form.conditions?.[id]?.terms_clauses;
+  return Array.isArray(clauses) ? clauses : [];
+}
+
+function flattenClauses(clauses) {
+  return clauses
+    .filter((c) => String(c.text || '').trim())
+    .map((c) => {
+      const label = String(c.label || '').trim();
+      const text = String(c.text).trim();
+      return label ? `**${label}.** ${text}` : text;
+    })
+    .join('\n');
+}
+
+function writeClauses(id, clauses) {
+  const cond = ensureCond(id);
+  cond.terms_clauses = clauses;
+  cond.terms = flattenClauses(clauses);
+}
+
+function addClause(id) {
+  writeClauses(id, [...getClauses(id), { label: '', text: '' }]);
+}
+
+function removeClause(id, idx) {
+  const next = [...getClauses(id)];
+  next.splice(idx, 1);
+  writeClauses(id, next);
+}
+
+function moveClause(id, idx, delta) {
+  const next = [...getClauses(id)];
+  const target = idx + delta;
+  if (target < 0 || target >= next.length) return;
+  [next[idx], next[target]] = [next[target], next[idx]];
+  writeClauses(id, next);
+}
+
+function setClauseField(id, idx, key, value) {
+  const next = getClauses(id).map((c, i) => (i === idx ? { ...c, [key]: value } : c));
+  writeClauses(id, next);
+}
+
+// --- Section-level general provisions --------------------------------------
+function ensureGeneral() {
+  if (!props.form.general_terms || typeof props.form.general_terms !== 'object') {
+    props.form.general_terms = { title: '', clauses: [] };
+  }
+  if (!Array.isArray(props.form.general_terms.clauses)) {
+    props.form.general_terms.clauses = [];
+  }
+  return props.form.general_terms;
+}
+
+const generalClauses = computed(() => {
+  const clauses = props.form.general_terms?.clauses;
+  return Array.isArray(clauses) ? clauses : [];
+});
+
+function setGeneralTitle(value) {
+  ensureGeneral().title = value;
+}
+
+function addGeneralClause() {
+  ensureGeneral().clauses.push({ label: '', text: '' });
+}
+
+function removeGeneralClause(idx) {
+  ensureGeneral().clauses.splice(idx, 1);
+}
+
+function moveGeneralClause(idx, delta) {
+  const clauses = ensureGeneral().clauses;
+  const target = idx + delta;
+  if (target < 0 || target >= clauses.length) return;
+  [clauses[idx], clauses[target]] = [clauses[target], clauses[idx]];
+}
+
+function setGeneralClauseField(idx, key, value) {
+  const clause = ensureGeneral().clauses[idx];
+  if (clause) clause[key] = value;
 }
 </script>

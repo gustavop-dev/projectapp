@@ -39,14 +39,36 @@
               </span>
             </div>
 
-            <!-- eslint-disable-next-line vue/no-v-html — renderInlineBold escapes all HTML first -->
-            <p
-              v-if="terms"
-              class="text-sm text-text-default/80 font-light leading-relaxed whitespace-pre-line [&_strong]:font-semibold [&_strong]:text-text-default"
-              v-html="termsHtml"
-            />
+            <!-- Categorised legal clauses (canonical shape) -->
+            <ol v-if="resolvedClauses.length" class="space-y-4" data-testid="module-terms-clauses">
+              <li
+                v-for="(clause, idx) in resolvedClauses"
+                :key="idx"
+                class="border-l-2 border-primary/30 pl-4"
+              >
+                <p
+                  v-if="clause.label"
+                  class="text-[11px] font-semibold uppercase tracking-wider text-text-brand mb-1"
+                  data-testid="module-terms-clause-label"
+                >
+                  {{ clause.label }}
+                </p>
+                <!-- eslint-disable-next-line vue/no-v-html — renderInlineBold escapes all HTML first -->
+                <p
+                  class="text-sm text-text-default/80 font-light leading-relaxed whitespace-pre-line [&_strong]:font-semibold [&_strong]:text-text-default"
+                  v-html="renderInlineBold(clause.text)"
+                />
+              </li>
+            </ol>
             <p v-else class="text-sm text-text-subtle font-light">
               {{ emptyLabel }}
+            </p>
+
+            <!-- The cross-cutting provisions are rendered once at the end of the
+                 section (ValueAddedModules.vue), mirroring the PDF annex — they
+                 are deliberately not repeated inside every module modal. -->
+            <p v-if="generalTermsHint" class="mt-6 pt-5 border-t border-border-muted text-xs text-text-subtle font-light">
+              {{ generalTermsHint }}
             </p>
           </div>
         </div>
@@ -79,6 +101,16 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  /** Canonical shape: [{ label, text }]. Falls back to `terms` when empty. */
+  clauses: {
+    type: Array,
+    default: () => [],
+  },
+  /** Title of the section-level provisions block, used only for a pointer. */
+  generalTermsTitle: {
+    type: String,
+    default: '',
+  },
   notes: {
     type: Array,
     default: () => [],
@@ -91,7 +123,41 @@ const props = defineProps({
 
 defineEmits(['close']);
 
-const termsHtml = computed(() => renderInlineBold(props.terms));
+function normalizeClauses(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((c) => c && typeof c === 'object' && String(c.text || '').trim())
+    .map((c) => ({ label: String(c.label || '').trim(), text: String(c.text) }));
+}
+
+// Proposals created before the clause format only carry the flat `terms`
+// string, which the backend writes as one `**Label.** text` line per clause —
+// parse it back so old proposals render the same categorised list.
+function clausesFromLegacyTerms(text) {
+  return String(text || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const match = line.match(/^\*\*(.+?)\.\*\*\s*(.*)$/);
+      if (match) return { label: match[1], text: match[2] };
+      return { label: '', text: line };
+    });
+}
+
+const resolvedClauses = computed(() => {
+  const explicit = normalizeClauses(props.clauses);
+  if (explicit.length) return explicit;
+  return clausesFromLegacyTerms(props.terms);
+});
+
+const generalTermsHint = computed(() => {
+  const title = String(props.generalTermsTitle || '').trim();
+  if (!title) return '';
+  return props.language === 'en'
+    ? `These terms are supplemented by the "${title}" set out at the end of this section.`
+    : `Estos términos se complementan con las "${title}" que aparecen al cierre de esta sección.`;
+});
 
 const kickerLabel = computed(() => (
   props.language === 'en' ? 'Terms & conditions' : 'Términos y condiciones'
