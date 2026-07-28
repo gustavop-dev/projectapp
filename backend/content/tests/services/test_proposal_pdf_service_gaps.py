@@ -353,3 +353,63 @@ class TestPaymentPillTaxSuffix:
         pill = _payment_pill_desc('50%', '$745.000', 1490000)
         assert not pill.endswith(' + Tax')
         assert not pill.endswith(' + IVA')
+
+
+class TestInvestmentTaxLabels:
+    """Every price in the investment section carries the tax label:
+    modules table, hosting tile and hosting billing tiers."""
+
+    def _render_and_record(self, pdf_canvas, monkeypatch, proposal, data):
+        from content.services.proposal_pdf_service import (
+            MARGIN_T, PAGE_H, _render_investment,
+        )
+        recorded = []
+        for method in ('drawString', 'drawCentredString', 'drawRightString'):
+            orig = getattr(pdf_canvas, method)
+
+            def rec(x, y, text, *a, _orig=orig, **k):
+                recorded.append(str(text))
+                return _orig(x, y, text, *a, **k)
+
+            monkeypatch.setattr(pdf_canvas, method, rec)
+        _render_investment(pdf_canvas, data, proposal,
+                           ps={'num': 1, 'client': 'X'}, y=PAGE_H - MARGIN_T)
+        return recorded
+
+    def _data(self, currency):
+        return {
+            'index': '7', 'title': 'Inversión',
+            'totalInvestment': '$5.000.000', 'currency': currency,
+            'paymentOptions': [], 'whatsIncluded': [],
+            'modules': [{'id': 'm1', 'name': 'Módulo CMS', 'price': 2000000}],
+            'hostingPlan': {
+                'title': 'Hosting Premium', 'hostingPercent': 10,
+                'billingTiers': [
+                    {'label': 'Mensual', 'months': 1, 'discountPercent': 0},
+                ],
+            },
+        }
+
+    def test_cop_labels_modules_and_hosting_with_iva(
+            self, pdf_canvas, monkeypatch, proposal):
+        recorded = self._render_and_record(
+            pdf_canvas, monkeypatch, proposal, self._data('COP'))
+        assert any('Precio (+ IVA)' in r for r in recorded)
+        assert any('Precio/mes (+ IVA)' in r for r in recorded)
+        assert any('Equivalente (+ IVA)' in r for r in recorded)
+        # Both KPI tiles (total + hosting) carry the bare suffix as sub.
+        assert sum(1 for r in recorded if r.strip() == '+ IVA') >= 2
+
+    def test_usd_labels_use_tax(self, pdf_canvas, monkeypatch, db):
+        usd_proposal = BusinessProposal.objects.create(
+            title='USD Proposal', client_name='USD Client',
+            client_email='usd@example.com', language='en',
+            total_investment=Decimal('5000'), currency='USD',
+            status='sent',
+            expires_at=timezone.now() + timezone.timedelta(days=14),
+        )
+        recorded = self._render_and_record(
+            pdf_canvas, monkeypatch, usd_proposal, self._data('USD'))
+        assert any('Precio (+ Tax)' in r for r in recorded)
+        assert any('Precio/mes (+ Tax)' in r for r in recorded)
+        assert not any('+ IVA' in r for r in recorded)

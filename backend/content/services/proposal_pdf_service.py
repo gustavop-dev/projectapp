@@ -1238,7 +1238,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     if annual_hosting > 0:
         tiles.append({'value': f'{_format_cop(annual_hosting)}/año',
                       'label': 'Hosting y mantenimiento',
-                      'sub': ''})
+                      'sub': tax_suffix.strip()})
     if tiles:
         y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
         y -= 6
@@ -1401,7 +1401,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                 _safe(mod, 'name'),
                 _format_cop(mod_price) if mod_price else '—',
             ])
-        y = _draw_table(c, y, ['Módulo', 'Precio'], mod_rows, ps=ps,
+        y = _draw_table(c, y, ['Módulo', f'Precio ({tax_suffix.strip()})'],
+                        mod_rows, ps=ps,
                         col_widths=[0.74, 0.26], aligns=['left', 'right'])
 
     # ── Hosting plan (detailed specs + pricing) ───────────────────
@@ -1442,7 +1443,9 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
         # parity with Investment.vue ``hostingAnnualAmount``.
         billing_tiers = normalized_hosting.get('billingTiers', [])
 
-        tier_headers = ['Frecuencia', 'Ahorro', 'Precio/mes', 'Equivalente']
+        tier_headers = ['Frecuencia', 'Ahorro',
+                        f'Precio/mes ({tax_suffix.strip()})',
+                        f'Equivalente ({tax_suffix.strip()})']
         tier_col_widths = [0.28, 0.14, 0.27, 0.31]
         tier_aligns = ['left', 'center', 'right', 'right']
         if billing_tiers and annual_hosting > 0:
