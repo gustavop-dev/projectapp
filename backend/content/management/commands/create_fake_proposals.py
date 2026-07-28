@@ -305,6 +305,22 @@ class Command(BaseCommand):
                         nationality=proposal.nationality,
                         language=proposal.language,
                     )
+                    # Leave the first proposal on a per-proposal manual rate so
+                    # the «Tarifa por hora» tab has non-auto fake data to show:
+                    # a raised base rate plus one package priced on its own.
+                    if created == 0:
+                        packages = cfg['content_json'].get('packages') or []
+                        base = float(cfg['content_json'].get('hourlyRate') or 0)
+                        cfg['content_json']['hourPackagesMode'] = 'manual'
+                        cfg['content_json']['manualHourlyRate'] = round(base * 1.5) or 45000
+                        cfg['content_json']['manualCurrency'] = (
+                            cfg['content_json'].get('currency') or 'COP'
+                        )
+                        if packages and packages[-1].get('id') is not None:
+                            cfg['content_json']['manualPackageRates'] = [{
+                                'packageId': packages[-1]['id'],
+                                'hourlyRate': round(base * 1.2) or 36000,
+                            }]
                 ProposalSection.objects.create(proposal=proposal, **cfg)
 
             # --- Seed a ProposalDocument for negotiating proposals ---

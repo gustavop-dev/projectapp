@@ -94,6 +94,23 @@ class TestSchemas:
             'commercial_conditions', {'hourPackagesMode': 123})
         assert any('hourPackagesMode' in e for e in errors)
 
+    def test_commercial_conditions_accepts_manual_rate_keys(self):
+        assert validate_section_content('commercial_conditions', {
+            'manualHourlyRate': 45000,
+            'manualCurrency': 'COP',
+            'manualPackageRates': [{'packageId': 7, 'hourlyRate': 52000}],
+            'packages': [{'id': 7, 'name': 'Ágil', 'hours': 20,
+                          'discountPercent': 0, 'note': ''}],
+        }) == []
+
+    def test_commercial_conditions_rejects_bad_manual_rate_types(self):
+        errors = validate_section_content('commercial_conditions', {
+            'manualHourlyRate': 'gratis',
+            'manualPackageRates': [{'packageId': 'x', 'hourlyRate': 1}],
+        })
+        assert any('manualHourlyRate' in e for e in errors)
+        assert any('manualPackageRates' in e for e in errors)
+
     def test_value_added_conditions_dict_ok(self):
         content = {'module_ids': ['ai_automation_module'],
                    'conditions': {'ai_automation_module': {

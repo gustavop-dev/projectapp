@@ -99,6 +99,35 @@ def merge_value_added_legal_terms(new_content, previous_content):
     return new_content
 
 
+# Per-proposal hour-rate settings, owned by the «Tarifa por hora» panel tab.
+MANUAL_HOUR_RATE_FIELDS = (
+    'hourPackagesMode',
+    'manualHourlyRate',
+    'manualCurrency',
+    'manualPackageRates',
+)
+
+
+def preserve_manual_hour_rate_keys(new_content, previous_content):
+    """Keep a proposal's manual hour-rate settings across a JSON replace.
+
+    The manual rate is set in the panel tab and is documented nowhere in the
+    seller prompt or the JSON templates, so every payload omits it. Since the
+    JSON update path replaces ``content_json`` wholesale, one save from the
+    JSON tab would otherwise reset the proposal to catalog pricing without any
+    sign that something was lost. A payload that *does* state a field still
+    wins.
+    """
+    if not isinstance(new_content, dict) or not isinstance(previous_content, dict):
+        return new_content
+
+    for field in MANUAL_HOUR_RATE_FIELDS:
+        if field not in new_content and field in previous_content:
+            new_content[field] = deepcopy(previous_content[field])
+
+    return new_content
+
+
 def _module_condition(clauses, *, min_price_usd=None, min_price_cop=None,
                       duration_months=None, discretionary_note=''):
     """Build one `conditions[module_id]` entry.
@@ -4294,6 +4323,13 @@ def apply_proposal_json_update(proposal, validated_data):
                 # delivered proposals keep the wording they were sent with.
                 new_content = enforce_scope_clause(
                     new_content, _default_commercial_conditions(proposal.language),
+                )
+                # The manual hour-rate settings live only in the panel tab and
+                # are absent from every JSON payload, so a wholesale replace
+                # would silently reset the proposal to catalog pricing. Carry
+                # them over unless the payload states them explicitly.
+                new_content = preserve_manual_hour_rate_keys(
+                    new_content, section.content_json,
                 )
 
             if section.section_type == 'functional_requirements':

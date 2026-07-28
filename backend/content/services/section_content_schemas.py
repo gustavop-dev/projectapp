@@ -358,15 +358,36 @@ SECTION_CONTENT_SCHEMAS = {
         'title': str,
         'packagesTitle': str,
         'packagesIntro': str,
-        # Hour-packages source: 'auto' (default — the PDF re-seeds packages,
-        # rate and currency from the HourPackage catalog on every generation)
-        # or 'manual' (the stored snapshot is authoritative; the catalog never
-        # touches it). Absent or unknown values behave as 'auto'. Type-only
-        # check by design, like every other field here.
+        # Hour-rate source: 'auto' (default — the PDF takes packages, rate and
+        # currency straight from the HourPackage catalog on every generation)
+        # or 'manual' (the catalog still owns names, hours, discounts and
+        # currency; only the *rates* come from this proposal's manual values
+        # below). Absent or unknown values behave as 'auto'. Type-only check by
+        # design, like every other field here.
         'hourPackagesMode': str,
         'hourlyRate': NUMERIC,
         'currency': str,
+        # Manual base rate for this proposal only, applied to every package
+        # that has no override of its own. Kept separate from `hourlyRate` so
+        # the latter stays the catalog snapshot: the manual value survives a
+        # switch back to 'auto' and is restored when manual is re-enabled.
+        'manualHourlyRate': NUMERIC,
+        # Currency the manual rate was entered in. Written by the editor, never
+        # read by the renderer: it exists so a later change to the proposal's
+        # nationality can be detected instead of silently reprinting a COP
+        # amount as USD.
+        'manualCurrency': str,
+        # Per-package manual overrides, keyed by HourPackage pk (stable across
+        # catalog reordering). Entries whose package no longer exists are
+        # inert, so deactivating and re-activating a package restores it.
+        'manualPackageRates': [{
+            'packageId': NUMERIC,
+            'hourlyRate': NUMERIC,
+        }],
         'packages': [{
+            # Catalog pk, present on seeded packages; the key manual overrides
+            # bind to. Absent on legacy snapshots and hardcoded defaults.
+            'id': NUMERIC,
             'name': str,
             'hours': NUMERIC,
             'discountPercent': NUMERIC,

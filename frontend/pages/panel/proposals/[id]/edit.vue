@@ -223,6 +223,14 @@
           @dirty-state-change="sectionsDirty = $event"
         />
       </div>
+
+      <!-- Tab: Hour rate -->
+      <div v-show="activeTab === 'hour-rate'" class="max-w-7xl mx-auto">
+        <ProposalHourRateTab
+          :proposal="proposal"
+          @dirty-state-change="hourRateDirty = $event"
+        />
+      </div>
     </template>
 
     <!-- Pre-send scorecard modal -->
@@ -388,6 +396,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import ProposalGeneralTab from '~/components/panel/proposal/ProposalGeneralTab.vue';
 import ProposalSectionsTab from '~/components/panel/proposal/ProposalSectionsTab.vue';
+import ProposalHourRateTab from '~/components/panel/proposal/ProposalHourRateTab.vue';
 import { DEFAULT_HOSTING_PERCENT, DEFAULT_METHOD_PHASES } from '~/stores/proposals_constants';
 import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
 import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
@@ -421,6 +430,8 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 // Fed by ProposalSectionsTab's dirty-state-change emit; drives the
 // route-leave / beforeunload / refresh guards below.
 const sectionsDirty = ref(false);
+// Same, for the hour-rate tab.
+const hourRateDirty = ref(false);
 
 const proposal = computed(() => proposalStore.currentProposal);
 
@@ -468,7 +479,7 @@ const technicalItemLinkOptions = computed(() =>
   buildProposalItemLinkOptions(proposal.value?.sections || []),
 );
 
-const validTabs =['general', 'emails', 'documents', 'schedule', 'development', 'sections', 'technical', 'prompt', 'json', 'activity', 'analytics'];
+const validTabs =['general', 'emails', 'documents', 'schedule', 'development', 'sections', 'hour-rate', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
 const hasSendEmailTab = computed(() =>
@@ -503,6 +514,7 @@ const tabs = computed(() => {
   }
   base.push(
     { id: 'sections', label: 'Secciones' },
+    { id: 'hour-rate', label: 'Tarifa por hora' },
     { id: 'technical', label: 'Det. técnico' },
     { id: 'prompt', label: 'Prompt Proposal' },
     { id: 'json', label: 'JSON' },
@@ -1058,15 +1070,18 @@ const UNSAVED_CONFIRM = {
   cancelText: 'Seguir editando',
 };
 
+// Any tab holding unsaved edits arms the same guards.
+const hasUnsavedEdits = computed(() => sectionsDirty.value || hourRateDirty.value);
+
 function warnUnsavedBeforeUnload(e) {
-  if (sectionsDirty.value) {
+  if (hasUnsavedEdits.value) {
     e.preventDefault();
     e.returnValue = '';
   }
 }
 
 onBeforeRouteLeave(async () => {
-  if (!sectionsDirty.value) return true;
+  if (!hasUnsavedEdits.value) return true;
   return await requestConfirm(UNSAVED_CONFIRM);
 });
 
@@ -1074,7 +1089,7 @@ async function refreshData() {
   // fetchProposal re-hydrates every open SectionEditor via its deep watch,
   // silently clobbering unsaved edits — confirm before refreshing. The
   // refetch re-baselines the editors, which clears the flags organically.
-  if (sectionsDirty.value) {
+  if (hasUnsavedEdits.value) {
     const ok = await requestConfirm(UNSAVED_CONFIRM);
     if (!ok) return;
   }

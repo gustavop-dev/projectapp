@@ -119,6 +119,10 @@ def seed_commercial_conditions_from_catalog(content_json, *, nationality, langua
     seeded['hourlyRate'] = float(packages[0].hourly_rate)
     seeded['packages'] = [
         {
+            # The catalog pk is the stable key per-proposal manual rate
+            # overrides bind to, so reordering or renaming the catalog never
+            # reassigns an override to the wrong package.
+            'id': pkg.pk,
             'name': pkg.name_en if language == 'en' else pkg.name_es,
             'hours': pkg.hours,
             'discountPercent': pkg.discount_percent,
@@ -128,3 +132,83 @@ def seed_commercial_conditions_from_catalog(content_json, *, nationality, langua
         for pkg in packages
     ]
     return seeded
+
+
+def _positive_number(value):
+    """Return ``value`` as a positive float, or ``None`` when unusable.
+
+    The section schema is type-only, so a manual rate can arrive as ``''``,
+    ``None``, ``0`` or a non-numeric string. Every one of those must fall back
+    to the catalog rather than render a $0 package in the PDF.
+    """
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if number > 0 else None
+
+
+def apply_manual_hour_rates(content_json):
+    """Overlay a proposal's manual hour rates on top of catalog-seeded content.
+
+    Only *rates* are per-proposal. Package names, hours, discounts and the
+    currency always belong to the catalog, so this never touches them: the
+    manual mode makes a proposal cheaper or dearer, not structurally different.
+
+    Reads ``manualHourlyRate`` (the base) and ``manualPackageRates``
+    (``[{'packageId': pk, 'hourlyRate': n}]``, keyed by catalog pk). A package
+    resolves to its own override, else the manual base, else its catalog rate —
+    so setting only an override leaves the other packages on catalog pricing.
+
+    Returns ``content_json`` unchanged when the mode is not ``'manual'`` or
+    there is nothing to apply.
+    """
+    if not isinstance(content_json, dict):
+        return content_json
+    if content_json.get('hourPackagesMode') != 'manual':
+        return content_json
+
+    base_rate = _positive_number(content_json.get('manualHourlyRate'))
+    overrides = {}
+    for entry in content_json.get('manualPackageRates') or []:
+        if not isinstance(entry, dict):
+            continue
+        rate = _positive_number(entry.get('hourlyRate'))
+        if rate is None or entry.get('packageId') is None:
+            continue
+        # JSON round-trips can turn the pk into a string; normalize both sides
+        # of the lookup so an override never silently stops matching.
+        overrides[str(entry['packageId'])] = rate
+
+    if base_rate is None and not overrides:
+        return content_json
+
+    # The empty-catalog path of the seeder returns its input *unchanged* — in
+    # the PDF path that is the live ``section.content_json``. Copy before
+    # writing so generating a PDF never mutates the stored section.
+    applied = copy.deepcopy(content_json)
+    if base_rate is not None:
+        applied['hourlyRate'] = base_rate
+    for pkg in applied.get('packages') or []:
+        if not isinstance(pkg, dict):
+            continue
+        rate = overrides.get(str(pkg.get('id')))
+        if rate is None:
+            rate = base_rate
+        if rate is not None:
+            pkg['hourlyRate'] = rate
+    return applied
+
+
+def resolve_commercial_conditions_content(content_json, *, nationality, language):
+    """Return the commercial-conditions content as it should be rendered.
+
+    Single entry point for the PDF: seed the structure from the catalog, then
+    overlay the proposal's manual rates when it opted into manual mode. Auto
+    mode (the default, and every proposal that never touched the switch) is
+    just the seed.
+    """
+    seeded = seed_commercial_conditions_from_catalog(
+        content_json, nationality=nationality, language=language,
+    )
+    return apply_manual_hour_rates(seeded)
