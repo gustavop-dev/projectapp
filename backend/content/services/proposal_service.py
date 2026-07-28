@@ -39,6 +39,32 @@ def _clauses(*pairs):
     return [{'label': label, 'text': text} for label, text in pairs]
 
 
+SCOPE_CLAUSE_FIELDS = ('scopeTitle', 'scopeParagraphs')
+
+
+def enforce_scope_clause(new_content, default_content):
+    """Force the scope-of-work clause from the resolved language defaults.
+
+    ``scopeTitle``/``scopeParagraphs`` are legal boilerplate owned by the
+    defaults (admin-editable through ``ProposalDefaultConfig``), not by the
+    seller. JSON/MCP payloads are routinely composed from stale snapshots —
+    a downloaded template, a previous proposal — so a payload carrying this
+    section would otherwise reinject a superseded clause into a brand-new
+    proposal, silently downgrading its legal text.
+
+    Everything else the payload states about the section — packages, hourly
+    rate, effort badge, titles — still wins.
+    """
+    if not isinstance(new_content, dict) or not isinstance(default_content, dict):
+        return new_content
+
+    for field in SCOPE_CLAUSE_FIELDS:
+        if field in default_content:
+            new_content[field] = deepcopy(default_content[field])
+
+    return new_content
+
+
 def merge_value_added_legal_terms(new_content, previous_content):
     """Keep the value-added legal terms when an incoming payload omits them.
 
@@ -4039,6 +4065,13 @@ def build_proposal_from_json(validated_data):
                 content_json, section_cfg['content_json'],
             )
 
+        if section_type == 'commercial_conditions' and json_key in sections_data:
+            # Same hazard, opposite direction: the payload does carry the scope
+            # clause, and a stale snapshot would reinject an outdated one.
+            content_json = enforce_scope_clause(
+                content_json, section_cfg['content_json'],
+            )
+
         if section_type == 'functional_requirements' and json_key in sections_data:
             default_cj = copy.deepcopy(section_cfg['content_json'])
             default_groups = default_cj.get('groups', [])
@@ -4127,6 +4160,18 @@ def build_proposal_from_json(validated_data):
 
 
 @transaction.atomic
+def _default_commercial_conditions(language):
+    """Resolve the commercial_conditions defaults for a language.
+
+    Reads through ``get_default_sections`` so an admin-edited clause stored in
+    ``ProposalDefaultConfig`` wins over the hardcoded constants.
+    """
+    for section_cfg in ProposalService.get_default_sections(language):
+        if section_cfg.get('section_type') == 'commercial_conditions':
+            return section_cfg.get('content_json') or {}
+    return {}
+
+
 def apply_proposal_json_update(proposal, validated_data):
     """Update an existing proposal + its sections from validated from-JSON data.
 
@@ -4227,6 +4272,15 @@ def apply_proposal_json_update(proposal, validated_data):
                 # payload never carries them.
                 new_content = merge_value_added_legal_terms(
                     new_content, section.content_json,
+                )
+
+            if section.section_type == 'commercial_conditions':
+                # Only reached when the payload rewrites this section: a stale
+                # snapshot must not be able to downgrade the scope clause. A
+                # payload that omits the section leaves it untouched, so already
+                # delivered proposals keep the wording they were sent with.
+                new_content = enforce_scope_clause(
+                    new_content, _default_commercial_conditions(proposal.language),
                 )
 
             if section.section_type == 'functional_requirements':
