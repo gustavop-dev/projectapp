@@ -50,6 +50,7 @@ from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
+    IncomeSettlementSerializer,
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
@@ -61,7 +62,7 @@ from content.serializers.accounting_statement import (
     MerchantAliasSerializer,
     MerchantAliasWriteSerializer,
 )
-from content.services import accounting_service
+from content.services import accounting_service, accounting_settlement_service
 from content.utils import today_bogota
 
 EntityType = AccountingChangeLog.EntityType
@@ -534,6 +535,34 @@ def list_income_records(request):
 @permission_classes([IsSuperUser])
 def create_income_record(request):
     return _create_record(request, 'income')
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def settle_income_record(request, record_id):
+    """Liquidate an expected income and resolve its shortfall in one step.
+
+    With empty `deductions`/`expected_incomes` this behaves exactly like
+    creating a liquid child through the plain create endpoint.
+    """
+    income = get_object_or_404(IncomeRecord, pk=record_id)
+    serializer = IncomeSettlementSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        result = accounting_settlement_service.settle_expected_income(
+            income, serializer.validated_data, request.user,
+        )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+    return Response({
+        'income': IncomeRecordSerializer(result['income']).data,
+        'liquid': IncomeRecordSerializer(result['liquid']).data,
+        'expenses': ExpenseRecordSerializer(result['expenses'], many=True).data,
+        'expected_incomes': IncomeRecordSerializer(
+            result['expected_incomes'], many=True,
+        ).data,
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['GET'])

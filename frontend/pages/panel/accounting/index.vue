@@ -201,7 +201,7 @@
           data-testid="accounting-card-expenses"
           :label="`Gastos ${summary.year}`"
           :value="money(summary.expenses_total)"
-          :sub="`Recurrentes/mes: ${money(summary.recurring_monthly_cost)}`"
+          :sub="deductionsSub"
           clickable
           @click="openExpenseStats"
         />
@@ -383,6 +383,16 @@ function money(value) {
 function toneBySign(value) {
   return Number(value) < 0 ? 'danger' : 'success';
 }
+
+// Deductions (gateway/bank fees, withholdings) are discounted from an income
+// before it lands, so they are excluded from `expenses_total` and from
+// utility. Naming them here keeps the year's spending reconcilable.
+const deductionsSub = computed(() => {
+  const recurring = `Recurrentes/mes: ${money(summary.value?.recurring_monthly_cost)}`;
+  const deductions = Number(summary.value?.deductions_total ?? 0);
+  if (!deductions) return recurring;
+  return `${recurring} · Descuentos de ingresos: ${money(deductions)}`;
+});
 
 const receivedPct = computed(() => {
   const expected = Number(summary.value?.expected_total);

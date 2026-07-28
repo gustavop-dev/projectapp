@@ -445,3 +445,126 @@ class TestIncomePaymentState:
         )
         response = super_client.get('/api/accounting/expenses/')
         assert response.data['meta']['current_month_alert'] is False
+
+
+@pytest.mark.django_db
+class TestIncomeSettlementEndpoint:
+    """POST /api/accounting/incomes/<id>/settle/ — liquidate + resolve gap."""
+
+    def _expected(self):
+        return IncomeRecord.objects.create(
+            concept='Kore - Inicio 40%',
+            kind=IncomeRecord.Kind.EXPECTED,
+            period_date=date(2026, 7, 1),
+            total_amount=Decimal('1000000.00'),
+            gustavo_amount=Decimal('500000.00'),
+            carlos_amount=Decimal('500000.00'),
+        )
+
+    def _payload(self, **overrides):
+        payload = {
+            'concept': 'Kore - Inicio 40%',
+            'period_date': '2026-07-15',
+            'destination': 'partners',
+            'total_amount': '992000.00',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_settles_with_a_gateway_fee(self, super_client):
+        income = self._expected()
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(deductions=[
+                {'type': 'gateway_fee', 'amount': '8000.00'},
+            ]),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data['income']['payment_status'] == 'paid'
+        assert response.data['income']['pending_amount'] == '0.00'
+        expense = response.data['expenses'][0]
+        assert expense['deduction_type'] == 'gateway_fee'
+        assert expense['deduction_type_label'] == 'Comisión plataforma de pago'
+
+    def test_settles_with_a_follow_up_expected_income(self, super_client):
+        income = self._expected()
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(
+                total_amount='900000.00',
+                deductions=[{'type': 'gateway_fee', 'amount': '8000.00'}],
+                expected_incomes=[{
+                    'concept': 'Kore - Saldo agosto',
+                    'period_date': '2026-08',
+                    'amount': '92000.00',
+                }],
+            ),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        follow_up = response.data['expected_incomes'][0]
+        assert follow_up['kind'] == 'expected'
+        assert follow_up['period'] == '2026-08'
+        assert follow_up['total_amount'] == '92000.00'
+
+    def test_without_allocations_it_matches_the_plain_liquidation(
+        self, super_client,
+    ):
+        income = self._expected()
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(total_amount='1000000.00'),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data['expenses'] == []
+        income.refresh_from_db()
+        assert income.total_amount == Decimal('1000000.00')
+
+    def test_over_allocation_returns_400_in_spanish(self, super_client):
+        income = self._expected()
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(deductions=[
+                {'type': 'gateway_fee', 'amount': '50000.00'},
+            ]),
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'saldo pendiente' in str(response.data)
+
+    def test_other_requires_a_detail(self, super_client):
+        income = self._expected()
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(deductions=[
+                {'type': 'other', 'detail': '  ', 'amount': '8000.00'},
+            ]),
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert not ExpenseRecord.objects.exists()
+
+    def test_unknown_income_returns_404(self, super_client):
+        response = super_client.post(
+            '/api/accounting/incomes/999999/settle/',
+            self._payload(), format='json',
+        )
+        assert response.status_code == 404
+
+    def test_staff_without_superuser_is_rejected(self, admin_client):
+        response = admin_client.post(
+            '/api/accounting/incomes/1/settle/', self._payload(), format='json',
+        )
+        assert response.status_code in (401, 403)

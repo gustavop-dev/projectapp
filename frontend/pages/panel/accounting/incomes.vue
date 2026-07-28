@@ -455,8 +455,12 @@ const {
   entity: 'incomes',
   // A liquidation creates a CHILD row, so the parent expected row's
   // payment state is computed server-side from data the response doesn't
-  // carry. Without a refetch its badge and tint stay stale.
-  onAfterMutation: () => store.fetchRecords('incomes'),
+  // carry. Without a refetch its badge and tint stay stale. A settlement can
+  // also book deductions, so the cached expenses list is dropped too.
+  onAfterMutation: () => {
+    store.expenses = [];
+    return store.fetchRecords('incomes');
+  },
   // The month column shows the localized label but sorts by the ISO date.
   sortAccessors: { period_label: 'period_date' },
   sortDefaults: {
@@ -538,13 +542,14 @@ function closeLiquidateModal() {
 }
 
 async function handleLiquidateSubmit(payload) {
+  const incomeId = liquidatingRecord.value?.id;
   const result = await runMutation(
-    () => store.createRecord('incomes', payload),
+    () => store.settleIncome(incomeId, payload),
     {
       successTitle: 'Ingreso liquidado',
       errorTitle: 'No se pudo liquidar',
       // Flash the expected row: it is the one whose state just changed.
-      flashId: liquidatingRecord.value?.id,
+      flashId: incomeId,
     },
   );
   if (result.success) closeLiquidateModal();
