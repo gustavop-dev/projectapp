@@ -3984,6 +3984,9 @@ def build_proposal_from_json(validated_data):
     from accounts.services import proposal_client_service
     from content.models import BusinessProposal, ProposalSection
     from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.module_requirements_catalog import (
+        seed_module_technical_requirements,
+    )
     from content.services.proposal_module_links import (
         ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
@@ -4147,6 +4150,11 @@ def build_proposal_from_json(validated_data):
         None,
     )
     if technical_section:
+        technical_section['content_json'] = seed_module_technical_requirements(
+            technical_section['content_json'],
+            resolved_sections,
+            language=proposal.language,
+        )
         technical_section['content_json'] = normalize_technical_document_module_links(
             technical_section['content_json'],
             resolved_sections,
@@ -4185,6 +4193,9 @@ def apply_proposal_json_update(proposal, validated_data):
     from accounts.services import proposal_client_service
     from content.models import ProposalChangeLog, ProposalSection
     from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.module_requirements_catalog import (
+        seed_module_technical_requirements,
+    )
     from content.services.proposal_module_links import (
         ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
@@ -4309,12 +4320,18 @@ def apply_proposal_json_update(proposal, validated_data):
             None,
         )
         if technical_section and isinstance(technical_section.content_json, dict):
-            normalized = normalize_technical_document_module_links(
+            section_payloads = [
+                {'section_type': s.section_type, 'content_json': s.content_json}
+                for s in all_sections
+            ]
+            seeded = seed_module_technical_requirements(
                 technical_section.content_json,
-                [
-                    {'section_type': s.section_type, 'content_json': s.content_json}
-                    for s in all_sections
-                ],
+                section_payloads,
+                language=proposal.language,
+            )
+            normalized = normalize_technical_document_module_links(
+                seeded,
+                section_payloads,
             )
             if normalized != technical_section.content_json:
                 technical_section.content_json = normalized
