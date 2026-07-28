@@ -135,6 +135,7 @@ scaffold, decidir si los requerimientos describen esa capacidad. Mapa de detecci
 | Verificación biométrica, KYC, reconocimiento facial, validación de cédula, antifraude | `biometric_verification_module` |
 | QR, código QR, menú digital, código de mesa, link tree | `qr_generator_module` |
 | Generación de contenido / blog AI, calendario editorial, programación de publicaciones | `content_generator_module` |
+| Rastreo de comportamiento dentro del producto, tiempo por vista, sesiones de uso, embudos, product analytics | `behavior_tracking_module` |
 
 > Espejo de `_seller_prompt.CRITICAL_additionalModules_autoselect` (`proposal.py:1343-1382`) —
 > si el backend agrega módulos o keywords, re-sincronizar esta tabla.
@@ -210,13 +211,23 @@ items, y cada item con requerimientos técnicos enlazados muestra "Ver requerimi
 > Fase 5: los requerimientos técnicos los referencian vía `linked_item_ids`. Los ids dependen del
 > idioma de la propuesta — no reutilizarlos entre versiones ES/EN.
 
+> **Items atómicos (regla estricta):** un item = UNA sola pantalla, componente o capacidad.
+> PROHIBIDO unir dos pantallas o capacidades distintas con " y ", " e ", " o ", "/" o "&" en el
+> `name` ("Registro e Inicio de Sesión" está MAL: son DOS items, cada uno con su `id` y su
+> `description`). Aplica igual en `groups` y `additionalModules`. Única excepción: nombres de UNA
+> capacidad indivisible o idiomáticos ("Términos y Condiciones" es una sola página legal;
+> "Registro con Google" e "Inicio de Sesión con Google" siguen siendo DOS items). Ante la duda,
+> separá — la Fase 5 desglosará cada item en 2-5 requerimientos técnicos y un item compuesto
+> vuelve ese desglose ambiguo. (La auditoría de la Fase 8 lo verifica: FAIL en `views`, WARN en
+> el resto.)
+
 ### 4a — Definir el flujo lógico del usuario
 Antes de redactar, mapeá el **recorrido de punta a punta** de un usuario de este proyecto/sector
 (p.ej. e-commerce: descubre → explora catálogo → ve producto → agrega al carrito → paga →
 recibe confirmación → gestiona su cuenta). Ese recorrido define el ORDEN de los items.
 
 ### 4b — Redactar cada grupo base (completo, ordenado, no técnico)
-Para CADA uno de los 7 grupos base, redactá sus `items` completos, **en orden lógico** (el
+Para CADA uno de los 8 grupos base, redactá sus `items` completos, **en orden lógico** (el
 lector escanea y entiende el paso a paso), 1 item = 1 pantalla/elemento/métrica. Cada item con un
 `icon` (emoji) que señale visualmente de qué se trata, un `name` corto (**texto plano, sin HTML**),
 y una `description` **rica, en DOS párrafos** separados por `<br><br>`:
@@ -245,6 +256,7 @@ y una `description` **rica, en DOS párrafos** separados por `<br><br>`:
 | `analytics_dashboard` 📊 | métricas **concretas del sector** (no genéricas) | de la métrica más accionable a la de contexto |
 | `kpi_dashboard_module` 📊 | KPIs en tiempo real, gráficos, alertas | del KPI principal a los de apoyo |
 | `manual_module` 📘 | manual/wiki interactivo no técnico | en el orden en que el usuario aprende |
+| `ai_automation_module` 🤖 | un (1) proceso manual del negocio automatizado con asistencia de IA | del disparador del proceso a su resultado |
 
 - **Tailored al brief — no dejar los items genéricos del default.** Adaptá nombres,
   descripciones y orden al sector, ciudad y alcance del cliente. (La auditoría de la Fase 8
@@ -287,11 +299,17 @@ quality{dimensions[],testTypes[],criticalFlowsNote}, decisions[]}`.
 tarjeta comercial a su épica técnica, y cada item comercial a sus requerimientos. Cada épica:
 `{epicKey, title, description, linked_module_ids[], requirements[]}`.
 - **Exactamente UNA épica por tarjeta comercial:** `views`, `components`, `features`, cada
-  módulo base (`admin_module`, `analytics_dashboard`, `kpi_dashboard_module`, `manual_module`) y
-  cada módulo de `additionalModules` **contratado** (`selected`/`default_selected: true`).
+  módulo base (`admin_module`, `analytics_dashboard`, `kpi_dashboard_module`, `manual_module`,
+  `ai_automation_module`) y cada módulo de `additionalModules` **contratado**
+  (`selected`/`default_selected: true`).
   **PROHIBIDO crear épicas para módulos no contratados** (una épica sin links se muestra SIEMPRE
   en el modo técnico y le enseñaría al cliente alcance que no compró). Se permite una épica
   transversal extra al final (infraestructura/seguridad/calidad) si hace falta.
+  **Excepción de siembra:** los módulos contratados de `additionalModules` son lo único que podés
+  omitir a propósito — si un módulo contratado queda sin épica, el backend siembra su catálogo
+  técnico por defecto (un requerimiento por item del módulo, enlazado item a item). Los módulos
+  NO contratados también los siembra el backend, gated por `linked_module_ids`, invisibles hasta
+  que el cliente los seleccione — la prohibición de crearlos vos se mantiene.
 - `epicKey`: **id comercial EXACTO Y VERBATIM**, guiones bajos incluidos (`views`,
   `admin_module`, `pwa_module` — nunca `admin-module`). Único. La épica transversal usa un
   slug kebab propio (p.ej. `base-tecnica`).
@@ -314,6 +332,14 @@ tarjeta comercial a su épica técnica, y cada item comercial a sus requerimient
     de grupos visibles y módulos contratados DEBE quedar enlazado por AL MENOS un requerimiento**
     — alimenta el modal "Ver requerimientos" y el PDF. Solo requerimientos transversales pueden
     omitirlo o dejarlo `[]` (en cualquier épica).
+  - **Profundidad por item (REGLA DE GRANULARIDAD):** la cobertura mínima es el piso, no la
+    meta. Una pantalla o módulo típico necesita **2-5 requerimientos** (datos que muestra/captura,
+    estados —vacío, cargando, error—, validaciones, integraciones, permisos/roles); solo un
+    elemento trivial o estático (página legal, footer, badge) puede quedar con 1. Cada
+    requerimiento se redacta como **criterio de aceptación verificable**, no como resumen del
+    item. **Anti-requerimiento-manta:** un requerimiento solo puede enlazar más de 3 items si es
+    genuinamente transversal a todos, y entonces su `flowKey` DEBE empezar con `cross-`; si no lo
+    es, repartilo en requerimientos específicos con `linked_item_ids` acotados (1-2 ids).
 
 ### 5c — Modelo de datos
 `dataModel`: `summary`, `relationships` (texto), `entities[]` con `{name, description, keyFields}`.
@@ -335,8 +361,10 @@ practices[]}`, `backupsNote`, `quality{dimensions[],testTypes[],criticalFlowsNot
 **Reglas duras:** NO dejar `technicalDocument` como el placeholder vacío; `epicKey` = id
 comercial verbatim (guiones bajos permitidos) y único; `flowKey` kebab-case y único global;
 una épica por tarjeta contratada y ninguna de módulos no contratados; todo item comercial
-cubierto por ≥1 requerimiento vía `linked_item_ids`; mantener consistencia con el alcance de la
-Fase 4 y los módulos seleccionados (Fase 2).
+cubierto por ≥1 requerimiento vía `linked_item_ids`; profundidad 2-5 requerimientos por item
+típico (1 solo para elementos triviales/estáticos); anti-manta: más de 3 items enlazados solo
+en requerimientos transversales con `flowKey` `cross-*`; mantener consistencia con el alcance
+de la Fase 4 y los módulos seleccionados (Fase 2).
 
 ---
 
@@ -402,7 +430,8 @@ MANAGE="$(pwd)/backend/manage.py"
 ARTIFACT="$(pwd)/proposal-artifacts/<archivo>.json"   # completar con el nombre real
 
 "$PY" "$MANAGE" shell -c "
-import json, re
+import json, re, unicodedata
+from content.services.module_requirements_catalog import MODULE_REQUIREMENTS_CATALOG
 from content.services.proposal_service import ProposalService
 from content.serializers.proposal import SECTION_TYPE_TO_KEY
 
@@ -421,6 +450,11 @@ epickey_re = re.compile(r'[a-z0-9_]+([-_][a-z0-9_]+)*')
 def is_epic_key(s): return bool(epickey_re.fullmatch(s))
 item_id_re = re.compile(r'item-[a-z0-9_-]+')
 def is_item_id(s): return bool(item_id_re.fullmatch(s))
+def norm_name(s):
+    s = unicodedata.normalize('NFKD', (s or '').strip().lower())
+    return ''.join(c for c in s if not unicodedata.combining(c))
+composite_re = re.compile(r'\s(y|e|o|and|or)\s|/|&')
+catalog_ids = set((MODULE_REQUIREMENTS_CATALOG.get('en' if lang == 'en' else 'es') or {}).keys())
 
 # 1) las 17 secciones presentes
 for k in defaults:
@@ -446,11 +480,16 @@ if not (roi.get('methodology') or '').strip(): FAIL('roi.methodology', 'vacio')
 fr = art.get('functionalRequirements') or {}
 frd = defaults.get('functionalRequirements') or {}
 def_ids = [g.get('id') for g in (frd.get('groups') or [])]
+# nombres default normalizados: allowlist automatica del lint de nombres compuestos
+frd_names = set()
+for g in (frd.get('groups') or []) + (frd.get('additionalModules') or []):
+    for it in (g.get('items') or []):
+        frd_names.add(norm_name(it.get('name')))
 groups = fr.get('groups') or []
 modules = fr.get('additionalModules') or []
 ids = [g.get('id') for g in groups]
 if ids[:len(def_ids)] != def_ids: FAIL('fr.groups', 'grupos base alterados/reordenados: %s' % ids)
-all_item_ids, sel_item_ids = set(), set()
+all_item_ids, sel_item_ids, module_item_ids = set(), set(), {}
 for g in groups + modules:
     gid = g.get('id')
     is_module = g in modules
@@ -465,6 +504,14 @@ for g in groups + modules:
             # cobertura exigible: items de grupos visibles + modulos contratados
             if (not is_module and g.get('is_visible') is not False) or (is_module and is_selected):
                 sel_item_ids.add(iid)
+            if is_module:
+                module_item_ids.setdefault(gid, set()).add(iid)
+        # items atomicos: nombres compuestos (fuera de los nombres default idiomaticos)
+        nm = norm_name(it.get('name'))
+        if nm and composite_re.search(nm) and nm not in frd_names:
+            verdict = FAIL if (not is_module and gid == 'views') else WARN
+            verdict('fr.%s.items[%d].name' % (gid, j),
+                    'nombre compuesto (y/e/o, barra o ampersand) - separar en items atomicos: %r' % (it.get('name') or ''))
 for g in groups:
     gid = g.get('id'); items = g.get('items') or []
     if len(items) < 2: FAIL('fr.%s.items' % gid, 'solo %d items' % len(items))
@@ -489,7 +536,7 @@ if not purpose and not epics:
 else:
     if not purpose: WARN('technicalDocument.purpose', 'vacio')
     if not epics: FAIL('technicalDocument.epics', 'sin epicas')
-    se, sf, linked_items = set(), set(), set()
+    se, sf, linked_items, linked_counts = set(), set(), set(), {}
     for e in epics:
         ek = (e.get('epicKey') or '').strip()
         if ek and not is_epic_key(ek): FAIL('epicKey ' + ek, 'formato invalido (minusculas, numeros, - y _)')
@@ -517,23 +564,58 @@ else:
                     FAIL('req %s.linked_item_ids' % (fk or '?'), 'id inexistente en fr: %r' % iid)
                 elif iid:
                     linked_items.add(iid)
+                    linked_counts[iid] = linked_counts.get(iid, 0) + 1
+            # anti-requerimiento-manta: muchos items enlazados => transversal con flowKey cross-*
+            n_links = len([x for x in (r.get('linked_item_ids') or []) if (x or '').strip()])
+            if n_links > 6 and not fk.startswith('cross-'):
+                FAIL('req ' + (fk or '?'), 'requerimiento-manta: %d items enlazados sin flowKey cross-*' % n_links)
+            elif n_links > 3 and not fk.startswith('cross-'):
+                WARN('req ' + (fk or '?'), '%d items enlazados; si es transversal usa flowKey cross-*' % n_links)
             req_mods = set(r.get('linked_module_ids') or [])
             if epic_mods and req_mods and not req_mods <= epic_mods:
                 FAIL('req %s.linked_module_ids' % (fk or '?'), 'apunta a modulo distinto del de su epica')
+    # modulos contratados sin epica en el artefacto: los siembra el backend desde su catalogo
+    seeded_contracted = [
+        m.get('id') for m in modules
+        if (m.get('selected') or m.get('default_selected'))
+        and m.get('id') in catalog_ids and m.get('id') not in se
+    ]
+    backend_covered = set()
+    for mid in seeded_contracted:
+        backend_covered |= module_item_ids.get(mid, set())
     # cobertura obligatoria: todo item exigible enlazado por >=1 requerimiento
-    uncovered = sorted(sel_item_ids - linked_items)
+    uncovered = sorted(sel_item_ids - linked_items - backend_covered)
     for iid in uncovered:
         FAIL('trazabilidad', 'item sin requerimiento tecnico enlazado: %s' % iid)
-    # una epica por tarjeta contratada
+    # profundidad por item: >=2 requerimientos en la mayoria (piso 40%, meta 60%)
+    exigible = sorted(sel_item_ids - backend_covered)
+    if exigible:
+        deep = sum(1 for iid in exigible if linked_counts.get(iid, 0) >= 2)
+        share = 100.0 * deep / len(exigible)
+        if share < 40: FAIL('profundidad', 'solo %.0f%% de items con >=2 requerimientos enlazados (piso 40%%)' % share)
+        elif share < 60: WARN('profundidad', '%.0f%% de items con >=2 requerimientos enlazados (meta >=60%%)' % share)
+    # una epica por tarjeta contratada (modulos con catalogo backend pueden omitirse)
     expected_epics = [g.get('id') for g in groups if g.get('is_visible') is not False]
-    expected_epics += [m.get('id') for m in modules if m.get('selected') or m.get('default_selected')]
+    expected_epics += [
+        m.get('id') for m in modules
+        if (m.get('selected') or m.get('default_selected')) and m.get('id') not in catalog_ids
+    ]
     for ek in expected_epics:
         if ek not in se: FAIL('epics', 'falta epica de la tarjeta comercial: %s' % ek)
+    if seeded_contracted:
+        print('  INFO seed: epicas de modulos contratados que sembrara el backend: ' + ', '.join(seeded_contracted))
+    seed_gated = [
+        m.get('id') for m in modules
+        if m.get('is_visible') is not False and not m.get('is_invite')
+        and not (m.get('selected') or m.get('default_selected')) and m.get('id') in catalog_ids
+    ]
+    if seed_gated:
+        print('  INFO seed: modulos no contratados con catalogo backend (gated por seleccion): ' + ', '.join(seed_gated))
 
 print('AUDIT_FAIL', len(fails)) if fails else print('AUDIT_PASS')
 for loc, msg in fails: print('  FAIL', loc + ':', msg)
 for loc, msg in warns: print('  WARN', loc + ':', msg)
-" 2>&1 | grep -E "AUDIT_PASS|AUDIT_FAIL|FAIL|WARN|Error|Traceback"
+" 2>&1 | grep -E "AUDIT_PASS|AUDIT_FAIL|FAIL|WARN|INFO|Error|Traceback"
 ```
 
 - Si imprime **`AUDIT_FAIL`** → leé cada `FAIL`, volvé a la fase correspondiente, **corregí el
@@ -658,7 +740,7 @@ Reportar siguiendo [[_output-protocol]]. Plantilla específica de `/proposal-cre
 | Fase 1 — Metadata | ✅ | <cliente>, <project_type>/<market_type>, <inversión> <moneda> |
 | Fase 2 — Módulos | ✅ | auto-seleccionados: <ids o "ninguno"> |
 | Fase 3 — ROI | ✅ | 3 KPIs con fuente (org+año) verificada, 3 escenarios |
-| Fase 4 — Req. Funcionales | ✅ | 7 grupos personalizados, items en orden lógico |
+| Fase 4 — Req. Funcionales | ✅ | 8 grupos personalizados, items atómicos en orden lógico |
 | Fase 5 — Detalle Técnico | ✅ | <N> épicas / <M> flujos, dataModel, integraciones |
 | Fase 6 — Resto secciones | ✅ | secciones pobladas, bold aplicado |
 | Fase 8 — Auditoría | ✅ | AUDIT_PASS (0 FAIL, <w> WARN) |
