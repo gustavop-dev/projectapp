@@ -105,6 +105,26 @@ test.describe('Proposal technical view mode', () => {
     await expect(technicalSection).toContainText('E2E propósito detalle técnico');
   });
 
+  test('cover index card jumps straight to its section', {
+    tag: [...PROPOSAL_TECHNICAL_VIEW, '@role:guest', '@outcome:success'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    await mockApi(page, buildMockHandler());
+    await page.goto(`/proposal/${MOCK_UUID}?mode=technical`);
+    await page.waitForLoadState('domcontentloaded');
+    await expect(page.locator('[data-section-type="technical_document_public"]')).toBeVisible({ timeout: 20_000 });
+
+    // The cover lists only the sections that carry content, each with its weight.
+    const epicsCard = page.locator('[data-testid="tech-index-card"][data-fragment="epics"]');
+    await expect(epicsCard).toBeVisible({ timeout: 15_000 });
+    await expect(epicsCard).toContainText('Módulos del producto');
+    await expect(epicsCard).toContainText('1 módulo');
+
+    // Jumping skips the stack panel that sits between cover and epics.
+    await epicsCard.click();
+    await expect(page.getByText('E2E base scope')).toBeVisible({ timeout: 10_000 });
+  });
+
   test('mode=technical hides requirement linked to unselected module', {
     tag: [...PROPOSAL_TECHNICAL_VIEW, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {

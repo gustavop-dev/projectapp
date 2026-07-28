@@ -1,5 +1,6 @@
 import {
   technicalFragmentHasContent,
+  technicalFragmentSummary,
   buildSyntheticTechnicalPanels,
   FRAGMENT_ORDER,
   TECH_PANEL_TITLES,
@@ -245,5 +246,117 @@ describe('technicalFragmentHasContent additional branches', () => {
 
   it('epics returns false for empty epic with empty requirement', () => {
     expect(technicalFragmentHasContent('epics', { epics: [{ requirements: [{}] }] })).toBe(false)
+  })
+})
+
+describe('technicalFragmentSummary', () => {
+  it('counts stack layers', () => {
+    const doc = { stack: [{ layer: 'Frontend' }, { layer: 'Backend' }] }
+    expect(technicalFragmentSummary('stack', doc, 'es')).toBe('2 capas')
+  })
+
+  it('uses the singular noun for a single row', () => {
+    expect(technicalFragmentSummary('stack', { stack: [{ layer: 'Frontend' }] }, 'es')).toBe('1 capa')
+  })
+
+  it('translates the noun for english', () => {
+    const doc = { stack: [{ layer: 'Frontend' }, { layer: 'Backend' }] }
+    expect(technicalFragmentSummary('stack', doc, 'en')).toBe('2 layers')
+  })
+
+  it('falls back to spanish for an unknown language', () => {
+    expect(technicalFragmentSummary('stack', { stack: [{ layer: 'L' }] }, 'fr')).toBe('1 capa')
+  })
+
+  it('ignores rows whose every counted field is blank', () => {
+    const doc = { stack: [{ layer: 'Frontend' }, { layer: '  ' }, {}] }
+    expect(technicalFragmentSummary('stack', doc, 'es')).toBe('1 capa')
+  })
+
+  it('returns an empty string when the section exists only through a summary', () => {
+    expect(technicalFragmentSummary('architecture', { architecture: { summary: 's' } }, 'es')).toBe('')
+  })
+
+  it('returns an empty string for backups, which has no countable rows', () => {
+    expect(technicalFragmentSummary('backups', { backupsNote: 'daily' }, 'es')).toBe('')
+  })
+
+  it('returns an empty string for intro and unknown fragments', () => {
+    expect(technicalFragmentSummary('intro', {}, 'es')).toBe('')
+    expect(technicalFragmentSummary('unknown', {}, 'es')).toBe('')
+  })
+
+  it('counts architecture patterns, data entities and growth dimensions', () => {
+    const doc = {
+      architecture: { patterns: [{ component: 'c' }, { pattern: 'p' }] },
+      dataModel: { entities: [{ name: 'Order' }] },
+      growthReadiness: { strategies: [{ dimension: 'd' }, { preparation: 'p' }, { evolution: 'e' }] },
+    }
+    expect(technicalFragmentSummary('architecture', doc, 'es')).toBe('2 patrones')
+    expect(technicalFragmentSummary('dataModel', doc, 'es')).toBe('1 entidad')
+    expect(technicalFragmentSummary('growthReadiness', doc, 'es')).toBe('3 dimensiones')
+  })
+
+  it('counts epics as modules plus their requirements', () => {
+    const doc = {
+      epics: [
+        { title: 'Storefront', requirements: [{ title: 'Browse' }, { title: 'Filter' }] },
+        { title: 'Checkout', requirements: [{ title: 'Pay' }] },
+      ],
+    }
+    expect(technicalFragmentSummary('epics', doc, 'es')).toBe('2 módulos · 3 requerimientos')
+  })
+
+  it('counts a named epic with no requirements as a module on its own', () => {
+    expect(technicalFragmentSummary('epics', { epics: [{ title: 'Storefront' }] }, 'es')).toBe('1 módulo')
+  })
+
+  it('skips epics that are neither named nor carry a valid requirement', () => {
+    const doc = { epics: [{ title: 'Storefront' }, { requirements: [{}] }, {}] }
+    expect(technicalFragmentSummary('epics', doc, 'es')).toBe('1 módulo')
+  })
+
+  it('joins included and excluded integrations', () => {
+    const doc = {
+      integrations: {
+        included: [{ service: 'Stripe' }, { service: 'Mailgun' }],
+        excluded: [{ service: 'SAP' }],
+      },
+    }
+    expect(technicalFragmentSummary('integrations', doc, 'es')).toBe('2 incluidas · 1 no incluida')
+  })
+
+  it('drops the empty half when only one side of a pair has rows', () => {
+    const doc = { performanceQuality: { metrics: [{ metric: 'LCP' }], practices: [] } }
+    expect(technicalFragmentSummary('performance', doc, 'es')).toBe('1 métrica')
+  })
+
+  it('counts api domains, environments, security aspects and decisions', () => {
+    const doc = {
+      apiDomains: [{ domain: 'orders' }, { domain: 'users' }],
+      environments: [{ name: 'staging' }],
+      security: [{ aspect: 'auth' }, { aspect: 'rate limit' }],
+      decisions: [{ decision: 'MySQL' }],
+    }
+    expect(technicalFragmentSummary('api', doc, 'es')).toBe('2 dominios')
+    expect(technicalFragmentSummary('environments', doc, 'es')).toBe('1 ambiente')
+    expect(technicalFragmentSummary('security', doc, 'es')).toBe('2 aspectos')
+    expect(technicalFragmentSummary('decisions', doc, 'es')).toBe('1 decisión')
+  })
+
+  it('joins quality dimensions and test types', () => {
+    const doc = {
+      quality: {
+        dimensions: [{ dimension: 'a11y' }],
+        testTypes: [{ type: 'unit' }, { type: 'e2e' }],
+      },
+    }
+    expect(technicalFragmentSummary('quality', doc, 'es')).toBe('1 dimensión · 2 tipos de prueba')
+    expect(technicalFragmentSummary('quality', doc, 'en')).toBe('1 dimension · 2 test types')
+  })
+
+  it('tolerates a missing or non-object document', () => {
+    expect(technicalFragmentSummary('stack', null, 'es')).toBe('')
+    expect(technicalFragmentSummary('epics', 'string', 'es')).toBe('')
   })
 })
