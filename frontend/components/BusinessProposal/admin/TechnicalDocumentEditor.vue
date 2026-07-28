@@ -741,13 +741,16 @@ function addDecision() {
 }
 
 const slugRe = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+// epicKey mirrors the commercial group id verbatim (e.g. admin_module), so
+// underscores are valid here while flowKey stays strictly kebab.
+const epicKeyRe = /^[a-z0-9_]+([-_][a-z0-9_]+)*$/;
 
 function validate() {
   const keys = new Set();
   for (let ei = 0; ei < doc.epics.length; ei++) {
     const ep = doc.epics[ei];
-    if (ep.epicKey && !slugRe.test(ep.epicKey)) {
-      return `epicKey inválido en módulo "${ep.title || ei + 1}": use solo minúsculas, números y guiones.`;
+    if (ep.epicKey && !epicKeyRe.test(ep.epicKey)) {
+      return `epicKey inválido en módulo "${ep.title || ei + 1}": use solo minúsculas, números, guiones y guiones bajos.`;
     }
     if (ep.epicKey) {
       if (keys.has(`e:${ep.epicKey}`)) return `epicKey duplicado: ${ep.epicKey}`;
