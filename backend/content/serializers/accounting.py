@@ -281,6 +281,20 @@ class IncomeRecordCreateUpdateSerializer(
             raise serializers.ValidationError(
                 'Los movimientos personales no pueden ir al Bolsillo ProjectApp.'
             )
+        # PocketMovement.amount requires >= 0.01 and the sync writer skips
+        # model validators; a zero-amount liquid pocket income would mirror
+        # an invalid movement.
+        if (
+            kind == IncomeRecord.Kind.LIQUID
+            and destination == IncomeRecord.Destination.POCKET
+            and effective('total_amount') == 0
+        ):
+            raise serializers.ValidationError({
+                'total_amount': (
+                    'Un ingreso registrado en el bolsillo debe tener un '
+                    'monto mayor a cero.'
+                ),
+            })
         expected = effective('expected_income')
         if expected is not None and expected.ledger != ledger:
             raise serializers.ValidationError(
@@ -361,9 +375,6 @@ class ExpenseRecordCreateUpdateSerializer(
                 return getattr(self.instance, field)
             return default
 
-        ledger = effective('ledger', Ledger.COMPANY)
-        if ledger not in PERSONAL_LEDGER_OWNER:
-            return data
         wants_pocket = data.get('register_in_pocket')
         if wants_pocket is None:
             wants_pocket = (
@@ -371,6 +382,20 @@ class ExpenseRecordCreateUpdateSerializer(
                 and self.instance.pocket_movement_id is not None
             )
         total = effective('total_amount')
+        # PocketMovement.amount requires >= 0.01 and the sync writer skips
+        # model validators; zero stays valid only for expenses that never
+        # touch the pocket (paper adjustments).
+        if wants_pocket and total == 0:
+            raise serializers.ValidationError({
+                'total_amount': (
+                    'Un gasto registrado en el bolsillo debe tener un '
+                    'monto mayor a cero.'
+                ),
+            })
+
+        ledger = effective('ledger', Ledger.COMPANY)
+        if ledger not in PERSONAL_LEDGER_OWNER:
+            return data
         if not wants_pocket or total is None:
             return data
         # A personal expense paid from the pocket is a partner draw:

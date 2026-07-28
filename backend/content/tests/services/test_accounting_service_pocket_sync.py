@@ -335,7 +335,8 @@ class TestPocketToRecordSync:
         assert income is not None
         assert income.kind == IncomeRecord.Kind.LIQUID
         assert income.destination == IncomeRecord.Destination.POCKET
-        assert income.period_date == date(2026, 4, 1)
+        # The exact pocket day is preserved on the mirrored record.
+        assert income.period_date == date(2026, 4, 17)
         assert income.concept == 'Anticipo cliente'
 
     def test_pocket_in_mirror_splits_half_and_links_source(self, superuser):
@@ -395,8 +396,8 @@ class TestPocketToRecordSync:
         assert expense.concept == 'Pago dominio .co'
         assert expense.total_amount == Decimal('200000.00')
         assert expense.gustavo_amount == Decimal('100000.00')
-        # Same month: period stays normalized to day 1.
-        assert expense.period_date == date(2026, 4, 1)
+        # The pocket day travels with the record, even within the month.
+        assert expense.period_date == date(2026, 4, 20)
 
     def test_pocket_attribution_edit_resets_split(self, superuser):
         movement = create_movement(superuser)
@@ -470,4 +471,55 @@ class TestPocketToRecordSync:
         update_movement(superuser, movement, movement_date='2026-06-09')
 
         expense = ExpenseRecord.objects.get(pk=expense_pk)
-        assert expense.period_date == date(2026, 6, 1)
+        assert expense.period_date == date(2026, 6, 9)
+
+    def test_pocket_movement_exact_day_reaches_the_mirrored_record(
+        self, superuser,
+    ):
+        movement = create_movement(superuser, movement_date='2026-04-17')
+        assert movement.expense_record.period_date == date(2026, 4, 17)
+
+    def test_pocket_day_only_edit_moves_the_linked_period(self, superuser):
+        movement = create_movement(superuser, movement_date='2026-04-17')
+        expense_pk = movement.expense_record.pk
+
+        update_movement(superuser, movement, movement_date='2026-04-20')
+
+        expense = ExpenseRecord.objects.get(pk=expense_pk)
+        assert expense.period_date == date(2026, 4, 20)
+
+    def test_pocket_notes_mirror_into_record_on_create_and_edit(
+        self, superuser,
+    ):
+        movement = create_movement(superuser, notes='Factura 123')
+        expense = movement.expense_record
+        assert expense.notes == 'Factura 123'
+
+        update_movement(superuser, movement, notes='Factura 123 corregida')
+        expense.refresh_from_db()
+        assert expense.notes == 'Factura 123 corregida'
+
+
+@pytest.mark.django_db
+class TestNotesMirror:
+    def test_expense_notes_mirror_into_movement_on_create(self, superuser):
+        expense = create_expense(superuser, notes='Plan anual')
+        assert expense.pocket_movement.notes == 'Plan anual'
+
+    def test_record_notes_edit_mirrors_into_movement(self, superuser):
+        expense = create_expense(superuser, notes='Plan anual')
+        serializer = make_serializer(
+            ExpenseRecordCreateUpdateSerializer,
+            {'notes': 'Plan anual con descuento'},
+            instance=expense,
+        )
+        with patch.object(accounting_service, '_notify'):
+            accounting_service.update_record(
+                EntityType.EXPENSE, expense, serializer, superuser,
+            )
+        expense.pocket_movement.refresh_from_db()
+        assert expense.pocket_movement.notes == 'Plan anual con descuento'
+
+    def test_income_notes_mirror_into_movement_on_create(self, superuser):
+        income = create_pocket_income(superuser, notes='Abono inicial')
+        assert income.pocket_movement.notes == 'Abono inicial'

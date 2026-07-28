@@ -176,6 +176,72 @@ class TestHourPackageSettings:
         assert response.status_code == 400
         assert 'default_view_mode' in response.data
 
+    def test_get_exposes_base_rates(self, admin_client):
+        response = admin_client.get(reverse('hour-package-settings'))
+        assert response.status_code == 200
+        assert float(response.data['base_rate_col']) == 30000.0
+        assert float(response.data['base_rate_ext']) == 18.0
+        assert float(response.data['base_rate_usa']) == 30.0
+
+    def test_patch_base_rate_propagates_to_catalog(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'base_rate_col': '35000'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['updated_packages'] == {'COL': 4}
+        rates = set(
+            HourPackage.objects.filter(nationality='COL')
+            .values_list('hourly_rate', flat=True)
+        )
+        assert {float(r) for r in rates} == {35000.0}
+
+    def test_patch_unchanged_base_rate_skips_propagation(self, admin_client):
+        pkg = HourPackage.objects.filter(nationality='COL').first()
+        pkg.hourly_rate = 99999  # per-package exception must survive
+        pkg.save()
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'base_rate_col': '30000'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['updated_packages'] == {}
+        pkg.refresh_from_db()
+        assert float(pkg.hourly_rate) == 99999.0
+
+    def test_patch_view_mode_only_does_not_touch_packages(self, admin_client):
+        before = list(
+            HourPackage.objects.order_by('id')
+            .values_list('hourly_rate', 'updated_at')
+        )
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'default_view_mode': 'compare'}, format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['updated_packages'] == {}
+        after = list(
+            HourPackage.objects.order_by('id')
+            .values_list('hourly_rate', 'updated_at')
+        )
+        assert after == before
+
+    def test_patch_rejects_zero_base_rate(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'base_rate_ext': '0'}, format='json',
+        )
+        assert response.status_code == 400
+        assert 'base_rate_ext' in response.data
+
+    def test_patch_rejects_negative_base_rate(self, admin_client):
+        response = admin_client.patch(
+            reverse('update-hour-package-settings'),
+            {'base_rate_usa': '-5'}, format='json',
+        )
+        assert response.status_code == 400
+        assert 'base_rate_usa' in response.data
+
 
 class TestRestoreDefaultHourPackages:
     def test_returns_403_for_unauthenticated(self, api_client):

@@ -462,8 +462,8 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
 
     Linked movements are audited (the pocket ledger history stays complete)
     but do NOT send their own email — the income/expense email covers it.
-    The concept mirrors the record verbatim (no prefix) so edits stay
-    invertible from the pocket side.
+    The concept and notes mirror the record verbatim (no prefix) so edits
+    stay invertible from the pocket side.
     """
     movement = record.pocket_movement
 
@@ -473,6 +473,7 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
             movement_date=record.period_date,
             direction=direction,
             amount=record.total_amount,
+            notes=record.notes,
             source_ref=source_ref,
             created_by=user if getattr(user, 'is_authenticated', False) else None,
         )
@@ -500,8 +501,9 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
         ):
             movement.movement_date = period
         movement.amount = record.total_amount
+        movement.notes = record.notes
         movement.save(update_fields=[
-            'concept', 'movement_date', 'amount', 'updated_at',
+            'concept', 'movement_date', 'amount', 'notes', 'updated_at',
         ])
         changes = compute_changes(
             EntityType.POCKET, old_values,
@@ -558,7 +560,8 @@ def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
         gustavo, carlos = _default_split(attribution, movement.amount)
         common = {
             'concept': movement.concept,
-            'period_date': movement.movement_date.replace(day=1),
+            'period_date': movement.movement_date,
+            'notes': movement.notes,
             'ledger': Ledger.COMPANY,
             'total_amount': movement.amount,
             'gustavo_amount': gustavo,
@@ -605,11 +608,10 @@ def _sync_from_pocket(movement, mirror_ledger, user, *, is_create):
     )
     old_values = snapshot_values(linked, record_type)
     linked.concept = movement.concept
-    update_fields = ['concept', 'updated_at']
-    if (linked.period_date.year, linked.period_date.month) != (
-        movement.movement_date.year, movement.movement_date.month,
-    ):
-        linked.period_date = movement.movement_date.replace(day=1)
+    linked.notes = movement.notes
+    update_fields = ['concept', 'notes', 'updated_at']
+    if linked.period_date != movement.movement_date:
+        linked.period_date = movement.movement_date
         update_fields.append('period_date')
     if record_type == EntityType.EXPENSE:
         current_attribution = linked.partner_attribution

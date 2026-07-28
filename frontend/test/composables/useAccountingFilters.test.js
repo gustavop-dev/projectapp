@@ -273,3 +273,51 @@ describe('saved tabs delegation', () => {
     expect(activeTabId.value).toBe('all');
   });
 });
+
+describe('builtin tabs', () => {
+  function makeWithBuiltin() {
+    return useAccountingFilters({
+      viewName: 'accounting_income',
+      defaults: DEFAULTS,
+      matchers: { statuses: matchIncludes('status', 'statuses') },
+      builtinTabs: [
+        { id: 'lost', name: 'Perdidos', filters: { statuses: ['lost'] } },
+      ],
+    });
+  }
+
+  it('lists builtin tabs before the saved ones', () => {
+    savedTabsRef.value = [
+      { id: 3, view: 'accounting_income', name: 'Míos', filters: {} },
+    ];
+    const { displayTabs } = makeWithBuiltin();
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['lost', 3]);
+    expect(displayTabs.value[0].builtin).toBe(true);
+  });
+
+  it('selectTab applies the builtin filters on top of the defaults', () => {
+    const { currentFilters, activeTabId, selectTab } = makeWithBuiltin();
+    currentFilters.method = 'transfer';
+    selectTab('lost');
+    expect(activeTabId.value).toBe('lost');
+    expect(currentFilters.statuses).toEqual(['lost']);
+    // Unrelated filters are reset like the "Todas" tab does.
+    expect(currentFilters.method).toBeNull();
+  });
+
+  it('never persists filter edits made under a builtin tab', async () => {
+    tabsStub.updateTabFilters.mockClear();
+    const { currentFilters, activeTabId, selectTab } = makeWithBuiltin();
+    selectTab('lost');
+    currentFilters.method = 'cash';
+    // Flush the deep watcher.
+    const { nextTick } = require('vue');
+    await nextTick();
+    // The edit stays local: the tab keeps its identity and the filter value,
+    // and nothing reaches the persistence layer (builtin tabs have no
+    // server-side row to update).
+    expect(activeTabId.value).toBe('lost');
+    expect(currentFilters.method).toBe('cash');
+    expect(tabsStub.updateTabFilters).not.toHaveBeenCalled();
+  });
+});

@@ -84,6 +84,7 @@ export const ADMIN_HOUR_PACKAGES_LIST = ['@flow:admin-hour-packages-list', '@mod
 export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_EDIT = ['@flow:admin-hour-packages-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_HOUR_PACKAGES_DELETE = ['@flow:admin-hour-packages-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P2'];
 
 // ── v1.6.0 features ──
 export const ADMIN_PROPOSAL_WIN_RATE_DASHBOARD = ['@flow:admin-proposal-win-rate-dashboard', '@module:admin', '@priority:P2'];

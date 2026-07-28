@@ -86,4 +86,63 @@ describe('AccountingInlineCell', () => {
 
     expect(wrapper.emitted('save')).toBeUndefined();
   });
+
+  it('date type opens a date input and commits the changed date on Enter', async () => {
+    const wrapper = mountCell({ type: 'date', value: '2026-06-15' });
+    const input = await openEditor(wrapper);
+
+    expect(input.attributes('type')).toBe('date');
+    expect(input.element.value).toBe('2026-06-15');
+
+    await input.setValue('2026-06-20');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([['2026-06-20']]);
+  });
+
+  const CATEGORY_OPTIONS = [
+    { value: 'software', label: 'Software y suscripciones' },
+    { value: 'fuel', label: 'Gasolina' },
+  ];
+
+  async function openSelect(wrapper) {
+    await wrapper.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+    return wrapper.find('select');
+  }
+
+  it('select type emits the option value as soon as it changes', async () => {
+    const wrapper = mountCell({
+      type: 'select', value: 'software', options: CATEGORY_OPTIONS,
+    });
+    const select = await openSelect(wrapper);
+
+    expect(select.exists()).toBe(true);
+    await select.setValue('fuel');
+
+    expect(wrapper.emitted('save')).toEqual([['fuel']]);
+    expect(wrapper.find('select').exists()).toBe(false);
+  });
+
+  it('select type does not emit when re-picking the current value', async () => {
+    const wrapper = mountCell({
+      type: 'select', value: 'software', options: CATEGORY_OPTIONS,
+    });
+    const select = await openSelect(wrapper);
+
+    await select.setValue('software');
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  it('select type cancels on Esc without saving', async () => {
+    const wrapper = mountCell({
+      type: 'select', value: 'software', options: CATEGORY_OPTIONS,
+    });
+    const select = await openSelect(wrapper);
+
+    await select.trigger('keydown.esc');
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+    expect(wrapper.find('[data-testid="inline-cell-display"]').exists()).toBe(true);
+  });
 });

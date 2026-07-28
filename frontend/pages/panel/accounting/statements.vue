@@ -61,6 +61,8 @@
         v-if="detail"
         :statement="detail"
         :is-updating="store.isUpdating"
+        :category-options="categoryOptions"
+        :inline-saving-key="inlineSavingKey"
         class="mb-6"
         @finalize="handleFinalize"
         @reopen="handleReopen"
@@ -71,6 +73,7 @@
         @add-tx="openCreateTxModal"
         @upload-pdf="handleUploadPdf"
         @delete-pdf="handleDeletePdf"
+        @inline-save="saveTxInline"
       />
 
       <!-- Learned merchant aliases -->
@@ -461,6 +464,48 @@ async function saveTx() {
   if (result.success) {
     txModalOpen.value = false;
     notify.success('Transacción actualizada.');
+    await store.fetchStatementDetail(detail.value.id);
+  } else {
+    notify.error(result.message || 'No se pudo actualizar la transacción.');
+  }
+}
+
+// ── Inline row editing ──
+
+const inlineSavingKey = ref(null);
+
+function inlinePayload(field, value) {
+  if (field === 'merchant_name') {
+    // Clearing the name also drops the identified flag (badge returns).
+    return { merchant_name: value, is_identified: Boolean(value) };
+  }
+  if (field === 'installment_label') {
+    if (!value.trim()) return { installment_number: null, installments_total: null };
+    const m = value.trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (!m) return null;
+    const [n, t] = [Number(m[1]), Number(m[2])];
+    if (n > t) return null;
+    return { installment_number: n, installments_total: t };
+  }
+  return { [field]: value };
+}
+
+async function saveTxInline(tx, field, value) {
+  if (field === 'raw_description' && !String(value).trim()) {
+    notify.error('La descripción no puede quedar vacía.');
+    return;
+  }
+  const payload = inlinePayload(field, value);
+  if (!payload) {
+    notify.error('Formato de cuota inválido. Usa "n/total" con n ≤ total.');
+    return;
+  }
+  inlineSavingKey.value = `${tx.id}:${field}`;
+  const result = await store.updateStatementTransaction(detail.value.id, tx.id, payload);
+  inlineSavingKey.value = null;
+  if (result.success) {
+    notify.success('Transacción actualizada.');
+    // Header sums and category totals are server-computed.
     await store.fetchStatementDetail(detail.value.id);
   } else {
     notify.error(result.message || 'No se pudo actualizar la transacción.');

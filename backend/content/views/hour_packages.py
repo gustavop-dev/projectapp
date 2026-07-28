@@ -2,16 +2,25 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from content.models import HourPackage, HourPackageSettings, Nationality
+from content.models import (
+    BASE_RATE_FIELD_BY_NATIONALITY,
+    HourPackage,
+    HourPackageSettings,
+    Nationality,
+)
 from content.serializers.hour_packages import (
     HourPackageAdminListSerializer,
     HourPackageAdminDetailSerializer,
     HourPackageCreateUpdateSerializer,
     HourPackageSettingsSerializer,
 )
-from content.services.hour_package_service import restore_default_packages
+from content.services.hour_package_service import (
+    apply_base_rates_to_catalog,
+    restore_default_packages,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -91,14 +100,36 @@ def get_hour_package_settings(request):
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_hour_package_settings(request):
-    """Update the hour-packages panel settings singleton."""
+    """Update the settings singleton, propagating changed base rates.
+
+    A base rate present in the payload and different from the stored value
+    is applied to every package of that nationality. The response includes
+    ``updated_packages`` (nationality → rows updated; empty when no rate
+    changed).
+    """
+    settings_obj = HourPackageSettings.load()
+    old_rates = {
+        nationality: getattr(settings_obj, field)
+        for nationality, field in BASE_RATE_FIELD_BY_NATIONALITY.items()
+    }
     serializer = HourPackageSettingsSerializer(
-        HourPackageSettings.load(), data=request.data, partial=True
+        settings_obj, data=request.data, partial=True
     )
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    serializer.save()
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    changed_rates = {
+        nationality: serializer.validated_data[field]
+        for nationality, field in BASE_RATE_FIELD_BY_NATIONALITY.items()
+        if field in serializer.validated_data
+        and serializer.validated_data[field] != old_rates[nationality]
+    }
+    with transaction.atomic():
+        serializer.save()
+        updated_packages = apply_base_rates_to_catalog(changed_rates)
+    return Response(
+        {**serializer.data, 'updated_packages': updated_packages},
+        status=status.HTTP_200_OK,
+    )
 
 
 @api_view(['POST'])

@@ -170,6 +170,62 @@
         </section>
 
         <section class="bg-surface rounded-xl shadow-sm border border-border-muted p-6">
+          <h2 class="text-sm font-medium text-text-default mb-1">Tarifa base por hora</h2>
+          <p class="text-xs text-text-subtle mb-4">
+            Al guardar, la tarifa se aplica a <strong>todos</strong> los paquetes de esa
+            nacionalidad (incluidos los inactivos y los que tenían tarifa personalizada).
+            Las propuestas ya creadas no se modifican; las nuevas usan la tarifa actualizada.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label for="hp-base-rate-col" class="block text-sm font-medium text-text-default mb-1">Colombia (COP)</label>
+              <input
+                id="hp-base-rate-col"
+                v-model.number="baseRates.COL"
+                type="number"
+                min="1"
+                step="1"
+                data-testid="hour-packages-base-rate-col"
+                class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all"
+              />
+            </div>
+            <div>
+              <label for="hp-base-rate-ext" class="block text-sm font-medium text-text-default mb-1">Extranjero (USD)</label>
+              <input
+                id="hp-base-rate-ext"
+                v-model.number="baseRates.EXT"
+                type="number"
+                min="0.01"
+                step="0.01"
+                data-testid="hour-packages-base-rate-ext"
+                class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all"
+              />
+            </div>
+            <div>
+              <label for="hp-base-rate-usa" class="block text-sm font-medium text-text-default mb-1">USA (USD)</label>
+              <input
+                id="hp-base-rate-usa"
+                v-model.number="baseRates.USA"
+                type="number"
+                min="0.01"
+                step="0.01"
+                data-testid="hour-packages-base-rate-usa"
+                class="bg-input-bg w-full px-4 py-2.5 rounded-xl border border-border-default text-input-text text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all"
+              />
+            </div>
+          </div>
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="hourPackagesStore.isUpdating"
+            data-testid="hour-packages-save-base-rates"
+            @click="saveBaseRates"
+          >
+            Guardar tarifas
+          </BaseButton>
+        </section>
+
+        <section class="bg-surface rounded-xl shadow-sm border border-border-muted p-6">
           <h2 class="text-sm font-medium text-text-default mb-1">Restablecer paquetes por defecto</h2>
           <p class="text-xs text-text-subtle mb-4">
             Reemplaza el catálogo del país elegido con la escalera por defecto:
@@ -242,6 +298,21 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 
 const defaultViewMode = computed(() => hourPackagesStore.settings?.default_view_mode ?? 'table');
 
+const baseRates = ref({ COL: null, EXT: null, USA: null });
+// DRF serializes decimals as strings — normalize to numbers for the inputs.
+watch(
+  () => hourPackagesStore.settings,
+  (settings) => {
+    if (!settings) return;
+    baseRates.value = {
+      COL: Number(settings.base_rate_col),
+      EXT: Number(settings.base_rate_ext),
+      USA: Number(settings.base_rate_usa),
+    };
+  },
+  { immediate: true },
+);
+
 const nationalityLabel = computed(() =>
   ({ COL: 'de Colombia', EXT: 'del extranjero', USA: 'de Estados Unidos' }[selectedNationality.value]));
 const currentCurrency = computed(() => CURRENCY_BY_NATIONALITY[selectedNationality.value]);
@@ -274,6 +345,34 @@ function statusBadgeClass(pkg) {
     : 'bg-surface-raised text-text-muted';
 }
 
+async function saveBaseRates() {
+  const rates = baseRates.value;
+  const invalid = Object.values(rates).some(
+    (rate) => !Number.isFinite(rate) || rate <= 0,
+  );
+  if (invalid) {
+    notify.error('Las tarifas base deben ser números mayores a 0.');
+    return;
+  }
+  const result = await hourPackagesStore.updateSettings({
+    base_rate_col: rates.COL,
+    base_rate_ext: rates.EXT,
+    base_rate_usa: rates.USA,
+  });
+  if (!result.success) {
+    notify.error('No se pudieron guardar las tarifas base.');
+    return;
+  }
+  const updatedCount = Object.values(result.data?.updated_packages ?? {})
+    .reduce((sum, count) => sum + count, 0);
+  notify.success(
+    updatedCount > 0
+      ? `Tarifas base guardadas. ${updatedCount} paquete${updatedCount === 1 ? '' : 's'} actualizado${updatedCount === 1 ? '' : 's'}.`
+      : 'Tarifas base guardadas. Sin cambios en los paquetes.',
+  );
+  await hourPackagesStore.fetchAdminPackages(selectedNationality.value);
+}
+
 async function saveDefaultViewMode(mode) {
   const result = await hourPackagesStore.updateSettings({ default_view_mode: mode });
   if (result.success) {
@@ -297,6 +396,8 @@ function confirmRestore() {
         return;
       }
       notify.success(`Catálogo de ${label} restablecido.`);
+      // The restore also resets that nationality's base rate in settings.
+      await hourPackagesStore.fetchSettings();
       if (restoreNationality.value === selectedNationality.value) {
         await hourPackagesStore.fetchAdminPackages(selectedNationality.value);
       }

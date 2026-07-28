@@ -194,6 +194,34 @@ describe('useHourPackagesStore', () => {
       expect(result.success).toBe(false);
       expect(result.errors).toEqual({ default_view_mode: ['"x" is not a valid choice.'] });
     });
+
+    it('updateSettings sends base rates and stores the propagation counts', async () => {
+      const response = {
+        default_view_mode: 'table',
+        base_rate_col: '35000.00',
+        base_rate_ext: '20.00',
+        base_rate_usa: '30.00',
+        updated_packages: { COL: 4, EXT: 4 },
+      };
+      patch_request.mockResolvedValue({ data: response });
+      const payload = { base_rate_col: 35000, base_rate_ext: 20, base_rate_usa: 30 };
+      const result = await store.updateSettings(payload);
+      expect(patch_request).toHaveBeenCalledWith(
+        'hour-packages/admin/settings/update/', payload,
+      );
+      expect(result.success).toBe(true);
+      expect(result.data.updated_packages).toEqual({ COL: 4, EXT: 4 });
+      expect(store.settings).toEqual(response);
+    });
+
+    it('updateSettings surfaces base-rate validation errors', async () => {
+      patch_request.mockRejectedValue({
+        response: { data: { base_rate_col: ['La tarifa base debe ser mayor a 0.'] } },
+      });
+      const result = await store.updateSettings({ base_rate_col: 0 });
+      expect(result.success).toBe(false);
+      expect(result.errors).toEqual({ base_rate_col: ['La tarifa base debe ser mayor a 0.'] });
+    });
   });
 
   describe('restoreDefaults', () => {

@@ -18,8 +18,9 @@ const destinationOptions = [
 ]
 
 const form = ref(defaultForm())
-// Month is enough by default; the toggle records the exact payment day.
-const exactDate = ref(false)
+// The exact payment day is the default; the toggle downgrades to
+// month-only when only the month is known.
+const exactDate = ref(true)
 
 function defaultForm() {
   return {
@@ -39,14 +40,25 @@ const pending = computed(() => Number(props.record?.pending_amount ?? 0))
 
 const money = (value) => formatMoney(Number(value ?? 0), 'COP')
 
+// Local-time today: toISOString() would shift to tomorrow after 19:00
+// in Bogotá (UTC-5).
+function todayISO() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 watch(
   () => [props.open, props.record],
   () => {
     if (!props.open || !props.record) return
-    exactDate.value = false
+    exactDate.value = true
     form.value = {
       ...defaultForm(),
       concept: props.record.concept ?? '',
+      // Liquidating records a payment that just happened, so today beats
+      // the expected period (which is exactly the stale value).
+      period_date: todayISO(),
       // Default to what is still owed, not the full projection: the whole
       // point of liquidating is that they often pay late and short. The
       // partner split stays empty on purpose — when neither amount is

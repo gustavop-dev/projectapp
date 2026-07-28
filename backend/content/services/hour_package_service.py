@@ -11,7 +11,14 @@ proposal's nationality.
 
 import copy
 
-from content.models import CURRENCY_BY_NATIONALITY, HourPackage
+from django.utils import timezone
+
+from content.models import (
+    BASE_RATE_FIELD_BY_NATIONALITY,
+    CURRENCY_BY_NATIONALITY,
+    HourPackage,
+    HourPackageSettings,
+)
 
 # Canonical catalog defaults per nationality. The «restore defaults» panel
 # action and the data migration that reset the catalog both derive from this
@@ -46,13 +53,43 @@ def restore_default_packages(nationality):
     """Replace the ``nationality`` catalog with :data:`DEFAULT_PACKAGES` rows.
 
     Destructive on purpose: the panel action asks for confirmation before
-    calling this. Returns the freshly created packages.
+    calling this. Also resets that nationality's base rate in
+    :class:`HourPackageSettings` so the Configuración inputs stay consistent
+    with the restored catalog. Returns the freshly created packages.
     """
     HourPackage.objects.filter(nationality=nationality).delete()
-    return HourPackage.objects.bulk_create(
+    created = HourPackage.objects.bulk_create(
         HourPackage(nationality=nationality, is_active=True, **fields)
         for fields in DEFAULT_PACKAGES[nationality]
     )
+    settings = HourPackageSettings.load()
+    setattr(
+        settings,
+        BASE_RATE_FIELD_BY_NATIONALITY[nationality],
+        DEFAULT_PACKAGES[nationality][0]['hourly_rate'],
+    )
+    settings.save()
+    return created
+
+
+def apply_base_rates_to_catalog(changed_rates):
+    """Propagate base hourly rates to every package of each nationality.
+
+    ``changed_rates`` maps nationality → new rate. All rows of the
+    nationality are updated — active and inactive — so a re-activated
+    package never carries a stale rate. ``queryset.update()`` bypasses
+    ``auto_now``, hence the explicit ``updated_at``. Callers wanting
+    atomicity with other writes must wrap this in a transaction.
+
+    Returns a dict nationality → number of packages updated.
+    """
+    now = timezone.now()
+    return {
+        nationality: HourPackage.objects.filter(nationality=nationality).update(
+            hourly_rate=rate, updated_at=now,
+        )
+        for nationality, rate in changed_rates.items()
+    }
 
 
 def seed_commercial_conditions_from_catalog(content_json, *, nationality, language):
