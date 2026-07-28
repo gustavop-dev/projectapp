@@ -52,6 +52,16 @@ const CATALOG = [
   },
 ];
 
+// Same catalog, but the two active packages charge different rates. This is the
+// shape that catches a reset implemented as "base rate + no overrides": that
+// would flatten Ágil onto Pro's rate and price the proposal differently from
+// automatic mode.
+const CATALOG_MIXED = [
+  { ...CATALOG[0], hourly_rate: '45000' },
+  { ...CATALOG[1], hourly_rate: '30000' },
+  CATALOG[2],
+];
+
 const PROPOSAL = { id: 3, nationality: 'COL', language: 'es', currency: 'COP' };
 
 function buildSection(content = {}) {
@@ -229,5 +239,82 @@ describe('ProposalHourRateTab', () => {
     const { wrapper } = await mountTab({ section });
 
     expect(wrapper.find('[data-testid="hour-rate-disabled-warning"]').exists()).toBe(true);
+  });
+});
+
+describe('ProposalHourRateTab — restablecer a los valores del catálogo', () => {
+  const MANUAL = { hourPackagesMode: 'manual', manualHourlyRate: 60000, manualCurrency: 'COP' };
+  const reset = (wrapper) => wrapper.find('[data-testid="hour-rate-reset-catalog"]');
+
+  it('restores the catalog rates and stays in manual mode', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL });
+    expect(rowRate(wrapper, 7)).toContain('54.000');
+
+    await reset(wrapper).trigger('click');
+    await flushPromises();
+
+    // Back to the catalog: Pro 30.000 with 10% off → 27.000/h, Ágil 30.000 flat.
+    expect(rowRate(wrapper, 7)).toContain('27.000');
+    expect(rowRate(wrapper, 8)).toContain('30.000');
+    // Still manual — the rate input is present, the mode did not flip.
+    expect(wrapper.find('[data-testid="hour-rate-manual-input"]').exists()).toBe(true);
+  });
+
+  it('keeps each package on its own catalog rate instead of flattening them', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL, catalog: CATALOG_MIXED });
+
+    await reset(wrapper).trigger('click');
+    await flushPromises();
+
+    // Pro is the ordering baseline at 30.000 (−10% → 27.000); Ágil charges
+    // 45.000 and must keep it rather than inherit Pro's rate.
+    expect(rowRate(wrapper, 7)).toContain('27.000');
+    expect(rowRate(wrapper, 8)).toContain('45.000');
+  });
+
+  it('produces exactly the prices automatic mode shows', async () => {
+    const auto = await mountTab({ catalog: CATALOG_MIXED });
+    const expected = [7, 8].map((id) => [rowRate(auto.wrapper, id), rowTotal(auto.wrapper, id)]);
+
+    const manual = await mountTab({ content: MANUAL, catalog: CATALOG_MIXED });
+    await reset(manual.wrapper).trigger('click');
+    await flushPromises();
+
+    const actual = [7, 8].map((id) => [rowRate(manual.wrapper, id), rowTotal(manual.wrapper, id)]);
+    expect(actual).toEqual(expected);
+  });
+
+  it('is disabled while the configuration already matches the catalog', async () => {
+    const { wrapper } = await mountTab({
+      content: { hourPackagesMode: 'manual', manualHourlyRate: 30000, manualCurrency: 'COP' },
+    });
+    expect(reset(wrapper).element.disabled).toBe(true);
+
+    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('60.000');
+    await flushPromises();
+    expect(reset(wrapper).element.disabled).toBe(false);
+  });
+
+  it('is not offered when the catalog has nothing to restore from', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL, catalog: [] });
+
+    expect(reset(wrapper).exists()).toBe(false);
+  });
+
+  it('saves the restored catalog values', async () => {
+    const { wrapper, proposalStore } = await mountTab({
+      content: MANUAL, catalog: CATALOG_MIXED,
+    });
+
+    await reset(wrapper).trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
+    await flushPromises();
+
+    const [, payload] = proposalStore.updateSection.mock.calls[0];
+    expect(payload.content_json.manualHourlyRate).toBe(30000);
+    expect(payload.content_json.manualPackageRates).toEqual([
+      { packageId: 8, hourlyRate: 45000 },
+    ]);
   });
 });

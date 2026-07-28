@@ -185,6 +185,37 @@ test.describe('Admin — proposal hourly rate', () => {
     await expect(page.getByTestId('hour-rate-rate-8')).toContainText('60.000');
   });
 
+  test('restoring the catalog values undoes the manual rates without leaving manual', {
+    tag: [...ADMIN_PROPOSAL_HOUR_RATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const { captured } = await openTab(page, {
+      proposal: buildProposal({
+        hourPackagesMode: 'manual', manualHourlyRate: 60000, manualCurrency: 'COP',
+        manualPackageRates: [{ packageId: 8, hourlyRate: 100000 }],
+      }),
+    });
+    await expect(page.getByTestId('hour-rate-rate-8')).toContainText('100.000');
+
+    await page.getByTestId('hour-rate-reset-catalog').click();
+
+    // Every row back on the catalog rate: Pro 30.000 −10% → 27.000, Ágil 30.000.
+    await expect(page.getByTestId('hour-rate-rate-7')).toContainText('27.000');
+    await expect(page.getByTestId('hour-rate-rate-8')).toContainText('30.000');
+    await expect(page.getByTestId('hour-rate-manual-input')).toHaveValue('30.000');
+    // Restoring does not flip the proposal back to automatic.
+    await expect(page.getByTestId('hour-rate-mode-hint')).toContainText('su propia tarifa');
+    // Nothing left to restore, so the action disables itself.
+    await expect(page.getByTestId('hour-rate-reset-catalog')).toBeDisabled();
+
+    await page.getByTestId('hour-rate-save').click();
+    await expect(page.getByTestId('hour-rate-save')).toBeDisabled();
+
+    const cj = captured[0].content_json;
+    expect(cj.hourPackagesMode).toBe('manual');
+    expect(cj.manualHourlyRate).toBe(30000);
+    expect(cj.manualPackageRates).toBeUndefined();
+  });
+
   test('a proposal without the section is offered to create it', {
     tag: [...ADMIN_PROPOSAL_HOUR_RATE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
