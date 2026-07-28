@@ -221,7 +221,7 @@
                    focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
           >
             <option value="COL">Colombia</option>
-            <option value="EXT">Extranjero</option>
+            <option value="EXT">Extranjeros</option>
             <option value="USA">Estados Unidos</option>
           </select>
           <p class="text-xs text-text-subtle mt-1">Define qué paquetes de horas se siembran en Condiciones comerciales y sugiere la moneda.</p>
@@ -734,7 +734,7 @@
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface text-text-default"
               >
                 <option value="COL">Colombia</option>
-                <option value="EXT">Extranjero</option>
+                <option value="EXT">Extranjeros</option>
                 <option value="USA">Estados Unidos</option>
               </select>
             </div>

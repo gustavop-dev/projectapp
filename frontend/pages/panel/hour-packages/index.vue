@@ -35,7 +35,7 @@
       <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
           <!-- Nationality tabs: prices switch per country -->
-          <BaseSegmented v-model="selectedNationality" :options="nationalityOptions" />
+          <BaseSegmented v-model="selectedNationality" :options="nationalityOptions" nowrap />
           <p class="text-xs text-text-subtle mt-2">
             Los paquetes {{ nationalityLabel }} se cotizan en {{ currentCurrency }}.
           </p>
@@ -191,7 +191,7 @@
               />
             </div>
             <div>
-              <label for="hp-base-rate-ext" class="block text-sm font-medium text-text-default mb-1">Extranjero (USD)</label>
+              <label for="hp-base-rate-ext" class="block text-sm font-medium text-text-default mb-1">Extranjeros (USD)</label>
               <input
                 id="hp-base-rate-ext"
                 v-model.number="baseRates.EXT"
@@ -235,7 +235,7 @@
             Los paquetes actuales de ese país se eliminan.
           </p>
           <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-            <BaseSegmented v-model="restoreNationality" :options="nationalityOptions" />
+            <BaseSegmented v-model="restoreNationality" :options="nationalityOptions" nowrap />
             <BaseButton
               variant="danger"
               size="sm"
@@ -273,7 +273,7 @@ const CURRENCY_BY_NATIONALITY = { COL: 'COP', EXT: 'USD', USA: 'USD' };
 
 const nationalityOptions = [
   { value: 'COL', label: 'Colombia (COP)', testId: 'hour-packages-tab-col' },
-  { value: 'EXT', label: 'Extranjero (USD)', testId: 'hour-packages-tab-ext' },
+  { value: 'EXT', label: 'Extranjeros (USD)', testId: 'hour-packages-tab-ext' },
   { value: 'USA', label: 'USA (USD)', testId: 'hour-packages-tab-usa' },
 ];
 
@@ -384,7 +384,7 @@ async function saveDefaultViewMode(mode) {
 }
 
 function confirmRestore() {
-  const label = { COL: 'Colombia', EXT: 'Extranjero', USA: 'Estados Unidos' }[restoreNationality.value];
+  const label = { COL: 'Colombia', EXT: 'Extranjeros', USA: 'Estados Unidos' }[restoreNationality.value];
   requestConfirm({
     title: 'Restablecer paquetes',
     message: `¿Reemplazar el catálogo de ${label} con los paquetes por defecto? Los paquetes actuales de ese país se eliminan.`,
