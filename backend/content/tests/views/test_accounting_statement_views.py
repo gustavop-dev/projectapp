@@ -206,6 +206,103 @@ class TestMerchantAliasEndpoints:
         assert response.data['match_text'] == 'PRIMAX'
 
 
+class TestUpdateMerchantAlias:
+    """The panel patches aliases inline from the learned-merchants table."""
+
+    @staticmethod
+    def _url(alias):
+        return f'/api/accounting/merchant-aliases/{alias.pk}/update/'
+
+    @pytest.fixture
+    def alias(self):
+        return MerchantAlias.objects.create(
+            match_text='PAYU*NETFLIX', merchant_name='Netflix',
+            default_category='software',
+        )
+
+    def test_patches_merchant_name_and_category(self, super_client, alias):
+        """The response carries the stored values and the fresh label the
+        panel renders in the learned-merchants row."""
+        response = super_client.patch(
+            self._url(alias),
+            {'merchant_name': 'Netflix Colombia', 'default_category': 'other'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['merchant_name'] == 'Netflix Colombia'
+        assert response.data['default_category'] == 'other'
+        assert response.data['default_category_label'] == 'Otros'
+        alias.refresh_from_db()
+        assert alias.merchant_name == 'Netflix Colombia'
+
+    def test_patching_one_field_leaves_the_rest_untouched(
+        self, super_client, alias,
+    ):
+        response = super_client.patch(
+            self._url(alias), {'merchant_name': 'Netflix Inc'}, format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['match_text'] == 'PAYU*NETFLIX'
+        assert response.data['default_category'] == 'software'
+
+    def test_patching_match_text_normalizes_it(self, super_client, alias):
+        response = super_client.patch(
+            self._url(alias), {'match_text': 'payu netflix 990011'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        # Uppercased and stripped of the 6-digit reference code.
+        assert response.data['match_text'] == 'PAYU NETFLIX'
+
+    def test_rejects_a_match_text_owned_by_another_alias(
+        self, super_client, alias,
+    ):
+        """Two aliases resolving the same descriptor would make the match
+        ambiguous, so the collision is refused and nothing is written."""
+        MerchantAlias.objects.create(
+            match_text='PRIMAX', merchant_name='Primax',
+            default_category='fuel',
+        )
+
+        response = super_client.patch(
+            self._url(alias), {'match_text': 'primax'}, format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'match_text' in response.data
+        alias.refresh_from_db()
+        assert alias.match_text == 'PAYU*NETFLIX'
+
+    def test_keeping_its_own_match_text_is_allowed(self, super_client, alias):
+        """The uniqueness check must exclude the instance being updated."""
+        response = super_client.patch(
+            self._url(alias),
+            {'match_text': 'payu*netflix', 'merchant_name': 'Netflix Inc'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['match_text'] == 'PAYU*NETFLIX'
+
+    def test_rejects_an_empty_match_text(self, super_client, alias):
+        response = super_client.patch(
+            self._url(alias), {'match_text': '   '}, format='json',
+        )
+
+        assert response.status_code == 400
+
+    def test_unknown_alias_returns_404(self, super_client):
+        response = super_client.patch(
+            '/api/accounting/merchant-aliases/999999/update/',
+            {'merchant_name': 'Nadie'}, format='json',
+        )
+
+        assert response.status_code == 404
+
+
 class TestLearnMerchantAlias:
     """The panel learns aliases from hand-typed merchant corrections."""
 

@@ -96,34 +96,14 @@
         Comercios aprendidos ({{ store.merchantAliases.length }})
       </button>
       <BaseCollapse id="statement-aliases" :open="aliasesOpen">
-        <div class="bg-surface rounded-xl border border-border-muted shadow-sm overflow-hidden mt-2">
-          <p v-if="store.merchantAliases.length === 0" class="px-5 py-6 text-sm text-text-subtle">
-            Aún no hay alias aprendidos. Se crean al aprobar comercios en el chat.
-          </p>
-          <table v-else class="w-full">
-            <tbody class="divide-y divide-border-muted">
-              <tr
-                v-for="alias in store.merchantAliases"
-                :key="alias.id"
-                class="hover:bg-surface-raised transition-colors"
-              >
-                <td class="px-5 py-2.5 text-xs text-text-subtle font-mono max-w-[240px] truncate" :title="alias.match_text">
-                  {{ alias.match_text }}
-                </td>
-                <td class="px-5 py-2.5 text-sm text-text-default">{{ alias.merchant_name }}</td>
-                <td class="px-5 py-2.5 text-sm text-text-muted">{{ alias.default_category_label }}</td>
-                <td class="px-5 py-2.5 text-right whitespace-nowrap">
-                  <button
-                    class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-                    @click="handleDeleteAlias(alias)"
-                  >
-                    Eliminar
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <StatementAliasTable
+          :aliases="store.merchantAliases"
+          :category-options="categoryOptions"
+          :merchant-options="merchantOptions"
+          :inline-saving-key="aliasSavingKey"
+          @inline-save="saveAliasInline"
+          @delete="handleDeleteAlias"
+        />
       </BaseCollapse>
     </template>
 
@@ -209,6 +189,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingMerchantInput from '~/components/accounting/AccountingMerchantInput.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import StatementAliasTable from '~/components/accounting/StatementAliasTable.vue';
 import StatementDetail from '~/components/accounting/StatementDetail.vue';
 import StatementHeaderFormModal from '~/components/accounting/StatementHeaderFormModal.vue';
 import StatementMonthGrid from '~/components/accounting/StatementMonthGrid.vue';
@@ -655,6 +636,35 @@ function handleDeleteTx(tx) {
 }
 
 // ── Aliases ──
+
+const aliasSavingKey = ref(null);
+
+const ALIAS_REQUIRED_LABELS = {
+  match_text: 'El texto a mapear no puede quedar vacío.',
+  merchant_name: 'El comercio no puede quedar vacío.',
+};
+
+/**
+ * Aliases are a global catalogue, so unlike the transaction cells this skips
+ * `ensureDraft()` — the open statement's status has no say over it. The PATCH
+ * response replaces the record in the store, which is what brings back the
+ * server-normalized `match_text` and the fresh category label; `merchantOptions`
+ * derives from that same list, so the transaction combobox follows along.
+ */
+async function saveAliasInline(alias, field, value) {
+  if (ALIAS_REQUIRED_LABELS[field] && !String(value).trim()) {
+    notify.error(ALIAS_REQUIRED_LABELS[field]);
+    return;
+  }
+  aliasSavingKey.value = `${alias.id}:${field}`;
+  const result = await store.updateRecord('merchantAliases', alias.id, { [field]: value });
+  aliasSavingKey.value = null;
+  if (result.success) {
+    notify.success('Comercio actualizado.');
+  } else {
+    notify.error(result.message || 'No se pudo actualizar el comercio.');
+  }
+}
 
 function handleDeleteAlias(alias) {
   requestConfirm({
