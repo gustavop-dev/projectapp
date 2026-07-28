@@ -171,6 +171,12 @@ const mockProposalWithTech = {
             description: 'Hero, servicios y testimonios editables desde el panel.',
             priority: 'high',
             linked_item_ids: ['item-views-home'],
+          }, {
+            flowKey: 'req-home-seo',
+            title: 'SEO técnico y metadatos del Home',
+            description: 'Metaetiquetas, Open Graph y datos estructurados de la página principal.',
+            priority: 'medium',
+            linked_item_ids: ['item-views-home'],
           }],
         }],
       },
@@ -203,16 +209,19 @@ test.describe('Nested linked-requirements modal', () => {
     // Only the linked item shows the link
     const links = page.getByTestId('view-requirements-link');
     await expect(links).toHaveCount(1);
-    await expect(links.first()).toContainText('Ver requerimientos (1)');
+    await expect(links.first()).toContainText('Ver requerimientos (2)');
 
     await links.first().click();
 
-    // Nested modal: requirement title + priority badge + description
+    // Nested modal: one row per linked requirement, each with title +
+    // priority badge + description
     const nested = page.getByTestId('linked-requirement');
-    await expect(nested).toBeVisible({ timeout: 3000 });
-    await expect(nested).toContainText('Home dinámico con secciones administrables');
-    await expect(nested).toContainText('Alta');
-    await expect(nested).toContainText('Hero, servicios y testimonios editables desde el panel.');
+    await expect(nested).toHaveCount(2);
+    await expect(nested.first()).toContainText('Home dinámico con secciones administrables');
+    await expect(nested.first()).toContainText('Alta');
+    await expect(nested.first()).toContainText('Hero, servicios y testimonios editables desde el panel.');
+    await expect(nested.nth(1)).toContainText('SEO técnico y metadatos del Home');
+    await expect(nested.nth(1)).toContainText('Media');
   });
 
   test('closing the nested modal keeps the group modal open', {
@@ -222,7 +231,7 @@ test.describe('Nested linked-requirements modal', () => {
 
     await page.getByText('Vistas').first().click();
     await page.getByTestId('view-requirements-link').first().click();
-    await expect(page.getByTestId('linked-requirement')).toBeVisible({ timeout: 3000 });
+    await expect(page.getByTestId('linked-requirement').first()).toBeVisible({ timeout: 3000 });
 
     await page.getByRole('button', { name: 'Cerrar' }).click();
 
@@ -242,7 +251,7 @@ test.describe('Nested linked-requirements modal', () => {
 
     await page.getByText('Vistas').first().click();
     await page.getByTestId('view-requirements-link').first().click();
-    await expect(page.getByTestId('linked-requirement')).toContainText(
+    await expect(page.getByTestId('linked-requirement').first()).toContainText(
       'Home dinámico con secciones administrables', { timeout: 3000 },
     );
   });
