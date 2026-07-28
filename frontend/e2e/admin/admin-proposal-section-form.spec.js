@@ -368,6 +368,59 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     expect(captured.length).toBe(0);
   });
 
+  test('commercial_conditions: manual mode applies base rate to all packages and saves the mode', {
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
+  }, async ({ page }) => {
+    const proposalWithConditions = JSON.parse(JSON.stringify(mockProposal));
+    proposalWithConditions.sections.push(_buildSection(113, 'commercial_conditions', '📋 Condiciones comerciales', 12, {
+      index: '12', title: 'Condiciones comerciales', packagesTitle: 'Paquetes de horas',
+      packagesIntro: '', hourlyRate: 30000, currency: 'COP',
+      packages: [{ name: 'Ágil', hours: 20, discountPercent: 10, note: '', hourlyRate: 35000 }],
+      effortBadge: '', scopeTitle: 'Alcance', scopeParagraphs: ['p1'],
+    }));
+
+    const captured = [];
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) return { status: 200, contentType: 'application/json', body: JSON.stringify(proposalWithConditions) };
+      const sectionMatch = apiPath.match(/^proposals\/sections\/(\d+)\/update\/$/);
+      if (sectionMatch) {
+        captured.push({ sectionId: parseInt(sectionMatch[1]), body: route.request().postDataJSON() });
+        const section = proposalWithConditions.sections.find(s => s.id === parseInt(sectionMatch[1]));
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...section }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+
+    await page.getByTestId('section-header-commercial_conditions').click();
+    await page.getByTestId('section-editor').waitFor({ state: 'visible' });
+    const editor = page.getByTestId('section-editor');
+
+    // Auto mode ships disabled catalog-owned fields.
+    await expect(editor.getByLabel('Tarifa base por hora')).toBeDisabled();
+
+    await editor.getByTestId('hour-packages-mode-manual').click();
+    await expect(editor.getByLabel('Tarifa base por hora')).toBeEnabled();
+
+    await editor.getByLabel('Tarifa base por hora').fill('40000');
+    await editor.getByTestId('apply-base-rate-all').click();
+    // Preview reflects the base rate driving the arithmetic (10% off 40000).
+    await expect(editor.getByTestId('hour-package-preview-0')).toContainText('36.000');
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+    await expect(editor).toHaveCount(0);
+
+    expect(captured).toHaveLength(1);
+    const cj = captured[0].body.content_json;
+    expect(cj.hourPackagesMode).toBe('manual');
+    expect(cj.hourlyRate).toBe(40000);
+    expect(cj.packages[0]).not.toHaveProperty('hourlyRate');
+    expect(cj._editMode).toBe('form');
+  });
+
   test('form mode payload never includes rawText', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_FORM, '@role:admin'],
   }, async ({ page }) => {
