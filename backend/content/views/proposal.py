@@ -1798,7 +1798,10 @@ def preview_sync_section(request, section_id):
     """
     from django.db import transaction as _tx
     from accounts.models import Project
-    from accounts.services.technical_requirements_sync import compute_sync_diff
+    from accounts.services.technical_requirements_sync import (
+        compute_sync_diff,
+        filtered_technical_doc_for_sync,
+    )
 
     section = get_object_or_404(ProposalSection, pk=section_id)
     if section.section_type != ProposalSection.SectionType.TECHNICAL_DOCUMENT:
@@ -1815,7 +1818,9 @@ def preview_sync_section(request, section_id):
     deliverable = proposal.deliverable
     project = Project.objects.select_related('client').get(pk=deliverable.project_id)
 
-    diff = compute_sync_diff(project, content_json)
+    diff = compute_sync_diff(
+        project, filtered_technical_doc_for_sync(proposal, content_json),
+    )
 
     return Response({
         'ok': True,

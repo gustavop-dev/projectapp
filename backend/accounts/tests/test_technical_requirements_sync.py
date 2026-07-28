@@ -1044,3 +1044,98 @@ def test_sync_updates_entity_name_and_key_fields_when_changed():
     result = sync_technical_requirements_for_project(project, admin)
 
     assert result['entities_updated'] >= 1
+
+
+# =========================================================================
+# Module-selection filtering — the Kanban mirrors the contracted scope only
+# =========================================================================
+
+
+def _make_selection_setup(suffix, module_selected):
+    """Project + proposal with one optional module and a module-linked epic."""
+    admin = User.objects.create_user(
+        username=f'a-{suffix}@sync.com', email=f'a-{suffix}@sync.com', password='p')
+    UserProfile.objects.create(user=admin, role=UserProfile.ROLE_ADMIN, is_onboarded=True)
+    client = User.objects.create_user(
+        username=f'c-{suffix}@sync.com', email=f'c-{suffix}@sync.com', password='p')
+    UserProfile.objects.create(user=client, role=UserProfile.ROLE_CLIENT, is_onboarded=True)
+
+    project = Project.objects.create(name=f'P-{suffix}', client=client)
+    bp = BusinessProposal.objects.create(
+        title='BP', client_name='C', total_investment=Decimal('1'),
+        hosting_percent=30, status='accepted',
+    )
+    d = Deliverable.objects.create(
+        project=project, title='Prop', category=Deliverable.CATEGORY_DOCUMENTS,
+        file=None, uploaded_by=client,
+    )
+    bp.deliverable = d
+    bp.save(update_fields=['deliverable_id'])
+
+    ProposalSection.objects.create(
+        proposal=bp,
+        section_type='functional_requirements',
+        title='Requerimientos', order=0,
+        content_json={
+            'groups': [],
+            'additionalModules': [{
+                'id': 'pwa_module', 'title': 'PWA',
+                'is_calculator_module': True, 'is_visible': True,
+                'selected': module_selected, 'default_selected': module_selected,
+                'price_percent': 40, 'items': [],
+            }],
+        },
+    )
+    ProposalSection.objects.create(
+        proposal=bp,
+        section_type=ProposalSection.SectionType.TECHNICAL_DOCUMENT,
+        title='Técnico', order=1,
+        content_json={
+            'epics': [
+                {
+                    'epicKey': 'epic-base', 'title': 'Base',
+                    'requirements': [{
+                        'flowKey': 'flow-base', 'title': 'Req base', 'description': 'D',
+                    }],
+                },
+                {
+                    'epicKey': 'mod-pwa-module', 'title': 'Alcance ampliado: PWA',
+                    'linked_module_ids': ['module-pwa_module'],
+                    'requirements': [{
+                        'flowKey': 'pwa-instalacion', 'title': 'Instalación PWA',
+                        'description': 'D',
+                        'linked_module_ids': ['module-pwa_module'],
+                    }],
+                },
+            ],
+        },
+    )
+    return admin, project
+
+
+@pytest.mark.django_db
+def test_sync_excludes_requirements_of_unselected_modules():
+    admin, project = _make_selection_setup('unsel', module_selected=False)
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['ok'] is True
+    assert Requirement.objects.filter(
+        phase__project=project, source_flow_key='flow-base').exists()
+    assert not Requirement.objects.filter(
+        phase__project=project, source_flow_key='pwa-instalacion').exists()
+    assert not Deliverable.objects.filter(
+        project=project, source_epic_key='mod-pwa-module').exists()
+
+
+@pytest.mark.django_db
+def test_sync_includes_selected_module_requirements():
+    admin, project = _make_selection_setup('sel', module_selected=True)
+
+    result = sync_technical_requirements_for_project(project, admin)
+
+    assert result['ok'] is True
+    assert Requirement.objects.filter(
+        phase__project=project, source_flow_key='pwa-instalacion').exists()
+    assert Deliverable.objects.filter(
+        project=project, source_epic_key='mod-pwa-module').exists()
