@@ -57,8 +57,10 @@ function mountModal(props = {}) {
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
           emits: ['update:modelValue'],
+          // The real component emits a NUMBER (or null when empty), not the
+          // typed string — the payload assertions depend on that contract.
           template:
-            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
         },
         BaseTextarea: {
           props: ['modelValue', 'rows', 'size', 'error', 'placeholder', 'disabled'],
@@ -83,6 +85,16 @@ function mountModal(props = {}) {
           emits: ['update:modelValue'],
           template:
             '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
+        },
+        BaseSelect: {
+          props: ['modelValue', 'options', 'size', 'error', 'disabled'],
+          emits: ['update:modelValue'],
+          template:
+            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+        },
+        BaseCollapse: {
+          props: ['open', 'id'],
+          template: '<div v-if="open"><slot /></div>',
         },
         PartnerSplitInput: PartnerSplitInputStub,
       },
@@ -150,7 +162,9 @@ describe('IncomeLiquidateModal', () => {
     expect(wrapper.emitted('submit')[0][0].period_date).toBe('2026-11-17');
   });
 
-  it('submits a month-only liquid record linked to the expected one', async () => {
+  it('submits a month-only settlement with no allocations', async () => {
+    // `kind`, `ledger` and the parent link are derived server-side from the
+    // record the settle endpoint is called on.
     const wrapper = mountModal();
 
     await wrapper
@@ -160,11 +174,10 @@ describe('IncomeLiquidateModal', () => {
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
-    expect(payload.kind).toBe('liquid');
-    expect(payload.expected_income).toBe(42);
     expect(payload.period_date).toBe('2026-11');
     expect(payload.total_amount).toBe('600000.00');
-    expect(payload.ledger).toBe('company');
+    expect(payload.deductions).toEqual([]);
+    expect(payload.expected_incomes).toEqual([]);
   });
 
   it('defaults the destination to pocket and omits the untouched split', async () => {
@@ -228,7 +241,6 @@ describe('IncomeLiquidateModal', () => {
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
-    expect(payload.ledger).toBe('gustavo');
     expect(payload.gustavo_amount).toBeUndefined();
     expect(payload.carlos_amount).toBeUndefined();
   });
@@ -240,5 +252,153 @@ describe('IncomeLiquidateModal', () => {
     await cancel.trigger('click');
 
     expect(wrapper.emitted('close')).toBeTruthy();
+  });
+
+  // ── Shortfall (the money that did not arrive) ──
+
+  const shortfall = (wrapper) =>
+    wrapper.find('[data-testid="income-liquidate-shortfall"]');
+
+  /** Receive less than pending so the shortfall section appears. */
+  async function receiveShort(wrapper, amount = '550000') {
+    await wrapper.find('[data-testid="split-total"]').setValue(amount);
+  }
+
+  const submitButton = (wrapper) =>
+    wrapper.find('[data-testid="income-liquidate-submit"]');
+
+  it('hides the shortfall section when the full pending amount is received', () => {
+    const wrapper = mountModal();
+
+    expect(shortfall(wrapper).exists()).toBe(false);
+  });
+
+  it('shows the shortfall as soon as the payment falls short', async () => {
+    const wrapper = mountModal();
+
+    await receiveShort(wrapper);
+
+    expect(shortfall(wrapper).exists()).toBe(true);
+    expect(shortfall(wrapper).text()).toContain('50.000');
+  });
+
+  it('warns that an unallocated balance stays pending', async () => {
+    const wrapper = mountModal();
+
+    await receiveShort(wrapper);
+
+    expect(wrapper.find('[data-testid="income-liquidate-remaining"]').text())
+      .toContain('quedará pendiente');
+    // Not allocating is allowed — that is today's behaviour.
+    expect(submitButton(wrapper).element.disabled).toBe(false);
+  });
+
+  it('submits the shortfall as a deduction', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.deductions).toEqual([
+      { type: 'gateway_fee', detail: '', amount: 50000 },
+    ]);
+  });
+
+  it('reports the balance as fully resolved once it is allocated', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+
+    expect(wrapper.find('[data-testid="income-liquidate-remaining"]').text())
+      .toContain('queda cerrado');
+  });
+
+  it('requires the free text when the concept is "Otro"', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('other');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+
+    expect(submitButton(wrapper).element.disabled).toBe(true);
+
+    await wrapper
+      .find('[data-testid="deduction-detail-0"]').setValue('Descuento pactado');
+
+    expect(submitButton(wrapper).element.disabled).toBe(false);
+  });
+
+  it('submits follow-up expected incomes for a balance that will be collected', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="followup-concept-0"]').setValue('Saldo septiembre');
+    await wrapper.find('[data-testid="followup-period-0"]').setValue('2026-09');
+    await wrapper.find('[data-testid="followup-amount-0"]').setValue('50000');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.expected_incomes).toEqual([
+      { concept: 'Saldo septiembre', period_date: '2026-09', amount: 50000 },
+    ]);
+  });
+
+  it('splits the shortfall between a deduction and a follow-up income', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('8000');
+    await wrapper
+      .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="followup-concept-0"]').setValue('Saldo');
+    await wrapper.find('[data-testid="followup-period-0"]').setValue('2026-09');
+    await wrapper.find('[data-testid="followup-amount-0"]').setValue('42000');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.deductions).toHaveLength(1);
+    expect(payload.expected_incomes).toHaveLength(1);
+  });
+
+  it('blocks the submit when the allocation exceeds the shortfall', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('80000');
+
+    expect(wrapper.find('[data-testid="income-liquidate-remaining"]').text())
+      .toContain('Te pasaste');
+    expect(submitButton(wrapper).element.disabled).toBe(true);
+
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('submit')).toBeFalsy();
+  });
+
+  it('supports more than one follow-up expected income', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper
+      .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
+    await wrapper
+      .find('[data-testid="income-liquidate-add-followup"]').trigger('click');
+
+    expect(wrapper.findAll('[data-testid^="income-liquidate-followup-"]'))
+      .toHaveLength(2);
   });
 });

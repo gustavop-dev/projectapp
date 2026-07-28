@@ -147,11 +147,28 @@ class TestGetDefaultSections:
         components = next(g for g in fr['content_json']['groups'] if g['id'] == 'components')
         assert len(components['items']) == 5
 
-    def test_features_group_has_6_default_items(self):
+    def test_features_group_has_7_default_items(self):
+        """Google registration and sign-in are two atomic items, not one composite."""
         sections = ProposalService.get_default_sections('es')
         fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
         features = next(g for g in fr['content_json']['groups'] if g['id'] == 'features')
-        assert len(features['items']) == 6
+        assert len(features['items']) == 7
+        names = [i['name'] for i in features['items']]
+        assert 'Registro con Google' in names
+        assert 'Inicio de Sesión con Google' in names
+        assert 'Registro e Inicio de Sesión con Google' not in names
+
+    def test_features_group_items_parity_es_en(self):
+        """ES and EN features groups carry the same number of items, split included."""
+        by_lang = {}
+        for lang in ('es', 'en'):
+            sections = ProposalService.get_default_sections(lang)
+            fr = next(s for s in sections if s['section_type'] == 'functional_requirements')
+            features = next(g for g in fr['content_json']['groups'] if g['id'] == 'features')
+            by_lang[lang] = [i['name'] for i in features['items']]
+        assert len(by_lang['es']) == len(by_lang['en']) == 7
+        assert 'Google Registration' in by_lang['en']
+        assert 'Google Sign-In' in by_lang['en']
 
     def test_integration_international_payments_group(self):
         """Verify integration_international_payments: calculator module, 20%, not invite."""

@@ -1117,6 +1117,20 @@ function handleSaveSection({ sectionId, payload }) {
   }
 }
 
+/**
+ * Adopt the version just written as the base for the next save. Without a
+ * fresh updated_at the following save would look stale and be rejected, so
+ * fall back to re-reading the config rather than inventing a timestamp.
+ */
+async function syncConfigVersion(result) {
+  const updatedAt = result.data?.updated_at;
+  if (updatedAt) {
+    configUpdatedAt.value = updatedAt;
+    return;
+  }
+  await loadDefaults(selectedLang.value);
+}
+
 async function loadDefaults(lang) {
   isLoading.value = true;
   expandedSections.value = new Set();
@@ -1176,11 +1190,17 @@ async function switchLanguage(lang) {
 async function handleSaveAll() {
   isSaving.value = true;
   try {
-    const result = await proposalStore.saveProposalDefaults(selectedLang.value, sections.value);
+    const result = await proposalStore.saveProposalDefaults(
+      selectedLang.value, sections.value, null, configUpdatedAt.value,
+    );
     if (result.success) {
       savedSections.value = new Set();
-      configUpdatedAt.value = result.data?.updated_at || new Date().toISOString();
+      await syncConfigVersion(result);
       showFeedback('Valores por defecto guardados correctamente.', 'success');
+    } else if (result.code === 'stale_defaults') {
+      // Edits are kept on screen on purpose: the admin decides whether to
+      // refresh (losing them) or copy them over the current version.
+      showFeedback(result.message, 'error');
     } else {
       showFeedback('Error al guardar los valores por defecto.', 'error');
     }
@@ -1510,16 +1530,21 @@ async function saveEditJson() {
 
   isSaving.value = true;
   try {
-    const result = await proposalStore.saveProposalDefaults(lang, parsed.sections);
+    const result = await proposalStore.saveProposalDefaults(
+      lang, parsed.sections, null, configUpdatedAt.value,
+    );
     if (result.success) {
       sections.value = parsed.sections;
       if (parsed.general) {
         Object.assign(generalForm.value, parsed.general);
       }
       savedSections.value = new Set();
-      configUpdatedAt.value = result.data?.updated_at || new Date().toISOString();
+      await syncConfigVersion(result);
       jsonIsEditing.value = false;
       showFeedback('JSON guardado correctamente.', 'success');
+    } else if (result.code === 'stale_defaults') {
+      jsonEditError.value = result.message;
+      showFeedback(result.message, 'error');
     } else {
       jsonEditError.value = 'Error al guardar. Verifica la estructura del JSON.';
       showFeedback('Error al guardar el JSON.', 'error');

@@ -195,6 +195,9 @@ class TestBaseRatePropagationReachesNewProposals:
         assert [p['hourlyRate'] for p in result['packages']] == [55.0, 55.0]
 
     def test_existing_proposal_snapshot_survives_propagation(self):
+        # The stored snapshot is intentionally untouched by propagation;
+        # the PDF nevertheless shows current rates via the live re-seed at
+        # generation time (see TestPdfLiveReseed).
         from content.services.hour_package_service import (
             apply_base_rates_to_catalog,
         )
@@ -212,3 +215,78 @@ class TestBaseRatePropagationReachesNewProposals:
         section.refresh_from_db()
         assert section.content_json == snapshot
         assert section.content_json['hourlyRate'] == 40.0
+
+
+class TestPdfLiveReseed:
+    """The PDF re-seeds hour packages from the catalog on every generation."""
+
+    def _generate_and_capture(self, proposal, monkeypatch):
+        from content.services import proposal_pdf_service as pdf_mod
+
+        captured = {}
+
+        def spy(c, data, prop, ps=None, y=None):
+            captured.update(data)
+            return y
+
+        monkeypatch.setitem(
+            pdf_mod.SECTION_RENDERERS, 'commercial_conditions', spy)
+        assert pdf_mod.ProposalPdfService.generate(proposal) is not None
+        return captured
+
+    def _proposal_with_snapshot(self, **overrides):
+        payload = {
+            'title': 'Live MX', 'client_name': 'Cliente',
+            'nationality': 'EXT', 'language': 'es', 'sections': {},
+        }
+        payload.update(overrides)
+        proposal, _ = build_proposal_from_json(payload)
+        return proposal
+
+    def test_pdf_uses_current_catalog_rate_not_snapshot(self, monkeypatch):
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+        )
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        apply_base_rates_to_catalog({'EXT': 55})  # snapshot keeps 40
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert data['hourlyRate'] == 55.0
+        assert [p['hourlyRate'] for p in data['packages']] == [55.0, 55.0]
+
+    def test_pdf_overrides_manual_package_edits_keeps_titles(self, monkeypatch):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        section = proposal.sections.get(section_type='commercial_conditions')
+        content = dict(section.content_json)
+        content['packagesTitle'] = 'Título editado'
+        content['packages'] = [
+            {'name': 'Manual', 'hours': 5, 'discountPercent': 0,
+             'note': '', 'hourlyRate': 999},
+        ]
+        section.content_json = content
+        section.save(update_fields=['content_json'])
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Ágil MX']
+        assert [p['hourlyRate'] for p in data['packages']] == [40.0, 45.0]
+        assert data['packagesTitle'] == 'Título editado'
+
+    def test_pdf_falls_back_to_snapshot_when_catalog_empty(self, monkeypatch):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        HourPackage.objects.all().delete()
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert data['hourlyRate'] == 40.0
+        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Ágil MX']
+
+    def test_pdf_localizes_reseeded_packages_in_english(self, monkeypatch):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot(
+            title='Live EN', language='en')
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Agile MX']
+        assert data['packages'][1]['note'] == 'note en'

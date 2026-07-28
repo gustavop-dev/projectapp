@@ -28,6 +28,9 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
+from content.services.hour_package_service import (
+    seed_commercial_conditions_from_catalog,
+)
 from content.services.proposal_service import normalize_hosting_plan
 from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _register_fonts,
@@ -102,6 +105,8 @@ from content.services.pdf_utils import (  # noqa: F401 — re-exported
     _draw_kpi_tile_row,
     _draw_feature_row,
     _draw_priority_pill,
+    _priority_pill_width,
+    _clean_cell_text,
     _REQ_PRIORITY_LABELS,
     _apply_toc_links,
     _draw_toc_page,
@@ -763,45 +768,59 @@ def _render_linked_requirements(c, item, ps, row_y):
         return row_y
 
     lang = ps.get('_pdf_lang') or 'es'
-    indent_x = MARGIN_L + 28
-    text_w = CONTENT_W - 28 - 12
+    num_col_w = 28
+    text_x = MARGIN_L + num_col_w + 6      # aligns with the item-name column
+    right_pad = 10
+    avail_w = CONTENT_W - num_col_w - 6 - right_pad
     line_h = 11
+    top_pad = 12  # pill (13pt tall) anchored on line 1 stays inside the band
 
     for req in linked:
-        title = _strip_emoji(req.get('title') or '')
-        title_lines = _wrap_by_width(title, _font('bold'), 8, text_w) \
+        title = _clean_cell_text(req.get('title') or '')
+        pill_w = _priority_pill_width(req.get('priority'), lang=lang)
+        title_avail = max(avail_w - (pill_w + 8 if pill_w else 0), 60)
+        title_lines = _wrap_by_width(title, _font('bold'), 8, title_avail) \
             if title else []
         # Rich description like the parent item rows (honors <br>/<b>/**bold**),
         # capped so dense groups don't explode the page count.
         desc_seg_lines = _desc_to_segmented_lines_w(
-            req.get('description') or '', text_w, 8)[:3]
+            req.get('description') or '', avail_w, 8)[:3]
         if not title_lines and not desc_seg_lines:
             continue
         n_lines = len(title_lines) + len(desc_seg_lines)
-        row_h = n_lines * line_h + 10
+        row_h = max(n_lines * line_h + 8, 24)
 
         row_y = _check_y(c, row_y, ps, need=row_h)
         row_bottom = row_y - row_h
 
-        # Subtle left accent to visually nest under the parent item
+        # Full-width tinted band so the sub-row reads as part of the table
         c.setFillColor(BONE)
-        c.rect(indent_x, row_bottom, 2, row_h, fill=1, stroke=0)
+        c.rect(MARGIN_L, row_bottom, CONTENT_W, row_h, fill=1, stroke=0)
+        # Muted left accent, same geometry as the parent's LEMON bar
+        c.setFillColor(GREEN_LIGHT)
+        c.rect(MARGIN_L, row_bottom, 3, row_h, fill=1, stroke=0)
+        # Elbow connector in the (empty) # gutter to show nesting
+        c.setStrokeColor(GREEN_LIGHT)
+        c.setLineWidth(0.8)
+        elbow_x = MARGIN_L + num_col_w / 2
+        c.line(elbow_x, row_y - 4, elbow_x, row_y - top_pad + 3)
+        c.line(elbow_x, row_y - top_pad + 3, text_x - 4, row_y - top_pad + 3)
 
-        text_y = row_y - 9
+        text_y = row_y - top_pad
         c.setFont(_font('bold'), 8)
         c.setFillColor(ESMERALD)
         for i, tl in enumerate(title_lines):
-            c.drawString(indent_x + 8, text_y, tl)
-            if i == 0:
-                # Semantic priority badge (rose/amber/esmerald/gray).
-                title_line_w = c.stringWidth(tl, _font('bold'), 8)
+            c.drawString(text_x, text_y, tl)
+            if i == 0 and pill_w:
+                # Semantic priority badge (rose/amber/esmerald/gray),
+                # right-anchored with its width reserved off the title wrap.
                 _draw_priority_pill(
-                    c, indent_x + 8 + title_line_w + 6, text_y + 2,
+                    c, MARGIN_L + CONTENT_W - right_pad - pill_w, text_y,
                     req.get('priority'), lang=lang)
             text_y -= line_h
         c.setFillColor(ESMERALD_80)
         for seg_line in desc_seg_lines:
-            x = indent_x + 8
+            x = text_x
             for seg_text, seg_bold in seg_line:
                 fnt = _font('bold') if seg_bold else _font('regular')
                 c.setFont(fnt, 8)
@@ -890,7 +909,7 @@ def _render_requirement_group_page(c, grp, ps=None, y=None,
     # ── Item rows ─────────────────────────────────────────────
     line_h = 11
     for idx, item in enumerate(items):
-        name = _strip_emoji(_safe(item, 'name') or '')
+        name = _clean_cell_text(_safe(item, 'name') or '')
         # Rich description honoring <br><br> and <b>/<strong>/**bold**,
         # wrapped by real glyph width so it stays inside its column.
         desc_seg_lines = _desc_to_segmented_lines_w(
@@ -2527,6 +2546,26 @@ class ProposalPdfService:
                 if stype in ('technical_document', 'greeting'):
                     continue
                 data = sec.content_json or {}
+
+                # Hour packages are catalog-driven, not a frozen snapshot:
+                # re-seed currency/hourlyRate/packages on every generation so
+                # catalog edits reach every downloaded PDF. Titles, intros,
+                # effort badge and scope clause stay from the stored section.
+                # Empty catalog → seed returns its input untouched (snapshot
+                # fallback); any failure → keep the stored snapshot.
+                if stype == 'commercial_conditions':
+                    try:
+                        data = seed_commercial_conditions_from_catalog(
+                            data,
+                            nationality=proposal.nationality,
+                            language=ps['_pdf_lang'],
+                        )
+                    except Exception:
+                        logger.warning(
+                            'Hour-package re-seed failed for proposal %s; '
+                            'using stored snapshot', proposal.pk,
+                            exc_info=True,
+                        )
 
                 if 'title' not in data or not data['title']:
                     data['title'] = sec.title

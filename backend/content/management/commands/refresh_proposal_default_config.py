@@ -17,6 +17,8 @@ cares about, copying their current values from code:
     update, admin listed managers only, AI automation one (1) process)
   - value_added_modules.conditions                         (per-module terms with caps)
   - value_added_modules.module_ids                         (display order)
+  - features group title/description/items                 (atomic Google auth:
+    registration and sign-in as two separate items)
 
 Everything else in sections_json is left untouched.
 
@@ -46,6 +48,7 @@ PATCHED_MODULE_IDS = (
     'kpi_dashboard_module',
     'manual_module',
     'ai_automation_module',
+    'features',
 )
 
 

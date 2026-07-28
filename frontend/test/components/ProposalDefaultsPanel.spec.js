@@ -134,34 +134,41 @@ const BaseTabsStub = {
   template: '<div><button v-for="t in tabs" :key="t.id" type="button" @click="$emit(\'update:modelValue\', t.id)">{{ t.label }}</button></div>',
 };
 
-function mountPanel(tabOverride = 'general') {
+function mountPanel(tabOverride = 'general', stubOverrides = {}) {
   global.useRoute = () => ({ query: { tab: tabOverride } });
   return mount(ProposalDefaultsPanel, {
     global: {
       stubs: {
-        ResponsiveTabs: { template: '<div />' },
-        ConfirmModal: { template: '<div />' },
-        SectionEditor: { template: '<div data-testid="section-editor" />' },
-        TechnicalDocumentEditor: { template: '<div data-testid="technical-editor" />' },
-        SectionPreviewModal: { template: '<div />' },
-        PromptSubTabsPanel: { template: '<div><slot name="commercial" /><slot name="technical" /></div>' },
-        TabSplitLayout: { template: '<div><slot name="main" /><slot name="aside" /></div>' },
-        UiTooltip: { template: '<div><slot /></div>' },
-        NuxtLink: { template: '<a><slot /></a>' },
-        Teleport: { template: '<div><slot /></div>' },
-        Transition: { template: '<div><slot /></div>' },
-        BaseInput: BaseInputStub,
-        BaseSelect: BaseSelectStub,
-        BaseTextarea: BaseTextareaStub,
-        BaseButton: BaseButtonStub,
-        BaseTabs: BaseTabsStub,
-        BaseTooltip: { template: '<div><slot /></div>' },
-        BaseFormField: { template: '<div><slot /></div>' },
-        BaseBadge: { template: '<span><slot /></span>' },
-        BaseToggle: { template: '<input type="checkbox" />' },
+        ...defaultStubs(),
+        ...stubOverrides,
       },
     },
   });
+}
+
+function defaultStubs() {
+  return {
+    ResponsiveTabs: { template: '<div />' },
+    ConfirmModal: { template: '<div />' },
+    SectionEditor: { template: '<div data-testid="section-editor" />' },
+    TechnicalDocumentEditor: { template: '<div data-testid="technical-editor" />' },
+    SectionPreviewModal: { template: '<div />' },
+    PromptSubTabsPanel: { template: '<div><slot name="commercial" /><slot name="technical" /></div>' },
+    TabSplitLayout: { template: '<div><slot name="main" /><slot name="aside" /></div>' },
+    UiTooltip: { template: '<div><slot /></div>' },
+    NuxtLink: { template: '<a><slot /></a>' },
+    Teleport: { template: '<div><slot /></div>' },
+    Transition: { template: '<div><slot /></div>' },
+    BaseInput: BaseInputStub,
+    BaseSelect: BaseSelectStub,
+    BaseTextarea: BaseTextareaStub,
+    BaseButton: BaseButtonStub,
+    BaseTabs: BaseTabsStub,
+    BaseTooltip: { template: '<div><slot /></div>' },
+    BaseFormField: { template: '<div><slot /></div>' },
+    BaseBadge: { template: '<span><slot /></span>' },
+    BaseToggle: { template: '<input type="checkbox" />' },
+  };
 }
 
 describe('ProposalDefaultsPanel', () => {
@@ -324,6 +331,99 @@ describe('ProposalDefaultsPanel', () => {
       await wrapper.vm.$nextTick();
 
       expect(wrapper.find('[data-testid="section-editor"]').exists()).toBe(true);
+    });
+  });
+
+  // ── handleSaveAll — stale snapshot guard ──────────────────────────────────
+
+  describe('handleSaveAll', () => {
+    const LOADED_AT = '2026-07-28T03:15:23.672677Z';
+
+    // The panel keeps sections_json in memory from page load and writes it back
+    // wholesale, so every save must state which version it edited.
+    async function mountWithAnEditedSection() {
+      mockProposalStore.fetchProposalDefaults.mockResolvedValue({
+        success: true,
+        data: {
+          ...defaultDataResponse.data,
+          sections_json: [
+            { section_type: 'intro', title: 'Introducción', order: 0, content_json: {} },
+          ],
+          updated_at: LOADED_AT,
+        },
+      });
+      const wrapper = mountPanel('sections', {
+        SectionEditor: {
+          template: '<button data-testid="section-editor" @click="$emit(\'save\', { sectionId: 0, payload: { title: \'Nuevo\', content_json: {} } })" />',
+        },
+      });
+      await flushPromises();
+      await wrapper.find('div.cursor-pointer').trigger('click');
+      await wrapper.vm.$nextTick();
+      await wrapper.find('[data-testid="section-editor"]').trigger('click');
+      await wrapper.vm.$nextTick();
+      return wrapper;
+    }
+
+    function saveAllButton(wrapper) {
+      return wrapper.findAll('button').find(
+        b => b.text().includes('Guardar Todos los Cambios'),
+      );
+    }
+
+    it('sends the version it loaded so the backend can refuse a stale overwrite', async () => {
+      const wrapper = await mountWithAnEditedSection();
+
+      await saveAllButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(mockProposalStore.saveProposalDefaults).toHaveBeenCalledWith(
+        'es', expect.any(Array), null, LOADED_AT,
+      );
+    });
+
+    it('shows the conflict message when the stored defaults moved on', async () => {
+      mockProposalStore.saveProposalDefaults.mockResolvedValue({
+        success: false,
+        code: 'stale_defaults',
+        message: 'Los valores por defecto cambiaron desde que abriste esta página.',
+      });
+      const wrapper = await mountWithAnEditedSection();
+
+      await saveAllButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('cambiaron desde que abriste esta página');
+    });
+
+    it('keeps the edited sections on screen after a conflict', async () => {
+      mockProposalStore.saveProposalDefaults.mockResolvedValue({
+        success: false,
+        code: 'stale_defaults',
+        message: 'Los valores por defecto cambiaron desde que abriste esta página.',
+      });
+      const wrapper = await mountWithAnEditedSection();
+
+      await saveAllButton(wrapper).trigger('click');
+      await flushPromises();
+
+      // Still marked as pending, so the admin can copy them over the current
+      // version instead of losing the work to an automatic refresh.
+      expect(wrapper.text()).toContain('sección(es) modificada(s)');
+    });
+
+    it('adopts the version returned by a successful save as the next base', async () => {
+      mockProposalStore.saveProposalDefaults.mockResolvedValue({
+        success: true,
+        data: { updated_at: '2026-07-28T15:00:00.000000Z' },
+      });
+      const wrapper = await mountWithAnEditedSection();
+
+      await saveAllButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(wrapper.text()).toContain('Valores por defecto guardados correctamente');
+      expect(mockProposalStore.fetchProposalDefaults).toHaveBeenCalledTimes(1);
     });
   });
 

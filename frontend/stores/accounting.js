@@ -427,6 +427,58 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * settleIncome: liquidate an expected income and resolve its shortfall.
+     *
+     * With empty `deductions`/`expected_incomes` the backend behaves exactly
+     * like creating a liquid child, so this is the single path for the
+     * liquidate action. The caller refetches: the parent's `pending_amount`
+     * and `payment_status` are server-computed, and deductions land in the
+     * expenses list.
+     */
+    async settleIncome(incomeId, payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/incomes/${incomeId}/settle/`, payload,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'settle_failed';
+        console.error(`Error settling income ${incomeId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * learnMerchantAlias: remember a hand-typed merchant for future statements.
+     *
+     * Upserts by normalized descriptor, so re-mapping a descriptor that already
+     * has an alias corrects it instead of failing — that is exactly the case a
+     * manual fix produces. With `statement_id` the backend also back-applies the
+     * alias to the other unidentified rows of the same draft statement.
+     */
+    async learnMerchantAlias(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          'accounting/merchant-aliases/learn/', payload,
+        );
+        await this.fetchRecords('merchantAliases');
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'alias_learn_failed';
+        console.error('Error learning merchant alias:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * fetchSummary: Dashboard payload for a year (defaults to selectedYear).
      */
     async fetchSummary(year) {

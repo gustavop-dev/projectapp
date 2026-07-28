@@ -241,6 +241,26 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
     expect(wrapper.text()).toContain('epicKey duplicado');
   });
 
+  it('accepts underscore epicKeys mirroring commercial ids (e.g. admin_module)', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: {
+        ...baseSection,
+        content_json: {
+          ...baseSection.content_json,
+          epics: [
+            { epicKey: 'admin_module', title: 'Admin', description: '', linked_module_ids: [], requirements: [] },
+          ],
+        },
+      },
+    });
+
+    const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    expect(wrapper.text()).not.toContain('epicKey inválido');
+    expect(wrapper.emitted('save')).toHaveLength(1);
+  });
+
   // ── validate: epicKey format ───────────────────────────────────────────────
 
   it('shows validation error when epicKey contains uppercase letters', async () => {

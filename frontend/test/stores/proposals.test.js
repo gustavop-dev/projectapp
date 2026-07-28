@@ -1680,6 +1680,50 @@ describe('useProposalStore', () => {
       expect(store.error).toBe('save_defaults_failed');
       expect(result.errors).toEqual({ sections_json: ['Required'] });
     });
+
+    it('sends the edited version so the backend can refuse a stale overwrite', async () => {
+      put_request.mockResolvedValue({ data: { id: 1 } });
+      const sections = [{ section_type: 'greeting', title: 'Saludo' }];
+
+      await store.saveProposalDefaults('es', sections, null, '2026-07-28T03:15:23.672677Z');
+
+      expect(put_request).toHaveBeenCalledWith('proposals/defaults/', {
+        language: 'es',
+        sections_json: sections,
+        base_updated_at: '2026-07-28T03:15:23.672677Z',
+      });
+    });
+
+    it('omits the version when no sections are written', async () => {
+      put_request.mockResolvedValue({ data: { id: 1 } });
+
+      await store.saveProposalDefaults(
+        'es', null, { expiration_days: 21 }, '2026-07-28T03:15:23.672677Z',
+      );
+
+      expect(put_request).toHaveBeenCalledWith('proposals/defaults/', {
+        language: 'es',
+        expiration_days: 21,
+      });
+    });
+
+    it('surfaces the stale-defaults conflict to the caller', async () => {
+      put_request.mockRejectedValue({
+        response: {
+          status: 409,
+          data: {
+            error: 'Los valores por defecto cambiaron desde que abriste esta página.',
+            code: 'stale_defaults',
+          },
+        },
+      });
+
+      const result = await store.saveProposalDefaults('es', [], null, '2020-01-01T00:00:00Z');
+
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('stale_defaults');
+      expect(result.message).toContain('cambiaron desde que abriste');
+    });
   });
 
   describe('resetProposalDefaults', () => {

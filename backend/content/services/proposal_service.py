@@ -39,6 +39,32 @@ def _clauses(*pairs):
     return [{'label': label, 'text': text} for label, text in pairs]
 
 
+SCOPE_CLAUSE_FIELDS = ('scopeTitle', 'scopeParagraphs')
+
+
+def enforce_scope_clause(new_content, default_content):
+    """Force the scope-of-work clause from the resolved language defaults.
+
+    ``scopeTitle``/``scopeParagraphs`` are legal boilerplate owned by the
+    defaults (admin-editable through ``ProposalDefaultConfig``), not by the
+    seller. JSON/MCP payloads are routinely composed from stale snapshots —
+    a downloaded template, a previous proposal — so a payload carrying this
+    section would otherwise reinject a superseded clause into a brand-new
+    proposal, silently downgrading its legal text.
+
+    Everything else the payload states about the section — packages, hourly
+    rate, effort badge, titles — still wins.
+    """
+    if not isinstance(new_content, dict) or not isinstance(default_content, dict):
+        return new_content
+
+    for field in SCOPE_CLAUSE_FIELDS:
+        if field in default_content:
+            new_content[field] = deepcopy(default_content[field])
+
+    return new_content
+
+
 def merge_value_added_legal_terms(new_content, previous_content):
     """Keep the value-added legal terms when an incoming payload omits them.
 
@@ -959,7 +985,8 @@ DEFAULT_SECTIONS = [
                     ),
                     'items': [
                         {'icon': '🌐', 'name': 'Diseño Responsive', 'description': 'El sitio se adapta perfectamente a celulares, tablets y computadores. Esto es vital en el sector inmobiliario, donde la mayoría de las búsquedas iniciales ocurren desde dispositivos móviles. 📱💻'},
-                        {'icon': '🔑', 'name': 'Registro e Inicio de Sesión con Google', 'description': 'Implementaremos un acceso simplificado que permite a los usuarios registrarse con un solo clic. Esta función es clave para capturar datos reales de los clientes interesados y conocer mejor sus preferencias. 🔐📧'},
+                        {'icon': '🔑', 'name': 'Registro con Google', 'description': 'Alta de cuenta en un solo clic con la cuenta de Google del usuario (OAuth). Captura nombre y correo verificados sin formularios largos — clave para conocer los datos reales de los clientes interesados desde el primer contacto. 🔐📧'},
+                        {'icon': '🔓', 'name': 'Inicio de Sesión con Google', 'description': 'Acceso inmediato para usuarios ya registrados con su cuenta de Google, sin contraseñas adicionales que recordar ni recuperar. Menos fricción en cada visita recurrente. ⚡'},
                         {'icon': '🔎', 'name': 'Buscador Avanzado con Filtros Dinámicos', 'description': 'Los usuarios podrán filtrar inmuebles por zonas, rango de precios, metros cuadrados y características específicas. Esta navegación intuitiva ahorra tiempo al cliente y califica mejor el interés. 🔍📍'},
                         {'icon': '💬', 'name': 'WhatsApp Directo por Propiedad', 'description': 'En cada ficha de inmueble habrá un botón de contacto inmediato. Al hacer clic, se recibirá un mensaje predeterminado indicando exactamente por qué propiedad está preguntando el cliente. 📲⚡'},
                         {'icon': '🖼️', 'name': 'Visualización Enriquecida y Galerías', 'description': 'Sistema de visualización de alta calidad con zoom interactivo y carga optimizada para que las imágenes de los inmuebles luzcan impecables sin afectar la velocidad del sitio. 📸✨'},
@@ -2294,7 +2321,8 @@ DEFAULT_SECTIONS_EN = [
                     ),
                     'items': [
                         {'icon': '🌐', 'name': 'Responsive Design', 'description': 'The site adapts perfectly to phones, tablets, and computers. This is vital as most initial searches occur from mobile devices. 📱💻'},
-                        {'icon': '🔑', 'name': 'Google Sign-In & Registration', 'description': 'Simplified access allowing users to register with a single click. Key for capturing real customer data and understanding their preferences. 🔐📧'},
+                        {'icon': '🔑', 'name': 'Google Registration', 'description': 'One-click account creation with the user\'s Google account (OAuth). Captures a verified name and email without long forms — key for knowing real data of interested customers from the first contact. 🔐📧'},
+                        {'icon': '🔓', 'name': 'Google Sign-In', 'description': 'Instant access for returning users with their Google account, with no extra passwords to remember or recover. Less friction on every repeat visit. ⚡'},
                         {'icon': '🔎', 'name': 'Advanced Search with Dynamic Filters', 'description': 'Users can filter properties by zones, price range, square meters, and specific features. Intuitive navigation saves time and better qualifies interest. 🔍📍'},
                         {'icon': '💬', 'name': 'Direct WhatsApp per Property', 'description': 'Each property listing includes an instant contact button. One click sends a predefined message indicating exactly which property the client is inquiring about. 📲⚡'},
                         {'icon': '🖼️', 'name': 'Rich Visualization & Galleries', 'description': 'High-quality visualization system with interactive zoom and optimized loading so property images look impeccable without affecting site speed. 📸✨'},
@@ -3956,6 +3984,9 @@ def build_proposal_from_json(validated_data):
     from accounts.services import proposal_client_service
     from content.models import BusinessProposal, ProposalSection
     from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.module_requirements_catalog import (
+        seed_module_technical_requirements,
+    )
     from content.services.proposal_module_links import (
         ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
@@ -4039,6 +4070,13 @@ def build_proposal_from_json(validated_data):
                 content_json, section_cfg['content_json'],
             )
 
+        if section_type == 'commercial_conditions' and json_key in sections_data:
+            # Same hazard, opposite direction: the payload does carry the scope
+            # clause, and a stale snapshot would reinject an outdated one.
+            content_json = enforce_scope_clause(
+                content_json, section_cfg['content_json'],
+            )
+
         if section_type == 'functional_requirements' and json_key in sections_data:
             default_cj = copy.deepcopy(section_cfg['content_json'])
             default_groups = default_cj.get('groups', [])
@@ -4112,6 +4150,11 @@ def build_proposal_from_json(validated_data):
         None,
     )
     if technical_section:
+        technical_section['content_json'] = seed_module_technical_requirements(
+            technical_section['content_json'],
+            resolved_sections,
+            language=proposal.language,
+        )
         technical_section['content_json'] = normalize_technical_document_module_links(
             technical_section['content_json'],
             resolved_sections,
@@ -4127,6 +4170,18 @@ def build_proposal_from_json(validated_data):
 
 
 @transaction.atomic
+def _default_commercial_conditions(language):
+    """Resolve the commercial_conditions defaults for a language.
+
+    Reads through ``get_default_sections`` so an admin-edited clause stored in
+    ``ProposalDefaultConfig`` wins over the hardcoded constants.
+    """
+    for section_cfg in ProposalService.get_default_sections(language):
+        if section_cfg.get('section_type') == 'commercial_conditions':
+            return section_cfg.get('content_json') or {}
+    return {}
+
+
 def apply_proposal_json_update(proposal, validated_data):
     """Update an existing proposal + its sections from validated from-JSON data.
 
@@ -4138,6 +4193,9 @@ def apply_proposal_json_update(proposal, validated_data):
     from accounts.services import proposal_client_service
     from content.models import ProposalChangeLog, ProposalSection
     from content.serializers.proposal import SECTION_KEY_MAP, SECTION_TYPE_TO_KEY
+    from content.services.module_requirements_catalog import (
+        seed_module_technical_requirements,
+    )
     from content.services.proposal_module_links import (
         ensure_functional_requirements_item_ids,
         normalize_technical_document_module_links,
@@ -4229,6 +4287,15 @@ def apply_proposal_json_update(proposal, validated_data):
                     new_content, section.content_json,
                 )
 
+            if section.section_type == 'commercial_conditions':
+                # Only reached when the payload rewrites this section: a stale
+                # snapshot must not be able to downgrade the scope clause. A
+                # payload that omits the section leaves it untouched, so already
+                # delivered proposals keep the wording they were sent with.
+                new_content = enforce_scope_clause(
+                    new_content, _default_commercial_conditions(proposal.language),
+                )
+
             if section.section_type == 'functional_requirements':
                 final_groups = []
                 new_content.setdefault('additionalModules', [])
@@ -4253,12 +4320,18 @@ def apply_proposal_json_update(proposal, validated_data):
             None,
         )
         if technical_section and isinstance(technical_section.content_json, dict):
-            normalized = normalize_technical_document_module_links(
+            section_payloads = [
+                {'section_type': s.section_type, 'content_json': s.content_json}
+                for s in all_sections
+            ]
+            seeded = seed_module_technical_requirements(
                 technical_section.content_json,
-                [
-                    {'section_type': s.section_type, 'content_json': s.content_json}
-                    for s in all_sections
-                ],
+                section_payloads,
+                language=proposal.language,
+            )
+            normalized = normalize_technical_document_module_links(
+                seeded,
+                section_payloads,
             )
             if normalized != technical_section.content_json:
                 technical_section.content_json = normalized

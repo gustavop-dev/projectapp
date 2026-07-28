@@ -190,6 +190,34 @@ def _parse_data_model_entities(content_json: dict) -> list:
     return entities if isinstance(entities, list) else []
 
 
+def filtered_technical_doc_for_sync(bp, doc: dict) -> dict:
+    """Reduce *doc* to what the client actually contracted before syncing.
+
+    The Kanban mirrors the contracted scope only: epics/requirements linked
+    to unselected optional modules (including backend-seeded module catalogs)
+    stay out of the client project until the module joins the selection.
+    """
+    if not isinstance(doc, dict):
+        return {}
+    from content.services.proposal_pdf_service import (
+        default_selected_modules_from_content,
+    )
+    from content.services.technical_document_filter import (
+        get_filtered_technical_document,
+    )
+
+    section_payloads = [
+        {
+            'section_type': s.section_type,
+            'content_json': s.content_json if isinstance(s.content_json, dict) else {},
+        }
+        for s in bp.sections.all()
+    ]
+    return get_filtered_technical_document(
+        doc, section_payloads, default_selected_modules_from_content(bp),
+    )
+
+
 def compute_sync_diff(project, new_content_json: dict) -> dict[str, Any]:
     """
     Compute a read-only diff between the new_content_json and the current DB state
@@ -379,7 +407,7 @@ def _sync_technical_requirements_core(
     if not section:
         return {'ok': False, 'error': 'no_technical_section', 'detail': 'No hay sección técnica habilitada en la propuesta.'}
 
-    doc = section['content_json'] or {}
+    doc = filtered_technical_doc_for_sync(bp, section['content_json'] or {})
     epics = doc.get('epics') or []
     if not isinstance(epics, list):
         epics = []

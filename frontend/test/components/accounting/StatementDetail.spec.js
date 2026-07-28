@@ -1,9 +1,10 @@
 /**
  * Tests for StatementDetail inline row editing.
  *
- * Covers: dblclick edit emits inline-save, category select shows the label
- * but emits the value, processed statements render no editors, negative
- * amounts stay modal-only, and an in-flight save disables its cell.
+ * Covers: a click edit emits inline-save, category select shows the label but
+ * emits the value, processed statements stay editable (the page asks to reopen
+ * on save), negative amounts edit inline, the merchant cell forwards the picked
+ * category, and an in-flight save disables its cell.
  */
 import { mount } from '@vue/test-utils';
 import StatementDetail from '../../../components/accounting/StatementDetail.vue';
@@ -64,11 +65,11 @@ function cell(wrapper, field, txId = 5) {
 }
 
 describe('StatementDetail inline editing', () => {
-  it('dblclick on the description edits it and emits inline-save', async () => {
+  it('a click on the description edits it and emits inline-save', async () => {
     const wrapper = mountDetail();
     const td = cell(wrapper, 'raw_description');
 
-    await td.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
     const input = td.find('input');
     await input.setValue('NETFLIX.COM');
     await input.trigger('keydown.enter');
@@ -87,7 +88,7 @@ describe('StatementDetail inline editing', () => {
 
     expect(td.text()).toContain('Software y suscripciones');
 
-    await td.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
     await td.find('select').setValue('fuel');
 
     const [, field, value] = wrapper.emitted('inline-save')[0];
@@ -95,36 +96,80 @@ describe('StatementDetail inline editing', () => {
     expect(value).toBe('fuel');
   });
 
-  it('renders no inline editors on a processed statement', () => {
+  it('keeps the cells editable on a processed statement', async () => {
     const wrapper = mountDetail({
       statement: makeStatement({ status: 'processed', status_label: 'Procesado' }),
     });
 
-    expect(wrapper.findAll('[data-testid="inline-cell-display"]')).toHaveLength(0);
-    // The plain values still render.
-    expect(cell(wrapper, 'raw_description').text()).toContain('PAYU*NETFLIX');
+    // Editing is allowed; the page is the one that asks to reopen before saving.
+    expect(wrapper.findAll('[data-testid="inline-cell-display"]')).toHaveLength(6);
+    expect(wrapper.find('[data-testid="statement-inline-hint"]').text())
+      .toContain('finalizado');
+
+    const td = cell(wrapper, 'raw_description');
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
+    expect(td.find('input').exists()).toBe(true);
   });
 
-  it('offers no inline editor on a negative amount (refunds are modal-only)', () => {
+  it('edits a negative amount inline keeping the sign', async () => {
     const wrapper = mountDetail({
       statement: makeStatement({
         transactions: [makeTx({ id: 6, amount: '-20000.00' })],
       }),
     });
+    const td = cell(wrapper, 'amount', 6);
 
-    const amountCell = cell(wrapper, 'amount', 6);
-    expect(amountCell.find('[data-testid="inline-cell-display"]').exists()).toBe(false);
-    // Other fields of the same row stay editable.
-    expect(
-      cell(wrapper, 'merchant_name', 6).find('[data-testid="inline-cell-display"]').exists(),
-    ).toBe(true);
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
+    const input = td.find('input');
+    expect(input.element.value).toBe('-20.000');
+
+    await input.setValue('-25000');
+    await input.trigger('keydown.enter');
+
+    const [, field, value] = wrapper.emitted('inline-save')[0];
+    expect(field).toBe('amount');
+    expect(value).toBe(-25000);
+  });
+
+  it('forwards the default category of a merchant picked from the catalog', async () => {
+    const wrapper = mountDetail({
+      // An unidentified row is where the catalog actually gets used.
+      statement: makeStatement({ transactions: [makeTx({ merchant_name: '' })] }),
+      merchantOptions: [
+        { value: 'Terpel', category: 'fuel', categoryLabel: 'Gasolina' },
+      ],
+    });
+    const td = cell(wrapper, 'merchant_name');
+
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
+    await td.find('input').trigger('focus');
+    await td.find('[data-testid="merchant-input-option-0"]').trigger('mousedown');
+
+    const [, field, value, meta] = wrapper.emitted('inline-save')[0];
+    expect(field).toBe('merchant_name');
+    expect(value).toBe('Terpel');
+    expect(meta).toEqual({ category: 'fuel' });
+  });
+
+  it('emits the installments pair as a structured object', async () => {
+    const wrapper = mountDetail();
+    const td = cell(wrapper, 'installment_label');
+
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
+    await td.find('[data-testid="inline-cell-installment-number"]').setValue('3');
+    await td.find('[data-testid="inline-cell-installment-total"]').setValue('12');
+    await td.find('[data-testid="inline-cell-installment-number"]').trigger('keydown.enter');
+
+    const [, field, value] = wrapper.emitted('inline-save')[0];
+    expect(field).toBe('installment_label');
+    expect(value).toEqual({ number: 3, total: 12 });
   });
 
   it('does not open the editor on the cell whose save is in flight', async () => {
     const wrapper = mountDetail({ inlineSavingKey: '5:raw_description' });
     const td = cell(wrapper, 'raw_description');
 
-    await td.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+    await td.find('[data-testid="inline-cell-display"]').trigger('click');
 
     expect(td.find('input').exists()).toBe(false);
   });

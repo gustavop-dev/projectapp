@@ -71,9 +71,14 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
     Returns bytes or None if section missing/disabled or on error.
 
     selected_modules: optional list of module/group ids (module-*, group-*).
-    None means no filtering (show all linked requirements). Empty list filters
-    to base-scope requirements only.
+    None means "derive the proposal's current selection" (client-confirmed
+    list or admin defaults), so epics of unselected optional modules never
+    leak into the rendered document. Empty list filters to base-scope
+    requirements only.
     """
+    from content.services.proposal_pdf_service import (
+        default_selected_modules_from_content,
+    )
     from content.services.technical_document_filter import (
         get_filtered_technical_document,
     )
@@ -91,6 +96,8 @@ def generate_technical_document_pdf(proposal, selected_modules=None):
         }
         for section in proposal.sections.all()
     ]
+    if selected_modules is None:
+        selected_modules = default_selected_modules_from_content(proposal)
     data = get_filtered_technical_document(data, section_payloads, selected_modules)
 
     try:

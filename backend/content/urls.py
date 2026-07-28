@@ -2,6 +2,7 @@ from django.urls import path
 from content.views.accounting import (
     accounting_dashboard, accounting_stats,
     list_income_records, create_income_record, retrieve_income_record,
+    settle_income_record,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
     update_expense_record, delete_expense_record,
@@ -49,7 +50,8 @@ from content.views.portfolio_works import (
 from content.views.accounting_statement import (
     batch_create_transactions, create_merchant_alias, create_statement,
     delete_merchant_alias, delete_statement, delete_statement_transaction,
-    finalize_statement, list_merchant_aliases, list_statements,
+    finalize_statement, learn_merchant_alias, list_merchant_aliases,
+    list_statements,
     reopen_statement, resolve_merchant_aliases, retrieve_statement,
     statements_status, update_merchant_alias, update_statement,
     update_statement_transaction, upload_statement_pdf, delete_statement_pdf,
@@ -474,6 +476,7 @@ urlpatterns = [
 
     path('accounting/incomes/', list_income_records, name='list-income-records'),
     path('accounting/incomes/create/', create_income_record, name='create-income-record'),
+    path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
     path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),
     path('accounting/incomes/<int:record_id>/update/', update_income_record, name='update-income-record'),
     path('accounting/incomes/<int:record_id>/delete/', delete_income_record, name='delete-income-record'),
@@ -552,6 +555,7 @@ urlpatterns = [
 
     path('accounting/merchant-aliases/', list_merchant_aliases, name='list-merchant-aliases'),
     path('accounting/merchant-aliases/create/', create_merchant_alias, name='create-merchant-alias'),
+    path('accounting/merchant-aliases/learn/', learn_merchant_alias, name='learn-merchant-alias'),
     path('accounting/merchant-aliases/resolve/', resolve_merchant_aliases, name='resolve-merchant-aliases'),
     path('accounting/merchant-aliases/<int:record_id>/update/', update_merchant_alias, name='update-merchant-alias'),
     path('accounting/merchant-aliases/<int:record_id>/delete/', delete_merchant_alias, name='delete-merchant-alias'),

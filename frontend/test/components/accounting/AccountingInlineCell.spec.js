@@ -1,9 +1,10 @@
 /**
  * Tests for AccountingInlineCell.
  *
- * Covers: display by default, dblclick opens the editor, Enter saves the
- * changed value, unchanged blur emits nothing, Esc cancels, money type
- * emits numbers.
+ * Covers: display by default, a single click opens the editor, Enter saves the
+ * changed value, unchanged blur emits nothing, Esc cancels, money type emits
+ * numbers (including negative ones), the merchant combobox and the structured
+ * installments pair.
  */
 import { mount } from '@vue/test-utils';
 import AccountingInlineCell from '../../../components/accounting/AccountingInlineCell.vue';
@@ -15,7 +16,7 @@ function mountCell(props = {}) {
 }
 
 async function openEditor(wrapper) {
-  await wrapper.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+  await wrapper.find('[data-testid="inline-cell-display"]').trigger('click');
   return wrapper.find('input');
 }
 
@@ -27,12 +28,24 @@ describe('AccountingInlineCell', () => {
     expect(wrapper.find('input').exists()).toBe(false);
   });
 
-  it('opens an input on double click', async () => {
+  it('opens an input on a single click', async () => {
     const wrapper = mountCell();
     const input = await openEditor(wrapper);
 
     expect(input.exists()).toBe(true);
     expect(input.element.value).toBe('Acme');
+  });
+
+  it('opens the editor from the keyboard so the cell is not mouse-only', async () => {
+    const wrapper = mountCell();
+    const display = wrapper.find('[data-testid="inline-cell-display"]');
+
+    expect(display.attributes('role')).toBe('button');
+    expect(display.attributes('tabindex')).toBe('0');
+
+    await display.trigger('keydown.enter');
+
+    expect(wrapper.find('input').exists()).toBe(true);
   });
 
   it('emits save with the trimmed value on Enter', async () => {
@@ -106,7 +119,7 @@ describe('AccountingInlineCell', () => {
   ];
 
   async function openSelect(wrapper) {
-    await wrapper.find('[data-testid="inline-cell-display"]').trigger('dblclick');
+    await wrapper.find('[data-testid="inline-cell-display"]').trigger('click');
     return wrapper.find('select');
   }
 
@@ -144,5 +157,108 @@ describe('AccountingInlineCell', () => {
 
     expect(wrapper.emitted('save')).toBeUndefined();
     expect(wrapper.find('[data-testid="inline-cell-display"]').exists()).toBe(true);
+  });
+
+  // ── Negative money (refunds / chargebacks) ──
+
+  it('money type keeps the sign when allowNegative is set', async () => {
+    const wrapper = mountCell({ type: 'money', value: '-40000', allowNegative: true });
+    const input = await openEditor(wrapper);
+
+    expect(input.element.value).toBe('-40.000');
+
+    await input.setValue('-55000');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[-55000]]);
+  });
+
+  it('money type still strips the sign when allowNegative is off', async () => {
+    const wrapper = mountCell({ type: 'money', value: '1000' });
+    const input = await openEditor(wrapper);
+
+    await input.setValue('-2000');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[2000]]);
+  });
+
+  // ── Installments ──
+
+  async function openInstallments(value) {
+    const wrapper = mountCell({ type: 'installments', value });
+    await wrapper.find('[data-testid="inline-cell-display"]').trigger('click');
+    return {
+      wrapper,
+      number: wrapper.find('[data-testid="inline-cell-installment-number"]'),
+      total: wrapper.find('[data-testid="inline-cell-installment-total"]'),
+    };
+  }
+
+  it('installments type seeds both inputs from the "n/total" label', async () => {
+    const { number, total } = await openInstallments('3/12');
+
+    expect(number.element.value).toBe('3');
+    expect(total.element.value).toBe('12');
+  });
+
+  it('installments type emits the structured pair on Enter', async () => {
+    const { wrapper, number, total } = await openInstallments('3/12');
+
+    await number.setValue('4');
+    await total.setValue('12');
+    await number.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[{ number: 4, total: 12 }]]);
+  });
+
+  it('installments type emits null when both fields are cleared', async () => {
+    const { wrapper, number, total } = await openInstallments('3/12');
+
+    await number.setValue('');
+    await total.setValue('');
+    await number.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[null]]);
+  });
+
+  it('installments type emits nothing when the pair is unchanged', async () => {
+    const { wrapper, number } = await openInstallments('3/12');
+
+    await number.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
+
+  // ── Merchant combobox ──
+
+  const MERCHANT_OPTIONS = [
+    { value: 'Netflix', category: 'software', categoryLabel: 'Software y suscripciones' },
+    { value: 'Terpel', category: 'fuel', categoryLabel: 'Gasolina' },
+  ];
+
+  it('merchant type saves free text that is not in the catalog', async () => {
+    const wrapper = mountCell({
+      type: 'merchant', value: 'Netflix', options: MERCHANT_OPTIONS,
+    });
+    const input = await openEditor(wrapper);
+
+    await input.setValue('Comercio Nuevo');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([['Comercio Nuevo']]);
+  });
+
+  it('merchant type carries the default category of a picked option', async () => {
+    const wrapper = mountCell({
+      type: 'merchant', value: '', options: MERCHANT_OPTIONS,
+    });
+    await wrapper.find('[data-testid="inline-cell-display"]').trigger('click');
+    // Focusing the combobox is what reveals the catalog.
+    await wrapper.find('input').trigger('focus');
+
+    await wrapper.find('[data-testid="merchant-input-option-1"]').trigger('mousedown');
+
+    expect(wrapper.emitted('save')).toEqual([['Terpel', { category: 'fuel' }]]);
   });
 });

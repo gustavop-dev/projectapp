@@ -320,6 +320,67 @@ class IncomeRecordCreateUpdateSerializer(
         return data
 
 
+class SettlementDeductionSerializer(serializers.Serializer):
+    """One slice of the shortfall that will never be collected."""
+
+    type = serializers.ChoiceField(choices=ExpenseRecord.DeductionType.choices)
+    detail = serializers.CharField(
+        required=False, allow_blank=True, max_length=200,
+    )
+    amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+
+    def validate(self, data):
+        if (
+            data['type'] == ExpenseRecord.DeductionType.OTHER
+            and not data.get('detail', '').strip()
+        ):
+            raise serializers.ValidationError({
+                'detail': 'Describe el concepto del gasto.',
+            })
+        return data
+
+
+class SettlementFollowUpSerializer(serializers.Serializer):
+    """A slice that WILL be collected later, rescheduled as its own income."""
+
+    concept = serializers.CharField(max_length=255)
+    period_date = FlexiblePeriodField()
+    amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+
+
+class IncomeSettlementSerializer(serializers.Serializer):
+    """Liquidating an expected income plus how its shortfall is resolved.
+
+    The liquidation fields mirror what the modal already sent to the plain
+    create endpoint; `deductions` and `expected_incomes` are the new part.
+    Cross-field validation against the parent's pending balance lives in
+    ``accounting_settlement_service`` — it needs the record.
+    """
+
+    concept = serializers.CharField(max_length=255)
+    period_date = FlexiblePeriodField()
+    destination = serializers.ChoiceField(
+        choices=IncomeRecord.Destination.choices,
+        default=IncomeRecord.Destination.PARTNERS,
+    )
+    total_amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0'),
+    )
+    gustavo_amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0'), required=False,
+    )
+    carlos_amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0'), required=False,
+    )
+    notes = serializers.CharField(required=False, allow_blank=True)
+    deductions = SettlementDeductionSerializer(many=True, required=False)
+    expected_incomes = SettlementFollowUpSerializer(many=True, required=False)
+
+
 # ── Expense ──
 
 class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
@@ -332,6 +393,9 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     company_amount = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
     )
+    deduction_type_label = serializers.CharField(
+        source='get_deduction_type_display', read_only=True,
+    )
 
     class Meta:
         model = ExpenseRecord
@@ -340,6 +404,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'period', 'period_label', 'period_date',
             'category', 'category_label',
             'ledger', 'ledger_label',
+            'deduction_type', 'deduction_type_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'pocket_movement',
             'notes', 'created_at', 'updated_at',
@@ -361,6 +426,7 @@ class ExpenseRecordCreateUpdateSerializer(
         model = ExpenseRecord
         fields = (
             'concept', 'period_date', 'category', 'ledger',
+            'deduction_type',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'notes',
             'register_in_pocket',
         )

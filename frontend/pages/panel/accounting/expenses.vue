@@ -144,6 +144,19 @@
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
+        <template #cell-concept="{ row }">
+          <span class="text-text-default">{{ row.concept }}</span>
+          <!-- Deductions are discounted from an income, so they do not
+               reduce utility; the pill keeps that visible in the list. -->
+          <span
+            v-if="row.deduction_type"
+            class="ml-2 text-[10px] px-2 py-0.5 rounded-full font-medium bg-info-soft text-info-strong whitespace-nowrap"
+            :title="`Descontado de un ingreso: ${row.deduction_type_label}. No resta utilidad.`"
+            :data-testid="`expense-deduction-pill-${row.id}`"
+          >
+            {{ row.deduction_type_label }}
+          </span>
+        </template>
         <template #cell-category_label="{ row }">
           <span
             class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -270,12 +283,20 @@ const {
     amountMax: '',
     categories: [],
     ledger: '',
+    nature: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
     ledger: matchEquals('ledger', 'ledger'),
+    // Operational spending vs money discounted from an income. Only runs
+    // when the value differs from its '' default, so no guard is needed.
+    nature: (record, value) => (
+      value === 'deduction'
+        ? Boolean(record.deduction_type)
+        : !record.deduction_type
+    ),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -301,6 +322,16 @@ const filterFields = [
       { value: 'company', label: 'Empresa' },
       { value: 'gustavo', label: 'Personal Gustavo' },
       { value: 'carlos', label: 'Personal Carlos' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'nature',
+    label: 'Naturaleza',
+    options: [
+      { value: '', label: 'Todos' },
+      { value: 'operational', label: 'Gasto operativo' },
+      { value: 'deduction', label: 'Descuento de ingreso' },
     ],
   },
 ];

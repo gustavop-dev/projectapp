@@ -988,7 +988,8 @@ class TestCreateProposalFromJSON:
         assert 'technical_document' in types
 
     def test_custom_technical_document_content_from_json(self, admin_client):
-        """Create-from-JSON stores custom technical_document section content from the payload."""
+        """Create-from-JSON keeps the payload's custom epic first and appends the
+        backend-seeded module epics, every one of them selection-gated."""
         url = reverse('create-proposal-from-json')
         payload = self._minimal_payload()
         payload['sections']['technicalDocument'] = {
@@ -1008,8 +1009,10 @@ class TestCreateProposalFromJSON:
         sections = {s['section_type']: s for s in response.data['sections']}
         td = sections['technical_document']['content_json']
         assert td['purpose'] == 'Doc de arquitectura'
-        assert len(td['epics']) == 1
         assert td['epics'][0]['epicKey'] == 'core'
+        seeded = td['epics'][1:]
+        assert seeded
+        assert all(e.get('linked_module_ids') for e in seeded)
 
     def test_normalizes_legacy_technical_document_module_ids_from_json(self, admin_client):
         url = reverse('create-proposal-from-json')

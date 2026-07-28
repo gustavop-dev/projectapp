@@ -94,6 +94,37 @@ describe('useAccountingStore', () => {
       expect(store.incomes[0]).toEqual({ id: 2, concept: 'Nuevo' })
     })
 
+    it('settleIncome posts the settlement to the income endpoint', async () => {
+      create_request.mockResolvedValue({
+        data: { income: { id: 7 }, liquid: { id: 8 }, expenses: [{ id: 9 }] },
+      })
+
+      const result = await store.settleIncome(7, {
+        concept: 'Kore',
+        total_amount: '992000.00',
+        deductions: [{ type: 'gateway_fee', detail: '', amount: '8000.00' }],
+        expected_incomes: [],
+      })
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/incomes/7/settle/',
+        expect.objectContaining({ total_amount: '992000.00' }),
+      )
+      expect(result.success).toBe(true)
+      expect(result.data.expenses).toHaveLength(1)
+    })
+
+    it('settleIncome surfaces the backend message on failure', async () => {
+      create_request.mockRejectedValue({
+        response: { status: 400, data: { detail: 'no puede superar el saldo' } },
+      })
+
+      const result = await store.settleIncome(7, { total_amount: '1.00' })
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('saldo')
+    })
+
     it('updateRecord patches update/ and replaces the record', async () => {
       store.expenses = [{ id: 5, concept: 'Viejo' }, { id: 6 }]
       patch_request.mockResolvedValue({ data: { id: 5, concept: 'Nuevo' } })

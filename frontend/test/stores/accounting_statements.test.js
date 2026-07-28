@@ -127,6 +127,49 @@ describe('useAccountingStore — statements', () => {
     expect(store.statementDetail.transactions[1].merchant_name).toBe('Primax')
   })
 
+  it('learnMerchantAlias posts the correction and refreshes the catalog', async () => {
+    create_request.mockResolvedValue({
+      data: { alias: { id: 3, merchant_name: 'Primax' }, applied: 2, warning: '' },
+    })
+    get_request.mockResolvedValue({ data: { results: [{ id: 3 }], meta: {} } })
+
+    const result = await store.learnMerchantAlias({
+      raw_description: 'COMPRA PRIMAX 123',
+      merchant_name: 'Primax',
+      category: 'fuel',
+      statement_id: 7,
+    })
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounting/merchant-aliases/learn/',
+      {
+        raw_description: 'COMPRA PRIMAX 123',
+        merchant_name: 'Primax',
+        category: 'fuel',
+        statement_id: 7,
+      },
+    )
+    expect(result.success).toBe(true)
+    expect(result.data.applied).toBe(2)
+    // The freshly learned alias must show up in the page's catalog.
+    expect(get_request).toHaveBeenCalledWith('accounting/merchant-aliases/')
+    expect(store.merchantAliases).toEqual([{ id: 3 }])
+  })
+
+  it('learnMerchantAlias surfaces the backend message on failure', async () => {
+    create_request.mockRejectedValue(
+      apiError(400, { detail: 'La categoría indicada no es válida.' }),
+    )
+
+    const result = await store.learnMerchantAlias({
+      raw_description: 'X', merchant_name: 'Y', category: 'nope',
+    })
+
+    expect(result.success).toBe(false)
+    expect(result.message).toContain('categoría')
+    expect(get_request).not.toHaveBeenCalled()
+  })
+
   it('deleteStatementTransaction drops the row from the loaded detail', async () => {
     store.statementDetail = { ...DETAIL }
     delete_request.mockResolvedValue({})

@@ -204,6 +204,148 @@ class TestPutProposalDefaults:
 
 
 # ---------------------------------------------------------------------------
+# PUT /api/proposals/defaults/ — stale snapshot guard
+# ---------------------------------------------------------------------------
+
+
+class TestPutProposalDefaultsConcurrency:
+    """The panel saves sections_json wholesale from the snapshot it loaded.
+
+    A tab opened before a migration — or before another admin's save — would
+    otherwise rewind the stored defaults, and every proposal created afterwards
+    would inherit the rewound content.
+    """
+
+    def _config(self):
+        return ProposalDefaultConfig.objects.create(
+            language='es', sections_json=SAMPLE_SECTIONS, expiration_days=21,
+        )
+
+    def _put(self, admin_client, sections, base_updated_at=None, **extra):
+        payload = {'language': 'es', 'sections_json': sections, **extra}
+        if base_updated_at is not None:
+            payload['base_updated_at'] = base_updated_at
+        return admin_client.put(
+            reverse('proposal-defaults'), payload, format='json',
+        )
+
+    def test_rejects_a_write_based_on_an_older_version(self, admin_client):
+        config = self._config()
+        stale_version = config.updated_at
+
+        config.sections_json = [SAMPLE_SECTIONS[0]]
+        config.save()
+
+        response = self._put(
+            admin_client, SAMPLE_SECTIONS, base_updated_at=stale_version.isoformat(),
+        )
+
+        assert response.status_code == 409
+        assert response.json()['code'] == 'stale_defaults'
+
+    def test_a_rejected_write_leaves_the_stored_defaults_alone(self, admin_client):
+        config = self._config()
+        stale_version = config.updated_at
+        config.sections_json = [SAMPLE_SECTIONS[0]]
+        config.save()
+
+        self._put(
+            admin_client, SAMPLE_SECTIONS, base_updated_at=stale_version.isoformat(),
+        )
+
+        config.refresh_from_db()
+        assert config.sections_json == [SAMPLE_SECTIONS[0]]
+
+    def test_accepts_a_write_based_on_the_current_version(self, admin_client):
+        config = self._config()
+
+        response = self._put(
+            admin_client, [SAMPLE_SECTIONS[0]],
+            base_updated_at=config.updated_at.isoformat(),
+        )
+
+        assert response.status_code == 200
+        config.refresh_from_db()
+        assert config.sections_json == [SAMPLE_SECTIONS[0]]
+
+    def test_the_response_version_is_usable_as_the_next_base(self, admin_client):
+        config = self._config()
+
+        first = self._put(
+            admin_client, [SAMPLE_SECTIONS[0]],
+            base_updated_at=config.updated_at.isoformat(),
+        )
+        second = self._put(
+            admin_client, SAMPLE_SECTIONS,
+            base_updated_at=first.json()['updated_at'],
+        )
+
+        assert second.status_code == 200
+
+    def test_rejects_an_unparsable_version(self, admin_client):
+        self._config()
+
+        response = self._put(
+            admin_client, SAMPLE_SECTIONS, base_updated_at='ayer',
+        )
+
+        assert response.status_code == 400
+        assert response.json()['code'] == 'invalid_base_updated_at'
+
+    def test_a_write_without_a_version_still_goes_through(self, admin_client):
+        # Programmatic callers (scripts, MCP) state no precondition.
+        config = self._config()
+
+        response = self._put(admin_client, [SAMPLE_SECTIONS[0]])
+
+        assert response.status_code == 200
+        config.refresh_from_db()
+        assert config.sections_json == [SAMPLE_SECTIONS[0]]
+
+    def test_a_general_fields_write_is_not_blocked_by_a_stale_version(
+        self, admin_client,
+    ):
+        # The general form submits without sections_json, so it cannot rewind
+        # them: the view keeps the stored ones.
+        config = self._config()
+        stale_version = config.updated_at
+        config.sections_json = [SAMPLE_SECTIONS[0]]
+        config.save()
+
+        response = admin_client.put(
+            reverse('proposal-defaults'),
+            {
+                'language': 'es',
+                'expiration_days': 30,
+                'base_updated_at': stale_version.isoformat(),
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200
+        config.refresh_from_db()
+        assert config.expiration_days == 30
+        assert config.sections_json == [SAMPLE_SECTIONS[0]]
+
+    def test_a_first_save_needs_no_version(self, admin_client):
+        # No row yet: there is nothing to rewind, so the guard must not fire.
+        assert not ProposalDefaultConfig.objects.filter(language='en').exists()
+
+        response = admin_client.put(
+            reverse('proposal-defaults'),
+            {
+                'language': 'en',
+                'sections_json': SAMPLE_SECTIONS,
+                'base_updated_at': '2020-01-01T00:00:00Z',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert ProposalDefaultConfig.objects.filter(language='en').exists()
+
+
+# ---------------------------------------------------------------------------
 # POST /api/proposals/defaults/reset/
 # ---------------------------------------------------------------------------
 

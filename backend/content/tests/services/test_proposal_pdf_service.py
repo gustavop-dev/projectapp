@@ -52,6 +52,7 @@ from content.services.proposal_pdf_service import (
     _render_creative_support,
     _render_design_ux,
     _render_executive_summary,
+    _render_linked_requirements,
     _render_raw_text,
     _replace_urls_with_placeholders,
     _safe,
@@ -3461,3 +3462,115 @@ class TestGenerateWithLinkedItemRequirements:
         reader = PdfReader(io.BytesIO(result))
         text = '\n'.join(p.extract_text() or '' for p in reader.pages)
         assert 'Emision electronica DIAN' not in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_messy_whitespace_and_bold_markers_normalized(
+        self, mock_back, mock_cover, proposal,
+    ):
+        """Tabs/newlines in item names and **bold**/<b> markers in linked
+        titles are collapsed before drawing instead of leaking as .notdef
+        glyphs or literal asterisks."""
+        item = {'name': 'Registro\tde\nusuario', 'description': 'Alta.',
+                'id': 'item-views-registro-de-usuario'}
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='functional_requirements',
+            title='Reqs', order=1, is_enabled=True,
+            content_json={
+                'index': '7', 'title': 'Requerimientos', 'intro': 'Detalle.',
+                'groups': [{'id': 'views', 'title': 'Vistas',
+                            'description': 'Páginas.', 'items': [item]}],
+                'additionalModules': [],
+            },
+        )
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='technical_document',
+            title='Detalle técnico', order=2, is_enabled=True,
+            content_json={'epics': [{
+                'epicKey': 'views', 'title': 'Vistas',
+                'requirements': [{
+                    'flowKey': 'req-registro',
+                    'title': '**Registro** con <b>verificacion</b> de email',
+                    'description': 'Formulario validado.',
+                    'priority': 'high',
+                    'linked_item_ids': ['item-views-registro-de-usuario'],
+                }],
+            }]},
+        )
+        result = ProposalPdfService.generate(proposal)
+        assert result is not None
+        reader = PdfReader(io.BytesIO(result))
+        text = '\n'.join(p.extract_text() or '' for p in reader.pages)
+        assert 'Registro de usuario' in text
+        assert 'Registro con verificacion de email' in text
+        assert '**' not in text
+
+
+class _SpyCanvas:
+    """Delegating canvas that records filled rects and roundRects."""
+
+    def __init__(self, real):
+        self._real = real
+        self.round_rects = []   # (x, y, w, h)
+        self.rects = []
+
+    def roundRect(self, x, y, w, h, r, **kw):
+        self.round_rects.append((x, y, w, h))
+        return self._real.roundRect(x, y, w, h, r, **kw)
+
+    def rect(self, x, y, w, h, **kw):
+        self.rects.append((x, y, w, h))
+        return self._real.rect(x, y, w, h, **kw)
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+
+class TestLinkedRequirementsGeometry:
+    """DB-free geometry contract for the linked-requirement sub-rows."""
+
+    ROW_Y = 700  # high enough that _check_y never breaks the page
+
+    def _render(self, req):
+        _register_fonts()
+        real = canvas.Canvas(io.BytesIO(), pagesize=A4)
+        c = _SpyCanvas(real)
+        ps = {'_item_requirements_map': {'i1': [req]}, '_pdf_lang': 'es'}
+        end_y = _render_linked_requirements(
+            c, {'id': 'i1', 'name': 'Ítem'}, ps, self.ROW_Y)
+        return c, end_y
+
+    def test_pill_stays_inside_content_and_row(self):
+        c, _ = self._render({
+            'title': 'Registro e inicio de sesión con verificación de correo '
+                     'y recuperación de contraseña para todos los perfiles',
+            'description': 'Formulario validado.',
+            'priority': 'critical',
+        })
+        assert len(c.round_rects) == 1
+        x, y, w, h = c.round_rects[0]
+        assert x + w <= MARGIN_L + CONTENT_W
+        assert y + h <= self.ROW_Y  # never paints into the parent row above
+
+    def test_band_spans_full_table_width(self):
+        c, end_y = self._render({
+            'title': 'Registro', 'description': 'Alta.', 'priority': 'high',
+        })
+        bands = [r for r in c.rects if r[0] == MARGIN_L and r[2] == CONTENT_W]
+        assert bands, 'expected a full-width background band'
+        assert end_y == bands[0][1]  # returned row_y is the band bottom
+
+    def test_no_priority_draws_no_pill(self):
+        c, _ = self._render({
+            'title': 'Registro', 'description': 'Alta.', 'priority': '',
+        })
+        assert c.round_rects == []
+        assert any(r[0] == MARGIN_L and r[2] == CONTENT_W for r in c.rects)

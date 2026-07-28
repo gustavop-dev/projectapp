@@ -172,6 +172,58 @@ def test_requirement_group_header_repeats_on_every_page():
 
 
 @pytest.mark.django_db
+def test_item_with_many_linked_requirements_renders_nested_rows():
+    """Five technical requirements linked to ONE FR item render as nested
+    sub-rows under that item in the commercial PDF (multi-requirement
+    breakdown per element)."""
+    p = _make_proposal()
+    ProposalSection.objects.create(
+        proposal=p, section_type='greeting', title='Saludo', order=0,
+        is_enabled=True, content_json={'clientName': p.client_name},
+    )
+    ProposalSection.objects.create(
+        proposal=p, section_type='functional_requirements',
+        title='Requerimientos', order=1, is_enabled=True, content_json={
+            'index': '1', 'title': 'Requerimientos Funcionales',
+            'intro': 'Detalle.',
+            'groups': [{
+                'id': 'views', 'title': 'Vistas', 'description': 'Pantallas.',
+                'items': [{
+                    'id': 'item-views-home', 'icon': '🏠', 'name': 'Home',
+                    'description': 'Página principal del sitio.',
+                }],
+            }],
+            'additionalModules': [],
+        },
+    )
+    ProposalSection.objects.create(
+        proposal=p, section_type='technical_document',
+        title='Detalle técnico', order=2, is_enabled=True, content_json={
+            'epics': [{
+                'epicKey': 'views', 'title': 'Vistas',
+                'requirements': [
+                    {
+                        'flowKey': f'home-req-{i}',
+                        'title': f'Criterio verificable {i} del Home',
+                        'description': 'Detalle del criterio de aceptación.',
+                        'priority': 'high',
+                        'linked_item_ids': ['item-views-home'],
+                    }
+                    for i in range(1, 6)
+                ],
+            }],
+        },
+    )
+
+    pdf = ProposalPdfService.generate(p)
+    assert pdf[:4] == b'%PDF'
+    text = '\n'.join(
+        pg.extract_text() or '' for pg in PdfReader(io.BytesIO(pdf)).pages
+    )
+    assert text.count('verificable') >= 5
+
+
+@pytest.mark.django_db
 def test_all_section_renderers_stay_above_bottom_margin():
     """Every renderer, fed adversarial data, must return y >= MARGIN_B —
     a smaller y means it drew below the margin without paginating."""

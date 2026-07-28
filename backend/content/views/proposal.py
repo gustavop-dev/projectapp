@@ -729,6 +729,21 @@ def get_proposal_json_template(request):
             'breaks that traceability. Ids derive from the name in the proposal '
             'language — never reuse ids or technical documents across ES/EN versions.'
         ),
+        'CRITICAL_functionalRequirements_atomicItems': (
+            'Every item must be ATOMIC: exactly ONE screen, ONE component or ONE '
+            'capability per item. NEVER join two distinct screens or capabilities in '
+            'a single item name with " y ", " e ", " o ", "/" or "&": '
+            '"Registro e Inicio de Sesion" is WRONG — produce TWO items ("Registro de '
+            'Usuario" and "Inicio de Sesion"), each with its own id and its own '
+            'description. The rule applies to views, components, features and module '
+            'items alike. Only exception: names denoting a single indivisible '
+            'capability or an idiomatic proper name (e.g. "Terminos y Condiciones" is '
+            'one legal page; "Registro con Google" and "Inicio de Sesion con Google" '
+            'are still two items even though both use the same Google account). When '
+            'in doubt, split: atomic items produce clearer scope and precise '
+            'per-item technical traceability in step 2, where each item is broken '
+            'down into typically 2-5 linked technical requirements.'
+        ),
         'CRITICAL_functionalRequirements_itemDetail': (
             'Each item in every functionalRequirements group (and in every SELECTED additional '
             'module) must have a RICH "description" written as TWO paragraphs separated by '
@@ -876,6 +891,12 @@ def get_proposal_json_template(request):
             'copy AI, calendario editorial, content calendar, social media scheduling, '
             'programación de publicaciones, scheduled posts, auto-publishing, '
             'editorial planning -> "content_generator_module". '
+            'In-product user behavior tracking, product analytics, time per view or '
+            'screen, usage sessions, usage funnels, first-party user tracking, rastreo '
+            'de comportamiento, tiempo por vista, embudos de uso -> '
+            '"behavior_tracking_module" (do not confuse with '
+            '"integration_conversion_tracking", which reports AD conversions to '
+            'Meta/Google, nor with the free analytics_dashboard basic web analytics). '
             'When a module matches the brief, set BOTH "default_selected": true AND '
             '"selected": true on that module object, and ADAPT its "description" and reorder '
             'or rewrite its "items" so the wording reflects the exact terminology, providers '
@@ -1798,7 +1819,10 @@ def preview_sync_section(request, section_id):
     """
     from django.db import transaction as _tx
     from accounts.models import Project
-    from accounts.services.technical_requirements_sync import compute_sync_diff
+    from accounts.services.technical_requirements_sync import (
+        compute_sync_diff,
+        filtered_technical_doc_for_sync,
+    )
 
     section = get_object_or_404(ProposalSection, pk=section_id)
     if section.section_type != ProposalSection.SectionType.TECHNICAL_DOCUMENT:
@@ -1815,7 +1839,9 @@ def preview_sync_section(request, section_id):
     deliverable = proposal.deliverable
     project = Project.objects.select_related('client').get(pk=deliverable.project_id)
 
-    diff = compute_sync_diff(project, content_json)
+    diff = compute_sync_diff(
+        project, filtered_technical_doc_for_sync(proposal, content_json),
+    )
 
     return Response({
         'ok': True,
@@ -3209,6 +3235,44 @@ def dismiss_proposal_alert(request, alert_id):
 # Proposal Default Config
 # ---------------------------------------------------------------------------
 
+def _stale_defaults_response(config, base_updated_at):
+    """Reject a defaults write based on a version that is no longer current.
+
+    ``sections_json`` is saved wholesale from the snapshot the panel loaded when
+    the page opened. A tab left open across a migration — or another admin's
+    save — would otherwise rewind the stored defaults without a trace, and every
+    proposal created afterwards would inherit the rewound content.
+
+    The comparison is exact: the value travels back untouched from the one this
+    endpoint serialised, so anything older than the stored ``updated_at`` means
+    the caller never saw the current version.
+
+    Returns a ``Response`` when the write must be refused, ``None`` when it may
+    proceed.
+    """
+    parsed = parse_datetime(base_updated_at) if base_updated_at else None
+    if parsed is None:
+        return error_response(
+            'La versión de referencia enviada no es una fecha válida.',
+            code='invalid_base_updated_at',
+            hint='Recarga la página de valores por defecto e intenta de nuevo.',
+        )
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed)
+
+    if config.updated_at <= parsed:
+        return None
+
+    return error_response(
+        'Los valores por defecto cambiaron desde que abriste esta página.',
+        code='stale_defaults',
+        hint=(
+            'Recarga para ver la versión actual; si guardas ahora perderías '
+            'esos cambios.'
+        ),
+        status=status.HTTP_409_CONFLICT,
+    )
+
 
 @api_view(['GET', 'PUT'])
 @permission_classes([IsAdminUser])
@@ -3217,6 +3281,9 @@ def proposal_defaults(request):
     GET  — Retrieve the default section config for a language.
            Falls back to the hardcoded defaults when no DB config exists.
     PUT  — Save (create or update) the default section config for a language.
+           Callers that rewrite ``sections_json`` may send ``base_updated_at``
+           (the ``updated_at`` they loaded) to get a 409 instead of silently
+           overwriting a newer version.
     """
     from content.services.proposal_service import ProposalService
 
@@ -3259,6 +3326,11 @@ def proposal_defaults(request):
     # PUT
     config = ProposalDefaultConfig.objects.filter(language=lang).first()
     payload = dict(request.data)
+    base_updated_at = payload.pop('base_updated_at', None)
+    if config and base_updated_at and 'sections_json' in payload:
+        stale = _stale_defaults_response(config, base_updated_at)
+        if stale is not None:
+            return stale
     payload['language'] = lang
     if 'sections_json' not in payload:
         if config:

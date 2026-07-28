@@ -1103,13 +1103,14 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   5. Admin expands a section and edits its content using SectionEditor (form or paste mode).
   6. Section is marked as "Modificado" locally.
   7. Admin clicks "Guardar Todos los Cambios".
-  8. API call to `PUT /api/proposals/defaults/` with the full sections_json array.
+  8. API call to `PUT /api/proposals/defaults/` with the full sections_json array plus `base_updated_at`, the version loaded in step 2.
   9. Success feedback displays.
 - **Branches:**
   - [Branch A — Reset] Admin clicks "Restaurar valores originales" → confirmation modal → `POST /api/proposals/defaults/reset/` → sections reload from hardcoded defaults.
   - [Branch B — Language switch with unsaved changes] Confirmation prompt warns about losing changes.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js`
+  - [Branch C — Stale snapshot (failure)] The stored config moved on since step 2 (a migration, or another admin saving) → `PUT` answers `409 stale_defaults` → the panel shows "Los valores por defecto cambiaron desde que abriste esta página." and **keeps the pending edits on screen**, so the admin chooses between refreshing and re-applying them. Without this the snapshot would rewind the stored defaults and every proposal created afterwards would inherit the rewound content.
+- **Coverage:** ⚠️ Partial — `display` covered; `success` and `failure` have no qualifying E2E test.
+- **E2E Spec:** `e2e/admin/admin-proposal-defaults.spec.js` (5 tests, all `@outcome:display`)
 - **Backend Tests:** `content/tests/views/test_proposal_defaults_views.py`, `content/tests/models/test_proposal_default_config.py`, `content/tests/services/test_proposal_service.py::TestGetDefaultSectionsFromDB`
 
 ### FLOW: `admin-proposal-defaults-slug-pattern`
@@ -2236,12 +2237,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Steps:**
   1. Superuser opens `/panel/accounting/statements` — `GET /api/accounting/statements/status/?year=` renders the 12-month grid with backend-driven `year_options`; months before `statements_since` show "No aplica" and card chips show Procesado/Borrador.
   2. Clicking a chip loads `GET /api/accounting/statements/:id/` — detail shows stat cards (Compras/Pagos/Intereses/Saldo), category bars, the PDF block and the transactions table (unidentified lines flagged).
-  3. On a draft: "Editar encabezado" (modal PATCH `.../update/`), "Agregar transacción" (tx modal in create mode → POST `.../transactions/batch/`), per-line Editar (modal PATCH `.../transactions/:txId/update/` — notes, original currency and negative amounts) and Eliminar, plus dblclick inline editing of fecha/descripción/comercio/categoría/cuota/valor directly in the table (same PATCH; clearing comercio restores the "Sin identificar" badge, cuota accepts "n/total", processed statements render read-only cells); Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
-  4. On a processed statement: Reabrir returns it to draft.
+  3. On a draft: "Editar encabezado" (modal PATCH `.../update/`), "Agregar transacción" (tx modal in create mode → POST `.../transactions/batch/`), per-line Editar (modal PATCH `.../transactions/:txId/update/` — fecha, descripción, comercio, categoría, cuota, valor and notes) and Eliminar, plus **single-click** inline editing of fecha/descripción/comercio/categoría/cuota/valor directly in the table (same PATCH; a dashed underline and a hover pencil mark the cells as editable). Comercio is a combobox over the learned merchant catalog that still accepts free text; picking a catalog entry also sends its `default_category` when the row is still `other`, and any non-empty merchant save offers "¿Recordar este comercio?" → POST `/api/accounting/merchant-aliases/learn/` (upserts by normalized descriptor and back-applies to the statement's other unidentified rows). Clearing comercio restores the "Sin identificar" badge; cuota is captured as a structured cuota/total number pair; negative amounts (refunds) edit inline keeping their sign. Finalizar validates Σ vs purchases_total (±1 COP) and offers a forced close on mismatch; Eliminar removes the statement after confirm.
+  4. On a processed statement: Reabrir returns it to draft. The cells stay editable — saving one first asks "¿Reabrirlo para corregirlo?" and, on confirm, POSTs `.../reopen/` before the PATCH (the backend keeps refusing writes on non-draft statements). "Agregar transacción" and per-line Eliminar stay hidden: those are structural changes and still require the explicit Reabrir button.
   5. "Documento del extracto": Subir PDF / Ver PDF / Reemplazar / Eliminar (with confirm) manage the bank PDF kept as documentation; the statement reminder email nags every 8 days until the previous month is processed with its PDF attached.
   6. "Comercios aprendidos" lists merchant aliases with delete.
   7. "Copiar prompt" copies the Spanish kick-off prompt for the claude.ai accounting connector (statements are created from chat via `create_statement`).
-- **Coverage:** ✅ Covered (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm, inline merchant edit with PATCH body, invalid-cuota client error, backend 400 surfaced in Spanish, processed read-only gate; header-edit modal, forced close, reopen and aliases remain unasserted)
+- **Coverage:** ✅ Covered — all four outcome classes (grid year options + "No aplica", detail load, manual tx add, finalize lifecycle, PDF delete with confirm, single-click inline merchant edit with PATCH body, alias learning accepted and declined, catalog pick filling the category, structured cuota valid + invalid, negative amount kept negative, backend 400 surfaced in Spanish, reopen-and-edit on a processed statement and its cancel path). Header-edit modal, forced close, the standalone Reabrir button and alias delete remain unasserted.
 - **E2E Spec:** `e2e/admin/admin-accounting-statements-card-catalog.spec.js`, `e2e/admin/admin-accounting-statements-inline-edit.spec.js`
 
 ### FLOW: `admin-clients-config-tab`
@@ -5738,8 +5739,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
   6. An expected row shows its fulfilment state, computed from the liquid records linked to it: Pagado (light-green row), Parcial (amber row + outstanding amount) or Pendiente (untinted).
-  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period asks for the exact date by default, prefilled with today (the "Registrar el día exacto de pago" toggle downgrades the input to month-only when only the month is known). Submitting POSTs a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
-  8. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
+  7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period asks for the exact date by default, prefilled with today (the "Registrar el día exacto de pago" toggle downgrades the input to month-only when only the month is known). Submitting POSTs `/api/accounting/incomes/:id/settle/`, which registers a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
+  8. If the amount received is below the pending balance, the modal reveals "Saldo por resolver" with a live remaining counter and two collapsible, repeatable groups. "No es un cobro pendiente, es un gasto" books the shortfall as an expense with its concept (Comisión plataforma de pago / Comisión bancaria / Retención en la fuente / Otro, the last one requiring free text). "Sí lo voy a cobrar: crear ingreso esperado" reschedules it as one or more new expected incomes inheriting the parent's ledger, destination and partner ratio. Both can be combined in one settlement.
+  9. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
@@ -5747,7 +5749,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch D] Partial payment: liquidating for less than the pending amount leaves the expected row Parcial; liquidating again accumulates against the same parent.
   - [Branch E] Write-off is not offered once a row has liquidations — the backend rejects it, because it would drop the full expected amount while its liquid children keep counting. The remainder is registered as a separate lost record instead.
   - [Branch F] Written-off rows drop out of the expected projection and the utility but stay visible (and searchable/exportable) under "Todos"; a builtin "Perdidos" quick tab (never persisted server-side, no rename/delete menu) isolates them with one click, alongside the "Pérdidas" segment in the filter panel, the "Total perdido" chip and the "Perdido (año)" KPI. (Until Jul 2026 they were hidden from the Todos working set and the export.)
-- **Coverage:** ✅ Covered
+  - [Branch G] Settlement allocation: whatever is moved out of the expected record (deductions + follow-up incomes) is subtracted from its total, so it closes with no orphan balance. Anything left unallocated simply stays pending, exactly as before — the modal says so instead of leaving it silent. Over-allocating past the shortfall disables the submit, and the backend rejects it too with a Spanish 400.
+  - [Branch H] A settlement deduction is an `ExpenseRecord` flagged with `deduction_type`: it books no pocket movement (the money never entered the pocket) and is **excluded from utility**, because the expected income was already lowered to what was received and counting it again would double-count the same loss. It shows in the Gastos tab with a "Descuento de ingreso" pill, has its own "Naturaleza" filter, and is reported apart as `deductions_total` on the accounting dashboard.
+- **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-filters`

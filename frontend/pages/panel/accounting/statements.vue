@@ -62,6 +62,7 @@
         :statement="detail"
         :is-updating="store.isUpdating"
         :category-options="categoryOptions"
+        :merchant-options="merchantOptions"
         :inline-saving-key="inlineSavingKey"
         class="mb-6"
         @finalize="handleFinalize"
@@ -143,22 +144,45 @@
         {{ txForm.id ? 'Editar transacción' : 'Agregar transacción' }}
       </h3>
       <div class="space-y-3">
-        <template v-if="!txForm.id">
-          <BaseFormField label="Fecha" required>
-            <BaseInput v-model="txForm.transaction_date" type="date" data-testid="tx-date-input" />
-          </BaseFormField>
-          <BaseFormField label="Descripción del extracto" required>
-            <BaseInput v-model="txForm.raw_description" data-testid="tx-description-input" />
-          </BaseFormField>
-        </template>
+        <BaseFormField label="Fecha" required>
+          <BaseInput v-model="txForm.transaction_date" type="date" data-testid="tx-date-input" />
+        </BaseFormField>
+        <BaseFormField label="Descripción del extracto" required>
+          <BaseInput v-model="txForm.raw_description" data-testid="tx-description-input" />
+        </BaseFormField>
         <BaseFormField label="Comercio">
-          <BaseInput v-model="txForm.merchant_name" data-testid="tx-merchant-input" />
+          <AccountingMerchantInput
+            v-model="txForm.merchant_name"
+            :options="merchantOptions"
+            test-id="tx-merchant-input"
+          />
         </BaseFormField>
         <BaseFormField label="Categoría">
           <BaseSelect v-model="txForm.category" :options="categoryOptions" />
         </BaseFormField>
+        <BaseFormField label="Cuota">
+          <div class="flex items-center gap-2">
+            <BaseInput
+              v-model="txForm.installment_number"
+              type="number"
+              min="1"
+              class="w-20"
+              placeholder="Cuota"
+              data-testid="tx-installment-number"
+            />
+            <span class="text-text-subtle">de</span>
+            <BaseInput
+              v-model="txForm.installments_total"
+              type="number"
+              min="1"
+              class="w-20"
+              placeholder="Total"
+              data-testid="tx-installment-total"
+            />
+          </div>
+        </BaseFormField>
         <BaseFormField label="Valor (COP)">
-          <BaseInput v-model="txForm.amount" type="number" step="0.01" />
+          <BaseCurrencyInput v-model="txForm.amount" allow-negative data-testid="tx-amount-input" />
         </BaseFormField>
         <BaseFormField label="Notas">
           <BaseTextarea v-model="txForm.notes" :rows="2" />
@@ -183,12 +207,14 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingMerchantInput from '~/components/accounting/AccountingMerchantInput.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import StatementDetail from '~/components/accounting/StatementDetail.vue';
 import StatementHeaderFormModal from '~/components/accounting/StatementHeaderFormModal.vue';
 import StatementMonthGrid from '~/components/accounting/StatementMonthGrid.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseCollapse from '~/components/base/BaseCollapse.vue';
+import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -255,6 +281,21 @@ const cardOptions = computed(() => [
   { value: '', label: 'Todas las tarjetas' },
   ...(status.value?.cards || []).map((card) => ({ value: card, label: card })),
 ]);
+
+// Learned merchants feed the inline combobox. Several descriptors can map to
+// the same merchant, so the list is deduplicated by name.
+const merchantOptions = computed(() => {
+  const byName = new Map();
+  store.merchantAliases.forEach((alias) => {
+    if (!alias.merchant_name || byName.has(alias.merchant_name)) return;
+    byName.set(alias.merchant_name, {
+      value: alias.merchant_name,
+      category: alias.default_category || null,
+      categoryLabel: alias.default_category_label || '',
+    });
+  });
+  return [...byName.values()].sort((a, b) => a.value.localeCompare(b.value, 'es'));
+});
 
 async function loadStatus() {
   await store.fetchStatementStatus(selectedYear.value, selectedCard.value);
@@ -408,15 +449,24 @@ const txForm = reactive({
   raw_description: '',
   merchant_name: '',
   category: 'other',
-  amount: '',
+  installment_number: '',
+  installments_total: '',
+  amount: null,
   notes: '',
 });
 
-function openTxModal(tx) {
+async function openTxModal(tx) {
+  // Ask before opening rather than on save: stacking a confirm on top of the
+  // modal reads badly, and the answer decides whether editing is possible.
+  if (!await ensureDraft()) return;
   txForm.id = tx.id;
+  txForm.transaction_date = tx.transaction_date;
+  txForm.raw_description = tx.raw_description;
   txForm.merchant_name = tx.merchant_name;
   txForm.category = tx.category;
-  txForm.amount = tx.amount;
+  txForm.installment_number = tx.installment_number ?? '';
+  txForm.installments_total = tx.installments_total ?? '';
+  txForm.amount = tx.amount === null || tx.amount === '' ? null : Number(tx.amount);
   txForm.notes = tx.notes || '';
   txModalOpen.value = true;
 }
@@ -427,29 +477,37 @@ function openCreateTxModal() {
   txForm.raw_description = '';
   txForm.merchant_name = '';
   txForm.category = 'other';
-  txForm.amount = '';
+  txForm.installment_number = '';
+  txForm.installments_total = '';
+  txForm.amount = null;
   txForm.notes = '';
   txModalOpen.value = true;
 }
 
 async function saveTx() {
+  if (!txForm.transaction_date || !txForm.raw_description) {
+    notify.error('La fecha y la descripción son obligatorias.');
+    return;
+  }
+  const number = Number(txForm.installment_number) || null;
+  const total = Number(txForm.installments_total) || null;
+  if (Boolean(number) !== Boolean(total) || (number && total && number > total)) {
+    notify.error('Cuota inválida. Indica ambos números y que la cuota no supere el total.');
+    return;
+  }
   const payload = {
+    transaction_date: txForm.transaction_date,
+    raw_description: txForm.raw_description,
     merchant_name: txForm.merchant_name,
     category: txForm.category,
+    installment_number: number,
+    installments_total: total,
     amount: txForm.amount,
     notes: txForm.notes,
     is_identified: Boolean(txForm.merchant_name),
   };
   if (!txForm.id) {
-    if (!txForm.transaction_date || !txForm.raw_description) {
-      notify.error('La fecha y la descripción son obligatorias.');
-      return;
-    }
-    const created = await store.createStatementTransactions(detail.value.id, [{
-      ...payload,
-      transaction_date: txForm.transaction_date,
-      raw_description: txForm.raw_description,
-    }]);
+    const created = await store.createStatementTransactions(detail.value.id, [payload]);
     if (created.success) {
       txModalOpen.value = false;
       notify.success('Transacción agregada.');
@@ -474,42 +532,108 @@ async function saveTx() {
 
 const inlineSavingKey = ref(null);
 
-function inlinePayload(field, value) {
+function inlinePayload(field, value, meta, tx) {
   if (field === 'merchant_name') {
     // Clearing the name also drops the identified flag (badge returns).
-    return { merchant_name: value, is_identified: Boolean(value) };
+    const payload = { merchant_name: value, is_identified: Boolean(value) };
+    // A merchant picked from the catalog brings its default category, but it
+    // must not overwrite a category the row already got right.
+    if (meta?.category && tx.category === 'other') payload.category = meta.category;
+    return payload;
   }
   if (field === 'installment_label') {
-    if (!value.trim()) return { installment_number: null, installments_total: null };
-    const m = value.trim().match(/^(\d+)\s*\/\s*(\d+)$/);
-    if (!m) return null;
-    const [n, t] = [Number(m[1]), Number(m[2])];
-    if (n > t) return null;
-    return { installment_number: n, installments_total: t };
+    // The installments cell emits `null` to clear, or a { number, total } pair.
+    if (value === null) return { installment_number: null, installments_total: null };
+    const { number, total } = value;
+    if (!number || !total || number > total) return null;
+    return { installment_number: number, installments_total: total };
   }
   return { [field]: value };
 }
 
-async function saveTxInline(tx, field, value) {
+async function saveTxInline(tx, field, value, meta) {
   if (field === 'raw_description' && !String(value).trim()) {
     notify.error('La descripción no puede quedar vacía.');
     return;
   }
-  const payload = inlinePayload(field, value);
+  const payload = inlinePayload(field, value, meta, tx);
   if (!payload) {
-    notify.error('Formato de cuota inválido. Usa "n/total" con n ≤ total.');
+    notify.error('Cuota inválida. Indica ambos números y que la cuota no supere el total.');
     return;
   }
+  if (!await ensureDraft()) return;
+  await applyTxInline(tx, field, payload);
+}
+
+/**
+ * A processed statement is reconciled against the bank, so the backend refuses
+ * edits. Reopening is the honest way through — the owner just has to finalize
+ * it again afterwards. Returns false when the edit must not proceed.
+ */
+async function ensureDraft() {
+  if (detail.value.status !== 'processed') return true;
+  const confirmed = await requestConfirm({
+    title: 'Extracto finalizado',
+    message: 'Este extracto ya está consolidado. ¿Reabrirlo para corregirlo? '
+      + 'Recuerda finalizarlo de nuevo cuando termines.',
+    confirmText: 'Reabrir y editar',
+  });
+  if (!confirmed) return false;
+  const reopened = await store.reopenStatement(detail.value.id);
+  if (!reopened.success) {
+    notify.error(reopened.message || 'No se pudo reabrir el extracto.');
+    return false;
+  }
+  await loadStatus();
+  return true;
+}
+
+async function applyTxInline(tx, field, payload) {
   inlineSavingKey.value = `${tx.id}:${field}`;
   const result = await store.updateStatementTransaction(detail.value.id, tx.id, payload);
   inlineSavingKey.value = null;
-  if (result.success) {
-    notify.success('Transacción actualizada.');
-    // Header sums and category totals are server-computed.
-    await store.fetchStatementDetail(detail.value.id);
-  } else {
+  if (!result.success) {
     notify.error(result.message || 'No se pudo actualizar la transacción.');
+    return;
   }
+  notify.success('Transacción actualizada.');
+  // Header sums and category totals are server-computed.
+  await store.fetchStatementDetail(detail.value.id);
+  if (field === 'merchant_name' && payload.merchant_name) {
+    await offerAliasLearning(tx, payload);
+  }
+}
+
+/**
+ * A hand-typed merchant is worth remembering: the same descriptor will come
+ * back every month, and the alias saves the correction from scratch.
+ */
+async function offerAliasLearning(tx, payload) {
+  const merchantName = payload.merchant_name;
+  const confirmed = await requestConfirm({
+    title: 'Recordar este comercio',
+    message: `¿Recordar "${tx.raw_description}" como ${merchantName} para los próximos extractos?`,
+    confirmText: 'Recordar',
+    cancelText: 'No, solo esta vez',
+  });
+  if (!confirmed) return;
+  const result = await store.learnMerchantAlias({
+    raw_description: tx.raw_description,
+    merchant_name: merchantName,
+    category: payload.category || tx.category,
+    statement_id: detail.value.id,
+  });
+  if (!result.success) {
+    notify.error(result.message || 'No se pudo guardar el comercio.');
+    return;
+  }
+  const applied = result.data?.applied || 0;
+  notify.success(
+    applied
+      ? `Comercio recordado y aplicado a ${applied} transacción(es) más.`
+      : 'Comercio recordado.',
+  );
+  if (applied) await store.fetchStatementDetail(detail.value.id);
 }
 
 function handleDeleteTx(tx) {

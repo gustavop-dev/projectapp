@@ -312,8 +312,14 @@ def _pop_register_in_pocket(entity_type, serializer):
     return serializer.validated_data.pop('register_in_pocket', None)
 
 
-def create_record(entity_type, serializer, user):
-    """Persist a validated write serializer, audit it and notify."""
+def create_record(entity_type, serializer, user, notify=True):
+    """Persist a validated write serializer, audit it and notify.
+
+    ``notify=False`` still writes the audit row but skips the email. It exists
+    for flows that compose several records in one user action (an income
+    settlement creates the liquid child plus its deductions and follow-up
+    expected incomes) and should read as a single event in the inbox.
+    """
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     with transaction.atomic():
@@ -334,12 +340,16 @@ def create_record(entity_type, serializer, user):
         changes=changes,
         actor=user,
     )
-    _notify(change_log)
+    if notify:
+        _notify(change_log)
     return instance
 
 
-def update_record(entity_type, instance, serializer, user):
-    """Apply a validated partial update, audit the diff and notify."""
+def update_record(entity_type, instance, serializer, user, notify=True):
+    """Apply a validated partial update, audit the diff and notify.
+
+    See ``create_record`` for why ``notify=False`` exists.
+    """
     _ensure_pocket_update_allowed(entity_type, instance, serializer)
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
@@ -364,7 +374,8 @@ def update_record(entity_type, instance, serializer, user):
             changes=changes,
             actor=user,
         )
-        _notify(change_log)
+        if notify:
+            _notify(change_log)
     return instance
 
 
@@ -753,10 +764,18 @@ def _split_sums(queryset):
 
 
 def _year_split_sums(year):
-    """The three company-ledger aggregates every year summary derives from.
+    """The company-ledger aggregates every year summary derives from.
 
     Personal-ledger records never count toward company totals.
+
+    ``expenses`` counts only operational spending. Income deductions (gateway
+    and bank fees, withholdings) are reported apart in ``deductions`` because
+    the settlement already lowered the expected income to what was received —
+    subtracting them from utility too would count the same loss twice.
     """
+    company_expenses = ExpenseRecord.objects.filter(
+        period_date__year=year, ledger=Ledger.COMPANY,
+    )
     return {
         'expected': _split_sums(IncomeRecord.objects.filter(
             kind=IncomeRecord.Kind.EXPECTED, period_date__year=year,
@@ -766,9 +785,8 @@ def _year_split_sums(year):
             kind=IncomeRecord.Kind.LIQUID, period_date__year=year,
             ledger=Ledger.COMPANY,
         )),
-        'expenses': _split_sums(ExpenseRecord.objects.filter(
-            period_date__year=year, ledger=Ledger.COMPANY,
-        )),
+        'expenses': _split_sums(company_expenses.operational()),
+        'deductions': _split_sums(company_expenses.deductions()),
     }
 
 
@@ -786,6 +804,7 @@ def year_totals(year):
         'expected_total': expected_total,
         'liquid_total': liquid_total,
         'expenses_total': expenses_total,
+        'deductions_total': sums['deductions']['total'],
         'expected_utility': expected_total - expenses_total,
         'liquid_utility': liquid_total - expenses_total,
     }
@@ -806,7 +825,7 @@ def _personal_sums(year):
             ), 'total_amount'),
             'expenses': _sum(ExpenseRecord.objects.filter(
                 period_date__year=year, ledger=party,
-            ), 'total_amount'),
+            ).operational(), 'total_amount'),
         }
     return result
 
@@ -878,7 +897,7 @@ def monthly_breakdown(year):
     expenses_by_month = _totals_by_month(
         ExpenseRecord.objects.filter(
             period_date__year=year, ledger=Ledger.COMPANY,
-        ),
+        ).operational(),
         'period_date', 'total_amount',
     )
 
@@ -1007,6 +1026,7 @@ def dashboard_summary(year):
         'liquid_total': liquid_total,
         'difference': liquid_total - expected_total,
         'expenses_total': expenses_total,
+        'deductions_total': sums['deductions']['total'],
         'expected_utility': expected_total - expenses_total,
         'liquid_utility': liquid_total - expenses_total,
         'pocket_balance': pocket_balance(),
