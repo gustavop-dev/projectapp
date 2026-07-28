@@ -160,6 +160,7 @@ export function buildFormFromJson(json, type, proposalData) {
         title: j.title || '',
         packagesTitle: j.packagesTitle || '',
         packagesIntro: j.packagesIntro || '',
+        hourPackagesMode: j.hourPackagesMode === 'manual' ? 'manual' : 'auto',
         hourlyRate: j.hourlyRate ?? '',
         currency: j.currency || proposalData?.currency || 'COP',
         packages: packages.map((p) => ({
@@ -328,6 +329,7 @@ export function formToJson(formData, type) {
         title: f.title,
         packagesTitle: f.packagesTitle || '',
         packagesIntro: f.packagesIntro || '',
+        hourPackagesMode: f.hourPackagesMode === 'manual' ? 'manual' : 'auto',
         hourlyRate: f.hourlyRate === '' || f.hourlyRate == null
           ? 0 : Number(f.hourlyRate),
         currency: f.currency || 'COP',

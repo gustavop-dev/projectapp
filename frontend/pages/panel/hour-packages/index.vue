@@ -174,7 +174,8 @@
           <p class="text-xs text-text-subtle mb-4">
             Al guardar, la tarifa se aplica a <strong>todos</strong> los paquetes de esa
             nacionalidad (incluidos los inactivos y los que tenían tarifa personalizada).
-            Las propuestas ya creadas no se modifican; las nuevas usan la tarifa actualizada.
+            Las propuestas en modo automático toman el catálogo al generar su PDF;
+            las que están en modo manual no se modifican.
           </p>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div>
@@ -408,7 +409,7 @@ function confirmRestore() {
 function handleDelete(pkg) {
   requestConfirm({
     title: 'Eliminar paquete',
-    message: `¿Eliminar "${pkg.name_es}"? Las propuestas ya creadas no se modifican.`,
+    message: `¿Eliminar "${pkg.name_es}"? El PDF de las propuestas en modo automático dejará de mostrarlo; las propuestas en modo manual no se modifican.`,
     variant: 'danger',
     confirmText: 'Eliminar',
     onConfirm: async () => {

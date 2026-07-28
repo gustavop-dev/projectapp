@@ -2553,7 +2553,11 @@ class ProposalPdfService:
                 # effort badge and scope clause stay from the stored section.
                 # Empty catalog → seed returns its input untouched (snapshot
                 # fallback); any failure → keep the stored snapshot.
-                if stype == 'commercial_conditions':
+                # Sections with hourPackagesMode == 'manual' opt out: their
+                # stored snapshot is authoritative and the catalog never
+                # touches it (absent/unknown values behave as 'auto').
+                if (stype == 'commercial_conditions'
+                        and data.get('hourPackagesMode') != 'manual'):
                     try:
                         data = seed_commercial_conditions_from_catalog(
                             data,
