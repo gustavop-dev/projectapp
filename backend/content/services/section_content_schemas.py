@@ -365,6 +365,10 @@ SECTION_CONTENT_SCHEMAS = {
         # below). Absent or unknown values behave as 'auto'. Type-only check by
         # design, like every other field here.
         'hourPackagesMode': str,
+        # Whether the hour-packages block (title, intro, table and effort badge)
+        # is printed at all. Absent → printed. The scope-exclusion clause is
+        # never affected: it is legal boilerplate that stands on its own.
+        'hourPackagesEnabled': bool,
         'hourlyRate': NUMERIC,
         'currency': str,
         # Manual base rate for this proposal only, applied to every package

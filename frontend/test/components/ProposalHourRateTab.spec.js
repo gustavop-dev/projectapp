@@ -1,9 +1,10 @@
 /**
- * ProposalHourRateTab — per-proposal hourly rate (auto / manual).
+ * ProposalHourRateTab — per-proposal hour packages (auto / manual).
  *
- * Auto mirrors the catalog; manual overrides only the rate while names, hours
- * and discounts keep coming from the catalog. The manual value must survive a
- * switch back to auto, and saving must never write catalog-owned keys.
+ * Auto mirrors the live catalog. Manual makes the proposal the owner of its own
+ * package list: rows can be edited, added and removed, and the catalog stops
+ * feeding it until «Restablecer» is used. A separate toggle decides whether the
+ * block is printed at all.
  */
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
@@ -14,55 +15,24 @@ import { useHourPackagesStore } from '../../stores/hour_packages';
 
 const CATALOG = [
   {
-    id: 8,
-    name_es: 'Ágil',
-    name_en: 'Agile',
-    note_es: 'nota',
-    note_en: 'note',
-    hours: 20,
-    hourly_rate: '30000',
-    discount_percent: 0,
-    is_active: true,
-    order: 2,
-    currency: 'COP',
+    id: 7, name_es: 'Pro', name_en: 'Pro', note_es: '', note_en: '',
+    hours: 60, hourly_rate: '30000', discount_percent: 10,
+    is_active: true, order: 1, currency: 'COP',
   },
   {
-    id: 7,
-    name_es: 'Pro',
-    name_en: 'Pro',
-    note_es: '',
-    note_en: '',
-    hours: 60,
-    hourly_rate: '30000',
-    discount_percent: 10,
-    is_active: true,
-    order: 1,
-    currency: 'COP',
+    id: 8, name_es: 'Ágil', name_en: 'Agile', note_es: 'nota', note_en: 'note',
+    hours: 20, hourly_rate: '45000', discount_percent: 0,
+    is_active: true, order: 2, currency: 'COP',
   },
   {
-    id: 9,
-    name_es: 'Inactivo',
-    name_en: 'Inactive',
-    hours: 5,
-    hourly_rate: '99000',
-    discount_percent: 0,
-    is_active: false,
-    order: 3,
-    currency: 'COP',
+    id: 9, name_es: 'Inactivo', name_en: 'Inactive', hours: 5,
+    hourly_rate: '99000', discount_percent: 0,
+    is_active: false, order: 3, currency: 'COP',
   },
-];
-
-// Same catalog, but the two active packages charge different rates. This is the
-// shape that catches a reset implemented as "base rate + no overrides": that
-// would flatten Ágil onto Pro's rate and price the proposal differently from
-// automatic mode.
-const CATALOG_MIXED = [
-  { ...CATALOG[0], hourly_rate: '45000' },
-  { ...CATALOG[1], hourly_rate: '30000' },
-  CATALOG[2],
 ];
 
 const PROPOSAL = { id: 3, nationality: 'COL', language: 'es', currency: 'COP' };
+const MANUAL = { hourPackagesMode: 'manual', manualCurrency: 'COP' };
 
 function buildSection(content = {}) {
   return {
@@ -73,9 +43,13 @@ function buildSection(content = {}) {
     is_wide_panel: false,
     content_json: {
       title: 'Condiciones comerciales',
+      scopeTitle: 'Alcance',
       currency: 'COP',
       hourlyRate: 30000,
-      packages: [],
+      packages: [
+        { id: 7, name: 'Pro', note: '', hours: 60, discountPercent: 10, hourlyRate: 30000 },
+        { id: 8, name: 'Ágil', note: 'nota', hours: 20, discountPercent: 0, hourlyRate: 45000 },
+      ],
       ...content,
     },
   };
@@ -86,11 +60,8 @@ async function mountTab({ content = {}, catalog = CATALOG, section = undefined }
   const proposalStore = useProposalStore();
   const hourPackagesStore = useHourPackagesStore();
 
-  const resolvedSection = section === null ? null : (section || buildSection(content));
-  proposalStore.currentProposal = {
-    ...PROPOSAL,
-    sections: resolvedSection ? [resolvedSection] : [],
-  };
+  const resolved = section === null ? null : (section || buildSection(content));
+  proposalStore.currentProposal = { ...PROPOSAL, sections: resolved ? [resolved] : [] };
   proposalStore.updateSection = jest.fn().mockResolvedValue({ success: true });
   proposalStore.createSection = jest.fn().mockResolvedValue({ success: true });
   hourPackagesStore.fetchAdminPackages = jest.fn().mockImplementation(async () => {
@@ -100,112 +71,156 @@ async function mountTab({ content = {}, catalog = CATALOG, section = undefined }
 
   const wrapper = mount(ProposalHourRateTab, { props: { proposal: PROPOSAL } });
   await flushPromises();
-  return { wrapper, proposalStore, hourPackagesStore };
+  return { wrapper, proposalStore };
 }
 
-const rowRate = (wrapper, id) => wrapper.find(`[data-testid="hour-rate-rate-${id}"]`).text();
-const rowTotal = (wrapper, id) => wrapper.find(`[data-testid="hour-rate-total-${id}"]`).text();
+const rowRate = (wrapper, key) => wrapper.find(`[data-testid="hour-rate-rate-${key}"]`).text();
+const savedJson = (store) => store.updateSection.mock.calls[0][1].content_json;
+
+async function editCell(wrapper, field, idx, value) {
+  const target = wrapper.find(`[data-testid="hour-package-cell-${field}-${idx}"]`);
+  await target.find('[data-testid="inline-cell-display"]').trigger('click');
+  const input = target.find('input');
+  await input.setValue(value);
+  await input.trigger('keydown.enter');
+  await flushPromises();
+}
 
 describe('ProposalHourRateTab', () => {
   it('auto mode prices every row from the live catalog, ordered and active-only', async () => {
     const { wrapper } = await mountTab();
 
-    const rows = wrapper.findAll('[data-testid^="hour-rate-row-"]');
+    const rows = wrapper.findAll('[data-testid^="hour-package-row-"]');
     expect(rows).toHaveLength(2);
-    // order=1 (Pro) comes before order=2 (Ágil); the inactive one is excluded.
-    expect(rows[0].text()).toContain('Pro');
+    expect(rows[0].text()).toContain('Pro');   // order 1 before order 2
     expect(rows[1].text()).toContain('Ágil');
-
-    // Pro: 30.000 with 10% off → 27.000/h, 60h → 1.620.000
-    expect(rowRate(wrapper, 7)).toContain('27.000');
-    expect(rowTotal(wrapper, 7)).toContain('1.620.000');
+    expect(rowRate(wrapper, 7)).toContain('27.000');  // 30.000 −10%
+    // Read-only: no editing affordance in auto.
+    expect(wrapper.find('[data-testid="inline-cell-display"]').exists()).toBe(false);
   });
 
-  it('switching to manual prefills from the catalog and reprices every row', async () => {
+  it('the mode switch flips between automatic and manual', async () => {
     const { wrapper } = await mountTab();
+    expect(wrapper.find('[data-testid="hour-rate-manual-input"]').exists()).toBe(false);
 
     await wrapper.find('[data-testid="hour-rate-mode-manual"]').trigger('click');
     await flushPromises();
 
-    const input = wrapper.find('[data-testid="hour-rate-manual-input"]');
-    expect(input.exists()).toBe(true);
-
-    await input.setValue('60.000');
-    await flushPromises();
-
-    // Pro: 60.000 with 10% off → 54.000/h, 60h → 3.240.000
-    expect(rowRate(wrapper, 7)).toContain('54.000');
-    expect(rowTotal(wrapper, 7)).toContain('3.240.000');
-    // Ágil keeps its catalog hours/discount, only the rate changed.
-    expect(rowRate(wrapper, 8)).toContain('60.000');
-    expect(rowTotal(wrapper, 8)).toContain('1.200.000');
+    expect(wrapper.find('[data-testid="hour-rate-manual-input"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="hour-rate-mode-hint"]').text()).toContain('sus propios paquetes');
   });
 
-  it('a per-package override beats the manual base rate', async () => {
-    const { wrapper } = await mountTab({
-      content: { hourPackagesMode: 'manual', manualHourlyRate: 60000, manualCurrency: 'COP' },
-    });
+  it('manual edits the proposal package list and saves it verbatim', async () => {
+    const { wrapper, proposalStore } = await mountTab({ content: MANUAL });
 
-    await wrapper.find('[data-testid="hour-rate-override-8"]').setValue('100.000');
-    await flushPromises();
-
-    expect(rowRate(wrapper, 8)).toContain('100.000');
-    // The other package still follows the base rate.
-    expect(rowRate(wrapper, 7)).toContain('54.000');
-  });
-
-  it('keeps the manual rate when switching back to auto and restores it on re-enable', async () => {
-    const { wrapper } = await mountTab({
-      content: { hourPackagesMode: 'manual', manualHourlyRate: 60000, manualCurrency: 'COP' },
-    });
-    expect(rowRate(wrapper, 8)).toContain('60.000');
-
-    await wrapper.find('[data-testid="hour-rate-mode-auto"]').trigger('click');
-    await flushPromises();
-    // Auto rules while it is on: back to the catalog rate.
-    expect(rowRate(wrapper, 8)).toContain('30.000');
-
-    await wrapper.find('[data-testid="hour-rate-mode-manual"]').trigger('click');
-    await flushPromises();
-    expect(rowRate(wrapper, 8)).toContain('60.000');
-  });
-
-  it('saves only the rate keys and never the catalog-owned ones', async () => {
-    const { wrapper, proposalStore } = await mountTab();
-
-    await wrapper.find('[data-testid="hour-rate-mode-manual"]').trigger('click');
-    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('60.000');
-    await wrapper.find('[data-testid="hour-rate-override-8"]').setValue('100.000');
-    await flushPromises();
+    await editCell(wrapper, 'name', 0, 'Pro a medida');
+    await editCell(wrapper, 'hours', 0, '80');
     await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
     await flushPromises();
 
-    expect(proposalStore.updateSection).toHaveBeenCalledTimes(1);
-    const [sectionId, payload] = proposalStore.updateSection.mock.calls[0];
-    expect(sectionId).toBe(42);
-    expect(payload.content_json).toMatchObject({
-      hourPackagesMode: 'manual',
-      manualHourlyRate: 60000,
-      manualCurrency: 'COP',
-      manualPackageRates: [{ packageId: 8, hourlyRate: 100000 }],
+    const json = savedJson(proposalStore);
+    expect(json.hourPackagesMode).toBe('manual');
+    expect(json.packages[0]).toMatchObject({ name: 'Pro a medida', hours: 80 });
+    // Fields this tab does not own survive untouched.
+    expect(json.scopeTitle).toBe('Alcance');
+  });
+
+  it('adds and removes packages, never dropping the last one', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL });
+    expect(wrapper.findAll('[data-testid^="hour-package-row-"]')).toHaveLength(2);
+
+    await wrapper.find('[data-testid="hour-packages-add"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid^="hour-package-row-"]')).toHaveLength(3);
+
+    await wrapper.find('[data-testid="hour-package-delete-2"]').trigger('click');
+    await wrapper.find('[data-testid="hour-package-delete-1"]').trigger('click');
+    await flushPromises();
+
+    const rows = wrapper.findAll('[data-testid^="hour-package-row-"]');
+    expect(rows).toHaveLength(1);
+    expect(wrapper.find('[data-testid="hour-package-delete-0"]').element.disabled).toBe(true);
+  });
+
+  it('keeps the manual list when switching to automatic and back', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL });
+    await editCell(wrapper, 'name', 0, 'Mío');
+
+    await wrapper.find('[data-testid="hour-rate-mode-auto"]').trigger('click');
+    await flushPromises();
+    // Auto shows the catalog again.
+    expect(wrapper.findAll('[data-testid^="hour-package-row-"]')[0].text()).toContain('Pro');
+
+    await wrapper.find('[data-testid="hour-rate-mode-manual"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.findAll('[data-testid^="hour-package-row-"]')[0].text()).toContain('Mío');
+  });
+
+  it('restoring pulls the whole list back from the catalog', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL });
+    await editCell(wrapper, 'name', 0, 'Mío');
+    await wrapper.find('[data-testid="hour-package-delete-1"]').trigger('click');
+    await flushPromises();
+
+    await wrapper.find('[data-testid="hour-rate-reset-catalog"]').trigger('click');
+    await flushPromises();
+
+    const rows = wrapper.findAll('[data-testid^="hour-package-row-"]');
+    expect(rows).toHaveLength(2);
+    expect(rows[0].text()).toContain('Pro');
+    // Each package keeps its own catalog rate rather than being flattened.
+    expect(rowRate(wrapper, 7)).toContain('27.000');
+    expect(rowRate(wrapper, 8)).toContain('45.000');
+    expect(wrapper.find('[data-testid="hour-rate-reset-catalog"]').element.disabled).toBe(true);
+  });
+
+  it('the print toggle travels in the payload without touching the packages', async () => {
+    const { wrapper, proposalStore } = await mountTab();
+    expect(wrapper.find('[data-testid="hour-rate-print-label"]').text()).toContain('se imprimen');
+
+    await wrapper.find('[aria-label="Incluir los paquetes por horas en el PDF"]').trigger('click');
+    await flushPromises();
+    expect(wrapper.find('[data-testid="hour-rate-print-label"]').text()).toContain('NO se imprimen');
+
+    await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
+    await flushPromises();
+    expect(savedJson(proposalStore).hourPackagesEnabled).toBe(false);
+  });
+
+  it('opens a legacy manual proposal at the price it is being quoted', async () => {
+    // The production shape before manual owned its packages: a base rate and
+    // packages carrying no rate of their own.
+    const { wrapper, proposalStore } = await mountTab({
+      content: {
+        ...MANUAL,
+        manualHourlyRate: 33000,
+        packages: [{ name: 'Ágil', note: '', hours: 20, discountPercent: 10 }],
+      },
     });
-    // Catalog-owned values are passed through as they were, never recomputed.
-    expect(payload.content_json.hourlyRate).toBe(30000);
-    expect(payload.content_json.currency).toBe('COP');
+
+    expect(rowRate(wrapper, 'row-0')).toContain('29.700');  // 33.000 −10%
+
+    // Merely opening it is not a change, so nothing is saved and the stored
+    // legacy shape keeps working. The consolidation lands on the next real edit.
+    expect(wrapper.find('[data-testid="hour-rate-save"]').element.disabled).toBe(true);
+
+    await editCell(wrapper, 'hours', 0, '30');
+    await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
+    await flushPromises();
+
+    const json = savedJson(proposalStore);
+    expect(json.packages[0]).toMatchObject({ hours: 30, hourlyRate: 33000 });
+    expect('manualHourlyRate' in json).toBe(false);
+    expect('manualPackageRates' in json).toBe(false);
   });
 
   it('falls back to auto and warns when the manual rate was set in another currency', async () => {
     const { wrapper } = await mountTab({
-      content: {
-        hourPackagesMode: 'manual',
-        manualHourlyRate: 60000,
-        manualCurrency: 'USD',
-      },
+      content: { hourPackagesMode: 'manual', manualCurrency: 'USD' },
     });
 
     expect(wrapper.find('[data-testid="hour-rate-currency-mismatch"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="hour-rate-manual-input"]').exists()).toBe(false);
-    expect(rowRate(wrapper, 8)).toContain('30.000');
   });
 
   it('offers to create the section when the proposal has none', async () => {
@@ -217,20 +232,10 @@ describe('ProposalHourRateTab', () => {
   });
 
   it('warns and previews from the stored snapshot when the catalog is empty', async () => {
-    const { wrapper } = await mountTab({
-      catalog: [],
-      content: {
-        packages: [
-          { name: 'Snapshot', hours: 10, discountPercent: 0, note: '', hourlyRate: 20000 },
-        ],
-      },
-    });
+    const { wrapper } = await mountTab({ catalog: [] });
 
     expect(wrapper.find('[data-testid="hour-rate-empty-catalog"]').exists()).toBe(true);
-    const rows = wrapper.findAll('[data-testid^="hour-rate-row-"]');
-    expect(rows).toHaveLength(1);
-    expect(rows[0].text()).toContain('Snapshot');
-    expect(rows[0].text()).toContain('200.000');
+    expect(wrapper.findAll('[data-testid^="hour-package-row-"]')).toHaveLength(2);
   });
 
   it('warns when the section is disabled and will not reach the PDF', async () => {
@@ -239,82 +244,5 @@ describe('ProposalHourRateTab', () => {
     const { wrapper } = await mountTab({ section });
 
     expect(wrapper.find('[data-testid="hour-rate-disabled-warning"]').exists()).toBe(true);
-  });
-});
-
-describe('ProposalHourRateTab — restablecer a los valores del catálogo', () => {
-  const MANUAL = { hourPackagesMode: 'manual', manualHourlyRate: 60000, manualCurrency: 'COP' };
-  const reset = (wrapper) => wrapper.find('[data-testid="hour-rate-reset-catalog"]');
-
-  it('restores the catalog rates and stays in manual mode', async () => {
-    const { wrapper } = await mountTab({ content: MANUAL });
-    expect(rowRate(wrapper, 7)).toContain('54.000');
-
-    await reset(wrapper).trigger('click');
-    await flushPromises();
-
-    // Back to the catalog: Pro 30.000 with 10% off → 27.000/h, Ágil 30.000 flat.
-    expect(rowRate(wrapper, 7)).toContain('27.000');
-    expect(rowRate(wrapper, 8)).toContain('30.000');
-    // Still manual — the rate input is present, the mode did not flip.
-    expect(wrapper.find('[data-testid="hour-rate-manual-input"]').exists()).toBe(true);
-  });
-
-  it('keeps each package on its own catalog rate instead of flattening them', async () => {
-    const { wrapper } = await mountTab({ content: MANUAL, catalog: CATALOG_MIXED });
-
-    await reset(wrapper).trigger('click');
-    await flushPromises();
-
-    // Pro is the ordering baseline at 30.000 (−10% → 27.000); Ágil charges
-    // 45.000 and must keep it rather than inherit Pro's rate.
-    expect(rowRate(wrapper, 7)).toContain('27.000');
-    expect(rowRate(wrapper, 8)).toContain('45.000');
-  });
-
-  it('produces exactly the prices automatic mode shows', async () => {
-    const auto = await mountTab({ catalog: CATALOG_MIXED });
-    const expected = [7, 8].map((id) => [rowRate(auto.wrapper, id), rowTotal(auto.wrapper, id)]);
-
-    const manual = await mountTab({ content: MANUAL, catalog: CATALOG_MIXED });
-    await reset(manual.wrapper).trigger('click');
-    await flushPromises();
-
-    const actual = [7, 8].map((id) => [rowRate(manual.wrapper, id), rowTotal(manual.wrapper, id)]);
-    expect(actual).toEqual(expected);
-  });
-
-  it('is disabled while the configuration already matches the catalog', async () => {
-    const { wrapper } = await mountTab({
-      content: { hourPackagesMode: 'manual', manualHourlyRate: 30000, manualCurrency: 'COP' },
-    });
-    expect(reset(wrapper).element.disabled).toBe(true);
-
-    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('60.000');
-    await flushPromises();
-    expect(reset(wrapper).element.disabled).toBe(false);
-  });
-
-  it('is not offered when the catalog has nothing to restore from', async () => {
-    const { wrapper } = await mountTab({ content: MANUAL, catalog: [] });
-
-    expect(reset(wrapper).exists()).toBe(false);
-  });
-
-  it('saves the restored catalog values', async () => {
-    const { wrapper, proposalStore } = await mountTab({
-      content: MANUAL, catalog: CATALOG_MIXED,
-    });
-
-    await reset(wrapper).trigger('click');
-    await flushPromises();
-    await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
-    await flushPromises();
-
-    const [, payload] = proposalStore.updateSection.mock.calls[0];
-    expect(payload.content_json.manualHourlyRate).toBe(30000);
-    expect(payload.content_json.manualPackageRates).toEqual([
-      { packageId: 8, hourlyRate: 45000 },
-    ]);
   });
 });

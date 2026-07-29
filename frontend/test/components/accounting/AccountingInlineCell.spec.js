@@ -261,4 +261,35 @@ describe('AccountingInlineCell', () => {
 
     expect(wrapper.emitted('save')).toEqual([['Terpel', { category: 'fuel' }]]);
   });
+
+  it('number type emits a number, not the typed string', async () => {
+    const wrapper = mountCell({ type: 'number', value: 20 });
+    const input = await openEditor(wrapper);
+
+    await input.setValue('80');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[80]]);
+  });
+
+  it('number type clamps to its bounds', async () => {
+    const wrapper = mountCell({ type: 'number', value: 10, min: 0, max: 100 });
+    const input = await openEditor(wrapper);
+
+    await input.setValue('250');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toEqual([[100]]);
+  });
+
+  it('number type keeps the previous value when the cell is blanked', async () => {
+    // Emitting 0 here would silently zero out an hours or discount cell.
+    const wrapper = mountCell({ type: 'number', value: 20 });
+    const input = await openEditor(wrapper);
+
+    await input.setValue('');
+    await input.trigger('keydown.enter');
+
+    expect(wrapper.emitted('save')).toBeUndefined();
+  });
 });

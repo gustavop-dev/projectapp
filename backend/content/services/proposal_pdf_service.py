@@ -29,7 +29,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfgen import canvas
 
 from content.services.hour_package_service import (
-    resolve_commercial_conditions_content,
+    apply_manual_hour_rates,
+    seed_commercial_conditions_from_catalog,
 )
 from content.services.proposal_service import normalize_hosting_plan
 from content.services.pdf_utils import (  # noqa: F401 — re-exported
@@ -2143,12 +2144,19 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     def _money(n):
         return _format_currency(n, currency)
 
+    # A proposal can opt out of printing the hour packages while keeping the
+    # scope-exclusion clause, which is legal boilerplate that stands on its own.
+    # Absent key → printed, so every existing proposal is unaffected. The effort
+    # badge goes with the packages: it explains how requirements are quoted
+    # against them, so on its own it references a table that is not there.
+    packages_enabled = data.get('hourPackagesEnabled') is not False
+
     # ── Hour packages ──────────────────────────────────────────
     packages_title = _safe(data, 'packagesTitle')
-    if packages_title:
+    if packages_enabled and packages_title:
         y = _draw_subtitle(c, y, packages_title, ps=ps)
     intro = _safe(data, 'packagesIntro')
-    if intro:
+    if packages_enabled and intro:
         y = _draw_paragraphs(c, y, [intro], ps=ps)
         y -= 4
 
@@ -2161,7 +2169,7 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
     # long names/notes wrap inside their cell, the header repeats across
     # pages, and money columns align right for easy comparison.
     pkg_rows = []
-    for pkg in _safe(data, 'packages', []) or []:
+    for pkg in ((_safe(data, 'packages', []) or []) if packages_enabled else []):
         name = _safe(pkg, 'name') or 'Paquete'
         try:
             hours = float(_safe(pkg, 'hours', 0) or 0)
@@ -2204,7 +2212,7 @@ def _render_commercial_conditions(c, data, _proposal, ps=None, y=None):
             aligns=['left', 'center', 'center', 'right', 'right'])
 
     effort_badge = _safe(data, 'effortBadge')
-    if effort_badge:
+    if packages_enabled and effort_badge:
         y -= 4
         y = _draw_callout_box(c, y, str(effort_badge), style='warning',
                               ps=ps, label='IMPORTANTE')
@@ -2550,23 +2558,32 @@ class ProposalPdfService:
                 # ``sec.content_json`` for every section that is not re-seeded.
                 data = dict(sec.content_json or {})
 
-                # Hour packages are catalog-driven, not a frozen snapshot:
-                # re-seed currency/hourlyRate/packages on every generation so
-                # catalog edits reach every downloaded PDF. Titles, intros,
-                # effort badge and scope clause stay from the stored section.
-                # Empty catalog → seed returns its input untouched (snapshot
-                # fallback); any failure → keep the stored snapshot.
-                # hourPackagesMode == 'manual' does NOT opt out of seeding:
-                # the catalog still owns names/hours/discounts/currency and
-                # only the rates are overlaid from the proposal's manual
-                # values (absent/unknown values behave as 'auto').
+                # Two modes, and they are genuinely different sources:
+                #
+                # auto (default): the catalog owns the packages. Re-seed
+                # currency/hourlyRate/packages on every generation so catalog
+                # edits reach every downloaded PDF. Titles, intros, effort badge
+                # and scope clause stay from the stored section. Empty catalog →
+                # seed returns its input untouched (snapshot fallback).
+                #
+                # manual: the proposal owns its own package list — it can add,
+                # remove and rename rows — so the stored snapshot is
+                # authoritative and the catalog never touches it. The overlay
+                # only applies the legacy manualHourlyRate/manualPackageRates
+                # shape and is a no-op once a proposal has been re-saved from
+                # the panel.
+                #
+                # Any failure → keep the stored snapshot.
                 if stype == 'commercial_conditions':
                     try:
-                        data = resolve_commercial_conditions_content(
-                            data,
-                            nationality=proposal.nationality,
-                            language=ps['_pdf_lang'],
-                        )
+                        if data.get('hourPackagesMode') == 'manual':
+                            data = apply_manual_hour_rates(data)
+                        else:
+                            data = seed_commercial_conditions_from_catalog(
+                                data,
+                                nationality=proposal.nationality,
+                                language=ps['_pdf_lang'],
+                            )
                     except Exception:
                         logger.warning(
                             'Hour-package re-seed failed for proposal %s; '

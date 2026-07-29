@@ -102,6 +102,7 @@ def merge_value_added_legal_terms(new_content, previous_content):
 # Per-proposal hour-rate settings, owned by the «Tarifa por hora» panel tab.
 MANUAL_HOUR_RATE_FIELDS = (
     'hourPackagesMode',
+    'hourPackagesEnabled',
     'manualHourlyRate',
     'manualCurrency',
     'manualPackageRates',

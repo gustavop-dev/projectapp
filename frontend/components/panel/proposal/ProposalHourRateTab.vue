@@ -43,70 +43,104 @@
         equivocado: revisá la tarifa antes de reactivar el modo manual.
       </div>
 
-      <!-- Mode switch -->
+      <!-- Mode switch: both labels visible so neither position has to be guessed -->
       <div>
         <span class="block text-xs text-text-muted mb-1">Fuente de la tarifa por hora</span>
-        <BaseSegmented v-model="mode" :options="MODE_OPTIONS" size="sm" />
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            data-testid="hour-rate-mode-auto"
+            class="text-xs transition-colors"
+            :class="isAuto ? 'font-semibold text-text-default' : 'text-text-subtle hover:text-text-muted'"
+            @click="mode = 'auto'"
+          >
+            Automático
+          </button>
+          <BaseToggle
+            :model-value="!isAuto"
+            size="sm"
+            aria-label="Alternar entre tarifa automática y manual"
+            @update:model-value="mode = $event ? 'manual' : 'auto'"
+          />
+          <button
+            type="button"
+            data-testid="hour-rate-mode-manual"
+            class="text-xs transition-colors"
+            :class="!isAuto ? 'font-semibold text-text-default' : 'text-text-subtle hover:text-text-muted'"
+            @click="mode = 'manual'"
+          >
+            Manual
+          </button>
+        </div>
         <p data-testid="hour-rate-mode-hint" class="text-[11px] text-text-subtle mt-1">
           <template v-if="isAuto">
-            La tarifa sale del catálogo de Paquetes por horas y se sincroniza sola: si el
-            catálogo cambia, el PDF de esta propuesta cambia con él.
+            Los paquetes y la tarifa salen del catálogo de Paquetes por horas y se
+            sincronizan solos: si el catálogo cambia, el PDF de esta propuesta cambia con él.
           </template>
           <template v-else>
-            Esta propuesta usa su propia tarifa. Los nombres, las horas y los descuentos
-            siguen viniendo del catálogo; sólo cambia el precio de la hora, y sólo acá.
+            Esta propuesta usa sus propios paquetes. Podés editarlos, agregar y quitar
+            filas; el catálogo ya no la toca hasta que uses «Restablecer».
           </template>
         </p>
       </div>
 
-      <!-- Manual inputs -->
+      <!-- Print toggle -->
+      <div class="flex items-start gap-2">
+        <BaseToggle
+          :model-value="packagesEnabled"
+          size="sm"
+          aria-label="Incluir los paquetes por horas en el PDF"
+          @update:model-value="packagesEnabled = $event"
+        />
+        <div>
+          <span data-testid="hour-rate-print-label" class="block text-xs text-text-default">
+            {{ packagesEnabled
+              ? 'Los paquetes por horas se imprimen en el PDF'
+              : 'Los paquetes por horas NO se imprimen en el PDF' }}
+          </span>
+          <span class="block text-[11px] text-text-subtle">
+            La cláusula de alcance se sigue imprimiendo en ambos casos.
+          </span>
+        </div>
+      </div>
+
+      <!-- Manual controls -->
       <div
         v-if="!isAuto"
         class="border border-border-default dark:border-white/[0.08] rounded-xl p-3 bg-surface-raised space-y-2"
       >
-        <label class="block">
-          <span class="block text-xs text-text-muted mb-0.5">Tarifa por hora</span>
+        <label class="block max-w-xs">
+          <span class="block text-xs text-text-muted mb-0.5">Tarifa base por hora</span>
           <BaseCurrencyInput
-            v-model="manualHourlyRate"
+            v-model="baseRate"
             data-testid="hour-rate-manual-input"
             :decimals="rateDecimals"
             placeholder="30000"
           />
         </label>
         <p class="text-[11px] text-text-subtle">
-          Es la tarifa <span class="font-medium">antes del descuento</span>: el descuento de
-          cada paquete se aplica encima. Moneda: {{ currency }} (la define el catálogo).
+          Se aplica a los paquetes que no tengan tarifa propia. Moneda:
+          {{ currency }} (la define el catálogo).
         </p>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
-          <button
-            v-if="hasOverrides"
-            type="button"
-            data-testid="hour-rate-clear-overrides"
-            class="text-xs font-medium text-text-brand hover:underline"
-            @click="clearOverrides"
-          >
-            Aplicar esta tarifa a todos los paquetes
-          </button>
-          <button
-            v-if="catalogDefaults"
-            type="button"
-            data-testid="hour-rate-reset-catalog"
-            class="text-xs font-medium text-text-brand hover:underline disabled:opacity-50 disabled:cursor-not-allowed disabled:no-underline"
-            :disabled="isAtCatalogDefaults"
-            @click="resetToCatalogDefaults"
-          >
-            Restablecer a los valores del catálogo
-          </button>
-        </div>
+        <button
+          v-if="catalogDefaults"
+          type="button"
+          data-testid="hour-rate-reset-catalog"
+          class="px-3 py-1.5 rounded-lg border border-border-default bg-surface text-xs font-medium text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isAtCatalogDefaults"
+          @click="resetToCatalogDefaults"
+        >
+          Restablecer a los valores del catálogo
+        </button>
         <p v-if="catalogDefaults" class="text-[11px] text-text-subtle">
-          Restablecer copia las tarifas del catálogo pero la propuesta
-          <span class="font-medium">sigue en manual</span>: queda con los valores de hoy y
-          no vuelve a seguir al catálogo hasta que pases a automático.
+          Repone los paquetes tal como están hoy en el catálogo. La propuesta
+          <span class="font-medium">sigue en manual</span>: no vuelve a seguirlo hasta
+          que pases a automático.
         </p>
       </div>
 
       <div
-        v-if="!catalogPackages.length"
+        v-if="isAuto && !catalogPackages.length"
         data-testid="hour-rate-empty-catalog"
         class="rounded-lg border border-warning-strong/40 bg-warning-soft px-3 py-2 text-xs text-warning-strong"
       >
@@ -114,63 +148,21 @@
         usa la última foto guardada en la propuesta.
       </div>
 
-      <!-- Live preview: the same table the PDF prints -->
-      <div>
+      <!-- Live preview / editor -->
+      <div :class="packagesEnabled ? '' : 'opacity-50'">
         <span class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">
-          Previsualización
+          {{ isAuto ? 'Previsualización' : 'Paquetes de esta propuesta' }}
         </span>
-        <div class="overflow-x-auto">
-          <table data-testid="hour-rate-preview" class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-border-default dark:border-white/[0.08]">
-                <th class="text-left font-medium text-text-muted py-2 pr-2">{{ labels.package }}</th>
-                <th class="text-center font-medium text-text-muted py-2 px-2">{{ labels.hours }}</th>
-                <th class="text-center font-medium text-text-muted py-2 px-2">{{ labels.discount }}</th>
-                <th class="text-right font-medium text-text-muted py-2 px-2">{{ labels.rate }}</th>
-                <th class="text-right font-medium text-text-muted py-2 pl-2">{{ labels.total }}</th>
-                <th v-if="!isAuto" class="text-right font-medium text-text-muted py-2 pl-2">Tarifa propia</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="row in previewRows"
-                :key="row.key"
-                :data-testid="`hour-rate-row-${row.key}`"
-                class="border-b border-border-default/60 dark:border-white/[0.05]"
-              >
-                <td class="py-2 pr-2">
-                  <span class="font-medium text-text-default">{{ row.name }}</span>
-                  <span v-if="row.note" class="block text-[11px] text-text-subtle">{{ row.note }}</span>
-                </td>
-                <td class="text-center text-text-default py-2 px-2">{{ row.hours }} h</td>
-                <td class="text-center text-text-default py-2 px-2">{{ row.discountLabel }}</td>
-                <td class="text-right text-text-default py-2 px-2" :data-testid="`hour-rate-rate-${row.key}`">
-                  {{ row.rateLabel }}/h
-                </td>
-                <td class="text-right font-medium text-text-default py-2 pl-2" :data-testid="`hour-rate-total-${row.key}`">
-                  {{ row.totalLabel }}
-                </td>
-                <td v-if="!isAuto" class="py-2 pl-2 w-40">
-                  <BaseCurrencyInput
-                    v-if="row.id != null"
-                    :modelValue="overrideFor(row.id)"
-                    :data-testid="`hour-rate-override-${row.id}`"
-                    :decimals="rateDecimals"
-                    size="sm"
-                    placeholder="Usa la tarifa base"
-                    @update:modelValue="setOverride(row.id, $event)"
-                  />
-                  <span v-else class="text-[11px] text-text-subtle">—</span>
-                </td>
-              </tr>
-              <tr v-if="!previewRows.length">
-                <td colspan="6" class="py-4 text-center text-xs text-text-subtle">
-                  No hay paquetes para mostrar.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ProposalHourPackagesTable
+          :packages="displayPackages"
+          :editable="!isAuto"
+          :currency="currency"
+          :base-rate="baseRate"
+          :language="proposal?.language || 'es'"
+          @update="updatePackage"
+          @remove="removePackage"
+          @add="addPackage"
+        />
       </div>
 
       <div class="flex items-center gap-3">
@@ -192,11 +184,11 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import BaseCurrencyInput from '~/components/base/BaseCurrencyInput.vue';
-import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import BaseToggle from '~/components/base/BaseToggle.vue';
+import ProposalHourPackagesTable from '~/components/panel/proposal/ProposalHourPackagesTable.vue';
 import { useProposalStore } from '~/stores/proposals';
 import { useHourPackagesStore } from '~/stores/hour_packages';
 import { usePanelNotify } from '~/composables/usePanelNotify';
-import { effectiveRate, totalPrice, formatPackageMoney } from '~/utils/hourPackagePricing.js';
 
 const props = defineProps({
   proposal: { type: Object, required: true },
@@ -207,14 +199,11 @@ const proposalsStore = useProposalStore();
 const hourPackagesStore = useHourPackagesStore();
 const notify = usePanelNotify();
 
-const MODE_OPTIONS = [
-  { value: 'auto', label: 'Automático (catálogo)', testId: 'hour-rate-mode-auto' },
-  { value: 'manual', label: 'Manual', testId: 'hour-rate-mode-manual' },
-];
-
 const mode = ref('auto');
-const manualHourlyRate = ref(null);
-const overrides = ref({});
+const packagesEnabled = ref(true);
+const baseRate = ref(null);
+/** Manual mode only: the proposal's own package list, edited in place. */
+const packages = ref([]);
 const isSaving = ref(false);
 const isCreating = ref(false);
 const currencyMismatch = ref(false);
@@ -229,9 +218,8 @@ const section = computed(() => (proposalsStore.currentProposal?.sections || [])
 
 const content = computed(() => section.value?.content_json || {});
 
-// The catalog is the source of truth for structure in BOTH modes. Mirror the
-// backend query exactly (active only, ordered by order then hours) — that
-// ordering is where a preview most easily drifts from the PDF.
+// Mirror the backend query exactly (active only, ordered by order then hours) —
+// that ordering is where a preview most easily drifts from the PDF.
 const catalogPackages = computed(() => (hourPackagesStore.packages || [])
   .filter((p) => p.is_active)
   .slice()
@@ -245,148 +233,120 @@ const currency = computed(() => catalogPackages.value[0]?.currency
 // COP shows whole pesos; USD keeps cents (mirrors BaseCurrencyInput usage).
 const rateDecimals = computed(() => (currency.value === 'COP' ? 0 : 2));
 
-const isEnglish = computed(() => props.proposal?.language === 'en');
-
-const labels = computed(() => {
-  // Tax label lives inside the header in parentheses, like the PDF.
-  const tax = currency.value === 'USD' ? '+ Tax' : '+ IVA';
-  return isEnglish.value
-    ? { package: 'Package', hours: 'Hours', discount: 'Disc.', rate: `Rate/hour (${tax})`, total: `Total (${tax})` }
-    : { package: 'Paquete', hours: 'Horas', discount: 'Dcto.', rate: `Tarifa/hora (${tax})`, total: `Total (${tax})` };
-});
-
-// Preview rows come from the live catalog; only when it is empty do we fall
-// back to the stored snapshot, which is exactly what the PDF does.
-const sourceRows = computed(() => {
-  if (catalogPackages.value.length) {
-    return catalogPackages.value.map((p) => ({
-      id: p.id,
-      name: isEnglish.value ? p.name_en : p.name_es,
-      note: isEnglish.value ? p.note_en : p.note_es,
-      hours: Number(p.hours) || 0,
-      discountPercent: Number(p.discount_percent) || 0,
-      catalogRate: Number(p.hourly_rate) || 0,
-    }));
-  }
-  return (content.value.packages || []).map((p, idx) => ({
-    id: p.id ?? null,
-    key: `snapshot-${idx}`,
-    name: p.name || '',
-    note: p.note || '',
-    hours: Number(p.hours) || 0,
-    discountPercent: Number(p.discountPercent) || 0,
-    catalogRate: Number(p.hourlyRate) || Number(content.value.hourlyRate) || 0,
-  }));
-});
-
-function resolvedRate(row) {
-  if (isAuto.value) return row.catalogRate;
-  const own = row.id == null ? null : overrides.value[String(row.id)];
-  if (own != null && Number(own) > 0) return Number(own);
-  const base = Number(manualHourlyRate.value);
-  return base > 0 ? base : row.catalogRate;
-}
-
-const previewRows = computed(() => sourceRows.value.map((row, idx) => {
-  // hourPackagePricing speaks the catalog's snake_case shape.
-  const snake = {
-    hourly_rate: resolvedRate(row),
-    discount_percent: row.discountPercent,
-    hours: row.hours,
-  };
+function fromCatalog(pkg) {
   return {
-    ...row,
-    key: row.key || row.id || `row-${idx}`,
-    discountLabel: row.discountPercent ? `-${row.discountPercent}%` : '—',
-    rateLabel: formatPackageMoney(effectiveRate(snake), currency.value),
-    totalLabel: formatPackageMoney(totalPrice(snake), currency.value),
+    id: pkg.id,
+    name: props.proposal?.language === 'en' ? pkg.name_en : pkg.name_es,
+    note: (props.proposal?.language === 'en' ? pkg.note_en : pkg.note_es) || '',
+    hours: Number(pkg.hours) || 0,
+    discountPercent: Number(pkg.discount_percent) || 0,
+    hourlyRate: Number(pkg.hourly_rate) || 0,
   };
-}));
-
-const hasOverrides = computed(() => Object.keys(overrides.value).length > 0);
-
-function overrideFor(id) {
-  const value = overrides.value[String(id)];
-  return value == null ? null : value;
 }
 
-function setOverride(id, value) {
-  const next = { ...overrides.value };
-  if (value == null || value === '' || Number(value) <= 0) {
-    delete next[String(id)];
-  } else {
-    next[String(id)] = Number(value);
-  }
-  overrides.value = next;
-}
-
-function clearOverrides() {
-  overrides.value = {};
-}
-
-// The manual configuration that reproduces automatic mode exactly.
-//
-// Catalog packages can carry different rates from one another, so this is NOT
-// "the base rate with no overrides" — that would flatten every package onto the
-// first one's rate and quietly price the proposal differently from auto. It
-// mirrors the seeder instead (hour_package_service.seed_commercial_conditions_
-// from_catalog): the first package's rate is the baseline, and any package that
-// charges something else carries its own override. Packages that match the base
-// get no entry, so the table does not fill up with redundant inputs.
-const catalogDefaults = computed(() => {
-  const packages = catalogPackages.value;
-  if (!packages.length) return null;
-  const base = Number(packages[0].hourly_rate) || 0;
-  if (base <= 0) return null;
-  const result = {};
-  for (const pkg of packages) {
-    const rate = Number(pkg.hourly_rate) || 0;
-    if (rate > 0 && rate !== base) result[String(pkg.id)] = rate;
-  }
-  return { base, overrides: result };
+// Auto previews the live catalog, so it shows what the PDF will actually print
+// rather than the stored snapshot, which may be stale. Manual shows the
+// proposal's own list. With an empty catalog, auto falls back to the snapshot —
+// exactly what the PDF does.
+const displayPackages = computed(() => {
+  if (!isAuto.value) return packages.value;
+  if (catalogPackages.value.length) return catalogPackages.value.map(fromCatalog);
+  return content.value.packages || [];
 });
 
-// Compared through the same serializer the dirty tracker uses, so "already at
-// the defaults" and "no unsaved changes" can never disagree about equality.
+// --- catalog defaults (the reset action) ----------------------------------
+
+const catalogDefaults = computed(() => {
+  if (!catalogPackages.value.length) return null;
+  const base = Number(catalogPackages.value[0].hourly_rate) || 0;
+  if (base <= 0) return null;
+  return { base, packages: catalogPackages.value.map(fromCatalog) };
+});
+
 const isAtCatalogDefaults = computed(() => {
   const defaults = catalogDefaults.value;
   if (!defaults) return false;
-  return snapshot() === snapshotOf(defaults.base, defaults.overrides);
+  return snapshotOf(defaults.base, defaults.packages) === snapshot();
 });
 
 function resetToCatalogDefaults() {
   const defaults = catalogDefaults.value;
   if (!defaults) return;
-  manualHourlyRate.value = defaults.base;
-  overrides.value = { ...defaults.overrides };
+  baseRate.value = defaults.base;
+  packages.value = defaults.packages.map((p) => ({ ...p }));
+}
+
+// --- manual editing -------------------------------------------------------
+
+function updatePackage(index, field, value) {
+  const row = packages.value[index];
+  if (!row) return;
+  packages.value = packages.value.map((pkg, idx) => (
+    idx === index ? { ...pkg, [field]: value } : pkg
+  ));
+}
+
+function removePackage(index) {
+  // The PDF section makes no sense with an empty table, so the last row stays.
+  if (packages.value.length <= 1) return;
+  packages.value = packages.value.filter((_, idx) => idx !== index);
+}
+
+function addPackage() {
+  packages.value = [...packages.value, {
+    name: 'Paquete nuevo',
+    note: '',
+    hours: 10,
+    discountPercent: 0,
+    hourlyRate: Number(baseRate.value) || 0,
+  }];
 }
 
 // --- load / dirty tracking ------------------------------------------------
 
-function overridesFromContent(json) {
-  const result = {};
+/**
+ * The proposal's own package list, resolving the legacy storage shape.
+ *
+ * Proposals saved before manual owned its packages carry `manualHourlyRate`
+ * and `manualPackageRates` (keyed by catalog id) instead of per-package rates.
+ * Folding them in here means those proposals open showing the prices they are
+ * actually being quoted at, and drop the legacy keys on the next save.
+ */
+function packagesFromContent(json) {
+  const legacyRates = {};
   for (const entry of json.manualPackageRates || []) {
     if (entry?.packageId == null) continue;
     const rate = Number(entry.hourlyRate);
-    if (rate > 0) result[String(entry.packageId)] = rate;
+    if (rate > 0) legacyRates[String(entry.packageId)] = rate;
   }
-  return result;
+  const legacyBase = Number(json.manualHourlyRate) || 0;
+  return (json.packages || []).map((pkg) => {
+    const own = Number(pkg.hourlyRate) || 0;
+    const legacy = legacyRates[String(pkg.id)] || legacyBase;
+    return {
+      ...(pkg.id == null ? {} : { id: pkg.id }),
+      name: pkg.name || '',
+      note: pkg.note || '',
+      hours: Number(pkg.hours) || 0,
+      discountPercent: Number(pkg.discountPercent) || 0,
+      hourlyRate: own > 0 ? own : legacy,
+    };
+  });
 }
 
 function loadFromSection() {
   const json = content.value;
-  manualHourlyRate.value = json.manualHourlyRate ?? null;
-  overrides.value = overridesFromContent(json);
+  packagesEnabled.value = json.hourPackagesEnabled !== false;
+  baseRate.value = Number(json.manualHourlyRate) || Number(json.hourlyRate) || null;
+  packages.value = packagesFromContent(json);
   storedManualCurrency.value = json.manualCurrency || '';
 
   // A nationality change after a manual rate was set would silently reprint a
   // COP amount as USD. Fall back to auto and say so instead.
   const stored = json.manualCurrency;
-  const hasManualValue = json.manualHourlyRate != null
-    || Object.keys(overrides.value).length > 0;
   currencyMismatch.value = Boolean(
-    json.hourPackagesMode === 'manual' && hasManualValue
-    && stored && currency.value && stored !== currency.value,
+    json.hourPackagesMode === 'manual' && stored && currency.value
+    && stored !== currency.value,
   );
   mode.value = currencyMismatch.value
     ? 'auto'
@@ -395,39 +355,39 @@ function loadFromSection() {
 
 const baseline = ref('');
 
-// Canonical serialization of the editable state. Override keys are sorted and
-// the rate is coerced: JSON.stringify preserves insertion order, so two maps
-// holding the same rates would otherwise compare as different depending on the
-// order they were typed in.
-function snapshotOf(rate, overrideMap) {
+/**
+ * Canonical serialization of the editable state. The package list is included
+ * field by field: without it the dirty tracker — and the "already at the
+ * catalog values" check — would be blind to every inline edit.
+ */
+function snapshotOf(rate, packageList) {
   const numeric = Number(rate);
   return JSON.stringify({
     mode: mode.value,
+    enabled: packagesEnabled.value,
     rate: Number.isFinite(numeric) && rate !== null && rate !== '' ? numeric : null,
-    overrides: Object.keys(overrideMap || {}).sort().map(
-      (id) => [id, Number(overrideMap[id])],
-    ),
+    packages: (packageList || []).map((p) => [
+      p.name || '', p.note || '', Number(p.hours) || 0,
+      Number(p.discountPercent) || 0, Number(p.hourlyRate) || 0,
+    ]),
   });
 }
 
 function snapshot() {
-  return snapshotOf(manualHourlyRate.value, overrides.value);
+  return snapshotOf(baseRate.value, packages.value);
 }
 
 const isDirty = computed(() => baseline.value !== '' && baseline.value !== snapshot());
 
 watch(isDirty, (value) => emit('dirty-state-change', value));
 
-// Prefill the manual rate from the catalog the first time manual is enabled,
-// so the field never starts empty and print a $0 table.
+// Entering manual with nothing stored would leave an empty table, and the
+// minimum is one package — seed from the catalog.
 watch(mode, (value, previous) => {
   if (value === 'manual' && previous === 'auto') {
     currencyMismatch.value = false;
-    if (manualHourlyRate.value == null || Number(manualHourlyRate.value) <= 0) {
-      manualHourlyRate.value = catalogPackages.value[0]?.hourly_rate
-        ? Number(catalogPackages.value[0].hourly_rate)
-        : null;
-    }
+    if (!packages.value.length && catalogDefaults.value) resetToCatalogDefaults();
+    if (!baseRate.value && catalogDefaults.value) baseRate.value = catalogDefaults.value.base;
   }
 });
 
@@ -468,35 +428,32 @@ async function save() {
   if (!current) return;
   isSaving.value = true;
   try {
-    // Spread the section as it stands in the store right now, and write only
-    // the rate keys: packages, currency and hourlyRate stay catalog-owned.
+    // Spread the section as it stands in the store right now, so fields this
+    // tab does not own (titles, scope clause) survive untouched.
     const next = { ...(current.content_json || {}) };
     next.hourPackagesMode = mode.value;
+    next.hourPackagesEnabled = packagesEnabled.value;
 
-    // An empty rate is removed rather than stored as 0, which the PDF would
-    // print as $0 packages instead of falling back to the catalog.
-    const rate = Number(manualHourlyRate.value);
-    if (rate > 0) {
-      next.manualHourlyRate = rate;
-    } else if (mode.value === 'manual') {
+    if (mode.value === 'manual') {
+      // Manual owns the list outright, so it is written verbatim and the legacy
+      // override keys are consolidated away.
+      next.packages = packages.value.map((p) => ({
+        ...(p.id == null ? {} : { id: p.id }),
+        name: p.name || '',
+        note: p.note || '',
+        hours: Number(p.hours) || 0,
+        discountPercent: Number(p.discountPercent) || 0,
+        hourlyRate: Number(p.hourlyRate) || 0,
+      }));
+      const rate = Number(baseRate.value);
+      if (rate > 0) next.hourlyRate = rate;
+      next.manualCurrency = currency.value;
       delete next.manualHourlyRate;
-    }
-
-    const entries = Object.entries(overrides.value)
-      .map(([packageId, hourlyRate]) => ({ packageId: Number(packageId), hourlyRate }));
-    if (entries.length) {
-      next.manualPackageRates = entries;
-    } else {
       delete next.manualPackageRates;
     }
-
-    // Stamp the currency whenever a manual value is stored, so a later change
-    // of nationality is detectable instead of silently reprinting COP as USD.
-    if (rate > 0 || entries.length) {
-      next.manualCurrency = currency.value;
-    } else {
-      delete next.manualCurrency;
-    }
+    // In auto the catalog re-seeds at generation time, so packages/hourlyRate
+    // are left exactly as stored: that snapshot is what keeps the manual work
+    // recoverable when the switch goes back to manual.
 
     const result = await proposalsStore.updateSection(current.id, {
       title: current.title,
@@ -511,7 +468,7 @@ async function save() {
     storedManualCurrency.value = next.manualCurrency || '';
     notify.success(
       mode.value === 'manual'
-        ? 'Tarifa manual guardada. El PDF ya la usa.'
+        ? 'Paquetes guardados. El PDF ya los usa.'
         : 'Tarifa sincronizada con el catálogo.',
     );
   } finally {
