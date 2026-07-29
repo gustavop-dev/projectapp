@@ -164,6 +164,30 @@ test.describe('Admin — proposal hourly rate', () => {
     expect(cj.scopeTitle).toBe('Alcance');
   });
 
+  test('the base rate only reaches the table through «Aplicar a todos»', {
+    tag: [...ADMIN_PROPOSAL_HOUR_RATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const { captured } = await openTab(page, { proposal: buildProposal(MANUAL) });
+
+    await page.getByTestId('hour-rate-manual-input').fill('90.000');
+    // Typing alone must not move anything: every package owns its rate.
+    await expect(page.getByTestId('hour-rate-rate-7')).toContainText('27.000');
+    await expect(page.getByTestId('hour-rate-rate-8')).toContainText('45.000');
+
+    await page.getByTestId('hour-rate-apply-base-all').click();
+
+    // Now every row charges 90.000, each keeping its own discount on top.
+    await expect(page.getByTestId('hour-rate-rate-7')).toContainText('81.000');
+    await expect(page.getByTestId('hour-rate-rate-8')).toContainText('90.000');
+    // Nothing left to apply.
+    await expect(page.getByTestId('hour-rate-apply-base-all')).toBeDisabled();
+
+    await page.getByTestId('hour-rate-save').click();
+    await expect(page.getByTestId('hour-rate-save')).toBeDisabled();
+
+    expect(captured[0].content_json.packages.map((p) => p.hourlyRate)).toEqual([90000, 90000]);
+  });
+
   test('packages can be added and removed, never below one', {
     tag: [...ADMIN_PROPOSAL_HOUR_RATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
