@@ -125,6 +125,51 @@ describe('ProposalHourRateTab', () => {
     expect(json.scopeTitle).toBe('Alcance');
   });
 
+  it('typing the base rate alone leaves the table untouched', async () => {
+    // Regression: the field used to look live and move nothing, because every
+    // package already carried its own rate and the base was only a fallback.
+    const { wrapper } = await mountTab({ content: MANUAL });
+
+    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('90.000');
+    await flushPromises();
+
+    expect(rowRate(wrapper, 7)).toContain('27.000');
+    expect(rowRate(wrapper, 8)).toContain('45.000');
+  });
+
+  it('applying the base rate rewrites every package and reprices the rows', async () => {
+    const { wrapper, proposalStore } = await mountTab({ content: MANUAL });
+
+    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('90.000');
+    await wrapper.find('[data-testid="hour-rate-apply-base-all"]').trigger('click');
+    await flushPromises();
+
+    // Each row keeps its own discount on top of the shared rate.
+    expect(rowRate(wrapper, 7)).toContain('81.000');   // 90.000 −10%
+    expect(rowRate(wrapper, 8)).toContain('90.000');   // sin descuento
+
+    await wrapper.find('[data-testid="hour-rate-save"]').trigger('click');
+    await flushPromises();
+    expect(savedJson(proposalStore).packages.map((p) => p.hourlyRate)).toEqual([90000, 90000]);
+  });
+
+  it('the apply button is off with no base rate and once every row already charges it', async () => {
+    const { wrapper } = await mountTab({ content: MANUAL });
+    const apply = () => wrapper.find('[data-testid="hour-rate-apply-base-all"]');
+
+    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('');
+    await flushPromises();
+    expect(apply().element.disabled).toBe(true);
+
+    await wrapper.find('[data-testid="hour-rate-manual-input"]').setValue('90.000');
+    await flushPromises();
+    expect(apply().element.disabled).toBe(false);
+
+    await apply().trigger('click');
+    await flushPromises();
+    expect(apply().element.disabled).toBe(true);
+  });
+
   it('adds and removes packages, never dropping the last one', async () => {
     const { wrapper } = await mountTab({ content: MANUAL });
     expect(wrapper.findAll('[data-testid^="hour-package-row-"]')).toHaveLength(2);

@@ -109,18 +109,30 @@
         v-if="!isAuto"
         class="border border-border-default dark:border-white/[0.08] rounded-xl p-3 bg-surface-raised space-y-2"
       >
-        <label class="block max-w-xs">
-          <span class="block text-xs text-text-muted mb-0.5">Tarifa base por hora</span>
-          <BaseCurrencyInput
-            v-model="baseRate"
-            data-testid="hour-rate-manual-input"
-            :decimals="rateDecimals"
-            placeholder="30000"
-          />
-        </label>
+        <div class="flex items-end gap-2">
+          <label class="block max-w-xs flex-1">
+            <span class="block text-xs text-text-muted mb-0.5">Tarifa base por hora</span>
+            <BaseCurrencyInput
+              v-model="baseRate"
+              data-testid="hour-rate-manual-input"
+              :decimals="rateDecimals"
+              placeholder="30000"
+            />
+          </label>
+          <button
+            type="button"
+            data-testid="hour-rate-apply-base-all"
+            class="shrink-0 px-3 py-2 rounded-lg border border-border-default bg-surface text-xs font-medium text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            :disabled="!canApplyBaseRate"
+            @click="applyBaseRateToAll"
+          >
+            Aplicar a todos
+          </button>
+        </div>
         <p class="text-[11px] text-text-subtle">
-          Se aplica a los paquetes que no tengan tarifa propia. Moneda:
-          {{ currency }} (la define el catálogo).
+          Escribir acá no mueve la tabla: la tarifa se copia a todos los paquetes cuando
+          apretás «Aplicar a todos», y después podés ajustar los que quieras en su celda.
+          Moneda: {{ currency }} (la define el catálogo).
         </p>
         <button
           v-if="catalogDefaults"
@@ -274,6 +286,28 @@ function resetToCatalogDefaults() {
   if (!defaults) return;
   baseRate.value = defaults.base;
   packages.value = defaults.packages.map((p) => ({ ...p }));
+}
+
+// --- base rate ------------------------------------------------------------
+
+/**
+ * The base rate is a bulk action, not a live binding.
+ *
+ * Every package carries its own editable rate, so a base rate that only filled
+ * in the blanks would never apply — that is exactly the bug this replaced: the
+ * field looked live and moved nothing. It now does one explicit thing, on click.
+ */
+const canApplyBaseRate = computed(() => {
+  const rate = Number(baseRate.value);
+  if (!(rate > 0) || !packages.value.length) return false;
+  // Nothing to do once every row already charges it.
+  return packages.value.some((pkg) => Number(pkg.hourlyRate) !== rate);
+});
+
+function applyBaseRateToAll() {
+  const rate = Number(baseRate.value);
+  if (!(rate > 0)) return;
+  packages.value = packages.value.map((pkg) => ({ ...pkg, hourlyRate: rate }));
 }
 
 // --- manual editing -------------------------------------------------------
