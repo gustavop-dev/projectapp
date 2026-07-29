@@ -149,19 +149,19 @@ def _positive_number(value):
 
 
 def apply_manual_hour_rates(content_json):
-    """Overlay a proposal's manual hour rates on top of catalog-seeded content.
+    """Overlay the *legacy* manual-rate keys onto a manual proposal's snapshot.
 
-    Only *rates* are per-proposal. Package names, hours, discounts and the
-    currency always belong to the catalog, so this never touches them: the
-    manual mode makes a proposal cheaper or dearer, not structurally different.
+    Manual proposals own their package list outright — the panel edits names,
+    hours, discounts and rates directly in ``packages`` — so this is no longer
+    the mechanism that prices them. It exists for proposals saved before that
+    change, which carry ``manualHourlyRate`` (a base rate) and optionally
+    ``manualPackageRates`` (``[{'packageId': pk, 'hourlyRate': n}]``, keyed by
+    catalog pk) instead of per-package rates. A package resolves to its own
+    override, else the manual base, else whatever rate it already had.
 
-    Reads ``manualHourlyRate`` (the base) and ``manualPackageRates``
-    (``[{'packageId': pk, 'hourlyRate': n}]``, keyed by catalog pk). A package
-    resolves to its own override, else the manual base, else its catalog rate —
-    so setting only an override leaves the other packages on catalog pricing.
-
-    Returns ``content_json`` unchanged when the mode is not ``'manual'`` or
-    there is nothing to apply.
+    Returns ``content_json`` unchanged when the mode is not ``'manual'`` or the
+    legacy keys are absent — which is the case for every proposal re-saved from
+    the panel.
     """
     if not isinstance(content_json, dict):
         return content_json
@@ -200,15 +200,3 @@ def apply_manual_hour_rates(content_json):
     return applied
 
 
-def resolve_commercial_conditions_content(content_json, *, nationality, language):
-    """Return the commercial-conditions content as it should be rendered.
-
-    Single entry point for the PDF: seed the structure from the catalog, then
-    overlay the proposal's manual rates when it opted into manual mode. Auto
-    mode (the default, and every proposal that never touched the switch) is
-    just the seed.
-    """
-    seeded = seed_commercial_conditions_from_catalog(
-        content_json, nationality=nationality, language=language,
-    )
-    return apply_manual_hour_rates(seeded)

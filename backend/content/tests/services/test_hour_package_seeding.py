@@ -283,60 +283,91 @@ class TestPdfLiveReseed:
         section.save(update_fields=['content_json'])
         return section
 
-    def test_pdf_manual_mode_overrides_rates_but_keeps_catalog_structure(
-            self, monkeypatch):
-        """Manual mode is a rate override, not a frozen snapshot.
+    def test_pdf_manual_mode_keeps_the_proposals_own_packages(self, monkeypatch):
+        """Manual proposals own their list, so the catalog must not touch it.
 
-        Names, hours and discounts keep coming from the catalog and keep
-        refreshing with it; only the price of the hour is per-proposal.
+        The panel lets manual proposals rename packages and add or remove rows.
+        If the catalog kept re-seeding, a removed row would come back and a
+        rename would be undone on the next generation.
         """
         _ext_packages()
         proposal = self._proposal_with_snapshot()
-        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=77)
+        self._set_content(proposal, hourPackagesMode='manual', packages=[
+            {'name': 'A medida', 'hours': 5, 'discountPercent': 0,
+             'note': 'sólo de esta propuesta', 'hourlyRate': 120},
+        ])
 
         data = self._generate_and_capture(proposal, monkeypatch)
-        assert [p['name'] for p in data['packages']] == ['Pro MX', 'Ágil MX']
-        assert [p['hourlyRate'] for p in data['packages']] == [77, 77]
-        assert data['hourlyRate'] == 77
+        assert [p['name'] for p in data['packages']] == ['A medida']
+        assert data['packages'][0]['hourlyRate'] == 120
 
-    def test_pdf_manual_per_package_override_beats_base_rate(self, monkeypatch):
+    def test_pdf_manual_mode_ignores_later_catalog_edits(self, monkeypatch):
+        from content.services.hour_package_service import (
+            apply_base_rates_to_catalog,
+        )
         _ext_packages()
         proposal = self._proposal_with_snapshot()
-        target = HourPackage.objects.get(nationality='EXT', name_es='Pro MX').pk
+        self._set_content(proposal, hourPackagesMode='manual', packages=[
+            {'name': 'Propio', 'hours': 10, 'discountPercent': 0,
+             'note': '', 'hourlyRate': 99},
+        ])
+        apply_base_rates_to_catalog({'EXT': 55})
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Propio']
+        assert data['packages'][0]['hourlyRate'] == 99
+
+    def test_pdf_manual_legacy_base_rate_still_prices_the_snapshot(
+            self, monkeypatch):
+        """Proposals saved before manual owned its packages must not change price.
+
+        They carry `manualHourlyRate` with packages that have no rate of their
+        own — the exact shape of the one manual proposal in production.
+        """
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
+        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=77,
+                          packages=[
+                              {'name': 'Viejo', 'hours': 20,
+                               'discountPercent': 10, 'note': ''},
+                          ])
+
+        data = self._generate_and_capture(proposal, monkeypatch)
+        assert [p['name'] for p in data['packages']] == ['Viejo']
+        assert data['packages'][0]['hourlyRate'] == 77
+
+    def test_pdf_manual_legacy_per_package_override_still_applies(self, monkeypatch):
+        _ext_packages()
+        proposal = self._proposal_with_snapshot()
         self._set_content(
             proposal,
             hourPackagesMode='manual',
             manualHourlyRate=77,
-            manualPackageRates=[{'packageId': target, 'hourlyRate': 120}],
+            manualPackageRates=[{'packageId': 7, 'hourlyRate': 120}],
+            packages=[
+                {'id': 7, 'name': 'Con override', 'hours': 20,
+                 'discountPercent': 0, 'note': ''},
+                {'id': 8, 'name': 'Sin override', 'hours': 40,
+                 'discountPercent': 0, 'note': ''},
+            ],
         )
 
         data = self._generate_and_capture(proposal, monkeypatch)
-        by_id = {p['id']: p['hourlyRate'] for p in data['packages']}
-        assert by_id[target] == 120
-        assert all(rate == 77 for pid, rate in by_id.items() if pid != target)
+        by_name = {p['name']: p['hourlyRate'] for p in data['packages']}
+        assert by_name == {'Con override': 120, 'Sin override': 77}
 
-    def test_pdf_manual_override_for_unknown_package_is_ignored(self, monkeypatch):
-        """A package removed from the catalog leaves an inert override entry."""
-        _ext_packages()
-        proposal = self._proposal_with_snapshot()
-        self._set_content(
-            proposal,
-            hourPackagesMode='manual',
-            manualHourlyRate=77,
-            manualPackageRates=[{'packageId': 999999, 'hourlyRate': 120}],
-        )
-
-        data = self._generate_and_capture(proposal, monkeypatch)
-        assert [p['hourlyRate'] for p in data['packages']] == [77, 77]
-
-    def test_pdf_manual_without_base_rate_keeps_catalog_rates(self, monkeypatch):
+    def test_pdf_manual_without_any_rate_keeps_the_stored_rates(self, monkeypatch):
         """An empty manual rate must never render $0 packages."""
         _ext_packages()
         proposal = self._proposal_with_snapshot()
-        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=0)
+        self._set_content(proposal, hourPackagesMode='manual', manualHourlyRate=0,
+                          packages=[
+                              {'name': 'Propio', 'hours': 20,
+                               'discountPercent': 0, 'note': '', 'hourlyRate': 42},
+                          ])
 
         data = self._generate_and_capture(proposal, monkeypatch)
-        assert [p['hourlyRate'] for p in data['packages']] == [40.0, 45.0]
+        assert data['packages'][0]['hourlyRate'] == 42
 
     def test_pdf_manual_mode_does_not_mutate_stored_section(self, monkeypatch):
         """Generating a PDF must never write back into content_json."""

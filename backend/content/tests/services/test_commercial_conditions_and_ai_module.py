@@ -94,6 +94,15 @@ class TestSchemas:
             'commercial_conditions', {'hourPackagesMode': 123})
         assert any('hourPackagesMode' in e for e in errors)
 
+    def test_commercial_conditions_accepts_hour_packages_enabled(self):
+        assert validate_section_content(
+            'commercial_conditions', {'hourPackagesEnabled': False}) == []
+
+    def test_commercial_conditions_rejects_non_boolean_enabled(self):
+        errors = validate_section_content(
+            'commercial_conditions', {'hourPackagesEnabled': 'no'})
+        assert any('hourPackagesEnabled' in e for e in errors)
+
     def test_commercial_conditions_accepts_manual_rate_keys(self):
         assert validate_section_content('commercial_conditions', {
             'manualHourlyRate': 45000,
@@ -203,6 +212,64 @@ class TestRenderCommercialConditions:
             y=PAGE_H - MARGIN_T)
         assert isinstance(result, (int, float))
         assert any('alcance' in r.lower() for r in recorded)
+
+    def _render_recording_text(self, pdf_canvas, monkeypatch, data):
+        """Render and return every string the section drew."""
+        recorded = []
+        for name in ('_draw_paragraphs', '_draw_callout_box', '_draw_subtitle'):
+            orig = getattr(pdf_mod, name)
+
+            def rec(c, y, payload, *a, _orig=orig, **k):
+                if isinstance(payload, (list, tuple)):
+                    recorded.extend(str(p) for p in payload)
+                else:
+                    recorded.append(str(payload))
+                return _orig(c, y, payload, *a, **k)
+
+            monkeypatch.setattr(pdf_mod, name, rec)
+
+        orig_table = pdf_mod._draw_table
+
+        def rec_table(c, y, headers, rows, *a, **k):
+            for row in rows:
+                recorded.extend(str(cell) for cell in row)
+            return orig_table(c, y, headers, rows, *a, **k)
+
+        monkeypatch.setattr(pdf_mod, '_draw_table', rec_table)
+        _render_commercial_conditions(
+            pdf_canvas, data, None, ps={'num': 1, 'client': 'X'},
+            y=PAGE_H - MARGIN_T)
+        return recorded
+
+    _TOGGLE_DATA = {
+        'index': '17', 'title': 'Condiciones comerciales',
+        'packagesTitle': 'Paquetes de horas', 'packagesIntro': 'intro-text',
+        'hourlyRate': 90000, 'currency': 'COP',
+        'packages': [{'name': 'Ágil', 'hours': 20, 'discountPercent': 0}],
+        'effortBadge': 'Esfuerzo medio se cotiza aparte',
+        'scopeTitle': 'Alcance del trabajo aprobado',
+        'scopeParagraphs': ['El trabajo aprobado corresponde solo al alcance.'],
+    }
+
+    def test_packages_disabled_hides_the_block_but_keeps_the_scope_clause(
+            self, pdf_canvas, monkeypatch):
+        """The scope clause is legal boilerplate and stands on its own."""
+        data = {**self._TOGGLE_DATA, 'hourPackagesEnabled': False}
+        drawn = self._render_recording_text(pdf_canvas, monkeypatch, data)
+
+        assert not any('Paquetes de horas' in t for t in drawn)
+        assert not any('intro-text' in t for t in drawn)
+        assert not any('Ágil' in t for t in drawn)
+        assert not any('cotiza aparte' in t for t in drawn)
+        assert any('solo al alcance' in t for t in drawn)
+
+    def test_packages_enabled_by_default_when_the_key_is_absent(
+            self, pdf_canvas, monkeypatch):
+        drawn = self._render_recording_text(pdf_canvas, monkeypatch, self._TOGGLE_DATA)
+
+        assert any('Paquetes de horas' in t for t in drawn)
+        assert any('Ágil' in t for t in drawn)
+        assert any('solo al alcance' in t for t in drawn)
 
     def test_per_package_rate_overrides_section_rate(self, pdf_canvas, monkeypatch):
         recorded = []

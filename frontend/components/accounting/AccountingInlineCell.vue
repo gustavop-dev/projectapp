@@ -93,6 +93,19 @@
       />
     </div>
     <BaseInput
+      v-else-if="type === 'number'"
+      ref="inputRef"
+      v-model="draft"
+      type="number"
+      :min="min"
+      :max="max"
+      size="sm"
+      :disabled="saving"
+      @keydown.enter.prevent="commit"
+      @keydown.esc="cancel"
+      @blur="commit"
+    />
+    <BaseInput
       v-else
       ref="inputRef"
       v-model="draft"
@@ -129,7 +142,7 @@ import BaseSelect from '~/components/base/BaseSelect.vue';
  */
 const props = defineProps({
   value: { type: [String, Number], default: '' },
-  // 'text' | 'money' | 'date' | 'select' | 'merchant' | 'installments'
+  // 'text' | 'number' | 'money' | 'date' | 'select' | 'merchant' | 'installments'
   type: { type: String, default: 'text' },
   options: { type: Array, default: () => [] }, // select/merchant only
   saving: { type: Boolean, default: false },
@@ -137,6 +150,13 @@ const props = defineProps({
   allowNegative: { type: Boolean, default: false },
   /** 'right' mirrors the layout for right-aligned numeric columns. */
   align: { type: String, default: 'left' },
+  /**
+   * Number cells only. `money` is wrong for plain counts — it formats
+   * thousands, so "20 horas" would render as an amount — hence a separate
+   * type with its own bounds.
+   */
+  min: { type: [String, Number], default: null },
+  max: { type: [String, Number], default: null },
 });
 
 const emit = defineEmits(['save']);
@@ -199,6 +219,18 @@ function commit() {
       return;
     }
     emit('save', { number: Number(pair.number) || null, total: Number(pair.total) || null });
+    return;
+  }
+  if (props.type === 'number') {
+    const raw = String(draft.value ?? '').trim();
+    // Blanking a count is not a value: keep the previous one rather than
+    // emitting 0, which would silently zero out an hours or discount cell.
+    if (raw === '') return;
+    let next = Number(raw);
+    if (!Number.isFinite(next)) return;
+    if (props.min !== null && next < Number(props.min)) next = Number(props.min);
+    if (props.max !== null && next > Number(props.max)) next = Number(props.max);
+    if (next !== Number(props.value)) emit('save', next);
     return;
   }
   const next = String(draft.value ?? '').trim();
