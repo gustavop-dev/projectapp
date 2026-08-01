@@ -155,6 +155,26 @@ class TestViewMapDefaultRegistry:
         assert 'view_map' in {choice for choice, _ in SavedFilterTab.VIEW_CHOICES}
 
 
+class TestAccountingIncomeDefaultRegistry:
+    """The two expected-income tabs are what the operator triages by.
+
+    Their names are pinned because migration 0041 renames existing rows by
+    name; renaming them here without a matching migration would orphan the
+    old tab on every account that already has one.
+    """
+
+    def test_income_registry_ships_both_expected_tabs(self):
+        from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
+
+        assert DEFAULT_FILTER_TABS['accounting_income'][:2] == [
+            {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
+            {
+                'name': 'Solo esperados',
+                'filters': {'kind': 'expected', 'paymentStatus': 'pending'},
+            },
+        ]
+
+
 class TestAutoSeedOnGet:
     def test_get_with_view_auto_seeds_and_returns_defaults(
         self, api_client, admin_a, admin_a_headers,
@@ -177,3 +197,98 @@ class TestAutoSeedOnGet:
         assert response.status_code == 200
         assert response.json() == []
         assert not SavedFilterTab.objects.filter(user=admin_a).exists()
+
+
+class TestIncomeExpectedTabMigration:
+    """Migration 0041 splits the legacy "Esperados" tab of existing users.
+
+    Editing the registry alone never reaches them: `seed_default_tabs` is a
+    no-op once a user has any tab for the view, and `force=True` upserts by
+    name — it would add the two new tabs and leave the old one orphaned.
+    """
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module(
+            'accounts.migrations.0041_income_expected_filter_tabs',
+        )
+
+    @staticmethod
+    def _legacy_tabs(user):
+        for order, (name, filters) in enumerate((
+            ('Esperados', {'kind': 'expected'}),
+            ('Líquidos', {'kind': 'liquid'}),
+            ('Gustavo', {'partner': 'gustavo'}),
+        )):
+            SavedFilterTab.objects.create(
+                user=user, view='accounting_income', name=name,
+                filters=filters, order=order,
+            )
+
+    def _names_in_order(self, user):
+        return list(
+            SavedFilterTab.objects.filter(
+                user=user, view='accounting_income',
+            ).order_by('order', 'created_at').values_list('name', flat=True)
+        )
+
+    def test_forward_renames_and_inserts_the_new_tab_right_after(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+
+        self._migration().split_expected_tab(apps, None)
+
+        assert self._names_in_order(admin_a) == [
+            'Todos los esperados', 'Solo esperados', 'Líquidos', 'Gustavo',
+        ]
+        new_tab = SavedFilterTab.objects.get(
+            user=admin_a, name='Solo esperados',
+        )
+        assert new_tab.filters == {'kind': 'expected', 'paymentStatus': 'pending'}
+
+    def test_forward_is_idempotent(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        migration = self._migration()
+
+        migration.split_expected_tab(apps, None)
+        migration.split_expected_tab(apps, None)
+
+        assert self._names_in_order(admin_a) == [
+            'Todos los esperados', 'Solo esperados', 'Líquidos', 'Gustavo',
+        ]
+
+    def test_forward_leaves_custom_tabs_alone(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Kore',
+            filters={'search': 'kore'}, order=3,
+        )
+
+        self._migration().split_expected_tab(apps, None)
+
+        assert self._names_in_order(admin_a)[-1] == 'Kore'
+
+    def test_reverse_restores_the_legacy_layout(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        migration = self._migration()
+
+        migration.split_expected_tab(apps, None)
+        migration.merge_expected_tab(apps, None)
+
+        assert self._names_in_order(admin_a) == [
+            'Esperados', 'Líquidos', 'Gustavo',
+        ]
+        assert list(
+            SavedFilterTab.objects.filter(
+                user=admin_a, view='accounting_income',
+            ).order_by('order').values_list('order', flat=True)
+        ) == [0, 1, 2]

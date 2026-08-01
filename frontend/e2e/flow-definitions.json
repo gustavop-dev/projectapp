@@ -3655,7 +3655,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel. The revamped panel adds live-updating range dropdowns (debounced input), removable applied-filter chips, a filtered results counter and <mark> highlighting of search occurrences in the table.",
+      "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), collection segmented (\"Cobro\": Todos/Sin pagos/Parcial/Pagado, mirroring the row payment badge; its \"Sin pagos\" value also backs the seeded \"Solo esperados\" tab next to \"Todos los esperados\"), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel. The revamped panel adds live-updating range dropdowns (debounced input), removable applied-filter chips, a filtered results counter and <mark> highlighting of search occurrences in the table.",
       "expectedSpecs": 10,
       "outcomes": [
         "display"
