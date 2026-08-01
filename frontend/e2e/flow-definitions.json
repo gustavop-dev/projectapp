@@ -3669,7 +3669,7 @@
       ],
       "priority": "P2",
       "description": "Superuser manages expense records at /panel/accounting/expenses with category (Negocio/Personal) and ledger (Contabilidad) badges, partner split (hidden for personal-ledger expenses, which use a single Valor field) and the same modal CRUD + filters pattern as incomes. Money inputs live-format es-CO thousands separators (BaseCurrencyInput). Since Jul 2026 the modal has a 'Registrar egreso en bolsillo' toggle (on by default): on creates/keeps a linked pocket OUT movement (bidirectional sync, edits/deletes mirror/cascade), off covers paper adjustments and expenses that never touched the pocket; a personal-ledger expense with the toggle on is stored as a company draw (ledger company, full split to the owner, warning hint in the modal) so pocket money always counts against company utility; on edit the toggle can link/unlink deliberately. Since Aug 2026 the period field captures the exact date by default ('Fecha', prefilled with today, shared PeriodDateField) with a toggle down to month-only ('Mes'); edit prefills the stored day (day 1 = month-only) and the backend already renders full dates as '17 Julio 2026'.",
-      "expectedSpecs": 2,
+      "expectedSpecs": 3,
       "outcomes": [
         "display",
         "success",

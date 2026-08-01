@@ -71,7 +71,7 @@ const HOSTING_ROWS = [
   },
 ];
 
-function buildHandler({ calls }) {
+function buildHandler({ calls, createStatus = 201 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -92,6 +92,13 @@ function buildHandler({ calls }) {
     if (apiPath === 'accounting/expenses/create/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
+      if (createStatus !== 201) {
+        return {
+          status: createStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Monto inválido', code: 'invalid_amount' }),
+        };
+      }
       return {
         status: 201,
         contentType: 'application/json',
@@ -174,6 +181,28 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     expect(Number(calls[0].body.gustavo_amount)).toBe(1500000);
     // The pocket toggle defaults to on: the new expense mirrors to the pocket.
     expect(calls[0].body.register_in_pocket).toBe(true);
+  });
+
+  test('a 400 on expense create surfaces the backend error and keeps the modal open', {
+    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls, createStatus: 400 }));
+    await page.goto('/panel/accounting/expenses', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Gastos', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('expenses-new-button').click();
+    // quality: allow-fragile-selector (the expense modal's concept input has no testid; attribute select is intentional)
+    await page.locator('form input[type="text"]').first().fill('Gasto inválido');
+    await page.getByTestId('expense-form-period').fill('2026-07-15');
+    await page.getByTestId('partner-split-total').fill('100');
+    await page.getByTestId('expense-form-submit').click();
+
+    await expect(page.getByText('No se pudo guardar')).toBeVisible();
+    // The modal stays open so the user can correct the input.
+    await expect(page.getByRole('heading', { name: 'Nuevo gasto' })).toBeVisible();
   });
 
   test('hostings list renders meta stat cards', {
