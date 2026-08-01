@@ -13,7 +13,7 @@ from content.views.accounting import (
     update_pocket_movement, delete_pocket_movement,
     list_recurring_payments, create_recurring_payment,
     retrieve_recurring_payment, update_recurring_payment,
-    delete_recurring_payment,
+    delete_recurring_payment, reorder_recurring_payments,
     list_ads_spend_records, create_ads_spend_record,
     retrieve_ads_spend_record, update_ads_spend_record,
     delete_ads_spend_record,
@@ -133,6 +133,11 @@ from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
+)
+from content.views.recurring_category import (
+    list_recurring_categories, create_recurring_category,
+    update_recurring_category, delete_recurring_category,
+    reorder_recurring_categories,
 )
 from content.views.document_folder import (
     list_document_folders, create_document_folder,
@@ -519,6 +524,13 @@ urlpatterns = [
     path('accounting/recurring/<int:record_id>/', retrieve_recurring_payment, name='retrieve-recurring-payment'),
     path('accounting/recurring/<int:record_id>/update/', update_recurring_payment, name='update-recurring-payment'),
     path('accounting/recurring/<int:record_id>/delete/', delete_recurring_payment, name='delete-recurring-payment'),
+    path('accounting/recurring/reorder/', reorder_recurring_payments, name='reorder-recurring-payments'),
+
+    path('accounting/recurring-categories/', list_recurring_categories, name='list-recurring-categories'),
+    path('accounting/recurring-categories/create/', create_recurring_category, name='create-recurring-category'),
+    path('accounting/recurring-categories/reorder/', reorder_recurring_categories, name='reorder-recurring-categories'),
+    path('accounting/recurring-categories/<int:category_id>/update/', update_recurring_category, name='update-recurring-category'),
+    path('accounting/recurring-categories/<int:category_id>/delete/', delete_recurring_category, name='delete-recurring-category'),
 
     path('accounting/ads/', list_ads_spend_records, name='list-ads-spend-records'),
     path('accounting/ads/create/', create_ads_spend_record, name='create-ads-spend-record'),

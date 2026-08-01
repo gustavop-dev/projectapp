@@ -27,6 +27,7 @@ from content.models import (
     IncomeRecord,
     Ledger,
     PocketMovement,
+    RecurringCategory,
     RecurringPayment,
 )
 from content.serializers.accounting import split_half
@@ -241,11 +242,14 @@ class Command(BaseCommand):
             )
             created += 2
 
-        for name, price, currency, cop in [
-            ('Claude Code 20x', '200.00', 'USD', '800000.00'),
-            ('Netflix', '39800.00', 'COP', '39800.00'),
-            ('NameCheap', '10.98', 'USD', '43920.00'),
+        for name, price, currency, cop, category_name in [
+            ('Claude Code 20x', '200.00', 'USD', '800000.00', 'Suscripciones de IA'),
+            ('Netflix', '39800.00', 'COP', '39800.00', 'Extras / otros'),
+            ('NameCheap', '10.98', 'USD', '43920.00', 'Arquitectura e infraestructura'),
         ]:
+            recurring_category = RecurringCategory.objects.filter(
+                name=category_name,
+            ).first()
             RecurringPayment.objects.create(
                 name=name,
                 price=Decimal(price),
@@ -257,6 +261,7 @@ class Command(BaseCommand):
                     else RecurringPayment.Frequency.MONTHLY
                 ),
                 billing_day=rng.randrange(1, 29),
+                category=recurring_category,
                 source_ref=FAKE_REF,
             )
             created += 1

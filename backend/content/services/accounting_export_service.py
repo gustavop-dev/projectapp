@@ -121,9 +121,12 @@ EXPORT_SECTIONS = {
         'title': 'Recurrentes',
         'columns': [
             ('Nombre', 'name'),
+            ('Categoría', lambda r: r.category.name if r.category else ''),
             ('Precio', 'price'),
             ('Moneda', 'currency'),
+            ('Precio mensual', 'monthly_price'),
             ('Equivalente COP', 'cop_equivalent'),
+            ('Equiv. COP mensual', 'monthly_cop_cost'),
             ('Método de pago', lambda r: r.get_payment_method_display()),
             ('Frecuencia', lambda r: r.get_frequency_display()),
             ('Día de cobro', 'billing_day'),

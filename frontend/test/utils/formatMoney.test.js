@@ -9,6 +9,15 @@ describe('formatMoney', () => {
     expect(formatMoney(null)).toBe('');
     expect(formatMoney(Number.NaN)).toBe('');
   });
+
+  it('rounds to whole units by default', () => {
+    expect(formatMoney(0.915, 'USD')).toBe('$1 USD');
+  });
+
+  it('keeps decimals when asked, so sub-unit amounts stay readable', () => {
+    expect(formatMoney(0.915, 'USD', { decimals: 2 })).toBe('$0,92 USD');
+    expect(formatMoney(20, 'USD', { decimals: 2 })).toBe('$20,00 USD');
+  });
 });
 
 describe('formatCompactMoney', () => {

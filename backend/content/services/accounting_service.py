@@ -115,6 +115,7 @@ TRACKED_FIELDS = {
         ('frequency', 'Frecuencia'),
         ('billing_day', 'Día de cobro'),
         ('cost_type', 'Tipo de costo'),
+        ('category', 'Categoría'),
         ('is_active', 'Activo'),
         ('notes', 'Notas'),
     ],

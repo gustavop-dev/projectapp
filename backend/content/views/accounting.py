@@ -9,6 +9,7 @@ happens client-side. The change log is the only paginated endpoint.
 from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
+from django.db import transaction
 from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -28,6 +29,7 @@ from content.models import (
     IncomeRecord,
     MerchantAlias,
     PocketMovement,
+    RecurringCategory,
     RecurringPayment,
 )
 from content.permissions import IsSuperUser
@@ -270,9 +272,10 @@ _ENTITIES = {
         'amount_field': 'price',
         'search_fields': ('name', 'notes'),
         'choice_filters': (
-            'frequency', 'cost_type', 'currency', 'payment_method',
+            'frequency', 'cost_type', 'currency', 'payment_method', 'category',
         ),
         'bool_filters': ('is_active',),
+        'select_related': ('category',),
         'meta': _recurring_meta,
     },
     'ads': {
@@ -751,6 +754,71 @@ def update_recurring_payment(request, record_id):
 @permission_classes([IsSuperUser])
 def delete_recurring_payment(request, record_id):
     return _delete_record(request, 'recurring', record_id)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def reorder_recurring_payments(request):
+    """Persist the manual order the operator dragged into place.
+
+    Body: {"items": [{"id": 5, "category": 3, "order": 0}, ...]}
+
+    Each item carries its category because a drag can move a row *between*
+    groups, not just within one. Unknown ids are ignored so a stale tab
+    cannot 404 the whole batch.
+
+    Deliberately does not write an AccountingChangeLog entry: dragging rows
+    around is presentation, and logging it would bury the real edits.
+    """
+    items = request.data.get('items', [])
+    if not isinstance(items, list):
+        return error_response(
+            'Debe ser una lista.',
+            code='invalid_reorder_payload',
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    by_id = {}
+    for item in items:
+        if not isinstance(item, dict):
+            return error_response(
+                'Cada elemento debe ser un objeto con id, category y order.',
+                code='invalid_reorder_payload',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        by_id[item.get('id')] = item
+
+    payments = RecurringPayment.objects.filter(pk__in=[k for k in by_id if k is not None])
+    valid_category_ids = set(
+        RecurringCategory.objects.values_list('pk', flat=True)
+    )
+
+    updated = []
+    for payment in payments:
+        item = by_id[payment.pk]
+        try:
+            payment.order = int(item.get('order') or 0)
+        except (TypeError, ValueError):
+            return error_response(
+                'El orden debe ser un número entero.',
+                code='invalid_reorder_payload',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if 'category' in item:
+            category_id = item['category']
+            if category_id is not None and category_id not in valid_category_ids:
+                return error_response(
+                    'La categoría indicada no existe.',
+                    code='unknown_category',
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            payment.category_id = category_id
+        updated.append(payment)
+
+    with transaction.atomic():
+        RecurringPayment.objects.bulk_update(updated, ['category', 'order'])
+
+    return Response({'reordered': len(updated)})
 
 
 # ── Ads spend ──

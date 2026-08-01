@@ -7,7 +7,7 @@ partner amount is supplied on create, and accept month periods as
 import re
 from decimal import Decimal, ROUND_DOWN
 
-from django.db.models import Sum
+from django.db.models import Max, Sum
 from rest_framework import serializers
 
 from content.utils import SPANISH_MONTHS
@@ -23,6 +23,7 @@ from content.models import (
     IncomeRecord,
     Ledger,
     PocketMovement,
+    RecurringCategory,
     RecurringPayment,
 )
 
@@ -671,6 +672,32 @@ class PocketMovementCreateUpdateSerializer(serializers.ModelSerializer):
 
 # ── Recurring payments ──
 
+class RecurringCategorySerializer(serializers.ModelSerializer):
+    """User-editable grouping for the Recurrentes tab.
+
+    `payment_count` comes from an annotation on the list view; it falls back
+    to a direct count so the serializer also works on a plain instance
+    (create/update responses).
+    """
+
+    payment_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RecurringCategory
+        fields = ('id', 'name', 'slug', 'order', 'payment_count')
+        read_only_fields = ('slug',)
+
+    def get_payment_count(self, obj):
+        annotated = getattr(obj, 'payment_count_annotated', None)
+        return annotated if annotated is not None else obj.payments.count()
+
+    def validate_name(self, value):
+        name = value.strip()
+        if not name:
+            raise serializers.ValidationError('El nombre no puede estar vacío.')
+        return name
+
+
 class RecurringPaymentSerializer(serializers.ModelSerializer):
     payment_method_label = serializers.CharField(
         source='get_payment_method_display', read_only=True,
@@ -680,6 +707,12 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
     )
     cost_type_label = serializers.CharField(
         source='get_cost_type_display', read_only=True,
+    )
+    category_name = serializers.CharField(
+        source='category.name', read_only=True, allow_null=True,
+    )
+    monthly_price = serializers.DecimalField(
+        max_digits=14, decimal_places=2, read_only=True,
     )
     monthly_cop_cost = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
@@ -691,22 +724,32 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             'id', 'name', 'price', 'currency', 'cop_equivalent',
             'payment_method', 'payment_method_label',
             'frequency', 'frequency_label', 'billing_day',
-            'cost_type', 'cost_type_label', 'monthly_cop_cost',
+            'cost_type', 'cost_type_label',
+            'category', 'category_name', 'order',
+            'monthly_price', 'monthly_cop_cost',
             'is_active', 'notes', 'created_at', 'updated_at',
         )
+        read_only_fields = ('order',)
 
 
 class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
     price = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
     )
+    category = serializers.PrimaryKeyRelatedField(
+        queryset=RecurringCategory.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = RecurringPayment
+        # `order` is deliberately absent: the manual sort slot is owned by the
+        # reorder endpoint, so an ordinary edit can never scramble the list.
         fields = (
             'name', 'price', 'currency', 'cop_equivalent',
             'payment_method', 'frequency', 'billing_day',
-            'cost_type', 'is_active', 'notes',
+            'cost_type', 'category', 'is_active', 'notes',
         )
 
     def validate(self, data):
@@ -717,6 +760,27 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
             if currency == RecurringPayment.Currency.COP:
                 data['cop_equivalent'] = data.get('price', Decimal('0'))
         return data
+
+    @staticmethod
+    def _next_order(category):
+        last = RecurringPayment.objects.filter(category=category).aggregate(
+            last=Max('order'),
+        )['last']
+        return 0 if last is None else last + 1
+
+    def create(self, validated_data):
+        # New rows land at the end of their group instead of tying at 0.
+        validated_data['order'] = self._next_order(validated_data.get('category'))
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Moving to another category means the old slot is meaningless: send
+        # the row to the end of its new group.
+        if 'category' in validated_data:
+            new_category = validated_data['category']
+            if new_category != instance.category:
+                validated_data['order'] = self._next_order(new_category)
+        return super().update(instance, validated_data)
 
 
 # ── Ads ──
