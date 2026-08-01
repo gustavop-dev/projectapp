@@ -70,6 +70,7 @@ import {
 } from '~/components/BusinessProposal';
 import RawContentSection from '~/components/BusinessProposal/RawContentSection.vue';
 import FunctionalRequirementsGroup from '~/components/BusinessProposal/FunctionalRequirementsGroup.vue';
+import { buildItemRequirementsMap } from '~/utils/itemRequirementLinks';
 
 const sectionComponentMap = {
   greeting: Greeting,
@@ -108,6 +109,15 @@ const resolvedComponent = computed(() => {
   return sectionComponentMap[props.section?.section_type] || null;
 });
 
+// Item → technical requirements map so the preview shows the same
+// "Ver requerimientos (N)" links the public proposal renders.
+const itemRequirementsMap = computed(() => {
+  const sections = props.proposalData?.sections;
+  if (!Array.isArray(sections)) return {};
+  const tech = sections.find((s) => s?.section_type === 'technical_document');
+  return tech?.content_json ? buildItemRequirementsMap(tech.content_json) : {};
+});
+
 const resolvedProps = computed(() => {
   const section = props.section || {};
   const content = section.content_json || {};
@@ -136,6 +146,7 @@ const resolvedProps = computed(() => {
         groups,
         additionalModules: content.additionalModules || [],
       },
+      itemRequirementsMap: itemRequirementsMap.value,
     };
   }
 

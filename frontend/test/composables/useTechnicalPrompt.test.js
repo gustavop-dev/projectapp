@@ -21,6 +21,15 @@ describe('useTechnicalPrompt', () => {
     expect(promptText.value).toBe('saved-text')
   })
 
+  it('drives requirement counts by item complexity, not a fixed quota', () => {
+    const { useTechnicalPrompt } = require('../../composables/useTechnicalPrompt')
+    const { DEFAULT_PROMPT } = useTechnicalPrompt()
+    expect(DEFAULT_PROMPT).toContain('REGLA DE GRANULARIDAD')
+    expect(DEFAULT_PROMPT).toContain('Anti-uniformidad')
+    expect(DEFAULT_PROMPT).toContain('Anti-plantilla')
+    expect(DEFAULT_PROMPT).not.toContain('2 a 5 requerimientos')
+  })
+
   it('loadSavedPrompt ignores localStorage read errors', () => {
     const spy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new Error('denied')

@@ -177,6 +177,18 @@ const mockProposalWithTech = {
             description: 'Metaetiquetas, Open Graph y datos estructurados de la página principal.',
             priority: 'medium',
             linked_item_ids: ['item-views-home'],
+          }, {
+            flowKey: 'req-home-estados',
+            title: 'Estados vacío y de error del Home',
+            description: 'Comportamiento de la portada sin contenido cargado y ante fallas.',
+            priority: 'medium',
+            linked_item_ids: ['item-views-home'],
+          }, {
+            flowKey: 'req-contacto-envio',
+            title: 'Envío validado del formulario de contacto',
+            description: 'Validación de campos y confirmación al enviar el mensaje.',
+            priority: 'high',
+            linked_item_ids: ['item-views-contacto'],
           }],
         }],
       },
@@ -206,22 +218,24 @@ test.describe('Nested linked-requirements modal', () => {
     await page.getByText('Vistas').first().click();
     await expect(page.getByText('Página principal con hero y servicios')).toBeVisible({ timeout: 3000 });
 
-    // Only the linked item shows the link
+    // Each linked item shows its own count — variable per item, not uniform
     const links = page.getByTestId('view-requirements-link');
-    await expect(links).toHaveCount(1);
-    await expect(links.first()).toContainText('Ver requerimientos (2)');
+    await expect(links).toHaveCount(2);
+    await expect(links.first()).toContainText('Ver requerimientos (3)');
+    await expect(links.nth(1)).toContainText('Ver requerimientos (1)');
 
     await links.first().click();
 
     // Nested modal: one row per linked requirement, each with title +
     // priority badge + description
     const nested = page.getByTestId('linked-requirement');
-    await expect(nested).toHaveCount(2);
+    await expect(nested).toHaveCount(3);
     await expect(nested.first()).toContainText('Home dinámico con secciones administrables');
     await expect(nested.first()).toContainText('Alta');
     await expect(nested.first()).toContainText('Hero, servicios y testimonios editables desde el panel.');
     await expect(nested.nth(1)).toContainText('SEO técnico y metadatos del Home');
     await expect(nested.nth(1)).toContainText('Media');
+    await expect(nested.nth(2)).toContainText('Estados vacío y de error del Home');
   });
 
   test('closing the nested modal keeps the group modal open', {

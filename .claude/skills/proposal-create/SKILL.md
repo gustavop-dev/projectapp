@@ -217,9 +217,9 @@ items, y cada item con requerimientos técnicos enlazados muestra "Ver requerimi
 > `description`). Aplica igual en `groups` y `additionalModules`. Única excepción: nombres de UNA
 > capacidad indivisible o idiomáticos ("Términos y Condiciones" es una sola página legal;
 > "Registro con Google" e "Inicio de Sesión con Google" siguen siendo DOS items). Ante la duda,
-> separá — la Fase 5 desglosará cada item en 2-5 requerimientos técnicos y un item compuesto
-> vuelve ese desglose ambiguo. (La auditoría de la Fase 8 lo verifica: FAIL en `views`, WARN en
-> el resto.)
+> separá — la Fase 5 desglosará cada item según su complejidad real (3-5 requerimientos los
+> típicos, hasta 6 los transaccionales) y un item compuesto vuelve ese desglose ambiguo. (La
+> auditoría de la Fase 8 lo verifica: FAIL en `views`, WARN en el resto.)
 
 ### 4a — Definir el flujo lógico del usuario
 Antes de redactar, mapeá el **recorrido de punta a punta** de un usuario de este proyecto/sector
@@ -307,9 +307,10 @@ tarjeta comercial a su épica técnica, y cada item comercial a sus requerimient
   transversal extra al final (infraestructura/seguridad/calidad) si hace falta.
   **Excepción de siembra:** los módulos contratados de `additionalModules` son lo único que podés
   omitir a propósito — si un módulo contratado queda sin épica, el backend siembra su catálogo
-  técnico por defecto (un requerimiento por item del módulo, enlazado item a item). Los módulos
-  NO contratados también los siembra el backend, gated por `linked_module_ids`, invisibles hasta
-  que el cliente los seleccione — la prohibición de crearlos vos se mantiene.
+  técnico por defecto (1-3 requerimientos por item del módulo según su alcance, enlazados item a
+  item). Los módulos NO contratados también los siembra el backend, gated por
+  `linked_module_ids`, invisibles hasta que el cliente los seleccione — la prohibición de
+  crearlos vos se mantiene.
 - `epicKey`: **id comercial EXACTO Y VERBATIM**, guiones bajos incluidos (`views`,
   `admin_module`, `pwa_module` — nunca `admin-module`). Único. La épica transversal usa un
   slug kebab propio (p.ej. `base-tecnica`).
@@ -333,11 +334,23 @@ tarjeta comercial a su épica técnica, y cada item comercial a sus requerimient
     — alimenta el modal "Ver requerimientos" y el PDF. Solo requerimientos transversales pueden
     omitirlo o dejarlo `[]` (en cualquier épica).
   - **Profundidad por item (REGLA DE GRANULARIDAD):** la cobertura mínima es el piso, no la
-    meta. Una pantalla o módulo típico necesita **2-5 requerimientos** (datos que muestra/captura,
-    estados —vacío, cargando, error—, validaciones, integraciones, permisos/roles); solo un
-    elemento trivial o estático (página legal, footer, badge) puede quedar con 1. Cada
-    requerimiento se redacta como **criterio de aceptación verificable**, no como resumen del
-    item. **Anti-requerimiento-manta:** un requerimiento solo puede enlazar más de 3 items si es
+    meta. El número de requerimientos de cada item sale de su complejidad REAL, nunca de una
+    cuota fija: **4-6** si es transaccional o integra servicios (checkout, registro, pasarela,
+    facturación, gestión con roles); **3-5** para una pantalla o capacidad típica (dashboard,
+    catálogo, detalle, buscador); **2-3** para un elemento informativo simple (página de
+    contenido, tarjeta, banner); **1-2** solo para lo trivial o estático (página legal, footer,
+    badge). Dimensiones para desglosar: datos que muestra/captura, estados —vacío, cargando,
+    error—, validaciones y reglas de negocio, integraciones, permisos/roles.
+    **Anti-uniformidad:** los conteos DEBEN variar porque la complejidad varía; si todos los
+    items quedaron con el mismo número de requerimientos, eso es plantilla y no análisis —
+    profundizá los complejos y aligerá los triviales. **Anti-plantilla:** PROHIBIDO repetir el
+    mismo patrón de `title`/`flowKey` de item en item (ej. «Operar X» + «Validaciones y estados
+    de X» para cada X); cada requerimiento nombra datos, estados, reglas o integraciones
+    ESPECÍFICOS de su item — si al reemplazar el nombre del item el texto sirve para cualquier
+    otro, está mal. **Idea general vs. detalle:** la `description` del item (Fase 4) cuenta el
+    QUÉ y su valor de negocio; cada requerimiento es un **criterio de aceptación verificable**,
+    nunca una paráfrasis del item; el CÓMO técnico vive en `configuration` y `usageFlow`.
+    **Anti-requerimiento-manta:** un requerimiento solo puede enlazar más de 3 items si es
     genuinamente transversal a todos, y entonces su `flowKey` DEBE empezar con `cross-`; si no lo
     es, repartilo en requerimientos específicos con `linked_item_ids` acotados (1-2 ids).
 
@@ -361,10 +374,12 @@ practices[]}`, `backupsNote`, `quality{dimensions[],testTypes[],criticalFlowsNot
 **Reglas duras:** NO dejar `technicalDocument` como el placeholder vacío; `epicKey` = id
 comercial verbatim (guiones bajos permitidos) y único; `flowKey` kebab-case y único global;
 una épica por tarjeta contratada y ninguna de módulos no contratados; todo item comercial
-cubierto por ≥1 requerimiento vía `linked_item_ids`; profundidad 2-5 requerimientos por item
-típico (1 solo para elementos triviales/estáticos); anti-manta: más de 3 items enlazados solo
-en requerimientos transversales con `flowKey` `cross-*`; mantener consistencia con el alcance
-de la Fase 4 y los módulos seleccionados (Fase 2).
+cubierto por ≥1 requerimiento vía `linked_item_ids`; profundidad por complejidad (transaccional
+4-6, típico 3-5, informativo simple 2-3, trivial 1-2) con conteos que VARÍAN entre items —
+mismo conteo en todos = plantilla y FAIL de auditoría — y sin patrones de `title`/`flowKey`
+repetidos de item en item; anti-manta: más de 3 items enlazados solo en requerimientos
+transversales con `flowKey` `cross-*`; mantener consistencia con el alcance de la Fase 4 y los
+módulos seleccionados (Fase 2).
 
 ---
 
@@ -587,13 +602,19 @@ else:
     uncovered = sorted(sel_item_ids - linked_items - backend_covered)
     for iid in uncovered:
         FAIL('trazabilidad', 'item sin requerimiento tecnico enlazado: %s' % iid)
-    # profundidad por item: >=2 requerimientos en la mayoria (piso 40%, meta 60%)
+    # profundidad por item: piso 60% con >=2 (meta 80%), meta 40% con >=3; anti-plantilla
     exigible = sorted(sel_item_ids - backend_covered)
     if exigible:
         deep = sum(1 for iid in exigible if linked_counts.get(iid, 0) >= 2)
+        deep3 = sum(1 for iid in exigible if linked_counts.get(iid, 0) >= 3)
         share = 100.0 * deep / len(exigible)
-        if share < 40: FAIL('profundidad', 'solo %.0f%% de items con >=2 requerimientos enlazados (piso 40%%)' % share)
-        elif share < 60: WARN('profundidad', '%.0f%% de items con >=2 requerimientos enlazados (meta >=60%%)' % share)
+        share3 = 100.0 * deep3 / len(exigible)
+        if share < 60: FAIL('profundidad', 'solo %.0f%% de items con >=2 requerimientos enlazados (piso 60%%)' % share)
+        elif share < 80: WARN('profundidad', '%.0f%% de items con >=2 requerimientos enlazados (meta >=80%%)' % share)
+        if share3 < 40: WARN('profundidad', 'solo %.0f%% de items con >=3 requerimientos (los transaccionales/complejos requieren 3+)' % share3)
+        counts = [linked_counts.get(iid, 0) for iid in exigible]
+        if len(exigible) >= 8 and len(set(counts)) == 1 and counts[0] > 0:
+            FAIL('profundidad', 'los %d items exigibles tienen EXACTAMENTE %d requerimientos cada uno - patron plantilla: redistribuir por complejidad' % (len(exigible), counts[0]))
     # una epica por tarjeta contratada (modulos con catalogo backend pueden omitirse)
     expected_epics = [g.get('id') for g in groups if g.get('is_visible') is not False]
     expected_epics += [
