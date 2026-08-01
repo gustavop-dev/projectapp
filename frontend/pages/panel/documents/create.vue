@@ -19,16 +19,9 @@
         <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
-        <button
-          type="submit"
-          form="doc-create-form"
-          :disabled="!canSubmit"
-          :title="canSubmit ? '' : 'Falta título o contenido'"
-          class="px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                 hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <BaseButton variant="primary" size="md" type="submit" form="doc-create-form" :disabled="!canSubmit" :title="canSubmit ? '' : 'Falta título o contenido'">
           {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -249,14 +242,9 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-4 lg:hidden">
-          <button
-            type="submit"
-            :disabled="!canSubmit"
-            class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                   hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="!canSubmit">
             {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
-          </button>
+          </BaseButton>
           <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
             Cancelar
           </NuxtLink>

@@ -6,10 +6,16 @@
  * Why: with the design-system migration, new code must prefer tokens so dark
  * mode and tenant theming "just work" without component-level changes.
  *
- * Three checks run together:
+ * Four checks run together:
  *   1. FORBIDDEN — legacy literals (`bg-white`, `bg-esmerald-dark`, etc.).
  *   2. INVALID_TOKEN_REFERENCES — `bg-X` where X isn't in tailwind.config.js
  *      or the Tailwind defaults (catches typos like `bg-primary-soft0`).
+ *   4. RAW_BUTTON_STYLING — native <button> hand-writing its own chrome
+ *      (bg-*, rounded-*, px-*, red/rose text) instead of <BaseButton
+ *      variant="...">. Warn-only repo-wide (the migration is incremental);
+ *      --strict makes it a hard gate on touched files. Tabs, segmented
+ *      controls and selectable list rows opt out with a
+ *      `design-tokens: allow-raw-button` comment.
  *   3. UNSTYLED_FORM_CONTROLS — native <input>/<select>/<textarea> in panel
  *      templates without a semantic background token. Bare inputs render
  *      white in dark mode. Panel-only; skips elements with `:class=` since
@@ -25,6 +31,7 @@
  *   node frontend/scripts/check-design-tokens.mjs              # warn-only, full repo
  *   node frontend/scripts/check-design-tokens.mjs --scope=panel  # admin panel scope only
  *   node frontend/scripts/check-design-tokens.mjs --strict     # exit 1 on any offense
+ *   node frontend/scripts/check-design-tokens.mjs --strict --strict-buttons  # also gate raw buttons
  *   node frontend/scripts/check-design-tokens.mjs --files a.vue b.vue  # only these files
  *   node frontend/scripts/check-design-tokens.mjs --quiet      # only print summary count
  *
@@ -426,6 +433,7 @@ function findFormControlsMissingBg(content) {
 // Reads CLI flags.
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
+const strictButtons = args.includes('--strict-buttons');
 const quiet = args.includes('--quiet');
 const filesIdx = args.indexOf('--files');
 const explicitFiles = filesIdx >= 0 ? args.slice(filesIdx + 1).filter((f) => !f.startsWith('--')) : null;
@@ -513,9 +521,89 @@ function styleBlockLines(content) {
 // are mid-migration and the rule would create false positives there).
 const isPanelFile = SCOPES.panel;
 
+// ----------------------------------------------------------------------------
+// Raw-button detection: a native <button> that hand-writes its own chrome
+// instead of using <BaseButton variant="...">.
+//
+// Why: the app accumulated 528 distinct class strings across 854 raw buttons,
+// and 43 different visual treatments for "delete" alone. Every hand-styled
+// button is a new dialect. BaseButton exposes one variant per kind of action
+// (see components/base/README.md → Button variants).
+//
+// Not every <button> is an offense. Tabs, segmented controls and selectable
+// list rows are legitimately native — they are not actions and map to no
+// variant. Mark those with `design-tokens: allow-raw-button` in a comment on
+// or just above the tag.
+const ALLOW_RAW_BUTTON = 'design-tokens: allow-raw-button';
+
+// Chrome = the things that make an element *look* like a button. A bare
+// <button> with no styling is not what this rule is after.
+const BUTTON_CHROME = [
+  { pattern: /\bbg-(?!transparent\b)[a-z]/, suggest: 'variant="primary" / "secondary" / "danger" / "accent"' },
+  { pattern: /\brounded-/, suggest: 'BaseButton owns the radius — pick a variant and a size' },
+  { pattern: /\bpx-\d/, suggest: 'BaseButton owns the padding — use size="sm|md|lg"' },
+  { pattern: /\btext-(?:red|rose)-\d/, suggest: 'variant="danger" (confirmed) / "danger-ghost" (inline)' },
+  { pattern: /\btext-danger-strong\b/, suggest: 'variant="danger" (confirmed) / "danger-ghost" (inline)' },
+];
+
+// Returns the full text of the tag starting at `from`, quote-aware so a `>`
+// inside a :class expression or an attribute value doesn't end it early.
+function readTag(content, from) {
+  let quote = null;
+  for (let i = from; i < content.length; i++) {
+    const ch = content[i];
+    if (quote) {
+      if (ch === quote) quote = null;
+    } else if (ch === '"' || ch === "'") {
+      quote = ch;
+    } else if (ch === '>') {
+      return content.slice(from, i + 1);
+    }
+  }
+  return content.slice(from);
+}
+
+function findRawStyledButtons(content) {
+  const found = [];
+  const lineStarts = [];
+  let acc = 0;
+  for (const l of content.split('\n')) {
+    lineStarts.push(acc);
+    acc += l.length + 1;
+  }
+  const lineOf = (offset) => {
+    let lo = 0;
+    let hi = lineStarts.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi + 1) >> 1;
+      if (lineStarts[mid] <= offset) lo = mid;
+      else hi = mid - 1;
+    }
+    return lo + 1; // 1-indexed
+  };
+
+  const re = /<button\b/g;
+  let m;
+  while ((m = re.exec(content)) !== null) {
+    const tag = readTag(content, m.index);
+    const line = lineOf(m.index);
+    // Opt-out on the tag itself or on the two lines above it.
+    const contextStart = lineStarts[Math.max(0, line - 3)];
+    if (content.slice(contextStart, m.index + tag.length).includes(ALLOW_RAW_BUTTON)) continue;
+    for (const { pattern, suggest } of BUTTON_CHROME) {
+      if (pattern.test(tag)) {
+        found.push({ line, suggest });
+        break;
+      }
+    }
+  }
+  return found;
+}
+
 const offenses = [];
 const invalidTokenOffenses = [];
 const formControlOffenses = [];
+const rawButtonOffenses = [];
 for (const file of targetFiles()) {
   const rel = path.relative(FRONTEND_ROOT, file);
   if (isAllowed(rel)) continue;
@@ -563,11 +651,24 @@ for (const file of targetFiles()) {
       formControlOffenses.push({ file: rel, line: fc.line, tag: fc.tag, snippet: fc.snippet });
     }
   }
+  if (file.endsWith('.vue')) {
+    for (const rb of findRawStyledButtons(content)) {
+      rawButtonOffenses.push({ file: rel, line: rb.line, suggest: rb.suggest });
+    }
+  }
 }
 
-const totalOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length;
+// Raw buttons are reported but do not gate by default. 629 of them still live
+// in files people edit daily, so gating on --strict would turn every unrelated
+// one-line edit into a full button migration of that file — which is how a
+// useful rule gets deleted. Pass --strict-buttons to gate on it (do that once
+// the migration lands; the count is the progress bar until then).
+const gatingOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
+  + (strictButtons ? rawButtonOffenses.length : 0);
+const totalOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
+  + rawButtonOffenses.length;
 if (totalOffenses === 0) {
-  console.log(`✓ design-tokens: no forbidden literals, invalid tokens, or unstyled form controls found (scope=${scope})`);
+  console.log(`✓ design-tokens: no forbidden literals, invalid tokens, unstyled form controls or raw styled buttons found (scope=${scope})`);
   process.exit(0);
 }
 
@@ -586,10 +687,16 @@ const groupedFormControls = formControlOffenses.reduce((acc, o) => {
   return acc;
 }, {});
 
+const groupedRawButtons = rawButtonOffenses.reduce((acc, o) => {
+  (acc[o.file] = acc[o.file] || []).push(o);
+  return acc;
+}, {});
+
 const forbiddenSummary = `${offenses.length} forbidden literal${offenses.length === 1 ? '' : 's'} across ${Object.keys(grouped).length} file${Object.keys(grouped).length === 1 ? '' : 's'}`;
 const invalidSummary = `${invalidTokenOffenses.length} invalid token reference${invalidTokenOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedInvalid).length} file${Object.keys(groupedInvalid).length === 1 ? '' : 's'}`;
 const formControlSummary = `${formControlOffenses.length} form control${formControlOffenses.length === 1 ? '' : 's'} without semantic bg across ${Object.keys(groupedFormControls).length} file${Object.keys(groupedFormControls).length === 1 ? '' : 's'}`;
-const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary}, ${formControlSummary} (scope=${scope})`;
+const rawButtonSummary = `${rawButtonOffenses.length} raw styled button${rawButtonOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedRawButtons).length} file${Object.keys(groupedRawButtons).length === 1 ? '' : 's'}`;
+const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary}, ${formControlSummary}, ${rawButtonSummary} (scope=${scope})`;
 
 if (quiet) {
   console.log(summary);
@@ -614,6 +721,19 @@ if (quiet) {
       }
     }
   }
+  if (rawButtonOffenses.length) {
+    if (offenses.length || invalidTokenOffenses.length) console.log('');
+    console.log(`RAW_BUTTON_STYLING — native <button> hand-writing its own chrome instead of <BaseButton variant="...">:`);
+    console.log(`  One variant per kind of action — see components/base/README.md → Button variants.`);
+    console.log(`  Tabs, segmented controls and selectable list rows are not actions: mark those`);
+    console.log(`  with a "design-tokens: allow-raw-button" comment on or above the tag.`);
+    for (const [file, list] of Object.entries(groupedRawButtons)) {
+      console.log(`  ${file}`);
+      for (const o of list) {
+        console.log(`    L${o.line}  →  ${o.suggest}`);
+      }
+    }
+  }
   if (formControlOffenses.length) {
     if (offenses.length || invalidTokenOffenses.length) console.log('');
     console.log(`UNSTYLED_FORM_CONTROLS — native <input>/<select>/<textarea> in panel without a semantic background:`);
@@ -628,4 +748,4 @@ if (quiet) {
   console.log('\nSee frontend/components/base/README.md for the token table.');
 }
 
-process.exit(strict ? 1 : 0);
+process.exit(strict && gatingOffenses > 0 ? 1 : 0);

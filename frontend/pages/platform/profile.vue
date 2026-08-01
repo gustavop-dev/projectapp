@@ -156,13 +156,9 @@
         </div>
 
         <div class="mt-6 flex justify-end">
-          <button
-            type="submit"
-            :disabled="authStore.isLoading"
-            class="rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
-          >
+          <BaseButton variant="accent" size="md" type="submit" :disabled="authStore.isLoading">
             {{ authStore.isLoading ? 'Guardando...' : 'Guardar cambios' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </div>
@@ -211,21 +207,12 @@
             </div>
 
             <div class="flex gap-3">
-              <button
-                type="button"
-                class="flex-1 rounded-xl border border-border-default px-4 py-2.5 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
-                @click="cancelCrop"
-              >
+              <BaseButton variant="ghost" size="md" class="flex-1" @click="cancelCrop">
                 Cancelar
-              </button>
-              <button
-                type="button"
-                :disabled="isUploadingAvatar"
-                class="flex-1 rounded-xl bg-accent px-4 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
-                @click="confirmCrop"
-              >
+              </BaseButton>
+              <BaseButton variant="accent" size="md" class="flex-1" :disabled="isUploadingAvatar" @click="confirmCrop">
                 {{ isUploadingAvatar ? 'Subiendo...' : 'Guardar' }}
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>

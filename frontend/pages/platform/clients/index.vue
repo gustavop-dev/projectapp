@@ -8,13 +8,9 @@
         </p>
       </div>
 
-      <button
-        type="button"
-        class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90"
-        @click="openInviteModal"
-      >
+      <BaseButton variant="accent" size="md" @click="openInviteModal">
         Invitar cliente
-      </button>
+      </BaseButton>
     </section>
 
     <section class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between" data-enter>
@@ -227,12 +223,12 @@
               </div>
 
               <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end">
-                <button type="button" class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeInviteModal">
+                <BaseButton variant="ghost" size="md" @click="closeInviteModal">
                   Cancelar
-                </button>
-                <button type="submit" class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90" :disabled="platformClientsStore.isUpdating">
+                </BaseButton>
+                <BaseButton variant="accent" size="md" type="submit" :disabled="platformClientsStore.isUpdating">
                   {{ platformClientsStore.isUpdating ? 'Enviando...' : 'Crear e invitar' }}
-                </button>
+                </BaseButton>
               </div>
             </form>
           </div>

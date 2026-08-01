@@ -1,24 +1,36 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, useAttrs, watchEffect } from 'vue'
 import { oneOf } from './propValidators'
 
 const props = defineProps({
-  variant: { type: String, default: 'primary', validator: oneOf(['primary', 'secondary', 'ghost', 'danger', 'accent']) },
+  // One variant per kind of action — see the action→variant table in
+  // components/base/README.md. Anything destructive uses danger (confirmed,
+  // e.g. a modal footer) or danger-ghost (inline, e.g. a row's trash icon).
+  variant: {
+    type: String,
+    default: 'primary',
+    validator: oneOf(['primary', 'secondary', 'ghost', 'danger', 'danger-ghost', 'link', 'accent']),
+  },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md', 'lg']) },
   type: { type: String, default: 'button' },
   loading: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  iconOnly: { type: Boolean, default: false },    // square padding for icon buttons
   as: { type: String, default: 'button' },        // button | a | NuxtLink
   to: { type: [String, Object], default: null },
 })
 
 defineEmits(['click'])
 
+const attrs = useAttrs()
+
 const variants = {
-  primary: 'bg-primary text-white hover:bg-primary-strong border border-transparent',
+  primary: 'bg-primary text-on-primary hover:bg-primary-strong border border-transparent',
   secondary: 'bg-surface text-text-default border border-border-default hover:bg-surface-raised',
   ghost: 'bg-transparent text-text-default hover:bg-surface-raised border border-transparent',
-  danger: 'bg-danger-strong text-white hover:opacity-90 border border-transparent',
+  danger: 'bg-danger-strong text-on-danger hover:opacity-90 border border-transparent',
+  'danger-ghost': 'bg-transparent text-danger-strong hover:bg-danger-soft border border-transparent',
+  link: 'bg-transparent text-text-brand hover:underline',
   accent: 'bg-accent text-primary-strong hover:brightness-95 border border-transparent',
 }
 
@@ -28,11 +40,42 @@ const sizes = {
   lg: 'px-5 py-2.5 text-base rounded-xl',
 }
 
+// Icon buttons get square padding so the glyph stays centred instead of
+// sitting in a wide pill.
+const iconSizes = {
+  sm: 'p-1.5 text-xs rounded-lg',
+  md: 'p-2 text-sm rounded-lg',
+  lg: 'p-2.5 text-base rounded-xl',
+}
+
+// `link` renders as inline text: no padding, no radius, just the text size.
+const linkSizes = {
+  sm: 'text-xs',
+  md: 'text-sm',
+  lg: 'text-base',
+}
+
+const sizeClasses = computed(() => {
+  if (props.variant === 'link') return linkSizes[props.size] || linkSizes.md
+  if (props.iconOnly) return iconSizes[props.size] || iconSizes.md
+  return sizes[props.size] || sizes.md
+})
+
 const classes = computed(() => [
   'inline-flex items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:opacity-60 disabled:cursor-not-allowed',
   variants[props.variant] || variants.primary,
-  sizes[props.size] || sizes.md,
+  sizeClasses.value,
 ])
+
+// An icon-only button has no text for a screen reader to announce, so the
+// aria-label is the only thing naming it.
+if (process.env.NODE_ENV !== 'production') {
+  watchEffect(() => {
+    if (props.iconOnly && !attrs['aria-label'] && !attrs['aria-labelledby']) {
+      console.warn('[BaseButton] iconOnly buttons need an aria-label to be announced by screen readers.')
+    }
+  })
+}
 </script>
 
 <template>

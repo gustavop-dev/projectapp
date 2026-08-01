@@ -18,7 +18,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Item {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-danger-strong" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="form.whatsIncluded.splice(idx, 1)">Eliminar</BaseButton>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-2 mb-1">
             <EmojiIconField v-model="item.icon" label="Icono" placeholder="🎨" />
@@ -40,7 +40,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Opción {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-danger-strong" @click="form.paymentOptions.splice(idx, 1)">Eliminar</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="form.paymentOptions.splice(idx, 1)">Eliminar</BaseButton>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <FieldInput v-model="opt.label" label="Etiqueta" placeholder="40% al firmar" />
@@ -78,7 +78,7 @@
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                   <span class="text-[10px] text-text-subtle">{{ idx + 1 }}</span>
                 </div>
-                <button type="button" class="text-[10px] text-danger-strong" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</button>
+                <BaseButton variant="danger-ghost" size="sm" @click="form.hostingPlan.specs.splice(idx, 1)">Eliminar</BaseButton>
               </div>
               <div class="grid grid-cols-[80px_1fr_1fr] gap-2">
                 <EmojiIconField v-model="spec.icon" label="Icono" placeholder="🧠" />

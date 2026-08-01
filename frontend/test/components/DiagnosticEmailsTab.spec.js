@@ -177,7 +177,7 @@ describe('DiagnosticEmailsTab', () => {
       await wrapper.vm.$nextTick();
       expect(wrapper.text()).toContain('Sección 2');
 
-      await wrapper.find('button.p-0\\.5').trigger('click');
+      await wrapper.find('button[aria-label="Eliminar"]').trigger('click');
       await wrapper.vm.$nextTick();
 
       expect(wrapper.text()).not.toContain('Sección 2');

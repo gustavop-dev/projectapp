@@ -37,15 +37,13 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                 Borrador
               </a>
-              <button type="button" :disabled="contractActionsDisabled" @click="$emit('editContract')"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised text-text-muted rounded-lg text-xs font-medium hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <BaseButton variant="secondary" size="sm" :disabled="contractActionsDisabled" @click="$emit('editContract')">
                 Editar parámetros
-              </button>
+              </BaseButton>
             </template>
-            <button v-else-if="!contractActionsDisabled" type="button" @click="$emit('generateContract')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
+            <BaseButton variant="secondary" size="sm" v-else-if="!contractActionsDisabled" @click="$emit('generateContract')">
               Generar contrato
-            </button>
+            </BaseButton>
           </div>
         </li>
 
@@ -121,12 +119,11 @@
               class="text-text-subtle hover:text-text-brand transition-colors p-1">
               <EyeIcon class="w-4 h-4" />
             </button>
-            <button v-if="!doc.is_generated" type="button" @click="handleDelete(doc.id)"
-              class="text-text-subtle hover:text-red-500 transition-colors p-1">
+            <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="!doc.is_generated" @click="handleDelete(doc.id)">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>
@@ -161,10 +158,9 @@
             <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft" />
           </div>
-          <button type="button" :disabled="isUploading" @click="handleUpload"
-            class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">
+          <BaseButton variant="primary" size="sm" :disabled="isUploading" @click="handleUpload">
             {{ isUploading ? 'Subiendo...' : 'Subir' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </section>

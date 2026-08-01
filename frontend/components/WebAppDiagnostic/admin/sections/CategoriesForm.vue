@@ -28,7 +28,7 @@
       >
         <summary class="px-3 py-2 cursor-pointer select-none text-sm font-medium text-text-default flex items-center justify-between">
           <span class="truncate">{{ idx + 1 }}. {{ cat.title || '(sin título)' }}</span>
-          <button type="button" class="text-xs text-rose-600 hover:underline ml-2" @click.prevent="removeCategory(idx)">Quitar</button>
+          <BaseButton variant="danger-ghost" size="sm" class="ml-2" @click.prevent="removeCategory(idx)">Quitar</BaseButton>
         </summary>
         <div class="p-3 space-y-3 border-t border-border-muted">
           <div class="grid sm:grid-cols-2 gap-2">
@@ -67,7 +67,7 @@
                 </select>
                 <input v-model="f.title" type="text" placeholder="Título" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
                 <textarea v-model="f.detail" rows="2" placeholder="Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-                <button type="button" class="text-xs text-rose-600 hover:underline" @click="cat.findings.splice(fi,1)">×</button>
+                <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="cat.findings.splice(fi,1)">×</BaseButton>
               </div>
             </div>
           </div>
@@ -89,7 +89,7 @@
                 </select>
                 <input v-model="r.title" type="text" placeholder="Sugerencia" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
                 <textarea v-model="r.detail" rows="2" placeholder="Relación/Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-                <button type="button" class="text-xs text-rose-600 hover:underline" @click="r.recommendations?.splice(ri,1); cat.recommendations.splice(ri,1)">×</button>
+                <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="r.recommendations?.splice(ri,1); cat.recommendations.splice(ri,1)">×</BaseButton>
               </div>
             </div>
           </div>

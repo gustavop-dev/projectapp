@@ -98,12 +98,11 @@
                     <span class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
-                  <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </BaseButton>
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
                   class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
@@ -113,13 +112,12 @@
               </div>
             </template>
           </draggable>
-          <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
+          <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             Agregar sección
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Footer -->
@@ -134,22 +132,20 @@
           <label class="block text-xs text-text-muted mb-1">Adjuntos</label>
           <div class="flex flex-col items-start gap-3">
             <div class="flex flex-wrap items-center gap-2">
-              <button type="button" @click="showAttachFromDocsModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand  rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
+              <BaseButton variant="secondary" size="sm" @click="showAttachFromDocsModal = true">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
                 Adjuntar desde Documentos
-              </button>
-              <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+              </BaseButton>
+              <BaseButton variant="ghost" size="sm" v-if="canCreateMarkdownAttachment" @click="showMarkdownModal = true">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Crear documento desde markdown
-              </button>
+              </BaseButton>
             </div>
             <input ref="fileInput" type="file" multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
@@ -163,22 +159,20 @@
                 <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[10px] font-medium">Documento</span>
                 <span class="text-xs text-text-default truncate">{{ ref.label }}</span>
               </span>
-              <button type="button" @click="removeDocRef(idx)"
-                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeDocRef(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
             <div v-for="(file, idx) in attachments" :key="`file-${idx}`"
               class="flex items-center justify-between py-1.5 px-3 bg-surface-raised rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
-              <button type="button" @click="removeAttachment(idx)"
-                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>
@@ -187,8 +181,7 @@
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
           <span v-else />
-          <button type="button" :disabled="!canSend || sending" @click="handleSend"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -197,7 +190,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ sending ? 'Enviando...' : 'Enviar correo' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 

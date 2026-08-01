@@ -116,12 +116,7 @@
                       title="Bajar"
                       @click="moveClause(id, idx, 1)"
                     >↓</button>
-                    <button
-                      type="button"
-                      class="w-6 h-6 rounded text-text-muted hover:text-red-500 hover:bg-surface-raised"
-                      title="Eliminar"
-                      @click="removeClause(id, idx)"
-                    >×</button>
+                    <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeClause(id, idx)">×</BaseButton>
                   </div>
                 </div>
                 <FieldTextarea
@@ -198,12 +193,7 @@
             title="Bajar"
             @click="moveGeneralClause(idx, 1)"
           >↓</button>
-          <button
-            type="button"
-            class="w-6 h-6 rounded text-text-muted hover:text-red-500 hover:bg-surface-raised"
-            title="Eliminar"
-            @click="removeGeneralClause(idx)"
-          >×</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeGeneralClause(idx)">×</BaseButton>
         </div>
       </div>
       <FieldTextarea

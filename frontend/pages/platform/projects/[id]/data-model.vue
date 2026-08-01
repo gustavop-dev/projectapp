@@ -7,13 +7,9 @@
 
     <div v-else-if="dataModelStore.error" class="py-10 text-center" data-enter>
       <p class="text-sm text-red-600 dark:text-red-400">{{ dataModelStore.error }}</p>
-      <button
-        type="button"
-        class="mt-3 rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
-        @click="dataModelStore.fetchEntities(projectId)"
-      >
+      <BaseButton variant="secondary" size="sm" class="mt-3" @click="dataModelStore.fetchEntities(projectId)">
         Reintentar
-      </button>
+      </BaseButton>
     </div>
 
     <template v-else>
@@ -40,20 +36,12 @@
 
         <!-- Template buttons -->
         <div class="mb-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
-            @click="copyTemplate"
-          >
+          <BaseButton variant="secondary" size="sm" @click="copyTemplate">
             {{ templateCopied ? 'Copiado' : 'Copiar plantilla' }}
-          </button>
-          <button
-            type="button"
-            class="rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted/40 dark:text-accent dark:hover:bg-white/10"
-            @click="downloadTemplate"
-          >
+          </BaseButton>
+          <BaseButton variant="secondary" size="sm" @click="downloadTemplate">
             Descargar plantilla
-          </button>
+          </BaseButton>
         </div>
 
         <!-- File upload -->
@@ -88,14 +76,9 @@
         </div>
 
         <!-- Submit -->
-        <button
-          type="button"
-          :disabled="!jsonParsed || jsonError || dataModelStore.isUploading"
-          class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 dark:bg-accent dark:text-text-default"
-          @click="handleSubmit"
-        >
+        <BaseButton variant="accent" size="md" :disabled="!jsonParsed || jsonError || dataModelStore.isUploading" @click="handleSubmit">
           {{ dataModelStore.isUploading ? 'Subiendo...' : 'Subir modelo de datos' }}
-        </button>
+        </BaseButton>
 
         <!-- Upload error -->
         <div v-if="uploadError" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-xs text-red-600 dark:bg-red-900/20 dark:text-red-400">

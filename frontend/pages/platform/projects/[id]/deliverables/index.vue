@@ -18,14 +18,10 @@
           <span class="rounded-full border border-border-default px-3 py-1.5 text-xs font-semibold text-green-light">
             {{ store.totalCount }} archivos
           </span>
-          <button
-            type="button"
-            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
-            @click="openCreateModal"
-          >
+          <BaseButton variant="accent" size="md" @click="openCreateModal">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
             Subir recurso
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -136,9 +132,9 @@
           <svg class="h-8 w-8 text-green-light/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
         </div>
         <p class="text-sm text-green-light">No hay recursos aún.</p>
-        <button type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
+        <BaseButton variant="accent" size="md" class="mt-4" @click="openCreateModal">
           Subir primer recurso
-        </button>
+        </BaseButton>
       </div>
 </template>
 
@@ -188,9 +184,9 @@
                     <div v-else class="flex w-full items-center gap-3 px-4 py-3">
                       <svg class="h-5 w-5 shrink-0 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       <span class="flex-1 truncate text-sm text-text-default">{{ selectedFile.name }}</span>
-                      <button type="button" class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-green-light/40 hover:text-red-400" @click.stop="selectedFile = null">
+                      <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Quitar" @click.stop="selectedFile = null">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+                      </BaseButton>
                     </div>
                   </div>
                 </div>
@@ -199,10 +195,10 @@
                 </p>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="!createForm.title.trim() || !selectedFile || store.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                  <BaseButton variant="ghost" size="md" @click="isCreateOpen = false">Cancelar</BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!createForm.title.trim() || !selectedFile || store.isUpdating">
                     {{ store.isUpdating ? 'Subiendo...' : 'Subir' }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>
@@ -294,13 +290,9 @@
 
               <!-- Admin actions -->
               <div v-if="authStore.isAdmin && !detailItem.is_archived" class="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10"
-                  @click="openUploadVersion"
-                >
+                <BaseButton variant="secondary" size="sm" @click="openUploadVersion">
                   Subir nueva versión
-                </button>
+                </BaseButton>
               </div>
             </div>
           </Transition>
@@ -330,16 +322,16 @@
                 </div>
                 <div v-else class="flex w-full items-center gap-3 px-4 py-3">
                   <span class="flex-1 truncate text-sm text-text-default">{{ versionFile.name }}</span>
-                  <button type="button" class="text-green-light/40 hover:text-red-400" @click.stop="versionFile = null">
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click.stop="versionFile = null">
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
+                  </BaseButton>
                 </div>
               </div>
               <div class="flex justify-end gap-3">
-                <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isVersionUploadOpen = false">Cancelar</button>
-                <button type="button" :disabled="!versionFile || store.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50" @click="handleUploadVersion">
+                <BaseButton variant="ghost" size="md" @click="isVersionUploadOpen = false">Cancelar</BaseButton>
+                <BaseButton variant="accent" size="md" :disabled="!versionFile || store.isUpdating" @click="handleUploadVersion">
                   {{ store.isUpdating ? 'Subiendo...' : 'Subir versión' }}
-                </button>
+                </BaseButton>
               </div>
             </div>
           </Transition>

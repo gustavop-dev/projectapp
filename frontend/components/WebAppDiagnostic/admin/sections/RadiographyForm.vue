@@ -32,7 +32,7 @@
         >
           <input v-model="it.title" type="text" placeholder="Título" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <textarea v-model="it.description" rows="2" placeholder="Descripción" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-          <button type="button" class="text-xs text-rose-600 hover:underline" @click="removeInclude(idx)">Quitar</button>
+          <BaseButton variant="danger-ghost" size="sm" @click="removeInclude(idx)">Quitar</BaseButton>
         </div>
       </div>
     </div>
@@ -63,7 +63,7 @@
           <input v-model="r.small" type="text" placeholder="Pequeña" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <input v-model="r.medium" type="text" placeholder="Mediana" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <input v-model="r.large" type="text" placeholder="Grande" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
-          <button type="button" class="text-xs text-rose-600 hover:underline" @click="removeRow(idx)">×</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeRow(idx)">×</BaseButton>
         </div>
       </div>
 

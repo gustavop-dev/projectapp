@@ -86,12 +86,9 @@
             >
               Duplicar
             </button>
-            <button
-              class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-              @click="handleDelete(post)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(post)">
               Eliminar
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>
@@ -144,12 +141,9 @@
                     >
                       Duplicar
                     </button>
-                    <button
-                      class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-                      @click="handleDelete(post)"
-                    >
+                    <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(post)">
                       Eliminar
-                    </button>
+                    </BaseButton>
                   </div>
                 </td>
               </tr>

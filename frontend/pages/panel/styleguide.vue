@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue'
+import { XMarkIcon, TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useDiagnosticDarkMode } from '~/composables/useDiagnosticDarkMode'
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] })
@@ -102,6 +103,8 @@ const shadowScale = [
           <BaseButton variant="secondary">Secondary</BaseButton>
           <BaseButton variant="ghost">Ghost</BaseButton>
           <BaseButton variant="danger">Danger</BaseButton>
+          <BaseButton variant="danger-ghost">Danger ghost</BaseButton>
+          <BaseButton variant="link">Link</BaseButton>
           <BaseButton variant="accent">Accent</BaseButton>
           <BaseButton variant="primary" loading>Loading</BaseButton>
           <BaseButton variant="primary" disabled>Disabled</BaseButton>
@@ -111,6 +114,23 @@ const shadowScale = [
           <BaseButton size="md">Medium</BaseButton>
           <BaseButton size="lg">Large</BaseButton>
         </div>
+        <!-- Icon-only: square padding, aria-label is required -->
+        <div class="flex flex-wrap items-center gap-3 mt-4">
+          <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar">
+            <XMarkIcon class="w-4 h-4" />
+          </BaseButton>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar">
+            <TrashIcon class="w-4 h-4" />
+          </BaseButton>
+          <BaseButton variant="secondary" icon-only size="md" aria-label="Editar">
+            <PencilIcon class="w-4 h-4" />
+          </BaseButton>
+        </div>
+        <p class="mt-4 text-xs text-text-muted">
+          One variant per kind of action: <code>danger</code> for confirmed destruction
+          (modal footer), <code>danger-ghost</code> for inline destruction (row trash).
+          See <code>components/base/README.md</code> → Button variants.
+        </p>
       </BaseCard>
     </section>
 

@@ -9,7 +9,7 @@
         <div class="bg-surface rounded-2xl shadow-2xl max-w-md w-full p-6">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-text-default">Gestionar etiquetas</h3>
-            <button type="button" class="text-text-subtle hover:text-text-muted" @click="close">✕</button>
+            <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="close">✕</BaseButton>
           </div>
 
           <!-- New tag form -->
@@ -26,13 +26,14 @@
             >
               <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
-            <button
+            <BaseButton
               type="submit"
-              :disabled="!newName.trim() || tagStore.isUpdating"
-              class="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-strong disabled:opacity-50"
+              variant="primary"
+              :disabled="!newName.trim()"
+              :loading="tagStore.isUpdating"
             >
               Crear
-            </button>
+            </BaseButton>
           </form>
 
           <!-- Tag list -->
@@ -61,29 +62,29 @@
                   <option v-for="c in COLORS" :key="c.value" :value="c.value">{{ c.label }}</option>
                 </select>
 
-                <button
+                <BaseButton
                   v-if="editingId === tag.id"
-                  type="button"
-                  class="text-xs text-text-brand hover:text-text-brand"
+                  variant="link"
+                  size="sm"
                   @click="commitRename(tag)"
                 >
                   Guardar
-                </button>
-                <button
+                </BaseButton>
+                <BaseButton
                   v-else
-                  type="button"
-                  class="text-xs text-text-muted hover:text-text-brand"
+                  variant="link"
+                  size="sm"
                   @click="startRename(tag)"
                 >
                   Editar
-                </button>
-                <button
-                  type="button"
-                  class="text-xs text-text-muted hover:text-red-600"
+                </BaseButton>
+                <BaseButton
+                  variant="danger-ghost"
+                  size="sm"
                   @click="handleDelete(tag)"
                 >
                   Eliminar
-                </button>
+                </BaseButton>
               </li>
             </ul>
           </div>
@@ -91,13 +92,9 @@
           <p v-if="errorMsg" class="text-xs text-red-600 mt-3">{{ errorMsg }}</p>
 
           <div class="flex justify-end mt-4">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm text-text-muted hover:text-text-default dark:text-text-subtle"
-              @click="close"
-            >
+            <BaseButton variant="ghost" @click="close">
               Cerrar
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>

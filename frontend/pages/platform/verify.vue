@@ -80,13 +80,9 @@
             >
           </div>
 
-          <button
-            type="submit"
-            class="w-full rounded-full bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="authStore.isVerifying"
-          >
+          <BaseButton variant="primary" size="md" type="submit" class="w-full" :disabled="authStore.isVerifying">
             {{ authStore.isVerifying ? 'Validando...' : 'Completar verificación' }}
-          </button>
+          </BaseButton>
         </form>
 
         <button

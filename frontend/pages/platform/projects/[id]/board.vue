@@ -53,22 +53,14 @@
 
           <!-- Admin actions -->
           <template v-if="authStore.isAdmin">
-            <button
-              type="button"
-              class="flex items-center gap-1.5 rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-green-light transition hover:border-border-default hover:text-text-default dark:hover:text-white"
-              @click="downloadJsonExample"
-            >
+            <BaseButton variant="secondary" size="sm" @click="downloadJsonExample">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Ejemplo
-            </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
-              @click="openImportModal"
-            >
+            </BaseButton>
+            <BaseButton variant="accent" size="md" @click="openImportModal">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
               Importar JSON
-            </button>
+            </BaseButton>
           </template>
         </div>
       </div>
@@ -97,15 +89,10 @@
                 <span v-if="scopeLabel(card)" class="mb-0.5 block text-[10px] font-semibold uppercase tracking-wide text-teal-600/80 dark:text-teal-300/80">{{ scopeLabel(card) }}</span>
                 {{ card.title }}
               </button>
-              <button
-                v-if="authStore.isAdmin"
-                type="button"
-                class="flex items-center gap-1 rounded-lg border border-border-default px-2 py-1 text-[10px] text-green-light transition hover:border-border-default hover:text-text-default dark:hover:text-white"
-                @click="openMoveItemModal(card)"
-              >
+              <BaseButton variant="secondary" size="md" v-if="authStore.isAdmin" @click="openMoveItemModal(card)">
                 <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                 Mover
-              </button>
+              </BaseButton>
             </div>
           </div>
         </Transition>
@@ -222,10 +209,10 @@
                   </select>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isMoveOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="isMoving" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                  <BaseButton variant="ghost" size="md" @click="isMoveOpen = false">Cancelar</BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="isMoving">
                     {{ isMoving ? 'Moviendo...' : 'Mover' }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>
@@ -294,10 +281,10 @@
                 </p>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeImportModal">Cancelar</button>
-                  <button type="submit" :disabled="!importJson.trim() || importLoading" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                  <BaseButton variant="ghost" size="md" @click="closeImportModal">Cancelar</BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!importJson.trim() || importLoading">
                     {{ importLoading ? 'Cargando...' : (importMode === 'replace' ? 'Reemplazar' : 'Añadir') }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>
@@ -358,7 +345,7 @@
               <div v-if="!authStore.isAdmin && detailCard.status === 'done'" class="mb-5">
                 <p class="mb-2 text-xs font-semibold text-text-default">¿Este requerimiento cumple con lo esperado?</p>
                 <div class="flex gap-2">
-                  <button type="button" class="flex-1 rounded-xl bg-emerald-500 py-2.5 text-sm font-semibold text-white transition hover:bg-primary" @click="handleApprove">Aprobar</button>
+                  <BaseButton variant="primary" size="md" class="flex-1" @click="handleApprove">Aprobar</BaseButton>
                   <NuxtLink :to="localePath(`/platform/projects/${projectId}/changes?from_req=${detailCard.id}&title=${encodeURIComponent(detailCard.title)}`)" class="flex flex-1 items-center justify-center rounded-xl border border-amber-500/30 py-2.5 text-sm font-semibold text-amber-600 transition hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-900/10">Solicitar cambio</NuxtLink>
                   <NuxtLink :to="localePath(`/platform/projects/${projectId}/bugs?from_req=${detailCard.id}&title=${encodeURIComponent(detailCard.title)}`)" class="flex flex-1 items-center justify-center rounded-xl border border-red-500/30 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/10">Reportar bug</NuxtLink>
                 </div>
@@ -407,13 +394,9 @@
                     placeholder="Escribe un comentario..."
                     class="flex-1 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40"
                   />
-                  <button
-                    type="submit"
-                    :disabled="!newComment.trim()"
-                    class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-accent dark:text-text-default"
-                  >
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!newComment.trim()">
                     Enviar
-                  </button>
+                  </BaseButton>
                 </form>
                 <label v-if="authStore.isAdmin" class="mt-2 flex items-center gap-2 text-xs text-green-light/60">
                   <input v-model="commentInternal" type="checkbox" class="rounded border-border-default" />

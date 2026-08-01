@@ -10,15 +10,9 @@
         Esta propuesta todavía no tiene la sección «Condiciones comerciales», que es
         donde viven los paquetes por horas del PDF.
       </p>
-      <button
-        type="button"
-        data-testid="hour-rate-create-section"
-        class="mt-3 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-        :disabled="isCreating"
-        @click="createSection"
-      >
+      <BaseButton variant="primary" size="md" class="mt-3" data-testid="hour-rate-create-section" :disabled="isCreating" @click="createSection">
         {{ isCreating ? 'Creando…' : 'Crear la sección' }}
-      </button>
+      </BaseButton>
     </div>
 
     <template v-else>
@@ -119,31 +113,18 @@
               placeholder="30000"
             />
           </label>
-          <button
-            type="button"
-            data-testid="hour-rate-apply-base-all"
-            class="shrink-0 px-3 py-2 rounded-lg border border-border-default bg-surface text-xs font-medium text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="!canApplyBaseRate"
-            @click="applyBaseRateToAll"
-          >
+          <BaseButton variant="secondary" size="sm" class="shrink-0" data-testid="hour-rate-apply-base-all" :disabled="!canApplyBaseRate" @click="applyBaseRateToAll">
             Aplicar a todos
-          </button>
+          </BaseButton>
         </div>
         <p class="text-[11px] text-text-subtle">
           Escribir acá no mueve la tabla: la tarifa se copia a todos los paquetes cuando
           apretás «Aplicar a todos», y después podés ajustar los que quieras en su celda.
           Moneda: {{ currency }} (la define el catálogo).
         </p>
-        <button
-          v-if="catalogDefaults"
-          type="button"
-          data-testid="hour-rate-reset-catalog"
-          class="px-3 py-1.5 rounded-lg border border-border-default bg-surface text-xs font-medium text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="isAtCatalogDefaults"
-          @click="resetToCatalogDefaults"
-        >
+        <BaseButton variant="secondary" size="sm" v-if="catalogDefaults" data-testid="hour-rate-reset-catalog" :disabled="isAtCatalogDefaults" @click="resetToCatalogDefaults">
           Restablecer a los valores del catálogo
-        </button>
+        </BaseButton>
         <p v-if="catalogDefaults" class="text-[11px] text-text-subtle">
           Repone los paquetes tal como están hoy en el catálogo. La propuesta
           <span class="font-medium">sigue en manual</span>: no vuelve a seguirlo hasta
@@ -178,15 +159,9 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <button
-          type="button"
-          data-testid="hour-rate-save"
-          class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium disabled:opacity-60 disabled:cursor-not-allowed"
-          :disabled="!isDirty || isSaving"
-          @click="save"
-        >
+        <BaseButton variant="primary" size="md" data-testid="hour-rate-save" :disabled="!isDirty || isSaving" @click="save">
           {{ isSaving ? 'Guardando…' : 'Guardar' }}
-        </button>
+        </BaseButton>
         <span v-if="isDirty" class="text-xs text-warning-strong">Cambios sin guardar</span>
       </div>
     </template>

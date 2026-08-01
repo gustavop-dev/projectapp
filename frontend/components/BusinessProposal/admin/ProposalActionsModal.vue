@@ -7,14 +7,16 @@
           Selecciona una acción para esta propuesta.
         </p>
       </div>
-      <button
-        type="button"
-        class="w-11 h-11 -m-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-default hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+      <BaseButton
+        variant="ghost"
+        icon-only
+        size="md"
+        class="w-11 h-11 -m-2"
         aria-label="Cerrar"
         @click="$emit('close')"
       >
         ✕
-      </button>
+      </BaseButton>
     </div>
 
     <div class="px-4 sm:px-6 py-4 space-y-2">

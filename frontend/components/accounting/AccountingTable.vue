@@ -117,15 +117,9 @@
             >
               <PencilSquareIcon class="w-5 h-5" />
             </button>
-            <button
-              type="button"
-              aria-label="Eliminar"
-              :data-testid="`accounting-delete-${row[rowKey]}`"
-              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-              @click.stop="emit('delete', row)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" aria-label="Eliminar" :data-testid="`accounting-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
               <TrashIcon class="w-5 h-5" />
-            </button>
+            </BaseButton>
           </td>
         </tr>
       </tbody>

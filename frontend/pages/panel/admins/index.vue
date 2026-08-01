@@ -73,39 +73,21 @@
           </span>
 
           <!-- Actions -->
-          <button
-            v-if="!admin.is_onboarded && admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-info-soft text-info-strong hover:opacity-90 font-medium transition-colors"
-            :disabled="resendingId === admin.user_id"
-            @click="handleResendInvite(admin.user_id)"
-          >
+          <BaseButton variant="ghost" size="sm" v-if="!admin.is_onboarded && admin.is_active" :disabled="resendingId === admin.user_id" @click="handleResendInvite(admin.user_id)">
             {{ resendingId === admin.user_id ? 'Enviando...' : 'Reenviar invitación' }}
-          </button>
+          </BaseButton>
 
-          <button
-            v-if="admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-surface-raised text-text-default hover:bg-border-muted font-medium transition-colors"
-            :disabled="loggingInId === admin.user_id"
-            @click="handleLoginAs(admin.user_id)"
-          >
+          <BaseButton variant="secondary" size="sm" v-if="admin.is_active" :disabled="loggingInId === admin.user_id" @click="handleLoginAs(admin.user_id)">
             {{ loggingInId === admin.user_id ? 'Abriendo...' : 'Login with this user' }}
-          </button>
+          </BaseButton>
 
-          <button
-            v-if="admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-danger-soft text-danger-strong hover:opacity-90 font-medium transition-colors"
-            @click="handleDeactivate(admin.user_id)"
-          >
+          <BaseButton variant="danger-ghost" size="sm" v-if="admin.is_active" @click="handleDeactivate(admin.user_id)">
             Desactivar
-          </button>
+          </BaseButton>
 
-          <button
-            v-if="!admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 font-medium transition-colors"
-            @click="handleReactivate(admin.user_id)"
-          >
+          <BaseButton variant="secondary" size="sm" v-if="!admin.is_active" @click="handleReactivate(admin.user_id)">
             Reactivar
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>

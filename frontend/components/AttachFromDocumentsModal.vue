@@ -6,41 +6,37 @@
         <h3 class="text-sm font-semibold text-text-default">
           Adjuntar desde Documentos
         </h3>
-        <button type="button" class="text-text-subtle hover:text-text-default"
+        <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar"
           @click="$emit('close')">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </BaseButton>
       </header>
 
       <div class="flex-1 overflow-y-auto px-5 py-3">
-        <p v-if="!availableDocs.length" class="text-xs text-gray-400 dark:text-white/40 py-6 text-center">
+        <p v-if="!availableDocs.length" class="text-xs text-text-subtle dark:text-white/40 py-6 text-center">
           No hay documentos disponibles para adjuntar.
         </p>
-        <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+        <ul v-else class="divide-y divide-border-muted dark:divide-white/[0.06]">
           <li v-for="doc in availableDocs" :key="doc.key" class="py-2.5 flex items-center gap-3">
             <input :id="`attach-${doc.key}`" v-model="selectedKeys" type="checkbox" :value="doc.key"
-              class="rounded border-gray-300 dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30" />
+              class="rounded border-input-border dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30" />
             <label :for="`attach-${doc.key}`" class="flex-1 min-w-0 cursor-pointer">
               <div class="text-sm text-text-default truncate">{{ doc.label }}</div>
-              <div class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">{{ doc.description }}</div>
+              <div class="text-[11px] text-text-subtle dark:text-white/40 mt-0.5">{{ doc.description }}</div>
             </label>
           </li>
         </ul>
       </div>
 
       <footer class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-muted">
-        <button type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-default"
-          @click="$emit('close')">
+        <BaseButton variant="ghost" size="sm" @click="$emit('close')">
           Cancelar
-        </button>
-        <button type="button" :disabled="!selectedKeys.length"
-          class="px-4 py-1.5 text-xs font-medium bg-primary text-white rounded-lg hover:bg-primary-strong disabled:opacity-50"
-          @click="confirm">
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" :disabled="!selectedKeys.length" @click="confirm">
           Adjuntar ({{ selectedKeys.length }})
-        </button>
+        </BaseButton>
       </footer>
     </div>
   </div>

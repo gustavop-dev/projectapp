@@ -130,9 +130,9 @@
       <p v-if="successMsg" class="text-sm text-text-brand">{{ successMsg }}</p>
 
       <div class="flex gap-3 pt-4">
-        <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
+        <BaseButton variant="primary" size="md" type="submit" :disabled="portfolioStore.isUpdating">
           {{ portfolioStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
-        </button>
+        </BaseButton>
         <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Volver</NuxtLink>
       </div>
     </form>

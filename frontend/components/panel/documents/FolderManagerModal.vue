@@ -21,15 +21,11 @@
                 <p class="text-xs text-text-muted mt-0.5">Crea subcarpetas, edita, elimina o reordena arrastrando</p>
               </div>
             </div>
-            <button
-              type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
 
           <!-- New folder form -->
@@ -46,13 +42,15 @@
                   class="w-full pl-9 pr-3 py-2.5 border border-border-default rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none bg-surface placeholder:text-input-placeholder transition-colors"
                 />
               </div>
-              <button
+              <BaseButton
                 type="submit"
-                :disabled="!newName.trim() || folderStore.isUpdating"
-                class="px-4 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 flex-shrink-0"
+                variant="primary"
+                class="flex-shrink-0"
+                :disabled="!newName.trim()"
+                :loading="folderStore.isUpdating"
               >
                 Crear
-              </button>
+              </BaseButton>
             </form>
             <label class="flex items-center gap-2 text-xs text-text-muted">
               <span class="flex-shrink-0">Dentro de:</span>
@@ -141,21 +139,18 @@
                 </label>
               </div>
               <div class="flex items-center gap-2 mt-3">
-                <button
-                  type="button"
-                  :disabled="folderStore.isUpdating || !editName.trim()"
-                  class="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary-strong disabled:opacity-50 transition-colors"
+                <BaseButton
+                  variant="primary"
+                  size="sm"
+                  :disabled="!editName.trim()"
+                  :loading="folderStore.isUpdating"
                   @click="commitEdit"
                 >
-                  {{ folderStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-                </button>
-                <button
-                  type="button"
-                  class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-default rounded-lg transition-colors"
-                  @click="editingFolder = null"
-                >
+                  Guardar
+                </BaseButton>
+                <BaseButton variant="ghost" size="sm" @click="editingFolder = null">
                   Cancelar
-                </button>
+                </BaseButton>
               </div>
             </div>
           </Transition>
@@ -187,23 +182,22 @@
                     {{ deleteVariant.bodyText }}
                   </p>
                   <div class="flex items-center gap-2 mt-3">
-                    <button
+                    <BaseButton
                       v-if="deleteVariant.kind === 'destructive'"
-                      type="button"
-                      :disabled="folderStore.isUpdating"
-                      class="px-3 py-1.5 bg-red-600 text-white text-xs font-medium rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                      variant="danger"
+                      size="sm"
+                      :loading="folderStore.isUpdating"
                       @click="confirmDelete"
                     >
-                      {{ folderStore.isUpdating ? 'Eliminando...' : 'Confirmar eliminación' }}
-                    </button>
-                    <button
-                      type="button"
-                      class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
-                      :class="deleteVariant.dismiss"
+                      Confirmar eliminación
+                    </BaseButton>
+                    <BaseButton
+                      :variant="deleteVariant.dismissVariant"
+                      size="sm"
                       @click="deletingFolder = null"
                     >
                       {{ deleteVariant.dismissText }}
-                    </button>
+                    </BaseButton>
                   </div>
                 </div>
               </div>
@@ -212,13 +206,9 @@
 
           <!-- Footer -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end flex-shrink-0">
-            <button
-              type="button"
-              class="px-5 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-xl transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" @click="close">
               Cerrar
-            </button>
+            </BaseButton>
           </div>
 
         </div>
@@ -341,7 +331,7 @@ const deleteVariant = computed(() => {
       body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.document_count} documento(s).`,
-      dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
+      dismissVariant: 'secondary',
       dismissText: 'Entendido',
     };
   }
@@ -355,7 +345,7 @@ const deleteVariant = computed(() => {
       body: 'text-warning-strong',
       titleText: `No se puede eliminar "${folder.name}"`,
       bodyText: `Primero mueve o elimina sus ${folder.children_count} subcarpeta(s).`,
-      dismiss: 'bg-amber-600 text-white hover:bg-amber-700',
+      dismissVariant: 'secondary',
       dismissText: 'Entendido',
     };
   }
@@ -368,7 +358,7 @@ const deleteVariant = computed(() => {
     body: 'text-danger-strong',
     titleText: `Eliminar "${folder.name}"`,
     bodyText: 'Esta acción no se puede deshacer.',
-    dismiss: 'text-danger-strong hover:bg-danger-soft',
+    dismissVariant: 'ghost',
     dismissText: 'Cancelar',
   };
 });

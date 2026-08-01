@@ -165,15 +165,9 @@ function requestDelete(row) {
             Activa
           </label>
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              :aria-label="`Eliminar tarjeta ${row.name || 'nueva'}`"
-              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-              :data-testid="`card-catalog-delete-${row.key}`"
-              @click="requestDelete(row)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" :aria-label="`Eliminar tarjeta ${row.name || 'nueva'}`" :data-testid="`card-catalog-delete-${row.key}`" @click="requestDelete(row)">
               <TrashIcon class="w-4 h-4" />
-            </button>
+            </BaseButton>
             <BaseButton
               variant="primary"
               size="sm"

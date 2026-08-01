@@ -13,12 +13,11 @@
               Escribe en markdown, previsualiza el PDF y adjúntalo al composer.
             </p>
           </div>
-          <button type="button" @click="onClose"
-            class="text-gray-400 hover:text-text-muted dark:hover:text-white transition-colors">
+          <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="onClose">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Body: 2 columns -->
@@ -34,18 +33,18 @@
             <div v-if="showDiagnosticTemplates">
               <label class="block text-xs font-medium text-text-default dark:text-green-light mb-1">Plantillas base</label>
               <div class="flex flex-wrap gap-2">
-                <button v-for="t in DIAGNOSTIC_TEMPLATES" :key="t.slug" type="button"
+                <BaseButton v-for="t in DIAGNOSTIC_TEMPLATES" :key="t.slug"
+                  variant="secondary" size="sm"
                   :disabled="templateBusy[t.slug]"
-                  @click="copyTemplate(t.slug)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-[11px] font-medium hover:bg-primary-soft disabled:opacity-50 transition-colors">
+                  @click="copyTemplate(t.slug)">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
                   {{ templateCopied[t.slug] ? '¡Copiado!' : `Copiar ${t.label}` }}
-                </button>
+                </BaseButton>
               </div>
-              <p class="text-[11px] text-gray-400 dark:text-green-light/40 mt-1">
+              <p class="text-[11px] text-text-subtle dark:text-green-light/40 mt-1">
                 Copia la plantilla, edítala y pégala en el contenido.
               </p>
             </div>
@@ -60,43 +59,42 @@
             <fieldset class="space-y-2">
               <legend class="text-xs font-medium text-text-default dark:text-green-light mb-1">Portadas</legend>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includePortada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includePortada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Portada principal
               </label>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includeSubportada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includeSubportada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Portada secundaria (carátula con título)
               </label>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includeContraportada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includeContraportada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Contraportada
               </label>
             </fieldset>
 
             <div v-if="error" class="text-xs text-red-500">{{ error }}</div>
 
-            <button type="button" :disabled="!canPreview || loading"
-              @click="generatePreview"
-              class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong disabled:opacity-50 transition-colors">
+            <BaseButton variant="primary" size="sm" :disabled="!canPreview" :loading="loading"
+              @click="generatePreview">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
               </svg>
               {{ loading ? 'Generando…' : (previewUrl ? 'Actualizar vista previa' : 'Vista previa') }}
-            </button>
+            </BaseButton>
           </div>
 
           <!-- Preview column -->
-          <div class="bg-gray-50 dark:bg-surface/[0.02] flex flex-col overflow-hidden">
+          <div class="bg-surface-muted dark:bg-surface/[0.02] flex flex-col overflow-hidden">
             <div v-if="previewUrl" class="flex-1 min-h-0">
               <iframe :src="previewUrl" class="w-full h-full border-0" title="Vista previa PDF"></iframe>
             </div>
             <div v-else class="flex-1 flex items-center justify-center text-center p-8">
               <div class="max-w-xs">
-                <svg class="w-12 h-12 mx-auto text-gray-300 dark:text-white/20 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-12 h-12 mx-auto text-text-subtle dark:text-white/20 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p class="text-xs text-gray-400 dark:text-green-light/40">
+                <p class="text-xs text-text-subtle dark:text-green-light/40">
                   Escribe un título y contenido, luego pulsa <span class="font-medium">Vista previa</span> para ver cómo queda el PDF.
                 </p>
               </div>
@@ -106,18 +104,16 @@
 
         <!-- Footer -->
         <div class="flex items-center justify-end gap-3 px-6 py-4 border-t border-border-muted dark:border-white/[0.06]">
-          <button type="button" @click="onClose"
-            class="px-4 py-2 text-xs font-medium text-text-muted dark:text-green-light bg-gray-50 dark:bg-surface/[0.03] rounded-lg hover:bg-gray-100 dark:hover:bg-surface/[0.06] transition-colors">
+          <BaseButton variant="ghost" size="sm" @click="onClose">
             Cancelar
-          </button>
-          <button type="button" :disabled="!canAttach || loading"
-            @click="attachToEmail"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong disabled:opacity-50 transition-colors">
+          </BaseButton>
+          <BaseButton variant="primary" size="sm" :disabled="!canAttach" :loading="loading"
+            @click="attachToEmail">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
             </svg>
             {{ loading ? 'Procesando…' : 'Adjuntar al correo' }}
-          </button>
+          </BaseButton>
         </div>
 
       </div>

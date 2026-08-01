@@ -25,13 +25,9 @@
     <section class="bg-surface border border-border-default rounded-xl p-5 mb-6">
       <div v-if="!connection.connected" class="flex flex-col sm:flex-row sm:items-center gap-3">
         <span class="text-sm text-text-muted">LinkedIn no conectado.</span>
-        <button
-          type="button"
-          class="px-4 py-2 bg-[#0A66C2] text-white text-sm rounded-lg hover:bg-[#004182] transition-colors inline-flex items-center gap-2 w-fit"
-          @click="connectLinkedIn"
-        >
+        <BaseButton variant="ghost" size="md" @click="connectLinkedIn">
           Conectar LinkedIn
-        </button>
+        </BaseButton>
       </div>
       <div v-else class="space-y-1">
         <p class="text-sm text-text-default">
@@ -141,13 +137,9 @@
                 >
                   {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
                 </button>
-                <button
-                  type="button"
-                  class="text-xs text-danger-strong hover:underline"
-                  @click="askDelete(post)"
-                >
+                <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
                   Eliminar
-                </button>
+                </BaseButton>
               </td>
             </tr>
           </tbody>
@@ -207,13 +199,9 @@
             >
               {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
             </button>
-            <button
-              type="button"
-              class="text-xs text-danger-strong hover:underline"
-              @click="askDelete(post)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
               Eliminar
-            </button>
+            </BaseButton>
           </div>
         </article>
       </div>

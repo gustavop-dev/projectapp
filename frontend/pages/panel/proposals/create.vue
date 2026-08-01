@@ -447,13 +447,9 @@
                 class="flex-1 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                 placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
               ></textarea>
-              <button
-                type="button"
-                class="text-xs text-danger-strong hover:underline pt-2"
-                @click="removeEmailFeature(idx)"
-              >
+              <BaseButton variant="danger-ghost" size="sm" @click="removeEmailFeature(idx)">
                 Quitar
-              </button>
+              </BaseButton>
             </div>
           </div>
 
@@ -513,24 +509,12 @@
 
         <!-- Submit -->
         <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 pt-2">
-          <button
-            type="submit"
-            :disabled="proposalStore.isUpdating"
-            class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
-                   hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
-          >
+          <BaseButton variant="primary" size="md" type="submit" class="w-full sm:w-auto sm:px-6" :disabled="proposalStore.isUpdating">
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear Propuesta' }}
-          </button>
-          <button
-            v-if="canSendDirectly"
-            type="button"
-            :disabled="proposalStore.isUpdating"
-            class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm
-                   hover:bg-blue-700 transition-colors shadow-sm disabled:opacity-50"
-            @click="handleCreateAndSend"
-          >
+          </BaseButton>
+          <BaseButton variant="ghost" size="md" class="w-full sm:w-auto sm:px-6" v-if="canSendDirectly" :disabled="proposalStore.isUpdating" @click="handleCreateAndSend">
             {{ proposalStore.isUpdating ? 'Creando...' : 'Crear y Enviar' }}
-          </button>
+          </BaseButton>
           <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default text-center sm:text-left">
             Cancelar
           </NuxtLink>
@@ -560,23 +544,14 @@
               <option value="es">Español</option>
               <option value="en">English</option>
             </select>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-              @click="copyTemplate"
-            >
+            <BaseButton variant="secondary" size="md" @click="copyTemplate">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
               {{ templateCopied ? '¡Copiado!' : 'Copiar' }}
-            </button>
-            <button
-              type="button"
-              :disabled="isDownloading"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50"
-              @click="downloadTemplate"
-            >
+            </BaseButton>
+            <BaseButton variant="secondary" size="md" :disabled="isDownloading" @click="downloadTemplate">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               {{ isDownloading ? 'Descargando...' : 'Descargar' }}
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>
@@ -877,14 +852,9 @@
 
           <!-- Submit -->
           <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4 pt-2">
-            <button
-              type="submit"
-              :disabled="proposalStore.isUpdating"
-              class="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm
-                     hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
-            >
+            <BaseButton variant="primary" size="md" type="submit" class="w-full sm:w-auto sm:px-6" :disabled="proposalStore.isUpdating">
               {{ proposalStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
-            </button>
+            </BaseButton>
             <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default text-center sm:text-left">
               Cancelar
             </NuxtLink>
@@ -908,53 +878,28 @@
           </div>
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!createCommercialPromptIsEditing">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="startEditCreateCommercialPrompt"
-              >
+              <BaseButton variant="secondary" size="md" @click="startEditCreateCommercialPrompt">
                 Editar
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="handleCopyCreateCommercialPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="handleCopyCreateCommercialPrompt">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                 {{ createCommercialPromptCopied ? '¡Copiado!' : 'Copiar' }}
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="createCommercialPromptDownload"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="createCommercialPromptDownload">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar .md
-              </button>
-              <button
-                v-if="createCommercialPromptText !== createCommercialPromptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
-                @click="handleResetCreateCommercialPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="sm" v-if="createCommercialPromptText !== createCommercialPromptDefault" @click="handleResetCreateCommercialPrompt">
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
-              <button
-                type="button"
-                class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
-                @click="saveEditCreateCommercialPrompt"
-              >
+              <BaseButton variant="primary" size="md" @click="saveEditCreateCommercialPrompt">
                 Guardar cambios
-              </button>
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-                @click="cancelEditCreateCommercialPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="cancelEditCreateCommercialPrompt">
                 Cancelar
-              </button>
+              </BaseButton>
             </template>
           </div>
           <div v-if="createCommercialPromptIsEditing" class="bg-surface-raised rounded-xl border border-border-default overflow-hidden">
@@ -980,52 +925,27 @@
           </p>
           <div class="flex flex-wrap items-center gap-2 mb-4">
             <template v-if="!createTechnicalPromptIsEditing">
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="startEditCreateTechnicalPrompt"
-              >
+              <BaseButton variant="secondary" size="md" @click="startEditCreateTechnicalPrompt">
                 Editar
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="handleCopyCreateTechnicalPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="handleCopyCreateTechnicalPrompt">
                 {{ createTechnicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
-              </button>
-              <button
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
-                @click="createTechnicalPromptDownload"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="md" @click="createTechnicalPromptDownload">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar .md
-              </button>
-              <button
-                v-if="createTechnicalPromptText !== createTechnicalPromptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
-                @click="handleResetCreateTechnicalPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="sm" v-if="createTechnicalPromptText !== createTechnicalPromptDefault" @click="handleResetCreateTechnicalPrompt">
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
-              <button
-                type="button"
-                class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
-                @click="saveEditCreateTechnicalPrompt"
-              >
+              <BaseButton variant="primary" size="md" @click="saveEditCreateTechnicalPrompt">
                 Guardar cambios
-              </button>
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-                @click="cancelEditCreateTechnicalPrompt"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="cancelEditCreateTechnicalPrompt">
                 Cancelar
-              </button>
+              </BaseButton>
             </template>
           </div>
           <div v-if="createTechnicalPromptIsEditing" class="bg-surface-raised rounded-xl border border-border-default overflow-hidden">
@@ -1078,20 +998,12 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
               Ver Preview
             </a>
-            <button
-              v-if="canSendDirectly"
-              class="w-full px-5 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
-              :disabled="proposalStore.isUpdating"
-              @click="handleSendCreated"
-            >
+            <BaseButton variant="ghost" size="md" class="w-full" v-if="canSendDirectly" :disabled="proposalStore.isUpdating" @click="handleSendCreated">
               {{ proposalStore.isUpdating ? 'Enviando...' : 'Enviar al Cliente' }}
-            </button>
-            <button
-              class="w-full px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors"
-              @click="router.push(localePath(`/panel/proposals/${createdProposal.id}/edit`))"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" class="w-full" @click="router.push(localePath(`/panel/proposals/${createdProposal.id}/edit`))">
               Ir a Editar
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>

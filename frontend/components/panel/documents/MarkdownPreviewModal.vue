@@ -12,16 +12,18 @@
               <h3 class="text-base font-semibold text-text-default truncate">{{ title }}</h3>
               <span class="hidden md:inline-block text-xs text-text-subtle">Presiona ESC para cerrar</span>
             </div>
-            <button
-              type="button"
-              class="w-9 h-9 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors flex-shrink-0"
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="md"
+              class="w-9 h-9 flex-shrink-0"
               aria-label="Cerrar vista previa"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
           <div class="flex-1 min-h-0 overflow-y-auto px-5 sm:px-10 py-6 sm:py-8">
             <slot />

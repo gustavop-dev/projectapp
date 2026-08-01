@@ -21,22 +21,12 @@
           @keydown.enter.prevent="saveSlug"
         />
       </div>
-      <button
-        type="button"
-        class="px-3 py-2 text-xs font-medium rounded-lg bg-primary text-white hover:bg-primary disabled:opacity-50"
-        :disabled="slugSaving || slugDraft === (proposal.slug || '')"
-        @click="saveSlug"
-      >
+      <BaseButton variant="primary" size="sm" :disabled="slugSaving || slugDraft === (proposal.slug || '')" @click="saveSlug">
         {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
-      </button>
-      <button
-        type="button"
-        class="px-3 py-2 text-xs font-medium rounded-lg border border-border-default text-text-muted hover:border-border-default"
-        :title="'Regenerar desde el nombre del cliente'"
-        @click="regenerateSlugFromName"
-      >
+      </BaseButton>
+      <BaseButton variant="secondary" size="sm" :title="'Regenerar desde el nombre del cliente'" @click="regenerateSlugFromName">
         Regenerar
-      </button>
+      </BaseButton>
     </div>
     <p v-if="slugError" class="text-xs text-danger-strong mt-2">{{ slugError }}</p>
     <p v-else class="text-xs text-text-subtle mt-2">
@@ -465,14 +455,9 @@
             Estos campos llenan los bloques del correo comercial: lista "Qué incluye", card "Método en 3 fases" y firma. Si los dejas vacíos se omiten o se usa el método estándar de marca.
           </p>
         </div>
-        <button
-          type="button"
-          class="shrink-0 px-3 py-1.5 text-xs font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
-          data-testid="edit-email-preview-btn"
-          @click="emit('open-email-preview')"
-        >
+        <BaseButton variant="secondary" size="sm" class="shrink-0" data-testid="edit-email-preview-btn" @click="emit('open-email-preview')">
           👁 Vista previa
-        </button>
+        </BaseButton>
       </div>
 
       <div>
@@ -518,13 +503,9 @@
             class="flex-1"
             placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
           />
-          <button
-            type="button"
-            class="text-xs text-danger-strong hover:underline pt-2"
-            @click="removeEmailFeature(idx)"
-          >
+          <BaseButton variant="danger-ghost" size="sm" @click="removeEmailFeature(idx)">
             Quitar
-          </button>
+          </BaseButton>
         </div>
       </div>
 

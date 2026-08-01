@@ -61,15 +61,9 @@
               class="flex-1"
               :data-testid="`settings-recipient-input-${index}`"
             />
-            <button
-              type="button"
-              :aria-label="`Quitar correo ${index + 1}`"
-              :data-testid="`settings-recipient-remove-${index}`"
-              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-              @click="removeRecipient(index)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" :aria-label="`Quitar correo ${index + 1}`" :data-testid="`settings-recipient-remove-${index}`" @click="removeRecipient(index)">
               <TrashIcon class="w-4 h-4" />
-            </button>
+            </BaseButton>
           </div>
         </div>
 

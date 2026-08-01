@@ -78,12 +78,11 @@
                     <span class="text-[10px] font-medium text-text-muted uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
-                  <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </BaseButton>
                 </div>
                 <textarea v-model="section.text" v-auto-resize rows="3" placeholder="Escribe el contenido de esta sección..."
                   class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface  focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-none" />
@@ -93,13 +92,12 @@
               </div>
             </template>
           </draggable>
-          <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
+          <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             Agregar sección
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Footer -->
@@ -120,12 +118,11 @@
             <div v-for="(file, idx) in attachments" :key="idx"
               class="flex items-center justify-between py-1.5 px-3 bg-surface-muted  rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
-              <button type="button" @click="removeAttachment(idx)"
-                class="text-text-subtle hover:text-danger-strong transition-colors p-0.5">
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>
@@ -134,8 +131,7 @@
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-danger-strong">{{ sendError }}</p>
           <span v-else />
-          <button type="button" :disabled="!canSend || sending" @click="handleSend"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -144,7 +140,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ sending ? 'Enviando...' : 'Enviar correo' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -290,10 +286,9 @@
 
         <!-- Load more -->
         <div v-if="emailStore.historyPagination.has_next" class="pt-3 text-center">
-          <button type="button" :disabled="emailStore.isLoadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted  rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50">
+          <BaseButton variant="secondary" size="sm" :disabled="emailStore.isLoadingHistory" @click="loadMore">
             {{ emailStore.isLoadingHistory ? 'Cargando...' : 'Cargar más' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </section>

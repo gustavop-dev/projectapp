@@ -71,11 +71,7 @@
     </fieldset>
 
     <div class="text-right">
-      <button
-        type="submit"
-        class="px-4 sm:px-5 py-2 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-all shadow-sm shadow-emerald-100 hover:shadow-md hover:shadow-emerald-200 active:scale-[0.98] disabled:opacity-50"
-        :disabled="busy"
-      >{{ busy ? 'Guardando...' : 'Guardar radiografía' }}</button>
+      <BaseButton variant="primary" size="md" type="submit" class="sm:px-5" :disabled="busy">{{ busy ? 'Guardando...' : 'Guardar radiografía' }}</BaseButton>
     </div>
   </form>
 </template>

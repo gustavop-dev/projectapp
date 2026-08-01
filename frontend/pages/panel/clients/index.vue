@@ -220,15 +220,9 @@
             </button>
 
             <!-- Trash button -->
-            <button
-              type="button"
-              :data-testid="`client-delete-${client.id}`"
-              class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-              :title="'Eliminar cliente'"
-              @click.stop="confirmDelete(client)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-delete-${client.id}`" :title="'Eliminar cliente'" @click.stop="confirmDelete(client)">
               <TrashIcon class="w-4 h-4" />
-            </button>
+            </BaseButton>
 
             <!-- Expand chevron -->
             <svg
@@ -323,15 +317,9 @@
                         {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
                       </td>
                       <td class="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          :data-testid="`client-proposal-delete-${p.id}`"
-                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                          title="Eliminar propuesta"
-                          @click.stop="confirmDeleteProposal(client, p)"
-                        >
+                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-proposal-delete-${p.id}`" title="Eliminar propuesta" @click.stop="confirmDeleteProposal(client, p)">
                           <TrashIcon class="w-4 h-4" />
-                        </button>
+                        </BaseButton>
                       </td>
                     </tr>
                   </tbody>
@@ -419,15 +407,9 @@
                         {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
                       </td>
                       <td class="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          :data-testid="`client-diagnostic-delete-${diag.id}`"
-                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                          title="Eliminar diagnóstico"
-                          @click.stop="confirmDeleteDiagnostic(client, diag)"
-                        >
+                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-diagnostic-delete-${diag.id}`" title="Eliminar diagnóstico" @click.stop="confirmDeleteDiagnostic(client, diag)">
                           <TrashIcon class="w-4 h-4" />
-                        </button>
+                        </BaseButton>
                       </td>
                     </tr>
                   </tbody>
@@ -508,21 +490,12 @@
           </div>
           <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
-              @click="closeCreateModal"
-            >
+            <BaseButton variant="ghost" size="md" @click="closeCreateModal">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="clientsStore.isUpdating"
-              data-testid="clients-new-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-new-submit">
               Crear cliente
-            </button>
+            </BaseButton>
           </div>
         </form>
       </div>
@@ -581,21 +554,12 @@
           </div>
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
-              @click="closeEditModal"
-            >
+            <BaseButton variant="ghost" size="md" @click="closeEditModal">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="clientsStore.isUpdating"
-              data-testid="clients-edit-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-edit-submit">
               Guardar cambios
-            </button>
+            </BaseButton>
           </div>
         </form>
       </div>

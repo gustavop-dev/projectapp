@@ -82,13 +82,9 @@
 
         <!-- Footer -->
         <div class="flex items-center justify-between pt-3 border-t border-border-muted">
-          <button
-            type="button"
-            class="text-xs text-danger-strong hover:underline rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-            @click="$emit('reset')"
-          >
+          <BaseButton variant="link" size="sm" @click="$emit('reset')">
             Restaurar contenido por defecto
-          </button>
+          </BaseButton>
           <div class="text-xs" :class="saveError ? 'text-danger-strong' : 'text-text-subtle'">
             <span v-if="isSaving">Guardando…</span>
             <template v-else-if="saveError">

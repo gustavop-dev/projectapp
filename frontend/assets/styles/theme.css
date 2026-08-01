@@ -108,8 +108,11 @@
   --color-focus-ring-rgb: 16 185 129; /* #10B981 */
 
   /* Foreground "on" colors — text/icon color guaranteed to contrast
-     against the matching background token. Stable across modes since
-     primary/danger backgrounds stay in the same hue family. */
+     against the matching background token. `on-primary` is stable across
+     modes (--color-primary stays #002921 in dark), but `on-danger` is NOT:
+     --color-danger-strong flips dark→light (#991B1B → #FCA5A5), so the dark
+     block overrides on-danger to a deep red. Always pair bg-danger-strong
+     with text-on-danger, never with text-white. */
   --color-on-primary: #FFFFFF;
   --color-on-danger: #FFFFFF;
   --color-on-primary-rgb: 255 255 255;
@@ -206,6 +209,13 @@
   --color-input-text-rgb: 249 250 251;
   --color-input-placeholder-rgb: 255 255 255; /* alpha baked in non-rgb var */
   --color-focus-ring-rgb: 52 211 153;    /* #34D399 */
+
+  /* Foreground "on" colors — dark. danger-strong flips to a light red
+     (#FCA5A5), so white text on it is unreadable: use a deep red instead.
+     primary stays #002921 in dark, so on-primary keeps the light block's
+     white and is not redeclared here. */
+  --color-on-danger: #450A0A;
+  --color-on-danger-rgb: 69 10 10;      /* #450A0A */
 
   /* Status — dark (slightly muted soft tones) */
   --color-success-soft: rgba(16, 185, 129, 0.15);

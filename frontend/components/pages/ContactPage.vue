@@ -71,14 +71,10 @@
           </div>
 
           <div ref="formField6" class="pt-8 opacity-0">
-            <button
-              type="submit"
-              :disabled="isSubmitting"
-              class="w-full lg:w-auto px-12 py-5 text-2xl lg:text-3xl font-medium bg-primary text-bone rounded-full hover:bg-primary-strong transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <BaseButton variant="primary" size="md" type="submit" class="w-full lg:w-auto lg:text-3xl" :disabled="isSubmitting">
               <span v-if="!isSubmitting">{{ messages?.form?.submit || 'Send message' }}</span>
               <span v-else>Enviando...</span>
-            </button>
+            </BaseButton>
           </div>
           
         </form>

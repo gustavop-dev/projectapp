@@ -137,18 +137,16 @@
 
         <!-- Footer -->
         <div class="px-6 py-4 border-t border-border-muted flex items-center justify-end gap-3">
-          <button
-            type="button"
-            class="px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-lg hover:bg-surface-raised transition-colors"
+          <BaseButton
+            variant="ghost"
             :disabled="isApplying"
             @click="$emit('cancel')"
           >
             Cancelar
-          </button>
-          <button
-            type="button"
-            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-strong rounded-lg hover:bg-primary-strong/90 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-            :disabled="isApplying"
+          </BaseButton>
+          <BaseButton
+            variant="primary"
+            :loading="isApplying"
             @click="$emit('confirm')"
           >
             <svg
@@ -161,7 +159,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ isApplying ? 'Aplicando...' : 'Confirmar y aplicar' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>

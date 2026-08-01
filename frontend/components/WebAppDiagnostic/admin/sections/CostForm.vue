@@ -18,7 +18,7 @@
       <label class="block text-xs font-medium text-text-muted mb-1">Beneficios (uno por línea)</label>
       <textarea v-model="form.valueBulletsText" rows="4" placeholder="Ej: Claridad técnica accionable: ..." class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
     </div>
-    <p class="text-xs text-gray-400 italic">
+    <p class="text-xs text-text-subtle italic">
       El monto, la moneda y los porcentajes se toman del tab General.
     </p>
     <div>
@@ -34,7 +34,7 @@
         >
           <input v-model="p.label" type="text" placeholder="al inicio / al final" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <textarea v-model="p.detail" rows="2" placeholder="Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-          <button type="button" class="text-xs text-rose-600 hover:underline" @click="form.paymentDescription.splice(idx,1)">×</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="form.paymentDescription.splice(idx,1)">×</BaseButton>
         </div>
       </div>
     </div>

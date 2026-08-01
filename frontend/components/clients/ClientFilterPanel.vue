@@ -73,14 +73,9 @@
       <!-- Limpiar todo -->
       <div class="flex items-center gap-2 px-3 py-2.5">
         <div class="flex-1" />
-        <button
-          v-if="filterCount > 0"
-          type="button"
-          class="text-xs text-text-subtle hover:text-danger-strong transition-colors font-medium whitespace-nowrap"
-          @click="emit('reset')"
-        >
+        <BaseButton variant="link" size="sm" class="whitespace-nowrap" v-if="filterCount > 0" @click="emit('reset')">
           Limpiar todo
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -93,11 +88,7 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <button
-          type="button"
-          class="ml-0.5 hover:text-danger-strong leading-none"
-          @click="clearChip(chip.key)"
-        >&times;</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
       </span>
     </div>
   </div>

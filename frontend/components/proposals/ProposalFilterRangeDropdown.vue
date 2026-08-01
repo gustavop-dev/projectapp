@@ -63,13 +63,9 @@
           />
         </div>
         <div v-if="isActive" class="mt-2 pt-2 border-t border-border-muted">
-          <button
-            type="button"
-            class="text-xs text-text-subtle hover:text-danger-strong transition-colors"
-            @click="clearRange"
-          >
+          <BaseButton variant="link" size="sm" @click="clearRange">
             Limpiar
-          </button>
+          </BaseButton>
         </div>
       </div>
     </Transition>

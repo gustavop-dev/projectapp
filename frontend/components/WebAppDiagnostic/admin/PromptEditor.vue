@@ -2,39 +2,14 @@
   <div>
     <div class="flex flex-wrap items-center gap-2 mb-3">
       <template v-if="!state.isEditing.value">
-        <button
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-brand border border-emerald-200 dark:border-emerald-500/40 rounded-lg hover:bg-primary-soft dark:hover:bg-emerald-500/10"
-          @click="startEdit"
-        >Editar</button>
-        <button
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
-          @click="onCopy"
-        >{{ copied ? '¡Copiado!' : 'Copiar' }}</button>
-        <button
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
-          @click="onDownload"
-        >Descargar .md</button>
-        <button
-          v-if="isCustom"
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10"
-          @click="onReset"
-        >Restaurar original</button>
+        <BaseButton variant="secondary" size="sm" @click="startEdit">Editar</BaseButton>
+        <BaseButton variant="secondary" size="sm" @click="onCopy">{{ copied ? '¡Copiado!' : 'Copiar' }}</BaseButton>
+        <BaseButton variant="secondary" size="sm" @click="onDownload">Descargar .md</BaseButton>
+        <BaseButton variant="secondary" size="sm" v-if="isCustom" @click="onReset">Restaurar original</BaseButton>
       </template>
       <template v-else>
-        <button
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-white bg-primary rounded-lg hover:opacity-90"
-          @click="saveEdit"
-        >Guardar</button>
-        <button
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
-          @click="cancelEdit"
-        >Cancelar</button>
+        <BaseButton variant="primary" size="sm" @click="saveEdit">Guardar</BaseButton>
+        <BaseButton variant="ghost" size="sm" @click="cancelEdit">Cancelar</BaseButton>
       </template>
     </div>
 

@@ -172,17 +172,9 @@
             >
               <BanknotesIcon class="w-5 h-5" />
             </button>
-            <button
-              v-if="row.payment_status === 'pending'"
-              type="button"
-              class="p-1.5 rounded-md text-text-muted hover:text-danger-strong hover:bg-surface-raised transition-colors"
-              aria-label="Marcar como perdido"
-              title="Marcar como perdido"
-              :data-testid="`income-write-off-${row.id}`"
-              @click.stop="confirmWriteOff(row)"
-            >
+            <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.payment_status === 'pending'" aria-label="Marcar como perdido" title="Marcar como perdido" :data-testid="`income-write-off-${row.id}`" @click.stop="confirmWriteOff(row)">
               <XCircleIcon class="w-5 h-5" />
-            </button>
+            </BaseButton>
           </template>
         </template>
         <template #cell-kind_label="{ row }">

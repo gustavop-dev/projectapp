@@ -27,14 +27,9 @@
             </option>
           </select>
         </label>
-        <button
-          type="button"
-          class="text-xs px-3 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-strong"
-          :disabled="!stubModuleId"
-          @click="insertGenericStub"
-        >
+        <BaseButton variant="primary" size="sm" :disabled="!stubModuleId" @click="insertGenericStub">
           Insertar módulo genérico
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -61,7 +56,7 @@
         <input v-model="row.technology" placeholder="Tecnología" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.rationale" placeholder="Justificación técnica" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <button type="button" class="text-xs text-red-500 shrink-0" @click="doc.stack.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.stack.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
@@ -79,7 +74,7 @@
         <input v-model="row.pattern" placeholder="Patrón" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <button type="button" class="text-xs text-red-500" @click="doc.architecture.patterns.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.architecture.patterns.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <p class="text-xs text-text-muted">Diagramas / anexo (opcional)</p>
@@ -110,7 +105,7 @@
         <input v-model="row.description" placeholder="Descripción" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.keyFields" placeholder="Campos clave (texto libre)" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <button type="button" class="text-xs text-red-500" @click="doc.dataModel.entities.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.dataModel.entities.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
@@ -140,7 +135,7 @@
         <input v-model="row.preparation" placeholder="Preparación actual" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.evolution" placeholder="Evolución ante crecimiento" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <button type="button" class="text-xs text-red-500 shrink-0" @click="doc.growthReadiness.strategies.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.growthReadiness.strategies.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
@@ -149,7 +144,7 @@
     <section class="space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text-default">Módulos del producto</h3>
-        <button type="button" class="text-xs px-3 py-1.5 bg-primary text-on-primary rounded-lg" @click="addEpic">+ Módulo</button>
+        <BaseButton variant="primary" size="sm" @click="addEpic">+ Módulo</BaseButton>
       </div>
       <div
         v-for="(epic, ei) in doc.epics"
@@ -161,7 +156,7 @@
             <input v-model="epic.epicKey" placeholder="epicKey (slug único)" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm font-mono text-xs">
             <input v-model="epic.title" placeholder="Título del módulo" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
           </div>
-          <button type="button" class="text-xs text-red-600" @click="doc.epics.splice(ei, 1)">Eliminar módulo</button>
+          <BaseButton variant="danger-ghost" size="sm" @click="doc.epics.splice(ei, 1)">Eliminar módulo</BaseButton>
         </div>
         <textarea v-model="epic.description" v-auto-resize data-testid="technical-epic-description-textarea" class="w-full px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm" placeholder="Descripción del módulo" />
         <div v-if="moduleLinkOptions.length" class="space-y-1">
@@ -245,7 +240,7 @@
                 </div>
               </div>
             </div>
-            <button type="button" class="text-xs text-red-500" @click="epic.requirements.splice(ri, 1)">Quitar requerimiento</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="epic.requirements.splice(ri, 1)">Quitar requerimiento</BaseButton>
           </div>
         </div>
       </div>
@@ -268,7 +263,7 @@
         <input v-model="row.domain" placeholder="Dominio o área" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.summary" placeholder="Resumen de endpoints / contratos" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <button type="button" class="text-xs text-red-500" @click="doc.apiDomains.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.apiDomains.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
@@ -284,7 +279,7 @@
         <input v-model="row.dataExchange" placeholder="Datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.accountOwner" placeholder="Responsable cuenta" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.integrations.included.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.integrations.included.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <h3 class="text-sm font-semibold text-text-default pt-2">No incluidas</h3>
@@ -294,7 +289,7 @@
         <input v-model="row.reason" placeholder="Motivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.availability" placeholder="Disponibilidad futura" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.integrations.excluded.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.integrations.excluded.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <p class="text-xs text-text-muted pt-2">Notas técnicas (viñetas, una por línea)</p>
@@ -326,7 +321,7 @@
         <input v-model="row.database" placeholder="Base de datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.whoAccesses" placeholder="Quién accede" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.environments.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.environments.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
@@ -340,7 +335,7 @@
       <div v-for="(row, i) in doc.security" :key="'sec-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
         <input v-model="row.aspect" placeholder="Aspecto" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <input v-model="row.implementation" placeholder="Implementación" class="flex-[2] px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
-        <button type="button" class="text-red-500 text-xs" @click="doc.security.splice(i, 1)">✕</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.security.splice(i, 1)">✕</BaseButton>
       </div>
     </section>
 
@@ -354,7 +349,7 @@
         <input v-model="row.target" placeholder="Objetivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.howMeasured" placeholder="Cómo se mide" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.performanceQuality.metrics.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.performanceQuality.metrics.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <p class="text-xs text-text-muted">Prácticas</p>
@@ -362,7 +357,7 @@
       <div v-for="(row, i) in doc.performanceQuality.practices" :key="'prac-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
         <input v-model="row.strategy" placeholder="Estrategia" class="w-1/3 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
-        <button type="button" class="text-red-500" @click="doc.performanceQuality.practices.splice(i, 1)">✕</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.performanceQuality.practices.splice(i, 1)">✕</BaseButton>
       </div>
     </section>
 
@@ -389,7 +384,7 @@
         <input v-model="row.evaluates" placeholder="Qué evalúa" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.standard" placeholder="Estándar / umbral" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.quality.dimensions.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.quality.dimensions.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <div class="flex items-center justify-between">
@@ -402,7 +397,7 @@
         <input v-model="row.tool" placeholder="Herramienta" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.whenRun" placeholder="Cuándo" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.quality.testTypes.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.quality.testTypes.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
       <p class="text-xs text-text-muted">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
@@ -425,20 +420,15 @@
         <input v-model="row.alternative" placeholder="Alternativa descartada" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.reason" placeholder="Razón" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <button type="button" class="text-red-500" @click="doc.decisions.splice(i, 1)">✕</button>
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.decisions.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
     </section>
 
     <div class="flex items-center gap-4 pt-4 border-t dark:border-white/[0.06]">
-      <button
-        type="button"
-        :disabled="isSaving"
-        class="px-5 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary-strong disabled:opacity-50"
-        @click="handleSave"
-      >
+      <BaseButton variant="primary" size="md" :disabled="isSaving" @click="handleSave">
         {{ isSaving ? 'Guardando...' : 'Guardar detalle técnico' }}
-      </button>
+      </BaseButton>
       <span v-if="savedMsg" class="text-sm text-text-brand">{{ savedMsg }}</span>
       <span v-if="validationError" class="text-sm text-red-600">{{ validationError }}</span>
     </div>

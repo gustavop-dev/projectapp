@@ -103,18 +103,11 @@
             </td>
 
             <td v-if="editable" class="py-2 pl-2 text-right align-top">
-              <button
-                type="button"
-                :data-testid="`hour-package-delete-${idx}`"
-                class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-danger-strong/70"
-                :disabled="rows.length <= 1"
-                :title="rows.length <= 1
+              <BaseButton variant="danger-ghost" size="sm" :data-testid="`hour-package-delete-${idx}`" :disabled="rows.length <= 1" :title="rows.length <= 1
                   ? 'La propuesta debe conservar al menos un paquete'
-                  : 'Quitar este paquete'"
-                @click="emit('remove', idx)"
-              >
+                  : 'Quitar este paquete'" @click="emit('remove', idx)">
                 Quitar
-              </button>
+              </BaseButton>
             </td>
           </tr>
 

@@ -69,34 +69,17 @@
         <article class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
           <h2 class="text-base font-medium text-text-default">Acciones rápidas</h2>
           <div class="mt-5 flex flex-col gap-3">
-            <button
-              type="button"
-              class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white disabled:opacity-50"
-              :disabled="platformClientsStore.isUpdating"
-              @click="handleResendInvite"
-            >
+            <BaseButton variant="secondary" size="md" :disabled="platformClientsStore.isUpdating" @click="handleResendInvite">
               Reenviar invitación
-            </button>
+            </BaseButton>
 
-            <button
-              v-if="platformClientsStore.currentClient.is_active"
-              type="button"
-              class="rounded-full border border-red-500/20 px-4 py-3 text-sm text-red-500 transition hover:bg-red-500/10 dark:text-red-300 disabled:opacity-50"
-              :disabled="platformClientsStore.isUpdating"
-              @click="requestDeactivate"
-            >
+            <BaseButton variant="danger-ghost" size="sm" v-if="platformClientsStore.currentClient.is_active" :disabled="platformClientsStore.isUpdating" @click="requestDeactivate">
               Desactivar acceso
-            </button>
+            </BaseButton>
 
-            <button
-              v-else
-              type="button"
-              class="rounded-full border border-emerald-500/20 px-4 py-3 text-sm text-text-brand transition hover:bg-emerald-500/10 disabled:opacity-50"
-              :disabled="platformClientsStore.isUpdating"
-              @click="handleReactivate"
-            >
+            <BaseButton variant="primary" size="md" v-else :disabled="platformClientsStore.isUpdating" @click="handleReactivate">
               Reactivar acceso
-            </button>
+            </BaseButton>
           </div>
         </article>
       </section>
@@ -143,20 +126,12 @@
             </label>
 
             <div class="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                class="rounded-full border border-border-default px-4 py-3 text-sm text-green-light transition hover:text-text-default dark:hover:text-white"
-                @click="syncFormFromClient"
-              >
+              <BaseButton variant="secondary" size="md" @click="syncFormFromClient">
                 Restablecer
-              </button>
-              <button
-                type="submit"
-                class="rounded-full bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-accent dark:text-text-default dark:hover:bg-lemon/90"
-                :disabled="platformClientsStore.isUpdating"
-              >
+              </BaseButton>
+              <BaseButton variant="accent" size="md" type="submit" :disabled="platformClientsStore.isUpdating">
                 {{ platformClientsStore.isUpdating ? 'Guardando...' : 'Guardar cambios' }}
-              </button>
+              </BaseButton>
             </div>
           </form>
         </article>

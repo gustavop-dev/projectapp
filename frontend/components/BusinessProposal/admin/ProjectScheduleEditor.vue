@@ -103,25 +103,12 @@
       </p>
 
       <div class="flex items-center gap-3">
-        <button
-          type="button"
-          :disabled="isSaving[row.stage_key] || !!row.completed_at"
-          :data-testid="`stage-save-${row.stage_key}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          @click="handleSave(row.stage_key)"
-        >
+        <BaseButton variant="primary" size="sm" :disabled="isSaving[row.stage_key] || !!row.completed_at" :data-testid="`stage-save-${row.stage_key}`" @click="handleSave(row.stage_key)">
           {{ isSaving[row.stage_key] ? 'Guardando…' : 'Guardar fechas' }}
-        </button>
-        <button
-          v-if="!row.completed_at"
-          type="button"
-          :disabled="isCompleting[row.stage_key]"
-          :data-testid="`stage-complete-${row.stage_key}`"
-          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised text-text-default rounded-lg text-xs font-medium hover:bg-surface-raised transition-colors disabled:opacity-50"
-          @click="handleComplete(row.stage_key)"
-        >
+        </BaseButton>
+        <BaseButton variant="secondary" size="sm" v-if="!row.completed_at" :disabled="isCompleting[row.stage_key]" :data-testid="`stage-complete-${row.stage_key}`" @click="handleComplete(row.stage_key)">
           ✅ {{ isCompleting[row.stage_key] ? 'Marcando…' : 'Marcar como completada' }}
-        </button>
+        </BaseButton>
         <span
           v-if="row.completed_at"
           class="text-xs text-text-muted"

@@ -62,12 +62,9 @@
               </AccountingInlineCell>
             </td>
             <td class="px-5 py-2.5 text-right whitespace-nowrap">
-              <button
-                class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-                @click="$emit('delete', alias)"
-              >
+              <BaseButton variant="danger-ghost" size="sm" @click="$emit('delete', alias)">
                 Eliminar
-              </button>
+              </BaseButton>
             </td>
           </tr>
         </tbody>

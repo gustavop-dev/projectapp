@@ -123,7 +123,7 @@ prefer the bare class without `/N`.
 | `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`                       |
-| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `as` |
+| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`), `closeOnBackdrop`, `closeOnEsc`, `padding` |
@@ -139,6 +139,59 @@ prefer the bare class without `/N`.
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
+
+## Button variants
+
+Every button in the app is a `BaseButton`. Never hand-write button chrome
+(`px-4 py-2 rounded-lg bg-…`) on a raw `<button>`: that is how the app ended up
+with 43 different visual treatments for "delete" alone.
+
+**Each kind of action maps to exactly one variant.** Pick by what the action
+*is*, not by how prominent you want it to look:
+
+| Action                                              | Variant        | Reads as                                  |
+| --------------------------------------------------- | -------------- | ----------------------------------------- |
+| Primary action (Guardar, Crear, Enviar, Confirmar)   | `primary`      | filled brand green                        |
+| Secondary action (Duplicar, Exportar, Filtrar)       | `secondary`    | bordered, surface background              |
+| Tertiary / Cancelar / Cerrar                         | `ghost`        | transparent, tint on hover                |
+| Destructive **confirmed** (modal footer, confirm CTA)| `danger`       | filled red                                |
+| Destructive **inline** (row trash icon, quitar ítem) | `danger-ghost` | red text, soft red wash on hover          |
+| Text action inside prose or a list header            | `link`         | brand-coloured text, underline on hover   |
+| Accent CTA — client platform, public site            | `accent`       | filled accent                             |
+
+`accent` is not decoration: `pages/platform/**` uses accent-yellow as its
+*primary* CTA, the way the panel uses `primary` green. Keep that split —
+migrating a platform CTA to `primary` repaints the client-facing app.
+
+A soft tint (`bg-primary-soft`) is low-emphasis chrome, so it maps to
+`secondary`, not `primary`: promoting it changes the visual hierarchy of the
+screen it lives on.
+
+The destructive split is the one that matters: a filled red button in every
+table row screams; a bare red word in a modal footer disappears. Confirmed
+destruction is `danger`, inline destruction is `danger-ghost`.
+
+Sizes: `sm` (dense — tables, chips) · `md` (default — modals, forms) · `lg`
+(prominent CTA). States come for free: hover, focus ring, `disabled`
+(60% opacity + `not-allowed`) and `loading` (spinner, implies disabled).
+
+```html
+<BaseButton variant="primary" :loading="saving" type="submit">Guardar</BaseButton>
+<BaseButton variant="ghost" @click="close">Cancelar</BaseButton>
+<BaseButton variant="danger" @click="confirmDelete">Eliminar</BaseButton>
+
+<!-- inline delete: icon-only needs an aria-label, BaseButton warns in dev if it is missing -->
+<BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar tarea" @click="remove">
+  <TrashIcon class="w-4 h-4" />
+</BaseButton>
+```
+
+`iconOnly` swaps the rectangular padding for square padding so the glyph stays
+centred. `link` drops padding and radius entirely — it is text, not a pill.
+
+Filled variants use the `on-primary` / `on-danger` foreground tokens, never
+`text-white`: `--color-danger-strong` flips to a light red in dark mode, so
+hardcoded white text is unreadable there.
 
 ## Border-radius scale
 

@@ -108,10 +108,9 @@ function toggleExpand(id) {
     </div>
 
     <div v-if="hasNextPage" class="pt-3 text-center">
-      <button type="button" :disabled="loading" @click="$emit('load-more')"
-        class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted rounded-lg hover:bg-border-muted motion-safe:transition-colors motion-safe:duration-fast disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-focus-ring/40">
+      <BaseButton variant="secondary" size="sm" :disabled="loading" @click="$emit('load-more')">
         {{ loading ? 'Cargando…' : 'Cargar más' }}
-      </button>
+      </BaseButton>
     </div>
   </div>
 </template>

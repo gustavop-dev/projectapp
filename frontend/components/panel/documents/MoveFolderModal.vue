@@ -21,20 +21,17 @@
                 <p class="text-xs text-text-muted truncate max-w-[200px]">{{ document.title }}</p>
               </div>
             </div>
-            <button
-              type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
 
           <!-- Folder options -->
           <div class="p-4 space-y-1.5 max-h-72 overflow-y-auto">
             <!-- No folder option -->
+            <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
             <button
               type="button"
               :disabled="isMoving"
@@ -61,6 +58,7 @@
             </button>
 
             <!-- Folder entries -->
+            <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
             <button
               v-for="folder in orderedFolders"
               :key="folder.id"
@@ -102,13 +100,9 @@
 
           <!-- Footer -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" @click="close">
               Cancelar
-            </button>
+            </BaseButton>
           </div>
 
         </div>

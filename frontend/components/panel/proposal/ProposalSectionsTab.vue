@@ -61,18 +61,10 @@
         description="La propuesta ya tiene todas las secciones disponibles."
       />
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <button
-          v-for="option in availableSectionTypes"
-          :key="option.type"
-          type="button"
-          :data-testid="`add-section-option-${option.type}`"
-          :disabled="proposalStore.isUpdating"
-          class="text-left px-4 py-2.5 rounded-xl border border-border-default text-sm text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50"
-          @click="handleAddSection(option.type)"
-        >
+        <BaseButton variant="secondary" size="md" v-for="option in availableSectionTypes" :key="option.type" :data-testid="`add-section-option-${option.type}`" :disabled="proposalStore.isUpdating" @click="handleAddSection(option.type)">
           {{ option.label }}
           <span class="block text-[11px] text-text-subtle">{{ option.type }}</span>
-        </button>
+        </BaseButton>
       </div>
     </div>
   </BaseModal>
@@ -122,17 +114,11 @@
             />
             <span class="text-text-muted">Visible</span>
           </label>
-          <button
-            type="button"
-            :data-testid="`section-delete-${section.section_type}`"
-            class="text-text-subtle hover:text-danger-strong transition-colors"
-            title="Eliminar sección"
-            @click.stop="handleDeleteSection(section)"
-          >
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar sección" :data-testid="`section-delete-${section.section_type}`" title="Eliminar sección" @click.stop="handleDeleteSection(section)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
-          </button>
+          </BaseButton>
           <svg
             class="w-4 h-4 text-text-subtle transition-transform"
             :class="{ 'rotate-180': expandedSections.has(section.id) }"

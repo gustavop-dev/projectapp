@@ -34,14 +34,9 @@
 
       <div class="flex items-center gap-2 px-3 py-2.5">
         <div class="flex-1" />
-        <button
-          v-if="filterCount > 0"
-          type="button"
-          class="whitespace-nowrap text-xs font-medium text-text-subtle transition-colors hover:text-danger-strong"
-          @click="emit('reset')"
-        >
+        <BaseButton variant="link" size="sm" class="whitespace-nowrap" v-if="filterCount > 0" @click="emit('reset')">
           Limpiar todo
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -54,11 +49,7 @@
         class="inline-flex items-center gap-1 rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-text-brand"
       >
         {{ chip.label }}
-        <button
-          type="button"
-          class="ml-0.5 leading-none hover:text-danger-strong"
-          @click="clearChip(chip.key)"
-        >&times;</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
       </span>
     </div>
   </div>

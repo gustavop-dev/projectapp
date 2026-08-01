@@ -108,21 +108,10 @@
 
     <!-- Save button -->
     <div v-if="sectionType !== 'technical_document'" class="flex flex-wrap items-center gap-3 mt-5">
-      <button
-        type="button"
-        :disabled="isSaving"
-        class="px-5 py-2 bg-primary text-on-primary rounded-xl text-sm font-medium
-               hover:bg-primary-strong transition-colors disabled:opacity-50"
-        @click="handleSave"
-      >
+      <BaseButton variant="primary" size="md" :disabled="isSaving" @click="handleSave">
         {{ isSaving ? 'Guardando...' : 'Guardar Sección' }}
-      </button>
-      <button
-        type="button"
-        class="px-5 py-2 border border-border-default text-text-default rounded-xl text-sm font-medium
-               hover:bg-surface-raised transition-colors"
-        @click="showPreview = true"
-      >
+      </BaseButton>
+      <BaseButton variant="secondary" size="md" @click="showPreview = true">
         <span class="flex items-center gap-1.5">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -132,7 +121,7 @@
           </svg>
           Previsualizar
         </span>
-      </button>
+      </BaseButton>
     </div>
     <p v-if="sectionType !== 'technical_document' && validationError" class="mt-2 text-sm text-danger-strong bg-danger-soft border border-danger-strong/30 rounded-lg px-4 py-2">{{ validationError }}</p>
 

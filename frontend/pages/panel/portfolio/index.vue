@@ -50,7 +50,7 @@
           <div class="flex items-center gap-3">
             <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-text-brand font-medium">Editar</NuxtLink>
             <button class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors" @click="handleDuplicate(work)">Duplicar</button>
-            <button class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors" @click="handleDelete(work)">Eliminar</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(work)">Eliminar</BaseButton>
           </div>
         </div>
       </div>
@@ -87,7 +87,7 @@
                   <div class="flex items-center justify-end gap-2">
                     <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors">Editar</NuxtLink>
                     <button class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors" @click="handleDuplicate(work)">Duplicar</button>
-                    <button class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors" @click="handleDelete(work)">Eliminar</button>
+                    <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(work)">Eliminar</BaseButton>
                   </div>
                 </td>
               </tr>

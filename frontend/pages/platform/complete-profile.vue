@@ -167,11 +167,7 @@
         </div>
 
         <!-- Submit -->
-        <button
-          type="submit"
-          :disabled="!canSubmit || authStore.isLoading"
-          class="flex w-full items-center justify-center rounded-xl bg-accent px-6 py-3.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50 disabled:hover:brightness-100"
-        >
+        <BaseButton variant="accent" size="md" type="submit" class="w-full" :disabled="!canSubmit || authStore.isLoading">
           <svg
             v-if="authStore.isLoading"
             class="mr-2 h-4 w-4 animate-spin"
@@ -182,7 +178,7 @@
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
           {{ authStore.isLoading ? 'Guardando...' : 'Completar perfil' }}
-        </button>
+        </BaseButton>
       </form>
     </div>
   </div>
