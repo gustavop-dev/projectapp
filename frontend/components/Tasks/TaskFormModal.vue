@@ -11,7 +11,7 @@
             <h3 class="text-lg font-semibold text-text-default">
               {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
-            <button class="text-text-subtle hover:text-text-muted" @click="close">✕</button>
+            <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="close">✕</BaseButton>
           </div>
 
           <form class="flex flex-col flex-1 min-h-0" @submit.prevent="handleSubmit">
@@ -129,12 +129,15 @@
                     >Pendiente</span>
                     <p v-if="alert.note" class="text-xs text-text-muted mt-0.5 truncate">{{ alert.note }}</p>
                   </div>
-                  <button
-                    type="button"
-                    class="text-text-subtle hover:text-danger-strong flex-shrink-0 mt-0.5"
+                  <BaseButton
+                    variant="danger-ghost"
+                    icon-only
+                    size="sm"
+                    class="flex-shrink-0"
+                    aria-label="Eliminar alerta"
                     :disabled="deletingAlertId === alert.id"
                     @click="handleDeleteAlert(alert.id)"
-                  >✕</button>
+                  >✕</BaseButton>
                 </li>
               </ul>
               <p v-else class="text-xs text-text-muted mb-3">No hay alertas definidas.</p>
@@ -159,14 +162,13 @@
                     class="w-full px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                   />
                 </div>
-                <button
-                  type="button"
-                  :disabled="!newAlert.notify_at || isAddingAlert"
-                  class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50 flex-shrink-0"
+                <BaseButton
+                  variant="primary"
+                  class="flex-shrink-0"
+                  :disabled="!newAlert.notify_at"
+                  :loading="isAddingAlert"
                   @click="handleAddAlert"
-                >
-                  {{ isAddingAlert ? '…' : '+ Agregar' }}
-                </button>
+                >+ Agregar</BaseButton>
               </div>
             </div>
 
@@ -195,11 +197,14 @@
                     </div>
                     <p class="mt-0.5 text-xs text-text-muted whitespace-pre-wrap">{{ comment.text }}</p>
                   </div>
-                  <button
-                    type="button"
-                    class="text-text-subtle hover:text-danger-strong flex-shrink-0 mt-0.5 text-xs"
+                  <BaseButton
+                    variant="danger-ghost"
+                    icon-only
+                    size="sm"
+                    class="flex-shrink-0"
+                    aria-label="Eliminar comentario"
                     @click="handleDeleteComment(comment.id)"
-                  >✕</button>
+                  >✕</BaseButton>
                 </li>
               </ul>
               <p v-else class="text-xs text-text-muted mb-3">Sin comentarios aún.</p>
@@ -212,12 +217,13 @@
                   class="flex-1 px-3 py-2 border border-border-default rounded-lg text-sm bg-surface focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring"
                   @keydown.enter.prevent="handleAddComment"
                 />
-                <button
-                  type="button"
-                  :disabled="!newComment.trim() || isAddingComment"
-                  class="px-3 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50 flex-shrink-0"
+                <BaseButton
+                  variant="primary"
+                  class="flex-shrink-0"
+                  :disabled="!newComment.trim()"
+                  :loading="isAddingComment"
                   @click="handleAddComment"
-                >{{ isAddingComment ? '…' : '+ Agregar' }}</button>
+                >+ Agregar</BaseButton>
               </div>
             </div>
 
@@ -231,11 +237,7 @@
               </div>
               <!-- Not archived: show archive trigger / form -->
               <div v-else-if="!showArchiveForm" class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="text-xs text-warning-strong hover:opacity-80 underline"
-                  @click="showArchiveForm = true"
-                >Archivar tarea</button>
+                <BaseButton variant="link" size="sm" @click="showArchiveForm = true">Archivar tarea</BaseButton>
               </div>
               <div v-else class="space-y-2 p-3 rounded-lg bg-warning-soft border border-warning-strong/30">
                 <label class="block text-xs font-medium text-warning-strong">Motivo del archivo <span class="text-text-subtle">(opcional)</span></label>
@@ -246,13 +248,8 @@
                   class="w-full px-3 py-2 border border-input-border rounded-lg text-sm bg-input-bg focus:ring-2 focus:ring-focus-ring/30"
                 ></textarea>
                 <div class="flex gap-2">
-                  <button
-                    type="button"
-                    :disabled="busy"
-                    class="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50"
-                    @click="handleArchive"
-                  >Confirmar archivo</button>
-                  <button type="button" class="text-xs text-text-muted hover:text-text-default" @click="showArchiveForm = false">Cancelar</button>
+                  <BaseButton variant="primary" size="sm" :disabled="busy" @click="handleArchive">Confirmar archivo</BaseButton>
+                  <BaseButton variant="ghost" size="sm" @click="showArchiveForm = false">Cancelar</BaseButton>
                 </div>
               </div>
             </div>
@@ -260,42 +257,37 @@
             </div>
 
             <div class="flex items-center justify-between gap-2 px-6 py-4 border-t border-border-default bg-surface">
-              <button
+              <BaseButton
                 v-if="isEditing"
-                type="button"
-                class="text-sm text-danger-strong hover:opacity-80"
+                variant="danger"
                 :disabled="busy"
                 @click="handleDelete"
               >
-                Delete
-              </button>
+                Eliminar
+              </BaseButton>
               <span v-else></span>
               <div class="flex gap-2">
-                <button
+                <BaseButton
                   v-if="isEditing"
-                  type="button"
-                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-border-muted disabled:opacity-50"
+                  variant="secondary"
                   :disabled="busy"
                   data-testid="task-duplicate-btn"
                   @click="handleDuplicate"
                 >
                   Duplicar
-                </button>
-                <button
-                  type="button"
-                  class="px-4 py-2 text-sm rounded-lg bg-surface-raised text-text-default hover:bg-border-muted"
-                  @click="close"
-                >
-                  Cancel
-                </button>
-                <button
+                </BaseButton>
+                <BaseButton variant="ghost" @click="close">
+                  Cancelar
+                </BaseButton>
+                <BaseButton
                   type="submit"
-                  :disabled="busy || !form.title.trim()"
-                  class="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary-strong disabled:opacity-50"
+                  variant="primary"
+                  :loading="busy"
+                  :disabled="!form.title.trim()"
                   data-testid="task-submit-btn"
                 >
-                  {{ busy ? 'Saving...' : (isEditing ? 'Save' : 'Create') }}
-                </button>
+                  {{ isEditing ? 'Guardar' : 'Crear' }}
+                </BaseButton>
               </div>
             </div>
           </form>

@@ -25,6 +25,7 @@ jest.mock('../../stores/tasks', () => ({
 
 import { mount } from '@vue/test-utils';
 import TaskFormModal from '../../components/Tasks/TaskFormModal.vue';
+import BaseButton from '../../components/base/BaseButton.vue';
 
 async function flushPromises() {
   await Promise.resolve();
@@ -50,6 +51,8 @@ function mountModal(props = {}) {
       ...props,
     },
     global: {
+      // Nuxt auto-imports base components in the app; jest does not.
+      components: { BaseButton },
       stubs: {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
@@ -105,16 +108,16 @@ describe('TaskFormModal', () => {
       expect(wrapper.find('[data-testid="task-title-input"]').exists()).toBe(true);
     });
 
-    it('shows Create on the submit button for a new task', () => {
+    it('shows Crear on the submit button for a new task', () => {
       const wrapper = mountModal();
 
-      expect(wrapper.find('[data-testid="task-submit-btn"]').text()).toBe('Create');
+      expect(wrapper.find('[data-testid="task-submit-btn"]').text()).toBe('Crear');
     });
 
-    it('shows Save on the submit button when editing an existing task', () => {
+    it('shows Guardar on the submit button when editing an existing task', () => {
       const wrapper = mountModal({ task: baseTask });
 
-      expect(wrapper.find('[data-testid="task-submit-btn"]').text()).toBe('Save');
+      expect(wrapper.find('[data-testid="task-submit-btn"]').text()).toBe('Guardar');
     });
   });
 
@@ -173,9 +176,9 @@ describe('TaskFormModal', () => {
   // ── Close ──────────────────────────────────────────────────────────────────
 
   describe('close', () => {
-    it('emits update:modelValue with false when Cancel is clicked', async () => {
+    it('emits update:modelValue with false when Cancelar is clicked', async () => {
       const wrapper = mountModal();
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Cancel').trigger('click');
+      await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
 
       expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
     });
@@ -191,9 +194,9 @@ describe('TaskFormModal', () => {
   // ── handleDelete ──────────────────────────────────────────────────────────
 
   describe('handleDelete', () => {
-    it('emits delete with the task object when Delete is clicked', async () => {
+    it('emits delete with the task object when Eliminar is clicked', async () => {
       const wrapper = mountModal({ task: baseTask });
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Delete').trigger('click');
+      await wrapper.findAll('button').find((btn) => btn.text() === 'Eliminar').trigger('click');
 
       expect(wrapper.emitted('delete')[0][0]).toEqual(baseTask);
     });
