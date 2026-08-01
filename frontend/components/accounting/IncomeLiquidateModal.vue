@@ -143,11 +143,14 @@ watch(exactDate, (exact) => {
 
 function onSubmit() {
   if (!canSubmit.value) return
+  // A cleared BaseCurrencyInput emits null; the server expects 0 for a
+  // residual-only settlement (nothing received, shortfall fully allocated).
+  const amount = form.value.total_amount
   const payload = {
     concept: form.value.concept,
     period_date: form.value.period_date,
     destination: form.value.destination,
-    total_amount: form.value.total_amount,
+    total_amount: amount === '' || amount == null ? 0 : amount,
     // Empty arrays make the backend behave exactly like a plain liquidation.
     deductions: deductions.value.map((row) => ({
       type: row.type,
