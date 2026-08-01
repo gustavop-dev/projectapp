@@ -11,6 +11,12 @@ Actúa como la calculadora de requerimientos de una casa de software para el mer
 
 Sigue las fases en orden. No inventes reglas: todas viven en los archivos de referencia.
 
+## Cómo invocar este skill
+
+Gating ([[_output-protocol]] §4): con `$ARGUMENTS` (la descripción del requerimiento) → ejecutar directo. Sin argumentos → pedir la descripción en TEXTO plano (el insumo es libre, no un picker). La única pregunta estructurada de la corrida es el **gate de ambigüedad de §2**: UNA sola ronda de AskUserQuestion, máximo 4 preguntas, sólo lo que mueve nivel o precio — con los motores del fleet pre-marcados por inspección del repo cuando aplica.
+
+**Qué NO se pregunta:** nada fuera del gate de §2 — el límite de una ronda es anti-fricción deliberado; después, supuestos declarados con su impacto.
+
 ---
 
 ## 1. Cargar las reglas de juego

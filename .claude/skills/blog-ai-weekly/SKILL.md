@@ -2,12 +2,25 @@
 name: blog-ai-weekly
 description: "Weekly AI blog post creation — search news from 10 sources, summarize, write bilingual ES+EN article, and publish via Django shell."
 disable-model-invocation: true
-allowed-tools: Bash, WebSearch, WebFetch
+allowed-tools: Bash, WebSearch, WebFetch, AskUserQuestion
 ---
 
 # Blog AI Weekly — Crear articulo semanal de IA
 
 Workflow para crear un articulo de blog cada ~7 dias basado en noticias relevantes de inteligencia artificial.
+
+## Cómo invocar este skill
+
+Gating ([[_output-protocol]] §4): indicación explícita ("redactá y publicá" / "sólo el borrador") → directo, sin menú. Invocación simple (`/blog-ai-weekly`) → UNA AskUserQuestion:
+
+**Q — Alcance** (`multiSelect: false`):
+
+| label | description | preview |
+|---|---|---|
+| Sólo redactar (Recommended) | busca noticias y escribe el artículo bilingüe ES+EN; NO publica nada | — |
+| Redactar y publicar | además publica vía Django shell en el blog REAL del panel | — |
+
+**Qué NO se pregunta:** las fuentes (fijas, las 10 de abajo) y el idioma (siempre bilingüe ES+EN).
 
 ## Paso 1 — Buscar noticias de IA
 

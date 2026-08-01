@@ -29,6 +29,18 @@ dejando secciones a medias — sobre todo el **Detalle Técnico**, que arranca v
 NO valida. **No reportes "terminado" hasta que la auditoría mecánica de la Fase 8 dé
 `AUDIT_PASS`.**
 
+## Cómo invocar este skill
+
+Gating ([[_output-protocol]] §4): con el brief en `$ARGUMENTS` → ejecutar directo — el brief ES
+el insumo, PROHIBIDO re-preguntar el alcance (lo que falte se modela con los defaults del seller
+prompt). Sin brief → pedirlo en TEXTO plano una sola vez (cliente, sector, alcance, inversión,
+idioma). No hay picker de entrada: el único menú de la skill es el de la **Fase 9** (importación
+opcional, ver su spec).
+
+**Qué NO se pregunta:** el idioma (default `es`, se declara en el brief), el precio (sin precio →
+`total_investment = 0` y ROI por metodología) y ninguna sección intermedia — la completitud la
+decide la auditoría mecánica de la Fase 8, no un picker.
+
 **Fuente canónica del prompt comercial:** `backend/content/views/proposal.py` (`_seller_prompt`
 dentro de `get_proposal_json_template`). Las instrucciones de las Fases 2-6 son el espejo
 operativo de ese objeto — si el prompt del backend cambia, re-sincronizar este skill.
@@ -682,7 +694,15 @@ archivo.
 
 ## Fase 9 — Importación opcional (gated)
 
-Preguntar al usuario: **¿Creo la propuesta ahora, o preferís subir el archivo en el panel?**
+Si el brief ya fijó que el entregable es SOLO el artefacto (artifact-only), **no preguntar**:
+reportar la ruta del JSON y terminar. Si no, UNA AskUserQuestion ([[_output-protocol]] §4):
+
+**Q — Importación** (`multiSelect: false`):
+
+| label | description | preview |
+|---|---|---|
+| Subir en el panel (Recommended) | el operador sube el JSON en `/panel/proposals/create` → pestaña JSON (importador con selector de cliente y validaciones) | — |
+| Crear directa vía shell | ejecuta `create_proposal_from_json` contra la DB del entorno alcanzable — exige settings de prod + usuario staff | snippet de la Opción B |
 
 - **Opción A (manual, recomendada por defecto):** subir
   `proposal-artifacts/<archivo>.json` en `/panel/proposals/create` → pestaña **JSON** →
