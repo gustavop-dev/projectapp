@@ -2,32 +2,43 @@
  * Registry of per-section-type admin form components.
  * Mirrors the public sectionComponentMap idiom (see SectionPreviewModal.vue).
  * `technical_document` is intentionally absent: it stays delegated to TechnicalDocumentEditor.
- *
- * Forms are loaded lazily: SectionEditor only renders one once its section
- * is expanded, so importing all 17 up front put ~1.4k lines of form code in
- * the proposal edit chunk for a user who may expand none of them.
  */
-import { defineAsyncComponent } from 'vue';
-
+import GreetingForm from './GreetingForm.vue';
+import ExecutiveSummaryForm from './ExecutiveSummaryForm.vue';
+import ContextDiagnosticForm from './ContextDiagnosticForm.vue';
+import ConversionStrategyForm from './ConversionStrategyForm.vue';
+import DesignUxForm from './DesignUxForm.vue';
+import CreativeSupportForm from './CreativeSupportForm.vue';
+import DevelopmentStagesForm from './DevelopmentStagesForm.vue';
+import FunctionalRequirementsForm from './FunctionalRequirementsForm.vue';
+import TimelineForm from './TimelineForm.vue';
+import InvestmentForm from './InvestmentForm.vue';
+import FinalNoteForm from './FinalNoteForm.vue';
+import ProposalSummaryForm from './ProposalSummaryForm.vue';
+import NextStepsForm from './NextStepsForm.vue';
+import ProcessMethodologyForm from './ProcessMethodologyForm.vue';
+import ValueAddedModulesForm from './ValueAddedModulesForm.vue';
+import RoiProjectionForm from './RoiProjectionForm.vue';
+import CommercialConditionsForm from './CommercialConditionsForm.vue';
 
 export const sectionFormRegistry = {
-  greeting: { label: 'Saludo', component: defineAsyncComponent(() => import('./GreetingForm.vue')) },
-  executive_summary: { label: 'Resumen ejecutivo', component: defineAsyncComponent(() => import('./ExecutiveSummaryForm.vue')) },
-  context_diagnostic: { label: 'Diagnóstico', component: defineAsyncComponent(() => import('./ContextDiagnosticForm.vue')) },
-  conversion_strategy: { label: 'Estrategia de conversión', component: defineAsyncComponent(() => import('./ConversionStrategyForm.vue')) },
-  design_ux: { label: 'Diseño UX', component: defineAsyncComponent(() => import('./DesignUxForm.vue')) },
-  creative_support: { label: 'Apoyo creativo', component: defineAsyncComponent(() => import('./CreativeSupportForm.vue')) },
-  development_stages: { label: 'Etapas de desarrollo', component: defineAsyncComponent(() => import('./DevelopmentStagesForm.vue')) },
-  functional_requirements: { label: 'Requerimientos', component: defineAsyncComponent(() => import('./FunctionalRequirementsForm.vue')) },
-  timeline: { label: 'Cronograma', component: defineAsyncComponent(() => import('./TimelineForm.vue')) },
-  investment: { label: 'Inversión', component: defineAsyncComponent(() => import('./InvestmentForm.vue')) },
-  final_note: { label: 'Nota final', component: defineAsyncComponent(() => import('./FinalNoteForm.vue')) },
-  proposal_summary: { label: 'Resumen de propuesta', component: defineAsyncComponent(() => import('./ProposalSummaryForm.vue')) },
-  next_steps: { label: 'Próximos pasos', component: defineAsyncComponent(() => import('./NextStepsForm.vue')) },
-  process_methodology: { label: 'Proceso y metodología', component: defineAsyncComponent(() => import('./ProcessMethodologyForm.vue')) },
-  value_added_modules: { label: 'Valor agregado', component: defineAsyncComponent(() => import('./ValueAddedModulesForm.vue')) },
-  roi_projection: { label: 'Proyección ROI', component: defineAsyncComponent(() => import('./RoiProjectionForm.vue')) },
-  commercial_conditions: { label: 'Condiciones comerciales', component: defineAsyncComponent(() => import('./CommercialConditionsForm.vue')) },
+  greeting: { label: 'Saludo', component: GreetingForm },
+  executive_summary: { label: 'Resumen ejecutivo', component: ExecutiveSummaryForm },
+  context_diagnostic: { label: 'Diagnóstico', component: ContextDiagnosticForm },
+  conversion_strategy: { label: 'Estrategia de conversión', component: ConversionStrategyForm },
+  design_ux: { label: 'Diseño UX', component: DesignUxForm },
+  creative_support: { label: 'Apoyo creativo', component: CreativeSupportForm },
+  development_stages: { label: 'Etapas de desarrollo', component: DevelopmentStagesForm },
+  functional_requirements: { label: 'Requerimientos', component: FunctionalRequirementsForm },
+  timeline: { label: 'Cronograma', component: TimelineForm },
+  investment: { label: 'Inversión', component: InvestmentForm },
+  final_note: { label: 'Nota final', component: FinalNoteForm },
+  proposal_summary: { label: 'Resumen de propuesta', component: ProposalSummaryForm },
+  next_steps: { label: 'Próximos pasos', component: NextStepsForm },
+  process_methodology: { label: 'Proceso y metodología', component: ProcessMethodologyForm },
+  value_added_modules: { label: 'Valor agregado', component: ValueAddedModulesForm },
+  roi_projection: { label: 'Proyección ROI', component: RoiProjectionForm },
+  commercial_conditions: { label: 'Condiciones comerciales', component: CommercialConditionsForm },
 };
 
 export const SECTION_TYPE_OPTIONS = Object.entries(sectionFormRegistry).map(

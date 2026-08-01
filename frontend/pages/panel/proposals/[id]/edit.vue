@@ -768,7 +768,7 @@ async function handleApplyTechnicalJson() {
   const result = await proposalStore.updateSection(sid, { content_json: parsed });
   if (result.success) {
     notify.success({ title: 'Detalle técnico actualizado.' });
-    await proposalStore.fetchProposal(proposal.value.id, { force: true });
+    await proposalStore.fetchProposal(proposal.value.id);
     refreshTechnicalJsonFromProposal();
   } else {
     notify.error({ title: 'No se pudo guardar.' });
@@ -1101,11 +1101,7 @@ function hydrateFormFromProposal() {
 
 onMounted(async () => {
   const id = route.params.id;
-  // Page entry stays authoritative: the proposal may have moved while the
-  // user was elsewhere in the panel, so don't serve a cached detail here.
-  // The cache exists to absorb repeat calls within a session on the page.
-  await proposalStore.fetchProposal(id, { force: true });
-  proposalStore.invalidateProposalCaches(id);
+  await proposalStore.fetchProposal(id);
   hydrateFormFromProposal();
   window.addEventListener('beforeunload', warnUnsavedBeforeUnload);
 });
@@ -1143,10 +1139,7 @@ async function refreshData() {
   }
   isRefreshing.value = true;
   try {
-    // Explicit refresh: always hit the network, and drop the analytics cache
-    // so the Analytics tab re-reads the numbers this refresh may have moved.
-    await proposalStore.fetchProposal(route.params.id, { force: true });
-    proposalStore.invalidateProposalCaches(route.params.id);
+    await proposalStore.fetchProposal(route.params.id);
     hydrateFormFromProposal();
   } finally {
     isRefreshing.value = false;

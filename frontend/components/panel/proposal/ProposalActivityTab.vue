@@ -94,9 +94,7 @@ async function submitActivity() {
     });
     if (result.success) {
       activityForm.description = '';
-      // The new entry only reaches the timeline through change_logs on the
-      // detail payload, so this refetch must bypass the cache.
-      await proposalStore.fetchProposal(props.proposal.id, { force: true });
+      await proposalStore.fetchProposal(props.proposal.id);
       notify.success({ title: 'Actividad registrada.' });
     } else {
       notify.error({ title: 'No se pudo registrar la actividad.' });

@@ -21,11 +21,6 @@ export const useProposalStore = defineStore('proposals', {
     isLoading: false,
     isUpdating: false,
     error: null,
-    // Analytics is per-proposal and only read by the Analytics tab. Cached so
-    // re-entering the tab is instant; keyed by id so opening another proposal
-    // never serves the previous one's numbers.
-    analytics: null,
-    analyticsProposalId: null,
   }),
 
   getters: {
@@ -140,19 +135,9 @@ export const useProposalStore = defineStore('proposals', {
 
     /**
      * fetchProposal: Retrieve full proposal detail for admin editing.
-     *
-     * Cached by proposal id: re-entering the edit view for the proposal
-     * already in `currentProposal` serves it from memory. Anything that
-     * mutates the proposal server-side must pass `{ force: true }` — see the
-     * refresh/apply/upload call sites.
-     *
      * @param {number} id - Proposal ID.
-     * @param {{ force?: boolean }} [options] - force skips the cache.
      */
-    async fetchProposal(id, { force = false } = {}) {
-      if (!force && this.currentProposal && String(this.currentProposal.id) === String(id)) {
-        return { success: true, data: this.currentProposal };
-      }
+    async fetchProposal(id) {
       this.isLoading = true;
       this.error = null;
       try {
@@ -812,34 +797,14 @@ export const useProposalStore = defineStore('proposals', {
     /**
      * fetchProposalAnalytics: Retrieve engagement analytics for a proposal.
      * @param {number} id - Proposal ID.
-     * @param {{ force?: boolean }} [options] - force skips the cache.
      */
-    async fetchProposalAnalytics(id, { force = false } = {}) {
-      if (!force && this.analytics && String(this.analyticsProposalId) === String(id)) {
-        return { success: true, data: this.analytics };
-      }
+    async fetchProposalAnalytics(id) {
       try {
         const response = await get_request(`proposals/${id}/analytics/`);
-        this.analytics = response.data;
-        this.analyticsProposalId = id;
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error fetching proposal analytics:', error);
         return { success: false };
-      }
-    },
-
-    /**
-     * invalidateProposalCaches: Drop the memoized detail/analytics payloads.
-     *
-     * Called after mutations that change what those endpoints would return,
-     * so the next fetch goes to the network instead of serving stale numbers.
-     * @param {number} [id] - Only invalidate when this id is the cached one.
-     */
-    invalidateProposalCaches(id = null) {
-      if (id === null || String(this.analyticsProposalId) === String(id)) {
-        this.analytics = null;
-        this.analyticsProposalId = null;
       }
     },
 
@@ -1345,7 +1310,7 @@ export const useProposalStore = defineStore('proposals', {
           formData,
         );
         if (this.currentProposal?.id === proposalId) {
-          await this.fetchProposal(proposalId, { force: true });
+          await this.fetchProposal(proposalId);
         }
         return { success: true, data: response.data };
       } catch (error) {
@@ -1394,7 +1359,7 @@ export const useProposalStore = defineStore('proposals', {
       try {
         await delete_request(`proposals/${proposalId}/documents/${docId}/delete/`);
         if (this.currentProposal?.id === proposalId) {
-          await this.fetchProposal(proposalId, { force: true });
+          await this.fetchProposal(proposalId);
         }
         return { success: true };
       } catch (error) {

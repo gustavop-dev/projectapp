@@ -19,9 +19,6 @@ export const useHourPackagesStore = defineStore('hour_packages', {
     isLoading: false,
     isUpdating: false,
     error: null,
-    // Nationality the loaded `packages` belong to, so the proposal Hour-rate
-    // tab can re-enter without re-fetching the same catalog.
-    packagesNationality: undefined,
   }),
 
   getters: {
@@ -35,18 +32,9 @@ export const useHourPackagesStore = defineStore('hour_packages', {
   actions: {
     /**
      * fetchAdminPackages: List hour packages, optionally filtered by nationality.
-     *
-     * Cached by nationality: the proposal Hour-rate tab re-reads the same
-     * catalog every time it is opened. Admin edits to the catalog go through
-     * the mutating actions below, which reset the cache key.
-     *
      * @param {string|null} nationality - 'COL' | 'EXT' | 'USA' or null for all.
-     * @param {{ force?: boolean }} [options] - force skips the cache.
      */
-    async fetchAdminPackages(nationality = null, { force = false } = {}) {
-      if (!force && this.packagesNationality === nationality) {
-        return { success: true };
-      }
+    async fetchAdminPackages(nationality = null) {
       this.isLoading = true;
       this.error = null;
       try {
@@ -55,7 +43,6 @@ export const useHourPackagesStore = defineStore('hour_packages', {
           : 'hour-packages/admin/';
         const response = await get_request(url);
         this.packages = response.data;
-        this.packagesNationality = nationality;
         return { success: true };
       } catch (error) {
         this.error = 'fetch_failed';
@@ -98,8 +85,6 @@ export const useHourPackagesStore = defineStore('hour_packages', {
       try {
         const response = await create_request('hour-packages/admin/create/', payload);
         this.currentPackage = response.data;
-        // The cached catalog no longer reflects the server.
-        this.packagesNationality = undefined;
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'create_failed';
@@ -122,7 +107,6 @@ export const useHourPackagesStore = defineStore('hour_packages', {
       try {
         const response = await patch_request(`hour-packages/admin/${id}/update/`, payload);
         this.currentPackage = response.data;
-        this.packagesNationality = undefined;
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'update_failed';
@@ -178,8 +162,6 @@ export const useHourPackagesStore = defineStore('hour_packages', {
         const response = await create_request(
           'hour-packages/admin/restore-defaults/', { nationality },
         );
-        // The whole catalog for this nationality was replaced server-side.
-        this.packagesNationality = undefined;
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error restoring default hour packages:', error);
