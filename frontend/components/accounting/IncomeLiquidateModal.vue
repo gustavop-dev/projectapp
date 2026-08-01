@@ -1,7 +1,9 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
+import PeriodDateField from './PeriodDateField.vue'
 import { formatMoney } from '~/utils/formatMoney'
+import { todayISO } from '~/utils/periodDates'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -101,14 +103,6 @@ watch(followUpsOpen, (open) => {
   if (open && !followUps.value.length) addFollowUp()
 })
 
-// Local-time today: toISOString() would shift to tomorrow after 19:00
-// in Bogotá (UTC-5).
-function todayISO() {
-  const d = new Date()
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-}
-
 watch(
   () => [props.open, props.record],
   () => {
@@ -133,13 +127,6 @@ watch(
   },
   { immediate: true },
 )
-
-// Keep whatever was typed when flipping modes: 'YYYY-MM' ⇄ 'YYYY-MM-DD'.
-watch(exactDate, (exact) => {
-  const value = form.value.period_date
-  if (!value) return
-  form.value.period_date = exact ? `${value.slice(0, 7)}-01` : value.slice(0, 7)
-})
 
 function onSubmit() {
   if (!canSubmit.value) return
@@ -208,25 +195,16 @@ function onSubmit() {
         <BaseInput v-model="form.concept" required />
       </BaseFormField>
 
-      <BaseFormField
-        :label="exactDate ? 'Fecha en que se pagó' : 'Mes en que se pagó'"
+      <PeriodDateField
+        v-model="form.period_date"
+        v-model:exact="exactDate"
+        label-exact="Fecha en que se pagó"
+        label-month="Mes en que se pagó"
+        toggle-label="Registrar el día exacto de pago"
         required
-      >
-        <BaseInput
-          v-model="form.period_date"
-          :type="exactDate ? 'date' : 'month'"
-          required
-          data-testid="income-liquidate-period"
-        />
-        <label class="flex items-center gap-2 mt-2 text-xs text-text-subtle">
-          <BaseToggle
-            v-model="exactDate"
-            aria-label="Registrar el día exacto de pago"
-            data-testid="income-liquidate-exact-date"
-          />
-          Registrar el día exacto de pago
-        </label>
-      </BaseFormField>
+        input-testid="income-liquidate-period"
+        toggle-testid="income-liquidate-exact-date"
+      />
 
       <BaseFormField v-if="!isPersonal" label="Destino">
         <BaseSegmented
