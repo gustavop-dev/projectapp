@@ -1,6 +1,8 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
+import PeriodDateField from './PeriodDateField.vue'
+import { todayISO } from '~/utils/periodDates'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -27,7 +29,7 @@ const ledgerOptions = [
 function defaultForm() {
   return {
     concept: '',
-    period_date: '',
+    period_date: todayISO(),
     category: 'business',
     ledger: 'company',
     total_amount: '',
@@ -39,6 +41,8 @@ function defaultForm() {
 }
 
 const form = ref(defaultForm())
+// Exact payment day by default; the toggle downgrades to month-only.
+const exactDate = ref(true)
 
 const isPersonal = computed(() => form.value.ledger !== 'company')
 
@@ -47,9 +51,14 @@ watch(
   () => {
     if (!props.open) return
     if (props.record) {
+      // Prefill from the raw period_date — `period` is 'YYYY-MM' and would
+      // silently reset the day to the 1st on every edit. Day 1 IS the
+      // month-only convention, so it prefills in month mode.
+      const periodDate = props.record.period_date ?? ''
+      exactDate.value = !!periodDate && !periodDate.endsWith('-01')
       form.value = {
         concept: props.record.concept ?? '',
-        period_date: props.record.period ?? '',
+        period_date: exactDate.value ? periodDate : periodDate.slice(0, 7),
         category: props.record.category ?? 'business',
         ledger: props.record.ledger ?? 'company',
         total_amount: props.record.total_amount ?? '',
@@ -59,6 +68,7 @@ watch(
         notes: props.record.notes ?? '',
       }
     } else {
+      exactDate.value = true
       form.value = defaultForm()
     }
   },
@@ -94,9 +104,15 @@ function onSubmit() {
       </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BaseFormField label="Mes" required>
-          <BaseInput v-model="form.period_date" type="month" required />
-        </BaseFormField>
+        <PeriodDateField
+          v-model="form.period_date"
+          v-model:exact="exactDate"
+          label-exact="Fecha"
+          label-month="Mes"
+          required
+          input-testid="expense-form-period"
+          toggle-testid="expense-form-exact-date"
+        />
         <BaseFormField label="Categoría">
           <BaseSelect v-model="form.category" :options="categoryOptions" />
         </BaseFormField>

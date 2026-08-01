@@ -74,8 +74,11 @@ function mountModal(props = {}) {
         BaseToggle: {
           props: ['modelValue', 'size', 'disabled', 'ariaLabel'],
           emits: ['update:modelValue'],
+          // The testid falls through from the caller — the modal now renders
+          // two toggles (pocket + exact date), so hardcoding one here would
+          // collide.
           template:
-            '<button type="button" data-testid="expense-register-in-pocket" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)" />',
+            '<button type="button" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)" />',
         },
         PartnerSplitInput: PartnerSplitInputStub,
       },
@@ -92,7 +95,9 @@ describe('ExpenseFormModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('input[type="text"]').setValue('Windsurf, Marzo');
-    await wrapper.find('input[type="month"]').setValue('2026-03');
+    // Month-only entry is still possible through the toggle.
+    await wrapper.find('[data-testid="expense-form-exact-date"]').trigger('click');
+    await wrapper.find('[data-testid="expense-form-period"]').setValue('2026-03');
     await wrapper.find('[data-testid="split-total"]').setValue('3000000');
     await wrapper.find('[data-testid="split-gustavo"]').setValue('1500000');
     await wrapper.find('[data-testid="split-carlos"]').setValue('1500000');
@@ -117,7 +122,7 @@ describe('ExpenseFormModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('input[type="text"]').setValue('Ajuste contable');
-    await wrapper.find('input[type="month"]').setValue('2026-07');
+    await wrapper.find('[data-testid="expense-form-period"]').setValue('2026-07-10');
     await wrapper.find('[data-testid="split-total"]').setValue('100000');
     await wrapper.find('[data-testid="expense-register-in-pocket"]').trigger('click');
     await wrapper.find('form').trigger('submit');
@@ -136,7 +141,7 @@ describe('ExpenseFormModal', () => {
     expect(wrapper.text()).toContain('Valor');
 
     await wrapper.find('input[type="text"]').setValue('Aporte Carro Onix');
-    await wrapper.find('input[type="month"]').setValue('2026-06');
+    await wrapper.find('[data-testid="expense-form-period"]').setValue('2026-06-15');
     await wrapper.find('input[inputmode="numeric"]').setValue('3000000');
     await wrapper.find('form').trigger('submit');
 
@@ -169,11 +174,72 @@ describe('ExpenseFormModal', () => {
     ).toBe(false);
   });
 
+  it('defaults to the exact date prefilled with today', () => {
+    // 20:00 local: toISOString() would already be tomorrow in Bogotá
+    // (UTC-5) — this pins the local-date formatting.
+    jest.useFakeTimers().setSystemTime(new Date('2026-07-27T20:00:00'));
+    try {
+      const wrapper = mountModal();
+
+      const input = wrapper.find('[data-testid="expense-form-period"]');
+      expect(input.attributes('type')).toBe('date');
+      expect(input.element.value).toBe('2026-07-27');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('downgrades to month-only via the toggle keeping the typed value', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-testid="expense-form-period"]').setValue('2026-11-17');
+    await wrapper.find('[data-testid="expense-form-exact-date"]').trigger('click');
+
+    const input = wrapper.find('[data-testid="expense-form-period"]');
+    expect(input.attributes('type')).toBe('month');
+    expect(input.element.value).toBe('2026-11');
+  });
+
+  it('prefills a day-1 period as month-only in edit mode', () => {
+    // Day 1 is the repo's month-only convention.
+    const wrapper = mountModal({
+      record: {
+        concept: 'Dominio',
+        period: '2026-07',
+        period_date: '2026-07-01',
+        ledger: 'company',
+        total_amount: '150000',
+      },
+    });
+
+    const input = wrapper.find('[data-testid="expense-form-period"]');
+    expect(input.attributes('type')).toBe('month');
+    expect(input.element.value).toBe('2026-07');
+  });
+
+  it('prefills the exact day from period_date in edit mode', () => {
+    // `period` would truncate to the month and silently reset the day.
+    const wrapper = mountModal({
+      record: {
+        concept: 'Dominio',
+        period: '2026-07',
+        period_date: '2026-07-17',
+        ledger: 'company',
+        total_amount: '150000',
+      },
+    });
+
+    const input = wrapper.find('[data-testid="expense-form-period"]');
+    expect(input.attributes('type')).toBe('date');
+    expect(input.element.value).toBe('2026-07-17');
+  });
+
   it('prefills the ledger from the record in edit mode', () => {
     const wrapper = mountModal({
       record: {
         concept: 'Aporte Interes Credito',
         period: '2026-06',
+        period_date: '2026-06-01',
         category: 'personal',
         ledger: 'gustavo',
         total_amount: '2616581',
@@ -193,6 +259,7 @@ describe('ExpenseFormModal', () => {
       record: {
         concept: 'Dominio',
         period: '2026-07',
+        period_date: '2026-07-01',
         ledger: 'company',
         total_amount: '150000',
         pocket_movement: 42,
@@ -202,6 +269,7 @@ describe('ExpenseFormModal', () => {
       record: {
         concept: 'Gasto histórico',
         period: '2026-02',
+        period_date: '2026-02-01',
         ledger: 'company',
         total_amount: '80000',
         pocket_movement: null,
