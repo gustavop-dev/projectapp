@@ -229,9 +229,11 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         paid = self._paid(obj)
         if paid is None:
             return None
-        if paid <= 0:
-            return 'pending'
-        return 'paid' if paid >= obj.total_amount else 'partial'
+        # A zero-total expected (fully moved out by a residual-only
+        # settlement) is closed, not pending.
+        if paid >= obj.total_amount and (paid > 0 or obj.total_amount == 0):
+            return 'paid'
+        return 'pending' if paid <= 0 else 'partial'
 
     def get_payment_status_label(self, obj):
         return self.PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))

@@ -46,7 +46,13 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Finished', 'filters': {'statuses': ['finished']}},
     ],
     'accounting_income': [
-        {'name': 'Esperados', 'filters': {'kind': 'expected'}},
+        # "Todos los esperados" keeps every expected record (paid, partial and
+        # untouched); "Solo esperados" narrows it to the ones still uncollected.
+        {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
+        {
+            'name': 'Solo esperados',
+            'filters': {'kind': 'expected', 'paymentStatus': 'pending'},
+        },
         {'name': 'Líquidos', 'filters': {'kind': 'liquid'}},
         {'name': 'Gustavo', 'filters': {'partner': 'gustavo'}},
         {'name': 'Carlos', 'filters': {'partner': 'carlos'}},

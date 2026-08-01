@@ -29,6 +29,10 @@ const ROWS = [
     company_amount: '0.00',
     expected_income: null,
     pocket_movement: null,
+    paid_amount: '1160000.00',
+    pending_amount: '0.00',
+    payment_status: 'paid',
+    payment_status_label: 'Pagado',
     notes: '',
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-01T10:00:00Z',
@@ -49,6 +53,10 @@ const ROWS = [
     company_amount: '0.00',
     expected_income: null,
     pocket_movement: null,
+    paid_amount: '0.00',
+    pending_amount: '3553750.00',
+    payment_status: 'pending',
+    payment_status_label: 'Pendiente',
     notes: '',
     created_at: '2026-05-01T10:00:00Z',
     updated_at: '2026-05-01T10:00:00Z',
@@ -69,6 +77,10 @@ const ROWS = [
     company_amount: '2123000.00',
     expected_income: null,
     pocket_movement: 7,
+    paid_amount: null,
+    pending_amount: null,
+    payment_status: null,
+    payment_status_label: null,
     notes: '',
     created_at: '2026-04-29T10:00:00Z',
     updated_at: '2026-04-29T10:00:00Z',
@@ -89,6 +101,10 @@ const ROWS = [
     company_amount: '0.00',
     expected_income: null,
     pocket_movement: null,
+    paid_amount: null,
+    pending_amount: null,
+    payment_status: null,
+    payment_status_label: null,
     notes: '',
     created_at: '2026-02-10T10:00:00Z',
     updated_at: '2026-02-10T10:00:00Z',
@@ -194,6 +210,30 @@ test.describe('Admin Accounting Filters', () => {
     await page.getByRole('tab', { name: 'ProjectApp' }).click();
     await expect(visibleRows(page)).toHaveCount(1);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
+  });
+
+  test('collection filter isolates the expected rows with no payment yet', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/incomes through the
+    // subnav is exercised by the accounting navigation specs; this test pins
+    // the collection filter itself)
+    await gotoIncomes(page);
+    await openFilterPanel(page);
+
+    await page.getByRole('tab', { name: 'Sin pagos' }).click();
+
+    // Only the expected row without any settlement survives: the paid one
+    // and both liquid rows drop out.
+    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(page.getByText('G&M Entrega No. 1 (Mayo)')).toBeVisible();
+    await expect(page.getByText('Kore - Inicio 40%')).toHaveCount(0);
+
+    const chip = page.getByTestId('accounting-filter-chip');
+    await expect(chip).toContainText('Cobro: Sin pagos');
+
+    await chip.getByRole('button').click();
+    await expect(visibleRows(page)).toHaveCount(4);
   });
 
   test('active filter count badge reflects applied filters', {

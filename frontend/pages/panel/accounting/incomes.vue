@@ -351,6 +351,7 @@ const {
     amountMin: '',
     amountMax: '',
     kind: '',
+    paymentStatus: '',
     partner: '',
     ledger: '',
   },
@@ -358,6 +359,9 @@ const {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     kind: matchEquals('kind', 'kind'),
+    // Liquid and lost rows carry `payment_status: null`, so any active
+    // value here already narrows the list down to expected records.
+    paymentStatus: matchEquals('payment_status', 'paymentStatus'),
     partner: matchPartner,
     ledger: matchEquals('ledger', 'ledger'),
   },
@@ -376,6 +380,17 @@ const filterFields = [
       { value: 'expected', label: 'Esperado' },
       { value: 'liquid', label: 'Líquido' },
       { value: 'lost', label: 'Pérdidas' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'paymentStatus',
+    label: 'Cobro',
+    options: [
+      { value: '', label: 'Todos' },
+      { value: 'pending', label: 'Sin pagos' },
+      { value: 'partial', label: 'Parcial' },
+      { value: 'paid', label: 'Pagado' },
     ],
   },
   {
@@ -408,6 +423,7 @@ const EXPORT_MAPPING = {
   amountMin: 'amount_min',
   amountMax: 'amount_max',
   kind: 'kind',
+  paymentStatus: 'payment_status',
   partner: 'partner',
   ledger: 'ledger',
   search: 'q',

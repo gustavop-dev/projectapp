@@ -281,6 +281,86 @@ class TestPartialAllocation:
         # 600.000 + 390.000 collected against a 990.000 expected → closed.
 
 
+class TestResidualOnly:
+    """Zero received with the shortfall fully allocated: pure bookkeeping.
+
+    The typical case: an old partial collection left a fee-sized residual
+    that will never arrive, and there is no new payment to register.
+    """
+
+    def make_partially_collected(self):
+        income = make_expected()
+        IncomeRecord.objects.create(
+            concept='Abono previo',
+            kind=IncomeRecord.Kind.LIQUID,
+            period_date='2026-07-05',
+            total_amount=Decimal('950000.00'),
+            gustavo_amount=Decimal('475000.00'),
+            carlos_amount=Decimal('475000.00'),
+            expected_income=income,
+        )
+        return income
+
+    def test_zero_received_with_a_deduction_closes_the_parent_without_a_liquid_child(
+        self, superuser,
+    ):
+        income = self.make_partially_collected()
+
+        result = accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('0'),
+                deductions=[gateway_fee('50000.00')],
+            ),
+            superuser,
+        )
+
+        income.refresh_from_db()
+        assert result['liquid'] is None
+        # Only the pre-existing collection remains — no zero-amount payment.
+        assert income.liquid_records.count() == 1
+        # Parent shrank to what was actually collected → derived status paid.
+        assert income.total_amount == Decimal('950000.00')
+        expense = result['expenses'][0]
+        assert expense.total_amount == Decimal('50000.00')
+        assert expense.source_ref == f'income:{income.pk}:settlement'
+
+    def test_zero_received_sends_no_email(self, superuser, _mute_notifications):
+        """Nothing was collected, so there is no payment to announce."""
+        income = self.make_partially_collected()
+
+        accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('0'),
+                deductions=[gateway_fee('50000.00')],
+            ),
+            superuser,
+        )
+
+        assert _mute_notifications.call_count == 0
+
+    def test_zero_received_with_a_partial_allocation_keeps_the_rest_pending(
+        self, superuser,
+    ):
+        income = make_expected()
+
+        result = accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('0'),
+                deductions=[gateway_fee('8000.00')],
+            ),
+            superuser,
+        )
+
+        income.refresh_from_db()
+        assert result['liquid'] is None
+        # Parent drops only by the fee; the 992.000 stays pending.
+        assert income.total_amount == Decimal('992000.00')
+        assert income.liquid_records.count() == 0
+
+
 class TestPartnerSplit:
     def test_follow_up_keeps_the_parent_ratio(self, superuser):
         income = make_expected(
@@ -367,7 +447,8 @@ class TestValidation:
                 liquid, settlement(), superuser,
             )
 
-    def test_rejects_a_zero_payment(self, superuser):
+    def test_rejects_a_zero_payment_with_nothing_allocated(self, superuser):
+        """Zero received is only meaningful when the shortfall is resolved."""
         income = make_expected()
 
         with pytest.raises(ValueError, match='mayor a cero'):

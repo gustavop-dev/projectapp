@@ -308,6 +308,37 @@ describe('IncomeLiquidateModal', () => {
     ]);
   });
 
+  it('submits a residual-only resolution with zero received', async () => {
+    // Nothing new arrived — the whole pending was a fee. The server closes
+    // the expected without creating a liquid child.
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-testid="split-total"]').setValue('0');
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.total_amount).toBe('0');
+    expect(payload.deductions).toEqual([
+      { type: 'gateway_fee', detail: '', amount: 600000 },
+    ]);
+  });
+
+  it('coerces an emptied amount to zero', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-testid="split-total"]').setValue('');
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
+    await wrapper.find('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload.total_amount).toBe(0);
+  });
+
   it('reports the balance as fully resolved once it is allocated', async () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);

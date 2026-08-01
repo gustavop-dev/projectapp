@@ -365,6 +365,18 @@ class TestIncomePaymentState:
         assert row['payment_status'] == 'paid'
         assert row['pending_amount'] == '0.00'
 
+    def test_fully_written_off_zero_total_expected_reads_paid(
+        self, super_client, make_income,
+    ):
+        """A residual-only settlement can shrink an expected to zero."""
+        expected = make_income(
+            kind=IncomeRecord.Kind.EXPECTED, total_amount=Decimal('0.00'),
+            gustavo_amount=Decimal('0.00'), carlos_amount=Decimal('0.00'),
+        )
+        row = super_client.get(f'/api/accounting/incomes/{expected.id}/').data
+        assert row['payment_status'] == 'paid'
+        assert row['pending_amount'] == '0.00'
+
     def test_liquidating_creates_a_linked_liquid_row_and_keeps_the_expected(
         self, super_client, make_income,
     ):
@@ -528,6 +540,34 @@ class TestIncomeSettlementEndpoint:
         income.refresh_from_db()
         assert income.total_amount == Decimal('1000000.00')
 
+    def test_residual_only_settlement_returns_a_null_liquid(self, super_client):
+        """Zero received + full deduction closes the parent without a payment."""
+        income = self._expected()
+        IncomeRecord.objects.create(
+            concept='Abono previo',
+            kind=IncomeRecord.Kind.LIQUID,
+            period_date=date(2026, 7, 5),
+            total_amount=Decimal('950000.00'),
+            gustavo_amount=Decimal('475000.00'),
+            carlos_amount=Decimal('475000.00'),
+            expected_income=income,
+        )
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(
+                total_amount='0',
+                deductions=[{'type': 'gateway_fee', 'amount': '50000.00'}],
+            ),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data['liquid'] is None
+        assert response.data['income']['payment_status'] == 'paid'
+        assert response.data['income']['pending_amount'] == '0.00'
+        assert len(response.data['expenses']) == 1
+
     def test_over_allocation_returns_400_in_spanish(self, super_client):
         income = self._expected()
 
@@ -568,3 +608,84 @@ class TestIncomeSettlementEndpoint:
             '/api/accounting/incomes/1/settle/', self._payload(), format='json',
         )
         assert response.status_code in (401, 403)
+
+
+@pytest.mark.django_db
+class TestIncomePaymentStatusFilter:
+    """`payment_status` narrows the list the same way the row badge reads.
+
+    The panel filters client-side, but the CSV export reuses these query
+    params, so both must agree on what "uncollected" means.
+    """
+
+    @pytest.fixture
+    def rows(self, make_income):
+        untouched = make_income(
+            concept='Sin abonos', total_amount=Decimal('1000.00'),
+        )
+        partial = make_income(
+            concept='Abonado a medias', total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            concept='Abono', kind=IncomeRecord.Kind.LIQUID,
+            total_amount=Decimal('400.00'), expected_income=partial,
+        )
+        paid = make_income(
+            concept='Cobrado', total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            concept='Pago total', kind=IncomeRecord.Kind.LIQUID,
+            total_amount=Decimal('1000.00'), expected_income=paid,
+        )
+        return {'untouched': untouched, 'partial': partial, 'paid': paid}
+
+    def _concepts(self, super_client, value):
+        response = super_client.get(
+            f'/api/accounting/incomes/?payment_status={value}',
+        )
+        assert response.status_code == 200, response.data
+        return sorted(row['concept'] for row in response.data['results'])
+
+    def test_pending_returns_only_expected_without_any_payment(
+        self, super_client, rows,
+    ):
+        assert self._concepts(super_client, 'pending') == ['Sin abonos']
+
+    def test_partial_returns_only_the_half_paid_expected(
+        self, super_client, rows,
+    ):
+        assert self._concepts(super_client, 'partial') == ['Abonado a medias']
+
+    def test_paid_returns_only_the_fully_paid_expected(
+        self, super_client, rows,
+    ):
+        assert self._concepts(super_client, 'paid') == ['Cobrado']
+
+    def test_a_lost_child_keeps_its_parent_pending(
+        self, super_client, make_income,
+    ):
+        """Regression: the subquery only counts liquid children as payment."""
+        expected = make_income(
+            concept='Con hijo perdido', total_amount=Decimal('1000.00'),
+        )
+        make_income(
+            concept='Perdido', kind=IncomeRecord.Kind.LOST,
+            total_amount=Decimal('1000.00'), expected_income=expected,
+        )
+        assert self._concepts(super_client, 'pending') == ['Con hijo perdido']
+
+    def test_unknown_value_returns_400(self, super_client, rows):
+        response = super_client.get(
+            '/api/accounting/incomes/?payment_status=cobrado',
+        )
+        assert response.status_code == 400
+
+    def test_the_export_applies_the_same_filter(self, super_client, rows):
+        response = super_client.get(
+            '/api/accounting/export/?section=income&payment_status=pending',
+        )
+        assert response.status_code == 200
+        body = response.content.decode('utf-8-sig')
+        assert 'Sin abonos' in body
+        assert 'Abonado a medias' not in body
+        assert 'Cobrado' not in body
