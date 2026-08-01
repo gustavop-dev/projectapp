@@ -256,6 +256,13 @@ const ITEM_REQUIREMENTS_MAP = {
       configuration: 'NO debe mostrarse',
       usageFlow: 'NO debe mostrarse',
     },
+    {
+      title: 'Estados vacío y de error del Home',
+      description: 'Comportamiento sin contenido cargado y ante fallas.',
+      priority: 'medium',
+      epicKey: 'views',
+      flowKey: 'req-home-estados',
+    },
   ],
 };
 
@@ -277,7 +284,7 @@ describe('nested linked-requirements link', () => {
     const wrapper = mountModal();
     const links = wrapper.findAll('[data-testid="view-requirements-link"]');
     expect(links).toHaveLength(1);
-    expect(links[0].text()).toContain('Ver requerimientos (1)');
+    expect(links[0].text()).toContain('Ver requerimientos (2)');
   });
 
   it('shows no link at all for legacy groups without item ids', () => {
@@ -298,7 +305,7 @@ describe('nested linked-requirements link', () => {
   it('uses English label when language is en', () => {
     const wrapper = mountModal({ language: 'en' });
     expect(wrapper.find('[data-testid="view-requirements-link"]').text())
-      .toContain('View requirements (1)');
+      .toContain('View requirements (2)');
   });
 
   it('opens the nested modal with title, priority and description but not configuration/usageFlow', async () => {
@@ -307,12 +314,13 @@ describe('nested linked-requirements link', () => {
 
     const nested = wrapper.findComponent(LinkedRequirementsModal);
     expect(nested.props('visible')).toBe(true);
-    expect(nested.props('requirements')).toHaveLength(1);
+    expect(nested.props('requirements')).toHaveLength(2);
 
     const text = nested.text();
     expect(text).toContain('Home dinámico con CTAs');
     expect(text).toContain('Alta'); // priority high → Alta (es)
     expect(text).toContain('Página de inicio con secciones administrables.');
+    expect(text).toContain('Estados vacío y de error del Home');
     expect(text).not.toContain('NO debe mostrarse');
   });
 
