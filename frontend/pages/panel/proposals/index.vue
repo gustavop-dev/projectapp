@@ -174,7 +174,7 @@
                   {{ formatAlertDate(group.refDate) }}
                 </span>
               </div>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Descartar" @click.stop="handleDismissAlertGroup(group)">✕</BaseButton>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Descartar" title="Descartar" @click.stop="handleDismissAlertGroup(group)">✕</BaseButton>
             </div>
           </div>
 
