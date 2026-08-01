@@ -80,15 +80,9 @@
           Sin filtros aplicados
         </span>
 
-        <button
-          v-if="appliedChips.length > 0"
-          type="button"
-          data-testid="accounting-filter-reset"
-          class="ml-auto text-xs text-text-muted hover:text-danger-strong transition-colors font-medium whitespace-nowrap"
-          @click="emit('reset')"
-        >
+        <BaseButton variant="link" size="sm" class="ml-auto whitespace-nowrap" v-if="appliedChips.length > 0" data-testid="accounting-filter-reset" @click="emit('reset')">
           Limpiar filtros
-        </button>
+        </BaseButton>
       </div>
     </div>
   </div>

@@ -140,15 +140,9 @@
           </Transition>
         </div>
         <div class="flex-1" />
-        <button
-          v-if="filterCount > 0"
-          type="button"
-          data-testid="filter-panel-reset"
-          class="text-xs text-text-muted hover:text-danger-strong transition-colors font-medium whitespace-nowrap"
-          @click="emit('reset')"
-        >
+        <BaseButton variant="link" size="sm" class="whitespace-nowrap" v-if="filterCount > 0" data-testid="filter-panel-reset" @click="emit('reset')">
           Limpiar todo
-        </button>
+        </BaseButton>
       </div>
     </div>
 

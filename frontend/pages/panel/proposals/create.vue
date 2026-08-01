@@ -927,14 +927,9 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar .md
               </button>
-              <button
-                v-if="createCommercialPromptText !== createCommercialPromptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
-                @click="handleResetCreateCommercialPrompt"
-              >
+              <BaseButton variant="secondary" size="sm" v-if="createCommercialPromptText !== createCommercialPromptDefault" @click="handleResetCreateCommercialPrompt">
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
               <button
@@ -998,14 +993,9 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar .md
               </button>
-              <button
-                v-if="createTechnicalPromptText !== createTechnicalPromptDefault"
-                type="button"
-                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-lg hover:bg-danger-soft transition-colors"
-                @click="handleResetCreateTechnicalPrompt"
-              >
+              <BaseButton variant="secondary" size="sm" v-if="createTechnicalPromptText !== createTechnicalPromptDefault" @click="handleResetCreateTechnicalPrompt">
                 Restaurar original
-              </button>
+              </BaseButton>
             </template>
             <template v-else>
               <button

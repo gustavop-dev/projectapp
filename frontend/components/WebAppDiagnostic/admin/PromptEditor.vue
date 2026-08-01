@@ -17,12 +17,7 @@
           class="px-3 py-1.5 text-xs font-medium text-text-default border border-border-default rounded-lg hover:bg-surface-raised"
           @click="onDownload"
         >Descargar .md</button>
-        <button
-          v-if="isCustom"
-          type="button"
-          class="px-3 py-1.5 text-xs font-medium text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-500/10"
-          @click="onReset"
-        >Restaurar original</button>
+        <BaseButton variant="secondary" size="sm" v-if="isCustom" @click="onReset">Restaurar original</BaseButton>
       </template>
       <template v-else>
         <button

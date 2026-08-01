@@ -237,14 +237,9 @@
           <span v-else>Sin cambios pendientes</span>
         </div>
         <div class="flex items-center gap-3">
-          <button
-            type="button"
-            class="px-5 py-2 text-sm font-medium text-danger-strong hover:bg-danger-soft rounded-xl transition-colors"
-            :disabled="isSaving"
-            @click="handleReset"
-          >
+          <BaseButton variant="secondary" size="sm" :disabled="isSaving" @click="handleReset">
             Restaurar valores originales
-          </button>
+          </BaseButton>
           <button
             type="button"
             class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
@@ -443,12 +438,7 @@
                   {{ field.label }}
                   <span v-if="field.is_overridden" class="text-[10px] text-text-brand bg-primary-soft px-1.5 py-0.5 rounded-full normal-case tracking-normal">modificado</span>
                 </label>
-                <button
-                  v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value"
-                  type="button"
-                  class="text-[10px] text-text-subtle hover:text-danger-strong transition-colors"
-                  @click="emailEditFields[field.key] = field.default_value || ''"
-                >restaurar campo</button>
+                <BaseButton variant="link" size="sm" v-if="emailEditFields[field.key] && emailEditFields[field.key] !== field.default_value" @click="emailEditFields[field.key] = field.default_value || ''">restaurar campo</BaseButton>
               </div>
               <BaseInput
                 v-if="field.type === 'text'"
@@ -550,14 +540,9 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Descargar .md
             </button>
-            <button
-              v-if="promptText !== promptDefault"
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-xl hover:bg-danger-soft transition-colors"
-              @click="handleResetPrompt"
-            >
+            <BaseButton variant="secondary" size="sm" v-if="promptText !== promptDefault" @click="handleResetPrompt">
               Restaurar original
-            </button>
+            </BaseButton>
           </template>
           <template v-else>
             <button
@@ -627,14 +612,9 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Descargar .md
             </button>
-            <button
-              v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault"
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-danger-strong bg-surface border border-border-default rounded-xl hover:bg-danger-soft transition-colors"
-              @click="handleResetTechnicalDefaultsPrompt"
-            >
+            <BaseButton variant="secondary" size="sm" v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" @click="handleResetTechnicalDefaultsPrompt">
               Restaurar original
-            </button>
+            </BaseButton>
           </template>
           <template v-else>
             <button
@@ -800,9 +780,9 @@
             <h3 class="text-lg font-bold text-text-default mb-2">¿Restaurar valores originales?</h3>
             <p class="text-sm text-text-muted mb-6">Esto eliminará las personalizaciones de esta plantilla y volverá al contenido por defecto del sistema.</p>
             <div class="flex gap-3 justify-center">
-              <button class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors" :disabled="isSaving" @click="confirmResetEmailTemplate">
+              <BaseButton variant="danger" size="md" :disabled="isSaving" @click="confirmResetEmailTemplate">
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
-              </button>
+              </BaseButton>
               <button class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="emailShowResetConfirm = false">Cancelar</button>
             </div>
           </div>
@@ -826,13 +806,9 @@
               y volverá a los valores del sistema. Las propuestas existentes no se verán afectadas.
             </p>
             <div class="flex gap-3 justify-center">
-              <button
-                class="px-6 py-2.5 bg-red-600 text-white rounded-xl font-medium text-sm hover:bg-red-700 transition-colors"
-                :disabled="isSaving"
-                @click="confirmReset"
-              >
+              <BaseButton variant="danger" size="md" :disabled="isSaving" @click="confirmReset">
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
-              </button>
+              </BaseButton>
               <button
                 class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors"
                 @click="showResetConfirm = false"

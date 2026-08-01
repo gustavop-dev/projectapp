@@ -34,14 +34,9 @@
 
       <div class="flex items-center gap-2 px-3 py-2.5">
         <div class="flex-1" />
-        <button
-          v-if="filterCount > 0"
-          type="button"
-          class="whitespace-nowrap text-xs font-medium text-text-subtle transition-colors hover:text-danger-strong"
-          @click="emit('reset')"
-        >
+        <BaseButton variant="link" size="sm" class="whitespace-nowrap" v-if="filterCount > 0" @click="emit('reset')">
           Limpiar todo
-        </button>
+        </BaseButton>
       </div>
     </div>
 

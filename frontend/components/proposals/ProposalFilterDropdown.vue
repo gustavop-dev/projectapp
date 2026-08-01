@@ -41,13 +41,9 @@
           </label>
         </div>
         <div v-if="modelValue.length > 0" class="border-t border-border-muted px-3 py-1.5">
-          <button
-            type="button"
-            class="text-xs text-text-subtle hover:text-danger-strong transition-colors"
-            @click="$emit('update:modelValue', [])"
-          >
+          <BaseButton variant="link" size="sm" @click="$emit('update:modelValue', [])">
             Limpiar
-          </button>
+          </BaseButton>
         </div>
       </div>
     </Transition>
