@@ -19,7 +19,10 @@ from content.models import (
     ProposalShareLink,
     ProposalDefaultConfig,
 )
-from content.serializers.proposal_clients import ProposalClientSerializer
+from content.serializers.proposal_clients import (
+    ProposalClientSerializer,
+    ProposalNestedClientSerializer,
+)
 from content.utils import validate_editable_slug, validate_email_domain_mx
 
 
@@ -180,7 +183,9 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
     has_confirmed_module_selection = serializers.ReadOnlyField()
     available_transitions = serializers.SerializerMethodField()
     proposal_documents = serializers.SerializerMethodField()
-    client = ProposalClientSerializer(read_only=True)
+    # Slim on purpose: the client aggregates cost ~8-10 unannotated queries and
+    # no proposal surface reads them. See ProposalNestedClientSerializer.
+    client = ProposalNestedClientSerializer(read_only=True)
 
     change_logs = serializers.SerializerMethodField()
 

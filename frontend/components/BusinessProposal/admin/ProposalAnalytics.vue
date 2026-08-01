@@ -1,8 +1,13 @@
 <template>
   <div class="space-y-6">
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-8 text-text-subtle text-sm">
-      Cargando analytics...
+    <!-- Loading: mirror the summary-cards + panel layout so the tab does not
+         jump when the real content lands. -->
+    <div v-if="loading" class="space-y-6" data-testid="analytics-skeleton">
+      <span class="sr-only" role="status">Cargando analytics...</span>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <BaseSkeleton v-for="n in 4" :key="n" variant="card" class="h-20" />
+      </div>
+      <BaseSkeleton variant="card" class="h-48" />
     </div>
 
     <!-- No data -->
@@ -771,6 +776,10 @@
 import { ref, computed, onMounted } from 'vue';
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+// Explicit rather than relying on Nuxt auto-import, so the unit spec that
+// mounts this component in isolation resolves it too (same as
+// WebAppDiagnostic/admin/DiagnosticAnalytics.vue).
+import BaseSkeleton from '~/components/base/BaseSkeleton.vue';
 import { formatDateTime as formatDate } from '~/utils/formatDate';
 
 const { analytics: tt } = useTooltipTexts();

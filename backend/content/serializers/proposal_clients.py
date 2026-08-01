@@ -176,6 +176,63 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         return rep
 
 
+class ProposalNestedClientSerializer(serializers.ModelSerializer):
+    """
+    Client payload nested inside a proposal detail response.
+
+    Same identity/contact/status fields as ``ProposalClientSerializer`` minus the
+    cross-entity aggregates (``total_proposals``, ``projects_count``,
+    ``diagnostics_count``, ``is_orphan``, ``accepted_count``, ``last_status``,
+    ``last_sent_at``, ``project_types``, ``market_types``). Those are
+    ``SerializerMethodField``s that fall back to a per-instance query whenever
+    the queryset was not annotated -- which is the case for the proposal detail
+    endpoint -- costing ~8-10 queries for numbers the proposal surfaces never
+    read. ``/panel/clients`` still uses the full serializer.
+    """
+
+    name = serializers.CharField(required=False, allow_blank=True, max_length=311)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(required=False, allow_blank=True, max_length=30)
+    company = serializers.CharField(
+        source='company_name',
+        required=False,
+        allow_blank=True,
+        max_length=200,
+    )
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    is_email_placeholder = serializers.BooleanField(read_only=True)
+    # Reads an already-loaded column, so it costs no extra query.
+    is_inactive = serializers.SerializerMethodField()
+    deactivated_at = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = (
+            'id',
+            'user_id',
+            'name',
+            'email',
+            'phone',
+            'company',
+            'is_onboarded',
+            'is_email_placeholder',
+            'is_inactive',
+            'deactivated_at',
+            'created_at',
+            'updated_at',
+        )
+        read_only_fields = fields
+
+    def get_is_inactive(self, obj):
+        return obj.deactivated_at is not None
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        rep['name'] = build_client_display_name(instance)
+        rep['email'] = instance.user.email or ''
+        return rep
+
+
 class ProposalClientSearchSerializer(serializers.ModelSerializer):
     """Lightweight payload for the autocomplete dropdown (max 20 results)."""
 
