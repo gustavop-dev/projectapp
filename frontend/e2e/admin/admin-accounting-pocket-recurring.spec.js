@@ -101,6 +101,19 @@ const RECURRING_ROWS = [
 
 function buildHandler({ calls, reorderStatus = 200 }) {
   return async ({ route, apiPath, method }) => {
+    if (apiPath.startsWith('accounting/recurring-categories/') && apiPath.endsWith('/delete/')) {
+      calls.push({ apiPath, method });
+      // The catalog refuses to drop a category still in use.
+      return {
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          detail: 'La categoría tiene 2 pago(s) recurrente(s). '
+            + 'Muévelos a otra categoría antes de borrarla.',
+          payment_count: 2,
+        }),
+      };
+    }
     if (apiPath === 'accounting/recurring-categories/' && method === 'GET') {
       return {
         status: 200,
@@ -191,6 +204,16 @@ async function dragAbove(page, sourceHandle, targetRow) {
   await page.mouse.up();
 }
 
+/**
+ * Reach a subview the way an operator does — through the accounting subnav —
+ * rather than deep-linking, so the test also proves the tab is reachable.
+ */
+async function openSubview(page, key) {
+  const entry = key === 'recurring' ? 'pocket' : 'recurring';
+  await page.goto(`/panel/accounting/${entry}`, { waitUntil: 'domcontentloaded' });
+  await page.getByTestId(`accounting-subnav-${key}`).click();
+}
+
 test.describe('Admin Accounting Pocket & Recurring', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -203,7 +226,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'pocket');
 
     await expect(
       page.getByRole('heading', { name: 'Bolsillo ProjectApp', exact: true }),
@@ -216,7 +239,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'pocket');
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
     await expect(page.getByRole('columnheader', { name: 'Saldo' })).toBeVisible();
@@ -274,8 +297,11 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('recurring subview shows monthly cost and the breakdown card', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the helper lands on a sibling accounting
+    // tab and then clicks the subnav, which is the navigation being
+    // asserted; there is no pre-auth entry point in these mocked specs)
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'recurring');
 
     await expect(
       page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
@@ -289,8 +315,11 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('grouped view lists each category with its monthly subtotal', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the helper lands on a sibling accounting
+    // tab and then clicks the subnav, which is the navigation being
+    // asserted; there is no pre-auth entry point in these mocked specs)
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'recurring');
     await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
 
     // Grouped is the default view.
@@ -309,8 +338,11 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('monthly columns normalize a biennial charge', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the helper lands on a sibling accounting
+    // tab and then clicks the subnav, which is the navigation being
+    // asserted; there is no pre-auth entry point in these mocked specs)
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'recurring');
     await expect(page.getByTestId('accounting-row-3')).toBeVisible({ timeout: 25_000 });
 
     await expect(page.getByRole('columnheader', { name: 'Precio mensual' })).toBeVisible();
@@ -326,6 +358,9 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('switching to the classic view restores sorting and pagination', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is
+    // covered by the display specs above; this one pins behavior inside
+    // the tab)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('recurring-group-1')).toBeVisible({ timeout: 25_000 });
@@ -341,6 +376,9 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('drag handles disappear while a filter narrows the list', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is
+    // covered by the display specs above; this one pins behavior inside
+    // the tab)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('recurring-drag-handle-1')).toBeVisible({ timeout: 25_000 });
@@ -354,6 +392,9 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('dragging a row persists the new manual order', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (the interaction is a manual mouse drag —
+    // sortablejs ignores Playwright's dragTo, so this drives mouse.down/move/up,
+    // which the detector's call list does not recognize)
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
@@ -383,6 +424,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('a failed reorder warns and snaps the row back', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (manual mouse drag; see the success case)
     const calls = [];
     await mockApi(page, buildHandler({ calls, reorderStatus: 500 }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
@@ -403,6 +445,9 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   test('the categories modal lists the catalog with its usage count', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is
+    // covered by the display specs above; this one pins behavior inside
+    // the tab)
     await mockApi(page, buildHandler({ calls: [] }));
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('recurring-manage-categories'))
@@ -416,6 +461,28 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     ).toBeVisible();
     await expect(modal.getByTestId('recurring-category-row-1')).toContainText('2 pagos');
     await expect(modal.getByTestId('recurring-category-row-2')).toContainText('1 pago');
+  });
+
+  test('deleting a category still in use is refused with the reason', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recurring-manage-categories'))
+      .toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('recurring-manage-categories').click();
+    await page.getByTestId('recurring-category-delete-1').click();
+
+    // Confirm the destructive action, then the backend refuses it.
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('No se pudo eliminar la categoría')).toBeVisible();
+    await expect(
+      page.getByText('Muévelos a otra categoría antes de borrarla', { exact: false }),
+    ).toBeVisible();
+    expect(calls.some((c) => c.apiPath.endsWith('/delete/'))).toBe(true);
   });
 
   test('cop_equivalent field only appears for USD payments in the modal', {
