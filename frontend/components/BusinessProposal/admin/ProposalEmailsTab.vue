@@ -112,13 +112,12 @@
               </div>
             </template>
           </draggable>
-          <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
+          <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             Agregar sección
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Footer -->
@@ -133,22 +132,20 @@
           <label class="block text-xs text-text-muted mb-1">Adjuntos</label>
           <div class="flex flex-col items-start gap-3">
             <div class="flex flex-wrap items-center gap-2">
-              <button type="button" @click="showAttachFromDocsModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand  rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
+              <BaseButton variant="secondary" size="sm" @click="showAttachFromDocsModal = true">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
                 Adjuntar desde Documentos
-              </button>
-              <button v-if="canCreateMarkdownAttachment" type="button" @click="showMarkdownModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors">
+              </BaseButton>
+              <BaseButton variant="ghost" size="sm" v-if="canCreateMarkdownAttachment" @click="showMarkdownModal = true">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
                 Crear documento desde markdown
-              </button>
+              </BaseButton>
             </div>
             <input ref="fileInput" type="file" multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
@@ -184,8 +181,7 @@
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
           <span v-else />
-          <button type="button" :disabled="!canSend || sending" @click="handleSend"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -194,7 +190,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ sending ? 'Enviando...' : 'Enviar correo' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 

@@ -81,9 +81,9 @@
       <p v-if="errorMsg" class="text-sm text-danger-strong">{{ errorMsg }}</p>
 
       <div class="flex gap-3 pt-4">
-        <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
+        <BaseButton variant="primary" size="md" type="submit" :disabled="portfolioStore.isUpdating">
           {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear Proyecto' }}
-        </button>
+        </BaseButton>
         <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
@@ -97,10 +97,10 @@
             <h3 class="text-sm font-medium text-text-default">Plantilla JSON</h3>
             <p class="text-xs text-text-subtle mt-0.5">Descarga la plantilla con la estructura problem/solution/results.</p>
           </div>
-          <button type="button" :disabled="isDownloading" class="inline-flex items-center gap-2 px-4 py-2 bg-primary-strong text-white rounded-lg text-sm font-medium hover:bg-primary-strong/90 transition-colors disabled:opacity-50" @click="downloadTemplate">
+          <BaseButton variant="primary" size="md" :disabled="isDownloading" @click="downloadTemplate">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -142,9 +142,9 @@
           </fieldset>
           <div v-if="errorMsg" class="text-sm bg-danger-soft text-danger-strong px-4 py-3 rounded-xl">{{ errorMsg }}</div>
           <div class="flex flex-wrap items-center gap-4 pt-2">
-            <button type="submit" :disabled="portfolioStore.isUpdating" class="px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
+            <BaseButton variant="primary" size="md" type="submit" :disabled="portfolioStore.isUpdating">
               {{ portfolioStore.isUpdating ? 'Creando...' : 'Crear desde JSON' }}
-            </button>
+            </BaseButton>
             <NuxtLink :to="localePath('/panel/portfolio')" class="text-sm text-text-muted hover:text-text-default">Cancelar</NuxtLink>
           </div>
         </div>

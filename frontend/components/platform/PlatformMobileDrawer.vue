@@ -59,17 +59,13 @@
               :disabled="item.disabled"
               @click="$emit('close')"
             />
-            <button
-              type="button"
-              class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-green-light transition-all duration-150 hover:bg-primary-soft hover:text-text-brand dark:hover:bg-surface/[0.06] dark:hover:text-white"
-              @click="$emit('close'); $emit('openThemePicker')"
-            >
+            <BaseButton variant="secondary" size="md" class="w-full" @click="$emit('close'); $emit('openThemePicker')">
               <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="13.5" cy="6.5" r="2.5" /><circle cx="17.5" cy="10.5" r="2.5" /><circle cx="8.5" cy="7.5" r="2.5" /><circle cx="6.5" cy="12.5" r="2.5" />
                 <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 011.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
               </svg>
               <span class="truncate">Personaliza</span>
-            </button>
+            </BaseButton>
           </div>
 
           <div v-if="authStore.isAdmin" class="mb-5">
@@ -122,13 +118,9 @@
               </svg>
             </button>
 
-            <button
-              type="button"
-              class="ml-auto rounded-full border border-input-border px-4 py-2 text-sm text-green-light transition hover:text-text-brand dark:border-white/10 dark:hover:text-white"
-              @click="$emit('logout')"
-            >
+            <BaseButton variant="ghost" size="md" class="ml-auto" @click="$emit('logout')">
               Salir
-            </button>
+            </BaseButton>
           </div>
         </div>
       </aside>

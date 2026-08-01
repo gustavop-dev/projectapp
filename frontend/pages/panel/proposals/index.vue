@@ -95,13 +95,9 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
           </svg>
         </div>
-        <button
-          type="button"
-          class="shrink-0 text-xs font-medium text-warning-strong/90 hover:text-warning-strong px-2.5 py-1 rounded-lg hover:bg-warning-strong/10 transition-colors"
-          @click.stop="toggleAlertForm"
-        >
+        <BaseButton variant="ghost" size="sm" class="shrink-0" @click.stop="toggleAlertForm">
           {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
-        </button>
+        </BaseButton>
       </div>
       <div class="px-4 pb-4 pt-1">
 
@@ -283,29 +279,18 @@
       <div v-if="selectedIds.size > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
         <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
         <div class="flex items-center gap-2">
-          <button
-            class="px-3 py-1.5 bg-blue-600 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
-            :disabled="isBulkActing"
-            @click="handleBulkAction('resend')"
-          >
+          <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('resend')">
             🔄 Re-enviar
-          </button>
-          <button
-            class="px-3 py-1.5 bg-yellow-600 rounded-lg text-xs font-medium hover:bg-yellow-700 transition-colors disabled:opacity-50"
-            :disabled="isBulkActing"
-            @click="handleBulkAction('expire')"
-          >
+          </BaseButton>
+          <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('expire')">
             ⏰ Expirar
-          </button>
+          </BaseButton>
           <BaseButton variant="danger-ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('delete')">
             🗑️ Eliminar
           </BaseButton>
-          <button
-            class="px-3 py-1.5 bg-white/10 rounded-lg text-xs font-medium hover:bg-white/20 transition-colors"
-            @click="selectedIds = new Set()"
-          >
+          <BaseButton variant="ghost" size="sm" @click="selectedIds = new Set()">
             Cancelar
-          </button>
+          </BaseButton>
         </div>
       </div>
     </Transition>
@@ -515,19 +500,12 @@
             <h3 class="text-lg font-bold text-text-default mb-2">¿Enviar esta propuesta?</h3>
             <p class="text-sm text-text-muted mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
             <div class="flex gap-3 justify-center">
-              <button
-                class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium text-sm hover:bg-blue-700 transition-colors"
-                :disabled="isSending"
-                @click="confirmSend"
-              >
+              <BaseButton variant="ghost" size="md" :disabled="isSending" @click="confirmSend">
                 {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
-              </button>
-              <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
-                @click="sendConfirmId = null"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="sendConfirmId = null">
                 Cancelar
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>
@@ -566,19 +544,12 @@
               </div>
             </div>
             <div class="flex gap-3 mt-5">
-              <button
-                class="flex-1 px-4 py-2.5 bg-primary text-white rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors disabled:opacity-50"
-                :disabled="!quickLogMessage.trim() || isQuickLogging"
-                @click="confirmQuickLog"
-              >
+              <BaseButton variant="primary" size="md" class="flex-1" :disabled="!quickLogMessage.trim() || isQuickLogging" @click="confirmQuickLog">
                 {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
-              </button>
-              <button
-                class="px-4 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-border-muted transition-colors"
-                @click="quickLogProposal = null"
-              >
+              </BaseButton>
+              <BaseButton variant="ghost" size="md" @click="quickLogProposal = null">
                 Cancelar
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>

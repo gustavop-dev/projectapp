@@ -49,7 +49,7 @@
                   ? 'w-1.5 bg-primary/40 dark:bg-accent-soft/40'
                   : 'w-1.5 bg-gray-200 dark:bg-surface/10'"
             />
-            <span class="ml-auto text-[10px] text-gray-400 dark:text-white/40 font-medium tabular-nums">
+            <span class="ml-auto text-[10px] text-text-subtle dark:text-white/40 font-medium tabular-nums">
               {{ currentStep + 1 }}/{{ totalSteps }}
             </span>
           </div>
@@ -59,27 +59,18 @@
 
           <div class="flex items-center justify-between">
             <button
-              class="text-xs text-gray-400 hover:text-text-muted dark:hover:text-white/80 transition-colors pointer-events-auto"
+              class="text-xs text-text-subtle hover:text-text-muted dark:hover:text-white/80 transition-colors pointer-events-auto"
               @click="dismiss"
             >
               Omitir
             </button>
             <div class="flex items-center gap-2">
-              <button
-                v-if="currentStep > 0"
-                class="px-3 py-1.5 text-xs text-text-muted dark:text-white/60 hover:text-text-default dark:hover:text-white transition-colors pointer-events-auto"
-                @click="prev"
-              >
+              <BaseButton variant="ghost" size="sm" v-if="currentStep > 0" @click="prev">
                 Atrás
-              </button>
-              <button
-                class="px-4 py-1.5 text-xs font-medium text-white bg-primary rounded-lg
-                       hover:bg-primary/90 transition-colors shadow-sm pointer-events-auto
-                       dark:bg-accent-soft dark:text-text-brand dark:hover:bg-accent-soft/90"
-                @click="next"
-              >
+              </BaseButton>
+              <BaseButton variant="secondary" size="sm" @click="next">
                 {{ isLastStep ? 'Entendido' : 'Siguiente' }}
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>

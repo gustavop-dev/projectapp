@@ -55,11 +55,7 @@
       </label>
     </div>
     <div class="text-right">
-      <button
-        type="submit"
-        class="px-4 py-2 bg-primary text-white rounded hover:bg-primary-strong"
-        :disabled="busy"
-      >Guardar pricing</button>
+      <BaseButton variant="primary" size="md" type="submit" :disabled="busy">Guardar pricing</BaseButton>
     </div>
   </form>
 </template>

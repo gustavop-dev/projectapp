@@ -27,14 +27,9 @@
             </option>
           </select>
         </label>
-        <button
-          type="button"
-          class="text-xs px-3 py-2 bg-primary text-on-primary rounded-lg hover:bg-primary-strong"
-          :disabled="!stubModuleId"
-          @click="insertGenericStub"
-        >
+        <BaseButton variant="primary" size="sm" :disabled="!stubModuleId" @click="insertGenericStub">
           Insertar módulo genérico
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -149,7 +144,7 @@
     <section class="space-y-4">
       <div class="flex items-center justify-between">
         <h3 class="text-sm font-semibold text-text-default">Módulos del producto</h3>
-        <button type="button" class="text-xs px-3 py-1.5 bg-primary text-on-primary rounded-lg" @click="addEpic">+ Módulo</button>
+        <BaseButton variant="primary" size="sm" @click="addEpic">+ Módulo</BaseButton>
       </div>
       <div
         v-for="(epic, ei) in doc.epics"
@@ -431,14 +426,9 @@
     </section>
 
     <div class="flex items-center gap-4 pt-4 border-t dark:border-white/[0.06]">
-      <button
-        type="button"
-        :disabled="isSaving"
-        class="px-5 py-2.5 bg-primary text-on-primary rounded-xl text-sm font-medium hover:bg-primary-strong disabled:opacity-50"
-        @click="handleSave"
-      >
+      <BaseButton variant="primary" size="md" :disabled="isSaving" @click="handleSave">
         {{ isSaving ? 'Guardando...' : 'Guardar detalle técnico' }}
-      </button>
+      </BaseButton>
       <span v-if="savedMsg" class="text-sm text-text-brand">{{ savedMsg }}</span>
       <span v-if="validationError" class="text-sm text-red-600">{{ validationError }}</span>
     </div>

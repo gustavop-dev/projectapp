@@ -157,7 +157,15 @@ with 43 different visual treatments for "delete" alone.
 | Destructive **confirmed** (modal footer, confirm CTA)| `danger`       | filled red                                |
 | Destructive **inline** (row trash icon, quitar ítem) | `danger-ghost` | red text, soft red wash on hover          |
 | Text action inside prose or a list header            | `link`         | brand-coloured text, underline on hover   |
-| Public-site CTA (proposals, diagnostics)             | `accent`       | filled accent                             |
+| Accent CTA — client platform, public site            | `accent`       | filled accent                             |
+
+`accent` is not decoration: `pages/platform/**` uses accent-yellow as its
+*primary* CTA, the way the panel uses `primary` green. Keep that split —
+migrating a platform CTA to `primary` repaints the client-facing app.
+
+A soft tint (`bg-primary-soft`) is low-emphasis chrome, so it maps to
+`secondary`, not `primary`: promoting it changes the visual hierarchy of the
+screen it lives on.
 
 The destructive split is the one that matters: a filled red button in every
 table row screams; a bare red word in a modal footer disappears. Confirmed

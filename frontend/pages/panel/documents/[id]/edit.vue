@@ -25,28 +25,17 @@
         </NuxtLink>
         <BaseDropdown :items="downloadItems" align="right">
           <template #trigger>
-            <button
-              type="button"
-              :disabled="isDownloading"
-              class="px-5 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
-                     hover:bg-surface-raised transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-            >
+            <BaseButton variant="secondary" size="md" :disabled="isDownloading">
               {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
-            </button>
+            </BaseButton>
           </template>
         </BaseDropdown>
-        <button
-          type="submit"
-          form="doc-edit-form"
-          :disabled="documentStore.isUpdating || !hasChanges"
-          class="px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                 hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges">
           {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-        </button>
+        </BaseButton>
       </div>
     </div>
 
@@ -221,18 +210,12 @@
               :options="templateStyleOptions"
               aria-label="Estilo de plantilla"
             />
-            <button
-              type="button"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors
-                     bg-surface-raised text-text-muted hover:bg-surface-raised"
-              :disabled="!form.content_markdown.trim()"
-              @click="showFullPreview = true"
-            >
+            <BaseButton variant="secondary" size="sm" :disabled="!form.content_markdown.trim()" @click="showFullPreview = true">
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
               </svg>
               Vista completa
-            </button>
+            </BaseButton>
             <button
               type="button"
               class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
@@ -286,27 +269,17 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
-          <button
-            type="submit"
-            :disabled="documentStore.isUpdating || !hasChanges"
-            class="px-5 sm:px-6 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-                   hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges">
             {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-          </button>
+          </BaseButton>
           <BaseDropdown :items="downloadItems" align="right">
             <template #trigger>
-              <button
-                type="button"
-                :disabled="isDownloading"
-                class="px-5 sm:px-6 py-2.5 bg-surface text-text-default border border-border-default rounded-xl font-medium text-sm
-                       hover:bg-surface-raised transition-colors disabled:opacity-50 inline-flex items-center gap-1.5"
-              >
+              <BaseButton variant="secondary" size="md" class="sm:px-6" :disabled="isDownloading">
                 {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                 </svg>
-              </button>
+              </BaseButton>
             </template>
           </BaseDropdown>
           <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">

@@ -37,14 +37,9 @@
             </div>
 
             <div v-if="!codeSent" class="mt-4">
-              <button
-                type="button"
-                class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="store.isSending"
-                @click="sendCode"
-              >
+              <BaseButton variant="primary" size="md" :disabled="store.isSending" @click="sendCode">
                 {{ store.isSending ? 'Enviando...' : 'Enviar código' }}
-              </button>
+              </BaseButton>
             </div>
 
             <form v-else class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center" @submit.prevent="confirmCode">
@@ -56,13 +51,9 @@
                 placeholder="Código de 6 dígitos"
                 class="w-full max-w-[200px] rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-center text-lg font-semibold tracking-[0.3em] text-text-default outline-none transition focus:border-border-default focus:ring-1 focus:ring-esmerald/10"
               >
-              <button
-                type="submit"
-                class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
-                :disabled="store.isSending || code.length !== 6"
-              >
+              <BaseButton variant="primary" size="md" type="submit" :disabled="store.isSending || code.length !== 6">
                 {{ store.isSending ? 'Validando...' : 'Validar correo' }}
-              </button>
+              </BaseButton>
               <button
                 type="button"
                 class="text-sm font-medium text-green-light transition hover:text-text-default disabled:opacity-50"
@@ -111,23 +102,12 @@
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <button
-              type="button"
-              class="rounded-full border border-border-default px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
-              @click="download(store.signableDocument)"
-            >
+            <BaseButton variant="secondary" size="md" @click="download(store.signableDocument)">
               Descargar PDF
-            </button>
-            <button
-              v-if="!store.signableDocument.signed"
-              type="button"
-              class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
-              :disabled="!store.emailVerified"
-              :title="store.emailVerified ? '' : 'Valida tu correo primero'"
-              @click="openSign"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" v-if="!store.signableDocument.signed" :disabled="!store.emailVerified" :title="store.emailVerified ? '' : 'Valida tu correo primero'" @click="openSign">
               Aceptar y firmar
-            </button>
+            </BaseButton>
           </div>
         </div>
       </section>
@@ -142,13 +122,9 @@
             class="flex items-center justify-between rounded-2xl border border-border-default bg-surface px-4 py-3"
           >
             <span class="text-sm font-medium text-text-default">{{ doc.title }}</span>
-            <button
-              type="button"
-              class="rounded-full border border-border-default px-4 py-2 text-xs font-semibold text-text-default transition hover:brightness-105"
-              @click="download(doc)"
-            >
+            <BaseButton variant="secondary" size="sm" @click="download(doc)">
               Descargar
-            </button>
+            </BaseButton>
           </li>
         </ul>
       </section>
@@ -177,21 +153,12 @@
         </div>
 
         <div class="mt-6 flex justify-end gap-2">
-          <button
-            type="button"
-            class="rounded-full border border-border-default px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
-            @click="signModalOpen = false"
-          >
+          <BaseButton variant="ghost" size="md" @click="signModalOpen = false">
             Cancelar
-          </button>
-          <button
-            type="button"
-            class="rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-esmerald/90 disabled:cursor-not-allowed disabled:opacity-50"
-            :disabled="!accepted || store.isSigning"
-            @click="confirmSign"
-          >
+          </BaseButton>
+          <BaseButton variant="primary" size="md" :disabled="!accepted || store.isSigning" @click="confirmSign">
             {{ store.isSigning ? 'Firmando...' : 'Confirmar firma' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>

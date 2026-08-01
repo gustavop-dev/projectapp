@@ -490,21 +490,12 @@
           </div>
           <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
-              @click="closeCreateModal"
-            >
+            <BaseButton variant="ghost" size="md" @click="closeCreateModal">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="clientsStore.isUpdating"
-              data-testid="clients-new-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-new-submit">
               Crear cliente
-            </button>
+            </BaseButton>
           </div>
         </form>
       </div>
@@ -563,21 +554,12 @@
           </div>
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted bg-surface-raised hover:bg-border-muted rounded-xl transition-colors"
-              @click="closeEditModal"
-            >
+            <BaseButton variant="ghost" size="md" @click="closeEditModal">
               Cancelar
-            </button>
-            <button
-              type="submit"
-              :disabled="clientsStore.isUpdating"
-              data-testid="clients-edit-submit"
-              class="px-4 py-2 text-sm font-bold text-white bg-primary hover:bg-primary-strong disabled:opacity-50 rounded-xl transition-colors"
-            >
+            </BaseButton>
+            <BaseButton variant="primary" size="md" type="submit" :disabled="clientsStore.isUpdating" data-testid="clients-edit-submit">
               Guardar cambios
-            </button>
+            </BaseButton>
           </div>
         </form>
       </div>

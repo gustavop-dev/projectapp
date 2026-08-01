@@ -21,17 +21,13 @@
           <span class="min-w-0 flex-1 truncate font-medium text-text-default">{{ element.order }}. {{ element.proposal.title }}</span>
           <span class="shrink-0 text-sm text-green-light/60">${{ element.proposal.total_amount }}</span>
           <template v-if="authStore.isAdmin">
-            <button class="shrink-0 rounded-lg border border-border-default px-2 py-1 text-xs text-green-light" @click="onEditProposal(element.proposal.id)">Editar</button>
+            <BaseButton variant="secondary" size="sm" class="shrink-0" @click="onEditProposal(element.proposal.id)">Editar</BaseButton>
             <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar" :data-testid="`remove-phase-${element.id}`" @click="onRemove(element.id)">×</BaseButton>
           </template>
         </div>
       </template>
     </draggable>
-    <button
-      v-if="authStore.isAdmin"
-      class="mt-4 rounded-xl border border-dashed border-border-default px-3 py-2 text-sm text-text-default"
-      @click="$emit('add-phase')"
-    >+ Agregar fase desde propuesta del cliente</button>
+    <BaseButton variant="secondary" size="md" class="mt-4" v-if="authStore.isAdmin" @click="$emit('add-phase')">+ Agregar fase desde propuesta del cliente</BaseButton>
   </div>
 </template>
 

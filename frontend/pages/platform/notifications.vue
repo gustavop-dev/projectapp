@@ -9,14 +9,9 @@
         </p>
       </div>
       <div class="flex items-center gap-3">
-        <button
-          v-if="notifStore.unreadCount > 0"
-          type="button"
-          class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
-          @click="handleMarkAllRead"
-        >
+        <BaseButton variant="secondary" size="sm" v-if="notifStore.unreadCount > 0" @click="handleMarkAllRead">
           Marcar todas como leídas
-        </button>
+        </BaseButton>
         <div class="flex gap-1.5">
           <button
             v-for="tab in filterTabs"
@@ -157,9 +152,9 @@ function typeIconBg(type) {
     cr_created: 'bg-amber-500/10', cr_status_changed: 'bg-amber-500/10', cr_converted: 'bg-emerald-500/10',
     requirement_moved: 'bg-blue-500/10', requirement_approved: 'bg-emerald-500/10',
     deliverable_uploaded: 'bg-purple-500/10', deliverable_new_version: 'bg-purple-500/10',
-    comment_added: 'bg-blue-500/10', general: 'bg-gray-500/10',
+    comment_added: 'bg-blue-500/10', general: 'bg-surface-raised',
   }
-  return map[type] || 'bg-gray-500/10'
+  return map[type] || 'bg-surface-raised'
 }
 
 function formatTimeAgo(dateStr) {

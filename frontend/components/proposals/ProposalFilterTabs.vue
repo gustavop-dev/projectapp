@@ -131,23 +131,12 @@
           @keyup.enter="confirmInput"
           @keyup.escape="cancelInput"
         />
-        <button
-          type="button"
-          data-testid="filter-tabs-confirm"
-          class="px-3 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-strong transition-colors disabled:opacity-50"
-          :disabled="!inputName.trim()"
-          @click="confirmInput"
-        >
+        <BaseButton variant="primary" size="md" data-testid="filter-tabs-confirm" :disabled="!inputName.trim()" @click="confirmInput">
           {{ isRenaming ? 'Renombrar' : 'Guardar' }}
-        </button>
-        <button
-          type="button"
-          data-testid="filter-tabs-cancel"
-          class="px-3 py-2 bg-surface-raised text-text-muted rounded-lg text-sm font-medium hover:bg-border-muted transition-colors"
-          @click="cancelInput"
-        >
+        </BaseButton>
+        <BaseButton variant="ghost" size="md" data-testid="filter-tabs-cancel" @click="cancelInput">
           Cancelar
-        </button>
+        </BaseButton>
       </div>
     </Transition>
 

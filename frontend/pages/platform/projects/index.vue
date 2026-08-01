@@ -10,15 +10,10 @@
           {{ authStore.isAdmin ? 'Todos los proyectos de tus clientes.' : 'El estado actual de tus proyectos.' }}
         </p>
       </div>
-      <button
-        v-if="authStore.isAdmin"
-        type="button"
-        class="flex items-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105"
-        @click="isCreateModalOpen = true"
-      >
+      <BaseButton variant="accent" size="md" v-if="authStore.isAdmin" @click="isCreateModalOpen = true">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
         Nuevo proyecto
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Status filters (admin) -->
@@ -229,20 +224,12 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    class="rounded-xl border border-border-default px-5 py-2.5 text-sm font-medium text-green-light transition hover:text-text-default dark:hover:text-white"
-                    @click="closeCreateModal"
-                  >
+                  <BaseButton variant="ghost" size="md" @click="closeCreateModal">
                     Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    :disabled="!canCreate || projectsStore.isUpdating"
-                    class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50"
-                  >
+                  </BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!canCreate || projectsStore.isUpdating">
                     {{ projectsStore.isUpdating ? 'Creando...' : 'Crear proyecto' }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>

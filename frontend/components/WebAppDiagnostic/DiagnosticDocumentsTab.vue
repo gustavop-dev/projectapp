@@ -38,15 +38,13 @@
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                   Borrador
                 </a>
-                <button type="button" @click="showParamsModal = true"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg text-xs font-medium hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors">
+                <BaseButton variant="secondary" size="sm" @click="showParamsModal = true">
                   Editar parámetros
-                </button>
+                </BaseButton>
               </template>
-              <button v-else type="button" @click="showParamsModal = true"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
+              <BaseButton variant="secondary" size="sm" v-else @click="showParamsModal = true">
                 Generar acuerdo
-              </button>
+              </BaseButton>
             </div>
           </div>
         </li>
@@ -64,17 +62,15 @@
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-wrap">
-                <button type="button" :disabled="templateBusy[t.slug]" @click="copyTemplate(t.slug)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors disabled:opacity-50">
+                <BaseButton variant="secondary" size="sm" :disabled="templateBusy[t.slug]" @click="copyTemplate(t.slug)">
                   {{ templateCopied[t.slug] ? '¡Copiado!' : 'Copiar contenido' }}
-                </button>
-                <button type="button" :disabled="templateBusy[t.slug]" @click="downloadTemplate(t.slug, t.filename)"
-                  class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg text-xs font-medium hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
+                </BaseButton>
+                <BaseButton variant="secondary" size="sm" :disabled="templateBusy[t.slug]" @click="downloadTemplate(t.slug, t.filename)">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
                   Descargar .md
-                </button>
+                </BaseButton>
                 <button type="button" :disabled="templateBusy[t.slug]" aria-label="Vista previa"
                   title="Vista previa" @click="openMarkdownPreview(t)"
                   class="inline-flex items-center justify-center w-8 h-8 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
@@ -158,10 +154,9 @@
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft" />
           </div>
-          <button type="button" :disabled="isUploading" @click="handleUpload"
-            class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">
+          <BaseButton variant="primary" size="sm" :disabled="isUploading" @click="handleUpload">
             {{ isUploading ? 'Subiendo…' : 'Subir' }}
-          </button>
+          </BaseButton>
         </div>
         <p v-if="uploadError" class="text-xs text-red-500 mt-2">{{ uploadError }}</p>
       </div>

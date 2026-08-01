@@ -53,13 +53,9 @@
 
           <!-- Footer (mobile-only safe area + cancel) -->
           <div class="px-5 py-3 border-t border-border-muted">
-            <button
-              type="button"
-              class="w-full px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" size="md" class="w-full" @click="close">
               Cancelar
-            </button>
+            </BaseButton>
           </div>
         </div>
       </div>

@@ -58,13 +58,7 @@ const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0
 
 <template>
   <section class="mb-6" aria-label="Resumen de diagnósticos">
-    <button
-      type="button"
-      class="flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-text-muted hover:text-text-brand rounded-lg px-1 py-1 focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
-      :aria-expanded="!collapsed"
-      aria-controls="diagnostics-dashboard-body"
-      @click="toggle"
-    >
+    <BaseButton variant="ghost" size="sm" :aria-expanded="!collapsed" aria-controls="diagnostics-dashboard-body" @click="toggle">
       <svg
         class="w-3.5 h-3.5 motion-safe:transition-transform motion-safe:duration-fast"
         :class="collapsed ? '-rotate-90' : ''"
@@ -73,7 +67,7 @@ const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
       Resumen
-    </button>
+    </BaseButton>
 
     <BaseCollapse id="diagnostics-dashboard-body" :open="!collapsed">
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-3">

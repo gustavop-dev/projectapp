@@ -15,12 +15,7 @@
           class="flex-1 px-3 py-2 border border-border-default bg-surface text-text-default rounded-xl text-sm"
           @keydown.enter.prevent="submit"
         />
-        <button
-          type="button"
-          :disabled="!form.description.trim() || submitting"
-          class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:opacity-90 disabled:opacity-50 whitespace-nowrap"
-          @click="submit"
-        >Registrar</button>
+        <BaseButton variant="primary" size="md" class="whitespace-nowrap" :disabled="!form.description.trim() || submitting" @click="submit">Registrar</BaseButton>
       </div>
     </div>
 

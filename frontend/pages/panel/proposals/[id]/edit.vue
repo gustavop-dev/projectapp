@@ -295,21 +295,12 @@
                 {{ tpl.label }}
               </option>
             </select>
-            <button
-              type="button"
-              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
-              :disabled="previewLoading"
-              @click="loadPreview"
-            >
+            <BaseButton variant="secondary" size="md" :disabled="previewLoading" @click="loadPreview">
               {{ previewLoading ? 'Cargando…' : '↻ Recargar' }}
-            </button>
-            <button
-              type="button"
-              class="px-3 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-              @click="isPreviewOpen = false"
-            >
+            </BaseButton>
+            <BaseButton variant="ghost" size="md" @click="isPreviewOpen = false">
               Cerrar
-            </button>
+            </BaseButton>
           </div>
         </div>
         <div class="flex-1 overflow-hidden bg-[#f4f1ea]">
@@ -346,14 +337,9 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="px-3 py-2 text-sm font-medium border border-input-border rounded-lg hover:bg-surface-raised transition-colors"
-              :disabled="discountPreviewLoading"
-              @click="loadDiscountPreview"
-            >
+            <BaseButton variant="secondary" size="md" :disabled="discountPreviewLoading" @click="loadDiscountPreview">
               {{ discountPreviewLoading ? 'Cargando…' : '↻ Recargar' }}
-            </button>
+            </BaseButton>
             <BaseButton
               variant="primary"
               size="md"
@@ -363,13 +349,9 @@
             >
               {{ discountSending ? 'Enviando…' : 'Enviar oferta' }}
             </BaseButton>
-            <button
-              type="button"
-              class="px-3 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-              @click="showDiscountModal = false"
-            >
+            <BaseButton variant="ghost" size="md" @click="showDiscountModal = false">
               Cerrar
-            </button>
+            </BaseButton>
           </div>
         </div>
         <div class="flex-1 overflow-hidden bg-[#f4f1ea]">

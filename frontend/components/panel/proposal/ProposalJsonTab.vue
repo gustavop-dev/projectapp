@@ -110,19 +110,13 @@
 
     <!-- Apply button -->
     <div v-if="jsonImportParsed && !jsonImportError && !jsonImportLegacyIssues.length" class="mt-4 flex flex-wrap items-center gap-3">
-      <button
-        type="button"
-        :disabled="proposalStore.isUpdating"
-        class="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl font-medium text-sm
-               hover:bg-primary transition-colors shadow-sm disabled:opacity-50 disabled:cursor-wait"
-        @click="handleApplyImportJson"
-      >
+      <BaseButton variant="primary" size="md" :disabled="proposalStore.isUpdating" @click="handleApplyImportJson">
         <svg v-if="proposalStore.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
         {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
-      </button>
+      </BaseButton>
       <p class="text-xs text-text-subtle">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
     </div>
 

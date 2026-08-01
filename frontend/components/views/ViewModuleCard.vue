@@ -42,12 +42,7 @@ const audiences = computed(() => {
 </script>
 
 <template>
-  <button
-    type="button"
-    class="group flex h-full flex-col rounded-xl border border-border-muted bg-surface p-5 text-left shadow-sm outline-none transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-    :data-testid="`view-module-card-${section.id}`"
-    @click="emit('select', section.id)"
-  >
+  <BaseButton variant="secondary" size="md" :data-testid="`view-module-card-${section.id}`" @click="emit('select', section.id)">
     <div class="flex items-start gap-3">
       <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-soft text-text-brand">
         <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
@@ -87,5 +82,5 @@ const audiences = computed(() => {
     <p class="mt-auto pt-3 text-[11px] text-text-subtle">
       {{ audiences.join(' · ') }}
     </p>
-  </button>
+  </BaseButton>
 </template>

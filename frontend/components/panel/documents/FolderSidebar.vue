@@ -74,11 +74,7 @@
                   <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
                 </svg>
               </div>
-              <button
-                type="button"
-                class="flex-1 flex items-center justify-between px-3 py-2 text-sm text-left min-w-0"
-                @click="$emit('select', folder.id)"
-              >
+              <BaseButton variant="ghost" size="md" class="flex-1 min-w-0" @click="$emit('select', folder.id)">
                 <span class="truncate flex-1">{{ folder.name }}</span>
                 <svg
                   v-if="folder.children_count > 0"
@@ -94,7 +90,7 @@
                 <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
           </li>
         </template>
@@ -102,17 +98,12 @@
     </ul>
 
     <div class="p-3 border-t border-border-muted flex-shrink-0">
-      <button
-        type="button"
-        class="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-               text-text-brand bg-primary-soft hover:bg-primary-soft"
-        @click="$emit('manage')"
-      >
+      <BaseButton variant="secondary" size="md" class="w-full" @click="$emit('manage')">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
         </svg>
         Nueva carpeta
-      </button>
+      </BaseButton>
     </div>
   </aside>
 </template>

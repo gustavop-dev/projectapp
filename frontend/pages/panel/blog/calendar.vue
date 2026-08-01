@@ -43,13 +43,9 @@
           <p class="text-[10px] sm:text-xs text-text-subtle mt-0.5">Semana {{ weekNumber }}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            class="px-3 py-1.5 text-xs font-medium text-text-brand border border-border-default rounded-lg hover:bg-primary-soft transition-colors"
-            @click="goToToday"
-          >
+          <BaseButton variant="secondary" size="sm" @click="goToToday">
             Hoy
-          </button>
+          </BaseButton>
           <button
             type="button"
             class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted"

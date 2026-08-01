@@ -39,35 +39,19 @@
             </template>
           </BaseDropdown>
           <template v-if="authStore.isAdmin">
-            <button
-              type="button"
-              :disabled="!filteredBugs.length"
-              class="flex items-center gap-1.5 rounded-xl border border-border-default px-3 py-2 text-xs font-medium text-green-light transition hover:text-text-default disabled:opacity-40 dark:hover:text-white"
-              @click="exportResponsesJson"
-            >
+            <BaseButton variant="secondary" size="sm" :disabled="!filteredBugs.length" @click="exportResponsesJson">
               <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Exportar bugs
-            </button>
-            <button
-              type="button"
-              class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105"
-              @click="openImportModal"
-            >
+            </BaseButton>
+            <BaseButton variant="accent" size="md" @click="openImportModal">
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
               Importar respuestas
-            </button>
+            </BaseButton>
           </template>
-          <button
-            v-else
-            type="button"
-            :disabled="!projectRequirements.length"
-            :title="projectRequirements.length ? '' : 'El equipo aún no ha cargado el tablero del proyecto.'"
-            class="flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
-            @click="openCreateModal"
-          >
+          <BaseButton variant="accent" size="md" v-else :disabled="!projectRequirements.length" :title="projectRequirements.length ? '' : 'El equipo aún no ha cargado el tablero del proyecto.'" @click="openCreateModal">
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
             Reportar bug
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -206,9 +190,9 @@
         <p class="text-sm text-green-light">
           {{ activeFilter === 'all' ? 'No hay bugs reportados aún.' : 'No hay bugs con este estado.' }}
         </p>
-        <button v-if="!authStore.isAdmin" type="button" class="mt-4 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105" @click="openCreateModal">
+        <BaseButton variant="accent" size="md" class="mt-4" v-if="!authStore.isAdmin" @click="openCreateModal">
           Reportar primer bug
-        </button>
+        </BaseButton>
       </div>
 </template>
 
@@ -328,10 +312,10 @@
                 </div>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isCreateOpen = false">Cancelar</button>
-                  <button type="submit" :disabled="!createForm.title.trim() || bugStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                  <BaseButton variant="ghost" size="md" @click="isCreateOpen = false">Cancelar</BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!createForm.title.trim() || bugStore.isUpdating">
                     {{ bugStore.isUpdating ? 'Reportando...' : 'Reportar bug' }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>
@@ -380,10 +364,10 @@
                 </p>
 
                 <div class="flex justify-end gap-3 pt-2">
-                  <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="closeImportModal">Cancelar</button>
-                  <button type="submit" :disabled="!importJson.trim() || importLoading" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                  <BaseButton variant="ghost" size="md" @click="closeImportModal">Cancelar</BaseButton>
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!importJson.trim() || importLoading">
                     {{ importLoading ? 'Aplicando...' : 'Aplicar respuestas' }}
-                  </button>
+                  </BaseButton>
                 </div>
               </form>
             </div>
@@ -521,18 +505,18 @@
                         <textarea v-model="evalForm.admin_response" rows="2" placeholder="Respuesta para el cliente..." class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
                       </div>
                       <div class="flex justify-end gap-2">
-                        <button type="button" class="rounded-lg px-3 py-1.5 text-xs text-green-light hover:text-text-default dark:hover:text-white" @click="showEvaluateForm = false">Cancelar</button>
-                        <button type="button" :disabled="bugStore.isUpdating" class="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-esmerald/90 disabled:opacity-50 dark:bg-accent dark:text-text-default" @click="handleEvaluate">
+                        <BaseButton variant="ghost" size="sm" @click="showEvaluateForm = false">Cancelar</BaseButton>
+                        <BaseButton variant="accent" size="sm" :disabled="bugStore.isUpdating" @click="handleEvaluate">
                           {{ bugStore.isUpdating ? 'Guardando...' : 'Guardar' }}
-                        </button>
+                        </BaseButton>
                       </div>
                     </div>
                   </div>
 
                   <div v-else class="flex flex-wrap gap-2">
-                    <button type="button" class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10" @click="openEvaluateForm">
+                    <BaseButton variant="secondary" size="sm" @click="openEvaluateForm">
                       Evaluar
-                    </button>
+                    </BaseButton>
                     <BaseButton variant="danger-ghost" size="sm" :disabled="bugStore.isUpdating" @click="handleDelete">
                       Archivar
                     </BaseButton>
@@ -564,9 +548,9 @@
 
                 <form class="flex gap-2" @submit.prevent="handleAddComment">
                   <input v-model="newComment" type="text" placeholder="Escribe un comentario..." class="flex-1 rounded-xl border border-border-default bg-surface-muted/40 px-4 py-2.5 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                  <button type="submit" :disabled="!newComment.trim()" class="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-white transition hover:bg-esmerald/90 disabled:opacity-40 dark:bg-accent dark:text-text-default">
+                  <BaseButton variant="accent" size="md" type="submit" :disabled="!newComment.trim()">
                     Enviar
-                  </button>
+                  </BaseButton>
                 </form>
                 <label v-if="authStore.isAdmin" class="mt-2 flex items-center gap-2 text-xs text-green-light/60">
                   <input v-model="commentInternal" type="checkbox" class="rounded border-border-default" />

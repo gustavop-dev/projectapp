@@ -61,18 +61,10 @@
         description="La propuesta ya tiene todas las secciones disponibles."
       />
       <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <button
-          v-for="option in availableSectionTypes"
-          :key="option.type"
-          type="button"
-          :data-testid="`add-section-option-${option.type}`"
-          :disabled="proposalStore.isUpdating"
-          class="text-left px-4 py-2.5 rounded-xl border border-border-default text-sm text-text-default hover:bg-surface-raised transition-colors disabled:opacity-50"
-          @click="handleAddSection(option.type)"
-        >
+        <BaseButton variant="secondary" size="md" v-for="option in availableSectionTypes" :key="option.type" :data-testid="`add-section-option-${option.type}`" :disabled="proposalStore.isUpdating" @click="handleAddSection(option.type)">
           {{ option.label }}
           <span class="block text-[11px] text-text-subtle">{{ option.type }}</span>
-        </button>
+        </BaseButton>
       </div>
     </div>
   </BaseModal>

@@ -37,15 +37,13 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                 Borrador
               </a>
-              <button type="button" :disabled="contractActionsDisabled" @click="$emit('editContract')"
-                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-surface-raised text-text-muted rounded-lg text-xs font-medium hover:bg-surface-raised transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+              <BaseButton variant="secondary" size="sm" :disabled="contractActionsDisabled" @click="$emit('editContract')">
                 Editar parámetros
-              </button>
+              </BaseButton>
             </template>
-            <button v-else-if="!contractActionsDisabled" type="button" @click="$emit('generateContract')"
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
+            <BaseButton variant="secondary" size="sm" v-else-if="!contractActionsDisabled" @click="$emit('generateContract')">
               Generar contrato
-            </button>
+            </BaseButton>
           </div>
         </li>
 
@@ -160,10 +158,9 @@
             <input ref="fileInput" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               class="text-xs dark:text-white/70 file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft" />
           </div>
-          <button type="button" :disabled="isUploading" @click="handleUpload"
-            class="px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50">
+          <BaseButton variant="primary" size="sm" :disabled="isUploading" @click="handleUpload">
             {{ isUploading ? 'Subiendo...' : 'Subir' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </section>

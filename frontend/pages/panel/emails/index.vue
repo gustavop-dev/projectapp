@@ -92,13 +92,12 @@
               </div>
             </template>
           </draggable>
-          <button type="button" @click="addSection"
-            class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand  bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors">
+          <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             Agregar sección
-          </button>
+          </BaseButton>
         </div>
 
         <!-- Footer -->
@@ -132,8 +131,7 @@
         <div class="flex items-center justify-between pt-2">
           <p v-if="sendError" class="text-xs text-danger-strong">{{ sendError }}</p>
           <span v-else />
-          <button type="button" :disabled="!canSend || sending" @click="handleSend"
-            class="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -142,7 +140,7 @@
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
             {{ sending ? 'Enviando...' : 'Enviar correo' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
 
@@ -288,10 +286,9 @@
 
         <!-- Load more -->
         <div v-if="emailStore.historyPagination.has_next" class="pt-3 text-center">
-          <button type="button" :disabled="emailStore.isLoadingHistory" @click="loadMore"
-            class="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-medium text-text-muted bg-surface-muted  rounded-lg hover:bg-surface-raised transition-colors disabled:opacity-50">
+          <BaseButton variant="secondary" size="sm" :disabled="emailStore.isLoadingHistory" @click="loadMore">
             {{ emailStore.isLoadingHistory ? 'Cargando...' : 'Cargar más' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </section>

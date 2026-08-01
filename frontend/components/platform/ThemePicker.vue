@@ -40,18 +40,14 @@
       </div>
 
       <!-- Upload custom -->
-      <button
-        type="button"
-        class="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-input-border p-3 text-xs text-green-light transition hover:border-input-border hover:text-text-brand dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white"
-        @click="coverInputRef?.click()"
-      >
+      <BaseButton variant="secondary" size="sm" class="mb-4 w-full" @click="coverInputRef?.click()">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
           <circle cx="8.5" cy="8.5" r="1.5" />
           <polyline points="21 15 16 10 5 21" />
         </svg>
         Subir imagen personalizada
-      </button>
+      </BaseButton>
       <input ref="coverInputRef" type="file" accept="image/*" class="hidden" @change="handleCustomCoverUpload" />
 
       <!-- Gallery (auto-loads on mount, always visible) -->

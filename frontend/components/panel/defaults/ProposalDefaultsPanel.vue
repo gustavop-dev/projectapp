@@ -126,10 +126,9 @@
           </p>
         </div>
         <div class="flex items-center gap-3 pt-2">
-          <button type="submit" :disabled="isSaving"
-            class="px-5 py-2.5 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50">
+          <BaseButton variant="primary" size="md" type="submit" :disabled="isSaving">
             {{ isSaving ? 'Guardando...' : 'Guardar Vista General' }}
-          </button>
+          </BaseButton>
         </div>
       </form>
     </div>
@@ -240,14 +239,9 @@
           <BaseButton variant="secondary" size="sm" :disabled="isSaving" @click="handleReset">
             Restaurar valores originales
           </BaseButton>
-          <button
-            type="button"
-            class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
-            :disabled="savedSections.size === 0 || isSaving"
-            @click="handleSaveAll"
-          >
+          <BaseButton variant="primary" size="md" :disabled="savedSections.size === 0 || isSaving" @click="handleSaveAll">
             {{ isSaving ? 'Guardando...' : 'Guardar Todos los Cambios' }}
-          </button>
+          </BaseButton>
         </div>
       </div>
     </div>
@@ -410,14 +404,9 @@
                   <p class="text-xs text-text-subtle mt-0.5">{{ emailTemplateDetail.description }}</p>
                 </div>
               </div>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-medium text-info-strong hover:bg-info-soft rounded-lg transition-colors"
-                :disabled="emailIsPreviewLoading"
-                @click="handleEmailPreview(emailSelectedTemplate)"
-              >
+              <BaseButton variant="ghost" size="sm" :disabled="emailIsPreviewLoading" @click="handleEmailPreview(emailSelectedTemplate)">
                 {{ emailIsPreviewLoading ? 'Cargando...' : '👁 Vista previa' }}
-              </button>
+              </BaseButton>
             </div>
 
             <div class="flex items-center justify-between">
@@ -516,49 +505,29 @@
         <!-- Action bar -->
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <template v-if="!promptIsEditing">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="startEditPrompt"
-            >
+            <BaseButton variant="secondary" size="md" @click="startEditPrompt">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
               Editar
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="handleCopyPrompt"
-            >
+            </BaseButton>
+            <BaseButton variant="secondary" size="md" @click="handleCopyPrompt">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
               {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="promptDownload"
-            >
+            </BaseButton>
+            <BaseButton variant="secondary" size="md" @click="promptDownload">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Descargar .md
-            </button>
+            </BaseButton>
             <BaseButton variant="secondary" size="sm" v-if="promptText !== promptDefault" @click="handleResetPrompt">
               Restaurar original
             </BaseButton>
           </template>
           <template v-else>
-            <button
-              type="button"
-              class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
-              @click="saveEditPrompt"
-            >
+            <BaseButton variant="primary" size="md" @click="saveEditPrompt">
               Guardar cambios
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-              @click="cancelEditPrompt"
-            >
+            </BaseButton>
+            <BaseButton variant="ghost" size="md" @click="cancelEditPrompt">
               Cancelar
-            </button>
+            </BaseButton>
           </template>
         </div>
 
@@ -590,47 +559,27 @@
         </p>
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <template v-if="!technicalDefaultsPromptIsEditing">
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="startEditTechnicalDefaultsPrompt"
-            >
+            <BaseButton variant="secondary" size="md" @click="startEditTechnicalDefaultsPrompt">
               Editar
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="handleCopyTechnicalDefaultsPrompt"
-            >
+            </BaseButton>
+            <BaseButton variant="secondary" size="md" @click="handleCopyTechnicalDefaultsPrompt">
               {{ technicalDefaultsPromptCopied ? '¡Copiado!' : 'Copiar' }}
-            </button>
-            <button
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-              @click="technicalDefaultsPromptDownload"
-            >
+            </BaseButton>
+            <BaseButton variant="secondary" size="md" @click="technicalDefaultsPromptDownload">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
               Descargar .md
-            </button>
+            </BaseButton>
             <BaseButton variant="secondary" size="sm" v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" @click="handleResetTechnicalDefaultsPrompt">
               Restaurar original
             </BaseButton>
           </template>
           <template v-else>
-            <button
-              type="button"
-              class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
-              @click="saveEditTechnicalDefaultsPrompt"
-            >
+            <BaseButton variant="primary" size="md" @click="saveEditTechnicalDefaultsPrompt">
               Guardar cambios
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-              @click="cancelEditTechnicalDefaultsPrompt"
-            >
+            </BaseButton>
+            <BaseButton variant="ghost" size="md" @click="cancelEditTechnicalDefaultsPrompt">
               Cancelar
-            </button>
+            </BaseButton>
           </template>
         </div>
         <div v-if="technicalDefaultsPromptIsEditing" class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
@@ -676,47 +625,26 @@
       <!-- Action bar -->
       <div class="flex flex-wrap items-center gap-2 mb-4">
         <template v-if="!jsonIsEditing">
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-            @click="startEditJson"
-          >
+          <BaseButton variant="secondary" size="md" @click="startEditJson">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
             Editar
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-            @click="copyDefaultsJson"
-          >
+          </BaseButton>
+          <BaseButton variant="secondary" size="md" @click="copyDefaultsJson">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
             {{ defaultsJsonCopied ? '¡Copiado!' : 'Copiar' }}
-          </button>
-          <button
-            type="button"
-            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-text-default bg-surface border border-border-default rounded-xl hover:bg-surface-raised transition-colors"
-            @click="downloadDefaultsJson"
-          >
+          </BaseButton>
+          <BaseButton variant="secondary" size="md" @click="downloadDefaultsJson">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
             Descargar .json
-          </button>
+          </BaseButton>
         </template>
         <template v-else>
-          <button
-            type="button"
-            class="px-5 py-2 bg-primary text-on-primary rounded-xl font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm disabled:opacity-50"
-            :disabled="isSaving"
-            @click="saveEditJson"
-          >
+          <BaseButton variant="primary" size="md" :disabled="isSaving" @click="saveEditJson">
             {{ isSaving ? 'Guardando...' : 'Guardar cambios' }}
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default transition-colors"
-            @click="cancelEditJson"
-          >
+          </BaseButton>
+          <BaseButton variant="ghost" size="md" @click="cancelEditJson">
             Cancelar
-          </button>
+          </BaseButton>
         </template>
       </div>
 
@@ -783,7 +711,7 @@
               <BaseButton variant="danger" size="md" :disabled="isSaving" @click="confirmResetEmailTemplate">
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
               </BaseButton>
-              <button class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors" @click="emailShowResetConfirm = false">Cancelar</button>
+              <BaseButton variant="ghost" size="md" @click="emailShowResetConfirm = false">Cancelar</BaseButton>
             </div>
           </div>
         </div>
@@ -809,12 +737,9 @@
               <BaseButton variant="danger" size="md" :disabled="isSaving" @click="confirmReset">
                 {{ isSaving ? 'Restaurando...' : 'Sí, restaurar' }}
               </BaseButton>
-              <button
-                class="px-6 py-2.5 bg-surface-raised text-text-muted rounded-xl text-sm font-medium hover:bg-surface-raised transition-colors"
-                @click="showResetConfirm = false"
-              >
+              <BaseButton variant="ghost" size="md" @click="showResetConfirm = false">
                 Cancelar
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>

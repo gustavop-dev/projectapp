@@ -46,31 +46,15 @@
           La edición, archivado y eliminación del proyecto viven aquí (no en la tabla).
         </p>
         <div class="mt-3 flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded-xl border border-border-default px-3 py-2 text-sm text-text-default transition hover:bg-surface-muted/40"
-            @click="openEditModal"
-          >
+          <BaseButton variant="secondary" size="md" @click="openEditModal">
             Editar
-          </button>
-          <button
-            v-if="project.status !== 'archived'"
-            type="button"
-            :disabled="projectsStore.isUpdating"
-            class="rounded-xl border border-amber-500/30 px-3 py-2 text-sm text-amber-700 transition hover:bg-amber-50 disabled:opacity-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
-            @click="handleArchive"
-          >
+          </BaseButton>
+          <BaseButton variant="secondary" size="md" v-if="project.status !== 'archived'" :disabled="projectsStore.isUpdating" @click="handleArchive">
             {{ projectsStore.isUpdating ? '…' : 'Archivar' }}
-          </button>
-          <button
-            v-else
-            type="button"
-            :disabled="projectsStore.isUpdating"
-            class="rounded-xl border border-emerald-500/30 px-3 py-2 text-sm text-text-brand transition hover:bg-success-soft disabled:opacity-50"
-            @click="handleUnarchive"
-          >
+          </BaseButton>
+          <BaseButton variant="secondary" size="md" v-else :disabled="projectsStore.isUpdating" @click="handleUnarchive">
             {{ projectsStore.isUpdating ? '…' : 'Reactivar' }}
-          </button>
+          </BaseButton>
           <BaseButton variant="danger-ghost" size="sm" :disabled="projectsStore.isUpdating" @click="handleDelete">
             Eliminar
           </BaseButton>
@@ -121,10 +105,10 @@
                   </div>
                   <p v-if="editError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">{{ editError }}</p>
                   <div class="flex justify-end gap-3 pt-2">
-                    <button type="button" class="rounded-xl border border-border-default px-5 py-2.5 text-sm text-green-light transition hover:text-text-default dark:hover:text-white" @click="isEditOpen = false">Cancelar</button>
-                    <button type="submit" :disabled="!editForm.name.trim() || projectsStore.isUpdating" class="rounded-xl bg-accent px-6 py-2.5 text-sm font-semibold text-text-default transition hover:brightness-105 disabled:opacity-50">
+                    <BaseButton variant="ghost" size="md" @click="isEditOpen = false">Cancelar</BaseButton>
+                    <BaseButton variant="accent" size="md" type="submit" :disabled="!editForm.name.trim() || projectsStore.isUpdating">
                       {{ projectsStore.isUpdating ? 'Guardando…' : 'Guardar cambios' }}
-                    </button>
+                    </BaseButton>
                   </div>
                 </form>
               </div>

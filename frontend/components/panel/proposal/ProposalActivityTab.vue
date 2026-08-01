@@ -25,9 +25,9 @@
         class="flex-1"
         @keydown.enter.prevent="submitActivity"
       />
-      <button type="button" :disabled="!activityForm.description.trim() || isSubmittingActivity" class="px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary transition-colors disabled:opacity-50 whitespace-nowrap" @click="submitActivity">
+      <BaseButton variant="primary" size="md" class="whitespace-nowrap" :disabled="!activityForm.description.trim() || isSubmittingActivity" @click="submitActivity">
         {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
-      </button>
+      </BaseButton>
     </div>
   </div>
 
