@@ -742,7 +742,10 @@ def get_proposal_json_template(request):
             'are still two items even though both use the same Google account). When '
             'in doubt, split: atomic items produce clearer scope and precise '
             'per-item technical traceability in step 2, where each item is broken '
-            'down into typically 2-5 linked technical requirements.'
+            'down into as many linked technical requirements as its real '
+            'complexity demands (transactional items 4-6, typical 3-5, trivial '
+            'static ones 1-2 - never a uniform count nor a repeated title '
+            'pattern across items).'
         ),
         'CRITICAL_functionalRequirements_itemDetail': (
             'Each item in every functionalRequirements group (and in every SELECTED additional '
