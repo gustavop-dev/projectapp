@@ -15,10 +15,33 @@ describe('BaseButton', () => {
     ['secondary', 'bg-surface'],
     ['ghost', 'bg-transparent'],
     ['danger', 'bg-danger-strong'],
+    ['danger-ghost', 'text-danger-strong'],
+    ['link', 'text-text-brand'],
     ['accent', 'bg-accent'],
   ])('applies %s variant tokens', (variant, expected) => {
     const wrapper = mount(BaseButton, { props: { variant }, slots: { default: 'x' } })
     expect(wrapper.find('button').classes()).toContain(expected)
+  })
+
+  // The filled variants must use the on-* foreground tokens, not text-white:
+  // --color-danger-strong flips to a light red in dark mode, so hardcoded
+  // white would render unreadable there.
+  it.each([
+    ['primary', 'text-on-primary'],
+    ['danger', 'text-on-danger'],
+  ])('uses the on-* foreground token for %s instead of text-white', (variant, expected) => {
+    const cls = mount(BaseButton, { props: { variant }, slots: { default: 'x' } })
+      .find('button').classes()
+    expect(cls).toContain(expected)
+    expect(cls).not.toContain('text-white')
+  })
+
+  it('renders danger-ghost without a filled background so inline deletes stay quiet', () => {
+    const cls = mount(BaseButton, { props: { variant: 'danger-ghost' }, slots: { default: 'x' } })
+      .find('button').classes()
+    expect(cls).toContain('bg-transparent')
+    expect(cls).toContain('hover:bg-danger-soft')
+    expect(cls).not.toContain('bg-danger-strong')
   })
 
   it.each([
@@ -28,6 +51,60 @@ describe('BaseButton', () => {
   ])('applies %s size', (size, expected) => {
     const wrapper = mount(BaseButton, { props: { size }, slots: { default: 'x' } })
     expect(wrapper.find('button').classes()).toContain(expected)
+  })
+
+  it('swaps rectangular padding for square padding when iconOnly is set', () => {
+    const cls = mount(BaseButton, {
+      props: { iconOnly: true },
+      attrs: { 'aria-label': 'Eliminar' },
+      slots: { default: '<svg />' },
+    }).find('button').classes()
+    expect(cls).toContain('p-2')
+    expect(cls).not.toContain('px-4')
+    expect(cls).not.toContain('py-2')
+  })
+
+  it('renders link variant as bare text with no padding or radius', () => {
+    const cls = mount(BaseButton, { props: { variant: 'link' }, slots: { default: 'Ver todos' } })
+      .find('button').classes()
+    expect(cls).toContain('hover:underline')
+    expect(cls.some((c) => c.startsWith('px-') || c.startsWith('py-'))).toBe(false)
+    expect(cls.some((c) => c.startsWith('rounded'))).toBe(false)
+  })
+
+  describe('iconOnly accessibility warning', () => {
+    let warn
+
+    // Vue itself warns about NuxtLink being unresolvable in this environment,
+    // so assert on our own message rather than on the call count.
+    const a11yWarning = expect.stringContaining('aria-label')
+
+    beforeEach(() => {
+      warn = jest.spyOn(console, 'warn').mockImplementation(() => {})
+    })
+
+    afterEach(() => {
+      warn.mockRestore()
+    })
+
+    it('warns when an iconOnly button has no accessible name', () => {
+      mount(BaseButton, { props: { iconOnly: true }, slots: { default: '<svg />' } })
+      expect(warn).toHaveBeenCalledWith(a11yWarning)
+    })
+
+    it('stays silent when an iconOnly button carries an aria-label', () => {
+      mount(BaseButton, {
+        props: { iconOnly: true },
+        attrs: { 'aria-label': 'Eliminar' },
+        slots: { default: '<svg />' },
+      })
+      expect(warn).not.toHaveBeenCalledWith(a11yWarning)
+    })
+
+    it('stays silent for a normal button with visible text', () => {
+      mount(BaseButton, { slots: { default: 'Guardar' } })
+      expect(warn).not.toHaveBeenCalledWith(a11yWarning)
+    })
   })
 
   it('emits click when pressed', async () => {
