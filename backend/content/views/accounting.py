@@ -218,6 +218,7 @@ _ENTITIES = {
         'choice_filters': ('kind', 'destination', 'ledger'),
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
+        'payment_status_filter': True,
         'meta': _income_meta,
         # Safe to share across requests: annotate() resolves a copy of the
         # expression, never the expression itself.
@@ -414,6 +415,29 @@ def _apply_filters(queryset, params, config):
                 'projectapp o all.'
             )
 
+    if config.get('payment_status_filter') and params.get('payment_status'):
+        # Mirrors IncomeRecordSerializer.get_payment_status over the
+        # `paid_amount` annotation: keep both sides in sync.
+        value = params['payment_status']
+        expected = Q(kind=IncomeRecord.Kind.EXPECTED)
+        if value == 'pending':
+            queryset = queryset.filter(expected, paid_amount__lte=0)
+        elif value == 'partial':
+            queryset = queryset.filter(
+                expected,
+                paid_amount__gt=0,
+                paid_amount__lt=F('total_amount'),
+            )
+        elif value == 'paid':
+            queryset = queryset.filter(
+                expected, paid_amount__gte=F('total_amount'),
+            )
+        else:
+            raise ValueError(
+                "El parámetro 'payment_status' debe ser pending, partial "
+                'o paid.'
+            )
+
     search = (params.get('q') or '').strip()
     if search:
         search_q = Q()
@@ -555,9 +579,13 @@ def settle_income_record(request, record_id):
         )
     except ValueError as exc:
         return error_response_from_exc(exc)
+    # Explicit None: DRF serializes a None instance as {} via get_initial().
     return Response({
         'income': IncomeRecordSerializer(result['income']).data,
-        'liquid': IncomeRecordSerializer(result['liquid']).data,
+        'liquid': (
+            IncomeRecordSerializer(result['liquid']).data
+            if result['liquid'] is not None else None
+        ),
         'expenses': ExpenseRecordSerializer(result['expenses'], many=True).data,
         'expected_incomes': IncomeRecordSerializer(
             result['expected_incomes'], many=True,

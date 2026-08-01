@@ -19,6 +19,10 @@ With no allocations the parent is untouched and the behaviour is identical to
 today's liquidation. Whatever is left unassigned simply stays pending, so a
 user who does not want to decide yet is never forced to.
 
+``received`` may be zero when deductions and follow-ups cover the whole
+pending: nothing was collected, so no liquid child is created and nobody is
+notified — the settlement is pure bookkeeping that closes the residual.
+
 The codebase already prescribed this workflow manually — see the error raised
 when writing off a partially collected record in
 ``IncomeRecordCreateUpdateSerializer.validate``: *"Reduce su monto y registra la
@@ -117,7 +121,7 @@ def settle_expected_income(income, data, user):
     pending = income.total_amount - _paid_total(income)
     if pending <= 0:
         raise ValueError('Este ingreso esperado ya está completamente pagado.')
-    if received <= 0:
+    if received <= 0 and not (deducted or reexpected):
         raise ValueError('El monto recibido debe ser mayor a cero.')
     if received + deducted + reexpected > pending:
         raise ValueError(
@@ -126,7 +130,7 @@ def settle_expected_income(income, data, user):
             f'(${pending:,.2f}).'
         )
 
-    liquid = _create_liquid_child(income, data, user)
+    liquid = _create_liquid_child(income, data, user) if received > 0 else None
     expenses = [
         _create_deduction(income, data, deduction, user)
         for deduction in deductions
