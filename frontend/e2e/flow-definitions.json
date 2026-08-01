@@ -516,7 +516,7 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Manage requirement groups and items using the structured form interface.",
+      "description": "Manage requirement groups and items using the structured form interface. The section preview mirrors the public render, including per-item 'Ver requerimientos (N)' links built from the proposal's technical_document.",
       "expectedSpecs": 1,
       "outcomes": [
         "success",
