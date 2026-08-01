@@ -91,13 +91,9 @@
             {{ loggingInId === admin.user_id ? 'Abriendo...' : 'Login with this user' }}
           </button>
 
-          <button
-            v-if="admin.is_active"
-            class="text-xs px-3 py-1.5 rounded-lg bg-danger-soft text-danger-strong hover:opacity-90 font-medium transition-colors"
-            @click="handleDeactivate(admin.user_id)"
-          >
+          <BaseButton variant="danger-ghost" size="sm" v-if="admin.is_active" @click="handleDeactivate(admin.user_id)">
             Desactivar
-          </button>
+          </BaseButton>
 
           <button
             v-if="!admin.is_active"

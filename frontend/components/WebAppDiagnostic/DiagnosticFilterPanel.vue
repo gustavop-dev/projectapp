@@ -61,11 +61,7 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand border border-emerald-200 dark:border-emerald-700"
       >
         {{ chip.label }}
-        <button
-          type="button"
-          class="ml-0.5 hover:text-red-500 dark:hover:text-red-400 leading-none"
-          @click="clearChip(chip.key)"
-        >&times;</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
       </span>
     </div>
   </div>

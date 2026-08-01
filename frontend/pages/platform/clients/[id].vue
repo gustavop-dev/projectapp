@@ -78,15 +78,9 @@
               Reenviar invitación
             </button>
 
-            <button
-              v-if="platformClientsStore.currentClient.is_active"
-              type="button"
-              class="rounded-full border border-red-500/20 px-4 py-3 text-sm text-red-500 transition hover:bg-red-500/10 dark:text-red-300 disabled:opacity-50"
-              :disabled="platformClientsStore.isUpdating"
-              @click="requestDeactivate"
-            >
+            <BaseButton variant="danger-ghost" size="sm" v-if="platformClientsStore.currentClient.is_active" :disabled="platformClientsStore.isUpdating" @click="requestDeactivate">
               Desactivar acceso
-            </button>
+            </BaseButton>
 
             <button
               v-else

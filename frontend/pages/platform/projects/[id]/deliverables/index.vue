@@ -188,9 +188,9 @@
                     <div v-else class="flex w-full items-center gap-3 px-4 py-3">
                       <svg class="h-5 w-5 shrink-0 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                       <span class="flex-1 truncate text-sm text-text-default">{{ selectedFile.name }}</span>
-                      <button type="button" class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-green-light/40 hover:text-red-400" @click.stop="selectedFile = null">
+                      <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Quitar" @click.stop="selectedFile = null">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+                      </BaseButton>
                     </div>
                   </div>
                 </div>
@@ -330,9 +330,9 @@
                 </div>
                 <div v-else class="flex w-full items-center gap-3 px-4 py-3">
                   <span class="flex-1 truncate text-sm text-text-default">{{ versionFile.name }}</span>
-                  <button type="button" class="text-green-light/40 hover:text-red-400" @click.stop="versionFile = null">
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click.stop="versionFile = null">
                     <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
+                  </BaseButton>
                 </div>
               </div>
               <div class="flex justify-end gap-3">

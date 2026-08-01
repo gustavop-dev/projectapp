@@ -154,12 +154,7 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <button
-          type="button"
-          :data-testid="`filter-chip-clear-${chip.key}`"
-          class="ml-0.5 hover:text-danger-strong leading-none"
-          @click="clearChip(chip.key)"
-        >&times;</button>
+        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" :data-testid="`filter-chip-clear-${chip.key}`" @click="clearChip(chip.key)">&times;</BaseButton>
       </span>
     </div>
   </div>

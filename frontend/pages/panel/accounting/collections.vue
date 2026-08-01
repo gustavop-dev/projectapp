@@ -113,17 +113,9 @@
             >
               <CheckCircleIcon class="w-5 h-5" />
             </button>
-            <button
-              v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'"
-              type="button"
-              aria-label="Anular"
-              title="Anular"
-              :disabled="busyId === row.id"
-              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors disabled:opacity-50"
-              @click="askCancel(row)"
-            >
+            <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'" aria-label="Anular" title="Anular" :disabled="busyId === row.id" @click="askCancel(row)">
               <NoSymbolIcon class="w-5 h-5" />
-            </button>
+            </BaseButton>
           </div>
         </template>
       </AccountingTable>
