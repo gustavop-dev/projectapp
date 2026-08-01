@@ -233,21 +233,110 @@ describe('useAccountingStore', () => {
       store.recurringPayments = [
         {
           is_active: true, frequency: 'monthly', frequency_label: 'Mensual',
-          payment_method_label: 'T.C', cop_equivalent: '800000.00',
+          payment_method_label: 'T.C', monthly_cop_cost: '800000.00',
         },
         {
           is_active: true, frequency: 'monthly', frequency_label: 'Mensual',
-          payment_method_label: 'Efectivo', cop_equivalent: '400000.00',
+          payment_method_label: 'Efectivo', monthly_cop_cost: '400000.00',
         },
         {
           is_active: false, frequency: 'monthly', frequency_label: 'Mensual',
-          payment_method_label: 'T.C', cop_equivalent: '99999.00',
+          payment_method_label: 'T.C', monthly_cop_cost: '99999.00',
         },
       ]
       expect(store.recurringTotalsByFrequency).toEqual({ Mensual: 1200000 })
       expect(store.recurringTotalsByMethod).toEqual({
         'T.C': 800000, Efectivo: 400000,
       })
+    })
+
+    it('recurring breakdowns prorate long frequencies instead of counting the full charge', () => {
+      store.recurringPayments = [
+        {
+          is_active: true, frequency: 'triennial', frequency_label: 'Cada 3 años',
+          cop_equivalent: '161964.00', monthly_cop_cost: '4499.00',
+        },
+      ]
+      // The raw charge is 161.964 every three years; the monthly view is 4.499,
+      // which is what makes the breakdown add up to the monthly KPI.
+      expect(store.recurringTotalsByFrequency).toEqual({ 'Cada 3 años': 4499 })
+    })
+
+    it('recurringTotalsByCategory follows the catalog order and buckets the uncategorized', () => {
+      store.recurringCategories = [
+        { id: 1, name: 'IA', order: 0 },
+        { id: 2, name: 'Infraestructura', order: 1 },
+        { id: 3, name: 'Vacía', order: 2 },
+      ]
+      store.recurringPayments = [
+        { is_active: true, category: 2, monthly_cop_cost: '32900.00' },
+        { is_active: true, category: 1, monthly_cop_cost: '800000.00' },
+        { is_active: true, category: null, monthly_cop_cost: '1000.00' },
+        { is_active: false, category: 1, monthly_cop_cost: '99999.00' },
+      ]
+
+      expect(store.recurringTotalsByCategory).toEqual([
+        { id: 1, name: 'IA', total: 800000 },
+        { id: 2, name: 'Infraestructura', total: 32900 },
+        { id: 'uncategorized', name: 'Sin categoría', total: 1000 },
+      ])
+    })
+  })
+
+  describe('reordering', () => {
+    it('reorderRecurring posts the items and re-sorts the local list', async () => {
+      const store = useAccountingStore()
+      store.recurringCategories = [{ id: 1, name: 'IA', order: 0 }]
+      store.recurringPayments = [
+        { id: 10, name: 'Chat-GPT', category: 1, order: 0 },
+        { id: 11, name: 'Claude Code 20x', category: 1, order: 1 },
+      ]
+      create_request.mockResolvedValueOnce({ data: { reordered: 2 } })
+
+      const items = [
+        { id: 11, category: 1, order: 0 },
+        { id: 10, category: 1, order: 1 },
+      ]
+      const result = await store.reorderRecurring(items)
+
+      expect(result.success).toBe(true)
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/recurring/reorder/', { items },
+      )
+      expect(store.recurringPayments.map((p) => p.id)).toEqual([11, 10])
+    })
+
+    it('reorderRecurring restores the previous order when the request fails', async () => {
+      const store = useAccountingStore()
+      store.recurringCategories = [{ id: 1, name: 'IA', order: 0 }]
+      store.recurringPayments = [
+        { id: 10, name: 'Chat-GPT', category: 1, order: 0 },
+        { id: 11, name: 'Claude Code 20x', category: 1, order: 1 },
+      ]
+      create_request.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await store.reorderRecurring([
+        { id: 11, category: 1, order: 0 },
+        { id: 10, category: 1, order: 1 },
+      ])
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('reorder_failed')
+      expect(store.recurringPayments.map((p) => p.id)).toEqual([10, 11])
+    })
+
+    it('reorderRecurringCategories renumbers the catalog and rolls back on failure', async () => {
+      const store = useAccountingStore()
+      store.recurringCategories = [
+        { id: 1, name: 'IA', order: 0 },
+        { id: 2, name: 'Infraestructura', order: 1 },
+      ]
+      create_request.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await store.reorderRecurringCategories([2, 1])
+
+      expect(result.success).toBe(false)
+      expect(store.recurringCategories.map((c) => c.id)).toEqual([1, 2])
     })
   })
 })

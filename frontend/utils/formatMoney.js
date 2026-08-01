@@ -1,10 +1,27 @@
-const formatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
+const formatters = new Map();
 
-export function formatMoney(amount, currency = '') {
+function formatterFor(decimals) {
+  if (!formatters.has(decimals)) {
+    formatters.set(decimals, new Intl.NumberFormat('es-CO', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }));
+  }
+  return formatters.get(decimals);
+}
+
+/**
+ * Money for display. Whole pesos by default, which is what COP amounts want.
+ *
+ * `decimals` exists for prorated values: a USD subscription billed yearly can
+ * come out below $1/month, and rounding that to zero decimals would erase the
+ * figure instead of showing it.
+ */
+export function formatMoney(amount, currency = '', { decimals = 0 } = {}) {
   if (amount === null || amount === undefined) return '';
   const n = Number(amount);
   if (!Number.isFinite(n)) return '';
-  const formatted = formatter.format(n);
+  const formatted = formatterFor(decimals).format(n);
   return currency ? `$${formatted} ${currency}` : `$${formatted}`;
 }
 

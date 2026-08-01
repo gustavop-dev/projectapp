@@ -5,6 +5,7 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   record: { type: Object, default: null },
   saving: { type: Boolean, default: false },
+  categories: { type: Array, default: () => [] },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -36,6 +37,14 @@ const costTypeOptions = [
   { value: 'variable', label: 'Variable' },
 ]
 
+const categoryOptions = computed(() => [
+  { value: '', label: 'Sin categoría' },
+  ...props.categories.map((category) => ({
+    value: category.id,
+    label: category.name,
+  })),
+])
+
 function defaultForm() {
   return {
     name: '',
@@ -46,6 +55,7 @@ function defaultForm() {
     frequency: 'monthly',
     billing_day: '',
     cost_type: 'fixed',
+    category: '',
     is_active: true,
     notes: '',
   }
@@ -67,6 +77,7 @@ watch(
         frequency: props.record.frequency ?? 'monthly',
         billing_day: props.record.billing_day ?? '',
         cost_type: props.record.cost_type ?? 'fixed',
+        category: props.record.category ?? '',
         is_active: props.record.is_active ?? true,
         notes: props.record.notes ?? '',
       }
@@ -92,6 +103,8 @@ function onSubmit() {
     payment_method: form.value.payment_method,
     frequency: form.value.frequency,
     cost_type: form.value.cost_type,
+    // '' is the "Sin categoría" option; the API expects an explicit null.
+    category: form.value.category === '' ? null : form.value.category,
     is_active: form.value.is_active,
   }
   if (form.value.currency === 'USD' && form.value.cop_equivalent !== '') {
@@ -151,6 +164,14 @@ function onSubmit() {
           <BaseSegmented v-model="form.cost_type" :options="costTypeOptions" full-width />
         </BaseFormField>
       </div>
+
+      <BaseFormField label="Categoría" hint="Agrupa el recurrente en la vista por categorías">
+        <BaseSelect
+          v-model="form.category"
+          :options="categoryOptions"
+          data-testid="recurring-payment-form-category"
+        />
+      </BaseFormField>
 
       <BaseFormField label="Activo">
         <BaseToggle v-model="form.is_active" aria-label="Activo" />

@@ -18,6 +18,10 @@ const ACCOUNTING_ENTITIES = {
   hostings: { stateKey: 'hostings', path: 'accounting/hostings/' },
   pocket: { stateKey: 'pocketMovements', path: 'accounting/pocket/' },
   recurring: { stateKey: 'recurringPayments', path: 'accounting/recurring/' },
+  recurringCategories: {
+    stateKey: 'recurringCategories',
+    path: 'accounting/recurring-categories/',
+  },
   ads: { stateKey: 'adsRecords', path: 'accounting/ads/' },
   cards: { stateKey: 'cardSnapshots', path: 'accounting/card-snapshots/' },
   creditCards: { stateKey: 'creditCards', path: 'accounting/credit-cards/' },
@@ -60,6 +64,7 @@ export const useAccountingStore = defineStore('accounting', {
     hostings: [],
     pocketMovements: [],
     recurringPayments: [],
+    recurringCategories: [],
     adsRecords: [],
     cardSnapshots: [],
     creditCards: [],
@@ -107,28 +112,64 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
-     * recurringTotalsByFrequency: COP totals of active payments per frequency label.
+     * recurringMonthlyTotalsBy: monthly COP totals of active payments grouped
+     * by any field, read from `<field>_label` when the API exposes one.
+     *
+     * Monthly — not the raw charge — so every breakdown adds up to the
+     * "Costo mensual (COP)" KPI. Summing `cop_equivalent` instead would count
+     * a three-year domain renewal at its full price against a monthly total.
      */
-    recurringTotalsByFrequency: (state) =>
+    recurringMonthlyTotalsBy: (state) => (field) =>
       state.recurringPayments
         .filter((payment) => payment.is_active)
         .reduce((totals, payment) => {
-          const key = payment.frequency_label || payment.frequency;
-          totals[key] = (totals[key] || 0) + (Number(payment.cop_equivalent) || 0);
+          const key = payment[`${field}_label`] || payment[field];
+          if (key == null) return totals;
+          totals[key] = (totals[key] || 0) + (Number(payment.monthly_cop_cost) || 0);
           return totals;
         }, {}),
 
     /**
-     * recurringTotalsByMethod: COP totals of active payments per payment method label.
+     * recurringTotalsByFrequency / recurringTotalsByMethod: monthly COP totals
+     * of active payments per frequency / payment method label.
      */
-    recurringTotalsByMethod: (state) =>
+    recurringTotalsByFrequency() {
+      return this.recurringMonthlyTotalsBy('frequency');
+    },
+
+    recurringTotalsByMethod() {
+      return this.recurringMonthlyTotalsBy('payment_method');
+    },
+
+    /**
+     * recurringTotalsByCategory: monthly COP totals per category, following
+     * the catalog's own order and including a bucket for uncategorized rows.
+     */
+    recurringTotalsByCategory: (state) => {
+      const totals = new Map(
+        state.recurringCategories.map((category) => [category.id, {
+          id: category.id,
+          name: category.name,
+          total: 0,
+        }]),
+      );
+      let uncategorized = 0;
+
       state.recurringPayments
         .filter((payment) => payment.is_active)
-        .reduce((totals, payment) => {
-          const key = payment.payment_method_label || payment.payment_method;
-          totals[key] = (totals[key] || 0) + (Number(payment.cop_equivalent) || 0);
-          return totals;
-        }, {}),
+        .forEach((payment) => {
+          const amount = Number(payment.monthly_cop_cost) || 0;
+          const bucket = payment.category != null ? totals.get(payment.category) : null;
+          if (bucket) bucket.total += amount;
+          else uncategorized += amount;
+        });
+
+      const entries = [...totals.values()].filter((entry) => entry.total > 0);
+      if (uncategorized > 0) {
+        entries.push({ id: 'uncategorized', name: 'Sin categoría', total: uncategorized });
+      }
+      return entries;
+    },
   },
 
   actions: {
@@ -153,6 +194,101 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: false, ...normalizeApiError(error) };
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    /**
+     * _applyRecurringOrder: patch category/order locally and re-sort the list
+     * the way the backend orders it (category order, then manual slot, then
+     * name), so the store agrees with what the user just dropped.
+     */
+    _applyRecurringOrder(items) {
+      const byId = new Map(items.map((item) => [item.id, item]));
+      const categoryOrder = new Map(
+        this.recurringCategories.map((category) => [category.id, category.order]),
+      );
+
+      const patched = this.recurringPayments.map((payment) => {
+        const item = byId.get(payment.id);
+        if (!item) return payment;
+        const category = this.recurringCategories.find((c) => c.id === item.category);
+        return {
+          ...payment,
+          order: item.order,
+          category: item.category ?? null,
+          category_name: category ? category.name : null,
+        };
+      });
+
+      // Uncategorized rows sort last, matching the grouped view.
+      const rank = (payment) =>
+        payment.category != null
+          ? (categoryOrder.get(payment.category) ?? Number.MAX_SAFE_INTEGER)
+          : Number.MAX_SAFE_INTEGER;
+
+      this.recurringPayments = patched.sort((a, b) =>
+        rank(a) - rank(b)
+        || (a.order ?? 0) - (b.order ?? 0)
+        || String(a.name).localeCompare(String(b.name)),
+      );
+    },
+
+    /**
+     * reorderRecurring: persist a drag. Applies optimistically so the row
+     * stays where it was dropped, and restores the previous slots if the
+     * request fails — the snap-back is the error feedback.
+     *
+     * Items carry their category because a drag can move a row between
+     * groups: [{ id, category, order }].
+     */
+    async reorderRecurring(items) {
+      const previous = this.recurringPayments.map((payment) => ({
+        id: payment.id,
+        category: payment.category ?? null,
+        order: payment.order ?? 0,
+      }));
+
+      this._applyRecurringOrder(items);
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await create_request('accounting/recurring/reorder/', { items });
+        return { success: true };
+      } catch (error) {
+        this._applyRecurringOrder(previous);
+        this.error = 'reorder_failed';
+        console.error('Error reordering recurring payments:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * reorderRecurringCategories: persist the group order. Body is the id
+     * array in its new order; array position becomes the new `order`.
+     */
+    async reorderRecurringCategories(ids) {
+      const previous = this.recurringCategories;
+      this.recurringCategories = ids
+        .map((id, order) => {
+          const category = previous.find((c) => c.id === id);
+          return category ? { ...category, order } : null;
+        })
+        .filter(Boolean);
+
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        await create_request('accounting/recurring-categories/reorder/', { ids });
+        return { success: true };
+      } catch (error) {
+        this.recurringCategories = previous;
+        this.error = 'reorder_failed';
+        console.error('Error reordering recurring categories:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
       }
     },
 

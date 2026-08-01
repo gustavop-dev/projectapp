@@ -45,6 +45,7 @@ from content.models import (
     HostingRecord,
     IncomeRecord,
     PocketMovement,
+    RecurringCategory,
     RecurringPayment,
 )
 
@@ -229,6 +230,9 @@ class Command(BaseCommand):
         ])
 
     def _import_recurring(self, rows):
+        # Rows may name a category; unknown or missing ones stay uncategorized
+        # rather than failing the import.
+        categories = {c.name: c for c in RecurringCategory.objects.all()}
         self._upsert('recurring_payments', RecurringPayment, [
             (
                 row['name'],
@@ -241,6 +245,7 @@ class Command(BaseCommand):
                     'frequency': row.get('frequency', 'monthly'),
                     'billing_day': row.get('billing_day'),
                     'cost_type': row.get('cost_type', 'fixed'),
+                    'category': categories.get(row.get('category')),
                     'is_active': row.get('is_active', True),
                     'notes': row.get('notes', ''),
                 },

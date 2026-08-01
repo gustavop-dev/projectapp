@@ -156,6 +156,40 @@ class TestRecurringPayment:
         )
         assert payment.monthly_cop_cost == Decimal('0')
 
+    def test_monthly_price_keeps_the_original_currency(self):
+        payment = RecurringPayment.objects.create(
+            name='NameCheap',
+            price=Decimal('10.98'),
+            currency=RecurringPayment.Currency.USD,
+            cop_equivalent=Decimal('43920.00'),
+            frequency=RecurringPayment.Frequency.ANNUAL,
+        )
+        assert payment.monthly_price == Decimal('0.92')
+
+    @pytest.mark.parametrize('frequency,expected', [
+        (RecurringPayment.Frequency.MONTHLY, Decimal('720000.00')),
+        (RecurringPayment.Frequency.ANNUAL, Decimal('60000.00')),
+        (RecurringPayment.Frequency.BIENNIAL, Decimal('30000.00')),
+        (RecurringPayment.Frequency.TRIENNIAL, Decimal('20000.00')),
+    ])
+    def test_monthly_price_prorates_every_frequency(self, frequency, expected):
+        payment = RecurringPayment.objects.create(
+            name=f'Plan {frequency}',
+            price=Decimal('720000.00'),
+            cop_equivalent=Decimal('720000.00'),
+            frequency=frequency,
+        )
+        assert payment.monthly_price == expected
+
+    def test_monthly_price_is_zero_without_a_price(self):
+        payment = RecurringPayment.objects.create(
+            name='Gratis',
+            price=Decimal('0.00'),
+            cop_equivalent=Decimal('0.00'),
+            frequency=RecurringPayment.Frequency.ANNUAL,
+        )
+        assert payment.monthly_price == Decimal('0')
+
 
 @pytest.mark.django_db
 class TestSimpleReprs:

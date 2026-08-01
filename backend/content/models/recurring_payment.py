@@ -60,12 +60,37 @@ class RecurringPayment(AccountingRecordBase):
         max_length=10, choices=CostType.choices, default=CostType.FIXED,
     )
     is_active = models.BooleanField(default=True, db_index=True)
+    category = models.ForeignKey(
+        'content.RecurringCategory',
+        on_delete=models.PROTECT,
+        related_name='payments',
+        null=True,
+        blank=True,
+    )
+    order = models.PositiveIntegerField(
+        default=0, help_text='Manual sort order within its category (lower first).',
+    )
 
     class Meta:
-        ordering = ['name']
+        # The DB is the single owner of the order the operator dragged into
+        # place: category first, then the manual slot inside it.
+        ordering = ['category__order', 'order', 'name']
 
     def __str__(self):
         return f'{self.name} ({self.get_frequency_display()})'
+
+    @property
+    def monthly_price(self):
+        """Price prorated to a monthly figure, in the record's own currency.
+
+        Sibling of `monthly_cop_cost`: same proration, but it keeps the
+        currency the payment was agreed in, so a USD subscription stays
+        comparable against other USD ones.
+        """
+        months = self.FREQUENCY_MONTHS.get(self.frequency, 1)
+        if not self.price:
+            return Decimal('0')
+        return (self.price / months).quantize(Decimal('0.01'))
 
     @property
     def monthly_cop_cost(self):

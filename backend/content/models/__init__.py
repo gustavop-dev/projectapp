@@ -63,6 +63,7 @@ from .income_record import IncomeRecord
 from .expense_record import ExpenseRecord
 from .hosting_record import HostingRecord
 from .hosting_cycle import HostingCycle
+from .recurring_category import RecurringCategory
 from .recurring_payment import RecurringPayment
 from .ads_spend_record import AdsSpendRecord
 from .card_balance_snapshot import CardBalanceSnapshot

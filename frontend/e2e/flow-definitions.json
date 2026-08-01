@@ -3713,12 +3713,13 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), breakdowns by frequency and payment method, and modal CRUD where the COP-equivalent field only applies to USD payments.",
-      "expectedSpecs": 3,
+      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), a monthly breakdown card switchable by category/frequency/payment method, and modal CRUD where the COP-equivalent field only applies to USD payments. The default grouped view lists payments by category with per-group monthly COP subtotals, a grand total, drag-and-drop manual ordering (disabled while a filter is active) and an editable category catalog; a classic view keeps the sortable, paginated table. Every amount is normalized to its monthly equivalent, so a biennial or triennial charge is comparable with a monthly one.",
+      "expectedSpecs": 10,
       "outcomes": [
         "display",
         "success",
-        "error"
+        "error",
+        "failure"
       ]
     },
     "admin-accounting-history": {

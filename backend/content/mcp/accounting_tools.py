@@ -280,6 +280,10 @@ _ENTITY_FIELDS = {
             'frequency': {'type': 'string', 'enum': ['monthly', 'annual', 'biennial', 'triennial']},
             'billing_day': {'type': 'integer', 'minimum': 1, 'maximum': 31},
             'cost_type': {'type': 'string', 'enum': ['fixed', 'variable']},
+            'category': {
+                'type': ['integer', 'null'],
+                'description': 'ID de la categoría (ver list_recurring_categories).',
+            },
             'is_active': {'type': 'boolean'},
             'notes': {'type': 'string'},
         },
