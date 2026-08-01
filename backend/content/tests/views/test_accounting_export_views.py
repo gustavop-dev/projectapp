@@ -7,6 +7,7 @@ import pytest
 from openpyxl import load_workbook
 
 from content.models import CardBalanceSnapshot, IncomeRecord
+from content.views.accounting_export import XLSX_CONTENT_TYPE
 
 
 def csv_lines(response):
@@ -109,8 +110,42 @@ class TestExportWorkbook:
         assert response.status_code == 403
 
     def test_invalid_year_returns_400(self, super_client):
+        """Catches the error code silently drifting (accounting_export.py:76-84)
+        — clients that branch on `code` would break even though the status
+        stayed 400.
+        """
         response = super_client.get('/api/accounting/export/workbook/?year=x')
         assert response.status_code == 400
+        assert response.data['code'] == 'invalid_year'
+
+    def test_workbook_ingresos_and_resumen_sheets_carry_real_data(
+        self, super_client, make_income,
+    ):
+        """Catches a section rendering only headers with no row data, a wrong
+        Content-Type header, or the summary block silently dropping/renaming
+        the 'Ingresos esperados' row (accounting_export_service.py:230-249) —
+        none of which the sheetnames-only assertions below would catch.
+        """
+        make_income(
+            kind=IncomeRecord.Kind.LIQUID, concept='Kore v2 anticipo distintivo',
+        )
+        response = super_client.get(
+            '/api/accounting/export/workbook/?year=2026',
+        )
+        assert response['Content-Type'] == XLSX_CONTENT_TYPE
+
+        workbook = load_workbook(BytesIO(response.content))
+        ingresos_values = [
+            cell.value for row in workbook['Ingresos'].iter_rows(min_row=2)
+            for cell in row
+        ]
+        assert 'Kore v2 anticipo distintivo' in ingresos_values
+
+        resumen_labels = [
+            cell.value for row in workbook['Resumen'].iter_rows()
+            for cell in row
+        ]
+        assert 'Ingresos esperados' in resumen_labels
 
     def test_workbook_contains_summary_and_section_sheets(
         self, super_client, make_income, make_expense,

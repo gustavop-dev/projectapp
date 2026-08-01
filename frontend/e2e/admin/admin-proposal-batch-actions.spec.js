@@ -110,6 +110,58 @@ test.describe('Batch Actions on Proposals', () => {
     await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible({ timeout: 5000 });
   });
 
+  // Catches: a bulk-delete button that's visually present but not wired, or
+  // that submits the wrong id set — previously nothing ever clicked it even
+  // though the mock bulk-action handler has sat unused since it was added.
+  test('clicking Eliminar sends the bulk delete request with the selected ids and clears selection', {
+    tag: ['@outcome:success', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+  }, async ({ page }) => {
+    let bulkActionBody = null;
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/' && route.request().method() === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposals) };
+      }
+      if (apiPath === 'proposals/dashboard/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ total: 3, by_status: {}, conversion_rate: 0, avg_close_days: 0 }) };
+      }
+      if (apiPath === 'proposals/alerts/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'proposals/bulk-action/' && route.request().method() === 'POST') {
+        bulkActionBody = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ affected: bulkActionBody.ids.length, action: bulkActionBody.action }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/proposals');
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
+
+    const checkboxes = page.locator('tbody input[type="checkbox"]');
+    // quality: allow-fragile-selector (table row checkboxes have no testid, first two rows are the target)
+    await checkboxes.nth(0).check();
+    await checkboxes.nth(1).check();
+    await expect(page.getByText('2 seleccionada(s)')).toBeVisible({ timeout: 5000 });
+
+    const batchBar = page.getByTestId('batch-action-bar');
+    await batchBar.getByRole('button', { name: /Eliminar/ }).click();
+
+    // Deleting proposals routes through the shared confirm modal.
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect.poll(() => bulkActionBody, { timeout: 5000 }).not.toBeNull();
+    expect([...bulkActionBody.ids].sort()).toEqual([1, 2]);
+    expect(bulkActionBody.action).toBe('delete');
+
+    await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible({ timeout: 5000 });
+  });
+
   test('select-all header checkbox selects all visible rows', {
     tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {

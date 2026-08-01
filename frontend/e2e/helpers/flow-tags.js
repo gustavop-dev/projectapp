@@ -152,6 +152,10 @@ export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding',
 // ── Biometric module (provider-billed, is_invite) ──
 export const PROPOSAL_CALCULATOR_BIOMETRIC_MODULE = ['@flow:proposal-calculator-biometric-module', '@module:proposal', '@priority:P2'];
 
+// ── Hosting plan terms & behavior tracking module ──
+export const PROPOSAL_HOSTING_PLAN_TERMS = ['@flow:proposal-hosting-plan-terms', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_BEHAVIOR_TRACKING_MODULE = ['@flow:proposal-calculator-behavior-tracking-module', '@module:proposal', '@priority:P2'];
+
 // ── Platform ──
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
 export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];

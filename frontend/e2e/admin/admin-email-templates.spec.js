@@ -251,6 +251,76 @@ test.describe('Admin Email Templates Config', () => {
     await expect(page.getByRole('button', { name: 'Cancelar' })).toBeVisible();
   });
 
+  // Catches: a "Guardar Cambios" button wired to nothing, a PUT that sends
+  // the wrong field key, or a save that silently no-ops — previously nothing
+  // ever clicked this button despite the mock PUT handler being live.
+  test('editing the greeting and saving persists it via PUT', {
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let lastPutBody = null;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'email-templates/proposal_sent_client/' && method === 'PUT') {
+        lastPutBody = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            template_key: 'proposal_sent_client',
+            content_overrides: lastPutBody.content_overrides,
+            is_active: lastPutBody.is_active,
+          }),
+        };
+      }
+      return buildApiHandler(apiPath, method);
+    });
+    await page.goto('/panel/proposals/defaults?tab=emails');
+
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
+
+    const greetingInput = page.getByPlaceholder('¡Hola {client_name}! 👋');
+    await expect(greetingInput).toBeVisible();
+    const distinctiveGreeting = `Saludo E2E ${Date.now()}`;
+    await greetingInput.fill(distinctiveGreeting);
+
+    const [putResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.request().method() === 'PUT'),
+      page.getByRole('button', { name: /Guardar Cambios/ }).click(),
+    ]);
+    await putResponse;
+
+    expect(lastPutBody).not.toBeNull();
+    expect(lastPutBody.content_overrides.greeting).toBe(distinctiveGreeting);
+    await expect(page.getByText('Plantilla guardada correctamente.')).toBeVisible();
+  });
+
+  // Catches: a failed save (400) that gets swallowed instead of telling the
+  // admin — the mutation would look like a no-op with no feedback at all.
+  test('shows an error toast when saving the template fails', {
+    tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'email-templates/proposal_sent_client/' && method === 'PUT') {
+        return { status: 400, contentType: 'application/json', body: JSON.stringify({ detail: 'Invalid template payload' }) };
+      }
+      return buildApiHandler(apiPath, method);
+    });
+    await page.goto('/panel/proposals/defaults?tab=emails');
+
+    const [detailResponse] = await Promise.all([
+      page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/') && resp.status() === 200),
+      page.locator('text=Propuesta Enviada').click(),
+    ]);
+    await detailResponse;
+
+    await page.getByRole('button', { name: /Guardar Cambios/ }).click();
+
+    await expect(page.getByText('Error al guardar la plantilla.')).toBeVisible();
+  });
+
   test('back link navigates to proposals list', {
     tag: [...ADMIN_EMAIL_TEMPLATES_CONFIG, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
@@ -267,6 +337,10 @@ test.describe('Admin Email Templates Config', () => {
 
     // Click back link
     await page.locator('text=Volver a Propuestas').click();
-    await page.waitForURL('**/panel/proposals**');
+    // Pre-click URL is /panel/proposals/defaults, which the plain
+    // '**/panel/proposals**' pattern already matches — negative lookahead
+    // excludes the defaults sub-route so this only passes once the SPA
+    // actually navigates to the proposals list.
+    await page.waitForURL(/\/panel\/proposals(\?|$|\/(?!defaults))/);
   });
 });

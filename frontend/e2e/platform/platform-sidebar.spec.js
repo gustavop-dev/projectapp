@@ -45,6 +45,7 @@ test.describe('Platform Sidebar — Admin', () => {
   test('renders sidebar with admin navigation links', {
     tag: ['@outcome:display', ...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (layout chrome; the flow's interactive path is covered at :66-75)
     await setupSidebarMocks(page, mockPlatformAdmin);
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
@@ -59,8 +60,16 @@ test.describe('Platform Sidebar — Admin', () => {
     await setupSidebarMocks(page, mockPlatformAdmin);
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
+    // Scope to the desktop sidebar landmark: the mobile top bar renders the
+    // same initials markup off-screen (md:hidden), which would otherwise
+    // collide in strict mode.
+    const sidebar = page.getByRole('complementary');
     // Exact match avoids partial-text hits elsewhere on the page.
-    await expect(page.getByText('Admin E2E', { exact: true })).toBeVisible();
+    await expect(sidebar.getByText('Admin E2E', { exact: true })).toBeVisible();
+    // Initials are derived from first/last name ("Admin E2E" -> "AE"); this
+    // catches a regression in the userInitials getter that the name-only
+    // assertion above would miss.
+    await expect(sidebar.getByText('AE', { exact: true })).toBeVisible();
   });
 
   test('navigating to projects page via sidebar link works', {
@@ -82,6 +91,7 @@ test.describe('Platform Sidebar — Client', () => {
   test('client sidebar does not show admin-only links like Clientes', {
     tag: [...PLATFORM_SIDEBAR_NAVIGATION, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (layout chrome; the flow's interactive path is covered at :66-75)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupSidebarMocks(page, mockPlatformClient);
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });

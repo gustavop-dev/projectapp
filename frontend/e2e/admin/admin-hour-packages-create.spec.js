@@ -35,6 +35,7 @@ test.describe('Admin Hour Packages Create', () => {
   test('preselects nationality from query param and shows derived currency', {
     tag: [...ADMIN_HOUR_PACKAGES_CREATE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (query-param preselect is a load-time computation; no interactable step produces it)
     await setupMock(page);
     await page.goto('/panel/hour-packages/create?nationality=EXT');
 

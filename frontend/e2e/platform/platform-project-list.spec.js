@@ -64,10 +64,14 @@ const mockClients = [
 ];
 
 function setupProjectMocks(page, { user, projects = mockProjects }) {
-  return mockApi(page, async ({ apiPath, method }) => {
+  return mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(user);
     if (apiPath === 'accounts/projects/' && method === 'GET') {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(projects) };
+      // The status-filter tabs re-fetch with ?status=<value>; honor it so
+      // tests can assert the list actually narrows, not just that it re-requests.
+      const status = new URL(route.request().url()).searchParams.get('status');
+      const filtered = status ? projects.filter((p) => p.status === status) : projects;
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(filtered) };
     }
     if (apiPath.startsWith('accounts/clients/')) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(mockClients) };
@@ -87,6 +91,7 @@ test.describe('Platform Project List — Admin', () => {
   test('renders project list with cards showing name, status, and progress', {
     tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (content-bearing data assertions against the fixture — name, progress and status values)
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
@@ -96,10 +101,13 @@ test.describe('Platform Project List — Admin', () => {
     await expect(page.getByText('65%')).toBeVisible();
     await expect(page.getByText('Activo', { exact: true })).toBeVisible();
     await expect(page.getByText('Pausado', { exact: true })).toBeVisible();
+    // Merged from the deleted 'shows Nuevo proyecto button for admin' test
+    // (same route/mocks, redundant standalone test).
+    await expect(page.getByRole('button', { name: /nuevo proyecto/i })).toBeVisible();
   });
 
   test('shows status filter tabs for admin', {
-    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
+    tag: ['@outcome:success', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -108,20 +116,23 @@ test.describe('Platform Project List — Admin', () => {
     await expect(page.getByRole('button', { name: /activos/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /pausados/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /completados/i })).toBeVisible();
-  });
 
-  test('shows Nuevo proyecto button for admin', {
-    tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
-  }, async ({ page }) => {
-    await setupProjectMocks(page, { user: mockPlatformAdmin });
-    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
+    await expect(page.getByText('Mobile App MVP')).toBeVisible();
 
-    await expect(page.getByRole('button', { name: /nuevo proyecto/i })).toBeVisible();
+    // Selecting the "Activos" tab re-fetches with ?status=active; the paused
+    // project must drop out of the list. Catches a regression where the tabs
+    // render but the click handler stops narrowing the fetched data.
+    await page.getByRole('button', { name: /activos/i }).click();
+
+    await expect(page.getByText('Mobile App MVP')).not.toBeVisible();
+    await expect(page.getByText('E-commerce Platform')).toBeVisible();
   });
 
   test('shows empty state when no projects exist', {
     tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (content-bearing empty state; negative counterpart anchored by the positive-content test above)
     await setupProjectMocks(page, { user: mockPlatformAdmin, projects: [] });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
@@ -150,6 +161,7 @@ test.describe('Platform Project List — Client', () => {
   test('client sees project list without create button and filters', {
     tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (content-bearing negative assertions, anchored by the positive heading check first)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupProjectMocks(page, { user: mockPlatformClient });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
@@ -162,6 +174,7 @@ test.describe('Platform Project List — Client', () => {
   test('client sees empty state message when no projects assigned', {
     tag: ['@outcome:display', ...PLATFORM_PROJECT_LIST, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (content-bearing empty state, anchored by the positive heading check first)
     await setPlatformAuth(page, { user: mockPlatformClient });
     await setupProjectMocks(page, { user: mockPlatformClient, projects: [] });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });

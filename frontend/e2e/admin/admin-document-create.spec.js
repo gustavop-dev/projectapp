@@ -52,9 +52,11 @@ test.describe('Admin Document Create', () => {
   test('submitting paste mode form creates document and redirects to list', {
     tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    await mockApi(page, async ({ apiPath, method }) => {
+    let postBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/create-from-markdown/' && method === 'POST') {
+        postBody = route.request().postDataJSON();
         return { status: 201, contentType: 'application/json', body: JSON.stringify(createdDocument) };
       }
       if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([createdDocument]) };
@@ -69,6 +71,7 @@ test.describe('Admin Document Create', () => {
 
     await page.getByRole('button', { name: /Crear|Guardar/i }).click();
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
+    expect(postBody.markdown).toContain('Contenido de prueba');
   });
 
   test('upload mode loads the file content into the readonly preview', {
