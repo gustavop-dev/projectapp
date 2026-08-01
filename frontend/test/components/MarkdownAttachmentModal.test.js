@@ -191,11 +191,17 @@ describe('MarkdownAttachmentModal', () => {
     Object.assign(navigator, { clipboard: { writeText } });
 
     const wrapper = mountModal({ showDiagnosticTemplates: true });
-    const btn = wrapper.findAll('button').filter((b) => b.text().startsWith('Copiar '))[0];
+    // Re-query between clicks instead of holding one wrapper: the copy button
+    // is a BaseButton, and Vue re-creates its root element when the label flips
+    // to '¡Copiado!', which leaves a held wrapper pointing at a detached node
+    // Vue has already stripped the listener from. A real user always clicks
+    // whatever element is currently in the DOM.
+    const firstCopyButton = () => wrapper.findAll('button')
+      .filter((b) => b.text().startsWith('Copiar ') || b.text() === '¡Copiado!')[0];
 
-    await btn.trigger('click');
+    await firstCopyButton().trigger('click');
     await flushPromises();
-    await btn.trigger('click');
+    await firstCopyButton().trigger('click');
     await flushPromises();
 
     expect(mockGetRequest).toHaveBeenCalledTimes(1);

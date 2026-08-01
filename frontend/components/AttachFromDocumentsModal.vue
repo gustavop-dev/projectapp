@@ -6,12 +6,12 @@
         <h3 class="text-sm font-semibold text-text-default">
           Adjuntar desde Documentos
         </h3>
-        <button type="button" class="text-text-subtle hover:text-text-default"
+        <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar"
           @click="$emit('close')">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
-        </button>
+        </BaseButton>
       </header>
 
       <div class="flex-1 overflow-y-auto px-5 py-3">
@@ -31,16 +31,12 @@
       </div>
 
       <footer class="flex items-center justify-end gap-2 px-5 py-3 border-t border-border-muted">
-        <button type="button"
-          class="px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-default"
-          @click="$emit('close')">
+        <BaseButton variant="ghost" size="sm" @click="$emit('close')">
           Cancelar
-        </button>
-        <button type="button" :disabled="!selectedKeys.length"
-          class="px-4 py-1.5 text-xs font-medium bg-primary text-white rounded-lg hover:bg-primary-strong disabled:opacity-50"
-          @click="confirm">
+        </BaseButton>
+        <BaseButton variant="primary" size="sm" :disabled="!selectedKeys.length" @click="confirm">
           Adjuntar ({{ selectedKeys.length }})
-        </button>
+        </BaseButton>
       </footer>
     </div>
   </div>

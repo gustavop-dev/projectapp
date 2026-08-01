@@ -14,15 +14,18 @@
               <h3 class="text-xl font-bold text-accent">{{ t.title }}</h3>
               <p class="text-sm text-accent/70 mt-1">{{ t.subtitle }}</p>
             </div>
-            <button
-              class="w-8 h-8 rounded-lg flex items-center justify-center text-accent/60 hover:text-accent hover:bg-surface/10 transition-colors"
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="md"
+              class="text-accent/60 hover:text-accent"
               :aria-label="t.close"
               @click="$emit('close')"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
 
           <!-- Body -->

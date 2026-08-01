@@ -5,7 +5,7 @@
         <div class="w-full max-w-3xl rounded-3xl border border-border-default bg-surface p-6 shadow-2xl">
           <div class="mb-6 flex items-center justify-between">
             <h2 class="text-xl font-medium text-text-default">{{ mode === 'create' ? 'Nuevo proyecto' : 'Agregar fases' }}</h2>
-            <button class="rounded-full p-1 text-green-light/60 transition hover:bg-surface-muted/40" @click="$emit('close')">×</button>
+            <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="$emit('close')">×</BaseButton>
           </div>
 
           <!-- Step 1: client -->
@@ -48,7 +48,7 @@
               >
                 <span class="font-medium text-text-default">{{ idx + 1 }}. {{ p.title }}</span>
                 <span class="ml-auto text-xs text-green-light/60">${{ p.total_amount }}</span>
-                <button class="rounded-lg border border-red-500/30 px-2 py-1 text-xs text-red-600" @click="unselect(p.id)">×</button>
+                <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar fase" @click="unselect(p.id)">×</BaseButton>
               </div>
             </div>
             <p v-if="error" class="text-sm text-red-600 sm:col-span-2">{{ error }}</p>
@@ -68,20 +68,21 @@
 
           <!-- Footer -->
           <div class="mt-6 flex justify-between">
-            <button v-if="step > 1 && mode === 'create'" class="rounded-xl border border-border-default px-3 py-2 text-sm" @click="step--">Atrás</button>
+            <BaseButton v-if="step > 1 && mode === 'create'" variant="secondary" @click="step--">Atrás</BaseButton>
             <span v-else></span>
-            <button
+            <BaseButton
               v-if="(mode === 'create' && step < 3) || (mode === 'add' && step < 2)"
               data-testid="next-step"
-              class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white"
+              variant="primary"
               @click="nextStep"
-            >Siguiente</button>
-            <button
+            >Siguiente</BaseButton>
+            <BaseButton
               v-else
-              class="rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-              :disabled="busy || !selectedProposals.length"
+              variant="primary"
+              :loading="busy"
+              :disabled="!selectedProposals.length"
               @click="submit"
-            >{{ mode === 'create' ? 'Crear proyecto' : 'Agregar fases' }}</button>
+            >{{ mode === 'create' ? 'Crear proyecto' : 'Agregar fases' }}</BaseButton>
           </div>
         </div>
       </div>
