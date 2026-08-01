@@ -220,15 +220,9 @@
             </button>
 
             <!-- Trash button -->
-            <button
-              type="button"
-              :data-testid="`client-delete-${client.id}`"
-              class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-              :title="'Eliminar cliente'"
-              @click.stop="confirmDelete(client)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-delete-${client.id}`" :title="'Eliminar cliente'" @click.stop="confirmDelete(client)">
               <TrashIcon class="w-4 h-4" />
-            </button>
+            </BaseButton>
 
             <!-- Expand chevron -->
             <svg
@@ -323,15 +317,9 @@
                         {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
                       </td>
                       <td class="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          :data-testid="`client-proposal-delete-${p.id}`"
-                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                          title="Eliminar propuesta"
-                          @click.stop="confirmDeleteProposal(client, p)"
-                        >
+                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-proposal-delete-${p.id}`" title="Eliminar propuesta" @click.stop="confirmDeleteProposal(client, p)">
                           <TrashIcon class="w-4 h-4" />
-                        </button>
+                        </BaseButton>
                       </td>
                     </tr>
                   </tbody>
@@ -419,15 +407,9 @@
                         {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
                       </td>
                       <td class="px-4 py-3 text-right">
-                        <button
-                          type="button"
-                          :data-testid="`client-diagnostic-delete-${diag.id}`"
-                          class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                          title="Eliminar diagnóstico"
-                          @click.stop="confirmDeleteDiagnostic(client, diag)"
-                        >
+                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-diagnostic-delete-${diag.id}`" title="Eliminar diagnóstico" @click.stop="confirmDeleteDiagnostic(client, diag)">
                           <TrashIcon class="w-4 h-4" />
-                        </button>
+                        </BaseButton>
                       </td>
                     </tr>
                   </tbody>

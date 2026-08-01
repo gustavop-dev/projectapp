@@ -397,14 +397,10 @@
                 >{{ copiedId === actionsModalDiagnostic.id ? '¡Enlace copiado!' : 'Copiar enlace' }}</span>
               </button>
 
-              <button
-                type="button"
-                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-danger-soft"
-                @click="handleDelete(actionsModalDiagnostic)"
-              >
+              <BaseButton variant="danger-ghost" size="sm" class="w-full" @click="handleDelete(actionsModalDiagnostic)">
                 <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-danger-soft text-danger-strong">🗑️</span>
                 <span class="text-sm font-medium text-danger-strong">Eliminar</span>
-              </button>
+              </BaseButton>
         </div>
       </template>
     </BaseModal>

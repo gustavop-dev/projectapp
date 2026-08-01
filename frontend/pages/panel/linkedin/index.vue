@@ -141,13 +141,9 @@
                 >
                   {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
                 </button>
-                <button
-                  type="button"
-                  class="text-xs text-danger-strong hover:underline"
-                  @click="askDelete(post)"
-                >
+                <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
                   Eliminar
-                </button>
+                </BaseButton>
               </td>
             </tr>
           </tbody>
@@ -207,13 +203,9 @@
             >
               {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
             </button>
-            <button
-              type="button"
-              class="text-xs text-danger-strong hover:underline"
-              @click="askDelete(post)"
-            >
+            <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
               Eliminar
-            </button>
+            </BaseButton>
           </div>
         </article>
       </div>

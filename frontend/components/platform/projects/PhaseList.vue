@@ -22,11 +22,7 @@
           <span class="shrink-0 text-sm text-green-light/60">${{ element.proposal.total_amount }}</span>
           <template v-if="authStore.isAdmin">
             <button class="shrink-0 rounded-lg border border-border-default px-2 py-1 text-xs text-green-light" @click="onEditProposal(element.proposal.id)">Editar</button>
-            <button
-              :data-testid="`remove-phase-${element.id}`"
-              class="shrink-0 rounded-lg border border-red-500/30 px-2 py-1 text-xs text-red-600"
-              @click="onRemove(element.id)"
-            >×</button>
+            <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar" :data-testid="`remove-phase-${element.id}`" @click="onRemove(element.id)">×</BaseButton>
           </template>
         </div>
       </template>

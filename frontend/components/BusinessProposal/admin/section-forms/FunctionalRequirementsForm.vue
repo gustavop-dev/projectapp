@@ -51,8 +51,7 @@
           @click="group.is_visible = group.is_visible === false ? true : false">
           {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
         </button>
-        <button v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'"
-          type="button" class="text-xs text-danger-strong hover:text-danger-strong/80 ml-2" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</button>
+        <BaseButton variant="danger-ghost" size="sm" class="ml-2" v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</BaseButton>
       </div>
     </div>
 
@@ -87,7 +86,7 @@
                     <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                     <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                   </div>
-                  <button type="button" class="text-[10px] text-danger-strong" @click="group.items.splice(iIdx, 1)">Eliminar</button>
+                  <BaseButton variant="danger-ghost" size="sm" @click="group.items.splice(iIdx, 1)">Eliminar</BaseButton>
                 </div>
                 <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                   <EmojiIconField v-model="item.icon" label="Icono" placeholder="🏠" />
@@ -148,7 +147,7 @@
             @click="mod.is_visible = mod.is_visible === false ? true : false">
             {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
           </button>
-          <button type="button" class="text-xs text-danger-strong hover:text-danger-strong/80 ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</button>
+          <BaseButton variant="danger-ghost" size="sm" class="ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</BaseButton>
         </div>
       </div>
       <div v-show="!mod._collapsed" class="p-4">
@@ -178,7 +177,7 @@
                       <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
                       <span class="text-[10px] text-text-subtle">{{ iIdx + 1 }}</span>
                     </div>
-                    <button type="button" class="text-[10px] text-danger-strong" @click="mod.items.splice(iIdx, 1)">Eliminar</button>
+                    <BaseButton variant="danger-ghost" size="sm" @click="mod.items.splice(iIdx, 1)">Eliminar</BaseButton>
                   </div>
                   <div class="grid grid-cols-[90px_1fr] gap-2 mb-1">
                     <EmojiIconField v-model="item.icon" label="Icono" />

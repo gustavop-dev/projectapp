@@ -30,23 +30,19 @@
       <div class="mb-3 flex items-center justify-between">
         <p class="text-xs font-semibold uppercase tracking-widest text-green-light/60">Imagen de fondo</p>
         <div v-if="hasCover" class="flex items-center gap-3">
-          <div class="h-8 w-14 overflow-hidden rounded-md border border-input-border/10 dark:border-white/10">
+          <div class="h-8 w-14 overflow-hidden rounded-md border border-input-border dark:border-white/10">
             <img :src="currentCoverUrl" alt="Cover" class="h-full w-full object-cover" />
           </div>
-          <button
-            type="button"
-            class="text-[10px] font-medium text-red-500 transition hover:text-red-600"
-            @click="handleClearCover"
-          >
+          <BaseButton variant="danger-ghost" size="sm" @click="handleClearCover">
             Quitar
-          </button>
+          </BaseButton>
         </div>
       </div>
 
       <!-- Upload custom -->
       <button
         type="button"
-        class="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-input-border/10 p-3 text-xs text-green-light transition hover:border-input-border/20 hover:text-text-brand dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white"
+        class="mb-4 flex w-full items-center gap-2 rounded-xl border border-dashed border-input-border p-3 text-xs text-green-light transition hover:border-input-border hover:text-text-brand dark:border-white/10 dark:hover:border-white/20 dark:hover:text-white"
         @click="coverInputRef?.click()"
       >
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -69,7 +65,7 @@
               :key="img.path"
               type="button"
               class="group relative aspect-[4/3] overflow-hidden rounded-xl border-2 transition hover:shadow-lg"
-              :class="coverImage === img.path ? 'border-input-border ring-2 ring-esmerald/40 dark:border-lemon dark:ring-lemon/40' : 'border-transparent hover:border-input-border/20 dark:hover:border-white/20'"
+              :class="coverImage === img.path ? 'border-input-border ring-2 ring-esmerald/40 dark:border-lemon dark:ring-lemon/40' : 'border-transparent hover:border-input-border dark:hover:border-white/20'"
               @click="handleCoverSelect(img.path)"
             >
               <img :src="img.url" :alt="img.name" loading="lazy" class="h-full w-full object-cover transition group-hover:scale-105" />

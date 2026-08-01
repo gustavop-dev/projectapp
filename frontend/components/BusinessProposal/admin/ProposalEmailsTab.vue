@@ -98,12 +98,11 @@
                     <span class="text-[10px] text-text-subtle dark:text-green-light/40 uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
-                  <button v-if="sections.length > 1" type="button" @click="removeSection(idx)"
-                    class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                  </button>
+                  </BaseButton>
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
                   class="bg-input-bg w-full px-3 py-2 border border-border-default dark:border-white/[0.08]  dark:text-white dark:placeholder:text-green-light/40 rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring resize-y" />
@@ -163,22 +162,20 @@
                 <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[10px] font-medium">Documento</span>
                 <span class="text-xs text-text-default truncate">{{ ref.label }}</span>
               </span>
-              <button type="button" @click="removeDocRef(idx)"
-                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeDocRef(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
             <div v-for="(file, idx) in attachments" :key="`file-${idx}`"
               class="flex items-center justify-between py-1.5 px-3 bg-surface-raised rounded-lg">
               <span class="text-xs text-text-default truncate">{{ file.name }}</span>
-              <button type="button" @click="removeAttachment(idx)"
-                class="text-text-subtle hover:text-red-500 transition-colors p-0.5">
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-              </button>
+              </BaseButton>
             </div>
           </div>
         </div>

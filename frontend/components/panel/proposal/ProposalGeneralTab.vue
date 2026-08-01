@@ -518,13 +518,9 @@
             class="flex-1"
             placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
           />
-          <button
-            type="button"
-            class="text-xs text-danger-strong hover:underline pt-2"
-            @click="removeEmailFeature(idx)"
-          >
+          <BaseButton variant="danger-ghost" size="sm" @click="removeEmailFeature(idx)">
             Quitar
-          </button>
+          </BaseButton>
         </div>
       </div>
 

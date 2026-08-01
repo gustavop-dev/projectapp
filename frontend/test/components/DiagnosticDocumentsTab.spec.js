@@ -145,7 +145,7 @@ describe('DiagnosticDocumentsTab', () => {
       });
       await flushPromises();
 
-      await wrapper.find('button.hover\\:text-red-500').trigger('click');
+      await wrapper.find('button[aria-label="Eliminar"]').trigger('click');
       await flushPromises();
 
       expect(mockDiagnosticsStore.deleteAttachment).toHaveBeenCalledWith(42, 5);

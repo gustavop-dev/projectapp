@@ -15,7 +15,7 @@
               <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted">⠿</span>
               <span class="text-xs text-text-subtle">Etapa {{ idx + 1 }}</span>
             </div>
-            <button type="button" class="text-xs text-danger-strong hover:text-danger-strong/80" @click="form.stages.splice(idx, 1)">Eliminar</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="form.stages.splice(idx, 1)">Eliminar</BaseButton>
           </div>
           <div class="grid grid-cols-[100px_1fr] gap-3 mb-2">
             <EmojiIconField v-model="stage.icon" label="Icono" placeholder="✉️" />

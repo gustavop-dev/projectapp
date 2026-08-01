@@ -102,9 +102,9 @@
         <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
           <input v-model="source.name" type="text" class="bg-input-bg flex-1 px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
           <input v-model="source.url" type="url" class="bg-input-bg flex-[2] px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
-          <button type="button" class="text-text-subtle hover:text-danger-strong transition-colors px-2" @click="removeSource(idx)">
+          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeSource(idx)">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </button>
+          </BaseButton>
         </div>
         <p v-if="form.sources.length === 0" class="text-xs text-text-subtle">No hay fuentes agregadas.</p>
       </div>

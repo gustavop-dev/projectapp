@@ -71,14 +71,9 @@
           >
             {{ projectsStore.isUpdating ? '…' : 'Reactivar' }}
           </button>
-          <button
-            type="button"
-            :disabled="projectsStore.isUpdating"
-            class="rounded-xl border border-red-500/30 px-3 py-2 text-sm text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-500/10"
-            @click="handleDelete"
-          >
+          <BaseButton variant="danger-ghost" size="sm" :disabled="projectsStore.isUpdating" @click="handleDelete">
             Eliminar
-          </button>
+          </BaseButton>
         </div>
         <p v-if="actionError" class="mt-3 rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
           {{ actionError }}

@@ -447,13 +447,9 @@
                 class="flex-1 px-3 py-2 border border-input-border bg-input-bg text-input-text rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-y"
                 placeholder="Ej. Dashboard en tiempo real con filtros por ruta, conductor y estado."
               ></textarea>
-              <button
-                type="button"
-                class="text-xs text-danger-strong hover:underline pt-2"
-                @click="removeEmailFeature(idx)"
-              >
+              <BaseButton variant="danger-ghost" size="sm" @click="removeEmailFeature(idx)">
                 Quitar
-              </button>
+              </BaseButton>
             </div>
           </div>
 

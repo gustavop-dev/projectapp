@@ -254,9 +254,9 @@
                     <div v-for="(step, i) in createForm.steps_to_reproduce" :key="i" class="flex items-center gap-2">
                       <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-green-light dark:bg-white/10">{{ i + 1 }}</span>
                       <input v-model="createForm.steps_to_reproduce[i]" type="text" :placeholder="`Paso ${i + 1}`" class="flex-1 rounded-lg border border-border-default bg-surface-muted/40 px-3 py-2 text-sm text-text-default outline-none placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:placeholder:text-white/30 dark:focus:border-lemon/40" />
-                      <button v-if="createForm.steps_to_reproduce.length > 1" type="button" class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-green-light/40 hover:text-red-400" @click="createForm.steps_to_reproduce.splice(i, 1)">
+                      <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar" v-if="createForm.steps_to_reproduce.length > 1" @click="createForm.steps_to_reproduce.splice(i, 1)">
                         <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                      </button>
+                      </BaseButton>
                     </div>
                     <button type="button" class="text-xs font-medium text-esmerald/60 transition hover:text-text-default/60 dark:hover:text-white" @click="createForm.steps_to_reproduce.push('')">
                       + Agregar paso
@@ -533,14 +533,9 @@
                     <button type="button" class="rounded-xl border border-border-default px-4 py-2 text-xs font-medium text-text-default transition hover:bg-surface-muted dark:text-white dark:hover:bg-white/10" @click="openEvaluateForm">
                       Evaluar
                     </button>
-                    <button
-                      type="button"
-                      class="rounded-xl border border-red-200 px-4 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50 dark:border-red-500/20 dark:hover:bg-red-500/10"
-                      :disabled="bugStore.isUpdating"
-                      @click="handleDelete"
-                    >
+                    <BaseButton variant="danger-ghost" size="sm" :disabled="bugStore.isUpdating" @click="handleDelete">
                       Archivar
-                    </button>
+                    </BaseButton>
                   </div>
                 </template>
               </div>

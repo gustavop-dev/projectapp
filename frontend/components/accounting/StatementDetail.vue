@@ -269,13 +269,9 @@
               >
                 Editar
               </button>
-              <button
-                v-if="!isProcessed"
-                class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-                @click="$emit('delete-tx', tx)"
-              >
+              <BaseButton variant="danger-ghost" size="sm" v-if="!isProcessed" @click="$emit('delete-tx', tx)">
                 Eliminar
-              </button>
+              </BaseButton>
             </td>
           </tr>
         </tbody>

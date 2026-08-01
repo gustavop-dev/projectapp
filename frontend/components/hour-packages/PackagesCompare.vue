@@ -51,13 +51,9 @@
         >
           Editar
         </NuxtLink>
-        <button
-          type="button"
-          class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors"
-          @click="$emit('delete', pkg)"
-        >
+        <BaseButton variant="danger-ghost" size="sm" @click="$emit('delete', pkg)">
           Eliminar
-        </button>
+        </BaseButton>
       </div>
     </article>
   </div>

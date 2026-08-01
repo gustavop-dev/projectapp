@@ -43,9 +43,9 @@
           >
             <input v-model="lvl.level" type="text" placeholder="Crítico / Alto / Medio / Bajo" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
             <textarea v-model="lvl.meaning" rows="2" placeholder="Significado" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-            <button type="button" class="text-xs text-rose-600 hover:underline" @click="removeLevel(idx)">Quitar</button>
+            <BaseButton variant="danger-ghost" size="sm" @click="removeLevel(idx)">Quitar</BaseButton>
           </div>
-          <div v-if="!form.severityLevels.length" class="text-xs text-gray-400 italic">Sin niveles configurados.</div>
+          <div v-if="!form.severityLevels.length" class="text-xs text-text-subtle italic">Sin niveles configurados.</div>
         </div>
       </div>
     </div>

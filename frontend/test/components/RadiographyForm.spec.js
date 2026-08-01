@@ -73,7 +73,7 @@ describe('RadiographyForm', () => {
   it('clicking Quitar remove-include button removes that row', async () => {
     const model = { ...baseModel(), includes: [{ title: 'Del', description: 'Desc' }] }
     const wrapper = mountForm(model)
-    const quitarBtn = wrapper.find('button.text-rose-600')
+    const quitarBtn = wrapper.findAll('button').find((b) => b.text().includes('Quitar'))
     await quitarBtn.trigger('click')
     expect(wrapper.find('input[placeholder="Título"]').exists()).toBe(false)
   })

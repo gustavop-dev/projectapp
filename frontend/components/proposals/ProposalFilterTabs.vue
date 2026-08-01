@@ -75,14 +75,9 @@
           >
             Renombrar
           </button>
-          <button
-            type="button"
-            data-testid="filter-tabs-delete"
-            class="w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-            @click="handleDelete(tab.id)"
-          >
+          <BaseButton variant="danger-ghost" size="sm" class="w-full" data-testid="filter-tabs-delete" @click="handleDelete(tab.id)">
             Eliminar
-          </button>
+          </BaseButton>
         </div>
       </div>
 

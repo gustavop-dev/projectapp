@@ -83,7 +83,7 @@
               <p class="text-xs text-text-muted mb-3">Efectiva: {{ formatMoney(effectiveRate(pkg), pkg.currency) }}/h · Total: {{ formatMoney(totalPrice(pkg), pkg.currency) }}</p>
               <div class="flex items-center gap-3">
                 <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-xs text-text-brand font-medium">Editar</NuxtLink>
-                <button class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors" @click="handleDelete(pkg)">Eliminar</button>
+                <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(pkg)">Eliminar</BaseButton>
               </div>
             </div>
           </div>
@@ -128,7 +128,7 @@
                     <td class="px-6 py-4 text-right">
                       <div class="flex items-center justify-end gap-2">
                         <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors">Editar</NuxtLink>
-                        <button class="text-xs text-danger-strong/70 hover:text-danger-strong transition-colors" @click="handleDelete(pkg)">Eliminar</button>
+                        <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(pkg)">Eliminar</BaseButton>
                       </div>
                     </td>
                   </tr>

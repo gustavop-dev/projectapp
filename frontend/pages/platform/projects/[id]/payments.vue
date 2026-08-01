@@ -288,13 +288,9 @@
               >
                 Cambiar tarjeta
               </button>
-              <button
-                type="button"
-                class="rounded-xl border border-red-300 px-4 py-2 text-xs font-medium text-red-600 transition hover:bg-red-50 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10"
-                @click="openDeleteCard"
-              >
+              <BaseButton variant="danger-ghost" size="sm" @click="openDeleteCard">
                 Eliminar tarjeta
-              </button>
+              </BaseButton>
             </div>
           </div>
           <p v-if="!authStore.isAdmin" class="mt-3 text-[11px] text-green-light/60">
@@ -684,15 +680,10 @@
               </div>
 
               <div class="mt-6 flex flex-col gap-2 sm:flex-row-reverse">
-                <button
-                  type="button"
-                  :disabled="deleteCardBusy"
-                  class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50"
-                  @click="confirmDeleteCard"
-                >
+                <BaseButton variant="danger-ghost" size="sm" :disabled="deleteCardBusy" @click="confirmDeleteCard">
                   <svg v-if="deleteCardBusy" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
                   {{ deleteCardBusy ? 'Eliminando…' : 'Sí, eliminar' }}
-                </button>
+                </BaseButton>
                 <button
                   type="button"
                   :disabled="deleteCardBusy"

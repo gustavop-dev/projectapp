@@ -31,6 +31,7 @@
  *   node frontend/scripts/check-design-tokens.mjs              # warn-only, full repo
  *   node frontend/scripts/check-design-tokens.mjs --scope=panel  # admin panel scope only
  *   node frontend/scripts/check-design-tokens.mjs --strict     # exit 1 on any offense
+ *   node frontend/scripts/check-design-tokens.mjs --strict --strict-buttons  # also gate raw buttons
  *   node frontend/scripts/check-design-tokens.mjs --files a.vue b.vue  # only these files
  *   node frontend/scripts/check-design-tokens.mjs --quiet      # only print summary count
  *
@@ -432,6 +433,7 @@ function findFormControlsMissingBg(content) {
 // Reads CLI flags.
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
+const strictButtons = args.includes('--strict-buttons');
 const quiet = args.includes('--quiet');
 const filesIdx = args.indexOf('--files');
 const explicitFiles = filesIdx >= 0 ? args.slice(filesIdx + 1).filter((f) => !f.startsWith('--')) : null;
@@ -656,6 +658,13 @@ for (const file of targetFiles()) {
   }
 }
 
+// Raw buttons are reported but do not gate by default. 629 of them still live
+// in files people edit daily, so gating on --strict would turn every unrelated
+// one-line edit into a full button migration of that file — which is how a
+// useful rule gets deleted. Pass --strict-buttons to gate on it (do that once
+// the migration lands; the count is the progress bar until then).
+const gatingOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
+  + (strictButtons ? rawButtonOffenses.length : 0);
 const totalOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
   + rawButtonOffenses.length;
 if (totalOffenses === 0) {
@@ -739,4 +748,4 @@ if (quiet) {
   console.log('\nSee frontend/components/base/README.md for the token table.');
 }
 
-process.exit(strict ? 1 : 0);
+process.exit(strict && gatingOffenses > 0 ? 1 : 0);

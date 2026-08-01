@@ -178,12 +178,7 @@
                   {{ formatAlertDate(group.refDate) }}
                 </span>
               </div>
-              <button
-                type="button"
-                class="text-xs text-text-subtle hover:text-danger-strong transition-colors p-1 -m-1"
-                title="Descartar"
-                @click.stop="handleDismissAlertGroup(group)"
-              >✕</button>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Descartar" @click.stop="handleDismissAlertGroup(group)">✕</BaseButton>
             </div>
           </div>
 
@@ -302,13 +297,9 @@
           >
             ⏰ Expirar
           </button>
-          <button
-            class="px-3 py-1.5 bg-red-600 rounded-lg text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-            :disabled="isBulkActing"
-            @click="handleBulkAction('delete')"
-          >
+          <BaseButton variant="danger-ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('delete')">
             🗑️ Eliminar
-          </button>
+          </BaseButton>
           <button
             class="px-3 py-1.5 bg-white/10 rounded-lg text-xs font-medium hover:bg-white/20 transition-colors"
             @click="selectedIds = new Set()"

@@ -85,14 +85,9 @@
                   {{ formatMoney(cycle.amount, 'COP') }}
                 </td>
                 <td class="px-3 py-2 text-right">
-                  <button
-                    type="button"
-                    aria-label="Eliminar ciclo"
-                    class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors"
-                    @click="askDelete(cycle)"
-                  >
+                  <BaseButton variant="danger-ghost" size="sm" aria-label="Eliminar ciclo" @click="askDelete(cycle)">
                     <TrashIcon class="w-4 h-4" />
-                  </button>
+                  </BaseButton>
                 </td>
               </tr>
             </tbody>
