@@ -401,6 +401,12 @@ test.describe('Proposal Section Edit — Form Mode', () => {
     await page.getByTestId('section-editor').waitFor({ state: 'visible' });
     const editor = page.getByTestId('section-editor');
 
+    // The per-section form is a lazily-loaded chunk, so wait for a field that
+    // must be present before asserting other fields are absent — otherwise the
+    // toHaveCount(0) checks below can pass simply because the form has not
+    // rendered yet, and the fill() that follows races the chunk.
+    await expect(editor.getByLabel('Título de los paquetes')).toBeVisible();
+
     // Rates and packages moved to the «Tarifa por hora» tab; this editor only
     // points at them.
     await expect(editor.getByTestId('hour-rate-tab-hint')).toContainText('Tarifa por hora');

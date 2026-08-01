@@ -88,7 +88,7 @@
       <BaseTabs v-model="activeTab" :tabs="tabs" />
 
       <!-- Tab: General -->
-      <div v-show="activeTab === 'general'">
+      <div v-if="visitedTabs.has('general')" v-show="activeTab === 'general'">
         <ProposalGeneralTab
           :proposal="proposal"
           :form="form"
@@ -111,12 +111,12 @@
       </div>
 
       <!-- Tab: Correos -->
-      <div v-show="activeTab === 'emails'">
-        <ProposalEmailsTab v-if="proposal" :proposal="proposal" />
+      <div v-if="visitedTabs.has('emails')" v-show="activeTab === 'emails'">
+        <ProposalEmailsTab :proposal="proposal" />
       </div>
 
       <!-- Tab: Documentos -->
-      <div v-show="activeTab === 'documents'" class="max-w-7xl mx-auto">
+      <div v-if="visitedTabs.has('documents')" v-show="activeTab === 'documents'" class="max-w-7xl mx-auto">
         <ProposalDocumentsTab
           v-if="hasProposalDocuments"
           :proposal="proposal"
@@ -128,17 +128,17 @@
       </div>
 
       <!-- Tab: Cronograma -->
-      <div v-show="activeTab === 'schedule'" class="max-w-7xl mx-auto">
-        <ProjectScheduleEditor v-if="proposal" :proposal="proposal" />
+      <div v-if="visitedTabs.has('schedule')" v-show="activeTab === 'schedule'" class="max-w-7xl mx-auto">
+        <ProjectScheduleEditor :proposal="proposal" />
       </div>
 
       <!-- Tab: Prompt Proposal -->
-      <div v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
+      <div v-if="visitedTabs.has('prompt')" v-show="activeTab === 'prompt'" class="max-w-7xl mx-auto">
         <ProposalPromptTab :proposal="proposal" />
       </div>
 
       <!-- Tab: Desarrollo (checklist Markdown) -->
-      <div v-show="activeTab === 'development'">
+      <div v-if="visitedTabs.has('development')" v-show="activeTab === 'development'">
         <DevChecklistTab
           :proposal="proposal"
           :refreshing="isRefreshing"
@@ -147,22 +147,22 @@
       </div>
 
       <!-- Tab: JSON -->
-      <div v-show="activeTab === 'json'">
+      <div v-if="visitedTabs.has('json')" v-show="activeTab === 'json'">
         <ProposalJsonTab :proposal="proposal" :active="activeTab === 'json'" @applied="handleJsonApplied" />
       </div>
 
       <!-- Tab: Activity -->
-      <div v-show="activeTab === 'activity'" class="max-w-5xl mx-auto">
+      <div v-if="visitedTabs.has('activity')" v-show="activeTab === 'activity'" class="max-w-5xl mx-auto">
         <ProposalActivityTab :proposal="proposal" />
       </div>
 
       <!-- Tab: Analytics -->
-      <div v-show="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
+      <div v-if="visitedTabs.has('analytics')" v-show="activeTab === 'analytics'" class="max-w-screen-2xl mx-auto">
         <ProposalAnalytics :proposalId="proposal.id" :proposal="proposal" />
       </div>
 
       <!-- Tab: Detalle técnico -->
-      <div v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
+      <div v-if="visitedTabs.has('technical')" v-show="activeTab === 'technical'" class="max-w-7xl mx-auto">
         <BaseSegmented
           v-model="technicalSubTab"
           class="mb-4 max-w-sm"
@@ -212,7 +212,7 @@
       </div>
 
       <!-- Tab: Sections -->
-      <div v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
+      <div v-if="visitedTabs.has('sections')" v-show="activeTab === 'sections'" class="max-w-7xl mx-auto">
         <ProposalSectionsTab
           :proposal="proposal"
           :module-link-options="technicalModuleLinkOptions"
@@ -225,7 +225,7 @@
       </div>
 
       <!-- Tab: Hour rate -->
-      <div v-show="activeTab === 'hour-rate'" class="max-w-7xl mx-auto">
+      <div v-if="visitedTabs.has('hour-rate')" v-show="activeTab === 'hour-rate'" class="max-w-7xl mx-auto">
         <ProposalHourRateTab
           :proposal="proposal"
           @dirty-state-change="hourRateDirty = $event"
@@ -393,19 +393,35 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+// General is the default tab: keep it static so the first paint needs no
+// extra round-trip. Every other tab panel is only mounted once visited
+// (see visitedTabs below), so deferring its chunk costs nothing up front.
 import ProposalGeneralTab from '~/components/panel/proposal/ProposalGeneralTab.vue';
-import ProposalSectionsTab from '~/components/panel/proposal/ProposalSectionsTab.vue';
-import ProposalHourRateTab from '~/components/panel/proposal/ProposalHourRateTab.vue';
+import TabPanelSkeleton from '~/components/panel/proposal/TabPanelSkeleton.vue';
+
+/** defineAsyncComponent + the shared skeleton, so a slow chunk shows a
+ *  placeholder instead of an empty panel (Vue's 200ms delay still applies). */
+const lazyTab = (loader) => defineAsyncComponent({
+  loader,
+  loadingComponent: TabPanelSkeleton,
+});
+
+const ProposalSectionsTab = lazyTab(() => import('~/components/panel/proposal/ProposalSectionsTab.vue'));
+const ProposalHourRateTab = lazyTab(() => import('~/components/panel/proposal/ProposalHourRateTab.vue'));
 import { DEFAULT_HOSTING_PERCENT, DEFAULT_METHOD_PHASES } from '~/stores/proposals_constants';
-import TechnicalDocumentEditor from '~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue';
-import ProposalAnalytics from '~/components/BusinessProposal/admin/ProposalAnalytics.vue';
+const TechnicalDocumentEditor = lazyTab(() => import('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue'));
+const ProposalAnalytics = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalAnalytics.vue'));
+// Modals stay static on purpose: they are gated by a `visible` prop rather
+// than v-if, so an async wrapper would still resolve on page load. Switching
+// them to v-if would also need their `watch(() => props.visible)` hooks to
+// become immediate, since visible is already true at mount time.
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
 import ProposalActionsModal from '~/components/BusinessProposal/admin/ProposalActionsModal.vue';
 import ProposalMultiSendModal from '~/components/BusinessProposal/admin/ProposalMultiSendModal.vue';
-import ProposalDocumentsTab from '~/components/BusinessProposal/admin/ProposalDocumentsTab.vue';
-import ProposalEmailsTab from '~/components/BusinessProposal/admin/ProposalEmailsTab.vue';
-import ProjectScheduleEditor from '~/components/BusinessProposal/admin/ProjectScheduleEditor.vue';
+const ProposalDocumentsTab = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalDocumentsTab.vue'));
+const ProposalEmailsTab = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalEmailsTab.vue'));
+const ProjectScheduleEditor = lazyTab(() => import('~/components/BusinessProposal/admin/ProjectScheduleEditor.vue'));
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import { onBeforeRouteLeave } from 'vue-router';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -413,10 +429,10 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { buildProposalItemLinkOptions, buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { JSON_TEXTAREA_ROWS, makeJsonStats } from '~/utils/proposalJsonStats';
-import DevChecklistTab from '~/components/panel/proposal/DevChecklistTab.vue';
-import ProposalActivityTab from '~/components/panel/proposal/ProposalActivityTab.vue';
-import ProposalJsonTab from '~/components/panel/proposal/ProposalJsonTab.vue';
-import ProposalPromptTab from '~/components/panel/proposal/ProposalPromptTab.vue';
+const DevChecklistTab = lazyTab(() => import('~/components/panel/proposal/DevChecklistTab.vue'));
+const ProposalActivityTab = lazyTab(() => import('~/components/panel/proposal/ProposalActivityTab.vue'));
+const ProposalJsonTab = lazyTab(() => import('~/components/panel/proposal/ProposalJsonTab.vue'));
+const ProposalPromptTab = lazyTab(() => import('~/components/panel/proposal/ProposalPromptTab.vue'));
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
@@ -482,6 +498,34 @@ const technicalItemLinkOptions = computed(() =>
 const validTabs =['general', 'emails', 'documents', 'schedule', 'development', 'sections', 'hour-rate', 'technical', 'prompt', 'json', 'activity', 'analytics'];
 const activeTab = ref(validTabs.includes(route.query.tab) ? route.query.tab : 'general');
 const technicalSubTab = ref('editor');
+
+// Tabs mount on first visit and stay mounted afterwards. Before this, all 12
+// panels rendered eagerly behind v-show, so opening the view paid for every
+// tab's DOM (and for the requests the heavier tabs fire on mount) even when
+// the user only ever looked at General.
+//
+// Membership is never removed, which is what makes returning to a tab
+// instant: the panel keeps its component instance, so unsaved edits in
+// Secciones / Tarifa por hora survive a trip to another tab exactly as they
+// did under v-show. That is also why this is a plain v-if and not
+// <KeepAlive> — nothing ever unmounts, so there is nothing to cache.
+const visitedTabs = ref(new Set([activeTab.value]));
+
+watch(activeTab, (tab) => {
+  visitedTabs.value.add(tab);
+  // The tab was read from ?tab= on load but never written back, so a reload
+  // or a shared link always dropped the user on General.
+  //
+  // history.replaceState rather than router.replace: a router navigation
+  // re-runs the `admin-auth` middleware, which cost one auth/check request per
+  // tab switch (13 instead of 2 across the twelve tabs). Only the URL needs to
+  // change — `?tab=` is read once on mount, so a stale router query is fine.
+  if (import.meta.client && new URLSearchParams(window.location.search).get('tab') !== tab) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tab);
+    window.history.replaceState(window.history.state, '', url);
+  }
+});
 const hasSendEmailTab = computed(() =>
   ['sent', 'viewed', 'negotiating', 'accepted', 'rejected'].includes(proposal.value?.status),
 );
