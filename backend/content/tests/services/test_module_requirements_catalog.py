@@ -112,6 +112,41 @@ def test_catalog_covers_all_non_invite_default_modules():
     assert set(MODULE_REQUIREMENTS_CATALOG['es'].keys()) == non_invite
 
 
+@pytest.mark.parametrize('language', ['es', 'en'])
+def test_catalog_covers_every_default_item(language):
+    """Every default item of a cataloged module is referenced by >=1 requirement."""
+    fr = _default_fr_content(language)
+    default_items = {
+        m['id']: {i['name'] for i in m.get('items') or []}
+        for m in fr['additionalModules']
+    }
+    for module_id, entry in MODULE_REQUIREMENTS_CATALOG[language].items():
+        covered = {req['item'] for req in entry['requirements']}
+        missing = default_items[module_id] - covered
+        assert not missing, (
+            f'{language}:{module_id}: default items without any requirement {missing}'
+        )
+
+
+@pytest.mark.parametrize('language', ['es', 'en'])
+def test_catalog_breaks_down_beyond_one_per_item(language):
+    """The catalog stays one-to-many overall: strictly more requirements than items."""
+    fr = _default_fr_content(language)
+    total_items = sum(
+        len(m.get('items') or [])
+        for m in fr['additionalModules']
+        if m['id'] in MODULE_REQUIREMENTS_CATALOG[language]
+    )
+    total_reqs = sum(
+        len(entry['requirements'])
+        for entry in MODULE_REQUIREMENTS_CATALOG[language].values()
+    )
+    assert total_reqs > total_items, (
+        f'{language}: {total_reqs} requirements for {total_items} items — '
+        'catalog regressed to one-per-item'
+    )
+
+
 # ===========================================================================
 # Seeder behavior (pure function)
 # ===========================================================================
@@ -169,7 +204,9 @@ def test_seed_fills_matching_empty_epic_without_duplicating():
     pwa_epics = [e for e in out['epics'] if e['epicKey'] in ('pwa_module', 'mod-pwa-module')]
     assert len(pwa_epics) == 1
     assert pwa_epics[0]['epicKey'] == 'pwa_module'
-    assert len(pwa_epics[0]['requirements']) == 6
+    assert len(pwa_epics[0]['requirements']) == len(
+        MODULE_REQUIREMENTS_CATALOG['es']['pwa_module']['requirements']
+    )
     assert 'pwa_module' in pwa_epics[0]['linked_module_ids']
 
 
