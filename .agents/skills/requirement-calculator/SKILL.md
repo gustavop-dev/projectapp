@@ -81,7 +81,7 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 ```markdown
 # Estimate: <nombre corto del requerimiento> — <DDMMYYYY>
 
-> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP sin IVA.
+> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP más IVA.
 
 ## 1. Resumen
 <1–2 líneas reinterpretando el requerimiento en lenguaje de negocio.>
@@ -153,8 +153,19 @@ Cierra el turno con:
 - **Web por defecto**; PWA `+30%` y app nativa `+60%` solo si el requerimiento lo declara (excluyentes entre sí).
 - La tabla final **nunca** contiene filas `XL`: siempre se muestran descompuestas.
 - Cada fila **cita la señal literal** del catálogo que fijó su nivel.
-- El precio **siempre** es rango, en COP sin IVA; la aritmética se valida antes de escribir el documento.
+- El precio **siempre** es rango, en COP **más IVA** — se presenta con la marca `+ IVA`, nunca con IVA incluido; la aritmética se valida antes de escribir el documento.
 - La fecha del título viene de `date +%d%m%Y`, jamás asumida.
 - El documento se crea **siempre** (aunque haya condición de bloqueo, el análisis queda guardado con sus supuestos).
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
+
+---
+
+## Suite de validación (baseline)
+
+En `validation/` vive el **baseline de calibración** de la skill, producido en la prueba con los tres reportes de Vástago (02072026, calibración ÷4 definitiva):
+
+- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $6,1M–$8,8M ✅ · #24 $7,2M–$10,2M ✅ · #25 $13,3M–$18,9M ⚠️), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
+- `validation/estimates/*.md` — los 3 markdown fuente de esas estimaciones (documentos #23, #24 y #25 de `/panel/documents`), con filas, señales citadas, modificadores, horas y precios.
+
+**Regla de mantenimiento:** si cambian las reglas de la skill —tabla de precios/tarifa en `market-pricing.md`, señales o modificadores en `effort-indicators.md`, o el flujo de este SKILL.md— y el cambio **altera los números o la clasificación** del baseline, hay que **actualizar la suite en el mismo cambio**: recalcular las columnas afectadas de los 3 estimates (manteniendo horas/clasificación salvo que el cambio sea de catálogo), refrescar los totales y semáforos de `test-results.md`, y agregar allí una fila de QA que registre el cambio y su fecha. Si el cambio no altera números ni clasificación (p. ej. una señal nueva que el baseline no usa), basta la fila de QA. El baseline es la referencia para detectar regresiones de calibración: mismo input → mismos niveles y precios.
