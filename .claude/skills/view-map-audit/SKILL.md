@@ -9,12 +9,6 @@ argument-hint: "[optional: section id como public-site, panel, platform, o all]"
 ## Goal
 Verificar que el Mapa de vistas (`/panel/views`, `frontend/pages/panel/views.vue`) refleje la realidad del proyecto. La fuente de datos es `frontend/config/viewCatalog.js` (mantenido a mano) y las opciones de filtro viven en `frontend/constants/viewMapFilterOptions.js`. El skill produce un reporte priorizado de inconsistencias entre catálogo y código real, sin modificar archivos.
 
-## Cómo invocar este skill
-
-Gating ([[_output-protocol]] §4): con sección en `$ARGUMENTS` (`public-site`, `panel`, `platform`, `all`) → directo. Sin argumento → proponer `all` en una línea y esperar confirmación (regla 2 — no picker para un default obvio). Nunca en headless.
-
-Sin picker por diseño: el único argumento es la sección; la auditoría es read-only.
-
 ## Source of truth
 - Catálogo: `frontend/config/viewCatalog.js` (`viewCatalogSections[]` con `views[]`).
 - Sets de filtros válidos: `frontend/constants/viewMapFilterOptions.js`.
@@ -89,16 +83,6 @@ done
 - Para el invariante #5 (asignación de sección), tratar siempre como **sugerencia humana**, no como error duro.
 - Si una `url` usa `:param` y el `file` usa `[param]`, eso es **correcto** (Nuxt vs convención del catálogo). Solo reportar si el nombre del parámetro difiere.
 - Considerar páginas dinámicas anidadas (`[uuid]/index.vue` ⇒ `/.../:uuid`) y rutas catch-all (`[...slug].vue`).
-
-## Acciones disponibles
-
-Tras el reporte, si la sesión es interactiva y NO hubo argumentos explícitos
-(reglas de gating de [[_output-protocol]] §4), ofrecer vía AskUserQuestion:
-
-| Opción (label) | description (costo/efecto) | preview (comando exacto) |
-|---|---|---|
-| Re-auditar una sección | acota la auditoría a una sección con hallazgos | `/view-map-audit panel` |
-| Correr los tests focalizados | valida filtros y panel del mapa (read-only) | `cd frontend && npm test -- test/composables/useViewMapFilters.test.js test/components/ViewMapFilterPanel.test.js` |
 
 ## Output Contract
 Reporte en este orden:
