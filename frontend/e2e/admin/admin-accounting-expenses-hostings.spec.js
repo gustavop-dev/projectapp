@@ -162,8 +162,8 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
 
     // quality: allow-fragile-selector (the expense modal's inputs have no testids; positional/attribute select is intentional)
     await page.locator('form input[type="text"]').first().fill('Windsurf Julio');
-    // quality: allow-fragile-selector (month input has no testid; attribute select is intentional)
-    await page.locator('form input[type="month"]').fill('2026-07');
+    // The period asks for the exact date by default.
+    await page.getByTestId('expense-form-period').fill('2026-07-15');
     await page.getByTestId('partner-split-total').fill('3000000');
     await expect(page.getByTestId('expense-register-in-pocket')).toBeVisible();
     await page.getByTestId('expense-form-submit').click();

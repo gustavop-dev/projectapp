@@ -45,6 +45,7 @@ function incomeRow(overrides = {}) {
 
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
+  savedTabs = [],
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -126,7 +127,11 @@ function buildHandler({
       return { status: 204, contentType: 'application/json', body: '' };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
-      return { status: 200, contentType: 'application/json', body: '[]' };
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(savedTabs),
+      };
     }
     return null;
   };
@@ -173,7 +178,8 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
     await page.getByTestId('income-form-concept').fill('Vastago (Fase 1) - Inicio 40%');
-    await page.locator('form input[type="month"]').fill('2026-04');
+    // The period asks for the exact date by default.
+    await page.getByTestId('income-form-period').fill('2026-04-15');
     await page.getByTestId('partner-split-total').fill('2123000');
     await page.getByTestId('income-form-submit').click();
 
@@ -182,6 +188,26 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(calls[0].body.concept).toBe('Vastago (Fase 1) - Inicio 40%');
     expect(Number(calls[0].body.gustavo_amount)).toBe(1061500);
     expect(Number(calls[0].body.carlos_amount)).toBe(1061500);
+  });
+
+  test('creates an income with a month-only period via the toggle', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Hosting Acme, Abril');
+    // Only the month is known: downgrade the exact-date default.
+    await page.getByTestId('income-form-exact-date').click();
+    await page.getByTestId('income-form-period').fill('2026-04');
+    await page.getByTestId('partner-split-total').fill('86400');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls).toHaveLength(1);
+    expect(calls[0].body.period_date).toBe('2026-04');
   });
 
   test('creates a personal-ledger income with a single value field', {
@@ -195,7 +221,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
     await page.getByTestId('income-form-concept').fill('Universidad Nacional');
-    await page.locator('form input[type="month"]').fill('2026-02');
+    await page.getByTestId('income-form-period').fill('2026-02-10');
     await page.getByRole('tab', { name: 'Personal Gustavo' }).click();
 
     // Personal ledger swaps the partner split for a single value input.
@@ -287,7 +313,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await page.getByTestId('incomes-new-button').click();
     await page.getByTestId('income-form-concept').fill('Ingreso inválido');
-    await page.locator('form input[type="month"]').fill('2026-04');
+    await page.getByTestId('income-form-period').fill('2026-04-15');
     await page.getByTestId('partner-split-total').fill('100');
     await page.getByTestId('income-form-submit').click();
 
@@ -352,6 +378,42 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-payment-10')).toContainText('Pagado');
     await expect(page.getByTestId('income-payment-11')).toContainText('Parcial');
     await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
+  });
+
+  test('the Solo esperados tab drops the expected rows that already got paid', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/incomes through the
+    // subnav is exercised by the accounting navigation specs; this test pins
+    // the seeded expected-income tabs)
+    //
+    // The two seeded default tabs (accounts.default_filter_tabs): the first
+    // keeps every expected row, the second only the uncollected ones.
+    await mockApi(page, buildHandler({
+      rows: [incomeRow(), paidRow(), partialRow()],
+      calls: [],
+      savedTabs: [
+        {
+          id: 501, view: 'accounting_income', name: 'Todos los esperados',
+          filters: { kind: 'expected' }, order: 0,
+        },
+        {
+          id: 502, view: 'accounting_income', name: 'Solo esperados',
+          filters: { kind: 'expected', paymentStatus: 'pending' }, order: 1,
+        },
+      ],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('filter-tabs-tab-501').click();
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-10')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
+
+    await page.getByTestId('filter-tabs-tab-502').click();
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-10')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-row-11')).toHaveCount(0);
   });
 
   test('shows written-off income in Todos and isolates it with the Perdidos tab', {
@@ -441,6 +503,35 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     const { body } = calls.find((c) => c.method === 'POST');
     expect(body.deductions).toEqual([
       { type: 'gateway_fee', detail: '', amount: 8000 },
+    ]);
+  });
+
+  test('resolves the full pending as a deduction without registering a payment', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // The stuck-residual case: an old partial collection left a fee that
+    // will never arrive, and there is no new payment to register.
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('partner-split-total').fill('0');
+    await page.getByTestId('income-liquidate-period').fill('2026-11-17');
+
+    await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
+    await page.getByTestId('income-liquidate-deductions-toggle').click();
+    await page.getByTestId('deduction-amount-0').fill('600000');
+    await expect(page.getByTestId('income-liquidate-remaining'))
+      .toContainText('queda cerrado');
+    await page.getByTestId('income-liquidate-submit').click();
+
+    await expect.poll(() => calls.filter((c) => c.method === 'POST').length)
+      .toBe(1);
+    const { body } = calls.find((c) => c.method === 'POST');
+    expect(Number(body.total_amount)).toBe(0);
+    expect(body.deductions).toEqual([
+      { type: 'gateway_fee', detail: '', amount: 600000 },
     ]);
   });
 
