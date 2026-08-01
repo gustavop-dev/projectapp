@@ -74,7 +74,11 @@ test.describe('Admin Document Delete', () => {
     });
     await openDeleteConfirm(page);
 
-    await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+    await page
+      .getByRole('dialog')
+      .filter({ hasText: 'Eliminar documento' })
+      .getByRole('button', { name: 'Cancelar', exact: true })
+      .click();
 
     await expect(page.getByText('Eliminar documento')).toBeHidden();
     await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
