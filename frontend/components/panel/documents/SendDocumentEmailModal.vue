@@ -21,15 +21,18 @@
                 <p class="text-xs text-text-muted truncate">{{ document.title }}</p>
               </div>
             </div>
-            <button
-              type="button"
-              class="w-8 h-8 flex-shrink-0 ml-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="md"
+              class="flex-shrink-0 ml-2"
+              aria-label="Cerrar"
               @click="close"
             >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
 
           <!-- Tab switcher -->
@@ -106,39 +109,45 @@
                     <div class="flex items-center gap-2 mb-2">
                       <span class="text-2xs text-text-subtle uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                       <div class="ml-auto flex items-center gap-1">
-                        <button
-                          type="button"
-                          class="p-1 rounded text-text-subtle hover:text-text-default hover:bg-surface-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                        <BaseButton
+                          variant="ghost"
+                          icon-only
+                          size="sm"
                           :disabled="idx === 0"
                           title="Subir"
+                          aria-label="Subir sección"
                           @click="moveSection(idx, -1)"
                         >
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
                           </svg>
-                        </button>
-                        <button
-                          type="button"
-                          class="p-1 rounded text-text-subtle hover:text-text-default hover:bg-surface-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                        </BaseButton>
+                        <BaseButton
+                          variant="ghost"
+                          icon-only
+                          size="sm"
                           :disabled="idx === sections.length - 1"
                           title="Bajar"
+                          aria-label="Bajar sección"
                           @click="moveSection(idx, 1)"
                         >
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                           </svg>
-                        </button>
-                        <button
+                        </BaseButton>
+                        <BaseButton
                           v-if="sections.length > 1"
-                          type="button"
-                          class="p-1 rounded text-text-subtle hover:text-danger-strong hover:bg-danger-soft"
+                          variant="danger-ghost"
+                          icon-only
+                          size="sm"
                           title="Eliminar sección"
+                          aria-label="Eliminar sección"
                           @click="removeSection(idx)"
                         >
                           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </svg>
-                        </button>
+                        </BaseButton>
                       </div>
                     </div>
                     <textarea
@@ -149,16 +158,12 @@
                     />
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors"
-                  @click="addSection"
-                >
+                <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                   </svg>
                   Agregar sección
-                </button>
+                </BaseButton>
               </div>
 
               <!-- Footer text -->
@@ -185,30 +190,28 @@
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span class="flex-1 min-w-0 truncate text-text-default">{{ docTitle(docId) }}.pdf</span>
-                    <button
+                    <BaseButton
                       v-if="docId !== document.id"
-                      type="button"
-                      class="p-1 rounded text-text-subtle hover:text-danger-strong hover:bg-danger-soft"
+                      variant="danger-ghost"
+                      icon-only
+                      size="sm"
                       title="Quitar"
+                      aria-label="Quitar adjunto"
                       @click="removeAttachment(docId)"
                     >
                       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                    </button>
+                    </BaseButton>
                     <span v-else class="text-2xs uppercase tracking-wide text-text-subtle">Principal</span>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  class="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-brand bg-primary-soft rounded-lg hover:bg-primary-soft transition-colors"
-                  @click="showPicker = true"
-                >
+                <BaseButton variant="secondary" size="sm" class="mt-2" @click="showPicker = true">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                   Adjuntar otro documento
-                </button>
+                </BaseButton>
 
                 <!-- Picker -->
                 <div
@@ -219,11 +222,11 @@
                   <div class="bg-surface rounded-xl shadow-xl max-w-md w-full max-h-[70vh] flex flex-col border border-border-default">
                     <header class="flex items-center justify-between px-5 py-3 border-b border-border-muted">
                       <h4 class="text-sm font-semibold text-text-default">Seleccionar documentos</h4>
-                      <button type="button" class="text-text-subtle hover:text-text-default" @click="showPicker = false">
+                      <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="showPicker = false">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
-                      </button>
+                      </BaseButton>
                     </header>
                     <div class="flex-1 overflow-y-auto px-5 py-3">
                       <p v-if="!availableDocs.length" class="text-xs text-text-subtle py-6 text-center">
@@ -246,13 +249,9 @@
                       </ul>
                     </div>
                     <footer class="px-5 py-3 border-t border-border-muted flex justify-end">
-                      <button
-                        type="button"
-                        class="px-4 py-1.5 text-xs font-medium bg-primary text-white rounded-lg hover:bg-primary-strong"
-                        @click="showPicker = false"
-                      >
+                      <BaseButton variant="primary" size="sm" @click="showPicker = false">
                         Listo
-                      </button>
+                      </BaseButton>
                     </footer>
                   </div>
                 </div>
@@ -307,21 +306,17 @@
 
           <!-- Footer buttons -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-2 flex-shrink-0">
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" @click="close">
               Cancelar
-            </button>
-            <button
-              type="button"
-              class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!canSend || isSending"
+            </BaseButton>
+            <BaseButton
+              variant="primary"
+              :disabled="!canSend"
+              :loading="isSending"
               @click="send"
             >
-              {{ isSending ? 'Enviando...' : 'Enviar' }}
-            </button>
+              Enviar
+            </BaseButton>
           </div>
 
         </div>

@@ -18,15 +18,11 @@
               </div>
               <h3 class="text-base font-semibold text-text-default">Renombrar documento</h3>
             </div>
-            <button
-              type="button"
-              class="w-8 h-8 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-muted hover:bg-surface-raised transition-colors"
-              @click="close"
-            >
+            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
-            </button>
+            </BaseButton>
           </div>
 
           <!-- Body -->
@@ -49,20 +45,17 @@
             </p>
 
             <div class="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                class="px-4 py-2 text-sm font-medium text-text-muted hover:text-text-default hover:bg-surface-raised rounded-lg transition-colors"
-                @click="close"
-              >
+              <BaseButton variant="ghost" @click="close">
                 Cancelar
-              </button>
-              <button
+              </BaseButton>
+              <BaseButton
                 type="submit"
-                class="px-4 py-2 text-sm font-medium bg-primary text-white rounded-lg hover:bg-primary-strong transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="!canSubmit || isSaving"
+                variant="primary"
+                :disabled="!canSubmit"
+                :loading="isSaving"
               >
-                {{ isSaving ? 'Guardando...' : 'Guardar' }}
-              </button>
+                Guardar
+              </BaseButton>
             </div>
           </form>
 
