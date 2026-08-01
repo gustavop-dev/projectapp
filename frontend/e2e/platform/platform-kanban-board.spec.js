@@ -125,7 +125,7 @@ const meResponse = (user) => ({
 });
 
 function setupPlatformMocks(page, { user }) {
-  return mockApi(page, async ({ apiPath, method }) => {
+  return mockApi(page, async ({ apiPath, method, route }) => {
     if (apiPath === 'accounts/me/' && method === 'GET') {
       return meResponse(user);
     }
@@ -150,7 +150,14 @@ function setupPlatformMocks(page, { user }) {
     if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/move\/$/) && method === 'POST') {
       const id = parseInt(apiPath.match(/requirements\/(\d+)/)[1], 10);
       const req = mockRequirements.find((r) => r.id === id) || mockRequirements[0];
-      return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...req, status: 'done' }) };
+      // Echo back the requested status/order, like the real move endpoint does —
+      // a mock that always answers 'done' would mask a broken drag/complete handler.
+      const body = route.request().postDataJSON() || {};
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...req, status: body.status || 'done', order: body.order ?? req.order }),
+      };
     }
     if (apiPath.match(/accounts\/projects\/1\/requirements\/\d+\/comments\/$/) && method === 'POST') {
       return {
@@ -285,6 +292,59 @@ test.describe('Platform Kanban Board — Admin', () => {
     const projectsLink = page.locator('header').getByRole('link', { name: 'Proyectos' });
     await expect(projectsLink).toBeVisible();
     await expect(projectsLink).toHaveAttribute('href', /\/platform\/projects$/);
+  });
+
+  // Catches: a broken dragstart/dragover/drop wiring, a status-key typo in
+  // handleDrop, or a regression in the move POST payload — none of which
+  // would fail without this test, since drag & drop was previously only
+  // display-checked.
+  test('dragging a card to another column moves it and posts the new status', {
+    tag: ['@outcome:success', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setupPlatformMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    const todoColumn = page.locator('[data-status="todo"]');
+    const inProgressColumn = page.locator('[data-status="in_progress"]');
+    const card = todoColumn.getByRole('heading', { name: 'Diseño de landing page' });
+    await expect(card).toBeVisible();
+
+    const movePromise = page.waitForRequest(
+      (req) => /requirements\/101\/move\/$/.test(req.url()) && req.method() === 'POST',
+    );
+    await card.dragTo(inProgressColumn);
+    const moveRequest = await movePromise;
+
+    expect(moveRequest.postDataJSON()).toMatchObject({ status: 'in_progress' });
+    await expect(inProgressColumn.getByRole('heading', { name: 'Diseño de landing page' })).toBeVisible();
+    await expect(todoColumn.getByRole('heading', { name: 'Diseño de landing page' })).toHaveCount(0);
+  });
+
+  // Catches: a "Marcar como completado" button that's visually present but
+  // unwired, or that posts the wrong status/id, which previously shipped
+  // green because no test ever clicked it.
+  test('clicking "Marcar como completado" moves the card to done and posts status done', {
+    tag: ['@outcome:success', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+  }, async ({ page }) => {
+    await setupPlatformMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    const inReviewColumn = page.locator('[data-status="in_review"]');
+    const doneColumn = page.locator('[data-status="done"]');
+    const completeButton = inReviewColumn.getByTitle('Marcar como completado');
+    await expect(completeButton).toHaveCount(1);
+
+    const movePromise = page.waitForRequest(
+      (req) => /requirements\/103\/move\/$/.test(req.url()) && req.method() === 'POST',
+    );
+    await completeButton.click();
+    const moveRequest = await movePromise;
+
+    expect(moveRequest.postDataJSON()).toMatchObject({ status: 'done' });
+    await expect(doneColumn.getByRole('heading', { name: 'Integración pasarela de pagos' })).toBeVisible();
+    await expect(inReviewColumn.getByRole('heading', { name: 'Integración pasarela de pagos' })).toHaveCount(0);
   });
 });
 

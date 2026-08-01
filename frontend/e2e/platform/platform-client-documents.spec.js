@@ -86,13 +86,20 @@ test.describe('Platform Client Document Portal', () => {
     tag: ['@outcome:display', ...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocks(page, { emailVerified: true });
-    await page.goto('/platform/documents', { waitUntil: 'domcontentloaded' });
+    // Enter the portal by navigating via the platform nav (not a deep link) —
+    // display flows must prove the link actually routes here.
+    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('link', { name: 'Documentos' }).click();
+    await page.waitForURL(/\/platform\/documents/, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: 'Mis documentos' })).toBeVisible({ timeout: 30000 });
-    await expect(page.getByText('Documento principal')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Contrato de Servicios' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Anexos' })).toBeVisible();
-    await expect(page.getByText('Anexo Técnico')).toBeVisible();
+
+    // The main contract must render before its annexes, not merely both
+    // be present — catches a regression that reorders the sections.
+    const documentTitles = page.getByText(/^(Contrato de Servicios|Anexo Técnico)$/);
+    await expect(documentTitles.nth(0)).toHaveText('Contrato de Servicios');
+    await expect(documentTitles.nth(1)).toHaveText('Anexo Técnico');
   });
 
   test('downloads the main document PDF', {
@@ -112,6 +119,7 @@ test.describe('Platform Client Document Portal', () => {
   test('shows empty state when the client has no documents', {
     tag: ['@outcome:display', ...PLATFORM_CLIENT_DOCUMENT_PORTAL, '@role:platform-client'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (empty state has no interactable step)
     await setupMocks(page, { emailVerified: true, empty: true });
     await page.goto('/platform/documents', { waitUntil: 'domcontentloaded' });
 

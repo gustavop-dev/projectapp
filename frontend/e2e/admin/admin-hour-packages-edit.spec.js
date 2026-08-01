@@ -61,6 +61,7 @@ test.describe('Admin Hour Packages Edit', () => {
   test('prefills the form from the detail endpoint', {
     tag: [...ADMIN_HOUR_PACKAGES_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (query-param preselect is a load-time computation; no interactable step produces it)
     setupMock(page);
     await page.goto('/panel/hour-packages/3/edit');
 

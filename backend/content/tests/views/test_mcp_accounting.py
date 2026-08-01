@@ -268,3 +268,65 @@ class TestAccountingMcpHandlerBranches:
             'notification_recipients': 'no-es-lista',
         })
         assert response.data['result']['isError'] is True
+
+
+@pytest.mark.django_db
+class TestAccountingMcpPocketGuardrails:
+    """Auto-managed pocket movements (income/expense-backed) must stay locked
+    on the MCP surface exactly like the panel — accounting_tools.py:17-18
+    documents this guardrail but nothing exercised it until now.
+    """
+
+    def _create_liquid_pocket_income(self, api_client, token):
+        response = _call(api_client, token, 'create_income', {
+            'concept': 'Pago bolsillo directo',
+            'kind': 'liquid',
+            'destination': 'pocket',
+            'period_date': '2026-04',
+            'total_amount': '250000',
+        })
+        assert response.data['result']['isError'] is False
+        record = IncomeRecord.objects.get(concept='Pago bolsillo directo')
+        assert record.pocket_movement_id is not None
+        return record
+
+    def test_update_pocket_rejects_direction_flip_on_linked_movement(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        """Catches a refactor that drops _ensure_pocket_update_allowed's
+        direction lock (accounting_service.py:288-299), letting an AI agent
+        silently flip a linked movement in/out and desync it from its income.
+        """
+        _, token = accounting_connector
+        record = self._create_liquid_pocket_income(api_client, token)
+        movement = record.pocket_movement
+        assert movement.direction == 'in'
+
+        response = _call(api_client, token, 'update_pocket', {
+            'record_id': movement.id, 'direction': 'out',
+        })
+
+        result = response.data['result']
+        assert result['isError'] is True
+        assert 'no se puede cambiar' in result['content'][0]['text']
+        movement.refresh_from_db()
+        assert movement.direction == 'in'
+
+    def test_delete_pocket_cascades_to_linked_income_record(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        """Catches an AI agent silently deleting a real income record via
+        delete_pocket without the cascade actually running (or without
+        actually running at all) — accounting_service.py:392-426.
+        """
+        _, token = accounting_connector
+        record = self._create_liquid_pocket_income(api_client, token)
+        movement_id = record.pocket_movement_id
+
+        response = _call(api_client, token, 'delete_pocket', {'record_id': movement_id})
+
+        assert response.data['result']['isError'] is False
+        assert not IncomeRecord.objects.filter(pk=record.id).exists()
+        from content.models import PocketMovement
+
+        assert not PocketMovement.objects.filter(pk=movement_id).exists()

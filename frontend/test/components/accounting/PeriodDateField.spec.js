@@ -63,11 +63,13 @@ describe('PeriodDateField', () => {
     const monthInput = wrapper.find('[data-testid="pf-input"]');
     expect(monthInput.attributes('type')).toBe('month');
     expect(monthInput.element.value).toBe('2026-11');
+    // quality: allow-implementation-coupling (wrapper is the v-model host, not the SUT)
     expect(wrapper.vm.value).toBe('2026-11');
     expect(wrapper.text()).toContain('Mes');
 
     await wrapper.find('[data-testid="pf-toggle"]').trigger('click');
     // Back to exact mode: the month is kept as its day-1 date.
+    // quality: allow-implementation-coupling (wrapper is the v-model host, not the SUT)
     expect(wrapper.vm.value).toBe('2026-11-01');
     expect(wrapper.find('[data-testid="pf-input"]').element.value)
       .toBe('2026-11-01');
@@ -86,6 +88,7 @@ describe('PeriodDateField', () => {
 
     await wrapper.find('[data-testid="pf-toggle"]').trigger('click');
 
+    // quality: allow-implementation-coupling (wrapper is the v-model host, not the SUT)
     expect(wrapper.vm.value).toBe('');
     expect(wrapper.find('[data-testid="pf-input"]').attributes('type'))
       .toBe('month');

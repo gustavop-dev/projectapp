@@ -2619,38 +2619,120 @@ class TestRenderRawTextBoldLine:
         assert isinstance(y, (int, float))
 
 
-class TestInvestmentHostingRendering:
-    def test_hosting_with_note_and_renewal_renders(self, pdf_canvas, proposal):
-        """Investment hosting plan with note and renewal fields renders correctly."""
-        data = _investment_content_json(
-            totalInvestment='$5.000.000',
-            hostingPlan=_HOSTING_PLAN_WITH_SPECS | {
-                'renewalNote': 'Renewal at 5% SMLMV.',
-            },
-        )
-        ps = {'num': 1, 'client': 'Test', 'total': None,
-              'selected_modules': None, '_fr_items': [],
-              '_calc_module_items': [], 'base_weeks': 0}
-        y = SECTION_RENDERERS['investment'](pdf_canvas, data, proposal, ps=ps)
-        assert isinstance(y, (int, float))
+class TestInvestmentHostingRenewalContent:
+    """The renewal callout must actually put text in the generated PDF, not
+    just avoid crashing — proposal_pdf_service.py:1534-1560.
+    """
 
-    def test_hosting_with_no_renewal_generates_default(self, pdf_canvas, proposal):
-        """Hosting without renewalNote but with title generates default renewal text."""
-        data = _investment_content_json(
-            totalInvestment='$5.000.000',
-            hostingPlan={
-                'title': 'Starter',
-                'description': 'Basic hosting.',
-                'specs': [],
-                'monthlyPrice': '$50.000',
-                'annualPrice': '',
-            },
+    def _proposal_with_investment(self, hosting_plan):
+        p = BusinessProposal.objects.create(
+            title='Renewal PDF Test',
+            client_name='Renewal Client', client_email='renewal@test.com',
+            language='es', currency='COP', status='sent',
+            total_investment=Decimal('5000000'),
+            expires_at=timezone.now() + timezone.timedelta(days=20),
         )
-        ps = {'num': 1, 'client': 'Test', 'total': None,
-              'selected_modules': None, '_fr_items': [],
-              '_calc_module_items': [], 'base_weeks': 0}
-        y = SECTION_RENDERERS['investment'](pdf_canvas, data, proposal, ps=ps)
-        assert isinstance(y, (int, float))
+        ProposalSection.objects.create(
+            proposal=p, section_type='investment',
+            title='Inversión', order=4, is_enabled=True,
+            content_json=_investment_content_json(hostingPlan=hosting_plan),
+        )
+        return p
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_custom_renewal_note_text_appears_in_generated_pdf(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
+        """Catches the renderer silently dropping/mangling the admin-written
+        renewalNote text instead of drawing it in the RENOVACIONES callout,
+        or dropping the hosting specs/pricing table rendered alongside it
+        (maximal hosting payload: specs grid + legacy monthly/annual price
+        row + coverage callout, all sharing this SECTION_RENDERERS entry).
+        """
+        proposal = self._proposal_with_investment(_HOSTING_PLAN_WITH_SPECS | {
+            'renewalNote': 'La renovación anual queda fija en $987.654 COP durante el primer trienio.',
+        })
+
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        assert pdf_bytes is not None
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+
+        assert 'RENOVACIONES' in text
+        assert 'La renovación anual queda fija en $987.654 COP durante el primer trienio.' in text
+        assert 'Storage' in text
+        assert '$150.000' in text
+        assert '$1.500.000' in text
+        assert 'Hosting covers domain, SSL, and CDN.' in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_default_smlmv_renewal_formula_appears_when_note_missing(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
+        """Catches the auto-generated SMLMV renewal formula being dropped or
+        replaced by empty output when a hosting title is set but no explicit
+        renewalNote was written.
+        """
+        proposal = self._proposal_with_investment({
+            'title': 'Starter',
+            'description': 'Basic hosting.',
+        })
+
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        assert pdf_bytes is not None
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+
+        assert 'RENOVACIONES' in text
+        assert (
+            'Renovaciones para cada año de renovación (a partir del segundo año)'
+            in text
+        )
+        assert 'Costo de renovación = Costo del año anterior' in text
+
+    @patch(
+        'content.services.proposal_pdf_service.COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    @patch(
+        'content.services.proposal_pdf_service.BACK_COVER_PDF',
+        new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
+    )
+    def test_hosting_with_no_renewal_generates_default(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
+        """Catches the legacy monthly-only price row (monthlyPrice set,
+        annualPrice empty — proposal_pdf_service.py:1495-1514) losing its
+        label/price text, or the annual price row rendering anyway even
+        though annualPrice is falsy.
+        """
+        proposal = self._proposal_with_investment({
+            'title': 'Starter',
+            'description': 'Basic hosting.',
+            'specs': [],
+            'monthlyPrice': '$50.000',
+            'annualPrice': '',
+        })
+
+        pdf_bytes = ProposalPdfService.generate(proposal)
+
+        assert pdf_bytes is not None
+        reader = PdfReader(io.BytesIO(pdf_bytes))
+        text = '\n'.join(page.extract_text() or '' for page in reader.pages)
+
+        assert 'por mes' in text
+        assert '$50.000' in text
+        assert 'pago anual' not in text
 
 
 class TestRequirementGroupEmptyItems:

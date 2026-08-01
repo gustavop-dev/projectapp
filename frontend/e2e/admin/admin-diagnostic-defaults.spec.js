@@ -182,6 +182,10 @@ test.describe('Admin Diagnostic Defaults Config', () => {
     await page.goto('/panel/diagnostics/defaults', { waitUntil: 'domcontentloaded' });
 
     await page.getByRole('link', { name: /Volver a Diagnósticos/i }).click();
-    await page.waitForURL('**/panel/diagnostics**');
+    // Pre-click URL is /panel/diagnostics/defaults, which the plain
+    // '**/panel/diagnostics**' pattern already matches — negative lookahead
+    // excludes the defaults sub-route so this only passes once the SPA
+    // actually navigates to the diagnostics list.
+    await page.waitForURL(/\/panel\/diagnostics(\?|$|\/(?!defaults))/);
   });
 });

@@ -139,6 +139,10 @@ test.describe('Admin Proposal Defaults Config', () => {
 
     // Click back link
     await page.locator('text=Volver a Propuestas').click();
-    await page.waitForURL('**/panel/proposals**');
+    // Pre-click URL is /panel/proposals/defaults, which the plain
+    // '**/panel/proposals**' pattern already matches — negative lookahead
+    // excludes the defaults sub-route so this only passes once the SPA
+    // actually navigates to the proposals list.
+    await page.waitForURL(/\/panel\/proposals(\?|$|\/(?!defaults))/);
   });
 });
