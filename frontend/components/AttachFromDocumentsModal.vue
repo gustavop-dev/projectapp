@@ -15,16 +15,16 @@
       </header>
 
       <div class="flex-1 overflow-y-auto px-5 py-3">
-        <p v-if="!availableDocs.length" class="text-xs text-gray-400 dark:text-white/40 py-6 text-center">
+        <p v-if="!availableDocs.length" class="text-xs text-text-subtle dark:text-white/40 py-6 text-center">
           No hay documentos disponibles para adjuntar.
         </p>
-        <ul v-else class="divide-y divide-gray-100 dark:divide-white/[0.06]">
+        <ul v-else class="divide-y divide-border-muted dark:divide-white/[0.06]">
           <li v-for="doc in availableDocs" :key="doc.key" class="py-2.5 flex items-center gap-3">
             <input :id="`attach-${doc.key}`" v-model="selectedKeys" type="checkbox" :value="doc.key"
-              class="rounded border-gray-300 dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30" />
+              class="rounded border-input-border dark:border-white/[0.15] text-text-brand focus:ring-focus-ring/30" />
             <label :for="`attach-${doc.key}`" class="flex-1 min-w-0 cursor-pointer">
               <div class="text-sm text-text-default truncate">{{ doc.label }}</div>
-              <div class="text-[11px] text-gray-400 dark:text-white/40 mt-0.5">{{ doc.description }}</div>
+              <div class="text-[11px] text-text-subtle dark:text-white/40 mt-0.5">{{ doc.description }}</div>
             </label>
           </li>
         </ul>

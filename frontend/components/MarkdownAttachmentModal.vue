@@ -44,7 +44,7 @@
                   {{ templateCopied[t.slug] ? '¡Copiado!' : `Copiar ${t.label}` }}
                 </BaseButton>
               </div>
-              <p class="text-[11px] text-gray-400 dark:text-green-light/40 mt-1">
+              <p class="text-[11px] text-text-subtle dark:text-green-light/40 mt-1">
                 Copia la plantilla, edítala y pégala en el contenido.
               </p>
             </div>
@@ -59,15 +59,15 @@
             <fieldset class="space-y-2">
               <legend class="text-xs font-medium text-text-default dark:text-green-light mb-1">Portadas</legend>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includePortada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includePortada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Portada principal
               </label>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includeSubportada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includeSubportada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Portada secundaria (carátula con título)
               </label>
               <label class="flex items-center gap-2 text-xs text-text-default dark:text-green-light">
-                <input type="checkbox" v-model="includeContraportada" class="rounded border-gray-300 text-text-brand focus:ring-focus-ring/30" />
+                <input type="checkbox" v-model="includeContraportada" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
                 Contraportada
               </label>
             </fieldset>
@@ -85,16 +85,16 @@
           </div>
 
           <!-- Preview column -->
-          <div class="bg-gray-50 dark:bg-surface/[0.02] flex flex-col overflow-hidden">
+          <div class="bg-surface-muted dark:bg-surface/[0.02] flex flex-col overflow-hidden">
             <div v-if="previewUrl" class="flex-1 min-h-0">
               <iframe :src="previewUrl" class="w-full h-full border-0" title="Vista previa PDF"></iframe>
             </div>
             <div v-else class="flex-1 flex items-center justify-center text-center p-8">
               <div class="max-w-xs">
-                <svg class="w-12 h-12 mx-auto text-gray-300 dark:text-white/20 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-12 h-12 mx-auto text-text-subtle dark:text-white/20 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <p class="text-xs text-gray-400 dark:text-green-light/40">
+                <p class="text-xs text-text-subtle dark:text-green-light/40">
                   Escribe un título y contenido, luego pulsa <span class="font-medium">Vista previa</span> para ver cómo queda el PDF.
                 </p>
               </div>
