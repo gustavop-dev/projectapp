@@ -1,4 +1,4 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.3)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.4)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
@@ -10,6 +10,8 @@
 - **Tarifa de venta blended de referencia: ≈ $18.750 COP/hora** (≈ US$5,4 a TRM ≈ $3.443/USD). *Recalibrada el 02/07/2026:* la calibración anterior (≈ $75.000/h) producía precios justos para un mercado desarrollado (≈ EE.UU.), no para la realidad colombiana; por directriz del dueño los rangos se dividieron **÷4**.
 - **Killer: $20.000.000 COP** — una propuesta (la **suma** de los requerimientos, no un ítem suelto) por encima de ese techo tiende a ser rechazada. Obligatorio fragmentar.
 - **Granularidad:** se estima funcionalidad por funcionalidad; el proyecto es la suma.
+- **Vigencia de la estimación: 30 días.** Todo estimate declara "precios válidos por 30 días desde su fecha"; pasado el plazo se re-emite en vez de honrarse (la tarifa y el catálogo evolucionan — la recalibración ÷4 cambió todos los precios en un solo día).
+- **Calibrada exclusivamente para cliente PYME colombiano (COP + IVA).** Cliente extranjero / cotización en USD: **fuera de alcance** — no usar esta tarifa ni el semáforo. Referencia histórica: la tabla ×4 aproxima un mercado desarrollado (calibración pre-recalibración del 02/07/2026); en ese caso, cotización manual del dueño.
 
 ### Qué incluye y qué no (por defecto)
 
@@ -60,6 +62,22 @@
 - Se difiere a V2/V3 lo que *mejora* la operación pero no la bloquea: reportes, notificaciones, filtros guardados, dashboards.
 - Las **adyacencias** son las candidatas naturales a versiones posteriores.
 
+## Si el cliente contrapropone
+
+Las Estrategias A/B son **preventivas** (se deciden antes de presentar). Cuando el cliente ya tiene el precio y contrapropone, el orden de respuesta es:
+
+1. **Moverse al piso del rango, a cambio de algo.** El precio siempre se presentó como piso–techo: aceptar el piso es legítimo si se obtiene una contraparte (anticipo mayor, cronograma flexible, testimonio/caso de estudio, cierre esta semana).
+2. **Por debajo del piso: recortar alcance, nunca tarifa.** Las candidatas a V2 y las adyacencias detectadas en la estimación SON la lista de recorte ya computada — se retiran filas completas y se re-declara el total. Bajar la tarifa sin recortar enseña que el precio estaba inflado.
+3. **Tope de descuento sin recorte: ~10%.** Más allá, se re-emite el estimate con alcance menor (documento nuevo versionado — nunca una cifra negociada por chat sin documento).
+
+## Trabajo recurrente (referencia)
+
+El estimate cotiza **proyectos**; el trabajo recurrente se cotiza aparte con estas reglas:
+
+- **Bolsa de horas prepagada:** tarifa blended × horas; mínimo mensual sugerido 10 h; vigencia de la bolsa 60 días. El correctivo post-garantía consume bolsa.
+- **SLA formal: no se ofrece** — con un equipo de este tamaño sería un compromiso ficticio; lo honesto es la bolsa con prioridad de atención.
+- **Hosting / infraestructura recurrente:** ítem aparte siempre (nunca dentro de la bolsa ni del estimate).
+
 ## Adyacencias — mapa "abre la puerta"
 
 Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/versiones y no quedar cortos en el análisis.
@@ -90,10 +108,16 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · **precios válidos por 30 días desde la fecha del documento** · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
 
 ---
 
-## Qué cambió en esta versión (v1.3 — recalibración al mercado colombiano)
+## Qué cambió en esta versión (v1.4 — reglas comerciales del ciclo de venta)
+
+**Revisión metodológica 01/08/2026 (lente de proceso):** se agregaron las reglas comerciales que faltaban alrededor del estimate — **vigencia de 30 días** (premisa + supuesto declarado) · **guía de contraoferta** (piso a cambio de algo → recorte de alcance, nunca tarifa → tope ~10% → re-emitir) · **trabajo recurrente** (bolsa de horas de referencia; SLA formal declarado no-ofrecido) · **cliente extranjero/USD declarado fuera de alcance**. **Sin cambios** en tarifa, tallas, horas ni umbrales del semáforo.
+
+---
+
+## Qué cambió en la versión anterior (v1.3 — recalibración al mercado colombiano)
 
 **Recalibración de precios (02/07/2026, directriz del dueño tras probar la calculadora con los tres reportes de Vástago):** los rangos por talla producían valores justos para un mercado desarrollado (≈ EE.UU.); se dividieron **÷4** para acercarlos a lo que el cliente colombiano efectivamente acepta. La tarifa blended pasó de ≈ $75.000/h a **≈ $18.750/h**. **Sin cambios:** horas por nivel, señales y niveles del catálogo, modificadores, y las zonas del semáforo ($12M/$20M), que miden disposición de pago absoluta y no se recalibran con la tarifa.

@@ -1,4 +1,4 @@
-# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.3)
+# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.4)
 
 > **Propósito.** Este documento es el corazón del procesamiento de un requerimiento. Mapea señales concretas presentes en la **descripción de un requerimiento** hacia un **nivel de esfuerzo (XS → XL)**, que luego se traduce en horas y precio. No estima proyectos completos: clasifica **funcionalidad por funcionalidad** (o feature por feature); el proyecto es la suma.
 >
@@ -104,6 +104,20 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Asignación / despacho de tareas o pedidos (dispatch)** — distribuir unidades de trabajo (pedidos, citas, leads, casos) entre un pool de responsables con reglas — round-robin, carga, zona, habilidad — más aceptar/rechazar, reasignación y notificación. Un campo "asignado a" manual con notificación es `M`; despacho automático en tiempo real con geolocalización y rutas → `XL`.
 - **Oferta / contraoferta entre dos partes (negociación)** — una parte ofrece, la otra acepta, rechaza o contraoferta; historial del hilo, expiración y notificación por movimiento. ≠ pipeline de documentos comerciales (ahí emite la empresa; aquí negocian dos usuarios). Una oferta simple sin réplica es `M`; subasta con pujas en tiempo real → `XL`.
 - **Corte y liquidación periódica a contrapartes** — cierre de periodo que congela las transacciones incluidas, cálculo del neto (usa el motor de comisiones si existe), estado de cuenta y estados pagado/pendiente/en disputa (vendedores, repartidores, comisionistas, propietarios). La dispersión real del dinero es `XL` (pagos); la nómina es `XL` regulatorio.
+- **Cartera / cuentas por cobrar recurrentes (sin pasarela)** — generación periódica de las obligaciones del ciclo (canon, pensión, mensualidad, cuota, aporte) a cada tercero según su plan, registro de pagos manuales (efectivo, transferencia reportada), saldos por tercero con edades de mora e intereses, y estado de cuenta / paz y salvo. ≠ *suscripciones* (`XL`): allá recauda la pasarela automáticamente con reintentos y dunning; aquí el recaudo es manual y el sistema lleva la cuenta. ≠ *cuenta de cobro simple* (`M`: un documento suelto, no el ciclo). Sólo alertar fechas de pago sin saldos es `M` (*vencimientos*). La generación masiva mensual suma *Tarea programada*; con recaudo en línea → `XL` (dinero); el cruce contra extracto es *Conciliación por archivo*. Es la contracara CxC de *Corte y liquidación a contrapartes* (CxP).
+- **Expediente de cumplimiento documental** — checklist de documentos requeridos por tipo de sujeto (empleado, proveedor, contratista, arrendatario, conductor), carga con estados (pendiente / cargado / aprobado / rechazado / vencido), semáforo de completitud por sujeto y vencimiento por documento con alertas y re-solicitud. ≠ *gestor documental* (`L`: repositorio libre, sin lista de requeridos ni semáforo); si el gestor ya existe, agregar la capa de requeridos baja a `M` (extiende). Un solo documento con vencimiento y alerta es `M`. Con verificación normativa (SARLAFT/SAGRILAFT, listas restrictivas) → `XL` regulatorio.
+- **Inspección / checklist operativo con puntaje y evidencia** — diligenciar en campo una plantilla de ítems (cumple / no cumple / N.A.) con foto de evidencia por ítem, puntaje o resultado (apto / no apto) y hallazgos que abren acción correctiva con responsable. ≠ *renderizado dinámico desde configuración* (`L`: sólo pinta el formulario, sin puntaje ni hallazgos). Un checklist plano como campos de un registro existente es `M`. Si el cliente diseña sus plantillas de inspección → sumar *centro de plantillas / constructor* (`L` aparte); cierre de hallazgos con flujo multi-etapa → `XL`.
+- **Expediente / hoja de vida longitudinal de un sujeto** — ficha 360: datos maestros + episodios acumulados en línea de tiempo (atenciones, actuaciones, mantenimientos, novedades) con adjuntos por episodio y vista cronológica unificada. Es la forma nombrada de *múltiples CRUD relacionados*. Si los CRUD ya existen y sólo se pide la línea de tiempo → `M` (extiende). ≠ *trazabilidad / auditoría* (`L`: la bitácora registra eventos del sistema — quién editó qué; el expediente registra hechos del dominio — qué le pasó al sujeto). ≠ *expediente de cumplimiento documental* (aquel dice qué papeles debe tener; este, qué le ha ocurrido). Historia clínica con exigencia normativa plena → `XL` regulatorio.
+- **Conciliación por archivo (cruce de fuente externa contra registros)** — subir un archivo externo (extracto bancario, planilla de libranza, reporte de pasarela) y cruzarlo contra registros internos: matching automático por reglas (referencia, valor, fecha), cola de no-matcheados con resolución manual y aplicación masiva de pagos. ≠ *importación masiva con validaciones* (`L`: esa crea registros; esta cruza y aplica). ≠ *conciliación bancaria directa / open banking* (`XL`). Registrar un pago manual suelto es `M`.
+- **Quiz / evaluación con calificación automática** — banco de preguntas (opción múltiple, V/F), intentos limitados, tiempo, calificación contra clave, nota mínima aprobatoria y resultado que dispara el paso siguiente (aprobar módulo, emitir certificado). ≠ *constructor de encuestas* (`L`: la encuesta agrega opiniones, no califica contra respuestas correctas). Un cuestionario fijo con nota simple sobre un flujo existente es `M`. Banco adaptativo, proctoring o certificación a escala → `XL`. Compone en cadena natural con *desbloqueo secuencial* y *credenciales verificables*.
+- **Crédito interno con tabla de amortización** — solicitud + aprobación (*maker-checker*), desembolso registrado, plan de cuotas con interés (capital/interés por cuota), abonos con recálculo (abono a capital), mora con interés moratorio y estado de cuenta del deudor. ≠ *billetera / ledger* (`L`: el ledger registra movimientos ocurridos; aquí se proyecta un plan de pagos futuro y se recalcula). Una deuda simple con abonos y saldo, sin interés ni plan, es `M` sobre lo existente. Con desembolso/recaudo real por pasarela, centrales de riesgo o normativa financiera → `XL` (dinero + regulatorio).
+- **Registro de asistencia a sesiones** — sesiones programadas (clase, culto, turno, capacitación) con marcación por lista, QR o self check-in, estados presente/ausente/justificado, % de asistencia por persona y alertas por inasistencia acumulada. Tomar lista manual sobre un listado existente es `M` (*acciones masivas*). ≠ *turnero / digiturno* (`L`: la fila llama personas a ventanilla; aquí se registra presencia en sesiones). Con torniquete/biometría → modificador *Hardware*; como control de acceso físico a escala → borde `XL`.
+- **Acta / evidencia de ejecución en campo (POD)** — al completar una entrega o servicio en sitio, captura guiada desde el móvil del paquete probatorio: foto(s), firma del receptor, geolocalización y timestamp, generando acta/POD en PDF numerado asociado a la orden y consultable después. Foto + firma sueltas adjuntas a un registro existente = `M` (composición de *carga de archivos* + *firma en canvas*). ≠ *inspección con puntaje* (`L`: esa evalúa un objeto contra plantilla; aquí sólo se prueba que la ejecución ocurrió). Con validez legal certificada → `XL` (firma); operar sin conexión y sincronizar → `XL` (offline-first).
+- **Votación / elección con padrón y quórum** — votaciones con padrón cerrado de habilitados (con poderes y coeficientes de copropiedad en PH), voto único por pregunta, quórum calculado en vivo y acta de resultados. ≠ *constructor de encuestas* (`L`: la encuesta es abierta y agrega; aquí hay padrón, voto único y quórum). Un sondeo entre usuarios existentes es `M` (*encuesta fija*). Asamblea virtual en vivo (streaming + voto en tiempo real a escala) → `XL` (composición).
+- **Tablero de operación en vivo por estaciones (cola de trabajo / KDS)** — las órdenes entran y avanzan por estaciones (recibido → preparando → listo → entregado) en un tablero full-screen con actualización en vivo, alerta por tiempo excedido y agrupación por estación. ≠ *turnero* (`L`: llama personas; aquí avanzan órdenes). ≠ *Kanban* (`L`: el usuario arrastra tarjetas a voluntad; aquí el avance lo disparan eventos del flujo). Refrescar un dato en una vista es `M` (*actualización en vivo puntual*). Multi-sede o pantallas físicas → modificadores.
+- **Producto compuesto / receta (BOM) con descuento de componentes** — definir un producto como lista de componentes con cantidades (receta, combo, kit), costo calculado desde los componentes y, al vender o producir, descuento en cascada de los componentes del inventario. Requiere *inventario básico* existente o se cotiza junto. El combo fijo sin descuento de stock por componentes es `M`. ≠ *clonar entidad con relaciones* (`M`). Órdenes de producción con etapas, mermas y trazabilidad → descomponer (`XL`).
+- **Sesión por tiempo con tarificación al cierre** — el check-in abre una estadía (vehículo, sala, cancha, locker, mascota), el check-out la cierra y calcula el valor con reglas de fracción, tope diario y franjas (nocturno/diurno), generando el cobro. Registrar entrada/salida con duración sin tarifa es `M`. ≠ *contador / temporizador en UI* (`S`: visual). ≠ *módulo de caja* (`L`: arquea el turno del cajero — conviven). Con talanquera/impresora de tiquete → modificador *Hardware*; mensualidades → *cartera CxC*; pago en línea → `XL`.
+- **Mapa de asientos / espacios con selección y bloqueo (seat map)** — plano visual donde cada unidad tiene estado (libre / bloqueada / ocupada) y el usuario selecciona con bloqueo temporal anti doble-asignación que expira. Suma casi siempre el modificador *Concurrencia / atomicidad*. ≠ *visualización interactiva compleja* (`L`: esa edita estructuras — Gantt, organigrama; aquí se reservan unidades en concurrencia). La asignación manual por el admin sin concurrencia es `M`. Con venta y pago → `XL` (comercio / reservas críticas).
 
 _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad · invitaciones/referidos · web scraping/crawling (proxies, CAPTCHAs).
 
@@ -162,6 +176,8 @@ _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad �
 - **Comparador de ítems lado a lado** — seleccionar N ítems de un catálogo existente y verlos en tabla comparativa de atributos, con persistencia de la selección. Si los atributos comparables los configura el admin o se comparan entidades heterogéneas → `L`.
 - **Texto sugerido automáticamente por el sistema, editable por el usuario** — el sistema propone un texto a partir de datos ya registrados (movimientos, historial, plantillas de contexto) y el usuario lo complementa o sobrescribe antes de persistir: observaciones, descripciones, respuestas precargadas. Si la sugerencia la produce una IA → señal *Funcionalidad basada en IA* (`M`–`L`).
 - **Bloqueo/reserva exclusiva de un registro por usuario** — al iniciar el trabajo, el registro queda reservado a quien lo tomó y un segundo usuario recibe el mensaje de bloqueo (lock con `select_for_update` o equivalente). Suele sumar el modificador *Concurrencia / atomicidad*; la liberación por timeout/vencimiento se cotiza con su *Tarea programada*. ≠ edición colaborativa concurrente sobre el mismo estado (→ `XL` sincronización en tiempo real).
+- **Contador de pendientes con badge en la navegación** — endpoint de conteo por rol + número sobre el ítem de menú o campana + refresco periódico (polling). Replicarlo a un módulo nuevo cuando el patrón ya existe en otros activa el atenuador *extiende algo existente*. ≠ *badge / chip de estado* (`S`: sólo pinta un estado ya cargado en la vista); ≠ *centro / bandeja de notificaciones* (`L`).
+- **Consulta pública de estado por código (sin login)** — página pública donde un tercero consulta el estado de su caso (guía, reparación, radicado, reserva) con un código/token no adivinable: sólo lectura, línea de estados y rate limiting. ≠ *portal de autoservicio* (`L`: autenticación y múltiples vistas). ≠ *credenciales verificables* (`L`: emiten comprobante con ciclo válido/usado/revocado). El enlace a una vista interna autenticada es `S` (*deep link*). Con datos sensibles sumar *cifrado de campos / consentimientos*; con mapa en vivo → `XL` (tracking).
 
 _Rondando el borde:_ favoritos/guardados · recordatorios/snooze · manejo de zona horaria/locale.
 
@@ -195,6 +211,7 @@ _Rondando el borde:_ favoritos/guardados · recordatorios/snooze · manejo de zo
 - **Animaciones / micro-interacciones puntuales** — transiciones, hover, feedback visual.
 - **Deep link con restauración de estado** — abrir una vista en una pestaña/sección/filtro específico vía URL (query params → estado). El ancla o enlace simple es `XS`.
 - **Retiro controlado de un comportamiento ya entregado** — eliminar un endpoint/acción y su UI, reescribiendo las pruebas que lo cubrían (≠ ocultar un elemento existente, `XS`; sube a `M` si exige decidir o archivar datos históricos del comportamiento retirado).
+- **Conectar o reactivar una capacidad ya construida pero no cableada** — unir dos piezas existentes (generador de archivo → correo que lo adjunta; tipo de evento declarado → su tarea programada) o restaurar código deliberadamente deshabilitado, reescribiendo las pruebas del comportamiento reactivado. ≠ activar un feature flag ya operativo (`XS`); ≠ construir la pieza faltante (nivel propio de la pieza). Es el espejo de *Retiro controlado de un comportamiento ya entregado*.
 
 _Rondando el borde:_ breadcrumbs · contador de caracteres/límites en input.
 
@@ -216,6 +233,7 @@ _Rondando el borde:_ breadcrumbs · contador de caracteres/límites en input.
 - **Reordenar campos o columnas** / cambiar el criterio de un filtro fijo.
 - **Activar / desactivar** un feature flag o configuración ya construida.
 - **Actualizar una variable de entorno** / API key / URL (staging → producción).
+- **Exponer un dato ya persistido como columna o campo de un listado** — agregar la columna con su formato (y ordenamiento si aplica); el dato ya existe en el modelo. El barrido del mismo dato sobre N listados es `S`. ≠ construir la trazabilidad que produce el dato (`L`); ≠ campo calculado nuevo (`M`).
 
 ---
 
@@ -288,17 +306,17 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 |---|---|---|---|---|
 | Búsqueda | client-side sobre datos cargados | server-side en un listado | facetada con autocompletado / global multi-entidad | full-text con indexación |
 | Importación | — | simple sin validación | masiva con validaciones | migración / ETL desde legacy |
-| Notificaciones | toast efímero | por evento (in-app/correo) | centro in-app / canal único vía proveedor | mensajería a escala (multicanal, campañas) |
+| Notificaciones | toast efímero | por evento (in-app/correo) / contador de pendientes con badge en navegación | centro in-app / canal único vía proveedor | mensajería a escala (multicanal, campañas) |
 | Datos / visualización | badge de estado | métricas o reporte parametrizable | dashboard / visualización interactiva a medida | motor de BI sobre volumen |
 | Autenticación | — | OAuth / recuperación sobre lo existente | módulo completo o 2FA/MFA | SSO corporativo |
 | Permisos | ajuste puntual (XS) | permisos / visibilidad por rol | panel RBAC granular | seguridad empresarial |
 | Documentos | descarga estática | adjuntar a una entidad / plantilla fija con variables | gestor documental / centro de plantillas | firma certificada / motor de PDF complejo |
-| Facturación / contabilidad | — | cuenta de cobro / factura simple PDF · exportación contable formato tercero | pipeline de documentos comerciales | facturación electrónica DIAN / contabilidad de dominio |
+| Facturación / contabilidad | — | cuenta de cobro / factura simple PDF · exportación contable formato tercero | pipeline de documentos comerciales / cartera CxC recurrente sin pasarela | facturación electrónica DIAN / contabilidad de dominio |
 | Duplicar | duplicar un documento (S) | clonar entidad con relaciones | — | — |
 | Drag-and-drop | — | agregar DnD a una lista existente | constructor / Kanban desde cero | motor de formularios como producto |
 | Validación | requerido/límite (XS), regex (S) | de negocio (cross-field) | — | cumplimiento regulatorio |
 | Geo / mapas | — | — | mapa con pines y rutas | tracking en vivo / georreferenciación |
-| Tiempo real | refresco manual / botón actualizar | polling o websocket en una vista | chat o feed en vivo propio | sincronización transversal / colaborativa |
+| Tiempo real | refresco manual / botón actualizar | polling o websocket en una vista | chat o feed en vivo propio / tablero de operación por estaciones (KDS) | sincronización transversal / colaborativa |
 | Firma | — | dibujada en canvas / aceptación | firma-imagen posicionada en un PDF propio | certificada PKI / validez legal |
 | Pagos | — | — | link de pago de pasarela | checkout completo / suscripciones |
 | Correo | plantilla básica texto plano | con branding / por evento / plantilla fija | centro de plantillas administrable | campañas masivas / deliverability |
@@ -306,19 +324,28 @@ El diferenciador es *desde cero vs. sobre lo existente* y *volumen / motor*.
 | Plataforma | responsive puntual (S) | responsive completo (mod +15–35%) | PWA (mod +30%) | app nativa (mod +60%) — *toda la fila son modificadores; el nivel lo da la funcionalidad* |
 | Media / archivos | descarga estática | upload con procesamiento | galería / gestor multimedia | pipeline de video / streaming en vivo |
 | Encuestas / formularios | — | encuesta fija simple | constructor de encuestas / form builder interno | motor de formularios como producto |
-| Auditoría / eventos | — | mostrar historial ya registrado | construir bitácora/auditoría (quién, qué, cuándo) | auditoría avanzada con cumplimiento (seguridad empresarial) |
+| Auditoría / eventos | exponer como columna un dato ya registrado | mostrar historial ya registrado | construir bitácora/auditoría (quién, qué, cuándo) | auditoría avanzada con cumplimiento (seguridad empresarial) |
 | Analítica de uso | script de terceros (GA/pixel) | tracking/telemetría propia básica | analítica de comportamiento con panel propio | motor de BI sobre volumen |
 | Aprobaciones / flujo | — | maker-checker sobre lo existente | módulo de solicitudes desde cero / tickets-PQRS | ≥3 etapas con escalamiento/SLA / workflow configurable (BPM) |
-| Agendamiento / reservas | — | vencimientos / recordatorios con alertas | agenda base / cita de un recurso sin pago | scheduling multi-recurso con concurrencia y pagos |
+| Agendamiento / reservas | — | vencimientos / recordatorios con alertas | agenda base / cita de un recurso sin pago / selección de espacio en plano (seat map) sin pago | scheduling multi-recurso con concurrencia y pagos |
 | Precios / descuentos | cambiar un precio o % fijo (XS) | cupón simple / lista de precios por cliente / parametrizar regla fija | motor de reglas de precios / comisiones | el cliente configura reglas como BPM |
 | Integraciones | script / pixel (S) | webhook saliente / componente FE de terceros | API de datos autenticada / canal único de mensajería / link de pago | ERP-CRM bidireccional / pagos recurrentes / datos sensibles / API pública propia |
-| Inventario / stock | — | campo de stock + alerta de mínimos sobre lo existente | inventario básico desde cero | checkout con stock descontado / alto volumen con concurrencia |
+| Inventario / stock | — | campo de stock + alerta de mínimos sobre lo existente | inventario básico desde cero / receta (BOM) con descuento de componentes | checkout con stock descontado / alto volumen con concurrencia |
 | Matching | — | "sugeridos" por filtros fijos sobre búsqueda existente | motor de emparejamiento con criterios y mutualidad | matching en tiempo real a escala / con modelo propio |
 | Espera / cupo | — | "avísame cuando haya disponibilidad" (alerta pasiva) | lista de espera con promoción automática y ventana | reservas críticas con pagos y concurrencia |
-| Créditos / saldo | — | contador simple decrementable sin historial | billetera / ledger con extracto y atomicidad | recargas / retiros de dinero real |
+| Créditos / saldo | — | contador simple decrementable sin historial / deuda con abonos y saldo simple | billetera / ledger con extracto y atomicidad / crédito con tabla de amortización | recargas / retiros de dinero real / originación regulada (centrales de riesgo) |
 | Asignación | — | "asignado a" manual con notificación | dispatch con reglas y aceptar/rechazar | despacho en tiempo real con tracking / rutas |
 | Negociación | — | oferta simple sin réplica | oferta / contraoferta con expiración | subasta con pujas en tiempo real |
 | Estados | badge / chip de estado | máquina de estados de un registro / cambio masivo (bulk) | acciones y permisos por estado o varios actores | flujo multi-etapa ≥3 / workflow configurable (BPM) |
+| Cumplimiento documental | — | un documento con vencimiento y alerta | expediente de requeridos con semáforo y vencimientos por sujeto | due diligence regulado (SARLAFT, listas restrictivas) |
+| Ficha / expediente | vista de detalle de un registro (S) | CRUD de una entidad con extras | expediente longitudinal con línea de tiempo multi-fuente | historia clínica regulada / interoperabilidad normativa |
+| Evaluación / inspección | checkbox / toggle (XS) | checklist plano como campos / cuestionario fijo con nota simple | inspección con puntaje y evidencia · quiz auto-calificado con banco | motor de formularios-inspecciones como producto / certificación a escala |
+| Autoservicio del cliente final | deep link a vista interna (S) | consulta pública de estado por código · una vista de datos propios sobre auth existente | portal de autoservicio completo desde cero | API pública para terceros |
+| Conciliación / cruce | — | registro/marcado manual de pagos contra registros | cruce por archivo con matching y resolución de diferencias | conciliación bancaria directa (open banking) / ERP bidireccional |
+| Asistencia / presencia | — | tomar lista manual sobre un listado existente (bulk) | módulo de sesiones con QR/self check-in, % y alertas | control de acceso físico a escala (hardware como corazón) |
+| Evidencia de ejecución | marcar tarea como hecha (XS) | foto/firma adjuntas a un registro existente | acta de campo completa (foto + firma + geo + PDF numerado) | firma certificada con validez legal / captura offline-first |
+| Votación / participación | — | sondeo / encuesta fija entre usuarios | votación con padrón, voto único, quórum y acta | asamblea virtual en vivo a escala (streaming + voto en tiempo real) |
+| Uso medido por tiempo | contador / temporizador en UI (S) | registrar entrada/salida con duración calculada | sesión con tarificación al cierre (fracción, tope, franjas) | tarificación con hardware/IoT como corazón / telemetría a escala |
 
 _Ejemplo componible (no señal propia): "alertas por búsqueda guardada" = búsqueda avanzada con vistas guardadas (`L`) + notificación por evento (`M`) + modificador *Tarea programada*._
 
@@ -341,7 +368,21 @@ _Ejemplo componible (no señal propia): "alertas por búsqueda guardada" = búsq
 
 ---
 
-## Qué cambió en esta versión (v1.3 — simulación de mercado + patrones por arquetipo)
+## Qué cambió en esta versión (v1.4 — cobertura empírica + cobro manual y operación en campo)
+
+**Método (revisión metodológica del 01/08/2026, tres lentes):** clasificación empírica de ~111 funcionalidades reales de clientes (G&M, Vástago, Kore — el 78% ya matcheaba señal literal), simulación de mercado sobre 19 verticales PYME colombianas, y auditoría de proceso del flujo (sus cambios viven en `SKILL.md` y `market-pricing.md`).
+
+**Señales empíricas (3, patrón repetido en el corpus real):** *contador de pendientes con badge en navegación* (`M` — corrige la sub-cotización sistemática como badge `S`: el caso real exige endpoint por rol + polling) · *exponer un dato ya persistido como columna* (`XS`–`S`) · *conectar/reactivar una capacidad construida no cableada* (`S`, espejo del retiro controlado).
+
+**Arquetipos de mercado (15):** los huecos se concentraban en dos ejes que v1.3 no barrió — el **ciclo de cobro manual colombiano** (*cartera CxC recurrente sin pasarela* · *conciliación por archivo* · *crédito interno con amortización*) y la **operación en campo/presencial** (*inspección con puntaje y evidencia* · *acta/POD de ejecución* · *asistencia a sesiones* · *sesión por tiempo tarificada*). Más: *expediente de cumplimiento documental* · *expediente longitudinal* · *consulta pública de estado por código* (`M`) · *quiz auto-calificado* · *votación con padrón y quórum* · *tablero KDS por estaciones* · *receta/BOM* · *seat map*.
+
+**Señales espejo:** 9 familias nuevas (Cumplimiento documental, Ficha/expediente, Evaluación/inspección, Autoservicio del cliente final, Conciliación/cruce, Asistencia/presencia, Evidencia de ejecución, Votación/participación, Uso medido por tiempo) — total 42 familias — y 7 celdas ampliadas (Notificaciones-`M`, Auditoría-`XS/S`, Facturación-`L`, Créditos-`M/L/XL`, Tiempo real-`L`, Inventario-`L`, Agendamiento-`L`).
+
+**Baseline:** ninguna señal nueva reclasifica filas de los estimates #23–25 (verificado contra los tres); el baseline conserva sus números — ver fila QA en `validation/test-results.md`.
+
+---
+
+## Qué cambió en la versión anterior (v1.3 — simulación de mercado + patrones por arquetipo)
 
 **Correcciones a señales que sobre-disparaban (6):** `XL` *Flujo multi-etapa* ahora exige **≥3 etapas o ≥2 traspasos** (una aprobación de un paso ya no es XL — era el falso positivo más costoso) · `XL` *Agendamiento/reservas críticas* exige **al menos dos** condiciones concurrentes (la cita de un recurso sin pago es `L`) · notas de desempate en *Motor de cotizaciones* (cupón/lista de precios = `M`), *Cuenta de cobro* (consecutivo legal = `L`), *Portal de autoservicio* (una vista sobre auth existente = `M`) y "turnos" (flujo ≠ turnero).
 
@@ -357,7 +398,7 @@ _Ejemplo componible (no señal propia): "alertas por búsqueda guardada" = búsq
 
 ---
 
-## Qué cambió en la versión anterior (v1.2 — auditoría anti-duplicados)
+## Qué cambió en v1.2 (auditoría anti-duplicados)
 
 **Recalibración de plataforma (directriz del dueño):** la calculadora asume **web por defecto**; se eliminó la señal `XL` "app móvil nativa" y se reemplazó por el modificador de plataforma `+60%` (PWA `+30%` y nativa `+60%` son excluyentes entre sí).
 

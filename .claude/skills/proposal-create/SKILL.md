@@ -106,6 +106,20 @@ Del brief, identificar y fijar en `_meta.optional_metadata`:
     `investment.totalInvestment = ''`, y el ROI (Fase 3) va por **metodología/productividad**,
     no anclado a precio. El seller fija el monto luego en el panel.
 
+**Brief con estimate (contrato con `/requirement-calculator`):** si el brief referencia un
+estimate del panel (doc #N de la carpeta Requirement Estimates), ese documento es el insumo
+primario del alcance:
+
+- La **descomposición por funcionalidad** del estimate alimenta los items comerciales de la
+  Fase 4 (los niveles/horas/precios por fila NUNCA se copian al texto que ve el cliente).
+- La **Estrategia comercial** del estimate (fases o V1/V2/V3) alimenta `developmentStages` y
+  `timeline`; el plazo indicativo del estimate es el insumo del cronograma.
+- Los **supuestos y exclusiones** van a `integrations.excluded` / notas; las condiciones de
+  bloqueo del estimate se declaran como nota (nunca se omiten).
+- **Regla rango→punto:** `total_investment` = **techo** del rango del estimate, salvo directriz
+  explícita del operador (el piso queda como margen de negociación y no se publica).
+- Trazabilidad: incluir la línea *"Fuente: estimate #N — DDMMYYYY"* (nota interna o `finalNote`).
+
 Además fijar en la sección `general`: `clientName` (nombre del cliente/empresa) y
 `proposalTitle` = `title`.
 
