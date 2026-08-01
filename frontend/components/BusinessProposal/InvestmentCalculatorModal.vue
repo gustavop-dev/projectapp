@@ -42,6 +42,8 @@
                 <p class="text-[13px] sm:text-sm text-text-brand leading-relaxed font-medium">
                   {{ t.optionalItemsBadge }}
                 </p>
+                <!-- design-tokens: allow-raw-button — public proposal viewer keeps its own
+                     brand CTA treatment (bg-primary + accent text); see base/README.md -->
                 <button
                   type="button"
                   class="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary border border-primary text-accent text-[12px] font-semibold hover:bg-primary-strong transition-colors"
@@ -198,6 +200,7 @@
                 </span>
               </div>
             </div>
+            <!-- design-tokens: allow-raw-button — public proposal viewer brand CTA -->
             <button
               class="w-full py-3 bg-primary text-accent rounded-xl font-bold text-sm hover:bg-primary-strong transition-colors shadow-md"
               @click="confirmSelection"

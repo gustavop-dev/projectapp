@@ -31,6 +31,7 @@
           <!-- Folder options -->
           <div class="p-4 space-y-1.5 max-h-72 overflow-y-auto">
             <!-- No folder option -->
+            <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
             <button
               type="button"
               :disabled="isMoving"
@@ -57,6 +58,7 @@
             </button>
 
             <!-- Folder entries -->
+            <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
             <button
               v-for="folder in orderedFolders"
               :key="folder.id"
