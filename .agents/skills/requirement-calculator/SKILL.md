@@ -27,6 +27,7 @@ Antes de calcular, detecta ambigüedades que **cambian el nivel o el precio**:
 - ¿El mensaje trae **un requerimiento o varios independientes** (contextos, clientes o módulos sin relación entre sí)? Si son independientes, confirma en la misma ronda cómo agruparlos.
 - ¿La base ya existe o se construye desde cero? (es LA pregunta que separa `M` de `L`)
   - Si es para una **plataforma existente**, incluye en la misma ronda el checklist de **motores típicos ya construidos**: correo/plantillas · generación de PDF · notificaciones · tareas programadas (cron) · auth/roles · carga de archivos · i18n. Cada motor que ya exista: (1) anula el modificador *Motor nuevo* para las funcionalidades que lo usen y (2) activa el atenuador *extiende algo existente*. Registra los motores confirmados en la sección Supuestos del documento.
+  - **Cliente del fleet:** si el requerimiento es para un proyecto cuyo repo vive en el fleet (`~/webapps/<proyecto>/`), ANTES de preguntar corré un checklist acotado de greps sobre ese repo (config de Huey/Celery · plantillas de correo · librería de PDF · i18n · roles/permisos · upload de archivos) y presentá los motores detectados como **default pre-marcado en la MISMA ronda** de AskUserQuestion. La inspección confirma, nunca sustituye la pregunta: una librería instalada ≠ un motor reutilizable.
 - **Plataforma**: ¿web (default, sin recargo), aplica también a la PWA (+30%) o es app móvil nativa (+60%)? Solo preguntar si la descripción lo insinúa.
 - Si menciona "factura": ¿cuenta de cobro / PDF simple (`M`) o facturación electrónica DIAN (`XL` regulatorio)?
 - ¿Hay reglas de negocio sin definir que impidan cerrar precio fijo?
@@ -60,13 +61,84 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 
 ## 4-bis. Consistencia con estimaciones previas (barato, condicional)
 
-Lista los títulos existentes de la carpeta:
+Lista los títulos existentes de la carpeta. El bloque resuelve solo el entorno — `manage.py` defaultea a `settings_dev` (sqlite) y sin esto la consulta vería una base vacía:
 
 ```bash
-cd /home/ryzepeck/webapps/projectapp/backend && source venv/bin/activate && python manage.py shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
+[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+# DJANGO_SETTINGS_MODULE: exportado → unit systemd → backend/.env → abortar.
+if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
+  DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
+fi
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE (ni exportado, ni unit systemd 'projectapp', ni backend/.env): manage.py caería en settings_dev (sqlite) y la consulta NO vería el panel real. Exportalo explícito si querés otro entorno."; exit 1; }
+export DJANGO_SETTINGS_MODULE
+"$PY" "$REPO_ROOT/backend/manage.py" shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
 ```
 
 Si **ningún** título es temáticamente similar, sigue de largo (no leas nada). Si 1–2 lo son, lee solo sus totales (`print(d.content_markdown)` del pk elegido). Si para alcance equivalente el precio nuevo difiere más de ±30%, no lo "corrijas" en silencio: decláralo en Observaciones (*"La estimación #N de <fecha> cotizó algo equivalente en $X; la diferencia se debe a <motivo>"*).
+
+**Acumulación por cliente:** si en los últimos 60 días existen 2+ estimates del mismo cliente/proyecto (línea "Cliente:" de la cabecera), reporta en Observaciones la **suma acumulada como dato informativo** — sin semáforo ni estrategia sobre esa suma (la regla "un documento por requerimiento independiente" sigue mandando) — y adviértela como insumo para hitos de facturación.
+
+## 4-ter. Gate aritmético mecánico (obligatorio antes de persistir)
+
+La validación de §4.3 la ejecuta un script, no el ojo — mismo espíritu que la auditoría `AUDIT_PASS` de `/proposal-create`. Sobre el `.md` temporal ya escrito (§5):
+
+```bash
+python3 - '<ruta absoluta del .md temporal>' <<'PYGATE'
+import re, sys
+txt = open(sys.argv[1], encoding='utf-8').read()
+fails, warns = [], []
+def money(tok):
+    tok = tok.replace('$', '').replace(' ', '')
+    m = re.fullmatch(r'(\d+(?:,\d)?)M', tok)
+    if m: return float(m.group(1).replace(',', '.'))
+    m = re.fullmatch(r'(\d+)K', tok)
+    if m: return float(m.group(1)) / 1000.0
+    return None
+RANGO = re.compile(r'\$[\d,]+[MK]\s*[–-]\s*\$[\d,]+[MK]')
+rows = []
+for line in txt.splitlines():
+    if not line.startswith('|'): continue
+    c = [x.strip() for x in line.split('|')]
+    if len(c) == 8 and c[2] and c[2] != 'Nivel' and not set(c[2]) <= set('-: '):
+        rows.append(c)
+lo_sum = hi_sum = 0.0
+for c in rows:
+    if c[2].replace('⚠️', '').strip() == 'XL':
+        fails.append('fila XL prohibida: ' + c[1][:60])
+    m = RANGO.search(c[6])
+    if not m:
+        fails.append('precio sin rango valido: ' + c[1][:60]); continue
+    a, b = re.split(r'[–-]', m.group(0).replace(' ', ''))
+    lo, hi = money(a), money(b)
+    if lo is None or hi is None:
+        fails.append('formato de moneda invalido: ' + c[6]); continue
+    if lo > hi: fails.append('piso > techo: ' + c[1][:60])
+    lo_sum += lo; hi_sum += hi
+mt = re.search(r'\*\*Precio total:\*\*\s*(\$[\d,]+[MK])\s*[–-]\s*(\$[\d,]+[MK])', txt)
+if not mt:
+    fails.append('no encuentro la linea **Precio total:**')
+elif rows:
+    tlo, thi = money(mt.group(1)), money(mt.group(2))
+    slack = 0.05 * len(rows) + 0.051  # redondeo por fila + redondeo del total (§4.7)
+    if abs(tlo - lo_sum) > slack or abs(thi - hi_sum) > slack:
+        fails.append(f'total {tlo}M-{thi}M vs suma de filas {lo_sum:.1f}M-{hi_sum:.1f}M (tolerancia {slack:.2f}M)')
+    sem = '✅' if thi < 12 else ('⚠️' if thi <= 20 else '⛔')
+    if sem not in txt.split('Semáforo', 1)[-1][:160]:
+        fails.append(f'semaforo no corresponde al techo {thi}M (esperado {sem})')
+if re.search(r'\$\d{1,3}\.\d{3}', txt):
+    warns.append('montos en pesos completos detectados (usar $X,XM / $XK)')
+if re.search(r'\$\d+,\d{2,}M', txt):
+    fails.append('mas de 1 decimal en un monto M')
+print('GATE_FAIL' if fails else 'GATE_PASS')
+for f in fails: print('  FAIL', f)
+for w in warns: print('  WARN', w)
+PYGATE
+```
+
+`GATE_FAIL` → corregí el documento y re-corré hasta `GATE_PASS`. **Nunca persistas (§6) con `GATE_FAIL`.**
 
 ## 5. Generar el documento markdown (branding ProjectApp)
 
@@ -81,7 +153,8 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 ```markdown
 # Estimate: <nombre corto del requerimiento> — <DDMMYYYY>
 
-> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP sin IVA.
+> **ProjectApp · Calculadora de Requerimientos** — estimación por funcionalidad para implementación web, precios en COP más IVA.
+> **Cliente:** <nombre del cliente/proyecto> · **Vigencia:** precios válidos por 30 días desde la fecha del título.
 
 ## 1. Resumen
 <1–2 líneas reinterpretando el requerimiento en lenguaje de negocio.>
@@ -89,7 +162,7 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 ## 2. Descomposición por funcionalidad
 | Funcionalidad | Nivel | Señal aplicada (cita literal) | Modificadores | Horas | Precio COP |
 |---|---|---|---|---|---|
-<una fila por funcionalidad — nunca una fila XL>
+<una fila por funcionalidad — nunca una fila XL. Si el nivel o precio de una fila depende de un supuesto declarado, marcá el nivel con ⚠️ y referenciá el supuesto: `M ⚠️ (ver Supuestos §13-J)`.>
 
 <Debajo de la tabla: implicaciones técnicas por funcionalidad (bullets cortos).>
 
@@ -97,6 +170,7 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 - **Horas:** <rango total>
 - **Precio total:** <rango COP>
 - **Semáforo:** <emoji + etiqueta, p. ej. "✅ Sweet spot (menos de $12M)">
+- **Plazo indicativo:** <X–Y semanas = horas ÷ capacidad semanal del supuesto (default 30 h/sem, ajustable en Supuestos)>
 
 > [!TIP] / [!WARNING] / [!CAUTION]
 > <Una línea con la lectura comercial del semáforo: TIP si sweet spot, WARNING si fricción, CAUTION si killer.>
@@ -122,17 +196,28 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 
 ## 6. Crear el documento en el panel
 
-Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command; el PDF con portadas ProjectApp sale automático con los defaults del modelo):
+Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command; el PDF con portadas ProjectApp sale automático con los defaults del modelo). El bloque resuelve el entorno igual que §4-bis — sin `DJANGO_SETTINGS_MODULE` el documento caería en la sqlite de dev, invisible para el panel:
 
 ```bash
-cd /home/ryzepeck/webapps/projectapp/backend && source venv/bin/activate && python manage.py create_estimate_document \
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
+[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
+  DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
+fi
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE: manage.py caería en settings_dev (sqlite) y el documento NO llegaría al panel real."; exit 1; }
+export DJANGO_SETTINGS_MODULE
+"$PY" "$REPO_ROOT/backend/manage.py" create_estimate_document \
   --title 'Estimate: <nombre corto> — <DDMMYYYY>' \
   --file '<ruta absoluta del .md temporal>'
 ```
 
+> En producción (`settings_prod`) el documento queda además visible vía el conector MCP **"Gestor de Documentos"** de claude.ai — el panel y el conector comparten la misma base de datos.
+
 **Saneo del título:** el nombre corto usa solo letras (con tildes/ñ), números, espacios y guiones — nunca comillas (`"` `'`), `$`, backticks ni saltos de línea. El guion largo `—` del separador de fecha sí es válido. Pasa `--title` y `--file` entre comillas simples y con rutas absolutas.
 
-El command acepta opcionalmente `--folder`, `--status` (default `published`), `--language` (default `es`) y `--on-conflict` (default `version`). Si ya existe un documento con el mismo título (re-estimación del mismo día), el command agrega automáticamente ` — v2`. Si el usuario pidió explícitamente **corregir** la estimación anterior, usa `--on-conflict replace`. En re-estimaciones, agrega en "Supuestos y exclusiones" una línea: *"Reemplaza/versiona la estimación #<id anterior>; cambio respecto a la versión previa: <qué se aclaró>."*
+El command acepta opcionalmente `--folder`, `--status` (default `published`), `--language` (default `es`) y `--on-conflict` (default `version`). Si ya existe un documento con el mismo título (re-estimación del mismo día), el command agrega automáticamente ` — v2`. Si el usuario pidió explícitamente **corregir** la estimación anterior, usa `--on-conflict replace`. En re-estimaciones, agrega en "Supuestos y exclusiones" una línea: *"Reemplaza/versiona la estimación #<id anterior>; cambio respecto a la versión previa: <qué se aclaró>."* — y si la re-estimación versiona el **mismo requerimiento** con un brief evolucionado, esa línea se amplía a una mini-tabla **Δ vs #<id>**: filas nuevas · filas retiradas · filas con cambio de nivel/precio (cada una con su motivo).
 
 ## 7. Reporte al usuario
 
@@ -142,6 +227,18 @@ Cierra el turno con:
 2. **Confirmación del documento**: título creado, carpeta "Requirement Estimates" y el **enlace directo** que imprime el command (`/panel/documents/<id>/edit`) — inclúyelo siempre en el reporte final.
 3. Si aplicó condición de bloqueo: recuérdala explícitamente ("no cerrar precio fijo hasta aclarar X").
 4. Si alguna funcionalidad se clasificó *"sin señal — por analogía"*: propone la señal nueva en el chat **y además** añádela (append, nunca sobrescribir) a `references/pending-signals.md` con el formato `- <DDMMYYYY> · nivel sugerido: <X> · señal propuesta: "<texto>" · origen: "<funcionalidad del requerimiento>"`. Ese archivo es la bandeja de candidatas para la próxima versión del catálogo; el catálogo mismo no se toca desde el skill.
+5. **Si el cliente avanza a propuesta:** invocá `/proposal-create` usando el documento del estimate como insumo del brief. Regla rango→punto: `total_investment` = **techo** del rango (salvo directriz explícita del operador); el piso queda como margen de negociación. La descomposición del estimate alimenta los items comerciales, la Estrategia A/B alimenta `developmentStages`/`timeline`, y los supuestos/exclusiones van a `integrations.excluded`/notas. La propuesta cita la fuente: *"Fuente: estimate #<id> — <DDMMYYYY>"*.
+
+## 7-bis. Cierre de estimación (calibración contra la realidad)
+
+El estimate no se calibra solo: cada documento tiene dos momentos de cierre que se registran en `references/actuals.md` (bandeja **append-only**, mismo patrón que `pending-signals.md` — el skill nunca recalibra tablas por su cuenta):
+
+1. **Momento venta** (cuando se conoce el desenlace): `- <DDMMYYYY> · #<id> · desenlace: vendido|rechazado|recortado|vencido · monto cerrado: $X,XM (vs techo $Y,YM)`.
+2. **Momento entrega** (al terminar el proyecto): `- <DDMMYYYY> · #<id> · horas estimadas: A–B · horas reales: ≈C (fuente: registro del operador; proxy: rango de fechas del PR de release) · desvío: ±N% · causa: <una frase>`.
+
+**Regla de recalibración:** con ≥3 cierres de entrega del mismo nivel, comparar la mediana de horas reales contra la banda del nivel en `market-pricing.md`; desvío sostenido >±30% → proponerle al dueño recalibrar la tabla (la regla de mantenimiento del baseline absorbe el cambio). Con desenlaces suficientes, los umbrales del semáforo ($12M/$20M) dejan de ser axioma y se contrastan con la tasa real de aceptación.
+
+Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — no bloquea la emisión del estimate.
 
 ---
 
@@ -153,8 +250,24 @@ Cierra el turno con:
 - **Web por defecto**; PWA `+30%` y app nativa `+60%` solo si el requerimiento lo declara (excluyentes entre sí).
 - La tabla final **nunca** contiene filas `XL`: siempre se muestran descompuestas.
 - Cada fila **cita la señal literal** del catálogo que fijó su nivel.
-- El precio **siempre** es rango, en COP sin IVA; la aritmética se valida antes de escribir el documento.
+- El precio **siempre** es rango, en COP **más IVA** — se presenta con la marca `+ IVA`, nunca con IVA incluido; la aritmética se valida antes de escribir el documento.
 - La fecha del título viene de `date +%d%m%Y`, jamás asumida.
 - El documento se crea **siempre** (aunque haya condición de bloqueo, el análisis queda guardado con sus supuestos).
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
+- **Vigencia declarada:** todo documento fija "precios válidos por 30 días"; después se re-emite (documento versionado nuevo), nunca se honra ni se negocia por chat sin documento.
+- **El gate aritmético (§4-ter) es obligatorio**: nunca persistir con `GATE_FAIL`.
+- **Re-estimación del mismo requerimiento ⇒ mini-tabla Δ** vs el estimate anterior (filas nuevas / retiradas / cambiadas, con motivo).
+
+---
+
+## Suite de validación (baseline)
+
+En `validation/` vive el **baseline de calibración** de la skill, producido en la prueba con los tres reportes de Vástago (02072026, calibración ÷4 definitiva):
+
+- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $6,1M–$8,8M ✅ · #24 $7,2M–$10,2M ✅ · #25 $13,3M–$18,9M ⚠️), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
+- `validation/estimates/*.md` — los 3 markdown fuente de esas estimaciones (documentos #23, #24 y #25 de `/panel/documents`), con filas, señales citadas, modificadores, horas y precios.
+
+> **Nota de entorno:** los IDs #23–#25 y sus URLs `/panel/documents/<id>/edit` pertenecen al panel del **entorno donde corrió la prueba** (la dev machine del operador, 02/07/2026). En el panel de producción esos IDs corresponden a otros documentos; la carpeta "Requirement Estimates" se crea en prod con el primer uso real (§6 resuelve el entorno explícitamente desde el fix del 01/08/2026).
+
+**Regla de mantenimiento:** si cambian las reglas de la skill —tabla de precios/tarifa en `market-pricing.md`, señales o modificadores en `effort-indicators.md`, o el flujo de este SKILL.md— y el cambio **altera los números o la clasificación** del baseline, hay que **actualizar la suite en el mismo cambio**: recalcular las columnas afectadas de los 3 estimates (manteniendo horas/clasificación salvo que el cambio sea de catálogo), refrescar los totales y semáforos de `test-results.md`, y agregar allí una fila de QA que registre el cambio y su fecha. Si el cambio no altera números ni clasificación (p. ej. una señal nueva que el baseline no usa), basta la fila de QA. El baseline es la referencia para detectar regresiones de calibración: mismo input → mismos niveles y precios.
