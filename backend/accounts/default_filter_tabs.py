@@ -47,12 +47,10 @@ DEFAULT_FILTER_TABS = {
     ],
     'accounting_income': [
         # "Todos los esperados" keeps every expected record (paid, partial and
-        # untouched); "Solo esperados" narrows it to the ones still uncollected.
+        # untouched). The uncollected-only cut ("Solo esperados") and its
+        # hosting variant are builtin tabs in incomes.vue instead: the landing
+        # tab must not be silently rewritten when a filter is tweaked.
         {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
-        {
-            'name': 'Solo esperados',
-            'filters': {'kind': 'expected', 'paymentStatus': 'pending'},
-        },
         {'name': 'Líquidos', 'filters': {'kind': 'liquid'}},
         {'name': 'Gustavo', 'filters': {'partner': 'gustavo'}},
         {'name': 'Carlos', 'filters': {'partner': 'carlos'}},

@@ -180,43 +180,35 @@
           </template>
         </template>
         <template #cell-kind_label="{ row }">
-          <div
-            class="flex flex-col items-start gap-1"
-            :data-testid="row.payment_status ? `income-payment-${row.id}` : undefined"
+          <span
+            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
           >
-            <div class="flex flex-wrap items-center gap-1.5">
-              <span
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
-                :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
-              >
-                {{ row.kind_label }}
-              </span>
-              <span
-                v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
-                :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
-              >
-                {{ row.payment_status_label }}
-              </span>
-            </div>
-            <!-- Own line and nowrap: inlining it in the badge stretched the
-                 column until the actions were pushed out of the table. -->
+            {{ row.kind_label }}
+          </span>
+        </template>
+        <!-- Collection state gets its own column: sharing the Tipo cell with
+             the kind badge wrapped the pills and doubled the row height. -->
+        <template #cell-payment_status="{ row }">
+          <span
+            v-if="row.payment_status"
+            class="inline-flex items-center gap-1.5 whitespace-nowrap"
+            :data-testid="`income-payment-${row.id}`"
+          >
+            <span
+              v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
+              class="text-xs px-2.5 py-1 rounded-full font-medium"
+              :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
+            >
+              {{ row.payment_status_label }}
+            </span>
+            <span v-else class="text-text-subtle">—</span>
             <span
               v-if="row.payment_status === 'partial'"
-              class="text-[11px] text-warning-strong tabular-nums whitespace-nowrap"
+              class="text-2xs text-warning-strong tabular-nums"
             >
               faltan {{ formatMoney(Number(row.pending_amount)) }}
             </span>
-          </div>
-        </template>
-        <template #cell-ledger_label="{ row }">
-          <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="row.ledger === 'company'
-              ? 'bg-surface-raised text-text-muted'
-              : 'bg-info-soft text-info-strong'"
-          >
-            {{ row.ledger === 'company' ? 'Empresa' : row.ledger_label }}
           </span>
         </template>
       </AccountingTable>
@@ -340,7 +332,23 @@ const {
   rebaseTab: rebaseFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_income',
-  builtinTabs: [{ id: 'lost', name: 'Perdidos', filters: { kind: 'lost' } }],
+  // Fixed presets: unlike the seeded saved tabs, editing a filter here never
+  // rewrites the tab, which is what the landing tab needs.
+  builtinTabs: [
+    {
+      id: 'expected-pending',
+      name: 'Solo esperados',
+      filters: { kind: 'expected', paymentStatus: 'pending' },
+    },
+    {
+      id: 'hosting-expected',
+      name: 'Hosting esperados',
+      filters: { kind: 'expected', paymentStatus: 'pending', search: 'hosting' },
+    },
+    { id: 'lost', name: 'Perdidos', filters: { kind: 'lost' } },
+  ],
+  // The day-to-day question is what is still uncollected, not the full ledger.
+  defaultTabId: 'expected-pending',
   defaults: {
     periodAfter: '',
     periodBefore: '',
@@ -523,9 +531,12 @@ const KIND_BADGE_CLASSES = {
   expected: 'bg-surface-raised text-text-muted',
 };
 
+// A soft fill would vanish: `incomeRowTone` already paints the whole row in
+// that same tint. The chip sits on the plain surface with a colored outline so
+// it reads on the tinted row and on the untinted one alike.
 const PAYMENT_BADGE_CLASSES = {
-  paid: 'bg-success-soft text-success-strong',
-  partial: 'bg-warning-soft text-warning-strong',
+  paid: 'bg-surface text-success-strong ring-1 ring-inset ring-success-strong/30',
+  partial: 'bg-surface text-warning-strong ring-1 ring-inset ring-warning-strong/30',
 };
 
 /** Green once collected, amber while partially collected. */
@@ -591,12 +602,13 @@ function confirmWriteOff(record) {
 }
 
 // The three amounts read as one block (`group: 'money'`); concept absorbs the
-// slack. Concept, Total and Tipo survive every width — the partner splits and
-// the bookkeeping metadata collapse first.
+// slack. Concept, Total, Tipo and Cobro survive every width — the partner
+// splits and the period collapse first. The ledger is filter-only: it earned
+// no column of its own next to what the row is actually about.
 const columns = [
   { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
   { key: 'kind_label', label: 'Tipo', size: 'badge' },
-  { key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg' },
+  { key: 'payment_status', label: 'Cobro', size: 'text' },
   { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
   { key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true },
   { key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },

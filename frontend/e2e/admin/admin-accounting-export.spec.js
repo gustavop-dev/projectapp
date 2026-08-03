@@ -105,7 +105,12 @@ test.describe('Admin Accounting Export', () => {
   }, async ({ page }) => {
     const exportCalls = [];
     await mockApi(page, buildHandler({ exportCalls }));
-    await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+    // `=all` opts out of the "Solo esperados" landing tab, so the only filter
+    // the export carries is the one this test applies.
+    await page.goto(
+      '/panel/accounting/incomes?accounting_incomeTab=all',
+      { waitUntil: 'domcontentloaded' },
+    );
     await expect(
       page.getByRole('heading', { name: 'Ingresos', exact: true }),
     ).toBeVisible({ timeout: 25_000 });

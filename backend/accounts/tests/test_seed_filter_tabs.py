@@ -184,23 +184,31 @@ class TestViewMapDefaultRegistry:
 
 
 class TestAccountingIncomeDefaultRegistry:
-    """The two expected-income tabs are what the operator triages by.
+    """The expected-income tab is what the operator triages by.
 
-    Their names are pinned because migration 0041 renames existing rows by
-    name; renaming them here without a matching migration would orphan the
-    old tab on every account that already has one.
+    Its name is pinned because migrations 0041 and 0043 match existing rows by
+    name; renaming it here without a matching migration would orphan the old
+    tab on every account that already has one.
     """
 
-    def test_income_registry_ships_both_expected_tabs(self):
+    def test_income_registry_ships_the_all_expected_tab_first(self):
         from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
 
-        assert DEFAULT_FILTER_TABS['accounting_income'][:2] == [
-            {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
-            {
-                'name': 'Solo esperados',
-                'filters': {'kind': 'expected', 'paymentStatus': 'pending'},
-            },
-        ]
+        assert DEFAULT_FILTER_TABS['accounting_income'][0] == {
+            'name': 'Todos los esperados', 'filters': {'kind': 'expected'},
+        }
+
+    def test_income_registry_no_longer_seeds_the_builtin_cut(self):
+        """"Solo esperados" is a builtin tab in incomes.vue now.
+
+        Seeding it as well would render two identically named tabs, and a
+        saved one would be silently rewritten by any filter tweak — which the
+        landing tab must never be.
+        """
+        from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
+
+        names = [spec['name'] for spec in DEFAULT_FILTER_TABS['accounting_income']]
+        assert 'Solo esperados' not in names
 
 
 class TestAutoSeedOnGet:
@@ -343,16 +351,14 @@ class TestBaseFiltersBackfillMigration:
         from django.apps import apps
 
         drifted = SavedFilterTab.objects.create(
-            user=admin_a, view='accounting_income', name='Solo esperados',
-            filters={'kind': 'expected'},
+            user=admin_a, view='accounting_income', name='Todos los esperados',
+            filters={'kind': 'expected', 'paymentStatus': 'pending'},
         )
 
         self._migration().backfill_base_filters(apps, None)
 
         drifted.refresh_from_db()
-        assert drifted.base_filters == {
-            'kind': 'expected', 'paymentStatus': 'pending',
-        }
+        assert drifted.base_filters == {'kind': 'expected'}
 
     def test_backfill_copies_own_filters_for_custom_names(self, admin_a):
         from django.apps import apps
@@ -366,3 +372,94 @@ class TestBaseFiltersBackfillMigration:
 
         custom.refresh_from_db()
         assert custom.base_filters == {'partner': 'gustavo'}
+
+
+class TestDropOnlyExpectedTabMigration:
+    """Migration 0043 retires the saved "Solo esperados" of existing users.
+
+    It became a builtin tab in the frontend; leaving the seeded row in place
+    would show the same name twice on every account created before the change.
+    """
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module(
+            'accounts.migrations.0043_drop_solo_esperados_tab',
+        )
+
+    @staticmethod
+    def _seeded_tabs(user):
+        for order, (name, filters) in enumerate((
+            ('Todos los esperados', {'kind': 'expected'}),
+            ('Solo esperados', {'kind': 'expected', 'paymentStatus': 'pending'}),
+            ('Líquidos', {'kind': 'liquid'}),
+            ('Gustavo', {'partner': 'gustavo'}),
+        )):
+            SavedFilterTab.objects.create(
+                user=user, view='accounting_income', name=name,
+                filters=filters, base_filters=filters, order=order,
+            )
+
+    def _tabs_in_order(self, user):
+        return list(
+            SavedFilterTab.objects.filter(
+                user=user, view='accounting_income',
+            ).order_by('order', 'created_at').values_list('name', 'order')
+        )
+
+    def test_forward_removes_the_tab_and_closes_the_order_gap(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a)
+
+        self._migration().drop_only_expected_tab(apps, None)
+
+        assert self._tabs_in_order(admin_a) == [
+            ('Todos los esperados', 0), ('Líquidos', 1), ('Gustavo', 2),
+        ]
+
+    def test_forward_is_idempotent(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a)
+        migration = self._migration()
+
+        migration.drop_only_expected_tab(apps, None)
+        migration.drop_only_expected_tab(apps, None)
+
+        assert self._tabs_in_order(admin_a) == [
+            ('Todos los esperados', 0), ('Líquidos', 1), ('Gustavo', 2),
+        ]
+
+    def test_forward_leaves_other_views_alone(self, admin_a):
+        from django.apps import apps
+
+        kept = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_expense', name='Solo esperados',
+            filters={'ledger': 'company'}, order=0,
+        )
+
+        self._migration().drop_only_expected_tab(apps, None)
+
+        assert SavedFilterTab.objects.filter(pk=kept.pk).exists()
+
+    def test_reverse_restores_the_tab_right_after_its_anchor(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a)
+        migration = self._migration()
+
+        migration.drop_only_expected_tab(apps, None)
+        migration.restore_only_expected_tab(apps, None)
+
+        assert self._tabs_in_order(admin_a) == [
+            ('Todos los esperados', 0), ('Solo esperados', 1),
+            ('Líquidos', 2), ('Gustavo', 3),
+        ]
+        restored = SavedFilterTab.objects.get(
+            user=admin_a, view='accounting_income', name='Solo esperados',
+        )
+        assert restored.filters == {'kind': 'expected', 'paymentStatus': 'pending'}
+        assert restored.base_filters == restored.filters

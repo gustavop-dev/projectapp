@@ -85,7 +85,12 @@ test.describe('Admin Accounting List — load error & retry', () => {
       return null;
     });
 
-    await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+    // `=all` opts out of the "Solo esperados" landing tab so the recovered
+    // rows are asserted against an unfiltered table.
+    await page.goto(
+      '/panel/accounting/incomes?accounting_incomeTab=all',
+      { waitUntil: 'domcontentloaded' },
+    );
     await expect(
       page.getByRole('heading', { name: 'Ingresos', exact: true }),
     ).toBeVisible({ timeout: 25_000 });

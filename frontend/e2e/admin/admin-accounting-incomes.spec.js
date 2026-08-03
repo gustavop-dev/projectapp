@@ -137,8 +137,10 @@ function buildHandler({
   };
 }
 
-async function gotoIncomes(page) {
-  await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+// The view lands on the "Solo esperados" builtin tab, so the CRUD tests ask
+// for the unfiltered baseline explicitly; the landing tab has its own test.
+async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
+  await page.goto(`/panel/accounting/incomes${query}`, { waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
@@ -323,13 +325,14 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 });
 
 test.describe('Admin Accounting Incomes: liquidation, write-off and paid state', () => {
-  const paidRow = () => incomeRow({
+  const paidRow = (overrides = {}) => incomeRow({
     id: 10,
     concept: 'Kore - Pagado',
     paid_amount: '1160000.00',
     pending_amount: '0.00',
     payment_status: 'paid',
     payment_status_label: 'Pagado',
+    ...overrides,
   });
 
   const partialRow = () => incomeRow({
@@ -380,15 +383,12 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
   });
 
-  test('the Solo esperados tab drops the expected rows that already got paid', {
+  test('lands on Solo esperados and drops the rows that already got paid', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (reaching /panel/accounting/incomes through the
     // subnav is exercised by the accounting navigation specs; this test pins
-    // the seeded expected-income tabs)
-    //
-    // The two seeded default tabs (accounts.default_filter_tabs): the first
-    // keeps every expected row, the second only the uncollected ones.
+    // the landing tab, which only exists on a bare URL)
     await mockApi(page, buildHandler({
       rows: [incomeRow(), paidRow(), partialRow()],
       calls: [],
@@ -397,23 +397,45 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
           id: 501, view: 'accounting_income', name: 'Todos los esperados',
           filters: { kind: 'expected' }, order: 0,
         },
-        {
-          id: 502, view: 'accounting_income', name: 'Solo esperados',
-          filters: { kind: 'expected', paymentStatus: 'pending' }, order: 1,
-        },
       ],
     }));
-    await gotoIncomes(page);
+    // No query param: the view must open already filtered.
+    await gotoIncomes(page, '');
 
-    await page.getByTestId('filter-tabs-tab-501').click();
-    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
-    await expect(page.getByTestId('accounting-row-10')).toBeVisible();
-    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
-
-    await page.getByTestId('filter-tabs-tab-502').click();
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('accounting-row-10')).toHaveCount(0);
     await expect(page.getByTestId('accounting-row-11')).toHaveCount(0);
+
+    // The saved "Todos los esperados" tab widens it back to every expected row.
+    await page.getByTestId('filter-tabs-tab-501').click();
+    await expect(page.getByTestId('accounting-row-10')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
+  });
+
+  test('the Hosting esperados tab narrows the uncollected rows by concept', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/incomes through the
+    // subnav is exercised by the accounting navigation specs; this test pins
+    // the builtin hosting tab)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow(),
+        incomeRow({ id: 3, concept: 'Hosting anual acme.com' }),
+        paidRow({ id: 13, concept: 'Hosting anual kore.co' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('filter-tabs-tab-hosting-expected').click();
+
+    // Only the uncollected hosting row survives: the non-hosting concept is
+    // filtered out by the search term, the paid one by the payment status.
+    await expect(page.getByTestId('accounting-row-3')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-row-13')).toHaveCount(0);
+    await expect(page.getByTestId('incomes-search-input')).toHaveValue('hosting');
   });
 
   test('shows written-off income in Todos and isolates it with the Perdidos tab', {
