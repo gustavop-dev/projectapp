@@ -7,7 +7,8 @@ export default {
         email: "Your email",
         project: "Tell us about your web project",
         budget: "Estimated budget (USD)",
-        submit: "Send message"
+        submit: "Send message",
+        error: "We could not send your message. Please try again."
     },
     budgetOptions: [
         "500-5K",

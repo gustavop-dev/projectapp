@@ -53,6 +53,7 @@
           <div ref="formField5" class="opacity-0">
             <label class="block text-xl lg:text-2xl font-light text-green-light mb-6">{{ messages?.form?.budget || 'Estimated budget' }}</label>
             <div class="flex flex-wrap gap-4">
+              <!-- design-tokens: allow-raw-button (selectable budget options, not an action) -->
               <button
                 v-for="option in budgetOptions"
                 :key="option"
@@ -76,7 +77,16 @@
               <span v-else>Enviando...</span>
             </BaseButton>
           </div>
-          
+
+          <p
+            v-if="submitErrorText"
+            role="alert"
+            data-testid="contact-submit-error"
+            class="text-xl lg:text-2xl font-light text-danger-strong"
+          >
+            {{ submitErrorText }}
+          </p>
+
         </form>
       </div>
     </main>
@@ -100,6 +110,18 @@ const messages = computed(() => allMessages.value.contact || {})
 
 const contactsStore = useContactsStore()
 const { isSubmitting, submitSuccess, submitError } = storeToRefs(contactsStore)
+
+// The store may hold a raw DRF payload (object) or its own fallback string —
+// always show a generic localized message instead. Nothing populates
+// messages.contact today (loadMessagesForView has no callers), so the
+// fallback picks the language from the active locale.
+const submitErrorText = computed(() => {
+  if (!submitError.value) return ''
+  if (messages.value?.form?.error) return messages.value.form.error
+  return currentLocale.value?.startsWith('es')
+    ? 'No pudimos enviar tu mensaje. Por favor inténtalo de nuevo.'
+    : 'We could not send your message. Please try again.'
+})
 const { trackFormSubmission } = useGtagConversions()
 
 const titleRef = ref(null)

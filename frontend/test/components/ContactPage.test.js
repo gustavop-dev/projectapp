@@ -39,6 +39,7 @@ jest.mock('../../stores/language', () => ({
           project: 'Tell us about your project',
           budget: 'Estimated budget',
           submit: 'Send message',
+          error: 'We could not send your message. Please try again.',
         },
         budgetOptions: ['500-5K', '5-10K', '10-20K'],
       },
@@ -47,20 +48,24 @@ jest.mock('../../stores/language', () => ({
   })),
 }));
 
+// Shared store instance so tests can drive submitError / sendContact.
+const mockContactsStore = {
+  isSubmitting: require('vue').ref(false),
+  submitSuccess: require('vue').ref(false),
+  submitError: require('vue').ref(null),
+  sendContact: jest.fn(),
+};
+
 jest.mock('../../stores/contacts', () => ({
-  useContactsStore: jest.fn(() => ({
-    isSubmitting: require('vue').ref(false),
-    submitSuccess: require('vue').ref(false),
-    submitError: require('vue').ref(null),
-    sendContact: jest.fn(),
-  })),
+  useContactsStore: jest.fn(() => mockContactsStore),
 }));
 
 jest.mock('../../composables/useGtagConversions', () => ({
   useGtagConversions: jest.fn(() => ({ trackFormSubmission: jest.fn() })),
 }));
 
-global.useRouter = jest.fn(() => ({ push: jest.fn() }));
+const mockRouterPush = jest.fn();
+global.useRouter = jest.fn(() => ({ push: mockRouterPush }));
 
 import ContactPage from '../../components/pages/ContactPage.vue';
 
@@ -97,5 +102,44 @@ describe('ContactPage', () => {
     const wrapper = mountContactPage();
 
     expect(wrapper.text()).toContain('500-5K');
+  });
+});
+
+describe('ContactPage submit error display', () => {
+  beforeEach(() => {
+    mockContactsStore.submitError.value = null;
+    mockContactsStore.sendContact.mockReset();
+    mockRouterPush.mockReset();
+  });
+
+  it('shows the localized error and does not redirect when submission fails', async () => {
+    // The store may hold a raw DRF payload object — the page must render the
+    // localized generic message, never "[object Object]".
+    mockContactsStore.sendContact.mockImplementation(async () => {
+      mockContactsStore.submitError.value = { email: ['Enter a valid email.'] };
+      return { success: false, error: mockContactsStore.submitError.value };
+    });
+    const wrapper = mountContactPage();
+    expect(wrapper.find('[data-testid="contact-submit-error"]').exists()).toBe(false);
+
+    await wrapper.find('form').trigger('submit');
+    await wrapper.vm.$nextTick();
+
+    const alert = wrapper.find('[data-testid="contact-submit-error"]');
+    expect(alert.exists()).toBe(true);
+    expect(alert.text()).toBe('We could not send your message. Please try again.');
+    expect(alert.text()).not.toContain('object');
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
+  it('keeps the error hidden after a successful submission', async () => {
+    mockContactsStore.sendContact.mockResolvedValue({ success: true, data: {} });
+    const wrapper = mountContactPage();
+
+    await wrapper.find('form').trigger('submit');
+    await wrapper.vm.$nextTick();
+
+    expect(wrapper.find('[data-testid="contact-submit-error"]').exists()).toBe(false);
+    expect(mockContactsStore.sendContact).toHaveBeenCalledTimes(1);
   });
 });
