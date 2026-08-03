@@ -1,4 +1,4 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.4)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.5)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
@@ -62,6 +62,18 @@
 - Se difiere a V2/V3 lo que *mejora* la operación pero no la bloquea: reportes, notificaciones, filtros guardados, dashboards.
 - Las **adyacencias** son las candidatas naturales a versiones posteriores.
 
+## Proyección de precios año a año
+
+Los precios de este catálogo están expresados en pesos del **año de emisión** del estimate. Para proyectar el precio de un requerimiento a años siguientes se aplica el **reajuste anual de ProjectApp** — la misma mecánica de reajuste que ProjectApp usa en sus servicios recurrentes:
+
+`precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`
+
+- **Δ%SMLMV** — porcentaje de incremento decretado del Salario Mínimo Legal Mensual Vigente en Colombia. Es un dato verificable año a año; cada estimate **declara el valor usado como supuesto**. Para años cuyo decreto aún no existe se usa el último incremento decretado.
+- **Componente fijo: 12%** — definido por ProjectApp. Si el dueño lo cambia, se cambia **aquí** (única fuente); ningún documento lo hardcodea por su cuenta.
+- **Reajuste compuesto:** cada año se aplica sobre el precio ya reajustado del año anterior, no sobre el original.
+- **Ejemplo:** si el SMLMV subió 11%, el reajuste total es 11% + 12% = **23%**: un requerimiento estimado en $1,0M este año se proyecta en ≈ $1,2M para el año siguiente y ≈ $1,5M para el subsiguiente.
+- **Carácter informativo.** La proyección **no** es una oferta en firme de precios futuros: la vigencia del estimate sigue siendo **30 días**. Solo anticipa el orden de magnitud del reajuste si el mismo alcance se contratara en años posteriores — es un argumento comercial para decidir **hoy**, no una tarifa congelable.
+
 ## Si el cliente contrapropone
 
 Las Estrategias A/B son **preventivas** (se deciden antes de presentar). Cuando el cliente ya tiene el precio y contrapropone, el orden de respuesta es:
@@ -108,16 +120,22 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · **precios válidos por 30 días desde la fecha del documento** · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · **precios válidos por 30 días desde la fecha del documento** · proyección año a año informativa con la regla `Δ%SMLMV + 12%` (declarando el Δ%SMLMV supuesto) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
 
 ---
 
-## Qué cambió en esta versión (v1.4 — reglas comerciales del ciclo de venta)
+## Qué cambió en esta versión (v1.5 — proyección de precios año a año)
+
+**Directriz del dueño 03/08/2026:** se agregó la regla de **proyección de precios año a año** — `precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`, compuesta, con el Δ%SMLMV declarado como supuesto y carácter informativo (la vigencia de 30 días no cambia). El estimate gana una sección dedicada con la proyección del total a los 2 años siguientes (plantilla §5 del SKILL). **Sin cambios** en tarifa, tallas, horas, señales ni umbrales del semáforo — el baseline conserva sus números.
+
+---
+
+## Qué cambió en la versión anterior (v1.4 — reglas comerciales del ciclo de venta)
 
 **Revisión metodológica 01/08/2026 (lente de proceso):** se agregaron las reglas comerciales que faltaban alrededor del estimate — **vigencia de 30 días** (premisa + supuesto declarado) · **guía de contraoferta** (piso a cambio de algo → recorte de alcance, nunca tarifa → tope ~10% → re-emitir) · **trabajo recurrente** (bolsa de horas de referencia; SLA formal declarado no-ofrecido) · **cliente extranjero/USD declarado fuera de alcance**. **Sin cambios** en tarifa, tallas, horas ni umbrales del semáforo.
 
 ---
 
-## Qué cambió en la versión anterior (v1.3 — recalibración al mercado colombiano)
+## Qué cambió en v1.3 (recalibración al mercado colombiano)
 
 **Recalibración de precios (02/07/2026, directriz del dueño tras probar la calculadora con los tres reportes de Vástago):** los rangos por talla producían valores justos para un mercado desarrollado (≈ EE.UU.); se dividieron **÷4** para acercarlos a lo que el cliente colombiano efectivamente acepta. La tarifa blended pasó de ≈ $75.000/h a **≈ $18.750/h**. **Sin cambios:** horas por nivel, señales y niveles del catálogo, modificadores, y las zonas del semáforo ($12M/$20M), que miden disposición de pago absoluta y no se recalibran con la tarifa.
