@@ -99,6 +99,12 @@ EXPORT_SECTIONS = {
         'columns': [
             ('Concepto', 'concept'),
             ('Categoría', lambda r: r.get_category_display()),
+            ('Tipo de deducción', lambda r: (
+                r.get_deduction_type_display() if r.deduction_type else ''
+            )),
+            ('Ingreso origen', lambda r: (
+                getattr(r, 'source_income_concept', None) or ''
+            )),
             ('Contabilidad', lambda r: r.get_ledger_display()),
             ('Mes', 'period_date'),
             ('Total', 'total_amount'),

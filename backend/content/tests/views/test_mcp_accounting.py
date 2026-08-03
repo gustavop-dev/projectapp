@@ -1,6 +1,7 @@
 """Tests for the Accounting MCP connector HTTP endpoint."""
 import json
 from datetime import date
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -401,3 +402,47 @@ class TestAccountingMcpPaymentStatusFilter:
         prop = income_tool['input_schema']['properties']['payment_status']
         assert prop['enum'] == ['pending', 'partial', 'paid']
         assert 'payment_status' not in expense_tool['input_schema']['properties']
+
+
+@pytest.mark.django_db
+class TestAccountingMcpDeductions:
+    """The expense tools see deductions but can never create them."""
+
+    def test_list_expense_filters_by_deduction_type(
+        self, api_client, accounting_connector, make_expense,
+    ):
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Comisión Wompi', deduction_type='gateway_fee',
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+        )
+        _, token = accounting_connector
+
+        response = _call(api_client, token, 'list_expense', {
+            'deduction_type': 'gateway_fee',
+        })
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Comisión Wompi']
+
+    def test_expense_list_schema_publishes_the_deduction_filter(self):
+        tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_expense')
+        assert 'deduction_type' in tool['input_schema']['properties']
+
+    def test_create_expense_with_deduction_type_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+
+        response = _call(api_client, token, 'create_expense', {
+            'concept': 'Comisión manual',
+            'period_date': '2026-07',
+            'total_amount': '4854.00',
+            'deduction_type': 'gateway_fee',
+        })
+
+        assert response.data['result']['isError'] is True
+        text = response.data['result']['content'][0]['text']
+        assert 'liquidación' in text

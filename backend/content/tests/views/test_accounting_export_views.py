@@ -282,3 +282,52 @@ class TestStatementExportSections:
         sheet = workbook['Transacciones TC']
         assert sheet.cell(row=2, column=1).value == 'Visa Bancolombia'
         assert sheet.cell(row=2, column=5).value == 'Netflix'
+
+
+@pytest.mark.django_db
+class TestExpenseDeductionExport:
+    def test_csv_carries_deduction_type_and_origin_income(
+        self, super_client, make_income, make_expense,
+    ):
+        income = make_income(concept='Hosting Jimmy Junio')
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Comisión Wompi',
+            deduction_type='gateway_fee',
+            source_income=income,
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+        )
+
+        response = super_client.get('/api/accounting/export/?section=expense')
+
+        lines = csv_lines(response)
+        headers = lines[0].split(',')
+        type_index = headers.index('Tipo de deducción')
+        origin_index = headers.index('Ingreso origen')
+        rows = {line.split(',')[0]: line.split(',') for line in lines[1:]}
+        assert rows['Comisión Wompi'][type_index] == 'Comisión plataforma de pago'
+        assert rows['Comisión Wompi'][origin_index] == 'Hosting Jimmy Junio'
+        assert rows['Hosting mensual'][type_index] == ''
+        assert rows['Hosting mensual'][origin_index] == ''
+
+    def test_csv_respects_the_deduction_type_filter(
+        self, super_client, make_expense,
+    ):
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Retención DIAN',
+            deduction_type='withholding',
+            total_amount=Decimal('70000.00'),
+            gustavo_amount=Decimal('35000.00'),
+            carlos_amount=Decimal('35000.00'),
+        )
+
+        response = super_client.get(
+            '/api/accounting/export/?section=expense&deduction_type=withholding',
+        )
+
+        lines = csv_lines(response)
+        assert len(lines) == 2
+        assert lines[1].startswith('Retención DIAN')
