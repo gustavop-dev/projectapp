@@ -21,7 +21,9 @@
         class="grid gap-3 items-end bg-surface-raised px-4 py-3 text-xs text-text-muted uppercase tracking-wider leading-tight"
         :style="gridStyle"
       >
-        <span v-if="dragEnabled" role="columnheader" class="sr-only">Orden</span>
+        <!-- Must stay in flow to occupy the handle track; sr-only (absolute) on
+             the grid item itself shifts every label one track left. -->
+        <span v-if="dragEnabled" role="columnheader"><span class="sr-only">Orden</span></span>
         <span
           v-for="col in columns"
           :key="col.key"

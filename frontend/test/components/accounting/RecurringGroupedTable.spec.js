@@ -95,6 +95,23 @@ describe('RecurringGroupedTable', () => {
     expect(wrapper.find('[data-testid="recurring-drag-handle-24"]').exists()).toBe(true);
   });
 
+  it('keeps the drag column header in the grid flow so labels align with cells', () => {
+    const wrapper = mountTable({ dragEnabled: true });
+
+    const headerRow = wrapper.find('[role="row"]');
+    const headerCells = Array.from(headerRow.element.children);
+    const bodyCells = Array.from(
+      wrapper.find('[data-testid="accounting-row-18"]').element.children,
+    );
+
+    // Same in-flow grid items on both sides: orden + columns + acciones.
+    expect(headerCells).toHaveLength(bodyCells.length);
+    // sr-only is position:absolute — a direct child carrying it leaves the grid
+    // flow and shifts every label one track left.
+    expect(headerCells.filter((cell) => cell.classList.contains('sr-only'))).toEqual([]);
+    expect(headerRow.text()).toContain('Orden');
+  });
+
   it('emits the full board with category and order after a drag', async () => {
     const wrapper = mountTable({ dragEnabled: true });
 
