@@ -201,45 +201,12 @@
             <textarea v-model="req.description" v-auto-resize data-testid="technical-req-description-textarea" class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Descripción" />
             <textarea v-model="req.configuration" v-auto-resize class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Configuración (roles, permisos...)" />
             <textarea v-model="req.usageFlow" v-auto-resize class="w-full px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-xs" placeholder="Flujo de uso (ej. Login → Dashboard → ...)" />
-            <div v-if="moduleLinkOptions.length" class="space-y-1 pt-1">
-              <p class="text-[10px] text-text-muted">Vincular a alcance comercial (vacío = alcance base, siempre visible):</p>
-              <div class="flex flex-wrap gap-x-2 gap-y-1">
-                <label
-                  v-for="opt in moduleLinkOptions"
-                  :key="'rql-'+ei+'-'+ri+'-'+opt.id"
-                  class="flex items-center gap-1 text-[11px] text-text-default cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="req.linked_module_ids.includes(opt.id)"
-                    class="rounded border-input-border text-text-brand"
-                    @change="toggleLinkedId(req.linked_module_ids, opt.id)"
-                  >
-                  <span class="max-w-[10rem] truncate" :title="opt.label">{{ opt.label }}</span>
-                </label>
-              </div>
-            </div>
-            <div v-if="itemLinkOptions.length" class="space-y-1 pt-1" data-testid="technical-req-item-links">
-              <p class="text-[10px] text-text-muted">Vincular a ítems comerciales (vistas/componentes/funcionalidades que implementa este requerimiento):</p>
-              <div v-for="grp in itemLinkOptions" :key="'rqi-'+ei+'-'+ri+'-'+grp.groupId" class="space-y-0.5">
-                <p class="text-[10px] font-medium text-text-subtle">{{ grp.groupLabel }}</p>
-                <div class="flex flex-wrap gap-x-2 gap-y-1 pl-2">
-                  <label
-                    v-for="it in grp.items"
-                    :key="'rqi-'+ei+'-'+ri+'-'+it.id"
-                    class="flex items-center gap-1 text-[11px] text-text-default cursor-pointer"
-                  >
-                    <input
-                      type="checkbox"
-                      :checked="req.linked_item_ids.includes(it.id)"
-                      class="rounded border-input-border text-text-brand"
-                      @change="toggleLinkedId(req.linked_item_ids, it.id)"
-                    >
-                    <span class="max-w-[12rem] truncate" :title="it.label">{{ it.label }}</span>
-                  </label>
-                </div>
-              </div>
-            </div>
+            <TechnicalRequirementLinks
+              :req="req"
+              :module-link-options="moduleLinkOptions"
+              :item-link-options="itemLinkOptions"
+              :force-open="expandAll"
+            />
             <BaseButton variant="danger-ghost" size="sm" @click="epic.requirements.splice(ri, 1)">Quitar requerimiento</BaseButton>
           </div>
         </div>
@@ -443,6 +410,7 @@ import {
   normalizeLinkedModuleIds,
 } from '~/utils/proposalModuleLinkOptions';
 import { vAutoResize } from '~/utils/autoResizeDirective';
+import TechnicalRequirementLinks from '~/components/BusinessProposal/admin/TechnicalRequirementLinks.vue';
 
 const props = defineProps({
   section: { type: Object, required: true },
@@ -450,6 +418,8 @@ const props = defineProps({
   moduleLinkOptions: { type: Array, default: () => [] },
   /** { groupId, groupLabel, items: { id, label }[] }[] from FR items, for linked_item_ids */
   itemLinkOptions: { type: Array, default: () => [] },
+  /** Render every collapsible/disclosure open (unit tests, defaults panel). */
+  expandAll: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['save']);

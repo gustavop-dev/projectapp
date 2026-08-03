@@ -29,6 +29,9 @@ function mountTechnicalDocumentEditor(props = {}) {
     props: {
       section: baseSection,
       moduleLinkOptions: [],
+      // The editor collapses sections and link grids by default; the suite
+      // asserts against fully rendered content, so mount everything open.
+      expandAll: true,
       ...props,
     },
   });
