@@ -86,7 +86,9 @@ def export_accounting_workbook(request):
     sections_querysets = {}
     for section in _WORKBOOK_SECTIONS:
         config = _ENTITIES[section]
-        queryset = config['model'].objects.all()
+        # base_queryset, not the raw manager: the income sheet's collection
+        # state reads the paid_amount annotation.
+        queryset = base_queryset(config)
         if config['date_field']:
             queryset = queryset.filter(
                 **{f'{config["date_field"]}__year': year},

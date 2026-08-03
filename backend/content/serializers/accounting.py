@@ -160,6 +160,29 @@ class PartnerSplitWriteMixin(serializers.Serializer):
 
 # ── Income ──
 
+PAYMENT_STATUS_LABELS = {
+    'paid': 'Pagado',
+    'partial': 'Parcial',
+    'pending': 'Pendiente',
+}
+
+
+def payment_status_for(paid, total):
+    """Collection state ('pending'/'partial'/'paid') from a paid total.
+
+    Single owner of the boundary rule: the row serializer and the export
+    column both call it, while the SQL filter in views.accounting mirrors
+    it in Q algebra ("keep both sides in sync"). None passes through —
+    non-expected rows carry no collection state. A zero-total expected
+    (fully moved out by a residual-only settlement) is closed, not pending.
+    """
+    if paid is None:
+        return None
+    if paid >= total and (paid > 0 or total == 0):
+        return 'paid'
+    return 'pending' if paid <= 0 else 'partial'
+
+
 class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     kind_label = serializers.CharField(source='get_kind_display', read_only=True)
     destination_label = serializers.CharField(
@@ -188,12 +211,6 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'payment_status', 'payment_status_label',
             'notes', 'created_at', 'updated_at',
         )
-
-    PAYMENT_STATUS_LABELS = {
-        'paid': 'Pagado',
-        'partial': 'Parcial',
-        'pending': 'Pendiente',
-    }
 
     def _paid(self, obj):
         """Liquid total fulfilling this record; None for non-expected rows.
@@ -226,17 +243,10 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         return money_str(max(obj.total_amount - paid, Decimal('0')))
 
     def get_payment_status(self, obj):
-        paid = self._paid(obj)
-        if paid is None:
-            return None
-        # A zero-total expected (fully moved out by a residual-only
-        # settlement) is closed, not pending.
-        if paid >= obj.total_amount and (paid > 0 or obj.total_amount == 0):
-            return 'paid'
-        return 'pending' if paid <= 0 else 'partial'
+        return payment_status_for(self._paid(obj), obj.total_amount)
 
     def get_payment_status_label(self, obj):
-        return self.PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
+        return PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
 
 
 class IncomeRecordCreateUpdateSerializer(
