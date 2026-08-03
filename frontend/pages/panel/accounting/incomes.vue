@@ -590,14 +590,17 @@ function confirmWriteOff(record) {
   });
 }
 
+// The three amounts read as one block (`group: 'money'`); concept absorbs the
+// slack. Concept, Total and Tipo survive every width — the partner splits and
+// the bookkeeping metadata collapse first.
 const columns = [
-  { key: 'concept', label: 'Concepto', sortable: true },
-  { key: 'kind_label', label: 'Tipo' },
-  { key: 'ledger_label', label: 'Contabilidad' },
-  { key: 'period_label', label: 'Mes', sortable: true },
-  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },
+  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'kind_label', label: 'Tipo', size: 'badge' },
+  { key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg' },
+  { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
+  { key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true },
+  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
+  { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
 ];
 
 async function loadRecords() {

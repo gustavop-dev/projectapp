@@ -161,24 +161,24 @@
       <table class="w-full">
         <thead>
           <tr class="border-b border-border-muted text-left">
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Descripción</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Comercio</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Categoría</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Cuota</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Valor</th>
-            <th class="px-5 py-3 text-right" />
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Descripción</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Comercio</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Categoría</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Cuota</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Valor</th>
+            <th class="px-2.5 py-2 last:pr-4 text-center" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-muted">
           <tr
             v-for="tx in statement.transactions"
             :key="tx.id"
-            class="hover:bg-surface-raised transition-colors"
+            class="hover:bg-surface-raised transition-colors h-9"
             :data-testid="`statement-tx-${tx.id}`"
           >
             <td
-              class="px-5 py-3 text-sm text-text-muted whitespace-nowrap"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted whitespace-nowrap"
               :data-testid="`tx-cell-transaction_date-${tx.id}`"
             >
               <AccountingInlineCell
@@ -191,7 +191,7 @@
               </AccountingInlineCell>
             </td>
             <td
-              class="px-5 py-3 text-xs text-text-subtle max-w-[220px]"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-xs text-text-subtle max-w-[220px]"
               :title="tx.raw_description"
               :data-testid="`tx-cell-raw_description-${tx.id}`"
             >
@@ -203,7 +203,7 @@
                 <span class="block truncate">{{ tx.raw_description }}</span>
               </AccountingInlineCell>
             </td>
-            <td class="px-5 py-3 text-sm" :data-testid="`tx-cell-merchant_name-${tx.id}`">
+            <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm" :data-testid="`tx-cell-merchant_name-${tx.id}`">
               <AccountingInlineCell
                 type="merchant"
                 :value="tx.merchant_name || ''"
@@ -220,7 +220,7 @@
                 </span>
               </AccountingInlineCell>
             </td>
-            <td class="px-5 py-3 text-sm text-text-muted" :data-testid="`tx-cell-category-${tx.id}`">
+            <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted" :data-testid="`tx-cell-category-${tx.id}`">
               <AccountingInlineCell
                 type="select"
                 :value="tx.category"
@@ -231,7 +231,7 @@
                 {{ tx.category_label }}
               </AccountingInlineCell>
             </td>
-            <td class="px-5 py-3 text-sm text-text-muted" :data-testid="`tx-cell-installment_label-${tx.id}`">
+            <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted" :data-testid="`tx-cell-installment_label-${tx.id}`">
               <AccountingInlineCell
                 type="installments"
                 :value="tx.installment_label || ''"
@@ -242,7 +242,7 @@
               </AccountingInlineCell>
             </td>
             <td
-              class="px-5 py-3 text-sm font-medium text-right whitespace-nowrap"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm font-medium text-right whitespace-nowrap"
               :class="Number(tx.amount) < 0 ? 'text-success-strong' : 'text-text-default'"
               :data-testid="`tx-cell-amount-${tx.id}`"
             >
@@ -261,7 +261,7 @@
                 {{ tx.original_amount }} {{ tx.original_currency }}
               </span>
             </td>
-            <td class="px-5 py-3 text-right whitespace-nowrap">
+            <td class="px-2.5 py-1.5 last:pr-4 text-center whitespace-nowrap">
               <button
                 class="text-xs text-text-muted hover:text-text-brand transition-colors"
                 :class="isProcessed ? '' : 'mr-2'"

@@ -14,23 +14,23 @@
       {{ loading ? 'Cargando registros...' : `${rowCount} registros en ${groups.length} categorías` }}
     </p>
 
-    <div class="min-w-[1120px]">
+    <div class="accounting-grid-scroll" :style="containerVars">
       <!-- Header -->
       <div
         role="row"
-        class="grid gap-3 items-end bg-surface-raised px-4 py-3 text-xs text-text-muted uppercase tracking-wider leading-tight"
-        :style="gridStyle"
+        class="accounting-grid-row grid items-end bg-surface-raised text-xs text-text-muted uppercase tracking-wider leading-tight"
+        :style="gridVars"
       >
         <!-- Must stay in flow to occupy the handle track; sr-only (absolute) on
              the grid item itself shifts every label one track left. -->
-        <span v-if="dragEnabled" role="columnheader"><span class="sr-only">Orden</span></span>
+        <span v-if="dragEnabled" role="columnheader" :class="HANDLE_PAD"><span class="sr-only">Orden</span></span>
         <span
-          v-for="col in columns"
+          v-for="col in resolved"
           :key="col.key"
           role="columnheader"
-          :class="alignClass(col)"
+          :class="[col.headerPadClass, col.alignClass, col.hideGridClass]"
         >{{ col.label }}</span>
-        <span role="columnheader" class="text-right">Acciones</span>
+        <span role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
       </div>
 
       <!-- Skeleton -->
@@ -38,7 +38,7 @@
         <div
           v-for="n in skeletonRows"
           :key="`skeleton-${n}`"
-          class="px-4 py-3.5 bg-surface"
+          class="px-4 py-1.5 min-h-9 flex items-center bg-surface"
           data-testid="accounting-skeleton-row"
         >
           <div class="h-3 w-32 rounded bg-surface-raised motion-safe:animate-pulse" />
@@ -50,7 +50,7 @@
           <!-- Group header -->
           <div
             role="row"
-            class="flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2.5"
+            class="flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`recurring-group-${group.id}`"
           >
             <button
@@ -95,11 +95,11 @@
               <div
                 role="row"
                 :data-testid="`accounting-row-${row.id}`"
-                class="grid gap-3 items-center px-4 py-3 bg-surface hover:bg-surface-raised transition-colors text-sm"
+                class="accounting-grid-row grid items-center min-h-9 bg-surface hover:bg-surface-raised transition-colors text-sm"
                 :class="row.id === highlightId ? 'accounting-row-flash' : ''"
-                :style="gridStyle"
+                :style="gridVars"
               >
-                <span v-if="dragEnabled" role="cell">
+                <span v-if="dragEnabled" role="cell" :class="HANDLE_PAD">
                   <span
                     class="recurring-drag-handle cursor-grab select-none text-text-subtle"
                     :data-testid="`recurring-drag-handle-${row.id}`"
@@ -107,7 +107,7 @@
                   >⠿</span>
                 </span>
                 <span
-                  v-for="col in columns"
+                  v-for="col in resolved"
                   :key="col.key"
                   role="cell"
                   class="min-w-0"
@@ -125,24 +125,24 @@
                     <template v-else>{{ row[col.key] }}</template>
                   </slot>
                 </span>
-                <span role="cell" class="text-right whitespace-nowrap">
+                <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                   <button
                     type="button"
                     aria-label="Editar"
                     :data-testid="`accounting-edit-${row.id}`"
-                    class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                    class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
                     @click.stop="emit('edit', row)"
                   >
-                    <PencilSquareIcon class="w-5 h-5" />
+                    <PencilSquareIcon class="w-4 h-4" />
                   </button>
                   <button
                     type="button"
                     aria-label="Eliminar"
                     :data-testid="`accounting-delete-${row.id}`"
-                    class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                    class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
                     @click.stop="emit('delete', row)"
                   >
-                    <TrashIcon class="w-5 h-5" />
+                    <TrashIcon class="w-4 h-4" />
                   </button>
                 </span>
               </div>
@@ -153,7 +153,7 @@
         <!-- Grand total -->
         <div
           role="row"
-          class="flex items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-3"
+          class="flex items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-2"
         >
           <span role="cell" class="text-xs uppercase tracking-wider text-text-muted">
             Total mensual (COP)
@@ -182,9 +182,16 @@ import {
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatMonthlyCop, UNCATEGORIZED_KEY } from '~/utils/recurring';
+import {
+  HANDLE_PAD,
+  TABLE_DENSITY,
+  minWidthFor,
+  resolveColumns,
+  trackListFor,
+} from '~/utils/tableLayout';
 
 const props = defineProps({
-  /** Same column config shape as AccountingTable ({ key, label, format, align }). */
+  /** Same column config shape as AccountingTable ({ key, label, format, align, size, group, hideBelow }). */
   columns: { type: Array, required: true },
   /** [{ id, name, rows, monthlyCopTotal }] — already ordered and subtotaled. */
   groups: { type: Array, default: () => [] },
@@ -216,26 +223,35 @@ watch(
   { immediate: true, deep: true },
 );
 
-/**
- * Header, rows and the drag handle column must line up, so every row shares one
- * track list. Amounts get a floor wide enough to never truncate — a clipped
- * "$1.200.000 …" defeats the point of the table — while the name column takes
- * the remaining slack.
- */
-function trackFor(col, index) {
-  if (index === 0) return 'minmax(9rem, 1.4fr)';
-  if (col.format === 'money' || col.align === 'right') return 'minmax(7.5rem, 1fr)';
-  if (col.align === 'center') return '3.5rem';
-  return 'minmax(5.5rem, 0.9fr)';
-}
+const DENSITY = TABLE_DENSITY;
 
-const gridStyle = computed(() => ({
-  gridTemplateColumns: [
-    ...(props.dragEnabled ? ['1.5rem'] : []),
-    ...props.columns.map(trackFor),
-    '5.5rem',
-  ].join(' '),
-}));
+/** Widths by content, with a single flexible column — see utils/tableLayout. */
+const resolved = computed(() => resolveColumns(props.columns));
+
+/**
+ * Header, rows and the drag handle must line up, so every row shares one track
+ * list. CSS cannot drop a track from grid-template-columns, so each breakpoint
+ * gets its own list as a custom property and a media query picks between them.
+ * Doing it in CSS rather than a JS breakpoint watcher keeps SSR and the client
+ * rendering the same markup.
+ */
+const gridVars = computed(() => {
+  const opts = { hasHandle: props.dragEnabled, hasActions: true };
+  return {
+    '--cols-base': trackListFor(resolved.value, { ...opts, breakpoint: 'base' }),
+    '--cols-md': trackListFor(resolved.value, { ...opts, breakpoint: 'md' }),
+    '--cols-lg': trackListFor(resolved.value, { ...opts, breakpoint: 'lg' }),
+  };
+});
+
+const containerVars = computed(() => {
+  const opts = { hasHandle: props.dragEnabled, hasActions: true };
+  return {
+    '--minw-base': minWidthFor(resolved.value, { ...opts, breakpoint: 'base' }),
+    '--minw-md': minWidthFor(resolved.value, { ...opts, breakpoint: 'md' }),
+    '--minw-lg': minWidthFor(resolved.value, { ...opts, breakpoint: 'lg' }),
+  };
+});
 
 const rowCount = computed(
   () => props.groups.reduce((total, group) => total + group.rows.length, 0),
@@ -249,15 +265,9 @@ function isCollapsed(id) {
   return props.collapsedIds.includes(id);
 }
 
-function alignClass(col) {
-  const align = col.align || (col.format === 'money' ? 'right' : 'left');
-  if (align === 'right') return 'text-right';
-  if (align === 'center') return 'text-center';
-  return 'text-left';
-}
-
+/** `col` is already resolved, so alignment, padding and visibility come precomputed. */
 function cellClass(col) {
-  const classes = [alignClass(col)];
+  const classes = [col.padClass, col.alignClass, col.hideGridClass];
   // Amounts must never wrap or clip; free text may truncate.
   if (col.format === 'money' || col.align === 'right') {
     classes.push('tabular-nums whitespace-nowrap');
@@ -289,6 +299,33 @@ function onDragEnd() {
 </script>
 
 <style scoped>
+/* Header, skeleton and data rows all carry .accounting-grid-row, so they cannot
+ * drift apart: one rule decides the track list for all of them at each width.
+ * The variants come in as custom properties because a media query can switch
+ * between values but cannot compute a track list from the column config. */
+.accounting-grid-row {
+  grid-template-columns: var(--cols-base);
+}
+.accounting-grid-scroll {
+  min-width: var(--minw-base);
+}
+@media (min-width: 768px) {
+  .accounting-grid-row {
+    grid-template-columns: var(--cols-md);
+  }
+  .accounting-grid-scroll {
+    min-width: var(--minw-md);
+  }
+}
+@media (min-width: 1024px) {
+  .accounting-grid-row {
+    grid-template-columns: var(--cols-lg);
+  }
+  .accounting-grid-scroll {
+    min-width: var(--minw-lg);
+  }
+}
+
 /* Same feedback flash as AccountingTable for the row just created or edited. */
 @keyframes accounting-row-flash {
   0%,

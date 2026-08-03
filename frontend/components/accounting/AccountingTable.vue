@@ -6,14 +6,14 @@
     <p class="sr-only" aria-live="polite">
       {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
     </p>
-    <table class="w-full min-w-[600px] text-sm">
+    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
-            v-for="col in columns"
+            v-for="col in resolved"
             :key="col.key"
-            class="px-4 py-3 first:px-5"
-            :class="alignClass(col)"
+            :style="{ width: col.width }"
+            :class="[col.headerPadClass, col.alignClass, col.nowrapClass, col.hideTableClass]"
             :aria-sort="ariaSort(col)"
           >
             <button
@@ -39,7 +39,11 @@
             </button>
             <template v-else>{{ col.label }}</template>
           </th>
-          <th v-if="showActions" class="px-4 py-3 text-right">Acciones</th>
+          <th
+            v-if="showActions"
+            :style="{ width: ACTIONS_WIDTH }"
+            :class="[DENSITY.headerCell, 'text-center']"
+          >Acciones</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
@@ -51,17 +55,16 @@
             data-testid="accounting-skeleton-row"
           >
             <td
-              v-for="(col, colIndex) in columns"
+              v-for="(col, colIndex) in resolved"
               :key="col.key"
-              class="px-4 py-3.5 first:px-5"
-              :class="alignClass(col)"
+              :class="[col.padClass, col.alignClass, col.hideTableClass]"
             >
               <div
                 class="h-3 rounded bg-surface-raised motion-safe:animate-pulse inline-block"
                 :class="skeletonWidthClass(n, colIndex)"
               />
             </td>
-            <td v-if="showActions" class="px-4 py-3.5" />
+            <td v-if="showActions" :class="DENSITY.cell" />
           </tr>
         </template>
         <tr v-else-if="rows.length === 0">
@@ -73,16 +76,15 @@
           v-for="row in loading ? [] : rows"
           :key="row[rowKey]"
           :data-testid="`accounting-row-${row[rowKey]}`"
-          class="hover:bg-surface-raised transition-colors"
+          class="hover:bg-surface-raised transition-colors h-9"
           :class="[
             rowBgClass(row),
             row[rowKey] === highlightId ? 'accounting-row-flash' : '',
           ]"
         >
           <td
-            v-for="col in columns"
+            v-for="col in resolved"
             :key="col.key"
-            class="px-4 py-3 first:px-5"
             :class="cellClass(col)"
           >
             <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
@@ -106,19 +108,22 @@
               </template>
             </slot>
           </td>
-          <td v-if="showActions" class="px-4 py-3 text-right whitespace-nowrap">
+          <td
+            v-if="showActions"
+            :class="[DENSITY.cell, 'text-center whitespace-nowrap']"
+          >
             <slot name="row-actions" :row="row" />
             <button
               type="button"
               aria-label="Editar"
               :data-testid="`accounting-edit-${row[rowKey]}`"
-              class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               @click.stop="emit('edit', row)"
             >
-              <PencilSquareIcon class="w-5 h-5" />
+              <PencilSquareIcon class="w-4 h-4" />
             </button>
-            <BaseButton variant="danger-ghost" size="sm" aria-label="Eliminar" :data-testid="`accounting-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
-              <TrashIcon class="w-5 h-5" />
+            <BaseButton variant="danger-ghost" size="sm" icon-only aria-label="Eliminar" :data-testid="`accounting-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
+              <TrashIcon class="w-4 h-4" />
             </BaseButton>
           </td>
         </tr>
@@ -138,12 +143,15 @@ import {
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
+import { TABLE_DENSITY, minWidthFor, resolveColumns } from '~/utils/tableLayout';
 
 const props = defineProps({
   /**
    * Column config: { key, label, format ('money'|'date'|'text'|'badge'),
    * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
-   * sortable (Boolean) }.
+   * sortable (Boolean), size (see utils/tableLayout SIZE_NAMES),
+   * group (String — adjacent columns sharing one draw closer together),
+   * hideBelow ('md'|'lg' — collapses the column on narrow screens) }.
    */
   columns: { type: Array, required: true },
   rows: { type: Array, default: () => [] },
@@ -167,6 +175,19 @@ const props = defineProps({
    */
   rowTone: { type: Function, default: null },
 });
+
+const DENSITY = TABLE_DENSITY;
+const ACTIONS_WIDTH = '4rem';
+
+/**
+ * Widths come from what each column shows, with exactly one column left
+ * flexible so a wide screen grows the name instead of opening gaps everywhere.
+ */
+const resolved = computed(() => resolveColumns(props.columns));
+
+const tableMinWidth = computed(
+  () => minWidthFor(resolved.value, { hasActions: props.showActions }),
+);
 
 const ROW_TONE_CLASSES = {
   success: 'bg-success-soft',
@@ -203,15 +224,9 @@ function skeletonWidthClass(rowIndex, colIndex) {
   return SKELETON_WIDTHS[(rowIndex + colIndex) % SKELETON_WIDTHS.length];
 }
 
-function alignClass(col) {
-  const align = col.align || (col.format === 'money' ? 'right' : 'left');
-  if (align === 'right') return 'text-right';
-  if (align === 'center') return 'text-center';
-  return 'text-left';
-}
-
+/** `col` here is already resolved, so alignment and padding come precomputed. */
 function cellClass(col) {
-  const classes = [alignClass(col)];
+  const classes = [col.padClass, col.alignClass, col.nowrapClass, col.hideTableClass];
   if (col.format === 'money') classes.push('tabular-nums text-text-muted');
   else if (col.format === 'date') classes.push('text-text-muted text-xs');
   else classes.push('text-text-default');

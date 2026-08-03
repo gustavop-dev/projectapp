@@ -112,6 +112,40 @@ describe('RecurringGroupedTable', () => {
     expect(headerRow.text()).toContain('Orden');
   });
 
+  it('drives header and rows from one track list so they cannot drift apart', () => {
+    const wrapper = mountTable({ dragEnabled: true });
+
+    const headerRow = wrapper.find('[role="row"]');
+    const bodyRow = wrapper.find('[data-testid="accounting-row-18"]');
+
+    // Both carry the class the media queries target, and the same per-breakpoint
+    // track lists — one column config, one geometry.
+    expect(headerRow.classes()).toContain('accounting-grid-row');
+    expect(bodyRow.classes()).toContain('accounting-grid-row');
+    expect(headerRow.attributes('style')).toBe(bodyRow.attributes('style'));
+  });
+
+  it('sizes columns by content instead of splitting the width evenly', () => {
+    const wrapper = mountTable({
+      dragEnabled: true,
+      columns: [
+        ...columns,
+        { key: 'billing_day', label: 'Día', align: 'center' },
+        { key: 'is_active', label: 'Estado', size: 'badge' },
+      ],
+    });
+    const wide = wrapper
+      .find('[role="row"]')
+      .attributes('style')
+      .match(/--cols-lg:([^;]*)/)[1];
+
+    // Exactly one flexible track absorbs the slack; everything else is fixed,
+    // so a badge or a two-character day no longer claims a full column.
+    expect(wide.match(/1fr/g)).toHaveLength(1);
+    expect(wide).toContain('2.75rem'); // Día
+    expect(wide).toContain('6rem'); // Estado badge
+  });
+
   it('emits the full board with category and order after a drag', async () => {
     const wrapper = mountTable({ dragEnabled: true });
 

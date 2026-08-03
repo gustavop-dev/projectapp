@@ -1,13 +1,14 @@
 <template>
   <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
-    <table class="w-full min-w-[700px] text-sm">
+    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
-          <th class="px-5 py-3">Fecha</th>
-          <th class="px-4 py-3">Usuario</th>
-          <th class="px-4 py-3">Entidad</th>
-          <th class="px-4 py-3">Registro</th>
-          <th class="px-4 py-3">Acción</th>
+          <th
+            v-for="col in resolved"
+            :key="col.key"
+            :style="{ width: col.width }"
+            :class="[col.headerPadClass, col.alignClass, col.nowrapClass]"
+          >{{ col.label }}</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
@@ -19,18 +20,18 @@
         <template v-for="entry in entries" :key="entry.id">
           <tr
             :data-testid="`changelog-row-${entry.id}`"
-            class="hover:bg-surface-raised transition-colors bg-surface cursor-pointer"
+            class="hover:bg-surface-raised transition-colors bg-surface cursor-pointer h-9"
             @click="toggleEntry(entry.id)"
           >
-            <td class="px-5 py-3 text-text-muted text-xs whitespace-nowrap tabular-nums">
+            <td :class="[cell(0), 'text-text-muted text-xs tabular-nums']">
               {{ formatDateTime(entry.created_at) }}
             </td>
-            <td class="px-4 py-3 text-text-default">
+            <td :class="[cell(1), 'text-text-default']">
               {{ entry.actor_username || 'Sistema' }}
             </td>
-            <td class="px-4 py-3 text-text-muted">{{ entry.entity_type_label }}</td>
-            <td class="px-4 py-3 text-text-default font-medium">{{ entry.object_repr }}</td>
-            <td class="px-4 py-3">
+            <td :class="[cell(2), 'text-text-muted']">{{ entry.entity_type_label }}</td>
+            <td :class="[cell(3), 'text-text-default font-medium']">{{ entry.object_repr }}</td>
+            <td :class="cell(4)">
               <span
                 class="text-xs px-2.5 py-1 rounded-full font-medium"
                 :class="actionClass(entry.action)"
@@ -72,6 +73,26 @@
 <script setup>
 import { ref } from 'vue';
 import { formatDateTime } from '~/utils/formatDate';
+import { minWidthFor, resolveColumns } from '~/utils/tableLayout';
+
+// Registro is the identifying column, so it takes the slack; the rest sit at
+// the width their content needs.
+const COLUMNS = [
+  { key: 'created_at', label: 'Fecha', format: 'date' },
+  { key: 'actor_username', label: 'Usuario' },
+  { key: 'entity_type_label', label: 'Entidad' },
+  { key: 'object_repr', label: 'Registro', size: 'flex' },
+  { key: 'action_label', label: 'Acción', size: 'badge' },
+];
+
+const resolved = resolveColumns(COLUMNS);
+const tableMinWidth = minWidthFor(resolved, { hasActions: false });
+
+/** Padding + alignment for the nth column. */
+function cell(index) {
+  const col = resolved[index];
+  return [col.padClass, col.alignClass, col.nowrapClass];
+}
 
 defineProps({
   /**

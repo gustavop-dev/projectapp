@@ -357,12 +357,14 @@ const {
   isFilterPanelOpen,
 });
 
+// Value and running balance are the same number in two readings, so they group.
+// Date, concept and value are what a ledger is for; the rest can collapse.
 const columns = [
   { key: 'movement_date', label: 'Fecha', format: 'date', sortable: true },
-  { key: 'concept', label: 'Concepto', sortable: true },
-  { key: 'direction_label', label: 'Tipo' },
-  { key: 'amount', label: 'Valor', format: 'money', sortable: true },
-  { key: 'running_balance', label: 'Saldo', format: 'money' },
+  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
+  { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
+  { key: 'running_balance', label: 'Saldo', format: 'money', group: 'money', hideBelow: 'md' },
 ];
 
 async function loadRecords() {
