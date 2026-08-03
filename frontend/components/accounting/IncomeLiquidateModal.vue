@@ -54,15 +54,25 @@ const sumAmounts = (rows) =>
 const shortfall = computed(() =>
   Math.max(pending.value - Number(form.value.total_amount || 0), 0),
 )
+// An auto-added row the user never touched must not block the submit nor
+// reach the payload — otherwise "leave the rest pending" (no allocation)
+// would require deleting the row the auto-expand just created.
+const isPristineDeduction = (row) =>
+  !(Number(row.amount) > 0) && !row.detail.trim() && row.type === 'gateway_fee'
+
+const activeDeductions = computed(() =>
+  deductions.value.filter((row) => !isPristineDeduction(row)),
+)
+
 const allocated = computed(
-  () => sumAmounts(deductions.value) + sumAmounts(followUps.value),
+  () => sumAmounts(activeDeductions.value) + sumAmounts(followUps.value),
 )
 /** Left over after allocating; stays pending on the expected income. */
 const unassigned = computed(() => shortfall.value - allocated.value)
 const overAllocated = computed(() => unassigned.value < 0)
 
 const hasIncompleteRow = computed(() => {
-  const badDeduction = deductions.value.some(
+  const badDeduction = activeDeductions.value.some(
     (row) => !(Number(row.amount) > 0)
       || (row.type === 'other' && !row.detail.trim()),
   )
@@ -96,6 +106,18 @@ watch(followUpsOpen, (open) => {
   if (open && !followUps.value.length) addFollowUp()
 })
 
+// Reveal the resolution path the moment a shortfall appears — the section
+// used to materialize with both groups collapsed, which read as "the
+// option is not there". One-shot per modal open, so a user who collapses
+// the group and keeps editing the amount stays in control.
+const autoExpanded = ref(false)
+watch(shortfall, (value) => {
+  if (value > 0 && !autoExpanded.value) {
+    autoExpanded.value = true
+    deductionsOpen.value = true
+  }
+})
+
 watch(
   () => [props.open, props.record],
   () => {
@@ -105,6 +127,7 @@ watch(
     followUps.value = []
     deductionsOpen.value = false
     followUpsOpen.value = false
+    autoExpanded.value = false
     form.value = {
       ...defaultForm(),
       concept: props.record.concept ?? '',
@@ -132,7 +155,7 @@ function onSubmit() {
     destination: form.value.destination,
     total_amount: amount === '' || amount == null ? 0 : amount,
     // Empty arrays make the backend behave exactly like a plain liquidation.
-    deductions: deductions.value.map((row) => ({
+    deductions: activeDeductions.value.map((row) => ({
       type: row.type,
       detail: row.type === 'other' ? row.detail.trim() : '',
       amount: row.amount,
@@ -183,6 +206,16 @@ function onSubmit() {
           {{ money(pending) }}
         </span>
       </div>
+
+      <p
+        v-if="record && shortfall <= 0"
+        class="text-xs text-text-subtle"
+        data-testid="income-liquidate-shortfall-hint"
+      >
+        ¿Recibiste menos? Escribe el monto real: la diferencia podrás
+        registrarla como deducción (comisión o retención) o como un nuevo
+        ingreso esperado.
+      </p>
 
       <BaseFormField label="Concepto" required>
         <BaseInput v-model="form.concept" required />
