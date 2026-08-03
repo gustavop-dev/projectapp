@@ -644,7 +644,7 @@ class TestIterativeSettlement:
 
 
 class TestGrossRegrossMigration:
-    """Migration 0172 links settle-born deductions and re-grosses parents.
+    """Migration 0173 links settle-born deductions and re-grosses parents.
 
     Pre-migration rows carry only the ``income:<pk>:settlement`` stamp and a
     netted parent total; the backfill must recover the link and the gross
@@ -656,7 +656,7 @@ class TestGrossRegrossMigration:
         from importlib import import_module
 
         return import_module(
-            'content.migrations.0172_expense_source_income_and_regross',
+            'content.migrations.0173_expense_source_income_and_regross',
         )
 
     def test_links_by_source_ref_and_regrosses_with_the_stored_split(

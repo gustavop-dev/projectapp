@@ -58,7 +58,7 @@ def link_and_regross(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0171_recurring_category_and_order'),
+        ('content', '0172_proposalchangelog_pcl_proposal_created_idx_and_more'),
     ]
 
     operations = [
