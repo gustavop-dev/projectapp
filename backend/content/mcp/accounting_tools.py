@@ -36,6 +36,7 @@ from content.views.accounting import (
     _ENTITIES,
     _apply_filters,
     _parse_date,
+    base_queryset,
 )
 
 
@@ -75,7 +76,10 @@ def _get_instance_or_error(key, record_id):
 def _make_list(key):
     def handler(arguments):
         config = _ENTITIES[key]
-        queryset = config['model'].objects.all()
+        # base_queryset applies the entity's read annotations (e.g. income's
+        # paid_amount): without them a payment_status filter raises FieldError
+        # and the serializer falls back to one aggregate per row.
+        queryset = base_queryset(config)
         params = _str_params(arguments)
         try:
             queryset = _apply_filters(queryset, params, config)
@@ -349,6 +353,15 @@ def _list_schema(key):
         props[field] = {'type': 'boolean'}
     if config.get('has_split'):
         props['partner'] = {'type': 'string', 'enum': ['gustavo', 'carlos', 'projectapp', 'all']}
+    if config.get('payment_status_filter'):
+        props['payment_status'] = {
+            'type': 'string',
+            'enum': ['pending', 'partial', 'paid'],
+            'description': (
+                'Estado de cobro de un esperado: pending (sin pagos), '
+                'partial (pago parcial) o paid (pagado).'
+            ),
+        }
     return {'type': 'object', 'properties': props}
 
 
