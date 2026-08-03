@@ -10,6 +10,50 @@ const ENDPOINT = 'accounts/saved-filter-tabs/';
 const MAX_TABS = 12;
 const UPDATE_DEBOUNCE_MS = 400;
 
+function isInactiveValue(value) {
+  return (
+    value === '' || value === null || value === undefined
+    || (Array.isArray(value) && value.length === 0)
+  );
+}
+
+/**
+ * Drop inactive keys (`''` / `null` / `[]`) from a filters dict.
+ *
+ * Stored tabs carry the page's expanded default shape (every filter key plus
+ * `search`) because the auto-save clones the whole `currentFilters`, while
+ * seeded `base_filters` stay sparse — both spell the same active filters.
+ */
+export function normalizedFilters(filters) {
+  const result = {};
+  for (const [key, value] of Object.entries(filters || {})) {
+    if (!isInactiveValue(value)) result[key] = value;
+  }
+  return result;
+}
+
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (Array.isArray(a) && Array.isArray(b)) {
+    return a.length === b.length && a.every((item, i) => deepEqual(item, b[i]));
+  }
+  if (a && b && typeof a === 'object' && typeof b === 'object'
+    && !Array.isArray(a) && !Array.isArray(b)) {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    return (
+      keysA.length === keysB.length
+      && keysA.every((key) => deepEqual(a[key], b[key]))
+    );
+  }
+  return false;
+}
+
+/** Semantic equality between two filter dicts (key order and inactive keys ignored). */
+export function sameFilters(a, b) {
+  return deepEqual(normalizedFilters(a), normalizedFilters(b));
+}
+
 /**
  * Persiste pestañas de filtros guardados en el backend (antes localStorage).
  *
@@ -93,6 +137,45 @@ export function useSavedFilterTabs(viewName) {
     updateTimers.set(tabId, timer);
   }
 
+  async function restoreTab(tabId) {
+    const idx = savedTabs.value.findIndex((t) => t.id === tabId);
+    if (idx === -1) return null;
+    // A pending debounced auto-save would overwrite the restore — drop it.
+    if (updateTimers.has(tabId)) {
+      clearTimeout(updateTimers.get(tabId));
+      updateTimers.delete(tabId);
+    }
+    lastError.value = null;
+    try {
+      const base = savedTabs.value[idx].base_filters || {};
+      const { data } = await patch_request(`${ENDPOINT}${tabId}/`, { filters: base });
+      const stillThere = savedTabs.value.findIndex((t) => t.id === tabId);
+      if (stillThere !== -1) _replaceTab(stillThere, data);
+      return data;
+    } catch (err) {
+      lastError.value = err;
+      return null;
+    }
+  }
+
+  async function rebaseTab(tabId) {
+    const idx = savedTabs.value.findIndex((t) => t.id === tabId);
+    if (idx === -1) return null;
+    lastError.value = null;
+    try {
+      const current = savedTabs.value[idx].filters || {};
+      const { data } = await patch_request(
+        `${ENDPOINT}${tabId}/`, { base_filters: current },
+      );
+      const stillThere = savedTabs.value.findIndex((t) => t.id === tabId);
+      if (stillThere !== -1) _replaceTab(stillThere, data);
+      return data;
+    } catch (err) {
+      lastError.value = err;
+      return null;
+    }
+  }
+
   async function renameTab(tabId, newName) {
     const idx = savedTabs.value.findIndex((t) => t.id === tabId);
     if (idx === -1) return;
@@ -136,6 +219,8 @@ export function useSavedFilterTabs(viewName) {
     loadTabs,
     saveTab,
     updateTabFilters,
+    restoreTab,
+    rebaseTab,
     renameTab,
     deleteTab,
   };

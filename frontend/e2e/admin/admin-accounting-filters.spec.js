@@ -111,8 +111,26 @@ const ROWS = [
   },
 ];
 
-function buildHandler() {
-  return ({ apiPath, method }) => {
+// Saved tabs for the restorable-base test: 502 drifted away from its seeded
+// definition (the auto-save wiped paymentStatus), so it filters exactly like
+// 501 until restored.
+const SAVED_TABS = [
+  {
+    id: 501, view: 'accounting_income', name: 'Todos los esperados',
+    filters: { kind: 'expected' },
+    base_filters: { kind: 'expected' },
+    order: 0,
+  },
+  {
+    id: 502, view: 'accounting_income', name: 'Solo esperados',
+    filters: { kind: 'expected' },
+    base_filters: { kind: 'expected', paymentStatus: 'pending' },
+    order: 1,
+  },
+];
+
+function buildHandler({ tabs = [] } = {}) {
+  return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
         status: 200,
@@ -130,14 +148,28 @@ function buildHandler() {
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
-      return { status: 200, contentType: 'application/json', body: '[]' };
+      if (method === 'PATCH') {
+        const tabId = Number(apiPath.replace(/\/$/, '').split('/').pop());
+        const tab = tabs.find((t) => t.id === tabId) || {};
+        const body = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...tab, ...body }),
+        };
+      }
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(tabs),
+      };
     }
     return null;
   };
 }
 
-async function gotoIncomes(page) {
-  await mockApi(page, buildHandler());
+async function gotoIncomes(page, options = {}) {
+  await mockApi(page, buildHandler(options));
   await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
@@ -234,6 +266,30 @@ test.describe('Admin Accounting Filters', () => {
 
     await chip.getByRole('button').click();
     await expect(visibleRows(page)).toHaveCount(4);
+  });
+
+  test('restoring a drifted saved tab recovers its seeded collection filter', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await gotoIncomes(page, { tabs: SAVED_TABS });
+
+    // Drifted "Solo esperados" behaves exactly like "Todos los esperados":
+    // both expected rows survive and the dot marks the drift.
+    await page.getByTestId('filter-tabs-tab-502').click();
+    await expect(visibleRows(page)).toHaveCount(2);
+    await expect(page.getByTestId('filter-tabs-modified-502')).toBeVisible();
+
+    await page.getByTestId('filter-tabs-menu-502').click();
+    await page.getByTestId('filter-tabs-restore').click();
+
+    // The seeded definition is back: only the uncollected expected remains,
+    // the Cobro chip reappears and the drift dot goes away.
+    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(page.getByText('G&M Entrega No. 1 (Mayo)')).toBeVisible();
+    await expect(
+      page.getByTestId('accounting-filter-chip').filter({ hasText: 'Cobro: Sin pagos' }),
+    ).toHaveCount(1);
+    await expect(page.getByTestId('filter-tabs-modified-502')).toHaveCount(0);
   });
 
   test('active filter count badge reflects applied filters', {

@@ -114,6 +114,34 @@ class TestSeedDefaultTabs:
             'Extra': {'acceptedMax': 9},
         }
 
+    def test_seed_populates_base_filters_as_restore_point(self, admin_a):
+        seed_default_tabs(admin_a, 'client')
+
+        bases = {
+            t.name: t.base_filters
+            for t in SavedFilterTab.objects.filter(user=admin_a, view='client')
+        }
+        assert bases == {
+            'VIP': {'acceptedMin': 1},
+            'Fríos': {'lastStatuses': ['sent']},
+        }
+
+    def test_force_reseed_restores_base_after_drift(self, admin_a):
+        seed_default_tabs(admin_a, 'client')
+        drifted = SavedFilterTab.objects.get(
+            user=admin_a, view='client', name='VIP',
+        )
+        drifted.filters = {'acceptedMin': 99}
+        drifted.base_filters = {'acceptedMin': 99}
+        drifted.save()
+
+        created, updated = seed_default_tabs(admin_a, 'client', force=True)
+
+        assert (created, updated) == (0, 1)
+        drifted.refresh_from_db()
+        assert drifted.filters == {'acceptedMin': 1}
+        assert drifted.base_filters == {'acceptedMin': 1}
+
     def test_seed_respects_max_tabs_per_view(self, admin_a, monkeypatch):
         big_registry = {
             'client': [
@@ -292,3 +320,49 @@ class TestIncomeExpectedTabMigration:
                 user=admin_a, view='accounting_income',
             ).order_by('order').values_list('order', flat=True)
         ) == [0, 1, 2]
+
+
+class TestBaseFiltersBackfillMigration:
+    """Migration 0042 gives pre-existing tabs their restore point.
+
+    Rows created before the field existed carry ``base_filters={}``; the
+    backfill must recover the registry definition for seeded names even when
+    the live filters drifted (the panel auto-saves onto the active tab), and
+    fall back to the tab's own filters for custom names.
+    """
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module(
+            'accounts.migrations.0042_savedfiltertab_base_filters',
+        )
+
+    def test_backfill_recovers_registry_definition_for_seeded_names(self, admin_a):
+        from django.apps import apps
+
+        drifted = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Solo esperados',
+            filters={'kind': 'expected'},
+        )
+
+        self._migration().backfill_base_filters(apps, None)
+
+        drifted.refresh_from_db()
+        assert drifted.base_filters == {
+            'kind': 'expected', 'paymentStatus': 'pending',
+        }
+
+    def test_backfill_copies_own_filters_for_custom_names(self, admin_a):
+        from django.apps import apps
+
+        custom = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Mi vista',
+            filters={'partner': 'gustavo'}, order=1,
+        )
+
+        self._migration().backfill_base_filters(apps, None)
+
+        custom.refresh_from_db()
+        assert custom.base_filters == {'partner': 'gustavo'}

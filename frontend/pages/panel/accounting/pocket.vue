@@ -42,6 +42,8 @@
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
       @delete="deleteFilterTab"
+      @restore="restoreFilterTab"
+      @rebase="rebaseFilterTab"
     />
 
     <!-- Search + Filter toggle -->
@@ -238,6 +240,8 @@ const {
   saveTab,
   deleteTab: deleteFilterTab,
   renameTab: renameFilterTab,
+  restoreTab: restoreFilterTab,
+  rebaseTab: rebaseFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_pocket',
   defaults: {

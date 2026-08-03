@@ -73,6 +73,8 @@
       @create="saveTab"
       @rename="renameTab"
       @delete="deleteTab"
+      @restore="restoreTab"
+      @rebase="rebaseTab"
     />
 
     <!-- Search bar + filter toggle -->
@@ -276,6 +278,8 @@ const {
   saveTab,
   deleteTab,
   renameTab,
+  restoreTab,
+  rebaseTab,
 } = useViewMapFilters()
 
 const { viewMode, selectedModuleId, applyDefaultMode, selectModule, clearModule } = useViewMapMode()

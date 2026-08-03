@@ -137,3 +137,69 @@ describe('config tab (opt-in)', () => {
     ).toContain('border-emerald-600')
   })
 })
+
+describe('ProposalFilterTabs restorable base', () => {
+  const driftedTab = {
+    id: 'tab-1',
+    name: 'Solo esperados',
+    filters: { kind: 'expected' },
+    base_filters: { kind: 'expected', paymentStatus: 'pending' },
+  };
+
+  it('shows the modified dot only when filters drift from base_filters', () => {
+    const wrapper = mountTabs({
+      tabs: [
+        driftedTab,
+        {
+          id: 'tab-2',
+          name: 'Expanded but equal',
+          filters: {
+            search: '', kind: 'expected', paymentStatus: 'pending', partner: '',
+          },
+          base_filters: { kind: 'expected', paymentStatus: 'pending' },
+        },
+        { id: 'lost', name: 'Builtin', builtin: true },
+      ],
+    });
+
+    expect(wrapper.find('[data-testid="filter-tabs-modified-tab-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="filter-tabs-modified-tab-2"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="filter-tabs-modified-lost"]').exists()).toBe(false);
+  });
+
+  it('emits restore from the context menu and closes it', async () => {
+    const wrapper = mountTabs({ tabs: [driftedTab] });
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-restore"]').trigger('click');
+
+    expect(wrapper.emitted('restore')).toEqual([['tab-1']]);
+    expect(wrapper.find('[data-testid="filter-tabs-restore"]').exists()).toBe(false);
+  });
+
+  it('emits rebase from the context menu', async () => {
+    const wrapper = mountTabs({ tabs: [driftedTab] });
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-1"]').trigger('click');
+    await wrapper.get('[data-testid="filter-tabs-rebase"]').trigger('click');
+
+    expect(wrapper.emitted('rebase')).toEqual([['tab-1']]);
+  });
+
+  it('hides restore and rebase for a tab without drift', async () => {
+    const wrapper = mountTabs({
+      tabs: [{
+        id: 'tab-3',
+        name: 'Al día',
+        filters: { kind: 'liquid' },
+        base_filters: { kind: 'liquid' },
+      }],
+    });
+
+    await wrapper.get('[data-testid="filter-tabs-menu-tab-3"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="filter-tabs-rename"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="filter-tabs-restore"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="filter-tabs-rebase"]').exists()).toBe(false);
+  });
+});

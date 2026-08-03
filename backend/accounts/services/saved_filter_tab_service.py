@@ -39,11 +39,16 @@ def seed_default_tabs(user, view, *, force=False):
                 break
             SavedFilterTab.objects.create(
                 user=user, view=view, name=spec['name'],
-                filters=spec['filters'], order=idx,
+                filters=spec['filters'], base_filters=spec['filters'],
+                order=idx,
             )
             created += 1
-        elif tab.filters != spec['filters']:
+        elif (
+            tab.filters != spec['filters']
+            or tab.base_filters != spec['filters']
+        ):
             tab.filters = spec['filters']
-            tab.save(update_fields=['filters', 'updated_at'])
+            tab.base_filters = spec['filters']
+            tab.save(update_fields=['filters', 'base_filters', 'updated_at'])
             updated += 1
     return (created, updated)

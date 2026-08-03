@@ -336,3 +336,51 @@ def test_real_registry_covers_accounting_views():
         assert len(tabs) <= SavedFilterTab.MAX_TABS_PER_VIEW
         names = [tab['name'] for tab in tabs]
         assert len(names) == len(set(names))
+
+
+def test_post_defaults_base_filters_to_filters(api_client, admin_a, admin_a_headers):
+    payload = {
+        'view': 'proposal', 'name': 'Con base implícita',
+        'filters': {'statuses': ['active']},
+    }
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/', payload, format='json', **admin_a_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()['base_filters'] == {'statuses': ['active']}
+    tab = SavedFilterTab.objects.get(user=admin_a, name='Con base implícita')
+    assert tab.base_filters == {'statuses': ['active']}
+
+
+def test_post_accepts_explicit_base_filters(api_client, admin_a, admin_a_headers):
+    payload = {
+        'view': 'proposal', 'name': 'Con base explícita',
+        'filters': {'statuses': ['active']},
+        'base_filters': {'statuses': ['draft']},
+    }
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/', payload, format='json', **admin_a_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()['base_filters'] == {'statuses': ['draft']}
+
+
+def test_patch_base_filters_rebases_without_touching_filters(
+    api_client, admin_a, admin_a_headers,
+):
+    tab = SavedFilterTab.objects.create(
+        user=admin_a, view='proposal', name='Mi tab',
+        filters={'statuses': ['sent']},
+        base_filters={'statuses': ['draft']},
+        order=0,
+    )
+    resp = api_client.patch(
+        f'/api/accounts/saved-filter-tabs/{tab.id}/',
+        {'base_filters': {'statuses': ['sent']}},
+        format='json',
+        **admin_a_headers,
+    )
+    assert resp.status_code == 200
+    tab.refresh_from_db()
+    assert tab.base_filters == {'statuses': ['sent']}
+    assert tab.filters == {'statuses': ['sent']}

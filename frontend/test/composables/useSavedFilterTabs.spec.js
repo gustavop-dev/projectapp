@@ -21,7 +21,11 @@ import {
   get_request,
   patch_request,
 } from '~/stores/services/request_http';
-import { useSavedFilterTabs } from '~/composables/useSavedFilterTabs';
+import {
+  normalizedFilters,
+  sameFilters,
+  useSavedFilterTabs,
+} from '~/composables/useSavedFilterTabs';
 
 function flush() {
   return new Promise((resolve) => Promise.resolve().then(resolve));
@@ -220,5 +224,146 @@ describe('deleteTab', () => {
     await pending;
     expect(tabs.savedTabs.value.map((t) => t.id)).toEqual([1, 2]);
     expect(tabs.lastError.value).not.toBeNull();
+  });
+});
+
+describe('sameFilters / normalizedFilters', () => {
+  it('ignora claves inactivas y el orden: el shape expandido equivale a la base sparse', () => {
+    const expanded = {
+      search: '', kind: 'expected', paymentStatus: 'pending',
+      partner: '', ledger: '', periodAfter: '', amountMin: '',
+    };
+    const sparse = { paymentStatus: 'pending', kind: 'expected' };
+
+    expect(sameFilters(expanded, sparse)).toBe(true);
+    expect(normalizedFilters(expanded)).toEqual({
+      kind: 'expected', paymentStatus: 'pending',
+    });
+  });
+
+  it('detecta drift real: valor cambiado, clave activa de más o base perdida', () => {
+    const base = { kind: 'expected', paymentStatus: 'pending' };
+
+    expect(sameFilters({ kind: 'expected', paymentStatus: '' }, base)).toBe(false);
+    expect(sameFilters(
+      { kind: 'expected', paymentStatus: 'pending', partner: 'gustavo' }, base,
+    )).toBe(false);
+    expect(sameFilters({ kind: 'expected', paymentStatus: 'paid' }, base)).toBe(false);
+  });
+
+  it('compara arrays por contenido y trata [] como inactivo', () => {
+    expect(sameFilters({ statuses: ['draft'] }, { statuses: ['draft'] })).toBe(true);
+    expect(sameFilters({ statuses: [] }, {})).toBe(true);
+    expect(sameFilters({ statuses: ['draft'] }, { statuses: ['sent'] })).toBe(false);
+  });
+});
+
+describe('restoreTab', () => {
+  it('PATCHea filters=base_filters y reemplaza la pestaña local', async () => {
+    get_request.mockResolvedValueOnce({
+      data: [{
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['sent'] },
+        base_filters: { statuses: ['draft'] },
+      }],
+    });
+    patch_request.mockResolvedValueOnce({
+      data: {
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['draft'] },
+        base_filters: { statuses: ['draft'] },
+      },
+    });
+
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+    const updated = await tabs.restoreTab(5);
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/5/',
+      { filters: { statuses: ['draft'] } },
+    );
+    expect(updated.filters).toEqual({ statuses: ['draft'] });
+    expect(tabs.savedTabs.value[0].filters).toEqual({ statuses: ['draft'] });
+  });
+
+  it('cancela un auto-guardado con debounce pendiente para no pisar la restauración', async () => {
+    jest.useFakeTimers();
+    get_request.mockResolvedValueOnce({
+      data: [{
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['draft'] },
+        base_filters: { statuses: ['draft'] },
+      }],
+    });
+    patch_request.mockResolvedValueOnce({
+      data: {
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['draft'] },
+        base_filters: { statuses: ['draft'] },
+      },
+    });
+
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    tabs.updateTabFilters(5, { statuses: ['sent'] });
+    await tabs.restoreTab(5);
+    jest.advanceTimersByTime(1000);
+    await flush();
+
+    expect(patch_request).toHaveBeenCalledTimes(1);
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/5/',
+      { filters: { statuses: ['draft'] } },
+    );
+  });
+
+  it('si el PATCH falla, retorna null y registra lastError', async () => {
+    const err = new Error('offline');
+    get_request.mockResolvedValueOnce({
+      data: [{
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['sent'] },
+        base_filters: { statuses: ['draft'] },
+      }],
+    });
+    patch_request.mockRejectedValueOnce(err);
+
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+    const result = await tabs.restoreTab(5);
+
+    expect(result).toBeNull();
+    expect(tabs.lastError.value).toBe(err);
+  });
+});
+
+describe('rebaseTab', () => {
+  it('PATCHea base_filters=filters actuales (fijar como base)', async () => {
+    get_request.mockResolvedValueOnce({
+      data: [{
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['sent'] },
+        base_filters: { statuses: ['draft'] },
+      }],
+    });
+    patch_request.mockResolvedValueOnce({
+      data: {
+        id: 5, view: 'proposal', name: 'T', order: 0,
+        filters: { statuses: ['sent'] },
+        base_filters: { statuses: ['sent'] },
+      },
+    });
+
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+    await tabs.rebaseTab(5);
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/5/',
+      { base_filters: { statuses: ['sent'] } },
+    );
+    expect(tabs.savedTabs.value[0].base_filters).toEqual({ statuses: ['sent'] });
   });
 });

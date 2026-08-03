@@ -33,6 +33,8 @@ jest.mock('~/composables/useSavedFilterTabs', () => {
       return tab;
     }),
     updateTabFilters: jest.fn(),
+    restoreTab: jest.fn(),
+    rebaseTab: jest.fn(),
     renameTab: jest.fn(),
     deleteTab: jest.fn(async (id) => {
       savedTabsRef.value = savedTabsRef.value.filter((t) => t.id !== id);
@@ -59,6 +61,8 @@ beforeEach(() => {
   mockReplace.mockClear();
   tabsStub.saveTab.mockClear();
   tabsStub.deleteTab.mockClear();
+  tabsStub.restoreTab.mockReset();
+  tabsStub.rebaseTab.mockReset();
 });
 
 const DEFAULTS = {
@@ -319,5 +323,55 @@ describe('builtin tabs', () => {
     expect(activeTabId.value).toBe('lost');
     expect(currentFilters.method).toBe('cash');
     expect(tabsStub.updateTabFilters).not.toHaveBeenCalled();
+  });
+});
+
+describe('restorable base delegation', () => {
+  it('restoreTab reloads currentFilters when the restored tab is active', async () => {
+    savedTabsRef.value = [{
+      id: 9, view: 'accounting_income', name: 'X',
+      filters: { statuses: ['paid'] },
+      base_filters: { statuses: ['pending'] },
+    }];
+    tabsStub.restoreTab.mockResolvedValueOnce({
+      id: 9, view: 'accounting_income', name: 'X',
+      filters: { statuses: ['pending'] },
+      base_filters: { statuses: ['pending'] },
+    });
+    const { currentFilters, selectTab, restoreTab } = makeFilters();
+    selectTab(9);
+    expect(currentFilters.statuses).toEqual(['paid']);
+
+    await restoreTab(9);
+
+    expect(tabsStub.restoreTab).toHaveBeenCalledWith(9);
+    expect(currentFilters.statuses).toEqual(['pending']);
+  });
+
+  it('restoreTab leaves currentFilters alone for an inactive tab', async () => {
+    savedTabsRef.value = [{
+      id: 9, view: 'accounting_income', name: 'X',
+      filters: { statuses: ['paid'] },
+      base_filters: { statuses: ['pending'] },
+    }];
+    tabsStub.restoreTab.mockResolvedValueOnce({
+      id: 9, view: 'accounting_income', name: 'X',
+      filters: { statuses: ['pending'] },
+      base_filters: { statuses: ['pending'] },
+    });
+    const { currentFilters, restoreTab } = makeFilters();
+    currentFilters.statuses = ['paid'];
+
+    await restoreTab(9);
+
+    expect(currentFilters.statuses).toEqual(['paid']);
+  });
+
+  it('rebaseTab delegates with the numeric tab id', () => {
+    const { rebaseTab } = makeFilters();
+
+    rebaseTab('7');
+
+    expect(tabsStub.rebaseTab).toHaveBeenCalledWith(7);
   });
 });

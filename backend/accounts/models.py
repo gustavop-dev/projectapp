@@ -1460,6 +1460,10 @@ class SavedFilterTab(models.Model):
     view = models.CharField(max_length=20, choices=VIEW_CHOICES, db_index=True)
     name = models.CharField(max_length=200)
     filters = models.JSONField(default=dict, blank=True)
+    # Restore point: the tab's definition as seeded/created. The panel
+    # auto-saves every filter edit into `filters`, so without this a seeded
+    # tab like "Solo esperados" could lose its meaning irreversibly.
+    base_filters = models.JSONField(default=dict, blank=True)
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

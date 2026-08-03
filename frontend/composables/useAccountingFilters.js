@@ -330,6 +330,18 @@ export function useAccountingFilters({
     await tabs.renameTab(numericTabId(tabId), newName);
   }
 
+  async function restoreTab(tabId) {
+    const updated = await tabs.restoreTab(numericTabId(tabId));
+    if (updated && String(activeTabId.value) === String(tabId)) {
+      loadTabFilters(currentFilters, updated);
+    }
+    return updated;
+  }
+
+  function rebaseTab(tabId) {
+    return tabs.rebaseTab(numericTabId(tabId));
+  }
+
   return {
     currentFilters,
     searchInput,
@@ -347,5 +359,7 @@ export function useAccountingFilters({
     saveTab,
     deleteTab,
     renameTab,
+    restoreTab,
+    rebaseTab,
   };
 }
