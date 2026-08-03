@@ -646,12 +646,18 @@ function mergeContent(src) {
 
 const doc = reactive(mergeContent(props.section.content_json));
 
+// Every external write path replaces the section object (store updateSection /
+// applySync splice a new section; fetchProposal swaps currentProposal), so a
+// reference watch is enough — deep traversal of the whole document is not.
 watch(
   () => props.section.content_json,
   (cj) => {
-    Object.assign(doc, mergeContent(cj));
+    const merged = mergeContent(cj);
+    // A normal save round-trips identical content; skip the doc rebuild so the
+    // whole editor does not re-render (and drop focus) after every save.
+    if (JSON.stringify(merged) === JSON.stringify(doc)) return;
+    Object.assign(doc, merged);
   },
-  { deep: true },
 );
 
 function addStackRow() {
