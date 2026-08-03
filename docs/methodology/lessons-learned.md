@@ -430,6 +430,12 @@ project_stages = ProposalProjectStageSerializer(many=True, read_only=True)
 
 Don't forget to `prefetch_related('project_stages')` in the admin queryset, otherwise the SerializerMethodField triggers an extra SELECT per detail load.
 
+A tab can be slow with **zero network involved** — measure DOM-node delta and long tasks before blaming the backend. Det. técnico (2026-08) rendered an O(requirements × commercial-items) checkbox matrix ≈38k nodes while the whole optimized page was ~610; the cure was the ProposalSectionsTab pattern (sections collapsed by default, bodies mounted on expand via Set + `v-if`) plus a per-row disclosure for the grids, taking the warm tab switch from 2.9s to 155ms.
+
+`list(qs)[:50]` materializes the entire table before slicing. Slice the queryset instead (`qs[:50]`): a warm prefetch cache still serves it in memory, and cold paths emit `LIMIT 50` SQL. The change-log table grows unboundedly with proposal age, so this class of bug gets worse silently.
+
+Never pre-mount a `v-show`-hidden panel to "warm" it: `v-auto-resize` measures `scrollHeight=0` under `display:none` and its `updated` hook is value-memoized, so textareas stay permanently mis-sized. Warm the async **chunk** (share the loader between `defineAsyncComponent` and a `requestIdleCallback` call), not the mount.
+
 ---
 
 ## 16. Methodology Maintenance

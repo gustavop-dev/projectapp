@@ -789,7 +789,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A] Admin reorders sections → `POST /api/proposals/:id/reorder-sections/`.
   - [Branch B] Admin updates individual section → `PATCH /api/proposals/sections/:id/update/`.
-  - [Branch C — item traceability] In the Det. técnico tab, each requirement shows "Vincular a ítems comerciales" checkboxes (grouped by functional_requirements card) that write `linked_item_ids`; saving persists them via the section update endpoint. These links power the public nested requirements modal and the commercial PDF sub-rows.
+  - [Branch C — item traceability] In the Det. técnico tab, editor sections render collapsed by default (2026-08 perf round): the admin expands "Módulos del producto" (`technical-section-toggle-epics`), opens the requirement's "Vincular alcance/ítems (n)" disclosure (`technical-req-links-toggle`), and checks the commercial-item boxes (grouped by functional_requirements card, `technical-req-item-links`) that write `linked_item_ids`; saving (button always visible below the sections) persists them via the same section update endpoint. These links power the public nested requirements modal and the commercial PDF sub-rows. The JSON sub-tab mounts only when selected.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js` (includes linked_item_ids save test)
 - **Known gaps:** The automations toggle now uses positive polarity (ON = automations running, 2026-07); no E2E asserts knob position / `aria-checked`, and the toggle has no `data-testid` (only `aria-label="Activar automatizaciones"`).
