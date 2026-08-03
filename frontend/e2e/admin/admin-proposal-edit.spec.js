@@ -302,6 +302,8 @@ test.describe('Admin Proposal Edit', () => {
 
     await page.getByRole('tab', { name: 'Det. técnico' }).click();
     await expect(page.getByTestId('technical-purpose-textarea')).toBeVisible();
+    // Sections are collapsed by default; Módulos del producto mounts on expand.
+    await page.getByTestId('technical-section-toggle-epics').click();
     await expect(page.getByTestId('technical-epic-description-textarea').first()).toBeVisible();
     await expect(page.getByTestId('technical-req-description-textarea').first()).toBeVisible();
 
@@ -368,7 +370,11 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByText('Edit Test')).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole('tab', { name: 'Det. técnico' }).click();
+    // Sections are collapsed by default; expand the modules, then open the
+    // requirement's link disclosure that now wraps the checkbox grids.
+    await page.getByTestId('technical-section-toggle-epics').click();
     await expect(page.getByTestId('technical-req-description-textarea').first()).toBeVisible();
+    await page.getByTestId('technical-req-links-toggle').first().click();
 
     // The commercial-item link block lists the FR items grouped by card
     const itemLinks = page.getByTestId('technical-req-item-links').first();

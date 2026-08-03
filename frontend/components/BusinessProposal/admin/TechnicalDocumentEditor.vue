@@ -35,7 +35,17 @@
 
     <!-- Propósito -->
     <section class="space-y-2">
-      <h3 class="text-sm font-semibold text-text-default">Propósito</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('purpose')"
+        data-testid="technical-section-toggle-purpose"
+        @click="toggleSection('purpose')"
+      >
+        <span class="text-sm font-semibold text-text-default">Propósito</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.purpose }} <span aria-hidden="true">{{ openSections.has('purpose') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('purpose')">
       <textarea
         v-model="doc.purpose"
         v-auto-resize
@@ -43,12 +53,23 @@
         class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 outline-none"
         placeholder="Una frase sobre qué cubre este documento..."
       />
+      </template>
     </section>
 
     <!-- Stack -->
     <section class="space-y-3">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-text-default">Stack tecnológico</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('stack')"
+        data-testid="technical-section-toggle-stack"
+        @click="toggleSection('stack')"
+      >
+        <span class="text-sm font-semibold text-text-default">Stack tecnológico</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.stack }} <span aria-hidden="true">{{ openSections.has('stack') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('stack')">
+      <div class="flex justify-end">
         <button type="button" class="text-xs text-text-brand hover:underline" @click="addStackRow">+ Fila</button>
       </div>
       <div v-for="(row, i) in doc.stack" :key="'st-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
@@ -59,11 +80,22 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.stack.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- Arquitectura -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Arquitectura</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('architecture')"
+        data-testid="technical-section-toggle-architecture"
+        @click="toggleSection('architecture')"
+      >
+        <span class="text-sm font-semibold text-text-default">Arquitectura</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.architecture }} <span aria-hidden="true">{{ openSections.has('architecture') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('architecture')">
       <textarea v-model="doc.architecture.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen de capas y comunicación..." />
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Patrones por componente</span>
@@ -84,11 +116,22 @@
         class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Nota breve si hay diagrama en anexo o URL externa..."
       />
+      </template>
     </section>
 
     <!-- Modelo de datos -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Modelo de datos</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('data-model')"
+        data-testid="technical-section-toggle-data-model"
+        @click="toggleSection('data-model')"
+      >
+        <span class="text-sm font-semibold text-text-default">Modelo de datos</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts['data-model'] }} <span aria-hidden="true">{{ openSections.has('data-model') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('data-model')">
       <textarea v-model="doc.dataModel.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen..." />
       <p class="text-xs text-text-muted">Relaciones entre entidades (texto)</p>
       <textarea
@@ -108,11 +151,22 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.dataModel.entities.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- Preparación para el crecimiento -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Preparación para el crecimiento</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('growth')"
+        data-testid="technical-section-toggle-growth"
+        @click="toggleSection('growth')"
+      >
+        <span class="text-sm font-semibold text-text-default">Preparación para el crecimiento</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.growth }} <span aria-hidden="true">{{ openSections.has('growth') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('growth')">
       <p class="text-xs text-text-muted">
         Cómo se prepara el sistema para crecer (tráfico, datos, equipos, integraciones). Complementa «Rendimiento»; aquí el foco es capacidad de evolución, no solo métricas puntuales.
       </p>
@@ -138,12 +192,23 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.growthReadiness.strategies.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- Módulos del producto -->
     <section class="space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-text-default">Módulos del producto</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('epics')"
+        data-testid="technical-section-toggle-epics"
+        @click="toggleSection('epics')"
+      >
+        <span class="text-sm font-semibold text-text-default">Módulos del producto</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.epics }} <span aria-hidden="true">{{ openSections.has('epics') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('epics')">
+      <div class="flex justify-end">
         <BaseButton variant="primary" size="sm" @click="addEpic">+ Módulo</BaseButton>
       </div>
       <div
@@ -211,11 +276,22 @@
           </div>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- API (resumen por dominio) -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">API y endpoints (resumen)</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('api')"
+        data-testid="technical-section-toggle-api"
+        @click="toggleSection('api')"
+      >
+        <span class="text-sm font-semibold text-text-default">API y endpoints (resumen)</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.api }} <span aria-hidden="true">{{ openSections.has('api') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('api')">
       <textarea
         v-model="doc.apiSummary"
         v-auto-resize
@@ -233,10 +309,22 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.apiDomains.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- Integraciones -->
     <section class="space-y-4">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('integrations')"
+        data-testid="technical-section-toggle-integrations"
+        @click="toggleSection('integrations')"
+      >
+        <span class="text-sm font-semibold text-text-default">Integraciones</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.integrations }} <span aria-hidden="true">{{ openSections.has('integrations') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('integrations')">
       <h3 class="text-sm font-semibold text-text-default">Integraciones incluidas</h3>
       <button type="button" class="text-xs text-text-brand mb-2" @click="addIncluded">+ Fila</button>
       <div v-for="(row, i) in doc.integrations.included" :key="'inc-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
@@ -266,11 +354,22 @@
         class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm font-mono text-xs"
         placeholder="Línea por línea..."
       />
+      </template>
     </section>
 
     <!-- Ambientes -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Ambientes (opcional)</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('environments')"
+        data-testid="technical-section-toggle-environments"
+        @click="toggleSection('environments')"
+      >
+        <span class="text-sm font-semibold text-text-default">Ambientes (opcional)</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.environments }} <span aria-hidden="true">{{ openSections.has('environments') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('environments')">
       <textarea
         v-model="doc.environmentsNote"
         v-auto-resize
@@ -291,12 +390,23 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.environments.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <!-- Seguridad -->
     <section class="space-y-2">
-      <div class="flex justify-between items-center">
-        <h3 class="text-sm font-semibold text-text-default">Seguridad técnica</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('security')"
+        data-testid="technical-section-toggle-security"
+        @click="toggleSection('security')"
+      >
+        <span class="text-sm font-semibold text-text-default">Seguridad técnica</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.security }} <span aria-hidden="true">{{ openSections.has('security') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('security')">
+      <div class="flex justify-end">
         <button type="button" class="text-xs text-text-brand" @click="addSecurityRow">+ Fila</button>
       </div>
       <div v-for="(row, i) in doc.security" :key="'sec-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
@@ -304,11 +414,22 @@
         <input v-model="row.implementation" placeholder="Implementación" class="flex-[2] px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.security.splice(i, 1)">✕</BaseButton>
       </div>
+      </template>
     </section>
 
     <!-- Rendimiento y calidad -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Rendimiento y calidad</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('performance')"
+        data-testid="technical-section-toggle-performance"
+        @click="toggleSection('performance')"
+      >
+        <span class="text-sm font-semibold text-text-default">Rendimiento y calidad</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.performance }} <span aria-hidden="true">{{ openSections.has('performance') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('performance')">
       <p class="text-xs text-text-muted">Métricas</p>
       <button type="button" class="text-xs text-text-brand" @click="addMetric">+ Métrica</button>
       <div v-for="(row, i) in doc.performanceQuality.metrics" :key="'met-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
@@ -326,22 +447,44 @@
         <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.performanceQuality.practices.splice(i, 1)">✕</BaseButton>
       </div>
+      </template>
     </section>
 
     <!-- Backups -->
     <section class="space-y-2">
-      <h3 class="text-sm font-semibold text-text-default">Backups</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('backups')"
+        data-testid="technical-section-toggle-backups"
+        @click="toggleSection('backups')"
+      >
+        <span class="text-sm font-semibold text-text-default">Backups</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.backups }} <span aria-hidden="true">{{ openSections.has('backups') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('backups')">
       <textarea
         v-model="doc.backupsNote"
         v-auto-resize
         class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Hosting propio vs según proveedor del cliente..."
       />
+      </template>
     </section>
 
     <!-- Calidad (pruebas) -->
     <section class="space-y-3">
-      <h3 class="text-sm font-semibold text-text-default">Calidad y pruebas</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('quality')"
+        data-testid="technical-section-toggle-quality"
+        @click="toggleSection('quality')"
+      >
+        <span class="text-sm font-semibold text-text-default">Calidad y pruebas</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.quality }} <span aria-hidden="true">{{ openSections.has('quality') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('quality')">
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Dimensiones</span>
         <button type="button" class="text-xs text-text-brand" @click="addQualityDimension">+ Fila</button>
@@ -374,12 +517,23 @@
         class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm"
         placeholder="Alineación con requerimientos priorizados..."
       />
+      </template>
     </section>
 
     <!-- Decisiones -->
     <section class="space-y-2">
-      <div class="flex justify-between">
-        <h3 class="text-sm font-semibold text-text-default">Decisiones técnicas (ADRs)</h3>
+      <button
+        type="button"
+        class="w-full flex items-center justify-between gap-2 text-left"
+        :aria-expanded="openSections.has('decisions')"
+        data-testid="technical-section-toggle-decisions"
+        @click="toggleSection('decisions')"
+      >
+        <span class="text-sm font-semibold text-text-default">Decisiones técnicas (ADRs)</span>
+        <span class="text-xs text-text-subtle">{{ sectionCounts.decisions }} <span aria-hidden="true">{{ openSections.has('decisions') ? '▾' : '▸' }}</span></span>
+      </button>
+      <template v-if="openSections.has('decisions')">
+      <div class="flex justify-end">
         <button type="button" class="text-xs text-text-brand" @click="addDecision">+ Fila</button>
       </div>
       <div v-for="(row, i) in doc.decisions" :key="'dec-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
@@ -390,6 +544,7 @@
           <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.decisions.splice(i, 1)">✕</BaseButton>
         </div>
       </div>
+      </template>
     </section>
 
     <div class="flex items-center gap-4 pt-4 border-t dark:border-white/[0.06]">
@@ -446,6 +601,8 @@ function insertGenericStub() {
   if (!stubModuleId.value) return;
   const opt = props.moduleLinkOptions.find((o) => o.id === stubModuleId.value);
   doc.epics.push(createGenericTechnicalEpicStub(stubModuleId.value, opt?.label || ''));
+  // Reveal the inserted module even if the section was collapsed.
+  openSections.value = new Set([...openSections.value, 'epics']);
 }
 
 function emptyDoc() {
@@ -629,6 +786,44 @@ watch(
     Object.assign(doc, merged);
   },
 );
+
+/** Section keys of the collapse-by-default layout (order = template order). */
+const TECH_SECTION_KEYS = [
+  'purpose', 'stack', 'architecture', 'data-model', 'growth', 'epics', 'api',
+  'integrations', 'environments', 'security', 'performance', 'backups',
+  'quality', 'decisions',
+];
+
+// Only Propósito starts open: the tab's first paint should be 14 headers, not
+// tens of thousands of matrix nodes. Bodies mount on expand (plain v-if).
+const openSections = ref(new Set(props.expandAll ? TECH_SECTION_KEYS : ['purpose']));
+
+function toggleSection(key) {
+  const next = new Set(openSections.value); // reassign so Set changes are reactive
+  if (next.has(key)) next.delete(key);
+  else next.add(key);
+  openSections.value = next;
+}
+
+const sectionCounts = computed(() => {
+  const reqTotal = doc.epics.reduce((n, e) => n + (e.requirements?.length || 0), 0);
+  return {
+    purpose: doc.purpose?.trim() ? '✓' : 'vacío',
+    stack: `${doc.stack.length} filas`,
+    architecture: `${doc.architecture.patterns.length} patrones`,
+    'data-model': `${doc.dataModel.entities.length} entidades`,
+    growth: `${doc.growthReadiness.strategies.length} filas`,
+    epics: `${doc.epics.length} módulos · ${reqTotal} reqs`,
+    api: `${doc.apiDomains.length} dominios`,
+    integrations: `${doc.integrations.included.length} incl. · ${doc.integrations.excluded.length} excl.`,
+    environments: `${doc.environments.length} filas`,
+    security: `${doc.security.length} filas`,
+    performance: `${doc.performanceQuality.metrics.length} métricas · ${doc.performanceQuality.practices.length} prácticas`,
+    backups: doc.backupsNote?.trim() ? '✓' : 'vacío',
+    quality: `${doc.quality.dimensions.length} dim. · ${doc.quality.testTypes.length} tipos`,
+    decisions: `${doc.decisions.length} filas`,
+  };
+});
 
 function addStackRow() {
   doc.stack.push({ layer: '', technology: '', rationale: '' });
