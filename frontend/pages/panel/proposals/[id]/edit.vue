@@ -193,7 +193,7 @@
             />
           </template>
         </div>
-        <div v-show="technicalSubTab === 'json'" class="space-y-4">
+        <div v-if="technicalSubTab === 'json'" class="space-y-4">
           <p class="text-xs text-text-muted">
             Solo el objeto <code class="bg-surface-raised px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
@@ -1405,16 +1405,14 @@ function handleJsonApplied() {
   hydrateFormFromProposal();
 }
 
-watch(activeTab, (newTab) => {
-  if (newTab === 'technical') {
-    refreshTechnicalJsonFromProposal();
-  }
-});
-
-watch(technicalSubTab, (sub) => {
-  if (activeTab.value === 'technical' && sub === 'json') {
-    refreshTechnicalJsonFromProposal();
-  }
-});
+// Refresh only when the JSON pane actually opens (tab entry with the sub-tab
+// already on JSON, or switching the sub-tab while on the tab). Entering the
+// tab in Editor mode must not pay the full-document stringify.
+watch(
+  () => activeTab.value === 'technical' && technicalSubTab.value === 'json',
+  (jsonPaneOpen) => {
+    if (jsonPaneOpen) refreshTechnicalJsonFromProposal();
+  },
+);
 
 </script>
