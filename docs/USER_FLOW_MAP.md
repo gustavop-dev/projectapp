@@ -236,8 +236,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   6. On success, user is redirected to `/contact-success`.
 - **Branches:**
   - [Branch A — Validation error] Form shows inline validation errors, user corrects and resubmits.
-  - [Branch B — API error] Error message displays, form remains editable.
-- **Coverage:** ✅ Covered
+  - [Branch B — API error] The localized `contact-submit-error` message renders below the submit button and the form remains editable (mechanism added 2026-08-03 — before that the store's `submitError` was never displayed). Covered by the `@outcome:error` spec.
+- **Coverage:** ✅ Covered (success + error)
 - **E2E Spec:** `e2e/public/public-contact.spec.js`
 
 ### FLOW: `public-privacy-policy`
