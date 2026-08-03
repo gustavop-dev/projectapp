@@ -9,6 +9,7 @@
 
     <!-- Tab toggle -->
     <div class="flex gap-1 mb-6 bg-surface-raised rounded-xl p-1 w-full max-w-md">
+      <!-- design-tokens: allow-raw-button (mode tabs, not actions) -->
       <button
         type="button"
         :class="[
@@ -20,6 +21,7 @@
         <span class="sm:hidden">JSON</span>
         <span class="hidden sm:inline">Importar JSON</span>
       </button>
+      <!-- design-tokens: allow-raw-button (mode tabs, not actions) -->
       <button
         type="button"
         :class="[
@@ -31,6 +33,7 @@
         <span class="sm:hidden">Prompt</span>
         <span class="hidden sm:inline">Prompt IA</span>
       </button>
+      <!-- design-tokens: allow-raw-button (mode tabs, not actions) -->
       <button
         type="button"
         :class="[
@@ -1019,6 +1022,7 @@ import { DEFAULT_HOSTING_PERCENT } from '~/stores/proposals_constants';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { detectLegacyTechnicalFormat, downloadMigratedProposalJson, LEGACY_FIELD_LABELS } from '~/utils/proposalJsonMigration';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
@@ -1027,6 +1031,17 @@ const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const router = useRouter();
+const notify = usePanelNotify();
+
+// The proposal already exists when a send fails, so we still land on its edit
+// view (re-submitting the form would duplicate it) — but the failure must be
+// surfaced instead of a silent success redirect.
+function notifyFailedSend(sendResult) {
+  notify.error({
+    title: 'Propuesta creada, pero el envío falló.',
+    detail: sendResult?.message || 'Reenvíala desde la vista de edición.',
+  });
+}
 const proposalStore = useProposalStore();
 const errorMsg = ref('');
 const mode = ref('json');
@@ -1300,7 +1315,10 @@ async function handleCreateAndSend() {
 
   const result = await proposalStore.createProposal(payload);
   if (result.success) {
-    await proposalStore.sendProposal(result.data.id);
+    const sendResult = await proposalStore.sendProposal(result.data.id);
+    if (!sendResult.success) {
+      notifyFailedSend(sendResult);
+    }
     router.push(localePath(`/panel/proposals/${result.data.id}/edit`));
   } else {
     errorMsg.value = formatError(result.errors);
@@ -1309,7 +1327,10 @@ async function handleCreateAndSend() {
 
 async function handleSendCreated() {
   if (!createdProposal.value?.id) return;
-  await proposalStore.sendProposal(createdProposal.value.id);
+  const sendResult = await proposalStore.sendProposal(createdProposal.value.id);
+  if (!sendResult.success) {
+    notifyFailedSend(sendResult);
+  }
   router.push(localePath(`/panel/proposals/${createdProposal.value.id}/edit`));
 }
 

@@ -384,6 +384,40 @@ test.describe('Admin Proposal Create & Send', () => {
     await expect(page).toHaveURL(/\/panel\/proposals\/\d+\/edit/);
     expect(sendCalled).toBe(true);
   });
+
+  test('"Crear y Enviar" surfaces a failed send instead of a silent success', {
+    tag: [...ADMIN_PROPOSAL_CREATE_AND_SEND, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'proposals/create/') {
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      if (apiPath === `proposals/${NEW_PROPOSAL_ID}/send/`) {
+        return { status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'El cliente no tiene un correo válido.' }) };
+      }
+      if (apiPath === `proposals/${NEW_PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockCreatedProposal) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
+
+    await page.getByLabel('Título').fill('Propuesta Sin Correo');
+    await page.getByLabel('Nombre').fill('Laura Díaz');
+    await page.getByLabel('Email').fill('laura@test.com');
+    await page.getByPlaceholder('3.500.000').fill('8000000');
+
+    await page.getByRole('button', { name: /Crear y Enviar/i }).click();
+
+    // The proposal DOES exist (create succeeded), so the admin still lands on
+    // its edit view — but the failed send must be surfaced, never swallowed.
+    await page.waitForURL(/\/panel\/proposals\/\d+\/edit/, { timeout: 15000 });
+    await expect(page.getByText('Propuesta creada, pero el envío falló.')).toBeVisible({ timeout: 10000 });
+  });
 });
 
 test.describe('Admin Proposal Create Preview', () => {
