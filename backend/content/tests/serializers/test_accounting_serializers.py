@@ -14,6 +14,7 @@ from content.serializers.accounting import (
     AccountingSettingsSerializer,
     CardBalanceSnapshotCreateUpdateSerializer,
     ExpenseRecordCreateUpdateSerializer,
+    ExpenseRecordSerializer,
     HostingRecordCreateUpdateSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
@@ -569,3 +570,82 @@ class TestCardSnapshotDebtComputation:
         )
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['debt_amount'] == Decimal('6000000.00')
+
+
+class TestDeductionWriteGuard:
+    """Deductions are born in the settlement flow only: manual writes may
+    neither set nor clear the type, and a deduction never gains a pocket
+    movement."""
+
+    def payload(self, **overrides):
+        payload = {
+            'concept': 'Comisión suelta',
+            'period_date': '2026-02',
+            'total_amount': '8000.00',
+            'gustavo_amount': '4000.00',
+            'carlos_amount': '4000.00',
+        }
+        payload.update(overrides)
+        return payload
+
+    def test_manual_create_with_deduction_type_is_rejected(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            data=self.payload(deduction_type='gateway_fee'),
+        )
+        assert not serializer.is_valid()
+        assert 'deduction_type' in serializer.errors
+
+    def test_settlement_context_may_set_deduction_type(self):
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            data=self.payload(
+                deduction_type='gateway_fee', register_in_pocket=False,
+            ),
+            context={'settlement': True},
+        )
+        assert serializer.is_valid(), serializer.errors
+
+    def test_manual_clear_of_deduction_type_is_rejected(self, make_expense):
+        deduction = make_expense(deduction_type='gateway_fee')
+
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            deduction, data={'deduction_type': ''}, partial=True,
+        )
+
+        assert not serializer.is_valid()
+        assert 'deduction_type' in serializer.errors
+
+    def test_editing_a_deduction_forces_the_pocket_flag_off(self, make_expense):
+        deduction = make_expense(deduction_type='gateway_fee')
+
+        serializer = ExpenseRecordCreateUpdateSerializer(
+            deduction,
+            data={
+                'total_amount': '9000.00',
+                'gustavo_amount': '4500.00',
+                'carlos_amount': '4500.00',
+                'register_in_pocket': True,
+            },
+            partial=True,
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['register_in_pocket'] is False
+
+
+class TestDeductionReadFields:
+    def test_exposes_source_income_and_its_concept(self, make_income, make_expense):
+        income = make_income()
+        deduction = make_expense(
+            deduction_type='gateway_fee', source_income=income,
+        )
+
+        data = ExpenseRecordSerializer(deduction).data
+
+        assert data['source_income'] == income.pk
+        assert data['source_income_concept'] == income.concept
+
+    def test_ordinary_expense_has_null_source(self, make_expense):
+        data = ExpenseRecordSerializer(make_expense()).data
+
+        assert data['source_income'] is None
+        assert data['source_income_concept'] is None

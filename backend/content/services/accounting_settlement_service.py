@@ -7,14 +7,16 @@ because the pending amount is derived from the expected total minus its liquid
 children.
 
 This service closes the loop in one atomic operation: it registers what was
-received, moves the rest out of the expected record (to an expense with its
-concept, to follow-up expected incomes, or both) and lowers the parent by
-exactly what was moved out. The arithmetic that governs everything:
+received and resolves the rest — deductions become linked expenses that count
+as payment credit against the GROSS expected total, follow-ups move their
+amount into their own expected record. The arithmetic that governs everything:
 
-    pending = total - already_paid
+    pending = total - already_paid          # paid = liquid children + linked deductions
     received + deductions + follow_ups + unassigned = pending
-    new parent total = total - deductions - follow_ups
+    new parent total = total - follow_ups   # deductions keep the income gross
 
+The income stays gross so the deduction can reduce utility as a real expense
+without double-counting (the liquid total alone no longer carries the loss).
 With no allocations the parent is untouched and the behaviour is identical to
 today's liquidation. Whatever is left unassigned simply stays pending, so a
 user who does not want to decide yet is never forced to.
@@ -47,15 +49,23 @@ TWO_PLACES = Decimal('0.01')
 
 
 def _paid_total(income):
-    """Sum of the liquid children already fulfilling this expected record.
+    """Liquid children plus linked deductions fulfilling this expected record.
 
     The `kind=LIQUID` filter is load-bearing: `limit_choices_to` constrains the
     FK's target, not its source, so a lost record may point at an expected
-    parent and must never count as payment.
+    parent and must never count as payment. Deductions count as credit because
+    the income keeps its gross total — the fee was applied at origin, so that
+    part of the total will never arrive as a liquid child. The
+    `deduction_type` exclude mirrors the LIQUID guard: only real deductions
+    may credit the parent.
     """
-    return income.liquid_records.filter(
+    liquid = income.liquid_records.filter(
         kind=IncomeRecord.Kind.LIQUID,
     ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    deducted = income.deduction_records.exclude(
+        deduction_type='',
+    ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    return liquid + deducted
 
 
 def _proportional_split(parent, amount):
@@ -139,9 +149,11 @@ def settle_expected_income(income, data, user):
         _create_follow_up(income, follow_up, user) for follow_up in follow_ups
     ]
 
-    moved_out = deducted + reexpected
-    if moved_out:
-        _reduce_parent(income, income.total_amount - moved_out, user)
+    # Only follow-ups shrink the parent: their amount now lives in its own
+    # expected record. Deductions keep the income gross — they count as
+    # payment credit via the source_income link instead.
+    if reexpected:
+        _reduce_parent(income, income.total_amount - reexpected, user)
 
     _stamp_source_ref(expenses, income.pk)
     _stamp_source_ref(new_expected, income.pk)
@@ -186,22 +198,31 @@ def _create_deduction(income, data, deduction, user):
     """
     label = _deduction_label(deduction)
     gustavo, carlos = _proportional_split(income, deduction['amount'])
-    serializer = ExpenseRecordCreateUpdateSerializer(data={
-        'concept': f'{label} — {income.concept}'[:255],
-        'period_date': data['period_date'],
-        'category': ExpenseRecord.Category.BUSINESS,
-        'ledger': income.ledger,
-        'total_amount': deduction['amount'],
-        'gustavo_amount': gustavo,
-        'carlos_amount': carlos,
-        'deduction_type': deduction['type'],
-        'register_in_pocket': False,
-        'notes': data.get('notes', ''),
-    })
+    serializer = ExpenseRecordCreateUpdateSerializer(
+        data={
+            'concept': f'{label} — {income.concept}'[:255],
+            'period_date': data['period_date'],
+            'category': ExpenseRecord.Category.BUSINESS,
+            'ledger': income.ledger,
+            'total_amount': deduction['amount'],
+            'gustavo_amount': gustavo,
+            'carlos_amount': carlos,
+            'deduction_type': deduction['type'],
+            'register_in_pocket': False,
+            'notes': data.get('notes', ''),
+        },
+        # The write serializer rejects deduction_type outside this flow.
+        context={'settlement': True},
+    )
     serializer.is_valid(raise_exception=True)
-    return accounting_service.create_record(
+    expense = accounting_service.create_record(
         EntityType.EXPENSE, serializer, user, notify=False,
     )
+    # Not serializer-writable — stamped afterwards like source_ref. This link
+    # is what credits the deduction against the parent's gross total.
+    ExpenseRecord.objects.filter(pk=expense.pk).update(source_income=income)
+    expense.source_income = income
+    return expense
 
 
 def _create_follow_up(income, follow_up, user):

@@ -68,9 +68,10 @@ class TestResolveIncomeResidual:
         )
         assert expense.pocket_movement_id is None
         assert expense.source_ref == f'income:{income.pk}:settlement'
+        assert expense.source_income_id == income.pk
         income.refresh_from_db()
-        # Parent shrank to what was collected → derived status paid.
-        assert income.total_amount == Decimal('81546.00')
+        # Parent stays gross; the fee credits the difference → status paid.
+        assert income.total_amount == Decimal('86400.00')
         # No liquid child was invented for the zero received.
         assert income.liquid_records.count() == 1
 

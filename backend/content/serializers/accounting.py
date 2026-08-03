@@ -226,9 +226,15 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         if not hasattr(obj, '_paid_total'):
             value = getattr(obj, 'paid_amount', None)
             if value is None:
-                value = obj.liquid_records.filter(
+                liquid = obj.liquid_records.filter(
                     kind=IncomeRecord.Kind.LIQUID,
                 ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                # Mirrors paid_amount_subquery: linked deductions credit the
+                # gross total — that money never arrives as a liquid child.
+                deducted = obj.deduction_records.exclude(
+                    deduction_type='',
+                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                value = liquid + deducted
             obj._paid_total = Decimal(value)
         return obj._paid_total
 
@@ -409,6 +415,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     deduction_type_label = serializers.CharField(
         source='get_deduction_type_display', read_only=True,
     )
+    source_income_concept = serializers.SerializerMethodField()
 
     class Meta:
         model = ExpenseRecord
@@ -418,10 +425,21 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'category', 'category_label',
             'ledger', 'ledger_label',
             'deduction_type', 'deduction_type_label',
+            'source_income', 'source_income_concept',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'pocket_movement',
             'notes', 'created_at', 'updated_at',
         )
+
+    def get_source_income_concept(self, obj):
+        # List/export annotate the queryset; single-object paths fall back
+        # to the relation (deduction rows are few).
+        value = getattr(obj, 'source_income_concept', None)
+        if value is not None:
+            return value
+        if obj.source_income_id is None:
+            return None
+        return obj.source_income.concept
 
 
 class ExpenseRecordCreateUpdateSerializer(
@@ -453,6 +471,23 @@ class ExpenseRecordCreateUpdateSerializer(
             if self.instance is not None:
                 return getattr(self.instance, field)
             return default
+
+        # Deductions are born in the settlement flow only: it is the one
+        # place where the pocket rule, the source_income link and the paid
+        # credit stay consistent. Manual writes may neither set nor clear
+        # the type.
+        if not self.context.get('settlement') and 'deduction_type' in data:
+            current = self.instance.deduction_type if self.instance else ''
+            if data['deduction_type'] != current:
+                raise serializers.ValidationError({
+                    'deduction_type': (
+                        'Las deducciones se crean desde la liquidación '
+                        'del ingreso.'
+                    ),
+                })
+        if effective('deduction_type', ''):
+            # That money never entered the pocket — discounted at origin.
+            data['register_in_pocket'] = False
 
         wants_pocket = data.get('register_in_pocket')
         if wants_pocket is None:

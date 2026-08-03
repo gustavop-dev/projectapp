@@ -2,8 +2,9 @@
 
 The governing arithmetic (see the service docstring):
 
+    paid = liquid children + linked deductions
     received + deductions + follow_ups + unassigned = pending
-    new parent total = old total - deductions - follow_ups
+    new parent total = old total - follow_ups   (deductions keep it gross)
 """
 from decimal import Decimal
 from unittest.mock import patch
@@ -105,15 +106,19 @@ class TestDeduction:
         )
 
         income.refresh_from_db()
-        assert income.total_amount == Decimal('992000.00')
-        # Nothing left pending: 992.000 received against a 992.000 expected.
-        assert income.total_amount == result['liquid'].total_amount
+        # The expected total stays gross: 992.000 received + 8.000 fee
+        # credited through the link close the full 1.000.000.
+        assert income.total_amount == Decimal('1000000.00')
+        assert accounting_settlement_service._paid_total(income) == (
+            income.total_amount
+        )
 
         expense = result['expenses'][0]
         assert expense.deduction_type == ExpenseRecord.DeductionType.GATEWAY_FEE
         assert expense.total_amount == Decimal('8000.00')
         assert expense.concept == 'Comisión plataforma de pago — Kore - Inicio 40%'
         assert expense.source_ref == f'income:{income.pk}:settlement'
+        assert expense.source_income_id == income.pk
 
     def test_never_touches_the_pocket(self, superuser):
         """That money was discounted before the transfer ever arrived."""
@@ -162,7 +167,11 @@ class TestDeduction:
 
         income.refresh_from_db()
         assert len(result['expenses']) == 2
-        assert income.total_amount == Decimal('900000.00')
+        # 900.000 received + 30.000 + 70.000 in fees = the gross total.
+        assert income.total_amount == Decimal('1000000.00')
+        assert accounting_settlement_service._paid_total(income) == (
+            Decimal('1000000.00')
+        )
 
 
 class TestFollowUpExpectedIncomes:
@@ -185,16 +194,20 @@ class TestFollowUpExpectedIncomes:
 
         income.refresh_from_db()
         follow_up = result['expected_incomes'][0]
-        assert income.total_amount == Decimal('900000.00')
+        # Only the follow-up leaves the parent; the fee stays inside it as
+        # payment credit: 1.000.000 − 92.000 rescheduled = 908.000.
+        assert income.total_amount == Decimal('908000.00')
         assert follow_up.kind == IncomeRecord.Kind.EXPECTED
         assert follow_up.total_amount == Decimal('92000.00')
         assert str(follow_up.period_date) == '2026-08-01'
-        # The three slices still add up to the original expected amount.
+        # Parent + follow-up still add up to the original expected amount.
         assert (
-            income.total_amount
-            + result['expenses'][0].total_amount
-            + follow_up.total_amount
+            income.total_amount + follow_up.total_amount
         ) == Decimal('1000000.00')
+        # And the parent is closed: 900.000 received + 8.000 fee credit.
+        assert accounting_settlement_service._paid_total(income) == (
+            Decimal('908000.00')
+        )
 
     def test_inherits_ledger_and_destination(self, superuser):
         income = make_expected(destination=IncomeRecord.Destination.PARTNERS)
@@ -250,10 +263,10 @@ class TestPartialAllocation:
         )
 
         income.refresh_from_db()
-        # Parent drops only by what was moved out (the 8.000 fee).
-        assert income.total_amount == Decimal('992000.00')
-        # 992.000 expected − 900.000 received = 92.000 still pending.
-        assert income.total_amount - Decimal('900000.00') == Decimal('92000.00')
+        # The parent stays gross; received + fee credit leave 92.000 open.
+        assert income.total_amount == Decimal('1000000.00')
+        pending = income.total_amount - accounting_settlement_service._paid_total(income)
+        assert pending == Decimal('92000.00')
 
     def test_settling_a_partially_collected_record(self, superuser):
         income = make_expected()
@@ -277,8 +290,11 @@ class TestPartialAllocation:
         )
 
         income.refresh_from_db()
-        assert income.total_amount == Decimal('990000.00')
-        # 600.000 + 390.000 collected against a 990.000 expected → closed.
+        assert income.total_amount == Decimal('1000000.00')
+        # 600.000 + 390.000 collected + 10.000 fee credit → closed.
+        assert accounting_settlement_service._paid_total(income) == (
+            Decimal('1000000.00')
+        )
 
 
 class TestResidualOnly:
@@ -319,11 +335,15 @@ class TestResidualOnly:
         assert result['liquid'] is None
         # Only the pre-existing collection remains — no zero-amount payment.
         assert income.liquid_records.count() == 1
-        # Parent shrank to what was actually collected → derived status paid.
-        assert income.total_amount == Decimal('950000.00')
+        # Parent stays gross; 950.000 collected + 50.000 fee credit → paid.
+        assert income.total_amount == Decimal('1000000.00')
+        assert accounting_settlement_service._paid_total(income) == (
+            Decimal('1000000.00')
+        )
         expense = result['expenses'][0]
         assert expense.total_amount == Decimal('50000.00')
         assert expense.source_ref == f'income:{income.pk}:settlement'
+        assert expense.source_income_id == income.pk
 
     def test_zero_received_sends_no_email(self, superuser, _mute_notifications):
         """Nothing was collected, so there is no payment to announce."""
@@ -356,8 +376,10 @@ class TestResidualOnly:
 
         income.refresh_from_db()
         assert result['liquid'] is None
-        # Parent drops only by the fee; the 992.000 stays pending.
-        assert income.total_amount == Decimal('992000.00')
+        # The fee credits 8.000; the remaining 992.000 stays pending.
+        assert income.total_amount == Decimal('1000000.00')
+        pending = income.total_amount - accounting_settlement_service._paid_total(income)
+        assert pending == Decimal('992000.00')
         assert income.liquid_records.count() == 0
 
 
@@ -385,7 +407,31 @@ class TestPartnerSplit:
         assert follow_up.gustavo_amount == Decimal('60000.00')
         assert follow_up.carlos_amount == Decimal('40000.00')
 
-    def test_parent_split_is_rescaled_when_reduced(self, superuser):
+    def test_parent_split_is_rescaled_when_a_follow_up_reduces_it(self, superuser):
+        income = make_expected(
+            gustavo_amount=Decimal('600000.00'),
+            carlos_amount=Decimal('400000.00'),
+        )
+
+        accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('992000.00'),
+                expected_incomes=[{
+                    'concept': 'Saldo',
+                    'period_date': '2026-08',
+                    'amount': Decimal('8000.00'),
+                }],
+            ),
+            superuser,
+        )
+
+        income.refresh_from_db()
+        assert income.total_amount == Decimal('992000.00')
+        assert income.gustavo_amount == Decimal('595200.00')
+        assert income.carlos_amount == Decimal('396800.00')
+
+    def test_a_deduction_leaves_the_parent_split_untouched(self, superuser):
         income = make_expected(
             gustavo_amount=Decimal('600000.00'),
             carlos_amount=Decimal('400000.00'),
@@ -397,9 +443,9 @@ class TestPartnerSplit:
         )
 
         income.refresh_from_db()
-        assert income.total_amount == Decimal('992000.00')
-        assert income.gustavo_amount == Decimal('595200.00')
-        assert income.carlos_amount == Decimal('396800.00')
+        assert income.total_amount == Decimal('1000000.00')
+        assert income.gustavo_amount == Decimal('600000.00')
+        assert income.carlos_amount == Decimal('400000.00')
 
     def test_split_never_exceeds_the_amount_on_odd_cents(self, superuser):
         income = make_expected(
@@ -521,10 +567,11 @@ class TestAudit:
 
 
 class TestUtilityImpact:
-    def test_a_deduction_does_not_move_utility(self, superuser):
-        """The money is already absent from the liquid total.
-
-        Subtracting it as an expense too would count the same loss twice.
+    def test_a_deduction_hits_expected_utility_but_not_liquid(self, superuser):
+        """Asymmetric on purpose: the expected side is gross, so its
+        utility subtracts the known fees; the liquid total already arrived
+        net of them, so subtracting the fee there too would count the same
+        loss twice.
         """
         income = make_expected()
         accounting_settlement_service.settle_expected_income(
@@ -533,9 +580,11 @@ class TestUtilityImpact:
 
         totals = accounting_service.year_totals(2026)
 
+        assert totals['expected_total'] == Decimal('1000000.00')
         assert totals['liquid_total'] == Decimal('992000.00')
         assert totals['expenses_total'] == Decimal('0')
         assert totals['deductions_total'] == Decimal('8000.00')
+        assert totals['expected_utility'] == Decimal('992000.00')
         assert totals['liquid_utility'] == Decimal('992000.00')
 
     def test_an_ordinary_expense_still_reduces_utility(self, superuser):
@@ -555,3 +604,100 @@ class TestUtilityImpact:
 
         assert totals['expenses_total'] == Decimal('100000.00')
         assert totals['liquid_utility'] == Decimal('892000.00')
+
+
+class TestIterativeSettlement:
+    def test_a_second_settlement_after_a_fee_sees_the_right_pending(self, superuser):
+        """The fee credit must feed the next settlement's pending math."""
+        income = make_expected()
+        accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('500000.00'),
+                deductions=[gateway_fee()],
+            ),
+            superuser,
+        )
+
+        # 1.000.000 − 500.000 received − 8.000 fee = 492.000 pending.
+        result = accounting_settlement_service.settle_expected_income(
+            income, settlement(total_amount=Decimal('492000.00')), superuser,
+        )
+
+        income.refresh_from_db()
+        assert result['liquid'].total_amount == Decimal('492000.00')
+        assert income.total_amount == Decimal('1000000.00')
+        assert accounting_settlement_service._paid_total(income) == (
+            Decimal('1000000.00')
+        )
+
+    def test_a_settled_income_with_fee_rejects_another_settlement(self, superuser):
+        income = make_expected()
+        accounting_settlement_service.settle_expected_income(
+            income, settlement(deductions=[gateway_fee()]), superuser,
+        )
+
+        with pytest.raises(ValueError, match='completamente pagado'):
+            accounting_settlement_service.settle_expected_income(
+                income, settlement(total_amount=Decimal('1.00')), superuser,
+            )
+
+
+class TestGrossRegrossMigration:
+    """Migration 0172 links settle-born deductions and re-grosses parents.
+
+    Pre-migration rows carry only the ``income:<pk>:settlement`` stamp and a
+    netted parent total; the backfill must recover the link and the gross
+    total using the deduction's own stored split (exact, no re-derivation).
+    """
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module(
+            'content.migrations.0172_expense_source_income_and_regross',
+        )
+
+    def test_links_by_source_ref_and_regrosses_with_the_stored_split(
+        self, make_expense,
+    ):
+        from django.apps import apps
+
+        income = make_expected(
+            total_amount=Decimal('81546.00'),
+            gustavo_amount=Decimal('40773.00'),
+            carlos_amount=Decimal('40773.00'),
+        )
+        deduction = make_expense(
+            deduction_type=ExpenseRecord.DeductionType.GATEWAY_FEE,
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+            source_ref=f'income:{income.pk}:settlement',
+        )
+
+        self._migration().link_and_regross(apps, None)
+
+        income.refresh_from_db()
+        deduction.refresh_from_db()
+        assert deduction.source_income_id == income.pk
+        assert income.total_amount == Decimal('86400.00')
+        assert income.gustavo_amount == Decimal('43200.00')
+        assert income.carlos_amount == Decimal('43200.00')
+
+    def test_ignores_stale_refs_and_ordinary_expenses(self, make_expense):
+        from django.apps import apps
+
+        ordinary = make_expense(source_ref='income:999999:settlement')
+        stale = make_expense(
+            deduction_type=ExpenseRecord.DeductionType.BANK_FEE,
+            source_ref='income:999999:settlement',
+        )
+
+        self._migration().link_and_regross(apps, None)
+
+        ordinary.refresh_from_db()
+        stale.refresh_from_db()
+        assert ordinary.source_income_id is None
+        assert stale.source_income_id is None
