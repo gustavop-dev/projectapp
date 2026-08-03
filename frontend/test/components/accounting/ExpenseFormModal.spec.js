@@ -200,8 +200,9 @@ describe('ExpenseFormModal', () => {
     expect(input.element.value).toBe('2026-11');
   });
 
-  it('prefills a day-1 period as month-only in edit mode', () => {
-    // Day 1 is the repo's month-only convention.
+  it('opens a day-1 period in full-date mode showing the stored day', () => {
+    // Day 1 stays the storage sentinel for month-only records, but the
+    // edit always opens as a date so the day is visible and correctable.
     const wrapper = mountModal({
       record: {
         concept: 'Dominio',
@@ -213,8 +214,8 @@ describe('ExpenseFormModal', () => {
     });
 
     const input = wrapper.find('[data-testid="expense-form-period"]');
-    expect(input.attributes('type')).toBe('month');
-    expect(input.element.value).toBe('2026-07');
+    expect(input.attributes('type')).toBe('date');
+    expect(input.element.value).toBe('2026-07-01');
   });
 
   it('prefills the exact day from period_date in edit mode', () => {
@@ -284,5 +285,56 @@ describe('ExpenseFormModal', () => {
       historical.find('[data-testid="expense-register-in-pocket"]')
         .attributes('aria-checked'),
     ).toBe('false');
+  });
+});
+
+describe('ExpenseFormModal deduction edit mode', () => {
+  const deductionRecord = {
+    id: 193,
+    concept: 'Comisión plataforma de pago — Hosting Jimmy Junio',
+    period_date: '2026-06-01',
+    category: 'business',
+    ledger: 'company',
+    total_amount: '4854.00',
+    gustavo_amount: '2427.00',
+    carlos_amount: '2427.00',
+    deduction_type: 'gateway_fee',
+    deduction_type_label: 'Comisión plataforma de pago',
+    pocket_movement: null,
+    notes: '',
+  };
+
+  it('shows the deduction hint and hides the pocket toggle', () => {
+    const wrapper = mountModal({ record: deductionRecord });
+
+    const hint = wrapper.get('[data-testid="expense-deduction-edit-hint"]');
+    expect(hint.text()).toContain('Comisión plataforma de pago');
+    expect(hint.text()).toContain('nunca registra egreso en bolsillo');
+    expect(
+      wrapper.find('[data-testid="expense-register-in-pocket"]').exists(),
+    ).toBe(false);
+  });
+
+  it('omits register_in_pocket from the payload when editing a deduction', async () => {
+    const wrapper = mountModal({ record: deductionRecord });
+
+    await wrapper.get('form').trigger('submit');
+
+    const payload = wrapper.emitted('submit')[0][0];
+    expect(payload).not.toHaveProperty('register_in_pocket');
+    expect(payload.concept).toBe(deductionRecord.concept);
+  });
+
+  it('keeps the pocket toggle for an ordinary expense', () => {
+    const wrapper = mountModal({
+      record: { ...deductionRecord, deduction_type: '', deduction_type_label: '' },
+    });
+
+    expect(
+      wrapper.find('[data-testid="expense-register-in-pocket"]').exists(),
+    ).toBe(true);
+    expect(
+      wrapper.find('[data-testid="expense-deduction-edit-hint"]').exists(),
+    ).toBe(false);
   });
 });

@@ -41,7 +41,9 @@ class TestExportRecords:
         assert response['Content-Type'].startswith('text/csv')
         assert 'contabilidad_income_' in response['Content-Disposition']
         lines = csv_lines(response)
-        assert lines[0].split(',')[:4] == ['Concepto', 'Tipo', 'Contabilidad', 'Mes']
+        assert lines[0].split(',')[:5] == [
+            'Concepto', 'Tipo', 'Estado de cobro', 'Contabilidad', 'Mes',
+        ]
         assert 'Kore - Inicio 40%' in lines[1]
 
     def test_csv_respects_filters(self, super_client, make_income):
@@ -89,6 +91,45 @@ class TestExportRecords:
         response = super_client.get('/api/accounting/export/?section=expense')
         lines = csv_lines(response)
         assert len(lines) == 1
+
+    def test_csv_income_carries_collection_state_labels(
+        self, super_client, make_income,
+    ):
+        paid = make_income(concept='Esperado pagado')
+        make_income(
+            concept='Pago total', kind=IncomeRecord.Kind.LIQUID,
+            expected_income=paid,
+        )
+        make_income(concept='Esperado sin pagos')
+        make_income(concept='Liquido suelto', kind=IncomeRecord.Kind.LIQUID)
+        response = super_client.get('/api/accounting/export/?section=income')
+        lines = csv_lines(response)
+        state_index = lines[0].split(',').index('Estado de cobro')
+        states = {
+            line.split(',')[0]: line.split(',')[state_index]
+            for line in lines[1:]
+        }
+        assert states['Esperado pagado'] == 'Pagado'
+        assert states['Esperado sin pagos'] == 'Pendiente'
+        assert states['Liquido suelto'] == ''
+        assert states['Pago total'] == ''
+
+    def test_csv_income_partial_collection_state(
+        self, super_client, make_income,
+    ):
+        partial = make_income(concept='Esperado parcial')
+        make_income(
+            concept='Abono', kind=IncomeRecord.Kind.LIQUID,
+            expected_income=partial,
+            total_amount=Decimal('400000.00'),
+            gustavo_amount=Decimal('200000.00'),
+            carlos_amount=Decimal('200000.00'),
+        )
+        response = super_client.get('/api/accounting/export/?section=income')
+        lines = csv_lines(response)
+        state_index = lines[0].split(',').index('Estado de cobro')
+        row = next(l for l in lines[1:] if l.startswith('Esperado parcial'))
+        assert row.split(',')[state_index] == 'Parcial'
 
     def test_xlsx_export_opens_and_has_rows(self, super_client, make_income):
         make_income(concept='Ingreso XLSX')
@@ -146,6 +187,30 @@ class TestExportWorkbook:
             for cell in row
         ]
         assert 'Ingresos esperados' in resumen_labels
+
+    def test_workbook_income_sheet_carries_collection_state(
+        self, super_client, make_income,
+    ):
+        """Catches the year workbook regressing to the raw manager: without
+        base_queryset the paid_amount annotation is missing and this column
+        would crash (accounting_export.py:86-94).
+        """
+        settled = make_income(concept='Esperado workbook')
+        make_income(
+            concept='Pago workbook', kind=IncomeRecord.Kind.LIQUID,
+            expected_income=settled,
+        )
+        response = super_client.get('/api/accounting/export/workbook/?year=2026')
+        workbook = load_workbook(BytesIO(response.content))
+        sheet = workbook['Ingresos']
+        headers = [cell.value for cell in sheet[1]]
+        state_column = headers.index('Estado de cobro') + 1
+        states = {
+            sheet.cell(row=i, column=1).value:
+                sheet.cell(row=i, column=state_column).value
+            for i in range(2, sheet.max_row + 1)
+        }
+        assert states['Esperado workbook'] == 'Pagado'
 
     def test_workbook_contains_summary_and_section_sheets(
         self, super_client, make_income, make_expense,
@@ -217,3 +282,52 @@ class TestStatementExportSections:
         sheet = workbook['Transacciones TC']
         assert sheet.cell(row=2, column=1).value == 'Visa Bancolombia'
         assert sheet.cell(row=2, column=5).value == 'Netflix'
+
+
+@pytest.mark.django_db
+class TestExpenseDeductionExport:
+    def test_csv_carries_deduction_type_and_origin_income(
+        self, super_client, make_income, make_expense,
+    ):
+        income = make_income(concept='Hosting Jimmy Junio')
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Comisión Wompi',
+            deduction_type='gateway_fee',
+            source_income=income,
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+        )
+
+        response = super_client.get('/api/accounting/export/?section=expense')
+
+        lines = csv_lines(response)
+        headers = lines[0].split(',')
+        type_index = headers.index('Tipo de deducción')
+        origin_index = headers.index('Ingreso origen')
+        rows = {line.split(',')[0]: line.split(',') for line in lines[1:]}
+        assert rows['Comisión Wompi'][type_index] == 'Comisión plataforma de pago'
+        assert rows['Comisión Wompi'][origin_index] == 'Hosting Jimmy Junio'
+        assert rows['Hosting mensual'][type_index] == ''
+        assert rows['Hosting mensual'][origin_index] == ''
+
+    def test_csv_respects_the_deduction_type_filter(
+        self, super_client, make_expense,
+    ):
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Retención DIAN',
+            deduction_type='withholding',
+            total_amount=Decimal('70000.00'),
+            gustavo_amount=Decimal('35000.00'),
+            carlos_amount=Decimal('35000.00'),
+        )
+
+        response = super_client.get(
+            '/api/accounting/export/?section=expense&deduction_type=withholding',
+        )
+
+        lines = csv_lines(response)
+        assert len(lines) == 2
+        assert lines[1].startswith('Retención DIAN')

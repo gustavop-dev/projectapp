@@ -20,10 +20,17 @@ defineProps({
 })
 
 // Keep whatever was typed when flipping modes: 'YYYY-MM' ⇄ 'YYYY-MM-DD'.
+// Upgrading only converts month-shaped values: a full date must survive a
+// flip untouched, or a parent re-syncing `exact` on open would silently
+// reset a real day back to the 1st.
 watch(exact, (isExact) => {
   const value = model.value
   if (!value) return
-  model.value = isExact ? `${value.slice(0, 7)}-01` : value.slice(0, 7)
+  if (isExact) {
+    if (value.length === 7) model.value = `${value}-01`
+  } else {
+    model.value = value.slice(0, 7)
+  }
 })
 </script>
 

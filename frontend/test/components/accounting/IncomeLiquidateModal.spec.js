@@ -297,8 +297,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
     await wrapper.find('form').trigger('submit');
 
@@ -314,8 +312,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('0');
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -330,8 +326,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('');
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -343,8 +337,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
 
     expect(wrapper.find('[data-testid="income-liquidate-remaining"]').text())
@@ -355,8 +347,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-type-0"]').setValue('other');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
 
@@ -389,8 +379,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('8000');
     await wrapper
       .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
@@ -408,8 +396,6 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
-    await wrapper
-      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('80000');
 
     expect(wrapper.find('[data-testid="income-liquidate-remaining"]').text())
@@ -431,5 +417,49 @@ describe('IncomeLiquidateModal', () => {
 
     expect(wrapper.findAll('[data-testid^="income-liquidate-followup-"]'))
       .toHaveLength(2);
+  });
+});
+
+describe('shortfall discoverability', () => {
+  it('shows the hint until a shortfall appears', async () => {
+    const wrapper = mountModal();
+
+    expect(
+      wrapper.find('[data-testid="income-liquidate-shortfall-hint"]').exists(),
+    ).toBe(true);
+
+    await wrapper.find('[data-testid="split-total"]').setValue('550000');
+
+    expect(
+      wrapper.find('[data-testid="income-liquidate-shortfall-hint"]').exists(),
+    ).toBe(false);
+  });
+
+  it('auto-expands the deductions group when the shortfall appears', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('[data-testid="split-total"]').setValue('550000');
+
+    // No toggle click: the group opens itself with a row ready to fill.
+    expect(
+      wrapper.find('[data-testid="income-liquidate-deduction-0"]').exists(),
+    ).toBe(true);
+  });
+
+  it('does not re-expand after the user collapses the group', async () => {
+    const wrapper = mountModal();
+    await wrapper.find('[data-testid="split-total"]').setValue('550000');
+
+    await wrapper
+      .find('[data-testid="income-liquidate-deductions-toggle"]').trigger('click');
+    expect(
+      wrapper.find('[data-testid="income-liquidate-deduction-0"]').exists(),
+    ).toBe(false);
+
+    await wrapper.find('[data-testid="split-total"]').setValue('400000');
+
+    expect(
+      wrapper.find('[data-testid="income-liquidate-deduction-0"]').exists(),
+    ).toBe(false);
   });
 });

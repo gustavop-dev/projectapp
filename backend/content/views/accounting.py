@@ -150,6 +150,12 @@ def _expense_meta(queryset, params):
     if prior_totals:
         average = sum(prior_totals) / len(prior_totals)
         alert = average > 0 and month_total >= average * Decimal('1.5')
+    deduction_rows = list(
+        year_qs.exclude(deduction_type='')
+        .values_list('deduction_type')
+        .annotate(total=Sum('total_amount'))
+    )
+    deductions_by_type = {row[0]: _money(row[1] or 0) for row in deduction_rows}
     return {
         'year_total': _money(totals['year_total'] or 0),
         'current_month_total': _money(month_total),
@@ -157,6 +163,12 @@ def _expense_meta(queryset, params):
         'personal_total': _money(totals['personal_total'] or 0),
         'current_month_alert': alert,
         'top_expense': _top_record(year_qs),
+        # Year deductions, whole and by type: the answer to "cuánto se fue
+        # en comisiones y cuánto acumuló la retención".
+        'deductions_total': _money(
+            sum((row[1] or 0 for row in deduction_rows), Decimal('0')),
+        ),
+        'deductions_by_type': deductions_by_type,
     }
 
 
@@ -236,9 +248,13 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('category', 'ledger'),
+        'choice_filters': ('category', 'ledger', 'deduction_type'),
         'has_split': True,
         'meta': _expense_meta,
+        'annotations': {
+            'source_income_concept':
+                accounting_service.source_income_concept_subquery(),
+        },
     },
     'hosting': {
         'entity_type': EntityType.HOSTING,

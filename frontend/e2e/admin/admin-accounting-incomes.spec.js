@@ -492,7 +492,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
 
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
-    await page.getByTestId('income-liquidate-deductions-toggle').click();
+    // The deductions group auto-expands the moment the shortfall appears.
+    await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
     await page.getByTestId('deduction-amount-0').fill('8000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');
@@ -520,7 +521,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
 
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
-    await page.getByTestId('income-liquidate-deductions-toggle').click();
+    // The deductions group auto-expands the moment the shortfall appears.
+    await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
     await page.getByTestId('deduction-amount-0').fill('600000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');
@@ -594,7 +596,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await page.getByTestId('income-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('592000');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
-    await page.getByTestId('income-liquidate-deductions-toggle').click();
+    // The deductions group auto-expands the moment the shortfall appears.
+    await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
     await page.getByTestId('deduction-amount-0').fill('50000');
 
     await expect(page.getByTestId('income-liquidate-remaining'))

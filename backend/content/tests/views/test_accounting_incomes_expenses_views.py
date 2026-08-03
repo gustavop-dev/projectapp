@@ -689,3 +689,71 @@ class TestIncomePaymentStatusFilter:
         assert 'Sin abonos' in body
         assert 'Abonado a medias' not in body
         assert 'Cobrado' not in body
+
+
+@pytest.mark.django_db
+class TestExpenseDeductionSurface:
+    """The Gastos list can isolate and totalize deductions by type."""
+
+    def _seed(self, make_income, make_expense):
+        income = make_income(concept='Hosting Jimmy Junio')
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Comisión — Hosting Jimmy Junio',
+            deduction_type='gateway_fee',
+            source_income=income,
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+        )
+        make_expense(
+            concept='Retención — Kore',
+            deduction_type='withholding',
+            total_amount=Decimal('70000.00'),
+            gustavo_amount=Decimal('35000.00'),
+            carlos_amount=Decimal('35000.00'),
+        )
+        return income
+
+    def test_list_filters_by_deduction_type_with_csv_multi(
+        self, super_client, make_income, make_expense,
+    ):
+        self._seed(make_income, make_expense)
+
+        response = super_client.get(
+            '/api/accounting/expenses/?deduction_type=gateway_fee,withholding',
+        )
+
+        concepts = {row['concept'] for row in response.data['results']}
+        assert concepts == {
+            'Comisión — Hosting Jimmy Junio', 'Retención — Kore',
+        }
+
+    def test_rows_carry_the_annotated_source_income_concept(
+        self, super_client, make_income, make_expense,
+    ):
+        income = self._seed(make_income, make_expense)
+
+        response = super_client.get('/api/accounting/expenses/')
+
+        by_concept = {
+            row['concept']: row for row in response.data['results']
+        }
+        deduction = by_concept['Comisión — Hosting Jimmy Junio']
+        assert deduction['source_income'] == income.pk
+        assert deduction['source_income_concept'] == 'Hosting Jimmy Junio'
+        assert by_concept['Hosting mensual']['source_income'] is None
+
+    def test_meta_totalizes_deductions_by_type(
+        self, super_client, make_income, make_expense,
+    ):
+        self._seed(make_income, make_expense)
+
+        response = super_client.get('/api/accounting/expenses/')
+
+        meta = response.data['meta']
+        assert meta['deductions_total'] == '74854.00'
+        assert meta['deductions_by_type'] == {
+            'gateway_fee': '4854.00',
+            'withholding': '70000.00',
+        }

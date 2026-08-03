@@ -127,9 +127,20 @@ def calculate_effective_total_investment(
 
 def effective_total_for_proposal(proposal):
     """Single-proposal version of :func:`build_effective_totals_map`."""
-    fr_section = proposal.sections.filter(
-        section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
-    ).only('content_json').first()
+    if 'sections' in getattr(proposal, '_prefetched_objects_cache', {}):
+        # The caller already prefetched sections (e.g. the admin detail view):
+        # reuse them instead of re-reading the large FR content_json from the DB.
+        fr_section = next(
+            (
+                s for s in proposal.sections.all()
+                if s.section_type == ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS
+            ),
+            None,
+        )
+    else:
+        fr_section = proposal.sections.filter(
+            section_type=ProposalSection.SectionType.FUNCTIONAL_REQUIREMENTS,
+        ).only('content_json').first()
     fr_content = fr_section.content_json if fr_section else None
     return calculate_effective_total_investment(
         proposal.total_investment,

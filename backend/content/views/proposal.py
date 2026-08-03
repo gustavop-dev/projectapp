@@ -511,7 +511,8 @@ def retrieve_proposal(request, proposal_id):
             'project_stages',
             'sections',
             'requirement_groups__items',
-            'change_logs',
+            # change_logs intentionally not prefetched: the serializer slices
+            # to 50, so a LIMIT query beats loading the unbounded log table.
             'proposal_documents',
         ),
         pk=proposal_id,

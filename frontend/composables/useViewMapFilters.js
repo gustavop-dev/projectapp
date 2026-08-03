@@ -157,6 +157,18 @@ export function useViewMapFilters() {
     await tabs.renameTab(numericTabId(tabId), newName);
   }
 
+  async function restoreTab(tabId) {
+    const updated = await tabs.restoreTab(numericTabId(tabId));
+    if (updated && String(activeTabId.value) === String(tabId)) {
+      loadTabFilters(currentFilters, updated);
+    }
+    return updated;
+  }
+
+  function rebaseTab(tabId) {
+    return tabs.rebaseTab(numericTabId(tabId));
+  }
+
   return {
     currentFilters,
     savedTabs,
@@ -175,5 +187,7 @@ export function useViewMapFilters() {
     saveTab,
     deleteTab,
     renameTab,
+    restoreTab,
+    rebaseTab,
   };
 }

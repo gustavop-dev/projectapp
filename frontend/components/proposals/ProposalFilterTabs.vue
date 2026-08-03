@@ -13,7 +13,7 @@
       >
         <option value="all">Todas</option>
         <option v-for="tab in tabs" :key="tab.id" :value="tab.id">
-          {{ tab.name }}
+          {{ tab.name }}{{ isModified(tab) ? ' •' : '' }}
         </option>
         <option v-if="showConfigTab" value="__config__">⚙ Configuraciones</option>
       </select>
@@ -48,7 +48,12 @@
             : 'border-transparent text-text-muted hover:text-text-default'"
           @click="$emit('select', tab.id)"
         >
-          {{ tab.name }}
+          {{ tab.name }}<span
+            v-if="isModified(tab)"
+            :data-testid="`filter-tabs-modified-${tab.id}`"
+            class="ml-1 text-warning-strong"
+            title="Filtros modificados respecto a su base"
+          >•</span>
         </button>
         <!-- Tab context menu trigger (builtin tabs can't be renamed/deleted) -->
         <button
@@ -75,6 +80,26 @@
           >
             Renombrar
           </button>
+          <BaseButton
+            v-if="isModified(tab)"
+            variant="ghost"
+            size="sm"
+            class="w-full"
+            data-testid="filter-tabs-restore"
+            @click="handleRestore(tab.id)"
+          >
+            Restaurar filtros
+          </BaseButton>
+          <BaseButton
+            v-if="isModified(tab)"
+            variant="ghost"
+            size="sm"
+            class="w-full"
+            data-testid="filter-tabs-rebase"
+            @click="handleRebase(tab.id)"
+          >
+            Fijar como base
+          </BaseButton>
           <BaseButton variant="danger-ghost" size="sm" class="w-full" data-testid="filter-tabs-delete" @click="handleDelete(tab.id)">
             Eliminar
           </BaseButton>
@@ -152,6 +177,7 @@
 
 <script setup>
 import { nextTick, ref } from 'vue';
+import { sameFilters } from '~/composables/useSavedFilterTabs';
 import { SELECT_ARROW_STYLE as selectArrowStyle } from '~/utils/selectArrowStyle';
 
 const props = defineProps({
@@ -163,7 +189,19 @@ const props = defineProps({
   configActive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['select', 'create', 'rename', 'delete', 'config']);
+const emit = defineEmits([
+  'select', 'create', 'rename', 'delete', 'config', 'restore', 'rebase',
+]);
+
+// Builtin quick-filters carry no persisted definition; legacy tab payloads
+// without base_filters must not flag as modified.
+function isModified(tab) {
+  return (
+    !tab.builtin
+    && tab.base_filters != null
+    && !sameFilters(tab.filters, tab.base_filters)
+  );
+}
 
 function handleMobileSelect(value) {
   if (value === '__config__') {
@@ -222,6 +260,16 @@ function cancelInput() {
 function handleDelete(tabId) {
   openMenuId.value = null;
   emit('delete', tabId);
+}
+
+function handleRestore(tabId) {
+  openMenuId.value = null;
+  emit('restore', tabId);
+}
+
+function handleRebase(tabId) {
+  openMenuId.value = null;
+  emit('rebase', tabId);
 }
 
 </script>

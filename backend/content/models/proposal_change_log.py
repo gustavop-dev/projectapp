@@ -70,6 +70,13 @@ class ProposalChangeLog(models.Model):
         ordering = ['-created_at']
         verbose_name = 'Proposal Change Log'
         verbose_name_plural = 'Proposal Change Logs'
+        indexes = [
+            # Serves the per-proposal newest-first slice without a filesort
+            # over the TEXT columns.
+            models.Index(fields=['proposal', '-created_at'], name='pcl_proposal_created_idx'),
+            # Serves the has_confirmed_module_selection EXISTS probes.
+            models.Index(fields=['proposal', 'change_type'], name='pcl_proposal_type_idx'),
+        ]
 
     def __str__(self):
         return (

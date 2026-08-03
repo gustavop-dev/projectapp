@@ -1,3 +1,4 @@
+from copy import deepcopy
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
@@ -1552,8 +1553,20 @@ class UpdateProjectPhaseSerializer(serializers.Serializer):
 class SavedFilterTabSerializer(serializers.ModelSerializer):
     class Meta:
         model = SavedFilterTab
-        fields = ['id', 'view', 'name', 'filters', 'order', 'created_at', 'updated_at']
+        fields = [
+            'id', 'view', 'name', 'filters', 'base_filters', 'order',
+            'created_at', 'updated_at',
+        ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def create(self, validated_data):
+        # A new tab's definition is whatever it was created with; writable
+        # afterwards so "Fijar como base" can re-baseline deliberately.
+        if 'base_filters' not in validated_data:
+            validated_data['base_filters'] = deepcopy(
+                validated_data.get('filters') or {},
+            )
+        return super().create(validated_data)
 
     def validate(self, attrs):
         if self.instance is None:

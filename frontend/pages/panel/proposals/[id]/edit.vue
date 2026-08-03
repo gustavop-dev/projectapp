@@ -193,7 +193,7 @@
             />
           </template>
         </div>
-        <div v-show="technicalSubTab === 'json'" class="space-y-4">
+        <div v-if="technicalSubTab === 'json'" class="space-y-4">
           <p class="text-xs text-text-muted">
             Solo el objeto <code class="bg-surface-raised px-1 rounded">content_json</code> del detalle técnico. Debe ser JSON válido (mismo esquema que el editor).
           </p>
@@ -392,7 +392,10 @@ const lazyTab = (loader) => defineAsyncComponent({
 const ProposalSectionsTab = lazyTab(() => import('~/components/panel/proposal/ProposalSectionsTab.vue'));
 const ProposalHourRateTab = lazyTab(() => import('~/components/panel/proposal/ProposalHourRateTab.vue'));
 import { DEFAULT_HOSTING_PERCENT, DEFAULT_METHOD_PHASES } from '~/stores/proposals_constants';
-const TechnicalDocumentEditor = lazyTab(() => import('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue'));
+// Hoisted so the idle warm-up in onMounted and the async wrapper share ONE
+// dynamic-import call site (single chunk; the module registry caches it).
+const technicalEditorLoader = () => import('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue');
+const TechnicalDocumentEditor = lazyTab(technicalEditorLoader);
 const ProposalAnalytics = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalAnalytics.vue'));
 // Modals stay static on purpose: they are gated by a `visible` prop rather
 // than v-if, so an async wrapper would still resolve on page load. Switching
@@ -1086,6 +1089,16 @@ onMounted(async () => {
   await proposalStore.fetchProposal(id);
   hydrateFormFromProposal();
   window.addEventListener('beforeunload', warnUnsavedBeforeUnload);
+  // Warm ONLY the technical editor's JS chunk during idle time — Det. técnico
+  // is the heaviest tab and its data is already in the store, so the chunk is
+  // the one first-open cost a prefetch can remove. The panel is deliberately
+  // NOT pre-mounted: v-auto-resize would measure display:none textareas.
+  const warmTechnicalChunk = () => { technicalEditorLoader(); };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(warmTechnicalChunk, { timeout: 5000 });
+  } else {
+    setTimeout(warmTechnicalChunk, 3000);
+  }
 });
 
 const UNSAVED_CONFIRM = {
@@ -1405,16 +1418,14 @@ function handleJsonApplied() {
   hydrateFormFromProposal();
 }
 
-watch(activeTab, (newTab) => {
-  if (newTab === 'technical') {
-    refreshTechnicalJsonFromProposal();
-  }
-});
-
-watch(technicalSubTab, (sub) => {
-  if (activeTab.value === 'technical' && sub === 'json') {
-    refreshTechnicalJsonFromProposal();
-  }
-});
+// Refresh only when the JSON pane actually opens (tab entry with the sub-tab
+// already on JSON, or switching the sub-tab while on the tab). Entering the
+// tab in Editor mode must not pay the full-document stringify.
+watch(
+  () => activeTab.value === 'technical' && technicalSubTab.value === 'json',
+  (jsonPaneOpen) => {
+    if (jsonPaneOpen) refreshTechnicalJsonFromProposal();
+  },
+);
 
 </script>

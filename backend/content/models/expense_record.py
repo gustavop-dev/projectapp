@@ -4,10 +4,10 @@ from .accounting_base import AccountingRecordBase, PartnerSplitMixin
 
 
 class ExpenseRecordQuerySet(models.QuerySet):
-    """Splits real spending from money that never arrived."""
+    """Splits ordinary spending from income deductions."""
 
     def operational(self):
-        """Expenses that reduce utility (everything but income deductions)."""
+        """Ordinary expenses — everything but income deductions."""
         return self.filter(deduction_type='')
 
     def deductions(self):
@@ -24,12 +24,13 @@ class ExpenseRecord(PartnerSplitMixin, AccountingRecordBase):
     keep a linked pocket OUT movement in sync (see accounting_service);
     records created before the linkage existed stay unlinked.
 
-    ``deduction_type`` marks the rows that are NOT operational spending but a
-    discount taken out of an income before it landed (a Wompi fee, a bank fee,
-    a withholding). Those are excluded from utility on purpose: the settlement
-    lowers the expected income to what was actually received, so the money is
-    already missing from the liquid total and subtracting it again would count
-    the same loss twice.
+    ``deduction_type`` marks the rows that are a discount taken out of an
+    income before it landed (a Wompi fee, a bank fee, a withholding). The
+    expected income keeps its GROSS total, so a deduction reduces utility
+    like any other expense and additionally counts as payment credit toward
+    its ``source_income`` (liquid children + linked deductions must add up
+    to the parent's gross total for it to read as paid). It never touches
+    the pocket: that money never entered the account.
     """
 
     class Category(models.TextChoices):
@@ -58,6 +59,17 @@ class ExpenseRecord(PartnerSplitMixin, AccountingRecordBase):
         choices=DeductionType.choices,
         blank=True,
         default='',
+    )
+    # The expected income this deduction was discounted from. Load-bearing
+    # for payment credit: paid_amount sums liquid children + linked
+    # deductions, so an income settled with a fee still reads as paid.
+    source_income = models.ForeignKey(
+        'IncomeRecord',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='deduction_records',
+        limit_choices_to={'kind': 'expected'},
     )
     # Auto-managed pocket OUT movement kept in sync by accounting_service.
     pocket_movement = models.OneToOneField(

@@ -45,6 +45,10 @@ const form = ref(defaultForm())
 const exactDate = ref(true)
 
 const isPersonal = computed(() => form.value.ledger !== 'company')
+// Deductions are born in the settlement flow; here they only get their
+// amounts/notes touched, and the pocket toggle disappears — the backend
+// forces register_in_pocket off for them anyway.
+const isDeduction = computed(() => !!props.record?.deduction_type)
 
 watch(
   () => [props.open, props.record],
@@ -52,13 +56,14 @@ watch(
     if (!props.open) return
     if (props.record) {
       // Prefill from the raw period_date — `period` is 'YYYY-MM' and would
-      // silently reset the day to the 1st on every edit. Day 1 IS the
-      // month-only convention, so it prefills in month mode.
-      const periodDate = props.record.period_date ?? ''
-      exactDate.value = !!periodDate && !periodDate.endsWith('-01')
+      // silently reset the day to the 1st on every edit. Edits always open
+      // in full-date mode showing the stored day (01 for month-only
+      // records, whose real day was never captured); the toggle still
+      // downgrades when only the month is known.
+      exactDate.value = true
       form.value = {
         concept: props.record.concept ?? '',
-        period_date: exactDate.value ? periodDate : periodDate.slice(0, 7),
+        period_date: props.record.period_date ?? '',
         category: props.record.category ?? 'business',
         ledger: props.record.ledger ?? 'company',
         total_amount: props.record.total_amount ?? '',
@@ -87,7 +92,9 @@ function onSubmit() {
     payload.gustavo_amount = form.value.gustavo_amount
     payload.carlos_amount = form.value.carlos_amount
   }
-  payload.register_in_pocket = form.value.register_in_pocket
+  if (!isDeduction.value) {
+    payload.register_in_pocket = form.value.register_in_pocket
+  }
   payload.notes = form.value.notes
   emit('submit', payload)
 }
@@ -133,7 +140,15 @@ function onSubmit() {
         <BaseCurrencyInput v-model="form.total_amount" required />
       </BaseFormField>
 
-      <div class="flex items-center justify-between gap-3">
+      <div
+        v-if="isDeduction"
+        class="text-xs text-info-strong bg-info-soft rounded-lg px-3 py-2"
+        data-testid="expense-deduction-edit-hint"
+      >
+        Deducción sobre ingreso ({{ record.deduction_type_label }}) — se crea
+        desde Liquidar y nunca registra egreso en bolsillo.
+      </div>
+      <div v-else class="flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-medium text-text-default">Registrar egreso en bolsillo</p>
           <p class="text-xs text-text-subtle">

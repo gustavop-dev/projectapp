@@ -29,6 +29,9 @@ function mountTechnicalDocumentEditor(props = {}) {
     props: {
       section: baseSection,
       moduleLinkOptions: [],
+      // The editor collapses sections and link grids by default; the suite
+      // asserts against fully rendered content, so mount everything open.
+      expandAll: true,
       ...props,
     },
   });
@@ -978,5 +981,84 @@ describe('linked_item_ids (item traceability)', () => {
     const payload = wrapper.emitted('save')[0][0].payload;
     const reqs = payload.content_json.epics[0].requirements;
     expect(reqs[reqs.length - 1].linked_item_ids).toEqual([]);
+  });
+});
+
+// ── Collapse-by-default layout ───────────────────────────────────────────────
+
+describe('TechnicalDocumentEditor collapse behavior', () => {
+  const epicSection = {
+    ...baseSection,
+    content_json: {
+      ...baseSection.content_json,
+      epics: [{
+        epicKey: 'auth',
+        title: 'Auth',
+        description: 'Login y sesión',
+        linked_module_ids: [],
+        requirements: [{
+          flowKey: 'login',
+          title: 'Login',
+          description: '',
+          configuration: '',
+          usageFlow: '',
+          linked_module_ids: [],
+          linked_item_ids: [],
+        }],
+      }],
+    },
+  };
+
+  it('starts with only Propósito expanded when expandAll is off', () => {
+    const wrapper = mountTechnicalDocumentEditor({ expandAll: false, section: epicSection });
+
+    expect(wrapper.find('[data-testid="technical-purpose-textarea"]').exists()).toBe(true);
+    // Collapsed sections keep their header visible but do not mount their body.
+    expect(wrapper.find('[data-testid="technical-section-toggle-stack"]').exists()).toBe(true);
+    expect(wrapper.find('input[placeholder="Capa"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="technical-epic-description-textarea"]').exists()).toBe(false);
+  });
+
+  it('mounts a section body on header click and unmounts it on the second click', async () => {
+    const wrapper = mountTechnicalDocumentEditor({ expandAll: false });
+
+    const toggle = wrapper.find('[data-testid="technical-section-toggle-stack"]');
+    await toggle.trigger('click');
+    expect(wrapper.find('input[placeholder="Capa"]').exists()).toBe(true);
+
+    await toggle.trigger('click');
+    expect(wrapper.find('input[placeholder="Capa"]').exists()).toBe(false);
+  });
+
+  it('emits the full content_json on save even with every section collapsed', async () => {
+    const wrapper = mountTechnicalDocumentEditor({ expandAll: false, section: epicSection });
+
+    const saveBtn = wrapper.findAll('button').find((b) => b.text().includes('Guardar detalle técnico'));
+    await saveBtn.trigger('click');
+
+    const emitted = wrapper.emitted('save');
+    expect(emitted).toHaveLength(1);
+    const payload = emitted[0][0].payload.content_json;
+    expect(payload.stack).toHaveLength(1);
+    expect(payload.epics[0].requirements[0].flowKey).toBe('login');
+  });
+
+  it('reveals the requirement link grids only after the disclosure click', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      expandAll: false,
+      section: epicSection,
+      moduleLinkOptions: [{ id: 'group-views', label: 'Vistas', aliases: ['group-views'] }],
+      itemLinkOptions: [{ groupId: 'views', groupLabel: 'Vistas', items: [{ id: 'item-views-home', label: 'Home' }] }],
+    });
+
+    // Section collapsed: not even the disclosure exists yet.
+    expect(wrapper.find('[data-testid="technical-req-links-toggle"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="technical-section-toggle-epics"]').trigger('click');
+    expect(wrapper.find('[data-testid="technical-req-links-toggle"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="technical-req-item-links"]').exists()).toBe(false);
+
+    await wrapper.find('[data-testid="technical-req-links-toggle"]').trigger('click');
+    expect(wrapper.find('[data-testid="technical-req-item-links"]').exists()).toBe(true);
   });
 });

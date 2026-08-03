@@ -30,6 +30,8 @@
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
       @delete="deleteFilterTab"
+      @restore="restoreFilterTab"
+      @rebase="rebaseFilterTab"
     />
 
     <!-- Stat card -->
@@ -216,6 +218,8 @@ const {
   saveTab,
   deleteTab: deleteFilterTab,
   renameTab: renameFilterTab,
+  restoreTab: restoreFilterTab,
+  rebaseTab: rebaseFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_ads',
   defaults: {

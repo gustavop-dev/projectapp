@@ -32,6 +32,42 @@ const EXPENSE_ROW = {
   updated_at: '2026-03-01T10:00:00Z',
 };
 
+// Settle-born deductions: typed, linked to their origin income and served
+// only to the tests that opt in (extra rows would break the exact-text
+// assertions of the older display tests).
+const DEDUCTION_ROWS = [
+  {
+    ...EXPENSE_ROW,
+    id: 2,
+    concept: 'Comisión plataforma de pago — Hosting Jimmy Junio',
+    period: '2026-06',
+    period_label: 'Junio 2026',
+    period_date: '2026-06-01',
+    deduction_type: 'gateway_fee',
+    deduction_type_label: 'Comisión plataforma de pago',
+    source_income: 134,
+    source_income_concept: 'Hosting Jimmy Junio',
+    total_amount: '4854.00',
+    gustavo_amount: '2427.00',
+    carlos_amount: '2427.00',
+  },
+  {
+    ...EXPENSE_ROW,
+    id: 3,
+    concept: 'Retención en la fuente — Kore Fase 4',
+    period: '2026-07',
+    period_label: 'Julio 2026',
+    period_date: '2026-07-01',
+    deduction_type: 'withholding',
+    deduction_type_label: 'Retención en la fuente',
+    source_income: 150,
+    source_income_concept: 'Kore Fase 4',
+    total_amount: '70000.00',
+    gustavo_amount: '35000.00',
+    carlos_amount: '35000.00',
+  },
+];
+
 const HOSTING_ROWS = [
   {
     id: 1,
@@ -71,7 +107,12 @@ const HOSTING_ROWS = [
   },
 ];
 
-function buildHandler({ calls, createStatus = 201 }) {
+function buildHandler({
+  calls,
+  createStatus = 201,
+  expenses = [EXPENSE_ROW],
+  expensesMeta = {},
+}) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -86,7 +127,7 @@ function buildHandler({ calls, createStatus = 201 }) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ results: [EXPENSE_ROW], meta: {} }),
+        body: JSON.stringify({ results: expenses, meta: expensesMeta }),
       };
     }
     if (apiPath === 'accounting/expenses/create/' && method === 'POST') {
@@ -152,6 +193,47 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByText('Claude Code 20x')).toBeVisible();
     await expect(page.getByText('Negocio', { exact: true })).toBeVisible();
+  });
+
+  test('deductions carry a typed pill and can be isolated with their totals', {
+    tag: [...ADMIN_ACCOUNTING_EXPENSES_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/accounting/expenses through
+    // the subnav is exercised by the accounting navigation specs; this test
+    // pins the deduction pill, the type filter and the totals)
+    await mockApi(page, buildHandler({
+      calls: [],
+      expenses: [EXPENSE_ROW, ...DEDUCTION_ROWS],
+      expensesMeta: {
+        deductions_total: '74854.00',
+        deductions_by_type: {
+          gateway_fee: '4854.00',
+          withholding: '70000.00',
+        },
+      },
+    }));
+    await page.goto('/panel/accounting/expenses', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Gastos', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    // The typed pill names its origin income in the tooltip.
+    const pill = page.getByTestId('expense-deduction-pill-2');
+    await expect(pill).toContainText('Comisión plataforma de pago');
+    await expect(pill).toHaveAttribute('title', /origen: Hosting Jimmy Junio/);
+
+    // The KPI card totalizes the year deductions with the type breakdown.
+    await expect(page.getByTestId('expenses-deductions-card')).toContainText('74.854');
+
+    // Filtering by type isolates the withholding row and splits the chips.
+    await page.getByRole('button', { name: /Filtros/ }).click();
+    await page.getByRole('button', { name: 'Tipo de deducción' }).click();
+    await page.getByRole('checkbox', { name: 'Retención en la fuente' }).check();
+
+    await expect(page.getByTestId('accounting-row-3')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    await expect(page.getByTestId('expenses-total-deductions')).toContainText('70.000');
   });
 
   test('creates an expense through the modal', {

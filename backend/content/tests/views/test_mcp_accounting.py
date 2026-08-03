@@ -1,6 +1,7 @@
 """Tests for the Accounting MCP connector HTTP endpoint."""
 import json
 from datetime import date
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
@@ -330,3 +331,118 @@ class TestAccountingMcpPocketGuardrails:
         from content.models import PocketMovement
 
         assert not PocketMovement.objects.filter(pk=movement_id).exists()
+
+
+@pytest.mark.django_db
+class TestAccountingMcpPaymentStatusFilter:
+    """list_income exposes the collection-state filter the panel already has."""
+
+    def _seed(self, make_income):
+        from decimal import Decimal
+
+        pending = make_income(concept='Esperado sin pagos')
+        paid = make_income(concept='Esperado pagado')
+        make_income(
+            concept='Pago total', kind=IncomeRecord.Kind.LIQUID,
+            expected_income=paid,
+        )
+        partial = make_income(concept='Esperado parcial')
+        make_income(
+            concept='Abono inicial', kind=IncomeRecord.Kind.LIQUID,
+            expected_income=partial,
+            total_amount=Decimal('400000.00'),
+            gustavo_amount=Decimal('200000.00'),
+            carlos_amount=Decimal('200000.00'),
+        )
+        return pending, paid, partial
+
+    def test_list_income_pending_returns_only_uncollected_expected(
+        self, api_client, accounting_connector, make_income,
+    ):
+        self._seed(make_income)
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_income', {'payment_status': 'pending'})
+        text = response.data['result']['content'][0]['text']
+        assert 'Esperado sin pagos' in text
+        assert 'Esperado pagado' not in text
+        assert 'Esperado parcial' not in text
+
+    def test_list_income_paid_returns_only_settled_expected(
+        self, api_client, accounting_connector, make_income,
+    ):
+        self._seed(make_income)
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_income', {'payment_status': 'paid'})
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Esperado pagado']
+
+    def test_list_income_partial_rows_carry_annotated_amounts(
+        self, api_client, accounting_connector, make_income,
+    ):
+        self._seed(make_income)
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_income', {'payment_status': 'partial'})
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Esperado parcial']
+        row = payload['results'][0]
+        assert row['payment_status'] == 'partial'
+        assert row['paid_amount'] == '400000.00'
+        assert row['pending_amount'] == '600000.00'
+
+    def test_list_income_rejects_unknown_payment_status(
+        self, api_client, accounting_connector,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_income', {'payment_status': 'settled'})
+        assert response.data['result']['isError'] is True
+
+    def test_income_schema_gates_payment_status_to_income_only(self):
+        income_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_income')
+        expense_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_expense')
+        prop = income_tool['input_schema']['properties']['payment_status']
+        assert prop['enum'] == ['pending', 'partial', 'paid']
+        assert 'payment_status' not in expense_tool['input_schema']['properties']
+
+
+@pytest.mark.django_db
+class TestAccountingMcpDeductions:
+    """The expense tools see deductions but can never create them."""
+
+    def test_list_expense_filters_by_deduction_type(
+        self, api_client, accounting_connector, make_expense,
+    ):
+        make_expense(concept='Hosting mensual')
+        make_expense(
+            concept='Comisión Wompi', deduction_type='gateway_fee',
+            total_amount=Decimal('4854.00'),
+            gustavo_amount=Decimal('2427.00'),
+            carlos_amount=Decimal('2427.00'),
+        )
+        _, token = accounting_connector
+
+        response = _call(api_client, token, 'list_expense', {
+            'deduction_type': 'gateway_fee',
+        })
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Comisión Wompi']
+
+    def test_expense_list_schema_publishes_the_deduction_filter(self):
+        tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_expense')
+        assert 'deduction_type' in tool['input_schema']['properties']
+
+    def test_create_expense_with_deduction_type_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        _, token = accounting_connector
+
+        response = _call(api_client, token, 'create_expense', {
+            'concept': 'Comisión manual',
+            'period_date': '2026-07',
+            'total_amount': '4854.00',
+            'deduction_type': 'gateway_fee',
+        })
+
+        assert response.data['result']['isError'] is True
+        text = response.data['result']['content'][0]['text']
+        assert 'liquidación' in text

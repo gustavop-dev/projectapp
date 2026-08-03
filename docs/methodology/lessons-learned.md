@@ -430,6 +430,12 @@ project_stages = ProposalProjectStageSerializer(many=True, read_only=True)
 
 Don't forget to `prefetch_related('project_stages')` in the admin queryset, otherwise the SerializerMethodField triggers an extra SELECT per detail load.
 
+A tab can be slow with **zero network involved** — measure DOM-node delta and long tasks before blaming the backend. Det. técnico (2026-08) rendered an O(requirements × commercial-items) checkbox matrix ≈38k nodes while the whole optimized page was ~610; the cure was the ProposalSectionsTab pattern (sections collapsed by default, bodies mounted on expand via Set + `v-if`) plus a per-row disclosure for the grids, taking the warm tab switch from 2.9s to 155ms.
+
+`list(qs)[:50]` materializes the entire table before slicing. Slice the queryset instead (`qs[:50]`): a warm prefetch cache still serves it in memory, and cold paths emit `LIMIT 50` SQL. The change-log table grows unboundedly with proposal age, so this class of bug gets worse silently.
+
+Never pre-mount a `v-show`-hidden panel to "warm" it: `v-auto-resize` measures `scrollHeight=0` under `display:none` and its `updated` hook is value-memoized, so textareas stay permanently mis-sized. Warm the async **chunk** (share the loader between `defineAsyncComponent` and a `requestIdleCallback` call), not the mount.
+
 ---
 
 ## 16. Methodology Maintenance
@@ -690,3 +696,11 @@ Rule of thumb: before actioning any `duplicate_coverage` finding, resolve each t
 
 ### The quality gate's backend suite scans only the `content` app
 `.testquality.yml` sets `backend_app_name: content`, and CI (`test-quality-gate.yml`) runs the gate with no `--backend-app` override, so **`accounts`, `projectapp`, and top-level `backend/tests/` are ungated in CI**. The audit found 72 error-level findings in `accounts` (67 `misplaced_file` — test files outside the `models/services/views/...` folders `py_allowed_folders` expects) that CI has never seen. To audit the full backend, run the gate once per app: `python3 scripts/test_quality_gate.py --suite backend --backend-app accounts` (repeat for `projectapp`).
+
+## 23. A pre-deploy SPA session survives every deploy — "the feature doesn't work" starts with a hard reload
+
+The panel is a static Nuxt SPA: `serve_nuxt` sends the entry HTML with `Cache-Control: no-cache`, but a browser tab opened before a deploy never refetches it — client-side navigation keeps running the old bundle indefinitely, and old hashed assets stay servable (`staticfiles/frontend/_nuxt` accumulates every deploy's files under a 30d immutable cache; 9,693 files as of Aug 2026), so the stale app never even breaks on its own. Real incident (2026-08-03): "Solo esperados" filtered identically to "Todos los esperados" in the operator's session — the pre-Aug-1 bundle had no `paymentStatus` matcher, so the tab's filter key was silently inert; the shipped feature was fine and a reload fixed it. Diagnosis order for "the deployed feature doesn't show": (1) hard-reload the tab; (2) confirm the served build (`backend/staticfiles/frontend` mtime + grep the new symbol in `_nuxt/`); (3) only then suspect code or data. Purging old `_nuxt` bundles would force stale tabs to break loudly on their next navigation — a possible future chore, deliberately not done yet.
+
+## 24. Gross-income deductions: utility must stay asymmetric
+
+Under the gross convention (operator decision 2026-08-03) an expected income keeps its invoiced total; fees discounted at origin become linked deduction expenses that credit it as payment (`paid = liquid children + linked deductions`, via `ExpenseRecord.source_income`). The utility formulas CANNOT subtract deductions on both sides: **expected** utility subtracts them (gross projection minus known fees) but **liquid** utility subtracts only operational spending, because the liquid total is cash that already arrived net of every fee — subtracting the fee there counts the same loss twice. The same asymmetry holds in `monthly_breakdown`, and any new aggregate should follow it. Corollary: editing or deleting a deduction expense mutates its income's payment state through the credit — they are one bookkeeping unit, which is why manual writes can neither set nor clear `deduction_type` (settlement context only) and a deduction never gains a pocket movement.

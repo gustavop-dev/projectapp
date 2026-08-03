@@ -720,6 +720,11 @@ def paid_amount_subquery():
     The `kind=LIQUID` filter is load-bearing, not defensive: `limit_choices_to`
     constrains the FK's target, not its source, so a lost record may point at
     an expected parent and must never be counted as payment.
+
+    Linked deductions count as credit too: the expected total stays gross,
+    and the fee discounted at origin will never arrive as a liquid child.
+    A second correlated subquery (same non-aggregate technique) keeps every
+    `.aggregate()` caller compiling exactly as before.
     """
     liquid = (
         IncomeRecord.objects
@@ -728,10 +733,38 @@ def paid_amount_subquery():
         .annotate(total=Sum('total_amount'))
         .values('total')[:1]
     )
-    return Coalesce(
-        Subquery(liquid, output_field=_MONEY_FIELD),
-        _ZERO_MONEY,
-        output_field=_MONEY_FIELD,
+    deducted = (
+        ExpenseRecord.objects
+        .filter(source_income=OuterRef('pk'))
+        .exclude(deduction_type='')
+        .values('source_income')
+        .annotate(total=Sum('total_amount'))
+        .values('total')[:1]
+    )
+    return (
+        Coalesce(
+            Subquery(liquid, output_field=_MONEY_FIELD),
+            _ZERO_MONEY,
+            output_field=_MONEY_FIELD,
+        )
+        + Coalesce(
+            Subquery(deducted, output_field=_MONEY_FIELD),
+            _ZERO_MONEY,
+            output_field=_MONEY_FIELD,
+        )
+    )
+
+
+def source_income_concept_subquery():
+    """Concept of the income a deduction was discounted from.
+
+    Annotated on expense lists so the origin renders without one query per
+    deduction row (the serializer falls back to the relation elsewhere).
+    """
+    return Subquery(
+        IncomeRecord.objects.filter(
+            pk=OuterRef('source_income'),
+        ).values('concept')[:1],
     )
 
 
@@ -769,10 +802,13 @@ def _year_split_sums(year):
 
     Personal-ledger records never count toward company totals.
 
-    ``expenses`` counts only operational spending. Income deductions (gateway
-    and bank fees, withholdings) are reported apart in ``deductions`` because
-    the settlement already lowered the expected income to what was received —
-    subtracting them from utility too would count the same loss twice.
+    ``expenses`` counts only operational spending; income deductions (gateway
+    and bank fees, withholdings) come apart in ``deductions``. The split
+    drives an asymmetric utility rule: expected utility subtracts both (the
+    gross projection minus its known fees), while liquid utility subtracts
+    only operational spending — the liquid total is what physically arrived,
+    already net of every fee, so subtracting deductions there would count
+    the same loss twice.
     """
     company_expenses = ExpenseRecord.objects.filter(
         period_date__year=year, ledger=Ledger.COMPANY,
@@ -801,12 +837,13 @@ def year_totals(year):
     expected_total = sums['expected']['total']
     liquid_total = sums['liquid']['total']
     expenses_total = sums['expenses']['total']
+    deductions_total = sums['deductions']['total']
     return {
         'expected_total': expected_total,
         'liquid_total': liquid_total,
         'expenses_total': expenses_total,
-        'deductions_total': sums['deductions']['total'],
-        'expected_utility': expected_total - expenses_total,
+        'deductions_total': deductions_total,
+        'expected_utility': expected_total - expenses_total - deductions_total,
         'liquid_utility': liquid_total - expenses_total,
     }
 
@@ -901,6 +938,12 @@ def monthly_breakdown(year):
         ).operational(),
         'period_date', 'total_amount',
     )
+    deductions_by_month = _totals_by_month(
+        ExpenseRecord.objects.filter(
+            period_date__year=year, ledger=Ledger.COMPANY,
+        ).deductions(),
+        'period_date', 'total_amount',
+    )
 
     breakdown = []
     for month in range(1, 13):
@@ -908,13 +951,17 @@ def monthly_breakdown(year):
         expected = expected_by_month.get(month, Decimal('0'))
         liquid = liquid_by_month.get(month, Decimal('0'))
         expenses = expenses_by_month.get(month, Decimal('0'))
+        deductions = deductions_by_month.get(month, Decimal('0'))
         breakdown.append({
             'period': month_period(month_date),
             'label': month_label(month_date),
             'expected': expected,
             'liquid': liquid,
             'expenses': expenses,
-            'expected_utility': expected - expenses,
+            'deductions': deductions,
+            # Asymmetric on purpose: expected is gross (minus known fees),
+            # liquid already arrived net of them.
+            'expected_utility': expected - expenses - deductions,
             'utility': liquid - expenses,
         })
     return breakdown
@@ -1028,7 +1075,9 @@ def dashboard_summary(year):
         'difference': liquid_total - expected_total,
         'expenses_total': expenses_total,
         'deductions_total': sums['deductions']['total'],
-        'expected_utility': expected_total - expenses_total,
+        'expected_utility': (
+            expected_total - expenses_total - sums['deductions']['total']
+        ),
         'liquid_utility': liquid_total - expenses_total,
         'pocket_balance': pocket_balance(),
         'partners': _build_partner_totals(sums, _personal_sums(year)),

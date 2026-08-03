@@ -212,20 +212,76 @@ class QualityReport:
         score += min(len(issue.message or ""), 160) // 40
         return score
 
+
+    def _backend_app_names(self) -> list[str]:
+        """The configured backend apps, normalised from str | list | "*"."""
+        raw = self.config.backend_app_name
+        if isinstance(raw, str):
+            if raw.strip() == "*":
+                backend = self.repo_root / "backend"
+                if not backend.is_dir():
+                    return []
+                return sorted(d.name for d in backend.iterdir() if (d / "tests").is_dir())
+            return [raw] if raw.strip() else []
+        return [str(a) for a in raw if str(a).strip()]
+
+    def _backend_test_roots(self) -> list[Path]:
+        """
+        Every backend tests/ dir this run will scan.
+
+        F53: backend_app_name was a single string, so a repo with bounded-context
+        apps got exactly ONE scanned and the rest were invisible — measured in
+        projectapp (backend/accounts, 67 files / 1160 tests, unread) and versiona
+        (12 of 13 app dirs unread). F37's guard cannot see it, because the named
+        dir does exist. A list names the apps explicitly; "*" takes every app
+        that has a tests/ dir.
+        """
+        return [
+            self.repo_root / "backend" / app / "tests"
+            for app in self._backend_app_names()
+            if (self.repo_root / "backend" / app / "tests").is_dir()
+        ]
+
+    def _unscanned_backend_apps(self) -> list[str]:
+        """
+        Apps that HAVE a tests/ dir and are not in this run's scan set.
+
+        Multi-app support alone does not save a repo that lists 2 of 4 apps, and
+        the silence is the whole defect: both F53 sightings looked green. The
+        report has to name what it never read.
+        """
+        backend = self.repo_root / "backend"
+        if not backend.is_dir():
+            return []
+        scanned = {r.parent.name for r in self._backend_test_roots()}
+        return sorted(
+            d.name for d in backend.iterdir()
+            if (d / "tests").is_dir() and d.name not in scanned
+        )
+
     def _suite_bucket_for_file(self, file_path: str) -> str | None:
         """Map report file path to suite bucket key."""
         normalized = file_path.replace("\\", "/")
         if normalized.startswith("backend/"):
             return "backend"
-        if any(normalized.startswith(prefix) for prefix in self._frontend_unit_prefixes()):
-            return "frontend_unit"
+        # e2e is tested BEFORE unit: once frontend_unit_dir "." normalises to the
+        # "frontend/" prefix (F60), a unit-first order would swallow every e2e
+        # file into the unit bucket. _attach_issue already orders it this way.
         if normalized.startswith("frontend/e2e/"):
             return "frontend_e2e"
+        if any(normalized.startswith(prefix) for prefix in self._frontend_unit_prefixes()):
+            return "frontend_unit"
         return None
 
     def _frontend_unit_prefixes(self) -> tuple[str, ...]:
         """Return accepted frontend-unit path prefixes (configured + legacy)."""
-        configured = f"frontend/{self.config.frontend_unit_dir.strip('/').replace('\\\\', '/')}/"
+        # F60: "." / "" / "./" all mean "frontend/ itself" — the repos that
+        # colocate unit tests in **/__tests__/ at arbitrary depth have no single
+        # dir to name. Interpolated raw they produced the literals "frontend/./"
+        # and "frontend//", which no repo-relative path starts with, silently
+        # voiding every consumer of this tuple. Four fleet repos ship ".".
+        raw = self.config.frontend_unit_dir.strip().replace("\\", "/").strip("/")
+        configured = "frontend/" if raw in ("", ".") else f"frontend/{raw}/"
         prefixes = [configured]
         if configured != "frontend/test/":
             prefixes.append("frontend/test/")
@@ -874,8 +930,19 @@ class QualityReport:
             py_analyzer = PythonAnalyzer(
                 self.repo_root, self.config, self.patterns, self.verbose
             )
-            backend_root = self.repo_root / "backend" / self.config.backend_app_name / "tests"
-            backend = py_analyzer.analyze_suite(backend_root, file_matcher=path_matcher)
+            # F53: one root per configured app. A plain string still yields
+            # exactly one, so nothing changes for the single-app repos; a list
+            # or "*" is what a bounded-context repo needs. Results are merged
+            # because each root has to be passed to the analyzer separately —
+            # it derives a file's `area` relative to the root it came from.
+            backend_roots = self._backend_test_roots()
+            backend = SuiteResult(suite_name="backend")
+            for _root in backend_roots:
+                _part = py_analyzer.analyze_suite(_root, file_matcher=path_matcher)
+                backend.files.extend(_part.files)
+            backend_root = backend_roots[0] if backend_roots else (
+                self.repo_root / "backend" / "<none>" / "tests"
+            )
             # F37: backend/ exists but the resolved app's tests dir does not →
             # the suite silently scanned nothing and reported green. Measured
             # failure mode: a repo adopting the core BEFORE running
@@ -911,6 +978,37 @@ class QualityReport:
                     ),
                 ))
                 backend.add_file(_sentinel)
+
+            # F53: multi-app support alone does not save a repo that lists 2 of
+            # 4 apps, and the silence IS the defect — both sightings looked
+            # green because the app they named did exist. Name what was never
+            # read. WARNING, like F37: a partial config is a blind spot, not a
+            # reason to fail the build.
+            _unscanned = self._unscanned_backend_apps()
+            if _unscanned:
+                from quality.base import CONFIG_FILENAME, FileResult
+                _u_sentinel = FileResult(
+                    file="backend/<unscanned apps>",
+                    area="backend",
+                    location_ok=True,
+                )
+                _u_sentinel.issues.append(Issue(
+                    file="backend/<unscanned apps>",
+                    message=(
+                        f"{len(_unscanned)} backend app(s) have a tests/ dir that this run never "
+                        f"scanned: {', '.join(_unscanned)} - a green backend result does not cover them"
+                    ),
+                    severity=Severity.WARNING,
+                    category=IssueCategory.MISPLACED_FILE,
+                    rule_id="config_backend_apps_unscanned",
+                    line=0,
+                    suggestion=(
+                        f'Set backend_app_name to "*" in {CONFIG_FILENAME} to scan every app, or '
+                        "list the apps explicitly"
+                    ),
+                ))
+                backend.add_file(_u_sentinel)
+
             timings["backend"] = time.perf_counter() - suite_started
         
         # Analyze frontend unit tests
@@ -924,6 +1022,39 @@ class QualityReport:
                 # is a no-op, so before this guard an empty dir de-scoped the scan
                 # to ALL of frontend/. frontend/ itself is spelled ".".
                 unit.suite_findings["disabled_by_config"] = True
+                # F59: but a disabled layer used to report "files 0, errors 0",
+                # which reads as a clean pass. Measured: versiona shipped "" from
+                # the day it adopted the core, so 0 of its 67 unit files were ever
+                # analysed — locally or in CI — while every run reported green.
+                # Twin of F37's backend sentinel: WARNING, so it surfaces in every
+                # report without turning adoption itself red.
+                from quality.base import CONFIG_FILENAME, FileResult
+                _has_cfg = (self.repo_root / CONFIG_FILENAME).is_file()
+                _unit_sentinel = FileResult(
+                    file="frontend/<frontend_unit_dir>",
+                    area="unit",
+                    location_ok=True,
+                )
+                _unit_sentinel.issues.append(Issue(
+                    file="frontend/<frontend_unit_dir>",
+                    message=(
+                        "frontend unit suite scanned nothing: frontend_unit_dir is \"\" "
+                        + ("(from .testquality.yml)" if _has_cfg else
+                           f"(canonical default — no {CONFIG_FILENAME} in this repo)")
+                        + ", which disables the layer — a green unit result here "
+                        "verifies nothing"
+                    ),
+                    severity=Severity.WARNING,
+                    category=IssueCategory.MISPLACED_FILE,
+                    rule_id="config_unit_layer_disabled",
+                    line=0,
+                    suggestion=(
+                        "Set frontend_unit_dir to the dir holding the unit tests, or "
+                        "to \".\" when they are colocated under frontend/ at arbitrary "
+                        f"depth; run extract_project_config.py to derive {CONFIG_FILENAME}"
+                    ),
+                ))
+                unit.add_file(_unit_sentinel)
                 if self.verbose:
                     print(f"  {Colors.DIM}frontend_unit_dir is \"\" - suite disabled by config{Colors.RESET}")
             else:

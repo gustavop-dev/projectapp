@@ -258,9 +258,11 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         is_admin = self.context.get('is_admin', False)
         if not is_admin:
             return []
-        # Meta ordering is ['-created_at']; plain .all() + slice keeps the
-        # prefetch cache warm.
-        logs = list(obj.change_logs.all())[:50]
+        # Meta ordering is ['-created_at']. Slicing the queryset (not a
+        # materialized list) serves from the prefetch cache when one exists and
+        # emits a LIMIT 50 query otherwise — the log table grows unboundedly
+        # with proposal age, so loading every row just to keep 50 is not ok.
+        logs = obj.change_logs.all()[:50]
         return [
             {
                 'id': log.id,

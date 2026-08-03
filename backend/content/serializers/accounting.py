@@ -160,6 +160,29 @@ class PartnerSplitWriteMixin(serializers.Serializer):
 
 # ── Income ──
 
+PAYMENT_STATUS_LABELS = {
+    'paid': 'Pagado',
+    'partial': 'Parcial',
+    'pending': 'Pendiente',
+}
+
+
+def payment_status_for(paid, total):
+    """Collection state ('pending'/'partial'/'paid') from a paid total.
+
+    Single owner of the boundary rule: the row serializer and the export
+    column both call it, while the SQL filter in views.accounting mirrors
+    it in Q algebra ("keep both sides in sync"). None passes through —
+    non-expected rows carry no collection state. A zero-total expected
+    (fully moved out by a residual-only settlement) is closed, not pending.
+    """
+    if paid is None:
+        return None
+    if paid >= total and (paid > 0 or total == 0):
+        return 'paid'
+    return 'pending' if paid <= 0 else 'partial'
+
+
 class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     kind_label = serializers.CharField(source='get_kind_display', read_only=True)
     destination_label = serializers.CharField(
@@ -189,12 +212,6 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'notes', 'created_at', 'updated_at',
         )
 
-    PAYMENT_STATUS_LABELS = {
-        'paid': 'Pagado',
-        'partial': 'Parcial',
-        'pending': 'Pendiente',
-    }
-
     def _paid(self, obj):
         """Liquid total fulfilling this record; None for non-expected rows.
 
@@ -209,9 +226,15 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         if not hasattr(obj, '_paid_total'):
             value = getattr(obj, 'paid_amount', None)
             if value is None:
-                value = obj.liquid_records.filter(
+                liquid = obj.liquid_records.filter(
                     kind=IncomeRecord.Kind.LIQUID,
                 ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                # Mirrors paid_amount_subquery: linked deductions credit the
+                # gross total — that money never arrives as a liquid child.
+                deducted = obj.deduction_records.exclude(
+                    deduction_type='',
+                ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+                value = liquid + deducted
             obj._paid_total = Decimal(value)
         return obj._paid_total
 
@@ -226,17 +249,10 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         return money_str(max(obj.total_amount - paid, Decimal('0')))
 
     def get_payment_status(self, obj):
-        paid = self._paid(obj)
-        if paid is None:
-            return None
-        # A zero-total expected (fully moved out by a residual-only
-        # settlement) is closed, not pending.
-        if paid >= obj.total_amount and (paid > 0 or obj.total_amount == 0):
-            return 'paid'
-        return 'pending' if paid <= 0 else 'partial'
+        return payment_status_for(self._paid(obj), obj.total_amount)
 
     def get_payment_status_label(self, obj):
-        return self.PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
+        return PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
 
 
 class IncomeRecordCreateUpdateSerializer(
@@ -399,6 +415,7 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     deduction_type_label = serializers.CharField(
         source='get_deduction_type_display', read_only=True,
     )
+    source_income_concept = serializers.SerializerMethodField()
 
     class Meta:
         model = ExpenseRecord
@@ -408,10 +425,21 @@ class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'category', 'category_label',
             'ledger', 'ledger_label',
             'deduction_type', 'deduction_type_label',
+            'source_income', 'source_income_concept',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'pocket_movement',
             'notes', 'created_at', 'updated_at',
         )
+
+    def get_source_income_concept(self, obj):
+        # List/export annotate the queryset; single-object paths fall back
+        # to the relation (deduction rows are few).
+        value = getattr(obj, 'source_income_concept', None)
+        if value is not None:
+            return value
+        if obj.source_income_id is None:
+            return None
+        return obj.source_income.concept
 
 
 class ExpenseRecordCreateUpdateSerializer(
@@ -443,6 +471,23 @@ class ExpenseRecordCreateUpdateSerializer(
             if self.instance is not None:
                 return getattr(self.instance, field)
             return default
+
+        # Deductions are born in the settlement flow only: it is the one
+        # place where the pocket rule, the source_income link and the paid
+        # credit stay consistent. Manual writes may neither set nor clear
+        # the type.
+        if not self.context.get('settlement') and 'deduction_type' in data:
+            current = self.instance.deduction_type if self.instance else ''
+            if data['deduction_type'] != current:
+                raise serializers.ValidationError({
+                    'deduction_type': (
+                        'Las deducciones se crean desde la liquidación '
+                        'del ingreso.'
+                    ),
+                })
+        if effective('deduction_type', ''):
+            # That money never entered the pocket — discounted at origin.
+            data['register_in_pocket'] = False
 
         wants_pocket = data.get('register_in_pocket')
         if wants_pocket is None:

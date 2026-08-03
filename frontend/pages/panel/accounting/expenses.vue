@@ -46,6 +46,12 @@
         :sub="`Personal: ${money(expensesMeta.personal_total)}`"
         tone="brand"
       />
+      <AccountingStatCard
+        label="Deducciones (año)"
+        :value="money(expensesMeta.deductions_total)"
+        :sub="deductionsBreakdownSub"
+        data-testid="expenses-deductions-card"
+      />
     </div>
 
     <!-- Saved filter tabs -->
@@ -57,6 +63,8 @@
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
       @delete="deleteFilterTab"
+      @restore="restoreFilterTab"
+      @rebase="rebaseFilterTab"
     />
 
     <!-- Search + Filter toggle -->
@@ -88,7 +96,7 @@
       @clear-search="searchInput = ''"
     />
 
-    <!-- Summary chip (filtered rows) -->
+    <!-- Summary chips (filtered rows) -->
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <span
         class="text-xs px-2.5 py-1 rounded-full bg-danger-soft text-danger-strong font-medium tabular-nums"
@@ -96,6 +104,20 @@
       >
         Total gastos: {{ formatMoney(totalFiltered) }}
       </span>
+      <template v-if="totalDeductions > 0">
+        <span
+          class="text-xs px-2.5 py-1 rounded-full bg-surface-raised text-text-muted font-medium tabular-nums"
+          data-testid="expenses-total-operational"
+        >
+          Operativo: {{ formatMoney(totalOperational) }}
+        </span>
+        <span
+          class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium tabular-nums"
+          data-testid="expenses-total-deductions"
+        >
+          Deducciones: {{ formatMoney(totalDeductions) }}
+        </span>
+      </template>
     </div>
 
     <!-- Error -->
@@ -146,12 +168,12 @@
       >
         <template #cell-concept="{ row }">
           <span class="text-text-default">{{ row.concept }}</span>
-          <!-- Deductions are discounted from an income, so they do not
-               reduce utility; the pill keeps that visible in the list. -->
+          <!-- Deductions reduce utility like any expense; the pill keeps
+               the type and its origin income visible in the list. -->
           <span
             v-if="row.deduction_type"
             class="ml-2 text-[10px] px-2 py-0.5 rounded-full font-medium bg-info-soft text-info-strong whitespace-nowrap"
-            :title="`Descontado de un ingreso: ${row.deduction_type_label}. No resta utilidad.`"
+            :title="deductionPillTitle(row)"
             :data-testid="`expense-deduction-pill-${row.id}`"
           >
             {{ row.deduction_type_label }}
@@ -242,6 +264,7 @@ import {
   matchEquals,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { DEDUCTION_TYPE_OPTIONS } from '~/utils/accountingDeductions';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 
@@ -274,6 +297,8 @@ const {
   saveTab,
   deleteTab: deleteFilterTab,
   renameTab: renameFilterTab,
+  restoreTab: restoreFilterTab,
+  rebaseTab: rebaseFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_expense',
   defaults: {
@@ -284,6 +309,7 @@ const {
     categories: [],
     ledger: '',
     nature: '',
+    deductionTypes: [],
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
@@ -297,6 +323,7 @@ const {
         ? Boolean(record.deduction_type)
         : !record.deduction_type
     ),
+    deductionTypes: matchIncludes('deduction_type', 'deductionTypes'),
   },
   searchFields: ['concept', 'notes'],
 });
@@ -334,6 +361,12 @@ const filterFields = [
       { value: 'deduction', label: 'Descuento de ingreso' },
     ],
   },
+  {
+    kind: 'multi',
+    key: 'deductionTypes',
+    label: 'Tipo de deducción',
+    options: DEDUCTION_TYPE_OPTIONS,
+  },
 ];
 
 const EXPORT_MAPPING = {
@@ -343,6 +376,7 @@ const EXPORT_MAPPING = {
   amountMax: 'amount_max',
   categories: 'category',
   ledger: 'ledger',
+  deductionTypes: 'deduction_type',
   search: 'q',
 };
 
@@ -422,6 +456,36 @@ const {
 const totalFiltered = computed(() =>
   filteredRecords.value.reduce((sum, r) => sum + (Number(r.total_amount) || 0), 0),
 );
+
+const totalDeductions = computed(() =>
+  filteredRecords.value.reduce(
+    (sum, r) => sum + (r.deduction_type ? Number(r.total_amount) || 0 : 0),
+    0,
+  ),
+);
+
+const totalOperational = computed(() => totalFiltered.value - totalDeductions.value);
+
+const DEDUCTION_LABELS = Object.fromEntries(
+  DEDUCTION_TYPE_OPTIONS.map((option) => [option.value, option.label]),
+);
+
+const deductionsBreakdownSub = computed(() => {
+  const byType = expensesMeta.value.deductions_by_type || {};
+  return Object.entries(byType)
+    .map(([type, total]) => `${DEDUCTION_LABELS[type] || type}: ${money(total)}`)
+    .join(' · ');
+});
+
+function deductionPillTitle(row) {
+  const origin = row.source_income_concept
+    ? ` — origen: ${row.source_income_concept}`
+    : '';
+  return (
+    `Deducción sobre ingreso (resta utilidad): `
+    + `${row.deduction_type_label}${origin}`
+  );
+}
 
 const columns = [
   { key: 'concept', label: 'Concepto', sortable: true },

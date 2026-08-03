@@ -209,6 +209,8 @@
       @create="handleCreateTab"
       @rename="renameTab"
       @delete="deleteTab"
+      @restore="restoreTab"
+      @rebase="rebaseTab"
       @config="showConfigTab = true"
     />
 
@@ -611,6 +613,8 @@ const {
   saveTab,
   deleteTab,
   renameTab,
+  restoreTab,
+  rebaseTab,
   reloadTabs: reloadFilterTabs,
 } = useProposalFilters();
 

@@ -13,11 +13,26 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
 
+from content.models import IncomeRecord
+from content.serializers.accounting import (
+    PAYMENT_STATUS_LABELS,
+    payment_status_for,
+)
 from content.services.accounting_service import dashboard_summary
 from content.utils import today_bogota
 
 MONEY_FORMAT = '#,##0'
 HEADER_FONT = Font(bold=True)
+
+
+def _income_payment_status(record):
+    """Estado de cobro cell; hard access to the paid_amount annotation on
+    purpose — export querysets must come from base_queryset (its contract)."""
+    if record.kind != IncomeRecord.Kind.EXPECTED:
+        return ''
+    return PAYMENT_STATUS_LABELS.get(
+        payment_status_for(record.paid_amount, record.total_amount), '',
+    )
 
 EXPORT_SECTIONS = {
     'statement': {
@@ -69,6 +84,7 @@ EXPORT_SECTIONS = {
         'columns': [
             ('Concepto', 'concept'),
             ('Tipo', lambda r: r.get_kind_display()),
+            ('Estado de cobro', _income_payment_status),
             ('Contabilidad', lambda r: r.get_ledger_display()),
             ('Mes', 'period_date'),
             ('Total', 'total_amount'),
@@ -83,6 +99,12 @@ EXPORT_SECTIONS = {
         'columns': [
             ('Concepto', 'concept'),
             ('Categoría', lambda r: r.get_category_display()),
+            ('Tipo de deducción', lambda r: (
+                r.get_deduction_type_display() if r.deduction_type else ''
+            )),
+            ('Ingreso origen', lambda r: (
+                getattr(r, 'source_income_concept', None) or ''
+            )),
             ('Contabilidad', lambda r: r.get_ledger_display()),
             ('Mes', 'period_date'),
             ('Total', 'total_amount'),
