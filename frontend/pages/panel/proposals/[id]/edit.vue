@@ -392,7 +392,10 @@ const lazyTab = (loader) => defineAsyncComponent({
 const ProposalSectionsTab = lazyTab(() => import('~/components/panel/proposal/ProposalSectionsTab.vue'));
 const ProposalHourRateTab = lazyTab(() => import('~/components/panel/proposal/ProposalHourRateTab.vue'));
 import { DEFAULT_HOSTING_PERCENT, DEFAULT_METHOD_PHASES } from '~/stores/proposals_constants';
-const TechnicalDocumentEditor = lazyTab(() => import('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue'));
+// Hoisted so the idle warm-up in onMounted and the async wrapper share ONE
+// dynamic-import call site (single chunk; the module registry caches it).
+const technicalEditorLoader = () => import('~/components/BusinessProposal/admin/TechnicalDocumentEditor.vue');
+const TechnicalDocumentEditor = lazyTab(technicalEditorLoader);
 const ProposalAnalytics = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalAnalytics.vue'));
 // Modals stay static on purpose: they are gated by a `visible` prop rather
 // than v-if, so an async wrapper would still resolve on page load. Switching
@@ -1086,6 +1089,16 @@ onMounted(async () => {
   await proposalStore.fetchProposal(id);
   hydrateFormFromProposal();
   window.addEventListener('beforeunload', warnUnsavedBeforeUnload);
+  // Warm ONLY the technical editor's JS chunk during idle time — Det. técnico
+  // is the heaviest tab and its data is already in the store, so the chunk is
+  // the one first-open cost a prefetch can remove. The panel is deliberately
+  // NOT pre-mounted: v-auto-resize would measure display:none textareas.
+  const warmTechnicalChunk = () => { technicalEditorLoader(); };
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(warmTechnicalChunk, { timeout: 5000 });
+  } else {
+    setTimeout(warmTechnicalChunk, 3000);
+  }
 });
 
 const UNSAVED_CONFIRM = {
