@@ -376,8 +376,17 @@ def test_sync_documents_skips_deliverable_file_when_pdf_returns_empty_bytes(
 def test_sync_documents_does_not_raise_when_proposal_pdf_generation_fails(
     _mock_tech, _mock_gen, proposal_with_deliverable, admin_user,
 ):
+    """Catches: a half-written deliverable. Asserting only that the call does not
+    raise would also pass if it swallowed the failure AFTER attaching a file, so
+    the count is what proves the failed PDF left nothing behind."""
+    from accounts.models import DeliverableFile
+
     d = proposal_with_deliverable.deliverable
+    before = DeliverableFile.objects.filter(deliverable=d).count()
+
     _sync_proposal_documents_to_deliverable(proposal_with_deliverable, d, admin_user)
+
+    assert DeliverableFile.objects.filter(deliverable=d).count() == before
 
 
 @pytest.mark.django_db
@@ -389,8 +398,17 @@ def test_sync_documents_does_not_raise_when_proposal_pdf_generation_fails(
 def test_sync_documents_does_not_raise_when_technical_pdf_generation_fails(
     _mock_tech, _mock_gen, proposal_with_deliverable, admin_user,
 ):
+    """Catches: a half-written deliverable. Asserting only that the call does not
+    raise would also pass if it swallowed the failure AFTER attaching a file, so
+    the count is what proves the failed PDF left nothing behind."""
+    from accounts.models import DeliverableFile
+
     d = proposal_with_deliverable.deliverable
+    before = DeliverableFile.objects.filter(deliverable=d).count()
+
     _sync_proposal_documents_to_deliverable(proposal_with_deliverable, d, admin_user)
+
+    assert DeliverableFile.objects.filter(deliverable=d).count() == before
 
 
 # -- ensure_deliverable edge cases -------------------------------------------

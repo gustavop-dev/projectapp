@@ -33,7 +33,10 @@ class TestDeleteFileHelper:
         mock_field.storage.delete.assert_called_once_with('avatars/test.jpg')
 
     def test_does_nothing_when_field_is_none(self):
-        _delete_file(None)  # should not raise
+        """Catches: reading .name off a None field. The signal calls _delete_file for
+        every optional image, so an AttributeError here would break deleting any
+        record that never had one."""
+        assert _delete_file(None) is None
 
     def test_does_nothing_when_field_name_is_empty(self):
         mock_field = MagicMock()
@@ -49,6 +52,11 @@ class TestDeleteFileHelper:
         mock_field.storage.delete.side_effect = OSError('File not found')
 
         _delete_file(mock_field)  # should not raise
+
+        # Catches a guard that swallows the error by never attempting the delete at
+        # all: silence alone cannot tell 'tried and forgave' from 'never tried', and
+        # only the first is the contract — orphaned files would pile up otherwise.
+        mock_field.storage.delete.assert_called_once_with('avatars/missing.jpg')
 
 
 # ── UserProfile delete signal ──

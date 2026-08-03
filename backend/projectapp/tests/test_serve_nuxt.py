@@ -76,7 +76,7 @@ class TestServeNuxtPanelRoute:
         finally:
             views_mod.FRONTEND_DIR = original
 
-    def test_panel_deep_subpath_serves_spa_fallback(self, rf, frontend_dir):
+    def test_panel_nested_subpath_serves_spa_fallback(self, rf, frontend_dir):
         import projectapp.views as views_mod
         original = views_mod.FRONTEND_DIR
         views_mod.FRONTEND_DIR = frontend_dir
