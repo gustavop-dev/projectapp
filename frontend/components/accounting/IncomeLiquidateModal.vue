@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
+import { DEDUCTION_TYPE_OPTIONS as deductionOptions } from '~/utils/accountingDeductions'
 import { formatMoney } from '~/utils/formatMoney'
 import { todayISO } from '~/utils/periodDates'
 
@@ -17,14 +18,6 @@ const emit = defineEmits(['close', 'submit'])
 const destinationOptions = [
   { value: 'pocket', label: 'Bolsillo ProjectApp' },
   { value: 'partners', label: 'Socios' },
-]
-
-/** Why a shortfall is not an unpaid balance. Mirrors ExpenseRecord.DeductionType. */
-const deductionOptions = [
-  { value: 'gateway_fee', label: 'Comisión plataforma de pago' },
-  { value: 'bank_fee', label: 'Comisión bancaria' },
-  { value: 'withholding', label: 'Retención en la fuente' },
-  { value: 'other', label: 'Otro' },
 ]
 
 const form = ref(defaultForm())

@@ -45,6 +45,10 @@ const form = ref(defaultForm())
 const exactDate = ref(true)
 
 const isPersonal = computed(() => form.value.ledger !== 'company')
+// Deductions are born in the settlement flow; here they only get their
+// amounts/notes touched, and the pocket toggle disappears — the backend
+// forces register_in_pocket off for them anyway.
+const isDeduction = computed(() => !!props.record?.deduction_type)
 
 watch(
   () => [props.open, props.record],
@@ -87,7 +91,9 @@ function onSubmit() {
     payload.gustavo_amount = form.value.gustavo_amount
     payload.carlos_amount = form.value.carlos_amount
   }
-  payload.register_in_pocket = form.value.register_in_pocket
+  if (!isDeduction.value) {
+    payload.register_in_pocket = form.value.register_in_pocket
+  }
   payload.notes = form.value.notes
   emit('submit', payload)
 }
@@ -133,7 +139,15 @@ function onSubmit() {
         <BaseCurrencyInput v-model="form.total_amount" required />
       </BaseFormField>
 
-      <div class="flex items-center justify-between gap-3">
+      <div
+        v-if="isDeduction"
+        class="text-xs text-info-strong bg-info-soft rounded-lg px-3 py-2"
+        data-testid="expense-deduction-edit-hint"
+      >
+        Deducción sobre ingreso ({{ record.deduction_type_label }}) — se crea
+        desde Liquidar y nunca registra egreso en bolsillo.
+      </div>
+      <div v-else class="flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-medium text-text-default">Registrar egreso en bolsillo</p>
           <p class="text-xs text-text-subtle">
