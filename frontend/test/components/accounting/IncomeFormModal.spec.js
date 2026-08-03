@@ -138,10 +138,10 @@ describe('IncomeFormModal', () => {
 
     expect(wrapper.text()).toContain('Editar Ingreso');
     expect(wrapper.find('input[type="text"]').element.value).toBe('Página web Acme');
-    // Day 1 is the month-only convention, so it prefills in month mode.
+    // Edits always open as a full date; day 01 is the month-only sentinel.
     const period = wrapper.find('[data-testid="income-form-period"]');
-    expect(period.attributes('type')).toBe('month');
-    expect(period.element.value).toBe('2026-05');
+    expect(period.attributes('type')).toBe('date');
+    expect(period.element.value).toBe('2026-05-01');
     expect(wrapper.find('textarea').element.value).toBe('Pago parcial');
   });
 

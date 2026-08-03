@@ -56,13 +56,14 @@ watch(
     if (!props.open) return
     if (props.record) {
       // Prefill from the raw period_date — `period` is 'YYYY-MM' and would
-      // silently reset the day to the 1st on every edit. Day 1 IS the
-      // month-only convention, so it prefills in month mode.
-      const periodDate = props.record.period_date ?? ''
-      exactDate.value = !!periodDate && !periodDate.endsWith('-01')
+      // silently reset the day to the 1st on every edit. Edits always open
+      // in full-date mode showing the stored day (01 for month-only
+      // records, whose real day was never captured); the toggle still
+      // downgrades when only the month is known.
+      exactDate.value = true
       form.value = {
         concept: props.record.concept ?? '',
-        period_date: exactDate.value ? periodDate : periodDate.slice(0, 7),
+        period_date: props.record.period_date ?? '',
         category: props.record.category ?? 'business',
         ledger: props.record.ledger ?? 'company',
         total_amount: props.record.total_amount ?? '',

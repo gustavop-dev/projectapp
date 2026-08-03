@@ -94,3 +94,15 @@ describe('PeriodDateField', () => {
       .toBe('month');
   });
 });
+
+  it('keeps a full date intact when exact mode is re-enabled', async () => {
+    // A parent re-syncing `exact` on open must never reset a real day to 01.
+    const wrapper = mountField({ value: '2026-07-15', exact: false });
+
+    await wrapper.find('[data-testid="pf-toggle"]').trigger('click');
+
+    // quality: allow-implementation-coupling (wrapper is the v-model host, not the SUT)
+    expect(wrapper.vm.value).toBe('2026-07-15');
+    expect(wrapper.find('[data-testid="pf-input"]').element.value)
+      .toBe('2026-07-15');
+  });

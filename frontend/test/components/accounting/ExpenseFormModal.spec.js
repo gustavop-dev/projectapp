@@ -200,8 +200,9 @@ describe('ExpenseFormModal', () => {
     expect(input.element.value).toBe('2026-11');
   });
 
-  it('prefills a day-1 period as month-only in edit mode', () => {
-    // Day 1 is the repo's month-only convention.
+  it('opens a day-1 period in full-date mode showing the stored day', () => {
+    // Day 1 stays the storage sentinel for month-only records, but the
+    // edit always opens as a date so the day is visible and correctable.
     const wrapper = mountModal({
       record: {
         concept: 'Dominio',
@@ -213,8 +214,8 @@ describe('ExpenseFormModal', () => {
     });
 
     const input = wrapper.find('[data-testid="expense-form-period"]');
-    expect(input.attributes('type')).toBe('month');
-    expect(input.element.value).toBe('2026-07');
+    expect(input.attributes('type')).toBe('date');
+    expect(input.element.value).toBe('2026-07-01');
   });
 
   it('prefills the exact day from period_date in edit mode', () => {
