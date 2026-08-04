@@ -14,12 +14,11 @@
       {{ loading ? 'Cargando registros...' : `${rowCount} registros en ${groups.length} categorías` }}
     </p>
 
-    <div class="accounting-grid-scroll" :style="containerVars">
+    <div class="accounting-grid-scroll" :style="{ ...containerVars, ...gridVars }">
       <!-- Header -->
       <div
         role="row"
-        class="accounting-grid-row grid items-end bg-surface-raised text-xs text-text-muted uppercase tracking-wider leading-tight"
-        :style="gridVars"
+        class="accounting-grid-row items-end bg-surface-raised text-xs text-text-muted uppercase tracking-wider leading-tight"
       >
         <!-- Must stay in flow to occupy the handle track; sr-only (absolute) on
              the grid item itself shifts every label one track left. -->
@@ -34,7 +33,7 @@
       </div>
 
       <!-- Skeleton -->
-      <div v-if="loading" class="divide-y divide-border-muted">
+      <div v-if="loading" class="accounting-grid-band divide-y divide-border-muted">
         <div
           v-for="n in skeletonRows"
           :key="`skeleton-${n}`"
@@ -46,11 +45,11 @@
       </div>
 
       <template v-else>
-        <div v-for="group in localGroups" :key="group.id" role="rowgroup">
+        <div v-for="group in localGroups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
           <div
             role="row"
-            class="flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
+            class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`recurring-group-${group.id}`"
           >
             <button
@@ -83,7 +82,7 @@
             :id="`recurring-group-body-${group.id}`"
             v-model="group.rows"
             tag="div"
-            class="divide-y divide-border-muted"
+            class="accounting-grid-subgrid divide-y divide-border-muted"
             item-key="id"
             handle=".recurring-drag-handle"
             ghost-class="opacity-30"
@@ -95,9 +94,8 @@
               <div
                 role="row"
                 :data-testid="`accounting-row-${row.id}`"
-                class="accounting-grid-row grid items-center min-h-9 bg-surface hover:bg-surface-raised transition-colors text-sm"
+                class="accounting-grid-row items-center min-h-9 bg-surface hover:bg-surface-raised transition-colors text-sm"
                 :class="row.id === highlightId ? 'accounting-row-flash' : ''"
-                :style="gridVars"
               >
                 <span v-if="dragEnabled" role="cell" :class="HANDLE_PAD">
                   <span
@@ -157,7 +155,7 @@
         <!-- Grand total -->
         <div
           role="row"
-          class="flex items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-2"
+          class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-2"
         >
           <span role="cell" class="text-xs uppercase tracking-wider text-text-muted">
             Total mensual (COP)
@@ -303,36 +301,62 @@ function onDragEnd() {
 </script>
 
 <style scoped>
-/* Header, skeleton and data rows all carry .accounting-grid-row, so they cannot
- * drift apart: one rule decides the track list for all of them at each width.
+/* ONE grid for the whole table. Every row used to carry its own
+ * grid-template-columns, which sizes each row against its OWN cells: the single
+ * row paying by "Efectivo" resolved a wider track than the rows paying by "T.C"
+ * and drifted out of column. Now the container owns the tracks and every band,
+ * group and row is a subgrid of it, so a column is measured once across all the
+ * rows — header included — and an outlier only fills its own cell.
+ *
  * The variants come in as custom properties because a media query can switch
- * between values but cannot compute a track list from the column config. */
-.accounting-grid-row {
-  grid-template-columns: var(--cols-base);
-}
-/* Ceiling + centring, same rule as AccountingTable: past 1400px the tracks stop
- * stretching. min-width wins over max-width by spec, so a narrow screen still
- * scrolls instead of squeezing a column past its content. */
+ * between values but cannot compute a track list from the column config; --cols
+ * is the indirection that keeps that switch in one place. */
 .accounting-grid-scroll {
+  --cols: var(--cols-base);
   min-width: var(--minw-base);
-  max-width: 87.5rem;
-  margin-inline: auto;
 }
 @media (min-width: 768px) {
-  .accounting-grid-row {
-    grid-template-columns: var(--cols-md);
-  }
   .accounting-grid-scroll {
+    --cols: var(--cols-md);
     min-width: var(--minw-md);
   }
 }
 @media (min-width: 1024px) {
-  .accounting-grid-row {
-    grid-template-columns: var(--cols-lg);
-  }
   .accounting-grid-scroll {
+    --cols: var(--cols-lg);
     min-width: var(--minw-lg);
   }
+}
+
+/* Ceiling + centring, same rule as AccountingTable: past 1400px the tracks stop
+ * stretching. min-width wins over max-width by spec, so a narrow screen still
+ * scrolls instead of squeezing a column past its content. */
+.accounting-grid-scroll {
+  display: grid;
+  grid-template-columns: var(--cols);
+  max-width: 87.5rem;
+  margin-inline: auto;
+}
+
+/* Rowgroups and the draggable list are transparent for track sizing: without
+ * them in the chain the rows stop seeing the container's columns. Rows keep
+ * their box (unlike display:contents) because sortablejs drags them by their
+ * rect, and the hover, flash and divider all need something to paint on. */
+.accounting-grid-subgrid,
+.accounting-grid-row {
+  display: grid;
+  grid-column: 1 / -1;
+  /* Fallback first: where subgrid is missing the declaration is dropped and the
+   * inherited track list stands, which is the previous behaviour — a degraded
+   * alignment beats every cell collapsing into a single column. */
+  grid-template-columns: var(--cols);
+  grid-template-columns: subgrid;
+}
+
+/* Bands are not column-structured: they span the grid instead of pushing any
+ * single column (category header, monthly total, loading skeleton). */
+.accounting-grid-band {
+  grid-column: 1 / -1;
 }
 
 /* Same feedback flash as AccountingTable for the row just created or edited. */

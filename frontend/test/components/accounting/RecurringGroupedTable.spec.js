@@ -112,17 +112,36 @@ describe('RecurringGroupedTable', () => {
     expect(headerRow.text()).toContain('Orden');
   });
 
-  it('drives header and rows from one track list so they cannot drift apart', () => {
+  it('declares the track list once on the container, never per row', () => {
     const wrapper = mountTable({ dragEnabled: true });
 
+    const container = wrapper.find('.accounting-grid-scroll');
     const headerRow = wrapper.find('[role="row"]');
     const bodyRow = wrapper.find('[data-testid="accounting-row-18"]');
 
-    // Both carry the class the media queries target, and the same per-breakpoint
-    // track lists — one column config, one geometry.
+    // The whole point: a row that carries its own track list resolves it
+    // against its own cells, so the one row with a wider value drifts out of
+    // column. The container declares them and the rows inherit.
+    expect(container.attributes('style')).toContain('--cols-lg');
+    expect(headerRow.attributes('style')).toBeUndefined();
+    expect(bodyRow.attributes('style')).toBeUndefined();
     expect(headerRow.classes()).toContain('accounting-grid-row');
     expect(bodyRow.classes()).toContain('accounting-grid-row');
-    expect(headerRow.attributes('style')).toBe(bodyRow.attributes('style'));
+  });
+
+  it('keeps the subgrid chain unbroken between the container and its rows', () => {
+    const wrapper = mountTable({ dragEnabled: true });
+
+    // Every wrapper between the container and a row has to pass the columns
+    // down; one plain div in the middle and the rows stop seeing them.
+    expect(wrapper.find('[role="rowgroup"]').classes()).toContain('accounting-grid-subgrid');
+    expect(wrapper.findComponent({ name: 'DraggableStub' }).classes())
+      .toContain('accounting-grid-subgrid');
+    // Bands are not column-structured: they span instead of sizing a column.
+    expect(wrapper.find('[data-testid="recurring-group-1"]').classes())
+      .toContain('accounting-grid-band');
+    expect(wrapper.find('[data-testid="recurring-monthly-grand-total"]')
+      .element.closest('[role="row"]').className).toContain('accounting-grid-band');
   });
 
   it('gives every column a content floor and a proportional share of the slack', () => {
@@ -135,7 +154,7 @@ describe('RecurringGroupedTable', () => {
       ],
     });
     const wide = wrapper
-      .find('[role="row"]')
+      .find('.accounting-grid-scroll')
       .attributes('style')
       .match(/--cols-lg:([^;]*)/)[1];
 
