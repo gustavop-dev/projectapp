@@ -2584,6 +2584,19 @@
         "failure"
       ]
     },
+    "admin-qr-cards": {
+      "name": "Admin QR Cards",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin creates QR cards (name required, destination URL optional) that get a UUID short link (/t/:uuid/) redirecting to the configurable destination. QR always encodes the short link, never the destination. Download modal customizes foreground/background color and transparency client-side, without persisting the choice.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
+    },
     "admin-blog-publish-mode": {
       "name": "Admin Blog Publish Mode",
       "module": "admin",

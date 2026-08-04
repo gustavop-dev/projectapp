@@ -364,6 +364,15 @@ export const viewCatalogSections = [
         viewType: 'edit',
       },
       {
+        label: 'Tarjetas QR del panel',
+        url: '/panel/qr-cards',
+        group: 'Tarjetas QR',
+        file: 'frontend/pages/panel/qr-cards/index.vue',
+        reference: 'listado de tarjetas QR con generador de link corto y descarga de QR personalizable',
+        audience: 'admin',
+        viewType: 'list',
+      },
+      {
         label: 'Paquetes de horas',
         url: '/panel/hour-packages',
         group: 'Paquetes de horas',

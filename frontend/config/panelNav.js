@@ -61,6 +61,7 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
         { label: 'Blog', href: lp('/panel/blog'), icon: 'blog' },
         { label: 'Calendario del blog', href: lp('/panel/blog/calendar'), icon: 'calendar' },
         { label: 'Portafolio', href: lp('/panel/portfolio'), icon: 'portfolio' },
+        { label: 'Tarjetas QR', href: lp('/panel/qr-cards'), icon: 'qrcode' },
         { label: 'LinkedIn', href: lp('/panel/linkedin'), icon: 'linkedin' },
       ],
     },

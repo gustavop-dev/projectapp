@@ -4257,6 +4257,28 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-blog-linkedin.spec.js`
 
+#### FLOW: `admin-qr-cards`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/qr-cards`
+- **API:** `GET/POST /api/qr-cards/admin/`, `PATCH /api/qr-cards/admin/:id/update/`, `DELETE /api/qr-cards/admin/:id/delete/`; public redirect at `GET /t/:uuid/` (outside `/api/`).
+- **Description:** Admin creates a "tarjeta" (name required, destination URL optional) which gets a UUID and a short public link (`/t/:uuid/`). The QR always encodes the short link, never the destination, so changing the destination later never requires reprinting. Admin can edit the destination, toggle active/inactive, and download a PNG QR with custom foreground/background colors or a transparent background — generated entirely client-side, never persisted.
+- **Steps:**
+  1. Admin opens `/panel/qr-cards`.
+  2. Clicks "Nueva tarjeta", fills a name (destination optional), saves.
+  3. Row appears with its short link, "Sin configurar" if no destination was set.
+  4. Admin edits the card to set/change `destination_url`.
+  5. Admin toggles the row's active switch.
+  6. Admin clicks "Descargar QR", adjusts foreground/background color or checks "Fondo transparente", downloads the PNG.
+- **Branches:**
+  - [Branch A — no destination configured] Scanning the short link shows "Este enlace aún no ha sido configurado." instead of redirecting.
+  - [Branch B — inactive card] Scanning the short link shows "Este enlace no está disponible." instead of redirecting.
+  - [Branch C — active + configured] Scanning the short link 302-redirects to `destination_url`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-qr-cards.spec.js`
+
 ### 11.2 New Flows Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Suggested Spec |
@@ -4267,6 +4289,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `public-privacy-policy` | public | guest | P4 | ✅ Covered | `e2e/public/public-privacy-policy.spec.js` |
 | `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |
 | `admin-proposal-project-schedule` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-project-schedule.spec.js` |
+| `admin-qr-cards` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-qr-cards.spec.js` |
 
 ---
 
