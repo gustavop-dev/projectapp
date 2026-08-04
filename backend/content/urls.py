@@ -47,6 +47,9 @@ from content.views.portfolio_works import (
     delete_portfolio_work, duplicate_portfolio_work,
     upload_portfolio_cover_image,
 )
+from content.views.qr_cards import (
+    list_admin_qr_cards, create_qr_card, update_qr_card, delete_qr_card,
+)
 from content.views.accounting_statement import (
     batch_create_transactions, create_merchant_alias, create_statement,
     delete_merchant_alias, delete_statement, delete_statement_transaction,
@@ -454,6 +457,12 @@ urlpatterns = [
     path('portfolio/admin/<int:work_id>/update/', update_portfolio_work, name='update-portfolio-work'),
     path('portfolio/admin/<int:work_id>/delete/', delete_portfolio_work, name='delete-portfolio-work'),
     path('portfolio/admin/<int:work_id>/duplicate/', duplicate_portfolio_work, name='duplicate-portfolio-work'),
+
+    # QR Cards — admin CRUD
+    path('qr-cards/admin/', list_admin_qr_cards, name='list-admin-qr-cards'),
+    path('qr-cards/admin/create/', create_qr_card, name='create-qr-card'),
+    path('qr-cards/admin/<uuid:card_id>/update/', update_qr_card, name='update-qr-card'),
+    path('qr-cards/admin/<uuid:card_id>/delete/', delete_qr_card, name='delete-qr-card'),
 
     # Hour packages — admin catalog CRUD (per-nationality pricing)
     path('hour-packages/admin/', list_admin_hour_packages, name='list-admin-hour-packages'),
