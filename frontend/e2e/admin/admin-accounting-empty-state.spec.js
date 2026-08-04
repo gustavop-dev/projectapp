@@ -66,7 +66,12 @@ function buildHandler({ rows }) {
 }
 
 async function gotoIncomes(page) {
-  await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+  // `=all` opts out of the "Solo esperados" landing tab: the empty state this
+  // spec asserts is the no-records one, not the no-results-for-these-filters.
+  await page.goto(
+    '/panel/accounting/incomes?accounting_incomeTab=all',
+    { waitUntil: 'domcontentloaded' },
+  );
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });

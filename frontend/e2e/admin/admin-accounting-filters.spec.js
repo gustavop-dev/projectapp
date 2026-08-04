@@ -122,7 +122,7 @@ const SAVED_TABS = [
     order: 0,
   },
   {
-    id: 502, view: 'accounting_income', name: 'Solo esperados',
+    id: 502, view: 'accounting_income', name: 'Esperados sin cobrar',
     filters: { kind: 'expected' },
     base_filters: { kind: 'expected', paymentStatus: 'pending' },
     order: 1,
@@ -170,7 +170,12 @@ function buildHandler({ tabs = [] } = {}) {
 
 async function gotoIncomes(page, options = {}) {
   await mockApi(page, buildHandler(options));
-  await page.goto('/panel/accounting/incomes', { waitUntil: 'domcontentloaded' });
+  // `=all` opts out of the "Solo esperados" landing tab: this spec drives the
+  // filter panel from an unfiltered table.
+  await page.goto(
+    '/panel/accounting/incomes?accounting_incomeTab=all',
+    { waitUntil: 'domcontentloaded' },
+  );
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
@@ -273,7 +278,7 @@ test.describe('Admin Accounting Filters', () => {
   }, async ({ page }) => {
     await gotoIncomes(page, { tabs: SAVED_TABS });
 
-    // Drifted "Solo esperados" behaves exactly like "Todos los esperados":
+    // Drifted "Esperados sin cobrar" behaves exactly like "Todos los esperados":
     // both expected rows survive and the dot marks the drift.
     await page.getByTestId('filter-tabs-tab-502').click();
     await expect(visibleRows(page)).toHaveCount(2);

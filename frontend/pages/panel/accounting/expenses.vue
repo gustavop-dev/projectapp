@@ -487,14 +487,16 @@ function deductionPillTitle(row) {
   );
 }
 
+// Same shape as Ingresos: one flexible concept, the three amounts grouped, and
+// the metadata columns collapsing first on narrow screens.
 const columns = [
-  { key: 'concept', label: 'Concepto', sortable: true },
-  { key: 'period_label', label: 'Mes', sortable: true },
-  { key: 'category_label', label: 'Categoría' },
-  { key: 'ledger_label', label: 'Contabilidad' },
-  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', sortable: true },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money', sortable: true },
+  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
+  { key: 'category_label', label: 'Categoría', size: 'badge' },
+  { key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg' },
+  { key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true },
+  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
+  { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
 ];
 
 async function loadRecords() {

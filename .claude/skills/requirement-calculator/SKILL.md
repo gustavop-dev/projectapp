@@ -1,6 +1,6 @@
 ---
 name: requirement-calculator
-description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento (implementación web por defecto) y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento con branding ProjectApp en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
+description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento (implementación web por defecto) y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, proyección de precio año a año, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento con branding ProjectApp en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
 argument-hint: "[descripción del requerimiento en lenguaje natural]"
 allowed-tools: Bash, Read, Write, AskUserQuestion
 ---
@@ -64,6 +64,7 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 5. Si el total ≥ $12M: propone **Estrategia A (fases)** o **B (V1/V2/V3)** con alcance y precio de cada parte.
 6. Recorre el **mapa de adyacencias** y anticipa qué se abrirá después (candidatas a V2/V3); identifica qué conviene **separar** (motores, transversales, features empaquetados).
 7. **Formato de moneda (obligatorio):** COP en millones con sufijo `M`, coma decimal y **máximo un decimal**, redondeando cada extremo al múltiplo de $0,1M más cercano (`$1,8M`, no `$1,83M` ni `$1.830.000`). Montos < $1M en miles: `$850K`. Rangos con guion sin espacios: `$1,8M–$2,4M`. El total se redondea **después** de sumar los extremos sin redondear. Un solo formato en todo el documento.
+8. **Proyección de precio año a año (informativa):** calcula la proyección del **precio total** (y de los subtotales por bloque, si el documento consolida varios requerimientos del mismo proyecto) para el año de emisión y los **2 años siguientes**, con la regla de `market-pricing.md`: `precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`, compuesta. Usa el **último incremento decretado del SMLMV** (dato verificado, nunca de memoria) y declara ese supuesto en la sección de proyección y en Supuestos. La proyección no altera el semáforo ni la vigencia de 30 días.
 
 ## 4-bis. Consistencia con estimaciones previas (barato, condicional)
 
@@ -181,13 +182,21 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 > [!TIP] / [!WARNING] / [!CAUTION]
 > <Una línea con la lectura comercial del semáforo: TIP si sweet spot, WARNING si fricción, CAUTION si killer.>
 
-## 4. Observaciones
+## 4. Proyección de precio año a año
+
+| Año | Δ%SMLMV supuesto | % reajuste total | Precio proyectado (piso–techo) |
+|---|---|---|---|
+<primera fila = año de emisión con el rango total sin reajuste ("—" en las columnas de %); luego 2 filas más, compuestas, con la regla de market-pricing.md (Δ%SMLMV + 12%). Si el documento consolida bloques del mismo proyecto, repetí la tabla o agregá columnas por bloque.>
+
+<Una línea declarando el supuesto y el alcance: "Proyección informativa calculada con el último incremento decretado del SMLMV (<año>: <X%>) + 12% fijo de ProjectApp, compuesta año a año; no constituye oferta en firme — la vigencia de esta estimación es de 30 días.">
+
+## 5. Observaciones
 <Qué separar y por qué · qué es transversal · qué adyacencias se abren.>
 
-## 5. Estrategia comercial
+## 6. Estrategia comercial
 <Solo si total ≥ $12M o killer: fases o V1/V2/V3 con alcance y precio. Si no aplica: "Cabe en una sola propuesta (sweet spot).">
 
-## 6. Supuestos y exclusiones
+## 7. Supuestos y exclusiones
 <Supuestos de market-pricing.md ajustados al caso + los asumidos en el gate, cada uno con su impacto si cambiara.>
 
 > [!IMPORTANT]
@@ -262,6 +271,7 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
 - **Vigencia declarada:** todo documento fija "precios válidos por 30 días"; después se re-emite (documento versionado nuevo), nunca se honra ni se negocia por chat sin documento.
+- **Proyección año a año siempre presente e informativa:** todo documento incluye la sección de proyección (regla `Δ%SMLMV + 12%` de `market-pricing.md`, Δ%SMLMV declarado como supuesto verificado); nunca constituye oferta en firme ni extiende la vigencia de 30 días.
 - **El gate aritmético (§4-ter) es obligatorio**: nunca persistir con `GATE_FAIL`.
 - **Re-estimación del mismo requerimiento ⇒ mini-tabla Δ** vs el estimate anterior (filas nuevas / retiradas / cambiadas, con motivo).
 

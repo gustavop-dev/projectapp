@@ -33,6 +33,53 @@ describe('AccountingTable', () => {
     expect(headers).toEqual(['Concepto', 'Valor', 'Fecha', 'Estado', 'Acciones']);
   });
 
+  it('sizes columns by content and leaves exactly one absorbing the slack', () => {
+    // The bug this replaced: every column split the width equally, so a badge
+    // or a two-character day claimed as much room as the concept.
+    const wrapper = mountTable();
+    const widths = wrapper.findAll('th').map((th) => th.element.style.width);
+
+    expect(widths.filter((width) => width === '100%')).toHaveLength(1);
+    expect(widths[0]).toBe('100%');
+    // Money, date and badge columns stay at their declared width.
+    expect(widths.slice(1, 4).every((width) => width.endsWith('rem'))).toBe(true);
+  });
+
+  it('keeps fixed-width columns on a single line so rows keep their height', () => {
+    const wrapper = mountTable();
+    const amountHeader = wrapper.findAll('th')[1];
+
+    expect(amountHeader.classes()).toContain('whitespace-nowrap');
+    expect(amountHeader.classes()).toContain('text-right');
+  });
+
+  it('aligns each header the same way as its cells', () => {
+    const wrapper = mountTable();
+    const headers = wrapper.findAll('th');
+    const cells = wrapper.find('[data-testid="accounting-row-1"]').findAll('td');
+
+    // Right-aligned amount over right-aligned values; the misalignment that put
+    // a right-aligned header next to a left-aligned one is what this guards.
+    expect(headers[1].classes()).toContain('text-right');
+    expect(cells[1].classes()).toContain('text-right');
+    expect(headers[0].classes()).toContain('text-left');
+    expect(cells[0].classes()).toContain('text-left');
+  });
+
+  it('hides a column marked hideBelow on narrow screens, header and cell alike', () => {
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto' },
+        { key: 'date', label: 'Fecha', format: 'date', hideBelow: 'lg' },
+      ],
+    });
+
+    expect(wrapper.findAll('th')[1].classes()).toContain('hidden');
+    expect(wrapper.findAll('th')[1].classes()).toContain('lg:table-cell');
+    const cell = wrapper.find('[data-testid="accounting-row-1"]').findAll('td')[1];
+    expect(cell.classes()).toContain('lg:table-cell');
+  });
+
   it('renders one row per record with data-testid', () => {
     const wrapper = mountTable();
 

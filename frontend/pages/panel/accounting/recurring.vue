@@ -479,23 +479,29 @@ const exportParams = computed(() =>
 // Shared by both views. The two monthly columns are derived server-side and
 // read-only: they answer "what does this actually cost me per month", which
 // the raw price cannot when periodicities differ.
+// The three amounts are variants of one number, so `group: 'money'` draws them
+// together and puts the wider gap before Frecuencia, which is another kind of
+// information. `size` is only declared where the format cannot imply it: Tipo
+// and Estado render badges through slots, not `format: 'badge'`.
+// `hideBelow` collapses the least load-bearing columns first — name, monthly
+// equivalent and status survive every width.
 const SHARED_COLUMNS = [
-  { key: 'name', label: 'Nombre', sortable: true },
-  { key: 'price', label: 'Precio', align: 'right' },
-  { key: 'monthly_price', label: 'Precio mensual', align: 'right' },
-  { key: 'monthly_cop_cost', label: 'Equiv. COP mensual', format: 'money', sortable: true },
-  { key: 'frequency_label', label: 'Frecuencia' },
-  { key: 'payment_method_label', label: 'Método' },
-  { key: 'billing_day', label: 'Día', align: 'center', sortable: true },
-  { key: 'cost_type_label', label: 'Tipo' },
-  { key: 'is_active', label: 'Estado' },
+  { key: 'name', label: 'Nombre', size: 'flex', sortable: true },
+  { key: 'price', label: 'Precio', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
+  { key: 'monthly_price', label: 'Precio mensual', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
+  { key: 'monthly_cop_cost', label: 'Equiv. COP mensual', format: 'money', group: 'money', sortable: true },
+  { key: 'frequency_label', label: 'Frecuencia', hideBelow: 'lg' },
+  { key: 'payment_method_label', label: 'Método', hideBelow: 'lg' },
+  { key: 'billing_day', label: 'Día', align: 'center', size: 'tiny', sortable: true, hideBelow: 'md' },
+  { key: 'cost_type_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
+  { key: 'is_active', label: 'Estado', size: 'badge' },
 ];
 
 // Classic view needs the category as a column; the grouped view has it as a
 // group header, so repeating it in every row would be noise.
 const columns = [
   SHARED_COLUMNS[0],
-  { key: 'category_name', label: 'Categoría' },
+  { key: 'category_name', label: 'Categoría', hideBelow: 'lg' },
   ...SHARED_COLUMNS.slice(1),
 ];
 

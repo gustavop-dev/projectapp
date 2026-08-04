@@ -7,21 +7,21 @@
       <table class="w-full">
         <thead>
           <tr class="border-b border-border-muted text-left">
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Texto a mapear</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Comercio</th>
-            <th class="px-5 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Categoría</th>
-            <th class="px-5 py-3 text-right" />
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Texto a mapear</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Comercio</th>
+            <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Categoría</th>
+            <th class="px-2.5 py-2 last:pr-4 text-center" />
           </tr>
         </thead>
         <tbody class="divide-y divide-border-muted">
           <tr
             v-for="alias in aliases"
             :key="alias.id"
-            class="hover:bg-surface-raised transition-colors"
+            class="hover:bg-surface-raised transition-colors h-9"
             :data-testid="`statement-alias-${alias.id}`"
           >
             <td
-              class="px-5 py-2.5 text-xs text-text-subtle font-mono max-w-[240px]"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-xs text-text-subtle font-mono max-w-[240px]"
               :title="alias.match_text"
               :data-testid="`alias-cell-match_text-${alias.id}`"
             >
@@ -34,7 +34,7 @@
               </AccountingInlineCell>
             </td>
             <td
-              class="px-5 py-2.5 text-sm text-text-default"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-default"
               :data-testid="`alias-cell-merchant_name-${alias.id}`"
             >
               <AccountingInlineCell
@@ -48,7 +48,7 @@
               </AccountingInlineCell>
             </td>
             <td
-              class="px-5 py-2.5 text-sm text-text-muted"
+              class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted"
               :data-testid="`alias-cell-default_category-${alias.id}`"
             >
               <AccountingInlineCell
@@ -61,7 +61,7 @@
                 {{ alias.default_category_label }}
               </AccountingInlineCell>
             </td>
-            <td class="px-5 py-2.5 text-right whitespace-nowrap">
+            <td class="px-2.5 py-1.5 last:pr-4 text-center whitespace-nowrap">
               <BaseButton variant="danger-ghost" size="sm" @click="$emit('delete', alias)">
                 Eliminar
               </BaseButton>

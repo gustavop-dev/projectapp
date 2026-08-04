@@ -125,6 +125,9 @@ export function useAccountingFilters({
   // `{ id, name, filters }` with non-numeric string ids ('lost'); they are
   // never persisted server-side and cannot be renamed or deleted.
   builtinTabs = [],
+  // Tab the view lands on with no `?<viewName>Tab` in the URL. Only 'all' or a
+  // builtin id make sense here: saved-tab ids are per-user database rows.
+  defaultTabId = 'all',
 } = {}) {
   const route = useRoute();
   const router = useRouter();
@@ -144,13 +147,22 @@ export function useAccountingFilters({
     Object.assign(target, freshFilters(), cloneFilters(tab.filters));
   }
 
+  const builtinById = new Map(builtinTabs.map((t) => [String(t.id), t]));
+  const initialTab = route?.query?.[tabQueryParam] || defaultTabId;
+  const activeTabId = ref(initialTab);
+
   const currentFilters = reactive(freshFilters());
+  // A builtin landing tab needs no server round-trip, so its filters are
+  // applied here rather than on mount: waiting would flash an unfiltered list
+  // and leave the search box out of sync with the tab it belongs to.
+  if (builtinById.has(String(initialTab))) {
+    loadTabFilters(currentFilters, builtinById.get(String(initialTab)));
+  }
   const isFilterPanelOpen = ref(false);
 
   const tabs = useSavedFilterTabs(viewName);
   const { savedTabs, isTabLimitReached } = tabs;
 
-  const builtinById = new Map(builtinTabs.map((t) => [String(t.id), t]));
   const displayTabs = computed(() => [
     ...builtinTabs.map((t) => ({ id: t.id, name: t.name, builtin: true })),
     ...savedTabs.value,
@@ -184,17 +196,17 @@ export function useAccountingFilters({
     });
   }
 
-  const initialTab = route?.query?.[tabQueryParam] || 'all';
-  const activeTabId = ref(initialTab);
-
   function numericTabId(value) {
     return typeof value === 'number' ? value : Number(value);
   }
 
+  // The param is written for every tab that is NOT the landing one — including
+  // 'all'. Omitting it there would make a reload of the cleared view snap back
+  // to the default tab.
   watch(activeTabId, (tabId) => {
     if (!route || !router) return;
     const query = { ...route.query };
-    if (tabId === 'all') {
+    if (String(tabId) === String(defaultTabId)) {
       delete query[tabQueryParam];
     } else {
       query[tabQueryParam] = String(tabId);
@@ -216,25 +228,23 @@ export function useAccountingFilters({
   );
 
   onMounted(async () => {
-    // Builtin tabs restore locally — no server round-trip, and being quick
-    // filters they never pop the filter panel open.
-    const builtin = builtinById.get(String(activeTabId.value));
-    if (builtin) loadTabFilters(currentFilters, builtin);
     try {
       await tabs.loadTabs();
     } catch {
       // Saved tabs must never break local filtering.
       return;
     }
-    if (activeTabId.value !== 'all' && !builtin) {
-      const tab = savedTabs.value.find((t) => String(t.id) === String(activeTabId.value));
-      if (tab) {
-        loadTabFilters(currentFilters, tab);
-        activeTabId.value = tab.id;
-        isFilterPanelOpen.value = true;
-      } else {
-        activeTabId.value = 'all';
-      }
+    // Builtin tabs already restored synchronously above, and being quick
+    // filters they never pop the filter panel open.
+    const tabId = activeTabId.value;
+    if (tabId === 'all' || builtinById.has(String(tabId))) return;
+    const tab = savedTabs.value.find((t) => String(t.id) === String(tabId));
+    if (tab) {
+      loadTabFilters(currentFilters, tab);
+      activeTabId.value = tab.id;
+      isFilterPanelOpen.value = true;
+    } else {
+      activeTabId.value = 'all';
     }
   });
 

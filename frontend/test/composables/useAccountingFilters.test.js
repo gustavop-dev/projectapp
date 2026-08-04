@@ -326,6 +326,62 @@ describe('builtin tabs', () => {
   });
 });
 
+describe('default landing tab', () => {
+  function makeWithDefaultTab() {
+    return useAccountingFilters({
+      viewName: 'accounting_income',
+      defaults: DEFAULTS,
+      matchers: { statuses: matchIncludes('status', 'statuses') },
+      searchFields: ['concept', 'client_name'],
+      builtinTabs: [
+        { id: 'lost', name: 'Perdidos', filters: { statuses: ['lost'] } },
+        {
+          id: 'hosting',
+          name: 'Hosting',
+          filters: { statuses: ['pending'], search: 'hosting' },
+        },
+      ],
+      defaultTabId: 'hosting',
+    });
+  }
+
+  it('applies the default builtin filters before mount', () => {
+    const { currentFilters, activeTabId, searchInput } = makeWithDefaultTab();
+    expect(activeTabId.value).toBe('hosting');
+    expect(currentFilters.statuses).toEqual(['pending']);
+    // The search box is seeded from the tab, not left behind by the debounce.
+    expect(searchInput.value).toBe('hosting');
+  });
+
+  it('lets the query param win over the default tab', () => {
+    mockRoute.query = { accounting_incomeTab: 'lost' };
+    const { currentFilters, activeTabId } = makeWithDefaultTab();
+    expect(activeTabId.value).toBe('lost');
+    expect(currentFilters.statuses).toEqual(['lost']);
+  });
+
+  it('writes the param when leaving the default tab, including "all"', async () => {
+    const { nextTick } = require('vue');
+    const { selectTab } = makeWithDefaultTab();
+    // Without this the cleared view would silently snap back to the default
+    // tab on reload, since an absent param means "use the default".
+    selectTab('all');
+    await nextTick();
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { accounting_incomeTab: 'all' },
+    });
+  });
+
+  it('drops the param when coming back to the default tab', async () => {
+    const { nextTick } = require('vue');
+    mockRoute.query = { accounting_incomeTab: 'lost' };
+    const { selectTab } = makeWithDefaultTab();
+    selectTab('hosting');
+    await nextTick();
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+  });
+});
+
 describe('restorable base delegation', () => {
   it('restoreTab reloads currentFilters when the restored tab is active', async () => {
     savedTabsRef.value = [{

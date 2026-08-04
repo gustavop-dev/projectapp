@@ -6,6 +6,9 @@ export default {
     "./layouts/**/*.{vue,js,ts,jsx,tsx}",
     "./pages/**/*.{vue,js,ts,jsx,tsx}",
     "./plugins/**/*.{js,ts}",
+    // utils/ holds shared class literals (see utils/tableLayout.js); without
+    // this glob the JIT purges them and the tables lose their padding.
+    "./utils/**/*.{js,ts}",
     "./app.vue",
   ],
   theme: {
