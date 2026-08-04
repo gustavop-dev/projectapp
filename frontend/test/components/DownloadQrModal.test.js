@@ -54,8 +54,10 @@ describe('DownloadQrModal', () => {
     const wrapper = mountModal();
     await wrapper.vm.$nextTick();
 
+    expect(wrapper.find('[data-testid="qr-background-color"]').attributes('disabled')).toBeUndefined();
+
     await wrapper.find('[data-testid="qr-transparent-toggle"] input').setValue(true);
 
-    expect(wrapper.find('[data-testid="qr-background-color"]').attributes('disabled')).toBeDefined();
+    expect(wrapper.find('[data-testid="qr-background-color"]').attributes('disabled')).toBe('');
   });
 });

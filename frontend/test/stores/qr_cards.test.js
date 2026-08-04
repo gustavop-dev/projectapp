@@ -35,15 +35,9 @@ describe('useQrCardsStore', () => {
   });
 
   describe('initial state', () => {
-    it('has empty cards array', () => {
+    it('starts empty, idle and error-free before any action runs', () => {
       expect(store.cards).toEqual([]);
-    });
-
-    it('has isLoading false', () => {
       expect(store.isLoading).toBe(false);
-    });
-
-    it('has null error', () => {
       expect(store.error).toBeNull();
     });
   });
