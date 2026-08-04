@@ -516,6 +516,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
     // The deductions group auto-expands the moment the shortfall appears.
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    // The concept starts unselected ("Seleccionar concepto") on purpose.
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
     await page.getByTestId('deduction-amount-0').fill('8000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');
@@ -545,6 +547,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
     // The deductions group auto-expands the moment the shortfall appears.
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
     await page.getByTestId('deduction-amount-0').fill('600000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');

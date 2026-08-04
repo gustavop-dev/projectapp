@@ -58,7 +58,7 @@ const shortfall = computed(() =>
 // reach the payload — otherwise "leave the rest pending" (no allocation)
 // would require deleting the row the auto-expand just created.
 const isPristineDeduction = (row) =>
-  !(Number(row.amount) > 0) && !row.detail.trim() && row.type === 'gateway_fee'
+  !(Number(row.amount) > 0) && !row.detail.trim() && row.type === ''
 
 const activeDeductions = computed(() =>
   deductions.value.filter((row) => !isPristineDeduction(row)),
@@ -73,7 +73,8 @@ const overAllocated = computed(() => unassigned.value < 0)
 
 const hasIncompleteRow = computed(() => {
   const badDeduction = activeDeductions.value.some(
-    (row) => !(Number(row.amount) > 0)
+    (row) => !row.type
+      || !(Number(row.amount) > 0)
       || (row.type === 'other' && !row.detail.trim()),
   )
   const badFollowUp = followUps.value.some(
@@ -87,7 +88,8 @@ const hasIncompleteRow = computed(() => {
 const canSubmit = computed(() => !overAllocated.value && !hasIncompleteRow.value)
 
 function addDeduction() {
-  deductions.value.push({ type: 'gateway_fee', detail: '', amount: null })
+  // No preselected concept: the choice must be explicit and readable.
+  deductions.value.push({ type: '', detail: '', amount: null })
 }
 
 function addFollowUp() {
@@ -288,17 +290,19 @@ function onSubmit() {
               class="space-y-2 rounded-lg bg-surface-raised p-3"
               :data-testid="`income-liquidate-deduction-${index}`"
             >
-              <div class="flex items-start gap-2">
+              <!-- Grid, not flex: the base inputs are w-full and would fight
+                   fallthrough width classes; the tracks own the split instead.
+                   Single column below sm so nothing gets crushed. -->
+              <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_9rem_auto] gap-2 items-start">
                 <BaseSelect
                   v-model="row.type"
                   :options="deductionOptions"
-                  class="flex-1"
+                  placeholder="Seleccionar concepto"
                   aria-label="Concepto del gasto"
                   :data-testid="`deduction-type-${index}`"
                 />
                 <BaseCurrencyInput
                   v-model="row.amount"
-                  class="w-36"
                   placeholder="Monto"
                   aria-label="Monto del gasto"
                   :data-testid="`deduction-amount-${index}`"
@@ -307,6 +311,7 @@ function onSubmit() {
                   type="button"
                   variant="ghost"
                   size="sm"
+                  class="justify-self-start sm:justify-self-auto"
                   aria-label="Quitar gasto"
                   @click="deductions.splice(index, 1)"
                 >
@@ -359,17 +364,15 @@ function onSubmit() {
                 aria-label="Concepto del ingreso esperado"
                 :data-testid="`followup-concept-${index}`"
               />
-              <div class="flex items-start gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_9rem_auto] gap-2 items-start">
                 <BaseInput
                   v-model="row.period_date"
                   type="month"
-                  class="flex-1"
                   aria-label="Mes esperado de cobro"
                   :data-testid="`followup-period-${index}`"
                 />
                 <BaseCurrencyInput
                   v-model="row.amount"
-                  class="w-36"
                   placeholder="Monto"
                   aria-label="Monto esperado"
                   :data-testid="`followup-amount-${index}`"
@@ -378,6 +381,7 @@ function onSubmit() {
                   type="button"
                   variant="ghost"
                   size="sm"
+                  class="justify-self-start sm:justify-self-auto"
                   aria-label="Quitar ingreso esperado"
                   @click="followUps.splice(index, 1)"
                 >

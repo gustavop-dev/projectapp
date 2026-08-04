@@ -87,10 +87,10 @@ function mountModal(props = {}) {
             '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
         },
         BaseSelect: {
-          props: ['modelValue', 'options', 'size', 'error', 'disabled'],
+          props: ['modelValue', 'options', 'size', 'error', 'disabled', 'placeholder'],
           emits: ['update:modelValue'],
           template:
-            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-if="placeholder" value="" disabled>{{ placeholder }}</option><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
         },
         BaseCollapse: {
           props: ['open', 'id'],
@@ -297,6 +297,8 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
+    // The concept is an explicit choice now — rows start unselected.
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
     await wrapper.find('form').trigger('submit');
 
@@ -312,6 +314,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('0');
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -326,6 +329,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('');
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -379,6 +383,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('8000');
     await wrapper
       .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
