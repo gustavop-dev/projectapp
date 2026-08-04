@@ -6,7 +6,10 @@
     <p class="sr-only" aria-live="polite">
       {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
     </p>
-    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
+    <!-- Past the ceiling the table stops stretching and centres instead: a
+         2000px-wide table does not read better than a 1400px one. On a narrow
+         screen minWidth wins over maxWidth and the wrapper scrolls. -->
+    <table class="w-full mx-auto text-sm" :class="MAX_WIDTH" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
@@ -41,7 +44,7 @@
           </th>
           <th
             v-if="showActions"
-            :style="{ width: ACTIONS_WIDTH }"
+            :style="{ width: actionsWidth }"
             :class="[DENSITY.headerCell, 'text-center']"
           >Acciones</th>
         </tr>
@@ -87,26 +90,30 @@
             :key="col.key"
             :class="cellClass(col)"
           >
-            <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
-              <template v-if="col.format === 'money'">
-                {{ formatMoney(row[col.key], 'COP') }}
-              </template>
-              <span
-                v-else-if="col.format === 'badge'"
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
-                :class="badgeClass(col, row[col.key])"
-              >
-                {{ row[col.key] }}
-              </span>
-              <HighlightText
-                v-else-if="highlightQuery"
-                :text="row[col.key] ?? ''"
-                :query="highlightQuery"
-              />
-              <template v-else>
-                {{ row[col.key] }}
-              </template>
-            </slot>
+            <!-- The wrapper is what caps the name column: a <td>'s own
+                 max-width is ignored under auto layout. -->
+            <span :class="col.contentClass">
+              <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
+                <template v-if="col.format === 'money'">
+                  {{ formatMoney(row[col.key], 'COP') }}
+                </template>
+                <span
+                  v-else-if="col.format === 'badge'"
+                  class="text-xs px-2.5 py-1 rounded-full font-medium"
+                  :class="badgeClass(col, row[col.key])"
+                >
+                  {{ row[col.key] }}
+                </span>
+                <HighlightText
+                  v-else-if="highlightQuery"
+                  :text="row[col.key] ?? ''"
+                  :query="highlightQuery"
+                />
+                <template v-else>
+                  {{ row[col.key] }}
+                </template>
+              </slot>
+            </span>
           </td>
           <td
             v-if="showActions"
@@ -143,7 +150,13 @@ import {
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
-import { TABLE_DENSITY, minWidthFor, resolveColumns } from '~/utils/tableLayout';
+import {
+  TABLE_DENSITY,
+  TABLE_MAX_WIDTH,
+  actionsWidthFor,
+  minWidthFor,
+  resolveColumns,
+} from '~/utils/tableLayout';
 
 const props = defineProps({
   /**
@@ -177,13 +190,18 @@ const props = defineProps({
 });
 
 const DENSITY = TABLE_DENSITY;
-const ACTIONS_WIDTH = '4rem';
+const MAX_WIDTH = TABLE_MAX_WIDTH;
 
 /**
- * Widths come from what each column shows, with exactly one column left
- * flexible so a wide screen grows the name instead of opening gaps everywhere.
+ * Widths come from what each column shows, and the slack is shared out in
+ * proportion to that — no single column absorbs it, which is what used to open
+ * one wide gap next to the name.
  */
-const resolved = computed(() => resolveColumns(props.columns));
+const resolved = computed(() => resolveColumns(props.columns, { hasActions: props.showActions }));
+
+// Same scale as the data columns, so the actions column is one more share of
+// the total instead of a hardcoded width that disagreed with minWidthFor().
+const actionsWidth = computed(() => actionsWidthFor(resolved.value));
 
 const tableMinWidth = computed(
   () => minWidthFor(resolved.value, { hasActions: props.showActions }),

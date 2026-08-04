@@ -72,11 +72,11 @@ test.describe('Admin Document Folders and Tags', () => {
     await page.goto('/panel/documents');
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByRole('button', { name: 'Cuentas de cobro' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Cuentas de cobro/ })).toBeVisible();
     await expect(page.getByRole('table').getByText('Factura ACME')).toBeVisible();
     await expect(page.getByRole('table').getByText('Borrador sin carpeta')).toBeVisible();
 
-    await page.getByRole('button', { name: 'Cuentas de cobro' }).click();
+    await page.getByRole('button', { name: /^Cuentas de cobro/ }).click();
 
     await expect.poll(
       () => requestedUrls.some((u) => u.includes(`folder=${FOLDER_CUENTAS.id}`)),
@@ -177,7 +177,7 @@ test.describe('Admin Document Folders and Tags', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Pararse dentro de la carpeta antes de abrir el gestor.
-    await page.getByRole('button', { name: 'Cuentas de cobro' }).click();
+    await page.getByRole('button', { name: /^Cuentas de cobro/ }).click();
     await page.getByRole('button', { name: 'Nueva carpeta' }).click();
 
     const parentSelect = page.locator('label', { hasText: 'Dentro de:' }).locator('select');

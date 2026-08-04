@@ -33,16 +33,51 @@ describe('AccountingTable', () => {
     expect(headers).toEqual(['Concepto', 'Valor', 'Fecha', 'Estado', 'Acciones']);
   });
 
-  it('sizes columns by content and leaves exactly one absorbing the slack', () => {
-    // The bug this replaced: every column split the width equally, so a badge
-    // or a two-character day claimed as much room as the concept.
-    const wrapper = mountTable();
+  it('shares the width across every column instead of piling it into one', () => {
+    // Two bugs guarded at once: splitting the width evenly (a two-character day
+    // as wide as the concept) and handing one column width:100%, which moved
+    // all the dead space into the gap next to it.
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto', size: 'name' },
+        { key: 'amount', label: 'Valor', format: 'money' },
+        { key: 'day', label: 'Día', align: 'center' },
+      ],
+    });
     const widths = wrapper.findAll('th').map((th) => th.element.style.width);
 
-    expect(widths.filter((width) => width === '100%')).toHaveLength(1);
-    expect(widths[0]).toBe('100%');
-    // Money, date and badge columns stay at their declared width.
-    expect(widths.slice(1, 4).every((width) => width.endsWith('rem'))).toBe(true);
+    expect(widths).not.toContain('100%');
+    expect(widths.every((width) => width.endsWith('%'))).toBe(true);
+    expect(widths.reduce((sum, width) => sum + parseFloat(width), 0)).toBeCloseTo(100, 1);
+    // Proportional to content: the concept outgrows the amount, which outgrows
+    // the two-character day — nobody is levelled up to the same share.
+    expect(parseFloat(widths[0])).toBeGreaterThan(parseFloat(widths[1]));
+    expect(parseFloat(widths[1])).toBeGreaterThan(parseFloat(widths[2]));
+  });
+
+  it('caps the name column content so a long value cannot widen the table', () => {
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto', size: 'name' },
+        { key: 'amount', label: 'Valor', format: 'money' },
+      ],
+    });
+    const [concept, amount] = wrapper.find('[data-testid="accounting-row-1"]').findAll('td');
+
+    // A <td>'s own max-width is ignored under auto layout, so the cap has to
+    // live on the wrapper around the content.
+    expect(concept.find('span').classes()).toContain('max-w-[22rem]');
+    expect(concept.text()).toBe('Página web');
+    expect(amount.find('span').classes()).not.toContain('max-w-[22rem]');
+  });
+
+  it('centres the table at its ceiling instead of stretching on a wide screen', () => {
+    const table = mountTable().find('table');
+
+    expect(table.classes()).toContain('max-w-[87.5rem]');
+    expect(table.classes()).toContain('mx-auto');
+    // The scroll floor still wins on a narrow screen.
+    expect(table.element.style.minWidth).toMatch(/rem$/);
   });
 
   it('keeps fixed-width columns on a single line so rows keep their height', () => {

@@ -55,12 +55,12 @@ function mountModal(props = {}) {
             '<input :type="type || \'text\'" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
-          props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled'],
+          props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled', 'suggestion'],
           emits: ['update:modelValue'],
           // The real component emits a NUMBER (or null when empty), not the
           // typed string — the payload assertions depend on that contract.
           template:
-            '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
+            '<input type="text" inputmode="numeric" :value="modelValue" :data-suggestion="suggestion" :data-error="error ? \'true\' : undefined" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
         },
         BaseTextarea: {
           props: ['modelValue', 'rows', 'size', 'error', 'placeholder', 'disabled'],
@@ -87,14 +87,18 @@ function mountModal(props = {}) {
             '<input type="checkbox" :checked="modelValue" @change="$emit(\'update:modelValue\', $event.target.checked)" />',
         },
         BaseSelect: {
-          props: ['modelValue', 'options', 'size', 'error', 'disabled'],
+          props: ['modelValue', 'options', 'size', 'error', 'disabled', 'placeholder'],
           emits: ['update:modelValue'],
           template:
-            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+            '<select :value="modelValue" :data-error="error ? \'true\' : undefined" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-if="placeholder" value="" disabled>{{ placeholder }}</option><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
         },
         BaseCollapse: {
           props: ['open', 'id'],
           template: '<div v-if="open"><slot /></div>',
+        },
+        BaseBadge: {
+          props: ['variant', 'size'],
+          template: '<span :data-variant="variant"><slot /></span>',
         },
         PartnerSplitInput: PartnerSplitInputStub,
       },
@@ -297,6 +301,8 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
+    // The concept is an explicit choice now — rows start unselected.
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
     await wrapper.find('form').trigger('submit');
 
@@ -312,6 +318,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('0');
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -326,6 +333,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('[data-testid="split-total"]').setValue('');
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('600000');
     await wrapper.find('form').trigger('submit');
 
@@ -379,6 +387,7 @@ describe('IncomeLiquidateModal', () => {
     const wrapper = mountModal();
     await receiveShort(wrapper);
 
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
     await wrapper.find('[data-testid="deduction-amount-0"]').setValue('8000');
     await wrapper
       .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
@@ -417,6 +426,132 @@ describe('IncomeLiquidateModal', () => {
 
     expect(wrapper.findAll('[data-testid^="income-liquidate-followup-"]'))
       .toHaveLength(2);
+  });
+
+  // ── Assisted distribution: badge, suggestion, per-line validation ──
+
+  it('starts a new deduction row with no concept selected', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    const select = wrapper.find('[data-testid="deduction-type-0"]');
+    expect(select.element.value).toBe('');
+    expect(select.text()).toContain('Seleccionar concepto');
+  });
+
+  it('reflects the allocation state in the badge tone', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    const badge = () =>
+      wrapper.find('[data-testid="income-liquidate-remaining"] [data-variant]');
+    expect(badge().attributes('data-variant')).toBe('info');
+
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+    expect(badge().attributes('data-variant')).toBe('success');
+
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('99000');
+    expect(badge().attributes('data-variant')).toBe('danger');
+  });
+
+  it('suggests the unassigned remainder on the line amounts', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    expect(
+      wrapper.find('[data-testid="deduction-amount-0"]').attributes('data-suggestion'),
+    ).toBe('50000');
+
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('30000');
+    await wrapper
+      .find('[data-testid="income-liquidate-add-deduction"]').trigger('click');
+
+    expect(
+      wrapper.find('[data-testid="deduction-amount-1"]').attributes('data-suggestion'),
+    ).toBe('20000');
+  });
+
+  it('flags the deduction row that still needs a concept', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+
+    expect(wrapper.find('[data-testid="deduction-error-0"]').text())
+      .toBe('Selecciona el concepto.');
+    expect(
+      wrapper.find('[data-testid="deduction-type-0"]').attributes('data-error'),
+    ).toBe('true');
+    expect(submitButton(wrapper).element.disabled).toBe(true);
+  });
+
+  it('flags an empty or non-positive amount on an active row', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
+    expect(wrapper.find('[data-testid="deduction-error-0"]').text())
+      .toBe('Ingresa el monto.');
+
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('0');
+    expect(wrapper.find('[data-testid="deduction-error-0"]').text())
+      .toBe('El monto debe ser mayor a cero.');
+  });
+
+  it('marks the row that pushed the allocation over the balance', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('80000');
+
+    const error = wrapper.find('[data-testid="deduction-error-0"]');
+    expect(error.text()).toContain('supera el saldo');
+    expect(error.text()).toContain('30.000');
+    // The typed value is kept — the user must see what they wrote.
+    expect(wrapper.find('[data-testid="deduction-amount-0"]').element.value)
+      .toBe('80000');
+
+    // Fixing the amount clears the flag on its own.
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+    expect(wrapper.find('[data-testid="deduction-error-0"]').exists()).toBe(false);
+  });
+
+  it('no longer blocks the submit on an untouched follow-up row', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    // Opening adds a prefilled row; collapsing leaves it behind — it used
+    // to jam the submit invisibly from inside the closed group.
+    await wrapper
+      .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
+    await wrapper
+      .find('[data-testid="income-liquidate-followups-toggle"]').trigger('click');
+
+    expect(submitButton(wrapper).element.disabled).toBe(false);
+
+    await wrapper.find('form').trigger('submit');
+    expect(wrapper.emitted('submit')[0][0].expected_incomes).toEqual([]);
+  });
+
+  it('explains why the submit is disabled', async () => {
+    const wrapper = mountModal();
+    await receiveShort(wrapper);
+
+    const reason = () =>
+      wrapper.find('[data-testid="income-liquidate-submit-reason"]');
+
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('50000');
+    expect(reason().text())
+      .toBe('Hay líneas de gasto incompletas: revisa concepto y monto.');
+
+    await wrapper.find('[data-testid="deduction-type-0"]').setValue('gateway_fee');
+    expect(reason().text()).toBe('');
+
+    await wrapper.find('[data-testid="deduction-amount-0"]').setValue('80000');
+    expect(reason().text()).toContain('La distribución supera el saldo por resolver');
   });
 });
 

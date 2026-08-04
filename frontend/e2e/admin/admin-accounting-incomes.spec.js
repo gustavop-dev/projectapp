@@ -516,6 +516,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
     // The deductions group auto-expands the moment the shortfall appears.
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    // The concept starts unselected ("Seleccionar concepto") on purpose.
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
     await page.getByTestId('deduction-amount-0').fill('8000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');
@@ -545,6 +547,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-liquidate-shortfall')).toBeVisible();
     // The deductions group auto-expands the moment the shortfall appears.
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
     await page.getByTestId('deduction-amount-0').fill('600000');
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('queda cerrado');
@@ -620,12 +623,71 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
     // The deductions group auto-expands the moment the shortfall appears.
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
     await page.getByTestId('deduction-amount-0').fill('50000');
 
     await expect(page.getByTestId('income-liquidate-remaining'))
       .toContainText('Te pasaste');
+    // The offending line is flagged with the excess, keeping what was typed.
+    await expect(page.getByTestId('deduction-error-0'))
+      .toContainText('supera el saldo');
+    await expect(page.getByTestId('deduction-amount-0')).toHaveValue('50.000');
+    await expect(page.getByTestId('income-liquidate-submit-reason'))
+      .toContainText('supera el saldo por resolver');
     await expect(page.getByTestId('income-liquidate-submit')).toBeDisabled();
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  test('requires picking a deduction concept before liquidating', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('partner-split-total').fill('592000');
+    await page.getByTestId('income-liquidate-period').fill('2026-11-17');
+    await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    await page.getByTestId('deduction-amount-0').fill('8000');
+
+    await expect(page.getByTestId('deduction-error-0'))
+      .toHaveText('Selecciona el concepto.');
+    await expect(page.getByTestId('income-liquidate-submit-reason'))
+      .toContainText('líneas de gasto incompletas');
+    await expect(page.getByTestId('income-liquidate-submit')).toBeDisabled();
+
+    // Picking the concept clears the flag and unlocks the submit.
+    await page.getByTestId('deduction-type-0').selectOption('gateway_fee');
+    await expect(page.getByTestId('deduction-error-0')).toHaveCount(0);
+    await expect(page.getByTestId('income-liquidate-submit')).toBeEnabled();
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(0);
+  });
+
+  test('suggests the remaining amount inside the deduction line', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same gotoIncomes harness as every settle spec
+    // in this file; the flow under test is the settle modal's suggestion, not
+    // the view entry)
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('partner-split-total').fill('592000');
+    await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
+    await expect(page.getByTestId('income-liquidate-remaining'))
+      .toContainText('Sin asignar');
+
+    // The empty line offers exactly what is left to allocate…
+    await expect(page.getByTestId('deduction-amount-0'))
+      .toHaveAttribute('placeholder', '8.000');
+    // …and clicking the empty field adopts it, ready to be overtyped.
+    await page.getByTestId('deduction-amount-0').click();
+    await expect(page.getByTestId('deduction-amount-0')).toHaveValue('8.000');
+    await expect(page.getByTestId('income-liquidate-remaining'))
+      .toContainText('queda cerrado');
   });
 
   test('writes off a pending expected income', {

@@ -75,17 +75,17 @@ import { ref } from 'vue';
 import { formatDateTime } from '~/utils/formatDate';
 import { minWidthFor, resolveColumns } from '~/utils/tableLayout';
 
-// Registro is the identifying column, so it takes the slack; the rest sit at
+// Registro is the identifying column, so it gets the widest floor; the rest sit at
 // the width their content needs.
 const COLUMNS = [
   { key: 'created_at', label: 'Fecha', format: 'date' },
   { key: 'actor_username', label: 'Usuario' },
   { key: 'entity_type_label', label: 'Entidad' },
-  { key: 'object_repr', label: 'Registro', size: 'flex' },
+  { key: 'object_repr', label: 'Registro', size: 'name' },
   { key: 'action_label', label: 'Acción', size: 'badge' },
 ];
 
-const resolved = resolveColumns(COLUMNS);
+const resolved = resolveColumns(COLUMNS, { hasActions: false });
 const tableMinWidth = minWidthFor(resolved, { hasActions: false });
 
 /** Padding + alignment for the nth column. */

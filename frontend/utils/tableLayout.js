@@ -3,9 +3,9 @@
  *
  * Why this exists: every table used to size its columns by splitting the
  * available width between them, so a one-character "Día" got as much room as a
- * name. Widths now come from what a column actually shows, a single column
- * absorbs the slack, and the density is one standard instead of per-component
- * guesswork.
+ * name. Widths now come from what a column actually shows, the slack is shared
+ * out in proportion to that, and the density is one standard instead of
+ * per-component guesswork.
  *
  * Consumed by AccountingTable.vue (a real <table>) and RecurringGroupedTable.vue
  * (an ARIA grid of divs), which is why every size carries BOTH a grid track and
@@ -35,24 +35,48 @@ export const TABLE_DENSITY = {
 };
 
 /**
- * Width vocabulary. `track` feeds grid-template-columns; `width` feeds the
- * <col>-less table (auto layout honours a width hint but still grows a column
+ * Cap for the name column's content, so one outlier concept cannot widen the
+ * whole table. It lives on an inner <span> and not on the cell because auto
+ * table layout ignores max-width on a <td>; bounding the content is what bounds
+ * the column's max-content contribution. Longer values wrap — nothing is cut.
+ */
+const NAME_CONTENT_CLASS = 'block max-w-[22rem]';
+
+/** Table ceiling: past 1400px a wider table is not a more readable one. */
+export const TABLE_MAX_WIDTH = 'max-w-[87.5rem]';
+
+/**
+ * Width vocabulary.
+ *
+ * `track` feeds grid-template-columns as `minmax(max-content, <weight>fr)`: the
+ * content is the floor, so nothing is ever clipped, and the flexible max shares
+ * the leftover width out in proportion to `weight`. `width` is the same intent
+ * for the <col>-less table, resolved in resolveColumns() to a percentage of the
+ * total weight — auto layout honours that proportion but still grows a column
  * whose content overflows, which is why we do not use table-fixed: a clipped
- * "$1.200.000…" defeats the point of the table).
+ * "$1.200.000…" defeats the point of the table.
+ *
+ * `weight` doubles as `rem`, the floor minWidthFor() sums before the wrapper
+ * starts scrolling: a column's share of the slack tracks how much room its
+ * content needs, which is why "Día" stays narrow while an amount does not.
  */
 const SIZES = {
-  flex: { track: 'minmax(7rem, 1fr)', width: '100%', rem: 7, nowrap: false },
-  tiny: { track: '2.75rem', width: '2.75rem', rem: 2.75, nowrap: true },
-  badge: { track: 'minmax(6rem, max-content)', width: '6rem', rem: 6, nowrap: true },
+  name: { rem: 10, nowrap: false, contentClass: NAME_CONTENT_CLASS },
+  tiny: { rem: 2.75, nowrap: true },
+  badge: { rem: 6, nowrap: true },
   // Wide enough for two 28px icon buttons AND the word "Acciones" at text-xs
   // with tracking — at 4rem the header clipped.
-  icons: { track: '5.25rem', width: '5.25rem', rem: 5.25, nowrap: true },
-  // `max-content` above the floor so a long "$789.600 COP" widens its own track
-  // instead of spilling into the neighbour; the flex column gives up the room.
-  money: { track: 'minmax(7rem, max-content)', width: '7rem', rem: 7, nowrap: true },
-  date: { track: 'minmax(6rem, max-content)', width: '6rem', rem: 6, nowrap: true },
-  text: { track: 'minmax(5rem, max-content)', width: 'auto', rem: 5, nowrap: true },
+  icons: { rem: 5.25, nowrap: true },
+  money: { rem: 7, nowrap: true },
+  date: { rem: 6, nowrap: true },
+  text: { rem: 5, nowrap: true },
 };
+
+for (const spec of Object.values(SIZES)) {
+  spec.weight = spec.rem;
+  spec.track = `minmax(max-content, ${spec.rem}fr)`;
+  spec.contentClass = spec.contentClass || '';
+}
 
 /** Grid track for the drag handle column, which is not part of `columns`. */
 export const HANDLE_TRACK = '1.75rem';
@@ -135,17 +159,18 @@ function padClassFor(col, prevCol, nextCol, base) {
 /**
  * Resolve a page's column config into everything both table components need.
  *
- * Guarantees exactly one flexible column: without that, either every column
- * stretches (the bug this fixes) or none does and the table floats in a sea of
- * whitespace on a wide screen.
+ * Every column is sized by its own content and every column takes a share of
+ * the slack, proportional to that content. The previous rule promoted a single
+ * column to flexible, which did not remove the dead space — it piled all of it
+ * into the gap between the name and its first value.
+ *
+ * `width` is that share as a percentage of the total weight, the actions column
+ * included, so the percentages a table hands out add up to 100.
  */
-export function resolveColumns(columns = []) {
+export function resolveColumns(columns = [], { hasActions = true } = {}) {
   const sizes = columns.map(inferSize);
-
-  let flexIndex = columns.findIndex((col) => col.size === 'flex');
-  if (flexIndex === -1) flexIndex = sizes.findIndex((size) => size === 'text');
-  if (flexIndex === -1) flexIndex = 0;
-  if (sizes.length) sizes[flexIndex] = 'flex';
+  const totalWeight = sizes.reduce((total, size) => total + SIZES[size].weight, 0)
+    + (hasActions ? SIZES.icons.weight : 0);
 
   return columns.map((col, index) => {
     const size = sizes[index];
@@ -154,8 +179,9 @@ export function resolveColumns(columns = []) {
       ...col,
       size,
       track: spec.track,
-      width: spec.width,
+      width: totalWeight ? `${((spec.weight / totalWeight) * 100).toFixed(2)}%` : 'auto',
       minRem: spec.rem,
+      contentClass: spec.contentClass,
       alignClass: alignClass(col),
       nowrapClass: spec.nowrap ? 'whitespace-nowrap' : '',
       headerPadClass: padClassFor(
@@ -188,9 +214,21 @@ export function trackListFor(resolved, { breakpoint = 'lg', hasHandle = false, h
 }
 
 /**
- * Minimum width before the wrapper starts scrolling horizontally: the fixed
- * columns at their real size plus a usable floor for the flexible one. Replaces
- * the hardcoded min-w-[600px] / min-w-[1120px], which were guesses.
+ * Share of the table's width for the actions column, on the same scale as the
+ * data columns so it neither hogs the slack nor gets starved of it. Kept out of
+ * `columns` because no page declares it — both components append it themselves.
+ */
+export function actionsWidthFor(resolved) {
+  const total = resolved.reduce((sum, col) => sum + SIZES[col.size].weight, 0)
+    + SIZES.icons.weight;
+  return `${((SIZES.icons.weight / total) * 100).toFixed(2)}%`;
+}
+
+/**
+ * Minimum width before the wrapper starts scrolling horizontally: every column
+ * at the floor its content needs. Replaces the hardcoded min-w-[600px] /
+ * min-w-[1120px], which were guesses. Below this the proportional share would
+ * squeeze a column past its content, so the wrapper scrolls instead.
  */
 export function minWidthFor(resolved, { breakpoint = 'lg', hasHandle = false, hasActions = true } = {}) {
   const columnsRem = resolved

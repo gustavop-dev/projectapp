@@ -58,41 +58,122 @@ const shortfall = computed(() =>
 // reach the payload — otherwise "leave the rest pending" (no allocation)
 // would require deleting the row the auto-expand just created.
 const isPristineDeduction = (row) =>
-  !(Number(row.amount) > 0) && !row.detail.trim() && row.type === 'gateway_fee'
+  !(Number(row.amount) > 0) && !row.detail.trim() && row.type === ''
 
 const activeDeductions = computed(() =>
   deductions.value.filter((row) => !isPristineDeduction(row)),
 )
 
+const defaultFollowUpConcept = computed(
+  () => `${props.record?.concept ?? ''} - saldo`,
+)
+// Same pristine idea for follow-ups: the row auto-added on expand keeps its
+// prefilled concept, so it must not block a submit from inside a collapsed
+// group the user never filled.
+const isPristineFollowUp = (row) =>
+  row.amount == null
+  && !row.period_date
+  && row.concept === defaultFollowUpConcept.value
+
+const activeFollowUps = computed(() =>
+  followUps.value.filter((row) => !isPristineFollowUp(row)),
+)
+
 const allocated = computed(
-  () => sumAmounts(activeDeductions.value) + sumAmounts(followUps.value),
+  () => sumAmounts(activeDeductions.value) + sumAmounts(activeFollowUps.value),
 )
 /** Left over after allocating; stays pending on the expected income. */
 const unassigned = computed(() => shortfall.value - allocated.value)
 const overAllocated = computed(() => unassigned.value < 0)
 
-const hasIncompleteRow = computed(() => {
-  const badDeduction = activeDeductions.value.some(
-    (row) => !(Number(row.amount) > 0)
-      || (row.type === 'other' && !row.detail.trim()),
-  )
-  const badFollowUp = followUps.value.some(
-    (row) => !(Number(row.amount) > 0)
-      || !row.concept.trim()
-      || !row.period_date,
-  )
-  return badDeduction || badFollowUp
-})
+// The row whose amount was edited last: when the sum overflows, that input
+// is the one flagged. Object identity survives row removal (splice).
+const overSource = ref(null)
+
+function onLineAmountInput(row, value) {
+  row.amount = value
+  overSource.value = row
+}
+
+const amountError = (row) => {
+  if (row.amount == null || row.amount === '') return 'Ingresa el monto.'
+  if (!(Number(row.amount) > 0)) return 'El monto debe ser mayor a cero.'
+  if (overAllocated.value && row === overSource.value) {
+    return `Con este monto la suma supera el saldo por ${money(-unassigned.value)}.`
+  }
+  return null
+}
+
+const deductionErrors = computed(() => deductions.value.map((row) => {
+  if (isPristineDeduction(row)) return null
+  if (!row.type) return { field: 'type', message: 'Selecciona el concepto.' }
+  const amount = amountError(row)
+  if (amount) return { field: 'amount', message: amount }
+  if (row.type === 'other' && !row.detail.trim()) {
+    return { field: 'detail', message: 'Describe el concepto.' }
+  }
+  return null
+}))
+
+const followUpErrors = computed(() => followUps.value.map((row) => {
+  if (isPristineFollowUp(row)) return null
+  if (!row.concept.trim()) return { field: 'concept', message: 'Escribe el concepto.' }
+  if (!row.period_date) return { field: 'period', message: 'Indica el mes.' }
+  const amount = amountError(row)
+  if (amount) return { field: 'amount', message: amount }
+  return null
+}))
+
+const hasIncompleteRow = computed(
+  () => deductionErrors.value.some(Boolean) || followUpErrors.value.some(Boolean),
+)
 
 const canSubmit = computed(() => !overAllocated.value && !hasIncompleteRow.value)
 
+/** Why the submit is blocked — shown next to the disabled button. */
+const submitBlockReason = computed(() => {
+  if (canSubmit.value) return ''
+  if (overAllocated.value) {
+    return `La distribución supera el saldo por resolver por ${money(-unassigned.value)}.`
+  }
+  if (deductionErrors.value.some(Boolean)) {
+    return 'Hay líneas de gasto incompletas: revisa concepto y monto.'
+  }
+  return 'Hay líneas de ingreso esperado incompletas.'
+})
+
+// Status badge next to the section total. Each asserted phrase lives whole
+// inside one element (badge or clause) — split text breaks substring checks.
+const remainingState = computed(() => {
+  if (overAllocated.value) {
+    return {
+      variant: 'danger',
+      badge: `Te pasaste por ${money(-unassigned.value)}`,
+      clause: 'del saldo disponible.',
+    }
+  }
+  if (unassigned.value > 0) {
+    return {
+      variant: 'info',
+      badge: `Sin asignar: ${money(unassigned.value)}`,
+      clause: 'quedará pendiente en este ingreso.',
+    }
+  }
+  return {
+    variant: 'success',
+    badge: 'Saldo resuelto por completo',
+    clause: 'el ingreso esperado queda cerrado.',
+  }
+})
+
 function addDeduction() {
-  deductions.value.push({ type: 'gateway_fee', detail: '', amount: null })
+  // No preselected concept: the choice must be explicit and readable.
+  deductions.value.push({ type: '', detail: '', amount: null })
 }
 
 function addFollowUp() {
   followUps.value.push({
-    concept: `${props.record?.concept ?? ''} - saldo`,
+    concept: defaultFollowUpConcept.value,
     period_date: '',
     amount: null,
   })
@@ -128,6 +209,7 @@ watch(
     deductionsOpen.value = false
     followUpsOpen.value = false
     autoExpanded.value = false
+    overSource.value = null
     form.value = {
       ...defaultForm(),
       concept: props.record.concept ?? '',
@@ -160,7 +242,7 @@ function onSubmit() {
       detail: row.type === 'other' ? row.detail.trim() : '',
       amount: row.amount,
     })),
-    expected_incomes: followUps.value.map((row) => ({
+    expected_incomes: activeFollowUps.value.map((row) => ({
       concept: row.concept.trim(),
       period_date: row.period_date,
       amount: row.amount,
@@ -263,6 +345,15 @@ function onSubmit() {
             {{ money(shortfall) }}
           </span>
         </div>
+        <div
+          class="flex flex-wrap items-center gap-x-2 gap-y-1"
+          data-testid="income-liquidate-remaining"
+        >
+          <BaseBadge :variant="remainingState.variant" class="tabular-nums">
+            {{ remainingState.badge }}
+          </BaseBadge>
+          <span class="text-xs text-text-subtle">{{ remainingState.clause }}</span>
+        </div>
         <p class="text-xs text-text-subtle">
           Si el faltante fue una comisión o una retención, regístralo como gasto.
           Si sí lo vas a cobrar después, crea un ingreso esperado nuevo.
@@ -288,25 +379,31 @@ function onSubmit() {
               class="space-y-2 rounded-lg bg-surface-raised p-3"
               :data-testid="`income-liquidate-deduction-${index}`"
             >
-              <div class="flex items-start gap-2">
+              <!-- Grid, not flex: the base inputs are w-full and would fight
+                   fallthrough width classes; the tracks own the split instead.
+                   Single column below sm so nothing gets crushed. -->
+              <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_9rem_auto] gap-2 items-start">
                 <BaseSelect
                   v-model="row.type"
                   :options="deductionOptions"
-                  class="flex-1"
+                  placeholder="Seleccionar concepto"
+                  :error="deductionErrors[index]?.field === 'type'"
                   aria-label="Concepto del gasto"
                   :data-testid="`deduction-type-${index}`"
                 />
                 <BaseCurrencyInput
-                  v-model="row.amount"
-                  class="w-36"
-                  placeholder="Monto"
+                  :model-value="row.amount"
+                  :suggestion="Math.max(unassigned, 0)"
+                  :error="deductionErrors[index]?.field === 'amount'"
                   aria-label="Monto del gasto"
                   :data-testid="`deduction-amount-${index}`"
+                  @update:model-value="onLineAmountInput(row, $event)"
                 />
                 <BaseButton
                   type="button"
                   variant="ghost"
                   size="sm"
+                  class="justify-self-start sm:justify-self-auto"
                   aria-label="Quitar gasto"
                   @click="deductions.splice(index, 1)"
                 >
@@ -317,9 +414,17 @@ function onSubmit() {
                 v-if="row.type === 'other'"
                 v-model="row.detail"
                 placeholder="¿Cuál concepto?"
+                :error="deductionErrors[index]?.field === 'detail'"
                 aria-label="Concepto del gasto"
                 :data-testid="`deduction-detail-${index}`"
               />
+              <p
+                v-if="deductionErrors[index]"
+                class="text-xs text-danger-strong"
+                :data-testid="`deduction-error-${index}`"
+              >
+                {{ deductionErrors[index].message }}
+              </p>
             </div>
             <BaseButton
               type="button"
@@ -356,34 +461,44 @@ function onSubmit() {
               <BaseInput
                 v-model="row.concept"
                 placeholder="Concepto"
+                :error="followUpErrors[index]?.field === 'concept'"
                 aria-label="Concepto del ingreso esperado"
                 :data-testid="`followup-concept-${index}`"
               />
-              <div class="flex items-start gap-2">
+              <div class="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_9rem_auto] gap-2 items-start">
                 <BaseInput
                   v-model="row.period_date"
                   type="month"
-                  class="flex-1"
+                  :error="followUpErrors[index]?.field === 'period'"
                   aria-label="Mes esperado de cobro"
                   :data-testid="`followup-period-${index}`"
                 />
                 <BaseCurrencyInput
-                  v-model="row.amount"
-                  class="w-36"
-                  placeholder="Monto"
+                  :model-value="row.amount"
+                  :suggestion="Math.max(unassigned, 0)"
+                  :error="followUpErrors[index]?.field === 'amount'"
                   aria-label="Monto esperado"
                   :data-testid="`followup-amount-${index}`"
+                  @update:model-value="onLineAmountInput(row, $event)"
                 />
                 <BaseButton
                   type="button"
                   variant="ghost"
                   size="sm"
+                  class="justify-self-start sm:justify-self-auto"
                   aria-label="Quitar ingreso esperado"
                   @click="followUps.splice(index, 1)"
                 >
                   Quitar
                 </BaseButton>
               </div>
+              <p
+                v-if="followUpErrors[index]"
+                class="text-xs text-danger-strong"
+                :data-testid="`followup-error-${index}`"
+              >
+                {{ followUpErrors[index].message }}
+              </p>
             </div>
             <BaseButton
               type="button"
@@ -397,39 +512,34 @@ function onSubmit() {
           </div>
         </BaseCollapse>
 
-        <p
-          class="text-xs tabular-nums"
-          :class="overAllocated ? 'text-danger-strong' : 'text-text-subtle'"
-          data-testid="income-liquidate-remaining"
-        >
-          <template v-if="overAllocated">
-            Te pasaste por {{ money(-unassigned) }} del saldo disponible.
-          </template>
-          <template v-else-if="unassigned > 0">
-            Sin asignar: {{ money(unassigned) }} — quedará pendiente en este ingreso.
-          </template>
-          <template v-else>
-            Saldo resuelto por completo: el ingreso esperado queda cerrado.
-          </template>
-        </p>
       </section>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="2" />
       </BaseFormField>
 
-      <div class="flex items-center justify-end gap-3 pt-2">
-        <BaseButton type="button" variant="secondary" @click="emit('close')">
-          Cancelar
-        </BaseButton>
-        <BaseButton
-          type="submit"
-          variant="primary"
-          :disabled="saving || !canSubmit"
-          data-testid="income-liquidate-submit"
+      <div class="flex flex-col items-end gap-1 pt-2">
+        <!-- Always rendered: a live region created on demand never announces. -->
+        <p
+          aria-live="polite"
+          class="text-xs text-danger-strong text-right min-h-4"
+          data-testid="income-liquidate-submit-reason"
         >
-          {{ saving ? 'Guardando...' : 'Liquidar' }}
-        </BaseButton>
+          {{ saving ? '' : submitBlockReason }}
+        </p>
+        <div class="flex items-center justify-end gap-3">
+          <BaseButton type="button" variant="secondary" @click="emit('close')">
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            type="submit"
+            variant="primary"
+            :disabled="saving || !canSubmit"
+            data-testid="income-liquidate-submit"
+          >
+            {{ saving ? 'Guardando...' : 'Liquidar' }}
+          </BaseButton>
+        </div>
       </div>
     </form>
   </BaseModal>

@@ -67,14 +67,14 @@ import { minWidthFor, resolveColumns } from '~/utils/tableLayout';
 // The four amounts are one figure read four ways, so they sit together as a
 // group and Mes takes the slack — same standard as the shared table.
 const COLUMNS = [
-  { key: 'label', label: 'Mes', size: 'flex' },
+  { key: 'label', label: 'Mes', size: 'name' },
   { key: 'expected', label: 'Esperado', format: 'money', group: 'money' },
   { key: 'liquid', label: 'Líquido', format: 'money', group: 'money' },
   { key: 'expenses', label: 'Gastos', format: 'money', group: 'money' },
   { key: 'utility', label: 'Utilidad', format: 'money', group: 'money' },
 ];
 
-const resolved = resolveColumns(COLUMNS);
+const resolved = resolveColumns(COLUMNS, { hasActions: false });
 const tableMinWidth = minWidthFor(resolved, { hasActions: false });
 
 /** Padding + alignment for the nth column, shared by body and footer rows. */

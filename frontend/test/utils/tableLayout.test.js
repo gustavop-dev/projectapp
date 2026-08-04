@@ -1,6 +1,7 @@
 import {
   HANDLE_TRACK,
   TABLE_DENSITY,
+  actionsWidthFor,
   alignClass,
   hideClass,
   isVisibleAt,
@@ -11,8 +12,6 @@ import {
 
 describe('tableLayout — size inference', () => {
   it('sizes a column from its format when no size is declared', () => {
-    // A name column is present so the flex promotion lands there and leaves the
-    // inferred sizes alone — the shape every real table in the module has.
     const [, money, date, badge] = resolveColumns([
       { key: 'name' },
       { key: 'total', format: 'money' },
@@ -33,56 +32,83 @@ describe('tableLayout — size inference', () => {
 
     // "Día" shows one or two characters; it must not claim a full column.
     expect(day.size).toBe('tiny');
-    expect(day.track).toBe('2.75rem');
+    expect(day.track).toBe('minmax(max-content, 2.75fr)');
   });
 
   it('honours an explicit size over the inferred one', () => {
     // Tipo/Estado render badges through slots, so `format` cannot reveal them.
     const [name, type] = resolveColumns([
-      { key: 'name' },
+      { key: 'name', size: 'name' },
       { key: 'cost_type_label', size: 'badge' },
     ]);
 
-    expect(name.size).toBe('flex');
+    expect(name.size).toBe('name');
     expect(type.size).toBe('badge');
   });
 });
 
-describe('tableLayout — exactly one flexible column', () => {
-  it('promotes the first text column when none declares flex', () => {
+describe('tableLayout — proportional slack', () => {
+  it('leaves no column absorbing the slack on its own', () => {
+    // The old rule promoted one column to width:100%, which piled every spare
+    // pixel into the gap next to it instead of removing the dead space.
     const resolved = resolveColumns([
-      { key: 'concept' },
+      { key: 'concept', size: 'name' },
       { key: 'note' },
       { key: 'total', format: 'money' },
     ]);
 
-    expect(resolved.filter((col) => col.size === 'flex')).toHaveLength(1);
-    expect(resolved[0].size).toBe('flex');
-    expect(resolved[0].width).toBe('100%');
+    expect(resolved.map((col) => col.width)).not.toContain('100%');
+    expect(resolved.every((col) => col.track.includes('fr'))).toBe(true);
   });
 
-  it('uses the declared flex column instead of the first text one', () => {
+  it('splits the whole width across the columns and the actions slot', () => {
     const resolved = resolveColumns([
-      { key: 'code' },
-      { key: 'name', size: 'flex' },
-    ]);
-
-    expect(resolved.filter((col) => col.size === 'flex')).toHaveLength(1);
-    expect(resolved[1].size).toBe('flex');
-    expect(resolved[0].size).toBe('text');
-  });
-
-  it('still leaves one flexible column when every column is fixed-size', () => {
-    // Otherwise a wide screen would strand all the slack outside the table.
-    const resolved = resolveColumns([
+      { key: 'concept', size: 'name' },
       { key: 'total', format: 'money' },
-      { key: 'state', format: 'badge' },
     ]);
+    const declared = resolved.reduce((sum, col) => sum + parseFloat(col.width), 0);
 
-    expect(resolved.filter((col) => col.size === 'flex')).toHaveLength(1);
+    // name 10 + money 7 + actions 5.25 = 22.25 → the columns claim all but the
+    // actions share, which the table appends itself.
+    expect(declared).toBeCloseTo((17 / 22.25) * 100, 1);
+    expect(parseFloat(actionsWidthFor(resolved))).toBeCloseTo((5.25 / 22.25) * 100, 1);
+    expect(declared + parseFloat(actionsWidthFor(resolved))).toBeCloseTo(100, 1);
   });
 
-  it('returns an empty list for no columns without inventing a flex column', () => {
+  it('hands a wider column a bigger share than a narrow one', () => {
+    const [name, day, total] = resolveColumns([
+      { key: 'concept', size: 'name' },
+      { key: 'billing_day', align: 'center' },
+      { key: 'total', format: 'money' },
+    ]);
+
+    // Proportional to content: "Día" must not fatten up to an amount's width.
+    expect(parseFloat(name.width)).toBeGreaterThan(parseFloat(total.width));
+    expect(parseFloat(total.width)).toBeGreaterThan(parseFloat(day.width));
+  });
+
+  it('gives every column a content floor so no value is truncated', () => {
+    const resolved = resolveColumns([
+      { key: 'concept', size: 'name' },
+      { key: 'total', format: 'money' },
+    ]);
+
+    // max-content as the track minimum: the share only ever adds width on top.
+    expect(resolved.every((col) => col.track.startsWith('minmax(max-content,'))).toBe(true);
+  });
+
+  it('caps the name column so one long value cannot widen the table', () => {
+    const [name, note] = resolveColumns([
+      { key: 'concept', size: 'name' },
+      { key: 'note' },
+    ]);
+
+    expect(name.contentClass).toBe('block max-w-[22rem]');
+    expect(name.nowrapClass).toBe('');
+    expect(note.contentClass).toBe('');
+  });
+
+  it('returns an empty list for no columns', () => {
     expect(resolveColumns([])).toEqual([]);
   });
 });
@@ -198,11 +224,12 @@ describe('tableLayout — track list and min width', () => {
 
   it('appends an actions track only when actions are shown', () => {
     // Two columns: name + total, so 2 tracks bare and 3 with the actions column.
+    // Every track carries its own fr weight — that is the proportional split.
     expect(trackListFor(resolved, { hasActions: false })).toBe(
-      'minmax(7rem, 1fr) minmax(7rem, max-content)',
+      'minmax(max-content, 5fr) minmax(max-content, 7fr)',
     );
     expect(trackListFor(resolved, { hasActions: true })).toBe(
-      'minmax(7rem, 1fr) minmax(7rem, max-content) 5.25rem',
+      'minmax(max-content, 5fr) minmax(max-content, 7fr) minmax(max-content, 5.25fr)',
     );
   });
 

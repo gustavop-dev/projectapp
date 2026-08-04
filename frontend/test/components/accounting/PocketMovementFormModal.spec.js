@@ -80,41 +80,39 @@ const LINKED_RECORD = {
 };
 
 describe('PocketMovementFormModal', () => {
-  it('shows the ledger selector in create mode', () => {
+  it('opens a new movement on Egreso with the whole form already in that variant', () => {
     const wrapper = mountModal();
 
-    expect(wrapper.text()).toContain('Contabilidad');
-    expect(segmentedButton(wrapper, 'Personal Gustavo')).toBeTruthy();
+    // Egresos are the common case, so nothing should need flipping first — and
+    // the fields that depend on the direction must arrive in their egreso
+    // version, not wait for the toggle to be touched.
+    expect(segmentedButton(wrapper, 'Egreso').attributes('aria-selected'))
+      .toBe('true');
+    expect(wrapper.text()).toContain('Atribuir a');
+    expect(wrapper.text()).not.toContain('Contabilidad');
+    expect(segmentedButton(wrapper, 'Gustavo')).toBeTruthy();
+    expect(segmentedButton(wrapper, 'Gustavo').attributes('disabled'))
+      .toBeUndefined();
+    expect(wrapper.text()).toContain('resta a la utilidad de la empresa');
   });
 
-  it('forces the company ledger while the direction is IN', async () => {
+  it('forces the company ledger when the direction is switched to Ingreso', async () => {
     const wrapper = mountModal();
 
-    // Default direction is 'in': the ledger segmented is disabled.
-    expect(wrapper.text()).toContain(
-      'Los ingresos al bolsillo siempre son de la empresa.',
-    );
-
-    await segmentedButton(wrapper, 'Egreso').trigger('click');
     await segmentedButton(wrapper, 'Carlos').trigger('click');
     await segmentedButton(wrapper, 'Ingreso').trigger('click');
 
-    // Flipping back to IN resets the ledger to company.
+    // A pocket ingreso is company money by definition, so the attribution the
+    // egreso allowed is reset and locked.
+    expect(wrapper.text()).toContain(
+      'Los ingresos al bolsillo siempre son de la empresa.',
+    );
+    expect(wrapper.text()).toContain('Contabilidad');
     expect(
       segmentedButton(wrapper, 'Empresa').attributes('aria-selected'),
     ).toBe('true');
-  });
-
-  it('relabels the selector as attribution for egresos', async () => {
-    const wrapper = mountModal();
-
-    await segmentedButton(wrapper, 'Egreso').trigger('click');
-
-    // A pocket egreso always counts against company utility; the partner
-    // options attribute the draw instead of picking a personal ledger.
-    expect(wrapper.text()).toContain('Atribuir a');
-    expect(segmentedButton(wrapper, 'Gustavo')).toBeTruthy();
-    expect(wrapper.text()).toContain('resta a la utilidad de la empresa');
+    expect(segmentedButton(wrapper, 'Personal Gustavo').attributes('disabled'))
+      .toBeDefined();
   });
 
   it('locks the direction and prefills the attribution on linked records', () => {
@@ -144,7 +142,6 @@ describe('PocketMovementFormModal', () => {
 
     await wrapper.find('input[type="text"]').setValue('Pago hosting');
     await wrapper.find('input[type="date"]').setValue('2026-05-02');
-    await segmentedButton(wrapper, 'Egreso').trigger('click');
     await segmentedButton(wrapper, 'Carlos').trigger('click');
     await wrapper.find('input[inputmode="numeric"]').setValue('90000');
     await wrapper.find('form').trigger('submit');

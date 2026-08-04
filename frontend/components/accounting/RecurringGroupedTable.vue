@@ -113,17 +113,21 @@
                   class="min-w-0"
                   :class="cellClass(col)"
                 >
-                  <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
-                    <template v-if="col.format === 'money'">
-                      {{ formatMoney(row[col.key], 'COP') }}
-                    </template>
-                    <HighlightText
-                      v-else-if="highlightQuery"
-                      :text="row[col.key] ?? ''"
-                      :query="highlightQuery"
-                    />
-                    <template v-else>{{ row[col.key] }}</template>
-                  </slot>
+                  <!-- Caps the name column's content so one long value cannot
+                       widen its track past the rest of the table. -->
+                  <span :class="col.contentClass">
+                    <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
+                      <template v-if="col.format === 'money'">
+                        {{ formatMoney(row[col.key], 'COP') }}
+                      </template>
+                      <HighlightText
+                        v-else-if="highlightQuery"
+                        :text="row[col.key] ?? ''"
+                        :query="highlightQuery"
+                      />
+                      <template v-else>{{ row[col.key] }}</template>
+                    </slot>
+                  </span>
                 </span>
                 <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                   <button
@@ -225,7 +229,7 @@ watch(
 
 const DENSITY = TABLE_DENSITY;
 
-/** Widths by content, with a single flexible column — see utils/tableLayout. */
+/** Widths by content, slack shared in proportion — see utils/tableLayout. */
 const resolved = computed(() => resolveColumns(props.columns));
 
 /**
@@ -306,8 +310,13 @@ function onDragEnd() {
 .accounting-grid-row {
   grid-template-columns: var(--cols-base);
 }
+/* Ceiling + centring, same rule as AccountingTable: past 1400px the tracks stop
+ * stretching. min-width wins over max-width by spec, so a narrow screen still
+ * scrolls instead of squeezing a column past its content. */
 .accounting-grid-scroll {
   min-width: var(--minw-base);
+  max-width: 87.5rem;
+  margin-inline: auto;
 }
 @media (min-width: 768px) {
   .accounting-grid-row {

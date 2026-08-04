@@ -3,7 +3,8 @@
  *
  * Covers: Todos/Sin-carpeta entries, folder list, select emits,
  * manage emits, active styling, reorderFolders on drag-end,
- * folder-drop emit on document drop.
+ * folder-drop emit on document drop, row alignment and the
+ * delete affordance (enabled on empty folders, blocked otherwise).
  */
 
 const mockFolderStore = {
@@ -22,8 +23,10 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-const folderA = { id: 1, name: 'Propuestas', document_count: 5 };
-const folderB = { id: 2, name: 'Contratos', document_count: 2 };
+const folderA = { id: 1, name: 'Propuestas', document_count: 5, children_count: 0 };
+const folderB = { id: 2, name: 'Contratos', document_count: 2, children_count: 0 };
+const emptyFolder = { id: 3, name: 'Xpandia Project', document_count: 0, children_count: 0 };
+const parentFolder = { id: 4, name: 'Clientes', document_count: 0, children_count: 2 };
 
 // Stub that renders all items from v-model and can emit @end
 const DraggableStub = {
@@ -33,6 +36,19 @@ const DraggableStub = {
   template: `
     <div data-testid="folder-draggable">
       <slot name="item" v-for="(el, i) in modelValue" :key="i" :element="el" />
+    </div>
+  `,
+};
+
+// BaseTooltip is a Nuxt auto-import; the stub keeps the trigger (and the body,
+// which the real component only reveals on hover) reachable from the spec.
+const BaseTooltipStub = {
+  name: 'BaseTooltip',
+  props: ['position', 'width', 'minWidth'],
+  template: `
+    <div data-testid="tooltip">
+      <slot name="trigger" />
+      <span data-testid="tooltip-body"><slot /></span>
     </div>
   `,
 };
@@ -48,8 +64,13 @@ function mountSidebar(props = {}) {
     },
     global: {
       stubs: { draggable: DraggableStub },
+      components: { BaseTooltip: BaseTooltipStub },
     },
   });
+}
+
+function folderNameButton(wrapper, name) {
+  return wrapper.findAll('button').find((b) => b.text().includes(name));
 }
 
 describe('FolderSidebar', () => {
@@ -152,6 +173,60 @@ describe('FolderSidebar', () => {
       // The inner button wrapper should have the active class
       const folderBtn = wrapper.findAll('button').find(b => b.text().includes('Propuestas'));
       expect(folderBtn.classes()).not.toContain('bg-emerald-50'); // button itself, parent div has class
+    });
+  });
+
+  // ── Row alignment ─────────────────────────────────────────────────────────
+
+  describe('row alignment', () => {
+    it('starts folder names on the same horizontal axis as the Todos entry', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+      const todosBtn = folderNameButton(wrapper, 'Todos');
+      const folderBtn = folderNameButton(wrapper, 'Propuestas');
+
+      expect(todosBtn.classes()).toContain('px-3');
+      expect(folderBtn.classes()).toContain('px-3');
+    });
+
+    it('truncates a long folder name instead of wrapping or pushing the counter', () => {
+      const longName = 'Documentación comercial de clientes corporativos 2026';
+      const wrapper = mountSidebar({
+        folders: [{ id: 9, name: longName, document_count: 3, children_count: 0 }],
+      });
+      const nameSpan = folderNameButton(wrapper, longName).find('span');
+
+      expect(nameSpan.classes()).toContain('truncate');
+    });
+  });
+
+  // ── Delete affordance ─────────────────────────────────────────────────────
+
+  describe('delete affordance', () => {
+    it('emits delete with the folder when an empty folder’s delete icon is clicked', async () => {
+      const wrapper = mountSidebar({ folders: [emptyFolder] });
+
+      await wrapper.find('[data-testid="folder-delete"]').trigger('click');
+
+      expect(wrapper.emitted('delete')).toEqual([[emptyFolder]]);
+    });
+
+    it('blocks the delete icon and explains why when the folder holds documents', async () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+      const blocked = wrapper.find('[data-testid="folder-delete-blocked"]');
+
+      expect(wrapper.find('[data-testid="folder-delete"]').exists()).toBe(false);
+      expect(blocked.attributes('aria-disabled')).toBe('true');
+      expect(wrapper.find('[data-testid="tooltip-body"]').text()).toContain('5 elementos');
+
+      await blocked.trigger('click');
+      expect(wrapper.emitted('delete')).toBeUndefined();
+    });
+
+    it('blocks the delete icon for a folder that only holds subfolders', () => {
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(wrapper.find('[data-testid="folder-delete-blocked"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="tooltip-body"]').text()).toContain('2 elementos');
     });
   });
 

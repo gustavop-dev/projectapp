@@ -486,7 +486,7 @@ const exportParams = computed(() =>
 // `hideBelow` collapses the least load-bearing columns first — name, monthly
 // equivalent and status survive every width.
 const SHARED_COLUMNS = [
-  { key: 'name', label: 'Nombre', size: 'flex', sortable: true },
+  { key: 'name', label: 'Nombre', size: 'name', sortable: true },
   { key: 'price', label: 'Precio', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
   { key: 'monthly_price', label: 'Precio mensual', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
   { key: 'monthly_cop_cost', label: 'Equiv. COP mensual', format: 'money', group: 'money', sortable: true },
