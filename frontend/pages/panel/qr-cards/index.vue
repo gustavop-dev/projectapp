@@ -82,7 +82,7 @@
     </div>
 
     <!-- Create / edit modal -->
-    <BaseModal v-model="formModal.open" size="md">
+    <BaseModal v-model="formModal.open" size="md" padding="md">
       <form data-testid="qr-card-form" @submit.prevent="onSubmit">
         <h3 class="text-lg font-bold text-text-default mb-4">
           {{ formModal.editingId ? 'Editar tarjeta' : 'Nueva tarjeta' }}
@@ -118,6 +118,17 @@
     </BaseModal>
 
     <DownloadQrModal v-model="downloadModal.open" :card="downloadModal.card" />
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -130,14 +141,17 @@ import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import DownloadQrModal from '~/components/panel/qr-cards/DownloadQrModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useQrCardsStore } from '~/stores/qr_cards';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = useQrCardsStore();
 const notify = usePanelNotify();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
 const formModal = reactive({ open: false, editingId: null, name: '', destinationUrl: '' });
 const formErrors = reactive({ name: '', destination_url: '' });
@@ -210,6 +224,14 @@ async function onSubmit() {
 }
 
 async function onDelete(card) {
+  const confirmed = await requestConfirm({
+    title: 'Eliminar tarjeta',
+    message: `"${card.name}" se eliminará de forma permanente. Si el QR fue impreso o compartido, dejará de funcionar — el link corto ya no redirigirá a ningún destino. Esta acción no se puede deshacer.`,
+    confirmText: 'Eliminar',
+    variant: 'danger',
+  });
+  if (!confirmed) return;
+
   const result = await store.deleteCard(card.id);
   if (!result.success) {
     notify.error({ title: 'No se pudo eliminar la tarjeta' });
