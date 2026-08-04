@@ -487,10 +487,10 @@ function deductionPillTitle(row) {
   );
 }
 
-// Same shape as Ingresos: one flexible concept, the three amounts grouped, and
+// Same shape as Ingresos: concept on the widest floor, the three amounts grouped, and
 // the metadata columns collapsing first on narrow screens.
 const columns = [
-  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
   { key: 'category_label', label: 'Categoría', size: 'badge' },
   { key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg' },

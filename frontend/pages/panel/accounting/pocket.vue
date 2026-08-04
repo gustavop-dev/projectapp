@@ -361,7 +361,7 @@ const {
 // Date, concept and value are what a ledger is for; the rest can collapse.
 const columns = [
   { key: 'movement_date', label: 'Fecha', format: 'date', sortable: true },
-  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
   { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
   { key: 'running_balance', label: 'Saldo', format: 'money', group: 'money', hideBelow: 'md' },

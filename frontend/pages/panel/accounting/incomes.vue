@@ -601,12 +601,12 @@ function confirmWriteOff(record) {
   });
 }
 
-// The three amounts read as one block (`group: 'money'`); concept absorbs the
-// slack. Concept, Total, Tipo and Cobro survive every width — the partner
+// The three amounts read as one block (`group: 'money'`); concept gets the
+// widest floor. Concept, Total, Tipo and Cobro survive every width — the partner
 // splits and the period collapse first. The ledger is filter-only: it earned
 // no column of its own next to what the row is actually about.
 const columns = [
-  { key: 'concept', label: 'Concepto', size: 'flex', sortable: true },
+  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'kind_label', label: 'Tipo', size: 'badge' },
   { key: 'payment_status', label: 'Cobro', size: 'text' },
   { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },

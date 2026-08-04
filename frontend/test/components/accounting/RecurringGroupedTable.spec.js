@@ -125,7 +125,7 @@ describe('RecurringGroupedTable', () => {
     expect(headerRow.attributes('style')).toBe(bodyRow.attributes('style'));
   });
 
-  it('sizes columns by content instead of splitting the width evenly', () => {
+  it('gives every column a content floor and a proportional share of the slack', () => {
     const wrapper = mountTable({
       dragEnabled: true,
       columns: [
@@ -139,11 +139,27 @@ describe('RecurringGroupedTable', () => {
       .attributes('style')
       .match(/--cols-lg:([^;]*)/)[1];
 
-    // Exactly one flexible track absorbs the slack; everything else is fixed,
-    // so a badge or a two-character day no longer claims a full column.
-    expect(wide.match(/1fr/g)).toHaveLength(1);
-    expect(wide).toContain('2.75rem'); // Día
-    expect(wide).toContain('6rem'); // Estado badge
+    // No single track hoards the slack: each one floors at its content and
+    // grows by its own weight, so a two-character day stays narrow while an
+    // amount does not, and neither is separated by an outsized gap.
+    expect(wide).toContain('minmax(max-content, 2.75fr)'); // Día
+    expect(wide).toContain('minmax(max-content, 6fr)'); // Estado badge
+    expect(wide).toContain('minmax(max-content, 7fr)'); // monto
+    // Four data columns plus the actions slot; the drag handle stays fixed.
+    expect(wide.match(/minmax\(max-content, [\d.]+fr\)/g)).toHaveLength(5);
+    expect(wide).toContain('1.75rem');
+  });
+
+  it('caps the name column content so a long value cannot widen the grid', () => {
+    const wrapper = mountTable({
+      dragEnabled: true,
+      columns: [{ key: 'name', label: 'Nombre', size: 'name' }, columns[1]],
+    });
+    const nameCell = Array.from(
+      wrapper.find('[data-testid="accounting-row-18"]').element.children,
+    ).find((cell) => cell.textContent.includes('Claude Code 20x'));
+
+    expect(nameCell.querySelector('span').className).toContain('max-w-[22rem]');
   });
 
   it('emits the full board with category and order after a drag', async () => {
