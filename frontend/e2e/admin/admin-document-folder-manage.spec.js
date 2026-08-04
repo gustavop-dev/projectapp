@@ -4,7 +4,9 @@
  * @flow:admin-document-folder-manage
  * Covers: FolderManagerModal create with the root-parent default, inline
  *         rename through the edit panel, delete confirmation for empty
- *         folders and the blocking panel for folders with documents.
+ *         folders and the blocking panel for folders with documents, plus
+ *         the sidebar delete affordance (DELETE-typed confirmation on empty
+ *         folders, blocked icon on folders that still hold content).
  *         Drag-reorder is intentionally not asserted (flaky in CI).
  */
 import { test, expect } from '../helpers/test.js';
@@ -93,7 +95,7 @@ test.describe('Admin Document Folder Manage', () => {
     });
     await openFolderManager(page);
 
-    await page.locator('button[title="Eliminar carpeta"]').first().click();
+    await page.getByTestId('folder-manager-delete').first().click();
     await expect(page.getByText('Eliminar "Contratos"')).toBeVisible();
     await page.getByRole('button', { name: 'Confirmar eliminación' }).click();
 
@@ -113,9 +115,85 @@ test.describe('Admin Document Folder Manage', () => {
     });
     await openFolderManager(page);
 
-    await page.locator('button[title="Eliminar carpeta"]').first().click();
+    await page.getByTestId('folder-manager-delete').first().click();
 
     await expect(page.getByRole('button', { name: 'Confirmar eliminación' })).toBeHidden();
     expect(deleteCalled).toBe(false);
+  });
+
+  test('deletes an empty folder from the sidebar after typing DELETE', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let deleteCalled = false;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'document-folders/10/delete/' && method === 'DELETE') {
+        deleteCalled = true;
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+      return baseRoutes(apiPath, [emptyFolder]);
+    });
+    await page.goto('/panel/documents');
+
+    await page.getByRole('button', { name: 'Eliminar carpeta Contratos' }).click();
+
+    const confirmBtn = page.getByTestId('delete-folder-confirm');
+    await expect(confirmBtn).toBeDisabled();
+    await page.getByTestId('delete-folder-type-input').fill('delete');
+    await expect(confirmBtn).toBeDisabled();
+    await page.getByTestId('delete-folder-type-input').fill('DELETE');
+    await expect(confirmBtn).toBeEnabled();
+    await confirmBtn.click();
+
+    await expect.poll(() => deleteCalled).toBe(true);
+  });
+
+  test('blocks the sidebar delete icon for a folder that still holds documents', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    let deleteCalled = false;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath.startsWith('document-folders/') && method === 'DELETE') {
+        deleteCalled = true;
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+      return baseRoutes(apiPath, [busyFolder]);
+    });
+    await page.goto('/panel/documents');
+
+    const blocked = page.getByTestId('folder-delete-blocked');
+    await expect(blocked).toBeDisabled();
+    // El tooltip es la única explicación del bloqueo: debe salir en ese estado.
+    await blocked.hover();
+
+    await expect(page.getByText('Vacíala antes de eliminarla.')).toBeVisible();
+    await expect(page.getByTestId('delete-folder-confirm')).toBeHidden();
+    expect(deleteCalled).toBe(false);
+  });
+
+  test('surfaces the backend conflict when the folder filled up behind the icon', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'document-folders/10/delete/' && method === 'DELETE') {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            detail: 'La carpeta tiene 2 documento(s). Muévelos o elimínalos antes de borrarla.',
+            document_count: 2,
+          }),
+        };
+      }
+      return baseRoutes(apiPath, [emptyFolder]);
+    });
+    await page.goto('/panel/documents');
+
+    await page.getByRole('button', { name: 'Eliminar carpeta Contratos' }).click();
+    await page.getByTestId('delete-folder-type-input').fill('DELETE');
+    await page.getByTestId('delete-folder-confirm').click();
+
+    await expect(page.getByTestId('delete-folder-error'))
+      .toContainText('La carpeta tiene 2 documento(s)');
+    await expect(page.getByTestId('delete-folder-confirm')).toBeVisible();
   });
 });

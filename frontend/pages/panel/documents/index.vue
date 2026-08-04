@@ -33,9 +33,9 @@
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
-        @create="openFolderManager"
         @manage="openFolderManager"
         @folder-drop="handleDropOnFolder"
+        @delete="handleDeleteFolder"
       />
 
       <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
@@ -202,6 +202,11 @@
       :initial-parent="typeof documentStore.activeFolderId === 'number' ? documentStore.activeFolderId : null"
       @changed="handleFoldersChanged"
     />
+    <DeleteFolderModal
+      v-model="showDeleteFolderModal"
+      :folder="deletingFolder"
+      @deleted="handleFolderDeleted"
+    />
     <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
     <RenameDocumentModal v-model="showRenameModal" :document="renamingDoc" @changed="handleRenamed" />
@@ -239,6 +244,7 @@ import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
+import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
 import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
@@ -319,6 +325,7 @@ watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
 
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
+const deletingFolder = ref(null);
 const movingDoc = ref(null);
 const renamingDoc = ref(null);
 const emailingDoc = ref(null);
@@ -341,6 +348,10 @@ const showEmailModal = computed({
 const showActionsSheet = computed({
   get: () => !!actionDoc.value,
   set: (v) => { if (!v) actionDoc.value = null; },
+});
+const showDeleteFolderModal = computed({
+  get: () => !!deletingFolder.value,
+  set: (v) => { if (!v) deletingFolder.value = null; },
 });
 
 const createLink = computed(() => {
@@ -386,6 +397,20 @@ function handleClearTagFilters() {
 
 function openFolderManager() {
   showFolderManager.value = true;
+}
+
+function handleDeleteFolder(folder) {
+  if (!folder) return;
+  deletingFolder.value = folder;
+}
+
+async function handleFolderDeleted(folder) {
+  notify.success({ title: 'Carpeta eliminada' });
+  // La carpeta borrada era el filtro activo: no queda vista que mostrar.
+  if (documentStore.activeFolderId === folder?.id) {
+    handleSelectFolder('all');
+  }
+  await handleFoldersChanged();
 }
 
 async function handleFoldersChanged() {

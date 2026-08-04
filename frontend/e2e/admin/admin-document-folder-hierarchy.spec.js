@@ -92,10 +92,10 @@ test.describe('Admin Document Folder Hierarchy', () => {
     await page.waitForLoadState('domcontentloaded');
 
     const bar = sidebar(page);
-    await expect(bar.getByRole('button', { name: 'Raiz A' })).toBeVisible();
-    await expect(bar.getByRole('button', { name: 'Raiz B' })).toBeVisible();
+    await expect(bar.getByRole('button', { name: /^Raiz A/ })).toBeVisible();
+    await expect(bar.getByRole('button', { name: /^Raiz B/ })).toBeVisible();
     // La subcarpeta no debe listarse en el sidebar.
-    await expect(bar.getByRole('button', { name: 'Subcarpeta Uno' })).toHaveCount(0);
+    await expect(bar.getByRole('button', { name: /^Subcarpeta Uno/ })).toHaveCount(0);
   });
 
   test('entering a folder reveals subfolder rows and the breadcrumb', {
@@ -115,7 +115,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
     await page.goto('/panel/documents');
     await page.waitForLoadState('domcontentloaded');
 
-    await sidebar(page).getByRole('button', { name: 'Raiz A' }).click();
+    await sidebar(page).getByRole('button', { name: /^Raiz A/ }).click();
 
     const breadcrumb = page.getByRole('navigation', { name: 'Ruta de carpetas' });
     await expect(breadcrumb).toBeVisible();
@@ -148,7 +148,7 @@ test.describe('Admin Document Folder Hierarchy', () => {
     await page.waitForLoadState('domcontentloaded');
 
     // Entrar a la carpeta raíz, luego a la subcarpeta desde la tabla.
-    await sidebar(page).getByRole('button', { name: 'Raiz A' }).click();
+    await sidebar(page).getByRole('button', { name: /^Raiz A/ }).click();
     await page.getByRole('table').getByText('Subcarpeta Uno').click();
 
     await expect.poll(

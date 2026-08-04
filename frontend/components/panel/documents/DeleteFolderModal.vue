@@ -1,0 +1,153 @@
+<template>
+  <BaseModal
+    :model-value="modelValue && !!folder"
+    size="md"
+    @update:model-value="(v) => !v && close()"
+  >
+    <div v-if="folder" class="px-6 pt-6 pb-2">
+      <div class="flex items-start gap-4">
+        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-danger-soft flex items-center justify-center">
+          <ExclamationCircleIcon class="w-5 h-5 text-danger-strong" />
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="text-lg font-bold text-text-default break-words">Eliminar "{{ folder.name }}"</h3>
+          <p class="mt-1 text-sm text-text-muted leading-relaxed">
+            Esta acción no se puede deshacer.
+          </p>
+
+          <!-- Inventario: qué contiene la carpeta hoy -->
+          <div
+            class="mt-4 rounded-lg border border-border-muted bg-surface-muted px-3 py-2.5"
+            data-testid="delete-folder-inventory"
+          >
+            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Contenido</p>
+            <p v-if="isEmpty" class="mt-1.5 text-sm text-text-default">
+              Esta carpeta está vacía: no se eliminará ningún documento ni subcarpeta.
+            </p>
+            <template v-else>
+              <ul class="mt-1.5 space-y-1" role="list">
+                <li
+                  v-for="child in childFolders"
+                  :key="child.id"
+                  class="flex items-center gap-2 text-sm text-text-default"
+                >
+                  <svg class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                  </svg>
+                  <span class="truncate">{{ child.name }}</span>
+                </li>
+                <li v-if="documentCount" class="flex items-center gap-2 text-sm text-text-default">
+                  <svg class="w-3.5 h-3.5 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>{{ documentCount }} {{ documentCount === 1 ? 'documento' : 'documentos' }}</span>
+                </li>
+              </ul>
+              <p class="mt-2 text-xs text-danger-strong">
+                Mueve o elimina su contenido antes de borrar la carpeta.
+              </p>
+            </template>
+          </div>
+
+          <!-- Confirmación escrita — mismo contrato que ConfirmModal: exacto y sensible a mayúsculas -->
+          <div v-if="isEmpty" class="mt-4">
+            <label class="block text-xs text-text-muted mb-1.5" :for="typeInputId">
+              Escribe <span class="font-mono font-bold text-text-default">{{ CONFIRM_WORD }}</span> para confirmar
+            </label>
+            <input
+              :id="typeInputId"
+              ref="typeInputRef"
+              v-model="typedValue"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              data-testid="delete-folder-type-input"
+              :placeholder="CONFIRM_WORD"
+              class="w-full px-3 py-2 text-sm font-mono text-input-text bg-input-bg border border-input-border placeholder:text-text-subtle rounded-lg focus:outline-none focus:ring-2 focus:ring-danger-strong/40 focus:border-danger-strong/60"
+              @keyup.enter="confirmDelete"
+            />
+          </div>
+
+          <p
+            v-if="errorMsg"
+            class="mt-3 text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg"
+            data-testid="delete-folder-error"
+          >
+            {{ errorMsg }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 px-6 py-4">
+      <BaseButton variant="ghost" size="md" @click="close">Cancelar</BaseButton>
+      <BaseButton
+        variant="danger"
+        size="md"
+        data-testid="delete-folder-confirm"
+        :disabled="!canConfirm"
+        :loading="isDeleting"
+        @click="confirmDelete"
+      >
+        Eliminar carpeta
+      </BaseButton>
+    </div>
+  </BaseModal>
+</template>
+
+<script setup>
+import { computed, nextTick, ref, useId, watch } from 'vue';
+import { ExclamationCircleIcon } from '@heroicons/vue/24/outline';
+
+const CONFIRM_WORD = 'DELETE';
+
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+  folder: { type: Object, default: null },
+});
+const emit = defineEmits(['update:modelValue', 'deleted']);
+
+const folderStore = useDocumentFolderStore();
+
+const typedValue = ref('');
+const errorMsg = ref('');
+const isDeleting = ref(false);
+const typeInputRef = ref(null);
+const typeInputId = useId();
+
+const childFolders = computed(() => (props.folder ? folderStore.childrenOf(props.folder.id) : []));
+
+// El contador del servidor manda cuando el store aún no trajo las subcarpetas.
+const childCount = computed(() => Math.max(childFolders.value.length, props.folder?.children_count || 0));
+const documentCount = computed(() => props.folder?.document_count || 0);
+const isEmpty = computed(() => documentCount.value === 0 && childCount.value === 0);
+
+const canConfirm = computed(() => isEmpty.value && typedValue.value === CONFIRM_WORD && !isDeleting.value);
+
+watch(() => props.modelValue, (open) => {
+  typedValue.value = '';
+  errorMsg.value = '';
+  if (open && props.folder && isEmpty.value) {
+    nextTick(() => typeInputRef.value?.focus());
+  }
+});
+
+function close() {
+  emit('update:modelValue', false);
+}
+
+async function confirmDelete() {
+  if (!canConfirm.value || !props.folder) return;
+  isDeleting.value = true;
+  errorMsg.value = '';
+  const result = await folderStore.deleteFolder(props.folder.id);
+  isDeleting.value = false;
+  if (result.success) {
+    emit('deleted', props.folder);
+    close();
+    return;
+  }
+  // El backend responde 409 con copy en español; si no llega, texto genérico.
+  errorMsg.value = result.errors?.detail || 'No se pudo eliminar la carpeta.';
+}
+</script>

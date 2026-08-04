@@ -3834,9 +3834,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
-- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create.
-- **Coverage:** ✅ Covered (create/rename/delete + blocking branch; drag-reorder not asserted — flaky in CI)
-- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22)
+- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create. El sidebar (`FolderSidebar`) expone además un ícono de eliminar por fila: habilitado en carpetas vacías, `aria-disabled` + tooltip explicando el motivo cuando la carpeta tiene documentos o subcarpetas. El ícono habilitado abre `DeleteFolderModal`, que muestra el inventario de la carpeta y exige escribir `DELETE` (sensible a mayúsculas) para confirmar.
+- **Coverage:** ✅ Covered (create/rename/delete + blocking branch; sidebar delete con confirmación DELETE, ícono bloqueado y conflicto 409; drag-reorder not asserted — flaky in CI)
+- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04)
 
 #### FLOW: `admin-document-tags-manage`
 
