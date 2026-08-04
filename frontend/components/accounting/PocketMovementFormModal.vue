@@ -40,11 +40,15 @@ const ledgerLabel = computed(() =>
   form.value.direction === 'out' ? 'Atribuir a' : 'Contabilidad',
 )
 
+// Egresos are what the pocket mostly records, so a new movement opens on the
+// common case: no toggle to flip before saving, and no egreso filed as an
+// ingreso by leaving the default untouched. Editing keeps whatever the record
+// has (see the watch below).
 function defaultForm() {
   return {
     concept: '',
     movement_date: '',
-    direction: 'in',
+    direction: 'out',
     amount: '',
     ledger: 'company',
     notes: '',

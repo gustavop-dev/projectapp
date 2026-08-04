@@ -268,11 +268,14 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     ).toHaveAttribute('aria-selected', 'true');
   });
 
-  test('new movement modal offers the ledger selector for egresos', {
+  test('new movement modal opens on Egreso with the attribution selector ready', {
     tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the helper lands on a sibling accounting
+    // tab and then clicks the subnav, which is the navigation being
+    // asserted; there is no pre-auth entry point in these mocked specs)
     await mockApi(page, buildHandler({ calls: [] }));
-    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await openSubview(page, 'pocket');
     await expect(page.getByTestId('pocket-new-button')).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('pocket-new-button').click();
@@ -281,16 +284,24 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       modal.getByRole('heading', { name: 'Nuevo Movimiento de bolsillo' }),
     ).toBeVisible();
 
-    // IN movements are company-only; the selector unlocks for egresos.
+    // Egresos are the common case: the toggle and everything that depends on it
+    // land ready, so registering one takes no adjustment first.
     await expect(
-      modal.getByText('Los ingresos al bolsillo siempre son de la empresa.'),
-    ).toBeVisible();
-    await modal.getByRole('tab', { name: 'Egreso', exact: true }).click();
-    // For egresos the selector attributes the draw to a partner.
+      modal.getByRole('tab', { name: 'Egreso', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
     await expect(modal.getByText('Atribuir a')).toBeVisible();
     await modal.getByRole('tab', { name: 'Gustavo', exact: true }).click();
     await expect(
       modal.getByRole('tab', { name: 'Gustavo', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+
+    // Switching to Ingreso locks the selector back to the company.
+    await modal.getByRole('tab', { name: 'Ingreso', exact: true }).click();
+    await expect(
+      modal.getByText('Los ingresos al bolsillo siempre son de la empresa.'),
+    ).toBeVisible();
+    await expect(
+      modal.getByRole('tab', { name: 'Empresa', exact: true }),
     ).toHaveAttribute('aria-selected', 'true');
   });
 
