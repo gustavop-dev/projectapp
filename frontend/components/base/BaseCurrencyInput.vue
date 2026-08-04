@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE, INPUT_FIELD_ERROR } from './inputClasses'
 import { oneOf } from './propValidators'
 
@@ -9,6 +9,8 @@ import { oneOf } from './propValidators'
  * With decimals > 0 a single comma is accepted as decimal separator.
  * With `allowNegative` a leading minus survives sanitising, so refunds and
  * chargebacks keep their sign instead of being silently flipped positive.
+ * With `suggestion` an empty field shows the amount as its placeholder and
+ * adopts it (selected, so typing replaces) on click or tab focus.
  */
 const props = defineProps({
   modelValue: { type: [Number, String], default: null },
@@ -19,6 +21,8 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   /** Keep a leading "-" so negative amounts can be typed and edited. */
   allowNegative: { type: Boolean, default: false },
+  /** Amount offered while empty; a zero suggests without auto-filling. */
+  suggestion: { type: Number, default: null },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -98,6 +102,33 @@ function onInput(event) {
   emit('update:modelValue', toNumber(clean))
 }
 
+const effectivePlaceholder = computed(() =>
+  (props.suggestion == null ? props.placeholder : fromModel(props.suggestion) || '0'),
+)
+
+// One-shot flag: the mouseup that follows a click-focus would collapse the
+// select-all done in onFocus; it is swallowed exactly once.
+const justAdopted = ref(false)
+
+function onFocus(event) {
+  if (display.value || !(Number(props.suggestion) > 0)) return
+  const el = event.target
+  const clean = sanitize(fromModel(props.suggestion))
+  display.value = formatDisplay(clean)
+  // Write the DOM value synchronously — the :value binding lands next tick,
+  // too late for select() to grab the adopted text.
+  el.value = display.value
+  el.select()
+  justAdopted.value = true
+  emit('update:modelValue', toNumber(clean))
+}
+
+function onMouseup(event) {
+  if (!justAdopted.value) return
+  justAdopted.value = false
+  event.preventDefault()
+}
+
 watch(
   () => props.modelValue,
   (value) => {
@@ -115,9 +146,12 @@ watch(
     :inputmode="decimals > 0 ? 'decimal' : 'numeric'"
     autocomplete="off"
     :value="display"
-    :placeholder="placeholder"
+    :placeholder="effectivePlaceholder"
     :disabled="disabled"
     :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @input="onInput"
+    @focus="onFocus"
+    @mouseup="onMouseup"
+    @blur="justAdopted = false"
   />
 </template>

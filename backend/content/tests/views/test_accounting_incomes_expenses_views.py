@@ -596,6 +596,21 @@ class TestIncomeSettlementEndpoint:
         assert response.status_code == 400
         assert not ExpenseRecord.objects.exists()
 
+    def test_rejects_a_deduction_missing_its_type(self, super_client):
+        # The frontend now starts rows with no concept selected; the contract
+        # it leans on is that the server never accepts a typeless deduction.
+        income = self._expected()
+
+        for deduction in ({'amount': '8000.00'}, {'type': '', 'amount': '8000.00'}):
+            response = super_client.post(
+                f'/api/accounting/incomes/{income.pk}/settle/',
+                self._payload(deductions=[deduction]),
+                format='json',
+            )
+
+            assert response.status_code == 400, deduction
+        assert not ExpenseRecord.objects.exists()
+
     def test_unknown_income_returns_404(self, super_client):
         response = super_client.post(
             '/api/accounting/incomes/999999/settle/',
