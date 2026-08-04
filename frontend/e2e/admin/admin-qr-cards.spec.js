@@ -5,6 +5,7 @@
  *   - Creating a card with only a name (destination left empty).
  *   - Editing a card's destination_url.
  *   - Toggling a card's active state.
+ *   - Deleting a card requires confirmation; cancelling keeps it, confirming removes it.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -53,6 +54,11 @@ function setupQrCardsMock(page, { cards = [] } = {}) {
       const updated = store.find((c) => c.id === id);
       return { status: 200, contentType: 'application/json', body: JSON.stringify(updated) };
     }
+    if (apiPath.match(/^qr-cards\/admin\/[^/]+\/delete\/$/) && route.request().method() === 'DELETE') {
+      const id = apiPath.split('/')[2];
+      store = store.filter((c) => c.id !== id);
+      return { status: 204, contentType: 'application/json', body: '' };
+    }
     return null;
   });
 }
@@ -100,5 +106,34 @@ test.describe('Admin QR Cards', () => {
     await page.getByTestId(`qr-card-toggle-${existingCard.id}`).click();
 
     await expect(page.getByTestId(`qr-card-toggle-${existingCard.id}`)).toHaveAttribute('aria-checked', 'false');
+  });
+
+  test('cancelling the delete confirmation keeps the card', {
+    tag: [...ADMIN_QR_CARDS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (admin panel E2E specs enter routes directly; sidebar navigation is covered by layout specs)
+    await setupQrCardsMock(page, { cards: [existingCard] });
+    await page.goto('/panel/qr-cards');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.getByTestId(`qr-card-delete-${existingCard.id}`).click();
+    await expect(page.getByText(/dejará de funcionar/)).toBeVisible();
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+
+    await expect(page.getByTestId(`qr-card-row-${existingCard.id}`)).toBeVisible();
+  });
+
+  test('confirming the delete removes the card', {
+    tag: [...ADMIN_QR_CARDS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupQrCardsMock(page, { cards: [existingCard] });
+    await page.goto('/panel/qr-cards');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.getByTestId(`qr-card-delete-${existingCard.id}`).click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Sin tarjetas todavía')).toBeVisible();
+    await expect(page.getByTestId(`qr-card-row-${existingCard.id}`)).not.toBeVisible();
   });
 });

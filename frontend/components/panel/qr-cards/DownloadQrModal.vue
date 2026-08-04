@@ -1,5 +1,5 @@
 <template>
-  <BaseModal v-model="open" size="md">
+  <BaseModal v-model="open" size="md" padding="md">
     <div data-testid="qr-download-modal">
       <h3 class="text-lg font-bold text-text-default mb-4">Descargar QR — {{ card?.name }}</h3>
 
@@ -32,12 +32,22 @@
         <BaseCheckbox v-model="transparentBackground" data-testid="qr-transparent-toggle">
           Fondo transparente
         </BaseCheckbox>
+
+        <BaseFormField label="Formato de descarga">
+          <BaseSegmented
+            v-model="downloadFormat"
+            :options="[
+              { value: 'png', label: 'PNG', testId: 'qr-format-png' },
+              { value: 'svg', label: 'SVG', testId: 'qr-format-svg' },
+            ]"
+          />
+        </BaseFormField>
       </div>
 
       <div class="flex items-center justify-end gap-2">
         <BaseButton variant="ghost" size="sm" @click="open = false">Cerrar</BaseButton>
         <BaseButton variant="primary" size="sm" data-testid="qr-download-button" @click="download">
-          Descargar PNG
+          Descargar {{ downloadFormat.toUpperCase() }}
         </BaseButton>
       </div>
     </div>
@@ -51,6 +61,7 @@ import BaseModal from '~/components/base/BaseModal.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseCheckbox from '~/components/base/BaseCheckbox.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -66,23 +77,25 @@ const canvasRef = ref(null);
 const foregroundColor = ref('#000000');
 const backgroundColor = ref('#ffffff');
 const transparentBackground = ref(false);
+const downloadFormat = ref('png');
 
 function shortLinkFor(card) {
   return `${window.location.origin}/t/${card.id}/`;
 }
 
-async function renderQr() {
-  if (!open.value || !props.card || !canvasRef.value) return;
+function currentColors() {
   const lightColor = transparentBackground.value
     ? `${backgroundColor.value}00`
     : `${backgroundColor.value}ff`;
+  return { dark: `${foregroundColor.value}ff`, light: lightColor };
+}
+
+async function renderQr() {
+  if (!open.value || !props.card || !canvasRef.value) return;
   await QRCode.toCanvas(canvasRef.value, shortLinkFor(props.card), {
     width: 240,
     margin: 2,
-    color: {
-      dark: `${foregroundColor.value}ff`,
-      light: lightColor,
-    },
+    color: currentColors(),
   });
 }
 
@@ -99,11 +112,38 @@ onMounted(async () => {
   await renderQr();
 });
 
-function download() {
-  if (!canvasRef.value || !props.card) return;
+function triggerDownload(href, filename) {
   const link = document.createElement('a');
-  link.download = `qr-${props.card.name.replace(/\s+/g, '-').toLowerCase()}.png`;
-  link.href = canvasRef.value.toDataURL('image/png');
+  link.download = filename;
+  link.href = href;
   link.click();
+}
+
+async function downloadSvg(filenameBase) {
+  const svgString = await QRCode.toString(shortLinkFor(props.card), {
+    type: 'svg',
+    width: 240,
+    margin: 2,
+    color: currentColors(),
+  });
+  const blob = new Blob([svgString], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  triggerDownload(url, `${filenameBase}.svg`);
+  URL.revokeObjectURL(url);
+}
+
+function downloadPng(filenameBase) {
+  if (!canvasRef.value) return;
+  triggerDownload(canvasRef.value.toDataURL('image/png'), `${filenameBase}.png`);
+}
+
+async function download() {
+  if (!props.card) return;
+  const filenameBase = `qr-${props.card.name.replace(/\s+/g, '-').toLowerCase()}`;
+  if (downloadFormat.value === 'svg') {
+    await downloadSvg(filenameBase);
+  } else {
+    downloadPng(filenameBase);
+  }
 }
 </script>
