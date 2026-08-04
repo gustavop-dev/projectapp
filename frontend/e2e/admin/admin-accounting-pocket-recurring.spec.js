@@ -99,7 +99,28 @@ const RECURRING_ROWS = [
   }),
 ];
 
-function buildHandler({ calls, reorderStatus = 200 }) {
+/**
+ * Same rows, but the second one is an outlier in every column that can hold one:
+ * a name well above average, an amount with more digits, a payment method wider
+ * than the "T.C" every other row shows, a two-digit billing day and "Inactivo"
+ * against "Activo". Whatever the table does with these must not move a column.
+ */
+const OUTLIER_ROWS = [
+  recurringRow({
+    id: 1, name: 'Claude Code 20x', category: 1,
+    category_name: 'Suscripciones de IA', order: 0,
+  }),
+  recurringRow({
+    id: 2, name: 'Google Ads - Empresa Marketing Digital', category: 1,
+    category_name: 'Suscripciones de IA', order: 1,
+    price: '1234567.00', currency: 'COP', cop_equivalent: '1234567.00',
+    monthly_price: '1234567.00', monthly_cop_cost: '1234567.00',
+    payment_method: 'cash', payment_method_label: 'Efectivo',
+    billing_day: 28, is_active: false,
+  }),
+];
+
+function buildHandler({ calls, reorderStatus = 200, rows = RECURRING_ROWS }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath.startsWith('accounting/recurring-categories/') && apiPath.endsWith('/delete/')) {
       calls.push({ apiPath, method });
@@ -155,7 +176,7 @@ function buildHandler({ calls, reorderStatus = 200 }) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          results: RECURRING_ROWS,
+          results: rows,
           meta: { monthly_cop_total: '912900.00' },
         }),
       };
@@ -344,6 +365,57 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(page.getByTestId('recurring-group-total-2')).toHaveText('$32.900 COP');
     await expect(page.getByTestId('recurring-monthly-grand-total'))
       .toHaveText('$912.900 COP');
+  });
+
+  test('grouped rows and their header share one column grid, outlier included', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the helper lands on a sibling accounting
+    // tab and then clicks the subnav, which is the navigation being
+    // asserted; there is no pre-auth entry point in these mocked specs)
+    await mockApi(page, buildHandler({ calls: [], rows: OUTLIER_ROWS }));
+    await openSubview(page, 'recurring');
+    // Wait for the grouped grid itself: the pocket tab we come from also has a
+    // row 2, so waiting on a row id would measure the previous view.
+    await expect(page.getByTestId('recurring-group-1')).toBeVisible({ timeout: 25_000 });
+    const gridRows = page.locator('.accounting-grid-row');
+    await expect(gridRows).toHaveCount(3); // header + the two rows
+
+    // Measure the boxes instead of the glyphs: font rendering would make a
+    // pixel comparison of the text edge flaky, the column box would not.
+    const grid = await page.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('.accounting-grid-row'));
+      return rows.map((row) => Array.from(row.children).map((cell) => {
+        const box = cell.getBoundingClientRect();
+        return {
+          x: Math.round(box.x),
+          width: Math.round(box.width),
+          align: getComputedStyle(cell).textAlign,
+          label: cell.textContent.trim(),
+        };
+      }));
+    });
+
+    const [header, ...bodyRows] = grid;
+
+    // One grid for the whole table: every cell of a column starts and ends on
+    // the same axis, no matter how wide that particular row's content is.
+    for (let col = 0; col < header.length; col += 1) {
+      const cells = [header[col], ...bodyRows.map((row) => row[col])];
+      expect(new Set(cells.map((cell) => cell.x)).size,
+        `columna ${col} (${header[col].label}) arranca en ejes distintos`).toBe(1);
+      expect(new Set(cells.map((cell) => cell.width)).size,
+        `columna ${col} (${header[col].label}) tiene anchos distintos`).toBe(1);
+      // A value is justified against its own header, not just placed under it.
+      expect(new Set(cells.map((cell) => cell.align)).size,
+        `columna ${col} (${header[col].label}) se justifica distinto que su encabezado`).toBe(1);
+    }
+
+    // And the justification is the one the data type calls for.
+    const indexOf = (label) => header.findIndex((cell) => cell.label === label);
+    expect(header[indexOf('Nombre')].align).toBe('left');
+    expect(header[indexOf('Equiv. COP mensual')].align).toBe('right');
+    expect(header[indexOf('Día')].align).toBe('center');
   });
 
   test('monthly columns normalize a biennial charge', {
