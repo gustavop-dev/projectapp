@@ -281,7 +281,7 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 
 En `validation/` vive el **baseline de calibración** de la skill, producido en la prueba con los tres reportes de Vástago (02072026, calibración ÷4 definitiva):
 
-- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $6,1M–$8,8M ✅ · #24 $7,2M–$10,2M ✅ · #25 $13,3M–$18,9M ⚠️), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
+- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $4,9M–$7,0M ✅ · #24 $5,8M–$8,2M ✅ · #25 $10,6M–$15,1M ⚠️ — recalibración −20% del 04/08/2026), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
 - `validation/estimates/*.md` — los 3 markdown fuente de esas estimaciones (documentos #23, #24 y #25 de `/panel/documents`), con filas, señales citadas, modificadores, horas y precios.
 
 > **Nota de entorno:** los IDs #23–#25 y sus URLs `/panel/documents/<id>/edit` pertenecen al panel del **entorno donde corrió la prueba** (la dev machine del operador, 02/07/2026). En el panel de producción esos IDs corresponden a otros documentos; la carpeta "Requirement Estimates" se crea en prod con el primer uso real (§6 resuelve el entorno explícitamente desde el fix del 01/08/2026).
