@@ -79,6 +79,7 @@ export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admi
 export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_QR_CARDS = ['@flow:admin-qr-cards', '@module:admin', '@priority:P2'];
 
 // ── Admin Hour Packages ──
 export const ADMIN_HOUR_PACKAGES_LIST = ['@flow:admin-hour-packages-list', '@module:admin', '@priority:P2'];
