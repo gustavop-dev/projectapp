@@ -31,7 +31,7 @@ const items = [
   { key: 'incomes', label: 'Ingresos', to: '/panel/accounting/incomes' },
   { key: 'expenses', label: 'Gastos', to: '/panel/accounting/expenses' },
   { key: 'hostings', label: 'Hostings', to: '/panel/accounting/hostings' },
-  { key: 'collections', label: 'Cobros', to: '/panel/accounting/collections' },
+  { key: 'collections', label: 'Cuentas de cobro', to: '/panel/accounting/collections' },
   { key: 'recurring', label: 'Recurrentes', to: '/panel/accounting/recurring' },
   { key: 'ads', label: 'Ads', to: '/panel/accounting/ads' },
   { key: 'cards', label: 'Tarjetas', to: '/panel/accounting/cards' },

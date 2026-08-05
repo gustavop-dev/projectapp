@@ -579,6 +579,15 @@ export const viewCatalogSections = [
         viewType: 'list',
       },
       {
+        label: 'Contabilidad — Cuentas de cobro',
+        url: '/panel/accounting/collections',
+        group: 'Movimientos',
+        file: 'frontend/pages/panel/accounting/collections.vue',
+        reference: 'centro de gestion de cuentas de cobro: creacion con preview, envio y seguimiento',
+        audience: 'admin',
+        viewType: 'list',
+      },
+      {
         label: 'Contabilidad — Historial',
         url: '/panel/accounting/history',
         group: 'Panorama',

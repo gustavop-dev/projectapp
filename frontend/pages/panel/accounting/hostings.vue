@@ -572,12 +572,12 @@ async function sendBilling() {
       notify.success({
         title: 'Cuenta de cobro enviada',
         detail: number ? `Documento ${number} enviado a ${row.client_email}.` : '',
-        action: { label: 'Ver en Cobros', to: '/panel/accounting/collections' },
+        action: { label: 'Ver en Cuentas de cobro', to: '/panel/accounting/collections' },
       });
     } else {
       notify.warning({
         title: 'Cuenta de cobro emitida, pero el correo falló',
-        detail: 'Reenvíala desde el tab Cobros.',
+        detail: 'Reenvíala desde el tab Cuentas de cobro.',
       });
     }
     loadRecords();

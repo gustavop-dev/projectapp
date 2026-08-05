@@ -240,6 +240,74 @@ describe('useAccountingStore — operations', () => {
       expect(store.collectionAccounts[0]).toEqual({ id: 3, status: 'paid' })
       expect(store.collectionAccounts[1]).toEqual({ id: 4, status: 'issued' })
     })
+
+    it('createCollectionAccount posts and prepends the created document', async () => {
+      store.collectionAccounts = [{ id: 3 }]
+      create_request.mockResolvedValue({
+        data: {
+          document: { id: 9, public_number: 'PA-ACME-001' },
+          email_sent: true,
+        },
+      })
+
+      const result = await store.createCollectionAccount({
+        client_profile_id: 5,
+        income_record_id: 8,
+      })
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/collection-accounts/create/',
+        { client_profile_id: 5, income_record_id: 8 },
+      )
+      expect(store.collectionAccounts[0].id).toBe(9)
+      expect(store.collectionAccounts[1].id).toBe(3)
+      expect(result.data.email_sent).toBe(true)
+    })
+
+    it('previewCollectionAccount returns data without touching list state', async () => {
+      store.collectionAccounts = [{ id: 3 }]
+      create_request.mockResolvedValue({
+        data: { subject: 'Cuenta de cobro PA-ACME-001', pdf_base64: 'JVBERg==' },
+      })
+
+      const result = await store.previewCollectionAccount({ income_record_id: 8 })
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/collection-accounts/preview/',
+        { income_record_id: 8 },
+      )
+      expect(result.data.subject).toContain('PA-ACME-001')
+      expect(store.collectionAccounts).toEqual([{ id: 3 }])
+    })
+
+    it('fetchCollectionAccountNextNumber queries by client profile', async () => {
+      get_request.mockResolvedValue({
+        data: { suggested_number: 'PA-ACME-002', billing_code: 'ACME' },
+      })
+
+      const result = await store.fetchCollectionAccountNextNumber(5)
+
+      expect(get_request).toHaveBeenCalledWith(
+        'accounting/collection-accounts/next-number/?client_profile_id=5',
+      )
+      expect(result.data.suggested_number).toBe('PA-ACME-002')
+    })
+
+    it('searchIncomesForCollection filters kinds and leaves incomes state alone', async () => {
+      store.incomes = [{ id: 1 }]
+      get_request.mockResolvedValue({
+        data: { results: [{ id: 8, concept: 'Kore' }] },
+      })
+
+      const result = await store.searchIncomesForCollection({ q: 'Kore' })
+
+      const url = get_request.mock.calls[0][0]
+      expect(url).toContain('accounting/incomes/')
+      expect(url).toContain('kind=expected%2Cliquid')
+      expect(url).toContain('q=Kore')
+      expect(result.data).toEqual([{ id: 8, concept: 'Kore' }])
+      expect(store.incomes).toEqual([{ id: 1 }])
+    })
   })
 
   describe('hosting cycles', () => {

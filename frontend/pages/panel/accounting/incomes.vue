@@ -163,6 +163,32 @@
         @sort="toggleSort"
       >
         <template #row-actions="{ row }">
+          <template v-if="row.kind !== 'lost'">
+            <BaseButton
+              v-if="!row.has_collection_account"
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Generar cuenta de cobro"
+              title="Generar cuenta de cobro"
+              :data-testid="`income-generate-ca-${row.id}`"
+              @click.stop="openCollectionModal(row)"
+            >
+              <DocumentPlusIcon class="w-5 h-5" />
+            </BaseButton>
+            <BaseButton
+              v-else
+              variant="ghost"
+              icon-only
+              size="sm"
+              :aria-label="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+              :title="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+              :data-testid="`income-view-ca-${row.id}`"
+              @click.stop="goToCollectionAccount(row)"
+            >
+              <ArrowTopRightOnSquareIcon class="w-5 h-5" />
+            </BaseButton>
+          </template>
           <template v-if="row.kind === 'expected'">
             <button
               type="button"
@@ -245,6 +271,14 @@
       @submit="handleLiquidateSubmit"
     />
 
+    <!-- Generar cuenta de cobro desde el ingreso (preseleccionado) -->
+    <CollectionAccountFormModal
+      :open="collectionModalOpen"
+      :income="collectionIncome"
+      @close="collectionModalOpen = false"
+      @created="onCollectionCreated"
+    />
+
     <!-- Confirm modal for delete / write-off -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -264,7 +298,14 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
-import { BanknotesIcon, PlusIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import {
+  ArrowTopRightOnSquareIcon,
+  BanknotesIcon,
+  DocumentPlusIcon,
+  PlusIcon,
+  XCircleIcon,
+} from '@heroicons/vue/24/outline';
+import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -616,10 +657,46 @@ const columns = [
   { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
 ];
 
+// ── Cuenta de cobro desde el ingreso ──
+
+const collectionModalOpen = ref(false);
+const collectionIncome = ref(null);
+
+function openCollectionModal(row) {
+  collectionIncome.value = row;
+  collectionModalOpen.value = true;
+}
+
+function onCollectionCreated() {
+  collectionModalOpen.value = false;
+  collectionIncome.value = null;
+  // Reload so the row swaps to the "Ver cuenta de cobro" action.
+  loadRecords();
+}
+
+function goToCollectionAccount(row) {
+  navigateTo({
+    path: '/panel/accounting/collections',
+    query: { focus: row.collection_account_id },
+  });
+}
+
 async function loadRecords() {
   await store.fetchRecords('incomes');
 }
 
-onMounted(loadRecords);
+const route = useRoute();
+
+onMounted(async () => {
+  await loadRecords();
+  // ?focus=<id> flashes the row (navigation back from Cuentas de cobro).
+  const focus = Number(route.query.focus);
+  if (focus) {
+    lastMutatedId.value = focus;
+    setTimeout(() => {
+      if (lastMutatedId.value === focus) lastMutatedId.value = null;
+    }, 2500);
+  }
+});
 usePanelRefresh(loadRecords);
 </script>

@@ -33,6 +33,7 @@ export const PANEL_BREADCRUMB_LABELS = {
   '/panel/accounting/expenses': 'Gastos',
   '/panel/accounting/pocket': 'Bolsillo',
   '/panel/accounting/recurring': 'Recurrentes',
+  '/panel/accounting/collections': 'Cuentas de cobro',
   '/panel/accounting/cards': 'Tarjetas',
   '/panel/accounting/history': 'Historial',
   '/panel/accounting/settings': 'Config. contable',

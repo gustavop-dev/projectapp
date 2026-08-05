@@ -17,6 +17,7 @@ Endpoints
 """
 
 import logging
+import re
 
 from django.db.models import Count, Max, OuterRef, Q, Subquery
 from rest_framework import status
@@ -218,6 +219,39 @@ def update_proposal_client(request, client_id):
         return Response(
             {'error': 'client_not_found'}, status=status.HTTP_404_NOT_FOUND,
         )
+
+    # Billing identity fields live on the profile only (no proposal cascade).
+    billing_updates = []
+    if 'nit' in request.data:
+        profile.nit = (request.data.get('nit') or '').strip()
+        billing_updates.append('nit')
+    if 'billing_code' in request.data:
+        code = (request.data.get('billing_code') or '').strip().upper() or None
+        if code and (not re.fullmatch(r'[A-Z0-9]{2,12}', code) or code.isdigit()):
+            return Response(
+                {
+                    'error': 'invalid_billing_code',
+                    'message': 'El código debe tener entre 2 y 12 caracteres '
+                               'alfanuméricos y no puede ser puramente numérico.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if code and (
+            UserProfile.objects.exclude(pk=profile.pk)
+            .filter(billing_code=code)
+            .exists()
+        ):
+            return Response(
+                {
+                    'error': 'billing_code_taken',
+                    'message': 'Ese código de facturación ya está en uso.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        profile.billing_code = code
+        billing_updates.append('billing_code')
+    if billing_updates:
+        profile.save(update_fields=billing_updates)
 
     payload = {}
     for key in ('name', 'email', 'phone', 'company'):

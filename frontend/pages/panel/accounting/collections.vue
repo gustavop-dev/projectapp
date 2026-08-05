@@ -3,11 +3,18 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Cobros</h1>
+        <h1 class="text-2xl font-light text-text-default">Cuentas de cobro</h1>
         <p class="text-sm text-text-subtle mt-1">
-          Cuentas de cobro enviadas a clientes: hosting hoy, otros orígenes a futuro.
+          Crea, envía y da seguimiento a las cuentas de cobro: desde aquí, desde un ingreso o desde Hostings.
         </p>
       </div>
+      <BaseButton
+        variant="primary"
+        data-testid="collection-create-button"
+        @click="openCreateModal"
+      >
+        Nueva cuenta de cobro
+      </BaseButton>
     </div>
 
     <AccountingSubnav active="collections" />
@@ -55,8 +62,12 @@
     <BaseEmptyState
       v-else-if="!store.isLoading && filteredRows.length === 0"
       title="Sin cuentas de cobro"
-      description="Envía la primera desde el tab Hostings con la acción 'Enviar cuenta de cobro'."
-    />
+      description="Crea la primera con 'Nueva cuenta de cobro', desde un ingreso en el tab Ingresos, o desde Hostings con 'Enviar cuenta de cobro'."
+    >
+      <BaseButton variant="primary" data-testid="collection-empty-create" @click="openCreateModal">
+        Nueva cuenta de cobro
+      </BaseButton>
+    </BaseEmptyState>
 
     <!-- Table -->
     <template v-else>
@@ -67,6 +78,7 @@
         :show-actions="false"
         :sort-key="sortKey"
         :sort-dir="sortDir"
+        :highlight-id="highlightId"
         @sort="toggleSort"
       >
         <template #cell-public_number="{ row }">
@@ -82,6 +94,18 @@
         </template>
         <template #cell-row_actions="{ row }">
           <div class="flex items-center justify-end gap-1">
+            <BaseButton
+              v-if="row.income_record_id"
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Ver ingreso"
+              title="Ver ingreso vinculado"
+              :data-testid="`collection-view-income-${row.id}`"
+              @click="goToIncome(row)"
+            >
+              <ArrowTopRightOnSquareIcon class="w-5 h-5" />
+            </BaseButton>
             <button
               type="button"
               aria-label="Ver PDF"
@@ -131,6 +155,23 @@
       @confirm="handleConfirmed"
       @cancel="pendingAction = null"
     />
+
+    <!-- Create modal: form → preview del correo/PDF → confirmar y enviar -->
+    <CollectionAccountFormModal
+      :open="createOpen"
+      @close="createOpen = false"
+      @created="onCreated"
+    />
+
+    <!-- Marking an expected-linked cuenta as paid routes through Liquidar:
+         settling the income is what flips the cuenta (backend sync). -->
+    <IncomeLiquidateModal
+      :open="liquidateOpen"
+      :record="liquidatingIncome"
+      :saving="store.isUpdating"
+      @close="closeLiquidate"
+      @submit="handleLiquidateSubmit"
+    />
   </div>
 </template>
 
@@ -138,6 +179,7 @@
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import {
+  ArrowTopRightOnSquareIcon,
   CheckCircleIcon,
   DocumentArrowDownIcon,
   NoSymbolIcon,
@@ -147,6 +189,8 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
+import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -162,6 +206,10 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
+const route = useRoute();
+
+// ?focus=<id> flashes a row (bidirectional navigation from Ingresos).
+const highlightId = ref(route.query.focus ? Number(route.query.focus) : null);
 
 const meta = computed(() => store.collectionAccountsMeta || {});
 
@@ -271,7 +319,71 @@ const confirmMessage = computed(() => {
     : `Se anulará la cuenta ${number}. Si viene de un hosting, los avisos de vencimiento se reactivan.`;
 });
 
-function askMarkPaid(row) {
+// ── Create modal ──
+
+const createOpen = ref(false);
+
+function openCreateModal() {
+  createOpen.value = true;
+}
+
+function onCreated() {
+  createOpen.value = false;
+  loadRecords();
+}
+
+// ── Bidirectional navigation ──
+
+function goToIncome(row) {
+  navigateTo({
+    path: '/panel/accounting/incomes',
+    query: { focus: row.income_record_id },
+  });
+}
+
+// ── Mark paid: expected-linked cuentas route through Liquidar ──
+
+const liquidateOpen = ref(false);
+const liquidatingIncome = ref(null);
+
+function closeLiquidate() {
+  liquidateOpen.value = false;
+  liquidatingIncome.value = null;
+}
+
+async function handleLiquidateSubmit(payload) {
+  const incomeId = liquidatingIncome.value?.id;
+  const result = await store.settleIncome(incomeId, payload);
+  if (result.success) {
+    closeLiquidate();
+    notify.success({
+      title: 'Ingreso liquidado',
+      detail: 'Si el ingreso quedó pagado al 100%, la cuenta pasó a Pagada.',
+    });
+    loadRecords();
+  } else {
+    notify.error({ title: 'No se pudo liquidar', detail: result.message });
+  }
+}
+
+async function askMarkPaid(row) {
+  // Never settle silently: an expected income with pending balance goes
+  // through the Liquidar modal; the backend sync marks the cuenta paid.
+  if (row.income_record_id) {
+    try {
+      const response = await get_request(
+        `accounting/incomes/${row.income_record_id}/`,
+      );
+      const income = response.data;
+      if (income?.kind === 'expected' && income?.payment_status !== 'paid') {
+        liquidatingIncome.value = income;
+        liquidateOpen.value = true;
+        return;
+      }
+    } catch (error) {
+      console.error('Error fetching linked income:', error);
+    }
+  }
   pendingAction.value = { kind: 'paid', row };
   confirmOpen.value = true;
 }

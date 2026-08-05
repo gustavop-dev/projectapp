@@ -554,6 +554,29 @@
               class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1">NIT</label>
+              <input
+                v-model="editForm.nit"
+                type="text"
+                data-testid="clients-edit-nit"
+                placeholder="Para cuentas de cobro"
+                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1">Código de facturación</label>
+              <input
+                v-model="editForm.billing_code"
+                type="text"
+                maxlength="12"
+                data-testid="clients-edit-billing-code"
+                placeholder="Ej: ACME (numeración PA-ACME-001)"
+                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm uppercase focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              />
+            </div>
+          </div>
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <BaseButton variant="ghost" size="md" @click="closeEditModal">
@@ -830,7 +853,9 @@ async function submitCreate() {
 // -------------------------------------------------------------------
 
 const editingClient = ref(null);
-const editForm = reactive({ name: '', email: '', phone: '', company: '' });
+const editForm = reactive({
+  name: '', email: '', phone: '', company: '', nit: '', billing_code: '',
+});
 const editError = ref('');
 
 function openEditModal(client) {
@@ -839,6 +864,8 @@ function openEditModal(client) {
   editForm.email = client.is_email_placeholder ? '' : (client.email || '');
   editForm.phone = client.phone || '';
   editForm.company = client.company || '';
+  editForm.nit = client.nit || '';
+  editForm.billing_code = client.billing_code || '';
   editError.value = '';
 }
 
@@ -854,12 +881,15 @@ async function submitEdit() {
     email: editForm.email.trim(),
     phone: editForm.phone.trim(),
     company: editForm.company.trim(),
+    nit: editForm.nit.trim(),
+    billing_code: editForm.billing_code.trim().toUpperCase(),
   };
   const result = await clientsStore.updateClient(editingClient.value.id, payload);
   if (result.success) {
     closeEditModal();
   } else {
     editError.value =
+      result.errors?.message ||
       result.errors?.error ||
       result.errors?.name?.[0] ||
       result.errors?.email?.[0] ||
