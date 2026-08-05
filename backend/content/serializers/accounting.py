@@ -17,6 +17,7 @@ from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
     CreditCard,
+    Document,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -198,6 +199,9 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     pending_amount = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
     payment_status_label = serializers.SerializerMethodField()
+    has_collection_account = serializers.SerializerMethodField()
+    collection_account_id = serializers.SerializerMethodField()
+    collection_account_number = serializers.SerializerMethodField()
 
     class Meta:
         model = IncomeRecord
@@ -209,6 +213,8 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'expected_income', 'pocket_movement',
             'paid_amount', 'pending_amount',
             'payment_status', 'payment_status_label',
+            'has_collection_account', 'collection_account_id',
+            'collection_account_number',
             'notes', 'created_at', 'updated_at',
         )
 
@@ -253,6 +259,41 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
 
     def get_payment_status_label(self, obj):
         return PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
+
+    def _collection_account(self, obj):
+        """(id, public_number) of the non-cancelled cuenta linked to this row.
+
+        The list/export querysets carry the collection_account_subqueries
+        annotations; NULL is a legitimate annotated value there (most rows
+        have no cuenta), so annotation presence is detected via __dict__,
+        not getattr — falling back to one memoized query only when the
+        instance was never annotated (retrieve/create/update paths).
+        """
+        if not hasattr(obj, '_collection_account_ref'):
+            if 'collection_account_id' in obj.__dict__:
+                obj._collection_account_ref = (
+                    obj.__dict__['collection_account_id'],
+                    obj.__dict__.get('collection_account_number') or '',
+                )
+            else:
+                row = (
+                    obj.collection_documents
+                    .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
+                    .order_by('-created_at')
+                    .values_list('id', 'public_number')
+                    .first()
+                )
+                obj._collection_account_ref = row or (None, '')
+        return obj._collection_account_ref
+
+    def get_has_collection_account(self, obj):
+        return self._collection_account(obj)[0] is not None
+
+    def get_collection_account_id(self, obj):
+        return self._collection_account(obj)[0]
+
+    def get_collection_account_number(self, obj):
+        return self._collection_account(obj)[1] or None
 
 
 class IncomeRecordCreateUpdateSerializer(

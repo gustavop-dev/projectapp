@@ -26,6 +26,7 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     is_overdue = serializers.SerializerMethodField()
     origin = serializers.SerializerMethodField()
     origin_label = serializers.SerializerMethodField()
+    income_kind = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -33,6 +34,7 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'public_number', 'title',
             'billing_concept', 'customer_name', 'customer_email',
             'origin', 'origin_label', 'hosting_record_id', 'project_id',
+            'income_record_id', 'income_kind',
             'subtotal', 'tax_total', 'total', 'currency',
             'issue_date', 'due_date',
             'commercial_status', 'commercial_status_label', 'is_overdue',
@@ -45,11 +47,18 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     def get_is_overdue(self, obj):
         return commercial_is_overdue(obj)
 
+    def get_income_kind(self, obj):
+        if obj.income_record_id and obj.income_record:
+            return obj.income_record.kind
+        return None
+
     def get_origin(self, obj):
         if obj.hosting_record_id:
             return 'hosting'
         if obj.project_id:
             return 'project'
+        if obj.income_record_id:
+            return 'income'
         return 'other'
 
     def get_origin_label(self, obj):
@@ -57,6 +66,8 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             return f'Hosting · {obj.hosting_record.client_name}'
         if obj.project_id and obj.project:
             return f'Proyecto · {obj.project}'
+        if obj.income_record_id and obj.income_record:
+            return f'Ingreso · {obj.income_record.concept}'
         return 'Otro'
 
 

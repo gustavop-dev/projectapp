@@ -15,13 +15,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from content.api_errors import error_response
-from content.models import Document, HostingRecord
+from content.models import Document, HostingRecord, IncomeRecord
 from content.permissions import IsSuperUser
 from content.serializers.collection_accounts_panel import (
     CollectionAccountPanelDetailSerializer,
     CollectionAccountPanelListSerializer,
 )
-from content.services import hosting_billing_service
+from content.services import accounting_settlement_service, hosting_billing_service
 from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
@@ -36,7 +36,9 @@ from content.services.document_type_codes import COLLECTION_ACCOUNT
 def _base_qs():
     return (
         Document.objects.filter(document_type__code=COLLECTION_ACCOUNT)
-        .select_related('collection_account', 'hosting_record', 'project')
+        .select_related(
+            'collection_account', 'hosting_record', 'project', 'income_record',
+        )
         .prefetch_related('items', 'payment_methods')
     )
 
@@ -79,8 +81,14 @@ def list_collection_accounts(request):
         qs = qs.filter(hosting_record__isnull=False)
     elif origin == 'project':
         qs = qs.filter(project__isnull=False)
+    elif origin == 'income':
+        qs = qs.filter(income_record__isnull=False)
     elif origin == 'other':
-        qs = qs.filter(hosting_record__isnull=True, project__isnull=True)
+        qs = qs.filter(
+            hosting_record__isnull=True,
+            project__isnull=True,
+            income_record__isnull=True,
+        )
     for param, lookup in (
         ('date_from', 'issue_date__gte'),
         ('date_to', 'issue_date__lte'),
@@ -164,6 +172,19 @@ def resend_collection_account(request, doc_id):
 @permission_classes([IsSuperUser])
 def mark_collection_account_paid_view(request, doc_id):
     document = _get_document(doc_id)
+    # Guard here, not in the service: the settle flow's sync hook calls the
+    # service directly and must never trip over its own precondition.
+    income = document.income_record
+    if (
+        income is not None
+        and income.kind == IncomeRecord.Kind.EXPECTED
+        and accounting_settlement_service.income_payment_status(income) != 'paid'
+    ):
+        return error_response(
+            'El ingreso vinculado aún tiene saldo pendiente. '
+            'Liquídalo para marcar la cuenta como pagada.',
+            status=409,
+        )
     try:
         mark_collection_account_paid(document, acting_user=request.user)
     except CollectionAccountError as exc:

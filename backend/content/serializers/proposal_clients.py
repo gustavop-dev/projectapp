@@ -243,7 +243,10 @@ class ProposalClientSearchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('id', 'name', 'email', 'phone', 'company', 'is_email_placeholder')
+        fields = (
+            'id', 'name', 'email', 'phone', 'company',
+            'nit', 'cedula', 'is_email_placeholder',
+        )
 
     def get_name(self, obj):
         return build_client_display_name(obj)

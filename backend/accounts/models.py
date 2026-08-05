@@ -80,6 +80,15 @@ class UserProfile(models.Model):
     company_name = models.CharField(max_length=200, blank=True, default='')
     phone = models.CharField(max_length=30, blank=True, default='')
     cedula = models.CharField(max_length=20, blank=True, default='')
+    nit = models.CharField(
+        max_length=32, blank=True, default='',
+        help_text='Tax id for company clients; preferred over cedula on billing documents.',
+    )
+    billing_code = models.CharField(
+        max_length=12, null=True, blank=True, unique=True,
+        help_text='Short code for per-client collection-account numbering '
+                  '(PA-{CODE}-{NNN}). Auto-derived on first use; store None, never "".',
+    )
     date_of_birth = models.DateField(null=True, blank=True)
     gender = models.CharField(
         max_length=20, choices=GENDER_CHOICES, blank=True, default='',

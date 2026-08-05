@@ -113,14 +113,22 @@ def _fill_customer_from_user(extension, user):
         name = f'{user.first_name} {user.last_name}'.strip() or user.email
     extension.customer_name = name
     extension.customer_email = user.email or ''
-    if profile:
-        extension.customer_identification = profile.cedula or ''
-    extension.customer_contact_name = f'{user.first_name} {user.last_name}'.strip()
+    extension.customer_identification = ''
     extension.customer_identification_type = ''
+    if profile:
+        if profile.nit:
+            extension.customer_identification = profile.nit
+            extension.customer_identification_type = 'NIT'
+        elif profile.cedula:
+            extension.customer_identification = profile.cedula
+            extension.customer_identification_type = 'CC'
+    extension.customer_contact_name = f'{user.first_name} {user.last_name}'.strip()
 
 
 @transaction.atomic
-def issue_collection_account(document, *, issuer, acting_user=None, customer=None):
+def issue_collection_account(
+    document, *, issuer, acting_user=None, customer=None, number_allocator=None,
+):
     """
     Transition draft -> issued: allocate public number, set dates, snapshot payer/customer.
 
@@ -129,6 +137,9 @@ def issue_collection_account(document, *, issuer, acting_user=None, customer=Non
     explicitly for documents without a platform user (e.g. hosting-driven
     cuentas de cobro). Without it, the customer resolves from
     ``client_user`` / ``project.client`` as before.
+
+    ``number_allocator`` (optional zero-arg callable) overrides the default
+    per-issuer series — the income flow passes the per-client allocator.
     """
     if not is_collection_account(document):
         raise CollectionAccountError('Document is not a collection account.')
@@ -152,7 +163,11 @@ def issue_collection_account(document, *, issuer, acting_user=None, customer=Non
     today = timezone.now().date()
     document.issue_date = today
     document.issuer = issuer
-    document.public_number = allocate_public_number(issuer)
+    if not document.city:
+        document.city = issuer.city or ''
+    document.public_number = (
+        number_allocator() if number_allocator else allocate_public_number(issuer)
+    )
 
     ptt = ext.payment_term_type
     if ptt == DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE:

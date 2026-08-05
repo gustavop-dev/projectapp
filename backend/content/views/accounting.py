@@ -238,6 +238,7 @@ _ENTITIES = {
         # expression, never the expression itself.
         'annotations': {
             'paid_amount': accounting_service.paid_amount_subquery(),
+            **accounting_service.collection_account_subqueries(),
         },
     },
     'expense': {

@@ -30,6 +30,7 @@ from content.models import (
     CreditCard,
     CreditCardStatement,
     CreditCardTransaction,
+    Document,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
@@ -38,6 +39,7 @@ from content.models import (
     PocketMovement,
     RecurringPayment,
 )
+from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.serializers.accounting import month_label, month_period, split_half
 
 logger = logging.getLogger(__name__)
@@ -705,6 +707,27 @@ def _sum(queryset, field):
 
 _MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
 _ZERO_MONEY = Value(Decimal('0.00'), output_field=_MONEY_FIELD)
+
+
+def collection_account_subqueries():
+    """Annotations linking each income to its cuenta de cobro, if any.
+
+    Same non-aggregate Subquery technique as paid_amount_subquery, for the
+    same reason. Cancelled cuentas free their income (the create flow's
+    duplicate guard uses the same exclude), so they never surface here.
+    """
+    base = (
+        Document.objects.filter(
+            income_record=OuterRef('pk'),
+            document_type__code=COLLECTION_ACCOUNT,
+        )
+        .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
+        .order_by('-created_at')
+    )
+    return {
+        'collection_account_id': Subquery(base.values('id')[:1]),
+        'collection_account_number': Subquery(base.values('public_number')[:1]),
+    }
 
 
 def paid_amount_subquery():

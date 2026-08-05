@@ -39,7 +39,10 @@ from .document_type import DocumentType
 from .document_folder import DocumentFolder
 from .document_tag import DocumentTag
 from .issuer_profile import IssuerProfile
-from .document_number_sequence import DocumentNumberSequence
+from .document_number_sequence import (
+    ClientDocumentNumberSequence,
+    DocumentNumberSequence,
+)
 from .document_collection_account import DocumentCollectionAccount
 from .document_item import DocumentItem
 from .document_payment_method import DocumentPaymentMethod

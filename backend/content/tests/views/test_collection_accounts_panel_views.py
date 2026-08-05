@@ -4,7 +4,7 @@ from decimal import Decimal
 
 import pytest
 
-from content.models import Document, HostingRecord, IssuerProfile
+from content.models import Document, HostingRecord, IncomeRecord, IssuerProfile
 from content.services.hosting_billing_service import (
     send_hosting_collection_account,
 )
@@ -164,3 +164,80 @@ class TestLifecycleActions:
             f'/api/accounting/collection-accounts/{document.pk}/cancel/',
         )
         assert response.status_code == 400
+
+
+def make_income(**overrides):
+    fields = {
+        'concept': 'Kore - Inicio 40%',
+        'kind': IncomeRecord.Kind.EXPECTED,
+        'period_date': '2026-07-01',
+        'total_amount': Decimal('1000000.00'),
+        'gustavo_amount': Decimal('500000.00'),
+        'carlos_amount': Decimal('500000.00'),
+    }
+    fields.update(overrides)
+    return IncomeRecord.objects.create(**fields)
+
+
+def link_income(document, income):
+    Document.objects.filter(pk=document.pk).update(income_record=income)
+    document.refresh_from_db()
+    return document
+
+
+class TestIncomeLinkedAccounts:
+    def test_origin_income_filter_and_fields(self, super_client):
+        issue_for(make_hosting())
+        income = make_income()
+        document = link_income(issue_for(make_hosting(
+            client_name='Nestor - Xpandia',
+            client_email='nestor@xpandia.global',
+            domain_url='https://xpandia.global/',
+        )), income)
+        # An income link outranks nothing but hosting/project in get_origin,
+        # so clear the hosting FK to model a modal-created cuenta.
+        Document.objects.filter(pk=document.pk).update(hosting_record=None)
+
+        response = super_client.get(
+            '/api/accounting/collection-accounts/?origin=income',
+        )
+        assert response.status_code == 200
+        assert len(response.data['results']) == 1
+        row = response.data['results'][0]
+        assert row['origin'] == 'income'
+        assert row['origin_label'] == 'Ingreso · Kore - Inicio 40%'
+        assert row['income_record_id'] == income.pk
+        assert row['income_kind'] == 'expected'
+
+    def test_mark_paid_blocked_while_linked_income_pending(self, super_client):
+        income = make_income()
+        document = link_income(issue_for(make_hosting()), income)
+
+        response = super_client.post(
+            f'/api/accounting/collection-accounts/{document.pk}/mark-paid/',
+        )
+
+        assert response.status_code == 409
+        assert 'saldo pendiente' in response.data['error']
+        document.refresh_from_db()
+        assert document.commercial_status == Document.CommercialStatus.ISSUED
+
+    def test_mark_paid_allowed_once_income_fully_paid(self, super_client):
+        income = make_income()
+        document = link_income(issue_for(make_hosting()), income)
+        IncomeRecord.objects.create(
+            concept='Kore - Inicio 40% (líquido)',
+            kind=IncomeRecord.Kind.LIQUID,
+            expected_income=income,
+            period_date='2026-07-15',
+            total_amount=Decimal('1000000.00'),
+            gustavo_amount=Decimal('500000.00'),
+            carlos_amount=Decimal('500000.00'),
+        )
+
+        response = super_client.post(
+            f'/api/accounting/collection-accounts/{document.pk}/mark-paid/',
+        )
+
+        assert response.status_code == 200
+        assert response.data['commercial_status'] == 'paid'

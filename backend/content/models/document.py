@@ -95,6 +95,16 @@ class Document(models.Model):
         blank=True,
         related_name='collection_documents',
     )
+    # Origin link for income-driven cuentas de cobro. At most one
+    # non-cancelled collection document per income (enforced in services;
+    # MySQL cannot express the conditional unique constraint).
+    income_record = models.ForeignKey(
+        'content.IncomeRecord',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='collection_documents',
+    )
 
     public_number = models.CharField(
         max_length=64,
