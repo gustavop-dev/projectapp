@@ -42,6 +42,8 @@ const clientFixture = {
 
 const incomeFixture = {
   id: 8,
+  client: null,
+  client_name: null,
   concept: 'Desarrollo módulo de reportes',
   kind: 'expected',
   kind_label: 'Esperado',
@@ -61,6 +63,9 @@ const linkedIncomeFixture = {
 
 function mockRequests() {
   get_request.mockImplementation((url) => {
+    if (url.includes('client-profiles/5/')) {
+      return Promise.resolve({ data: clientFixture });
+    }
     if (url.includes('next-number')) {
       return Promise.resolve({
         data: {
@@ -290,6 +295,31 @@ describe('CollectionAccountFormModal', () => {
     expect(
       wrapper.find('[data-testid="collection-form-number"]').element.value,
     ).toBe('PA-ACME-003');
+  });
+
+  it('preloads and locks the client when the income already carries one', async () => {
+    const wrapper = mountModal({
+      income: { ...incomeFixture, client: 5, client_name: 'Acme Soluciones' },
+    });
+    await flushPromises();
+
+    // No second ask: the picker is replaced by a locked display...
+    expect(wrapper.find('[data-testid="collection-form-client-locked"]').text())
+      .toContain('Acme Soluciones');
+    expect(wrapper.findComponent(ClientAutocompleteStub).exists()).toBe(false);
+    // ...and the snapshot + suggested consecutivo arrived on their own.
+    expect(get_request).toHaveBeenCalledWith('proposals/client-profiles/5/');
+    expect(
+      wrapper.find('[data-testid="collection-form-customer-email"]').element.value,
+    ).toBe('ana@acme.co');
+    expect(
+      wrapper.find('[data-testid="collection-form-number"]').element.value,
+    ).toBe('PA-ACME-003');
+
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].client_profile_id).toBe(5);
   });
 
   it('create-new client opens the inline form and links the created profile', async () => {

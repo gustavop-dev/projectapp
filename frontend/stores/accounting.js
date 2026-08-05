@@ -789,6 +789,35 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * bulkAssignIncomeClient: link (or unlink, with client=null) several
+     * incomes to one client. Replaces the affected rows in place so the
+     * table reflects the change without a full refetch.
+     */
+    async bulkAssignIncomeClient(incomeIds, client) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-assign-client/',
+          { income_ids: incomeIds, client },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning client to incomes:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * createCollectionAccount: create + issue + email a cuenta linked to an
      * income (panel modal). Prepends the created document to the list.
      */

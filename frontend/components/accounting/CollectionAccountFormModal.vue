@@ -40,6 +40,9 @@ const suggestedNumber = ref('');
 const numberDirty = ref(false);
 const showInlineClient = ref(false);
 const creatingClient = ref(false);
+// Client resolved from the selected income (PA-24): shown locked.
+const clientFromIncome = ref(null);
+const loadingClient = ref(false);
 const inlineClient = ref({ name: '', email: '', company: '' });
 
 // ── Income ──
@@ -97,6 +100,8 @@ watch(
     numberDirty.value = false;
     showInlineClient.value = false;
     showIncomeForm.value = false;
+    clientFromIncome.value = null;
+    loadingClient.value = false;
     selectedIncome.value = null;
     incomeQuery.value = '';
     incomeOptions.value = [];
@@ -120,6 +125,26 @@ function applyIncome(income) {
   if (!form.value.unit_price) {
     const amount = Number(income.pending_amount ?? income.total_amount ?? 0);
     form.value.unit_price = amount > 0 ? amount : null;
+  }
+  // The income already knows whose money this is: resolve the client from
+  // it instead of asking for it again.
+  if (income.client && !clientId.value) {
+    clientFromIncome.value = {
+      id: income.client,
+      name: income.client_name || `Cliente #${income.client}`,
+    };
+    clientId.value = income.client;
+    applyClientById(income.client);
+  }
+}
+
+/** Fill the customer snapshot + suggested number from a client id alone. */
+async function applyClientById(profileId) {
+  loadingClient.value = true;
+  const result = await clientsStore.fetchClient(profileId);
+  loadingClient.value = false;
+  if (result.success && result.data) {
+    await onClientSelect(result.data);
   }
 }
 
@@ -205,6 +230,20 @@ async function createInlineClient() {
   }
 }
 
+/** The client chosen upstream: the stacked income form inherits it instead
+ *  of offering a second picker that could contradict this one. */
+const lockedClientForIncome = computed(() => (
+  clientId.value
+    ? {
+      id: clientId.value,
+      name: clientFromIncome.value?.name
+        || form.value.customer.name
+        || form.value.customer.contact_name
+        || `Cliente #${clientId.value}`,
+    }
+    : null
+));
+
 function onNumberInput() {
   numberDirty.value = form.value.public_number !== suggestedNumber.value;
 }
@@ -228,6 +267,7 @@ async function handleIncomeCreated(payload) {
 
 const canPreview = computed(() => (
   !!clientId.value
+  && !loadingClient.value
   && !!selectedIncome.value?.id
   && Number(form.value.unit_price) > 0
   && !!form.value.customer.email
@@ -353,7 +393,16 @@ function openPdfTab() {
       @submit.prevent="goPreview"
     >
       <BaseFormField label="Cliente" required>
+        <div
+          v-if="clientFromIncome"
+          class="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
+          data-testid="collection-form-client-locked"
+        >
+          {{ clientFromIncome.name }}
+          <span class="text-text-subtle">· desde el ingreso</span>
+        </div>
         <ClientAutocomplete
+          v-else
           v-model="clientId"
           test-id="collection-form-client"
           @select="onClientSelect"
@@ -674,6 +723,7 @@ function openPdfTab() {
   <IncomeFormModal
     :open="showIncomeForm"
     :saving="store.isUpdating"
+    :locked-client="lockedClientForIncome"
     @close="showIncomeForm = false"
     @submit="handleIncomeCreated"
   />

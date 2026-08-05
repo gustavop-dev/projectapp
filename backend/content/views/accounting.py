@@ -407,7 +407,17 @@ def _apply_filters(queryset, params, config):
         if value:
             # Comma-separated values filter as OR (multi-select filters).
             values = [item for item in value.split(',') if item]
-            if len(values) > 1:
+            # 'none' isolates the rows whose choice was never set, so a
+            # multi-select can mix real values with "sin clasificar". No
+            # choice in the module uses 'none' as a real value.
+            include_blank = 'none' in values
+            values = [item for item in values if item != 'none']
+            if include_blank:
+                condition = Q(**{field: ''})
+                if values:
+                    condition |= Q(**{f'{field}__in': values})
+                queryset = queryset.filter(condition)
+            elif len(values) > 1:
                 queryset = queryset.filter(**{f'{field}__in': values})
             elif values:
                 queryset = queryset.filter(**{field: values[0]})
@@ -424,18 +434,22 @@ def _apply_filters(queryset, params, config):
         value = (params.get(field) or '').strip()
         if not value or value == 'all':
             continue
-        if value == 'none':
-            queryset = queryset.filter(**{f'{field}__isnull': True})
-            continue
+        tokens = [item for item in value.split(',') if item]
+        include_null = 'none' in tokens
         try:
-            ids = [int(item) for item in value.split(',') if item]
+            ids = [int(item) for item in tokens if item != 'none']
         except ValueError:
             raise ValueError(
                 f"El parámetro '{field}' debe ser 'none', 'all' o uno o "
                 'varios ids separados por coma.'
             )
+        condition = Q()
+        if include_null:
+            condition |= Q(**{f'{field}__isnull': True})
         if ids:
-            queryset = queryset.filter(**{f'{field}__in': ids})
+            condition |= Q(**{f'{field}__in': ids})
+        if condition:
+            queryset = queryset.filter(condition)
 
     if config.get('has_split') and params.get('partner'):
         partner = params['partner']
