@@ -208,6 +208,10 @@ def _create_liquid_child(income, data, user):
         'ledger': income.ledger,
         'total_amount': data['total_amount'],
         'expected_income': income.pk,
+        # Inherited from the projection: without this the collected money
+        # would drop out of its client's totals the moment it is settled.
+        'client': income.client_id,
+        'origin': income.origin,
         'notes': data.get('notes', ''),
     }
     if data.get('gustavo_amount') is not None:
@@ -268,6 +272,8 @@ def _create_follow_up(income, follow_up, user):
         'total_amount': follow_up['amount'],
         'gustavo_amount': gustavo,
         'carlos_amount': carlos,
+        'client': income.client_id,
+        'origin': income.origin,
     })
     serializer.is_valid(raise_exception=True)
     return accounting_service.create_record(

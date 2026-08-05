@@ -277,6 +277,25 @@ class TestDeleteOrphanClient:
         with pytest.raises(ValueError, match='client_has_projects:1'):
             proposal_client_service.delete_orphan_client(profile)
 
+    def test_blocks_deletion_when_client_has_incomes(self):
+        from datetime import date
+
+        from content.models import IncomeRecord
+
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Has Income', email='hasincome@gmail.com',
+        )
+        IncomeRecord.objects.create(
+            concept='Has Income - Inicio 40%',
+            kind=IncomeRecord.Kind.EXPECTED,
+            period_date=date(2026, 8, 1),
+            total_amount=1000,
+            client=profile,
+        )
+        with pytest.raises(ValueError, match='client_has_incomes:1'):
+            proposal_client_service.delete_orphan_client(profile)
+        assert UserProfile.objects.filter(pk=profile.pk).exists()
+
 
 # ---------------------------------------------------------------------------
 # generate_placeholder_email

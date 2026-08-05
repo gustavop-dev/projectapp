@@ -208,8 +208,9 @@ export const useProposalClientsStore = defineStore('proposalClients', {
 
     /**
      * Delete a client (and the underlying User). Backend enforces the
-     * orphan rule (zero proposals + zero projects); a 400 with
-     * `client_has_proposals` / `client_has_projects` is returned otherwise.
+     * orphan rule (zero proposals, projects, diagnostics and accounting
+     * incomes); a 400 with `client_has_proposals` / `client_has_projects` /
+     * `client_has_diagnostics` / `client_has_incomes` is returned otherwise.
      */
     async deleteClient(id) {
       this.isUpdating = true;

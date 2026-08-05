@@ -156,10 +156,12 @@ def delete_client(arguments):
         proposal_client_service.delete_orphan_client(profile)
     except ValueError as exc:
         # Service raises 'client_has_proposals:N' / 'client_has_projects:N' /
-        # 'client_has_diagnostics:N'. Preserve the exact reason for the model.
+        # 'client_has_diagnostics:N' / 'client_has_incomes:N'. Preserve the
+        # exact reason for the model.
         raise ToolError(
             f'No se puede eliminar: el cliente aún tiene referencias ({exc}). '
-            'Elimina o reasigna esas propuestas/proyectos/diagnósticos primero.'
+            'Elimina o reasigna esas propuestas/proyectos/diagnósticos/'
+            'ingresos primero.'
         )
     return {'deleted': True, 'id': profile_id}
 

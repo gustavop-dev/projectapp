@@ -19,7 +19,10 @@ Endpoints
 import logging
 import re
 
-from django.db.models import Count, Max, OuterRef, Q, Subquery
+from django.db.models import (
+    Count, IntegerField, Max, OuterRef, Q, Subquery, Value,
+)
+from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -28,7 +31,7 @@ from rest_framework.response import Response
 from accounts.models import UserProfile
 from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
-from content.models import BusinessProposal
+from content.models import BusinessProposal, IncomeRecord
 from content.serializers.proposal import ProposalListSerializer
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
@@ -60,6 +63,21 @@ def _base_queryset():
                 .values('status')[:1]
             ),
             last_sent_at=Max('proposals__sent_at'),
+            # Subquery, not a fourth Count(distinct=True): three reverse
+            # joins already fan out here, and a fourth multiplies the rows
+            # every aggregate above has to de-duplicate.
+            incomes_count=Coalesce(
+                Subquery(
+                    IncomeRecord.objects
+                    .filter(client=OuterRef('pk'))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
         )
     )
 
@@ -88,8 +106,9 @@ def list_proposal_clients(request):
     Query params:
         - ``search``: case-insensitive match on email, first/last name, company.
         - ``orphans``: ``true`` returns only profiles with 0 proposals AND
-          0 projects AND 0 diagnostics (matches ``is_orphan`` and the delete
-          guard). ``false`` returns the inverse. Omit to include all.
+          0 projects AND 0 diagnostics AND 0 incomes (matches ``is_orphan``
+          and the delete guard). ``false`` returns the inverse. Omit to
+          include all.
         - ``inactive``: ``true`` returns only manually deactivated clients.
           Omitted/``false`` excludes them (panel default).
         - ``limit``: max rows to return (default 100, hard cap 500).
@@ -107,9 +126,15 @@ def list_proposal_clients(request):
 
     orphans = _parse_bool(request.query_params.get('orphans'))
     if orphans is True:
-        qs = qs.filter(proposals_count=0, projects_count=0, diagnostics_count=0)
+        qs = qs.filter(
+            proposals_count=0, projects_count=0, diagnostics_count=0,
+            incomes_count=0,
+        )
     elif orphans is False:
-        qs = qs.exclude(proposals_count=0, projects_count=0, diagnostics_count=0)
+        qs = qs.exclude(
+            proposals_count=0, projects_count=0, diagnostics_count=0,
+            incomes_count=0,
+        )
 
     inactive = _parse_bool(request.query_params.get('inactive'))
     if inactive is True:

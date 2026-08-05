@@ -58,6 +58,47 @@ def gateway_fee(amount='8000.00'):
     }
 
 
+class TestClientInheritance:
+    """The settled money must stay attributed to the same client."""
+
+    def test_liquid_child_and_follow_up_inherit_client_and_origin(
+        self, superuser, make_client_profile,
+    ):
+        profile = make_client_profile()
+        income = make_expected(
+            client=profile, origin=IncomeRecord.Origin.DEVELOPMENT,
+        )
+
+        result = accounting_settlement_service.settle_expected_income(
+            income,
+            settlement(
+                total_amount=Decimal('600000.00'),
+                expected_incomes=[{
+                    'concept': 'Kore - Saldo',
+                    'period_date': '2026-09-01',
+                    'amount': Decimal('400000.00'),
+                }],
+            ),
+            superuser,
+        )
+
+        assert result['liquid'].client_id == profile.pk
+        assert result['liquid'].origin == IncomeRecord.Origin.DEVELOPMENT
+        follow_up = result['expected_incomes'][0]
+        assert follow_up.client_id == profile.pk
+        assert follow_up.origin == IncomeRecord.Origin.DEVELOPMENT
+
+    def test_client_less_income_settles_without_a_client(self, superuser):
+        income = make_expected()
+
+        result = accounting_settlement_service.settle_expected_income(
+            income, settlement(), superuser,
+        )
+
+        assert result['liquid'].client_id is None
+        assert result['liquid'].origin == ''
+
+
 class TestNoAllocations:
     """With nothing to allocate the flow must behave exactly like today."""
 

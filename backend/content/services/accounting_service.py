@@ -21,6 +21,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce, Greatest
 
+from accounts.models import UserProfile
 from content.api_errors import ProposalActionError
 from content.utils import format_cop_email, today_bogota
 from content.models import (
@@ -66,6 +67,8 @@ TRACKED_FIELDS = {
         ('concept', 'Concepto'),
         ('kind', 'Tipo'),
         ('ledger', 'Contabilidad'),
+        ('client', 'Cliente'),
+        ('origin', 'Origen'),
         ('period_date', 'Período'),
         ('destination', 'Destino'),
         ('total_amount', 'Monto total'),
@@ -197,6 +200,14 @@ def display_value(instance, field_name):
         return ''
     if isinstance(value, bool):
         return 'Sí' if value else 'No'
+    if isinstance(value, UserProfile):
+        # A client FK renders as "email (Client)" through __str__, which is
+        # noise in the audit table and the notification email.
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(value)
     if isinstance(value, list):
         return ', '.join(str(item) for item in value)
     if isinstance(value, Decimal):

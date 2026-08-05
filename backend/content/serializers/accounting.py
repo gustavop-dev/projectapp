@@ -10,6 +10,7 @@ from decimal import Decimal, ROUND_DOWN
 from django.db.models import Max, Sum
 from rest_framework import serializers
 
+from accounts.models import UserProfile
 from content.utils import SPANISH_MONTHS
 from content.models import (
     AccountingChangeLog,
@@ -202,6 +203,10 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     has_collection_account = serializers.SerializerMethodField()
     collection_account_id = serializers.SerializerMethodField()
     collection_account_number = serializers.SerializerMethodField()
+    client_name = serializers.SerializerMethodField()
+    origin_label = serializers.CharField(
+        source='get_origin_display', read_only=True,
+    )
 
     class Meta:
         model = IncomeRecord
@@ -209,6 +214,7 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
             'destination', 'destination_label', 'ledger', 'ledger_label',
+            'client', 'client_name', 'origin', 'origin_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
             'paid_amount', 'pending_amount',
@@ -217,6 +223,16 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'collection_account_number',
             'notes', 'created_at', 'updated_at',
         )
+
+    def get_client_name(self, obj):
+        """Display name of the linked client; None keeps 'sin cliente' distinct."""
+        if not obj.client_id:
+            return None
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(obj.client)
 
     def _paid(self, obj):
         """Liquid total fulfilling this record; None for non-expected rows.
@@ -305,11 +321,17 @@ class IncomeRecordCreateUpdateSerializer(
         required=False,
         allow_null=True,
     )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = IncomeRecord
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
+            'client', 'origin',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
