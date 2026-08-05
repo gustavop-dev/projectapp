@@ -1,15 +1,20 @@
 /**
  * E2E tests for the accounting incomes subview.
  *
- * FLOW: admin-accounting-income-crud
+ * FLOWS: admin-accounting-income-crud, admin-accounting-collection-create
  * Covers: list rendering, create via modal with automatic 50/50 partner
  *         split, HTML5 validation, edit prefill, delete with confirmation
- *         (confirm and cancel) and API-error surfacing.
+ *         (confirm and cancel), API-error surfacing, and the cuenta de
+ *         cobro entry point (generate icon opens the preselected modal;
+ *         linked rows swap to Ver cuenta de cobro navigation).
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_ACCOUNTING_INCOME_CRUD } from '../helpers/flow-tags.js';
+import {
+  ADMIN_ACCOUNTING_COLLECTION_CREATE,
+  ADMIN_ACCOUNTING_INCOME_CRUD,
+} from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
 
@@ -736,5 +741,53 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('accounting-row-12')).toBeVisible();
     await expect(page.getByTestId('income-liquidate-12')).toHaveCount(0);
     await expect(page.getByTestId('income-write-off-12')).toHaveCount(0);
+  });
+});
+
+test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('the generate action opens the create modal with the income locked', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ has_collection_account: false })], calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-generate-ca-1').click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Nueva cuenta de cobro' }),
+    ).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-locked'))
+      .toContainText('Kore - Inicio 40%');
+    await expect(page.getByTestId('collection-form-concept'))
+      .toHaveValue('Kore - Inicio 40%');
+  });
+
+  test('a linked income swaps to Ver cuenta de cobro and navigates focused', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({
+        has_collection_account: true,
+        collection_account_id: 33,
+        collection_account_number: 'PA-KORE-001',
+      })],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('income-generate-ca-1')).toHaveCount(0);
+    await page.getByTestId('income-view-ca-1').click();
+
+    await page.waitForURL('**/panel/accounting/collections?focus=33');
+    expect(page.url()).toContain('/panel/accounting/collections?focus=33');
   });
 });
