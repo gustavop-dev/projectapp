@@ -28,7 +28,26 @@
           :key="col.key"
           role="columnheader"
           :class="[col.headerPadClass, col.alignClass, col.hideGridClass]"
-        >{{ col.label }}</span>
+          :aria-sort="headerAriaSort(col)"
+        >
+          <button
+            v-if="col.key === sortColumnKey && sortColumnKey"
+            type="button"
+            class="inline-flex items-center gap-1 uppercase tracking-wider rounded hover:text-text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            :class="weightSort ? 'text-text-default' : ''"
+            data-testid="recurring-grouped-sort-weight"
+            title="Ordenar por peso (vista temporal, no cambia el orden manual)"
+            @click="emit('toggle-weight-sort')"
+          >
+            <span>{{ col.label }}</span>
+            <ChevronUpIcon v-if="weightSort === 'asc'" class="w-3 h-3" />
+            <ChevronDownIcon v-else-if="weightSort === 'desc'" class="w-3 h-3" />
+            <span v-else aria-hidden="true">
+              <ChevronUpDownIcon class="w-3 h-3 text-text-subtle" />
+            </span>
+          </button>
+          <template v-else>{{ col.label }}</template>
+        </span>
         <span role="columnheader" :class="[DENSITY.headerCell, 'text-center']">Acciones</span>
       </div>
 
@@ -73,6 +92,14 @@
                 {{ formatMonthlyCop(group.monthlyCopTotal) }}
               </span>
               <span class="text-xs text-text-subtle"> /mes</span>
+              <span
+                v-if="group.groupWeightPct != null"
+                class="text-xs text-text-subtle tabular-nums"
+                :data-testid="`recurring-group-weight-${group.id}`"
+                title="Peso del grupo sobre el total mensual COP de pagos activos"
+              >
+                · {{ formatPercent(group.groupWeightPct) }}
+              </span>
             </span>
           </div>
 
@@ -178,11 +205,14 @@ import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import {
   ChevronDownIcon,
+  ChevronUpDownIcon,
+  ChevronUpIcon,
   PencilSquareIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
+import { formatPercent } from '~/utils/percent';
 import { formatMonthlyCop, UNCATEGORIZED_KEY } from '~/utils/recurring';
 import {
   HANDLE_PAD,
@@ -205,9 +235,23 @@ const props = defineProps({
   dragEnabled: { type: Boolean, default: false },
   /** Ids of the collapsed groups. */
   collapsedIds: { type: Array, default: () => [] },
+  /**
+   * Column whose header toggles the temporary weight sort (emits
+   * 'toggle-weight-sort'); empty disables the affordance. Kept as a prop so
+   * the component stays agnostic of which field means "weight".
+   */
+  sortColumnKey: { type: String, default: '' },
+  /** Current weight-sort state, controlled by the page: '' | 'asc' | 'desc'. */
+  weightSort: { type: String, default: '' },
 });
 
-const emit = defineEmits(['edit', 'delete', 'reorder', 'toggle-group']);
+const emit = defineEmits(['edit', 'delete', 'reorder', 'toggle-group', 'toggle-weight-sort']);
+
+function headerAriaSort(col) {
+  if (col.key !== props.sortColumnKey) return undefined;
+  if (!props.weightSort) return 'none';
+  return props.weightSort === 'desc' ? 'descending' : 'ascending';
+}
 
 /**
  * Mutable mirror of `groups`: vuedraggable has to own the arrays it reorders.
@@ -328,14 +372,12 @@ function onDragEnd() {
   }
 }
 
-/* Ceiling + centring, same rule as AccountingTable: past 1400px the tracks stop
- * stretching. min-width wins over max-width by spec, so a narrow screen still
- * scrolls instead of squeezing a column past its content. */
+/* The width ceiling lives on the page root (PAGE_MAX_WIDTH), so the grid fills
+ * its card and the fr tracks share the slack; min-width still makes a narrow
+ * screen scroll instead of squeezing a column past its content. */
 .accounting-grid-scroll {
   display: grid;
   grid-template-columns: var(--cols);
-  max-width: 87.5rem;
-  margin-inline: auto;
 }
 
 /* Rowgroups and the draggable list are transparent for track sizing: without

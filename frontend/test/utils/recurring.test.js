@@ -3,6 +3,7 @@ import {
   formatMonthlyPrice,
   groupByCategory,
   sumMonthlyCop,
+  withGroupWeights,
   UNCATEGORIZED_KEY,
 } from '../../utils/recurring';
 
@@ -115,5 +116,40 @@ describe('groupByCategory', () => {
 
   it('returns no groups when there are no rows', () => {
     expect(groupByCategory([], categories)).toEqual([]);
+  });
+});
+
+describe('withGroupWeights', () => {
+  const groups = [
+    { id: 1, name: 'IA', rows: [{ is_active: true, monthly_cop_cost: '100' }] },
+    { id: 2, name: 'Infra', rows: [{ is_active: true, monthly_cop_cost: '100' }] },
+    { id: 3, name: 'Otros', rows: [{ is_active: true, monthly_cop_cost: '100' }] },
+  ];
+
+  it('makes the group headers sum to exactly 100.0 despite thirds', () => {
+    const weighted = withGroupWeights(groups, 300);
+    const sum = weighted.reduce((total, group) => total + group.groupWeightPct, 0);
+    expect(sum).toBeCloseTo(100, 10);
+  });
+
+  it('excludes inactive rows from a group\'s weight', () => {
+    const mixed = [
+      { id: 1, name: 'IA', rows: [{ is_active: true, monthly_cop_cost: '100' }] },
+      {
+        id: 2,
+        name: 'Infra',
+        rows: [
+          { is_active: true, monthly_cop_cost: '100' },
+          { is_active: false, monthly_cop_cost: '9999' },
+        ],
+      },
+    ];
+    const weighted = withGroupWeights(mixed, 200);
+    expect(weighted.map((group) => group.groupWeightPct)).toEqual([50, 50]);
+  });
+
+  it('gives every group 0% when the base is zero', () => {
+    const weighted = withGroupWeights(groups, 0);
+    expect(weighted.map((group) => group.groupWeightPct)).toEqual([0, 0, 0]);
   });
 });

@@ -42,8 +42,13 @@ export const TABLE_DENSITY = {
  */
 const NAME_CONTENT_CLASS = 'block max-w-[22rem]';
 
-/** Table ceiling: past 1400px a wider table is not a more readable one. */
-export const TABLE_MAX_WIDTH = 'max-w-[87.5rem]';
+/**
+ * Page ceiling: past 1400px a wider page is not a more readable one. It lives
+ * on each accounting page's root — not on the table — so on a wide monitor the
+ * whole page (KPIs, filters, table) centres as one column and the slack reads
+ * as page margin, never as empty bands inside the table's card.
+ */
+export const PAGE_MAX_WIDTH = 'max-w-[87.5rem] mx-auto';
 
 /**
  * Width vocabulary.
@@ -70,6 +75,8 @@ const SIZES = {
   money: { rem: 7, nowrap: true },
   date: { rem: 6, nowrap: true },
   text: { rem: 5, nowrap: true },
+  // Fits "100%" plus the one-character "%" header; tiny (2.75) clips it.
+  percent: { rem: 3.5, nowrap: true },
 };
 
 for (const spec of Object.values(SIZES)) {
@@ -91,6 +98,7 @@ export const SIZE_NAMES = Object.keys(SIZES);
 function inferSize(col) {
   if (col.size && SIZES[col.size]) return col.size;
   if (col.format === 'money') return 'money';
+  if (col.format === 'percent') return 'percent';
   if (col.format === 'date') return 'date';
   if (col.format === 'badge') return 'badge';
   if (col.align === 'center') return 'tiny';
@@ -98,7 +106,8 @@ function inferSize(col) {
 }
 
 export function alignClass(col) {
-  const align = col.align || (col.format === 'money' ? 'right' : 'left');
+  const align = col.align
+    || (col.format === 'money' || col.format === 'percent' ? 'right' : 'left');
   if (align === 'right') return 'text-right';
   if (align === 'center') return 'text-center';
   return 'text-left';

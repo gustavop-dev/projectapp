@@ -71,11 +71,12 @@ describe('AccountingTable', () => {
     expect(amount.find('span').classes()).not.toContain('max-w-[22rem]');
   });
 
-  it('centres the table at its ceiling instead of stretching on a wide screen', () => {
+  it('fills its card edge to edge — the width ceiling lives on the page, not the table', () => {
     const table = mountTable().find('table');
 
-    expect(table.classes()).toContain('max-w-[87.5rem]');
-    expect(table.classes()).toContain('mx-auto');
+    expect(table.classes()).toContain('w-full');
+    expect(table.classes().some((c) => c.startsWith('max-w-'))).toBe(false);
+    expect(table.classes()).not.toContain('mx-auto');
     // The scroll floor still wins on a narrow screen.
     expect(table.element.style.minWidth).toMatch(/rem$/);
   });
@@ -127,6 +128,31 @@ describe('AccountingTable', () => {
 
     expect(wrapper.text()).toContain(formatMoney(2500000, 'COP'));
     expect(wrapper.text()).toContain(formatMoney(350000, 'COP'));
+  });
+
+  it('formats percent cells rounded to one decimal, subtle and right-aligned', () => {
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto' },
+        { key: 'weight_pct', label: '%', format: 'percent', sortable: true },
+      ],
+      rows: [{ id: 1, concept: 'Google Ads', weight_pct: 41.666 }],
+    });
+
+    const cell = wrapper.find('[data-testid="accounting-row-1"]').findAll('td')[1];
+    expect(cell.text()).toBe('41,7%');
+    expect(cell.classes()).toContain('text-right');
+    expect(cell.classes()).toContain('text-text-subtle');
+  });
+
+  it('percent columns sort through the shared header button', async () => {
+    const wrapper = mountTable({
+      columns: [{ key: 'weight_pct', label: '%', format: 'percent', sortable: true }],
+      rows: [{ id: 1, weight_pct: 100 }],
+    });
+
+    await wrapper.find('[data-testid="accounting-sort-weight_pct"]').trigger('click');
+    expect(wrapper.emitted('sort')).toEqual([['weight_pct']]);
   });
 
   it('applies badge tone classes from badgeTones config', () => {

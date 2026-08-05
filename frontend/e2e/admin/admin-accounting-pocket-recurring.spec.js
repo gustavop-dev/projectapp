@@ -504,6 +504,46 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     ]);
   });
 
+  test('weight sort is a temporary view: drag pauses and the manual order returns', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is
+    // covered by the display specs above; this one pins behavior inside
+    // the tab)
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recurring-drag-handle-1')).toBeVisible({ timeout: 25_000 });
+
+    // Group headers carry their weight over the active monthly total
+    // (880.000 and 32.900 over 912.900), rounded to sum exactly 100.0.
+    await expect(page.getByTestId('recurring-group-weight-1')).toContainText('96,4%');
+    await expect(page.getByTestId('recurring-group-weight-2')).toContainText('3,6%');
+    // And each row carries its own share (Claude: 800.000 / 912.900).
+    await expect(page.getByTestId('recurring-weight-1')).toHaveText('87,6%');
+
+    // First click: descending — handles hidden, hint explains why.
+    await page.getByTestId('recurring-grouped-sort-weight').click();
+    await expect(page.getByTestId('recurring-weight-sort-hint')).toBeVisible();
+    await expect(page.getByTestId('recurring-drag-handle-1')).toHaveCount(0);
+
+    // Second click: ascending — the lightest group and rows come first.
+    await page.getByTestId('recurring-grouped-sort-weight').click();
+    const firstRow = page.locator('[data-testid^="accounting-row-"]').first();
+    await expect(firstRow).toHaveAttribute('data-testid', 'accounting-row-3');
+    const groupHeaders = page.locator('[data-testid^="recurring-group-toggle-"]');
+    await expect(groupHeaders.first()).toContainText('Arquitectura e infraestructura');
+
+    // Third click: off — the untouched manual order and the handles return.
+    await page.getByTestId('recurring-grouped-sort-weight').click();
+    await expect(firstRow).toHaveAttribute('data-testid', 'accounting-row-1');
+    await expect(page.getByTestId('recurring-drag-handle-1')).toBeVisible();
+    await expect(page.getByTestId('recurring-weight-sort-hint')).toHaveCount(0);
+
+    // The whole cycle was a reading, never a write: reorder was not called.
+    expect(calls.filter((c) => c.apiPath === 'accounting/recurring/reorder/')).toEqual([]);
+  });
+
   test('a failed reorder warns and snaps the row back', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {

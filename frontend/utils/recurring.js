@@ -1,4 +1,5 @@
 import { formatMoney } from '~/utils/formatMoney';
+import { largestRemainder, percentOf } from '~/utils/percent';
 
 /** Bucket id for rows with no category; never collides with a real FK. */
 export const UNCATEGORIZED_KEY = 'uncategorized';
@@ -55,5 +56,27 @@ export function groupByCategory(rows = [], categories = []) {
   return groups.map((group) => ({
     ...group,
     monthlyCopTotal: sumMonthlyCop(group.rows),
+  }));
+}
+
+/**
+ * Attach `groupWeightPct` to each group: the group's ACTIVE monthly COP cost
+ * as a share of `base` (the active total across all groups). Group headers
+ * are read together as a complete set, so the shares go through
+ * largestRemainder() and add up to exactly 100.0. Base <= 0 → all zeros.
+ */
+export function withGroupWeights(groups = [], base = 0) {
+  const raw = groups.map((group) =>
+    percentOf(
+      group.rows.reduce(
+        (total, row) => total + (row.is_active ? Number(row.monthly_cop_cost) || 0 : 0),
+        0,
+      ),
+      base,
+    ));
+  const rounded = largestRemainder(raw);
+  return groups.map((group, index) => ({
+    ...group,
+    groupWeightPct: rounded[index],
   }));
 }

@@ -230,6 +230,45 @@ describe('RecurringGroupedTable', () => {
     ).toBe('true');
   });
 
+  it('shows each group\'s weight next to its subtotal when provided', () => {
+    const wrapper = mountTable({
+      groups: groups.map((group, index) => ({ ...group, groupWeightPct: index === 0 ? 95.5 : 4.5 })),
+    });
+
+    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text()).toContain('95,5%');
+    expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text()).toContain('4,5%');
+  });
+
+  it('omits the group weight when the page does not compute one', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').exists()).toBe(false);
+  });
+
+  it('the weight-sort header button emits toggle-weight-sort', async () => {
+    const wrapper = mountTable({ sortColumnKey: 'monthly_cop_cost' });
+
+    await wrapper.find('[data-testid="recurring-grouped-sort-weight"]').trigger('click');
+
+    expect(wrapper.emitted('toggle-weight-sort')).toHaveLength(1);
+  });
+
+  it('reflects the weight-sort state through aria-sort on the column header', async () => {
+    const wrapper = mountTable({ sortColumnKey: 'monthly_cop_cost', weightSort: 'desc' });
+
+    const header = wrapper.find('[role="columnheader"][aria-sort]');
+    expect(header.attributes('aria-sort')).toBe('descending');
+
+    await wrapper.setProps({ weightSort: '' });
+    expect(wrapper.find('[role="columnheader"][aria-sort]').attributes('aria-sort')).toBe('none');
+  });
+
+  it('renders plain headers when no sort column is configured', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.find('[data-testid="recurring-grouped-sort-weight"]').exists()).toBe(false);
+  });
+
   it('emits edit and delete for a row', async () => {
     const wrapper = mountTable();
 

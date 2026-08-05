@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -193,6 +193,7 @@
 </template>
 
 <script setup>
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -216,6 +217,7 @@ import {
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
+import { addWeightPct } from '~/utils/percent';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -300,6 +302,13 @@ const filteredMovements = computed(() =>
   applyFilters(store.pocketWithRunningBalance).slice().reverse(),
 );
 
+// Weight over the filtered view: ins and outs share one absolute-value base,
+// so every movement's share answers "which entry moves the most money" and
+// the visible set sums to 100%.
+const weightedMovements = computed(() =>
+  addWeightPct(filteredMovements.value, (row) => Math.abs(Number(row.amount) || 0)),
+);
+
 const {
   isModalOpen,
   editingRecord,
@@ -329,8 +338,8 @@ const {
 } = useAccountingCrudPage({
   entity: 'pocket',
   store,
-  filteredRecords: filteredMovements,
-  sortDefaults: { movement_date: 'desc', amount: 'desc' },
+  filteredRecords: weightedMovements,
+  sortDefaults: { movement_date: 'desc', amount: 'desc', weight_pct: 'desc' },
   labels: {
     created: 'Movimiento creado',
     updated: 'Movimiento actualizado',
@@ -364,6 +373,7 @@ const columns = [
   { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
   { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
+  { key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true, hideBelow: 'md' },
   { key: 'running_balance', label: 'Saldo', format: 'money', group: 'money', hideBelow: 'md' },
 ];
 

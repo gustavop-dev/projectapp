@@ -6,10 +6,10 @@
     <p class="sr-only" aria-live="polite">
       {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
     </p>
-    <!-- Past the ceiling the table stops stretching and centres instead: a
-         2000px-wide table does not read better than a 1400px one. On a narrow
-         screen minWidth wins over maxWidth and the wrapper scrolls. -->
-    <table class="w-full mx-auto text-sm" :class="MAX_WIDTH" :style="{ minWidth: tableMinWidth }">
+    <!-- The width ceiling lives on the page root (PAGE_MAX_WIDTH), so the table
+         always fills its card; on a narrow screen minWidth wins and the card
+         scrolls. -->
+    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
@@ -97,6 +97,9 @@
                 <template v-if="col.format === 'money'">
                   {{ formatMoney(row[col.key], 'COP') }}
                 </template>
+                <template v-else-if="col.format === 'percent'">
+                  {{ formatPercent(row[col.key]) }}
+                </template>
                 <span
                   v-else-if="col.format === 'badge'"
                   class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -150,9 +153,9 @@ import {
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
+import { formatPercent } from '~/utils/percent';
 import {
   TABLE_DENSITY,
-  TABLE_MAX_WIDTH,
   actionsWidthFor,
   minWidthFor,
   resolveColumns,
@@ -160,7 +163,7 @@ import {
 
 const props = defineProps({
   /**
-   * Column config: { key, label, format ('money'|'date'|'text'|'badge'),
+   * Column config: { key, label, format ('money'|'percent'|'date'|'text'|'badge'),
    * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
    * sortable (Boolean), size (see utils/tableLayout SIZE_NAMES),
    * group (String — adjacent columns sharing one draw closer together),
@@ -190,7 +193,6 @@ const props = defineProps({
 });
 
 const DENSITY = TABLE_DENSITY;
-const MAX_WIDTH = TABLE_MAX_WIDTH;
 
 /**
  * Widths come from what each column shows, and the slack is shared out in
@@ -246,6 +248,7 @@ function skeletonWidthClass(rowIndex, colIndex) {
 function cellClass(col) {
   const classes = [col.padClass, col.alignClass, col.nowrapClass, col.hideTableClass];
   if (col.format === 'money') classes.push('tabular-nums text-text-muted');
+  else if (col.format === 'percent') classes.push('tabular-nums text-text-subtle text-xs');
   else if (col.format === 'date') classes.push('text-text-muted text-xs');
   else classes.push('text-text-default');
   return classes;

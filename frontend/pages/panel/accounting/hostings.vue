@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -168,6 +168,13 @@
             @save="saveInline(row, 'monthly_value', $event)"
           >
             <span class="tabular-nums">{{ formatMoney(row.monthly_value, 'COP') }}</span>
+            <span
+              class="block text-xs text-text-subtle tabular-nums"
+              :data-testid="`hosting-weight-${row.id}`"
+              title="Peso sobre el ingreso mensual de hostings activos"
+            >
+              {{ formatPercent(row.weight_pct) }}
+            </span>
           </AccountingInlineCell>
         </template>
         <template #cell-validity="{ row }">
@@ -277,6 +284,7 @@
 </template>
 
 <script setup>
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { ClockIcon, PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -306,6 +314,7 @@ import {
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
+import { addWeightPct, formatPercent } from '~/utils/percent';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -399,6 +408,13 @@ const hostingsMeta = computed(() => store.metaFor('hostings'));
 
 const filteredRecords = computed(() => applyFilters(store.hostings));
 
+// Weight over the filtered ACTIVE monthly income: inactive hostings show 0%
+// and stay out of the base, so the active ones read as a 100% composition.
+const weightedRecords = computed(() =>
+  addWeightPct(filteredRecords.value, (row) =>
+    (row.is_active ? Number(row.monthly_value) || 0 : 0)),
+);
+
 const {
   isModalOpen,
   editingRecord,
@@ -428,7 +444,7 @@ const {
 } = useAccountingCrudPage({
   entity: 'hostings',
   store,
-  filteredRecords,
+  filteredRecords: weightedRecords,
   saveTab,
   resetFilters,
   isFilterPanelOpen,
@@ -445,6 +461,10 @@ const {
   },
   // Refresh meta (active_count / monthly_income) after changes.
   onAfterMutation: () => loadRecords(),
+  // Sorting "Valor/mes" sorts by weight: identical order for active rows
+  // (the % is monotonic on the value), and inactive rows (0%) sink to the
+  // end — the composition reading this column is for.
+  sortAccessors: { monthly_value: 'weight_pct' },
   sortDefaults: { monthly_value: 'desc', total_paid: 'desc' },
 });
 

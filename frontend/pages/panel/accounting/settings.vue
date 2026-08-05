@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH">
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-light text-text-default">Configuración</h1>
@@ -226,6 +226,7 @@
 </template>
 
 <script setup>
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog.vue';
