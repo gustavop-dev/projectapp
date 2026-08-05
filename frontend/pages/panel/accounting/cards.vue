@@ -68,7 +68,7 @@
       <span
         class="text-xs px-2.5 py-1 rounded-full bg-danger-soft text-danger-strong font-medium tabular-nums"
         data-testid="cards-total-debt"
-        title="La columna % pesa cada registro sobre esta deuda total actual; los snapshots históricos no suman 100%"
+        title="La columna % es la utilización del cupo: deuda de la fila / cupo de su tarjeta"
       >
         Deuda total (últimos por tarjeta): {{ formatMoney(latestDebtTotal) }}
       </span>
@@ -192,7 +192,7 @@ import {
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
-import { addWeightPct } from '~/utils/percent';
+import { percentOf } from '~/utils/percent';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -295,14 +295,26 @@ const latestDebtTotal = computed(() => {
   );
 });
 
-// Every snapshot's debt over TODAY's total debt (the chip's base: latest
-// snapshot per card). Historical rows keep their share against that current
-// total, so they don't sum to 100% and can even exceed it — that's the
-// intended reading: "what this snapshot would weigh in today's debt".
+// The % is each snapshot's credit utilization: its debt over ITS card's
+// credit limit from the catalog, so every row (historical included) reads as
+// "how full was this card then". Cards no longer in the catalog have no
+// known limit and show 0%.
+const creditLimitByName = computed(() => {
+  const limits = new Map();
+  for (const card of store.creditCards) {
+    limits.set(card.name, Number(card.credit_limit) || 0);
+  }
+  return limits;
+});
+
 const weightedRecords = computed(() =>
-  addWeightPct(filteredRecords.value, (row) => Number(row.debt_amount) || 0, {
-    base: latestDebtTotal.value,
-  }),
+  filteredRecords.value.map((row) => ({
+    ...row,
+    weight_pct: percentOf(
+      Number(row.debt_amount) || 0,
+      creditLimitByName.value.get(row.card_name) || 0,
+    ),
+  })),
 );
 
 const {

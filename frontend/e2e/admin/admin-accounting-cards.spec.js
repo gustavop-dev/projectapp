@@ -197,15 +197,13 @@ test.describe('Admin Accounting Cards', () => {
     ).toHaveCount(0);
   });
 
-  test('the % column weighs each snapshot against the current debt and sorts', {
+  test('the % column shows each snapshot\'s credit utilization and sorts', {
     tag: [...ADMIN_ACCOUNTING_CARDS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (navigation into Tarjetas is covered by the
     // display specs above; this one pins the weight column inside the tab)
     await mockApi(page, buildHandler({
       rows: [
-        // Older snapshot of the same card: heavier than today's debt, so its
-        // share exceeds 100% of the current total — deliberately unclamped.
         snapshotRow({ debt_amount: '7586774.00' }),
         snapshotRow({ id: 2, snapshot_date: '2026-07-01', debt_amount: '4150954.00' }),
       ],
@@ -214,14 +212,14 @@ test.describe('Admin Accounting Cards', () => {
     await gotoCards(page);
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
 
-    // Base = latest snapshot per card (4.150.954). The latest row is 100%;
-    // the June snapshot weighs 7.586.774 / 4.150.954 against today's debt.
+    // Utilization = row debt / the card's credit limit from the catalog
+    // (8.000.000 for T.C 0064): 7.586.774 → 94,8%, 4.150.954 → 51,9%.
     const row1 = page.getByTestId('accounting-row-1');
     const row2 = page.getByTestId('accounting-row-2');
-    await expect(row2).toContainText('100%');
-    await expect(row1).toContainText('182,8%');
+    await expect(row1).toContainText('94,8%');
+    await expect(row2).toContainText('51,9%');
 
-    // Sorting by weight ascending puts the lighter (current) snapshot first.
+    // Sorting by utilization ascending puts the emptier snapshot first.
     await page.getByTestId('accounting-sort-weight_pct').click();
     await page.getByTestId('accounting-sort-weight_pct').click();
     const firstRow = page.locator('[data-testid^="accounting-row-"]').first();
