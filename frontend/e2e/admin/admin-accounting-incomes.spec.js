@@ -1,7 +1,8 @@
 /**
  * E2E tests for the accounting incomes subview.
  *
- * FLOWS: admin-accounting-income-crud, admin-accounting-collection-create
+ * FLOWS: admin-accounting-income-crud, admin-accounting-collection-create,
+ *        admin-accounting-income-client
  * Covers: list rendering, create via modal with automatic 50/50 partner
  *         split, HTML5 validation, edit prefill, delete with confirmation
  *         (confirm and cancel), API-error surfacing, and the cuenta de
@@ -13,6 +14,7 @@ import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
+  ADMIN_ACCOUNTING_INCOME_CLIENT,
   ADMIN_ACCOUNTING_INCOME_CRUD,
 } from '../helpers/flow-tags.js';
 
@@ -41,6 +43,10 @@ function incomeRow(overrides = {}) {
     pending_amount: '1160000.00',
     payment_status: 'pending',
     payment_status_label: 'Pendiente',
+    client: null,
+    client_name: null,
+    origin: '',
+    origin_label: '',
     notes: '',
     created_at: '2026-02-01T10:00:00Z',
     updated_at: '2026-02-01T10:00:00Z',
@@ -131,6 +137,30 @@ function buildHandler({
       if (index !== -1) rows.splice(index, 1);
       return { status: 204, contentType: 'application/json', body: '' };
     }
+    if (apiPath.startsWith('proposals/client-profiles/search/')) {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(CLIENT_SEARCH_RESULT),
+      };
+    }
+    if (apiPath === 'accounting/incomes/bulk-assign-client/' && method === 'POST') {
+      const body = route.request().postDataJSON();
+      calls.push({ method, apiPath, body });
+      const assigned = body.income_ids.map((id) => {
+        const row = rows.find((item) => item.id === id) || incomeRow({ id });
+        Object.assign(row, {
+          client: body.client,
+          client_name: body.client ? 'Ana Pérez' : null,
+        });
+        return row;
+      });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ updated: assigned.length, results: assigned }),
+      };
+    }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
       return {
         status: 200,
@@ -141,6 +171,17 @@ function buildHandler({
     return null;
   };
 }
+
+const CLIENT_SEARCH_RESULT = [{
+  id: 5,
+  name: 'Ana Pérez',
+  email: 'ana@acme.co',
+  phone: '',
+  company: 'Acme Soluciones',
+  nit: '901234567',
+  cedula: '',
+  is_email_placeholder: false,
+}];
 
 // The view lands on the "Solo esperados" builtin tab, so the CRUD tests ask
 // for the unfiltered baseline explicitly; the landing tab has its own test.
@@ -789,5 +830,91 @@ test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => 
 
     await page.waitForURL('**/panel/accounting/collections?focus=33');
     expect(page.url()).toContain('/panel/accounting/collections?focus=33');
+  });
+});
+
+
+test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('the client column shows the linked client and "Sin cliente" isolates the rest', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under
+    // test is the Sin cliente tab, which IS clicked below)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({ id: 2, concept: 'Reembolso banco' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
+
+    // The builtin tab is the completion group: only the unassigned survive.
+    await page.getByTestId('filter-tabs-tab-no-client').click();
+
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+  });
+
+  test('assigning a client in bulk updates every selected row', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls,
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+
+    await page.getByTestId('incomes-bulk-client').fill('Ana');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('incomes-bulk-assign').click();
+
+    await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
+    const bulk = calls.find(
+      (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
+    );
+    expect(bulk.body).toEqual({ income_ids: [1, 2], client: 5 });
+  });
+
+  test('the totals modal breaks the filtered incomes down by client', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the flow under
+    // test starts at the Totales por cliente button, which IS clicked)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({
+          id: 1, client: 5, client_name: 'Ana Pérez',
+          total_amount: '1000000.00', pending_amount: '1000000.00',
+        }),
+        incomeRow({ id: 2, concept: 'Reembolso banco', total_amount: '500000.00', pending_amount: '500000.00' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-client-totals-button').click();
+
+    await expect(page.getByTestId('income-client-row-5')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('income-client-row-none')).toContainText('Sin cliente');
+    await expect(page.getByTestId('income-client-billed-sum')).toContainText('1.500.000');
   });
 });

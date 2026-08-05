@@ -5774,13 +5774,28 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
 
+### FLOW: `admin-accounting-income-client`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes`, `/panel/clients`
+- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk: checkboxes select rows (or every filtered row at once) and one action assigns the client to all of them via `POST /api/accounting/incomes/bulk-assign-client/`, writing one audit entry per income. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics).
+- **Steps:**
+  1. Superuser creates or edits an income and picks its client and origin (or creates the client inline).
+  2. The Cliente column and the Cliente/Origen filters read the ledger by client; the "Sin cliente" tab lists what is still unassigned.
+  3. Selecting rows reveals the bulk bar; assigning a client updates every selected income at once.
+  4. "Totales por cliente" answers how much each client was billed and how much is still pending, over the filtered set.
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment with payload assertion, totals modal breakdown)
+- **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
+
 ### FLOW: `admin-accounting-income-crud`
 
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter).
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
 - **Steps:**
   1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner).
   2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total, and the period field (shared PeriodDateField) defaults to today's exact date with a toggle down to month-only. Edits always open in full-date mode showing the stored day (01 remains the month-only storage sentinel; the toggle still downgrades to month).
@@ -6021,6 +6036,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-expected-detail` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-stats-modals` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-income-crud` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
+| `admin-accounting-income-client` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-filters` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-filters.spec.js` |
 | `admin-accounting-expenses-crud` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
 | `admin-accounting-hostings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |

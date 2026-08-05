@@ -98,6 +98,9 @@ class Command(BaseCommand):
             f'Deleted fake accounting rows ({accounting_total} rows)'
         ))
 
+        # Client accounts are never deleted here, so the PROTECT on
+        # IncomeRecord.client cannot bite: the accounting rows pointing at
+        # them are wiped above regardless.
         # Superusers and staff users are intentionally never deleted.
         protected = User.objects.filter(is_superuser=True).count() \
             + User.objects.filter(is_staff=True, is_superuser=False).count()

@@ -373,6 +373,7 @@ export const ADMIN_ACCOUNTING_STATEMENTS    = ['@flow:admin-accounting-statement
 export const ADMIN_ACCOUNTING_CARD_CATALOG  = ['@flow:admin-accounting-card-catalog',  '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_COLLECTIONS   = ['@flow:admin-accounting-collections',   '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_COLLECTION_CREATE = ['@flow:admin-accounting-collection-create', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_INCOME_CLIENT = ['@flow:admin-accounting-income-client', '@module:admin', '@priority:P1'];
 export const ADMIN_DASHBOARD_QUICK_CREATE   = ['@flow:admin-dashboard-quick-create',   '@module:admin', '@priority:P3'];
 export const ADMIN_ACCOUNTING_EXPORT        = ['@flow:admin-accounting-export',        '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];

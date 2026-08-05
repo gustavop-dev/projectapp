@@ -1,5 +1,5 @@
 {
-  "version": "2.62.0",
+  "version": "2.63.0",
   "lastUpdated": "2026-08-01",
   "flows": {
     "layout-navbar-navigation": {
@@ -3660,6 +3660,20 @@
         "success",
         "error",
         "failure"
+      ]
+    },
+    "admin-accounting-income-client": {
+      "name": "Admin Accounting Income Client Link",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser links each income to the client it came from at /panel/accounting/incomes. The income form carries a searchable client picker (with inline client creation) and an Origen control for the business line (desarrollo/hosting/diagnostico/otro); the client is optional, so a refund or a financial yield can stay unassigned. The table shows a Cliente column, the filter panel gains Cliente (options derived from the loaded rows plus a \"Sin cliente\" sentinel) and Origen filters, and a \"Sin cliente\" builtin tab isolates the rows still to be completed. Those rows are completed in bulk: checkboxes select rows (or every filtered row) and one action assigns the client to all of them, writing one audit entry per income. A \"Totales por cliente\" modal breaks the FILTERED incomes down into billed / collected / pending / weight per client with a totals row, so the period comes from the active filters. Settling an income carries its client and origin into the liquid child, and a client holding incomes can no longer be deleted.",
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "admin-accounting-filters": {
