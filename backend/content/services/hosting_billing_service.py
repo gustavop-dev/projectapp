@@ -14,36 +14,41 @@ it from the Cobros tab.
 """
 import logging
 
-from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.db.models import F
-from django.template.loader import render_to_string
 from django.utils import timezone
 
 from content.models import (
     Document,
     DocumentCollectionAccount,
     DocumentItem,
-    DocumentPaymentMethod,
-    EmailLog,
     HostingRecord,
-    IssuerProfile,
 )
-from content.services.collection_account_pdf_service import (
-    CollectionAccountPdfService,
+from content.services.collection_account_email_service import (
+    TEMPLATE_KEY,
+    send_collection_account_email,
 )
 from content.services.collection_account_service import (
     CollectionAccountError,
+    get_default_issuer,
     issue_collection_account,
+    seed_default_payment_methods,
 )
 from content.services.document_type_utils import (
     get_collection_account_document_type,
 )
-from content.utils import add_months, format_cop_email, today_bogota
+from content.utils import add_months, today_bogota
+
+__all__ = [
+    'HostingBillingError',
+    'TEMPLATE_KEY',
+    'create_hosting_collection_account',
+    'next_billing_period',
+    'resend_collection_account_email',
+    'send_hosting_collection_account',
+]
 
 logger = logging.getLogger(__name__)
 
-TEMPLATE_KEY = 'collection_account_sent'
 PAYMENT_TERM_DAYS = 8
 
 
@@ -59,12 +64,10 @@ def next_billing_period(hosting):
 
 
 def _default_issuer():
-    issuer = IssuerProfile.objects.order_by('pk').first()
-    if issuer is None:
-        raise HostingBillingError(
-            'No hay un perfil emisor (IssuerProfile) configurado.',
-        )
-    return issuer
+    try:
+        return get_default_issuer()
+    except CollectionAccountError as exc:
+        raise HostingBillingError(str(exc)) from exc
 
 
 def create_hosting_collection_account(hosting, *, acting_user=None):
@@ -102,21 +105,7 @@ def create_hosting_collection_account(hosting, *, acting_user=None):
         reference_type='hosting_record',
         reference_id=hosting.pk,
     )
-    issuer = _default_issuer()
-    for position, method in enumerate(issuer.default_payment_methods or []):
-        DocumentPaymentMethod.objects.create(
-            document=document,
-            payment_method_type=method.get('payment_method_type', 'bank_transfer'),
-            bank_name=method.get('bank_name', ''),
-            account_type=method.get('account_type', ''),
-            account_number=method.get('account_number', ''),
-            account_holder_name=method.get('account_holder_name', ''),
-            account_holder_identification=method.get(
-                'account_holder_identification', '',
-            ),
-            payment_instructions=method.get('payment_instructions', ''),
-            is_primary=position == 0,
-        )
+    seed_default_payment_methods(document, _default_issuer())
     return document
 
 
@@ -140,7 +129,7 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
     if already_billed:
         raise HostingBillingError(
             'Ya se envió la cuenta de cobro de este período; '
-            'usa "Reenviar" en el tab Cobros.',
+            'usa "Reenviar" en el tab Cuentas de cobro.',
         )
 
     issuer = _default_issuer()
@@ -196,106 +185,7 @@ def resend_collection_account_email(document, *, acting_user=None):
 
 
 def _send_client_email(document, *, hosting=None, resend=False):
-    """Branded client email with the PDF attached. Returns True on success."""
-    from content.services.proposal_email_service import _build_design_context
-
-    extension = document.collection_account
-    recipient = extension.customer_email
-    if not recipient:
-        logger.warning(
-            'Collection account %s has no customer email; not sent.',
-            document.pk,
-        )
-        return False
-    total = format_cop_email(document.total)
-    due = f'{document.due_date:%d/%m/%Y}' if document.due_date else ''
-    item = document.items.first()
-    period = ''
-    if item and item.period_start and item.period_end:
-        period = f'{item.period_start:%d/%m/%Y} a {item.period_end:%d/%m/%Y}'
-
-    sections = [
-        (
-            f'Te compartimos la cuenta de cobro {document.public_number} por '
-            f'{extension.billing_concept or document.title}.'
-        ),
-    ]
-    if period:
-        sections.append(f'Período facturado: {period}.')
-    sections.append(
-        f'Valor a pagar: {total} COP'
-        + (f' · Fecha límite de pago: {due}.' if due else '.')
+    """Delegation seam: existing tests patch this name to intercept sends."""
+    return send_collection_account_email(
+        document, hosting=hosting, resend=resend,
     )
-    methods = list(document.payment_methods.all())
-    if methods:
-        lines = []
-        for method in methods:
-            parts = [method.get_payment_method_type_display()]
-            if method.bank_name:
-                parts.append(method.bank_name)
-            if method.account_number:
-                parts.append(f'cuenta {method.account_number}')
-            lines.append(' · '.join(parts))
-        sections.append('Formas de pago:\n' + '\n'.join(f'— {line}' for line in lines))
-    sections.append(
-        'Adjuntamos el PDF con el detalle completo. Cualquier duda, '
-        'responde este correo y con gusto te ayudamos.'
-    )
-
-    subject = f'Cuenta de cobro {document.public_number} — ProjectApp'
-    greeting = f'Hola {extension.customer_contact_name or extension.customer_name}'
-    context = {
-        'subject': subject,
-        'greeting': greeting,
-        'sections': sections,
-        'footer': '',
-        'attachment_names': [f'{document.public_number}.pdf'],
-    }
-    context.update(_build_design_context())
-    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
-    metadata = {
-        'document_id': document.pk,
-        'public_number': document.public_number,
-        'hosting_id': hosting.pk if hosting else document.hosting_record_id,
-        'resend': resend,
-    }
-
-    try:
-        pdf_bytes = CollectionAccountPdfService.generate(document)
-        html_body = render_to_string('emails/branded_email.html', context)
-        text_body = render_to_string('emails/branded_email.txt', context)
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=text_body,
-            from_email=from_email,
-            to=[recipient],
-        )
-        email.attach_alternative(html_body, 'text/html')
-        email.attach(f'{document.public_number}.pdf', pdf_bytes, 'application/pdf')
-        email.send(fail_silently=False)
-    except Exception as exc:
-        logger.warning(
-            'Failed to send collection account %s to %s: %s',
-            document.pk, recipient, exc,
-        )
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.FAILED,
-            error_message=str(exc),
-            metadata=metadata,
-        )
-        return False
-
-    EmailLog.objects.create(
-        template_key=TEMPLATE_KEY,
-        recipient=recipient,
-        subject=subject,
-        status=EmailLog.Status.SENT,
-        metadata=metadata,
-    )
-    logger.info(
-        'Sent collection account %s to %s', document.public_number, recipient,
-    )
-    return True

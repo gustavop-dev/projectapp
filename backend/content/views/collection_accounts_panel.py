@@ -1,12 +1,15 @@
 """Panel (accounting) endpoints for collection accounts — superuser only.
 
 The platform (JWT) side has its own per-project views in
-accounts/collection_account_views.py; these serve the accounting "Cobros"
-monitor and the hosting "Enviar cuenta de cobro" action (session + CSRF).
+accounts/collection_account_views.py; these serve the accounting
+"Cuentas de cobro" monitor, its create/preview modal, and the hosting
+"Enviar cuenta de cobro" action (session + CSRF).
 """
+import base64
 from datetime import date
 from decimal import Decimal
 
+from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -14,19 +17,30 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from accounts.models import UserProfile
 from content.api_errors import error_response
 from content.models import Document, HostingRecord, IncomeRecord
 from content.permissions import IsSuperUser
 from content.serializers.collection_accounts_panel import (
+    CollectionAccountCreateSerializer,
     CollectionAccountPanelDetailSerializer,
     CollectionAccountPanelListSerializer,
 )
-from content.services import accounting_settlement_service, hosting_billing_service
+from content.services import (
+    accounting_settlement_service,
+    collection_account_create_service,
+    collection_account_email_service,
+    hosting_billing_service,
+)
+from content.services.collection_account_numbering import (
+    peek_next_client_number,
+)
 from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
 from content.services.collection_account_service import (
     CollectionAccountError,
+    get_default_issuer,
     mark_collection_account_cancelled,
     mark_collection_account_paid,
 )
@@ -65,6 +79,99 @@ def send_hosting_collection_account(request, record_id):
         },
         status=status.HTTP_201_CREATED,
     )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def create_collection_account_view(request):
+    """Create + issue + email a cuenta de cobro from an income."""
+    serializer = CollectionAccountCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        document = collection_account_create_service.create_income_collection_account(
+            serializer.validated_data, acting_user=request.user,
+        )
+    except CollectionAccountError as exc:
+        return error_response(str(exc))
+    # Re-read: the in-memory document caches the pre-issue extension via
+    # the reverse one-to-one descriptor (same reason as the hosting flow).
+    document = _get_document(document.pk)
+    email_sent = collection_account_email_service.send_collection_account_email(
+        document,
+    )
+    return Response(
+        {
+            'document': CollectionAccountPanelDetailSerializer(document).data,
+            'email_sent': email_sent,
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def preview_collection_account_view(request):
+    """The real create pipeline minus the send, rolled back.
+
+    Runs create + issue + email build + PDF inside a forced-rollback
+    transaction, so the preview is byte-identical to what the confirm step
+    will send while persisting nothing — no Document rows, no EmailLog and
+    no consecutivo consumed (the sequence increment rolls back too).
+    """
+    serializer = CollectionAccountCreateSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        with transaction.atomic():
+            document = (
+                collection_account_create_service.create_income_collection_account(
+                    serializer.validated_data, acting_user=request.user,
+                )
+            )
+            document = _get_document(document.pk)
+            email = collection_account_email_service.build_collection_account_email(
+                document,
+            )
+            pdf_bytes = CollectionAccountPdfService.generate(document)
+            payload = {
+                'subject': email['subject'],
+                'html_body': email['html_body'],
+                'public_number': document.public_number,
+                'total': str(document.total),
+                'due_date': (
+                    document.due_date.isoformat() if document.due_date else None
+                ),
+                'customer_email': document.collection_account.customer_email,
+                'pdf_base64': (
+                    base64.b64encode(pdf_bytes).decode('ascii')
+                    if pdf_bytes else None
+                ),
+            }
+            transaction.set_rollback(True)
+    except CollectionAccountError as exc:
+        return error_response(str(exc))
+    return Response(payload)
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def collection_account_next_number_view(request):
+    """Suggested per-client consecutivo — never consumes the counter."""
+    client_profile_id = request.query_params.get('client_profile_id', '')
+    if not client_profile_id.isdigit():
+        return error_response("El parámetro 'client_profile_id' es obligatorio.")
+    profile = UserProfile.objects.filter(pk=int(client_profile_id)).first()
+    if profile is None:
+        return error_response('El cliente seleccionado no existe.', status=404)
+    try:
+        issuer = get_default_issuer()
+    except CollectionAccountError as exc:
+        return error_response(str(exc))
+    code, suggested = peek_next_client_number(profile, issuer)
+    return Response({
+        'suggested_number': suggested,
+        'billing_code': code,
+        'issuer_city': issuer.city or '',
+    })
 
 
 @api_view(['GET'])

@@ -29,9 +29,12 @@ from content.views.accounting_export import (
 )
 from content.views.collection_accounts_panel import (
     cancel_collection_account_view,
+    collection_account_next_number_view,
     collection_account_pdf,
+    create_collection_account_view,
     list_collection_accounts,
     mark_collection_account_paid_view,
+    preview_collection_account_view,
     resend_collection_account,
     retrieve_collection_account,
     send_hosting_collection_account,
@@ -516,6 +519,9 @@ urlpatterns = [
     path('accounting/hostings/<int:record_id>/cycles/<int:cycle_id>/delete/', delete_hosting_cycle, name='delete-hosting-cycle'),
 
     path('accounting/collection-accounts/', list_collection_accounts, name='list-collection-accounts'),
+    path('accounting/collection-accounts/create/', create_collection_account_view, name='create-collection-account'),
+    path('accounting/collection-accounts/preview/', preview_collection_account_view, name='preview-collection-account'),
+    path('accounting/collection-accounts/next-number/', collection_account_next_number_view, name='collection-account-next-number'),
     path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),
     path('accounting/collection-accounts/<int:doc_id>/pdf/', collection_account_pdf, name='collection-account-pdf'),
     path('accounting/collection-accounts/<int:doc_id>/resend/', resend_collection_account, name='resend-collection-account'),

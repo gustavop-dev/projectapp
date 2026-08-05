@@ -161,6 +161,22 @@ def format_date_es(dt):
     return f'{dt.day} de {_MONTHS_ES.get(dt.month, "")} de {dt.year}'
 
 
+def amount_in_words_es(value):
+    """COP amount in words: 'Un millón cuatrocientos noventa mil pesos M/CTE'.
+
+    Integer pesos only — Colombian cuentas de cobro do not carry cents.
+    Returns '' when the value is not numeric.
+    """
+    from num2words import num2words
+
+    try:
+        amount = int(value)
+    except (TypeError, ValueError):
+        return ''
+    words = num2words(amount, lang='es')
+    return f'{words[:1].upper()}{words[1:]} pesos M/CTE'
+
+
 # ─────────────────────────────────────────────────────────────
 # Emoji / symbol stripping
 # ─────────────────────────────────────────────────────────────
