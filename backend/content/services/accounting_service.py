@@ -395,43 +395,45 @@ def update_record(entity_type, instance, serializer, user, notify=True):
 
 
 @transaction.atomic
-def bulk_assign_income_client(income_ids, client, user):
-    """Assign (or clear, with ``client=None``) the client of several incomes.
+def bulk_assign_client(entity_type, record_ids, client, user):
+    """Assign (or clear, with ``client=None``) the client of several records.
 
-    The backfill tool for records created before the client link existed.
-    One audit row per income on purpose: the history is per record, and a
-    single aggregate entry would make an individual income's timeline lie.
-    Rows already pointing at the target client are skipped, so re-running
-    the same assignment writes nothing.
+    The completion tool for rows created before the client link existed,
+    shared by incomes and hostings. One audit row per record on purpose:
+    the history is per record, and a single aggregate entry would make an
+    individual timeline lie. Rows already pointing at the target client are
+    skipped, so re-running the same assignment writes nothing.
     """
+    model = ENTITY_MODELS[entity_type]
     records = list(
-        IncomeRecord.objects.select_related('client__user').filter(
-            pk__in=income_ids,
-        ),
+        model.objects.select_related('client__user').filter(pk__in=record_ids),
     )
     updated = []
-    for income in records:
-        if income.client_id == (client.pk if client else None):
+    for record in records:
+        if record.client_id == (client.pk if client else None):
             continue
-        old_values = snapshot_values(income, EntityType.INCOME)
-        income.client = client
-        income.save(update_fields=['client', 'updated_at'])
+        old_values = snapshot_values(record, entity_type)
+        record.client = client
+        record.save(update_fields=['client', 'updated_at'])
         changes = compute_changes(
-            EntityType.INCOME,
-            old_values,
-            snapshot_values(income, EntityType.INCOME),
+            entity_type, old_values, snapshot_values(record, entity_type),
         )
         if changes:
             log_accounting_change(
-                entity_type=EntityType.INCOME,
-                object_id=income.pk,
-                object_repr=object_repr(EntityType.INCOME, income),
+                entity_type=entity_type,
+                object_id=record.pk,
+                object_repr=object_repr(entity_type, record),
                 action=Action.UPDATED,
                 changes=changes,
                 actor=user,
             )
-        updated.append(income)
+        updated.append(record)
     return updated
+
+
+def bulk_assign_income_client(income_ids, client, user):
+    """Incomes flavour of :func:`bulk_assign_client` (kept for its callers)."""
+    return bulk_assign_client(EntityType.INCOME, income_ids, client, user)
 
 
 def _deletion_changes(entity_type, old_values):

@@ -27,6 +27,7 @@ from content.services.collection_account_email_service import (
     TEMPLATE_KEY,
     send_collection_account_email,
 )
+from content.services.collection_account_numbering import allocate_client_number
 from content.services.collection_account_service import (
     CollectionAccountError,
     get_default_issuer,
@@ -79,6 +80,7 @@ def create_hosting_collection_account(hosting, *, acting_user=None):
         document_type=get_collection_account_document_type(),
         commercial_status=Document.CommercialStatus.DRAFT,
         hosting_record=hosting,
+        client_user=hosting.client.user if hosting.client_id else None,
         currency='COP',
         created_by=acting_user,
         updated_by=acting_user,
@@ -112,9 +114,11 @@ def create_hosting_collection_account(hosting, *, acting_user=None):
 def send_hosting_collection_account(hosting, *, acting_user=None):
     """Create + issue + email the cuenta de cobro. Returns
     {'document': Document, 'email_sent': bool}."""
-    if not hosting.client_email:
+    recipient = hosting.billing_email
+    if not recipient:
         raise HostingBillingError(
-            'El hosting no tiene email de cliente configurado.',
+            'El hosting no tiene a quién enviarle la cuenta: vincula un '
+            'cliente con correo o escribe un email de facturación.',
         )
     if not hosting.payment_per_cycle or hosting.payment_per_cycle <= 0:
         raise HostingBillingError(
@@ -134,6 +138,13 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
 
     issuer = _default_issuer()
     document = create_hosting_collection_account(hosting, acting_user=acting_user)
+    profile = hosting.client
+    # With a client linked the cuenta joins that client's own series, so
+    # "how many cuentas have I issued to them" finally counts its hostings.
+    # Records still pending assignment keep the legacy per-issuer series.
+    allocator = (
+        (lambda: allocate_client_number(profile, issuer)) if profile else None
+    )
     try:
         issue_collection_account(
             document,
@@ -141,10 +152,11 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
             acting_user=acting_user,
             customer={
                 'name': hosting.client_name,
-                'email': hosting.client_email,
+                'email': recipient,
                 'identification': hosting.client_identification,
                 'contact_name': hosting.client_contact_name,
             },
+            number_allocator=allocator,
         )
     except CollectionAccountError as exc:
         raise HostingBillingError(str(exc)) from exc

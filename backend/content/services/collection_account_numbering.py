@@ -2,9 +2,9 @@
 Per-client collection-account numbering: PA-{CODE}-{NNN}.
 
 The per-client series is continuous (never resets by year) and coexists with
-the legacy per-issuer DocumentNumberSequence (PA-{year}-{NNNN}), which the
-hosting flow keeps using. Codes are derived from the client profile on first
-use and stay editable from the clients module.
+the legacy per-issuer DocumentNumberSequence (PA-{year}-{NNNN}), which is now
+only used by records with no client linked yet. Codes are derived from the
+client profile on first use and stay editable from the clients module.
 """
 import re
 import unicodedata

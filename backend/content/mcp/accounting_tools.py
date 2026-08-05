@@ -258,6 +258,10 @@ _ENTITY_FIELDS = {
     },
     'hosting': {
         'props': {
+            'client': {
+                'type': ['integer', 'null'],
+                'description': 'ID del cliente (UserProfile con rol cliente).',
+            },
             'client_name': {'type': 'string'},
             'monthly_value': {'type': ['number', 'string']},
             'domain_url': {'type': 'string'},
@@ -271,7 +275,7 @@ _ENTITY_FIELDS = {
             'is_active': {'type': 'boolean'},
             'notes': {'type': 'string'},
         },
-        'required': ['client_name', 'monthly_value'],
+        'required': ['client', 'monthly_value'],
     },
     'pocket': {
         'props': {

@@ -48,6 +48,7 @@ from content.serializers.accounting import (
     ExpenseRecordSerializer,
     HostingCycleCreateSerializer,
     HostingCycleSerializer,
+    HostingClientBulkAssignSerializer,
     HostingRecordCreateUpdateSerializer,
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
@@ -187,12 +188,14 @@ def _hosting_meta(queryset, params):
                 valid_to__lte=today + timedelta(days=30),
             ),
         ),
+        without_client_count=Count('id', filter=Q(client__isnull=True)),
     )
     return {
         'active_count': totals['active_count'] or 0,
         'monthly_income': _money(totals['monthly_income'] or 0),
         'total_paid': _money(totals['total_paid'] or 0),
         'expiring_soon_count': totals['expiring_soon_count'] or 0,
+        'without_client_count': totals['without_client_count'] or 0,
     }
 
 
@@ -267,9 +270,15 @@ _ENTITIES = {
         'write': HostingRecordCreateUpdateSerializer,
         'date_field': 'valid_from',
         'amount_field': 'monthly_value',
-        'search_fields': ('client_name', 'domain_url', 'notes'),
+        'search_fields': (
+            'client_name', 'domain_url', 'notes',
+            'client__company_name', 'client__user__first_name',
+            'client__user__last_name',
+        ),
         'choice_filters': ('payment_modality',),
         'bool_filters': ('is_active',),
+        'null_filters': ('client',),
+        'select_related': ('client', 'client__user'),
         'meta': _hosting_meta,
     },
     'pocket': {
@@ -661,7 +670,8 @@ def bulk_assign_income_client(request):
     serializer = IncomeClientBulkAssignSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    updated = accounting_service.bulk_assign_income_client(
+    updated = accounting_service.bulk_assign_client(
+        EntityType.INCOME,
         serializer.validated_data['income_ids'],
         serializer.validated_data.get('client'),
         request.user,
@@ -669,6 +679,29 @@ def bulk_assign_income_client(request):
     return Response({
         'updated': len(updated),
         'results': IncomeRecordSerializer(updated, many=True).data,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_hosting_client(request):
+    """Assign one client to several hostings at once (or clear it with null).
+
+    Same completion path as incomes: filter by "sin cliente", select the
+    rows and assign in one step.
+    """
+    serializer = HostingClientBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    updated = accounting_service.bulk_assign_client(
+        EntityType.HOSTING,
+        serializer.validated_data['hosting_ids'],
+        serializer.validated_data.get('client'),
+        request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': HostingRecordSerializer(updated, many=True).data,
     })
 
 

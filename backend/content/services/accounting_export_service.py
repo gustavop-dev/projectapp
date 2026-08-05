@@ -35,6 +35,17 @@ def _income_payment_status(record):
     )
 
 
+def _hosting_client(record):
+    """Linked client's display name; blank while the hosting is pending."""
+    if not record.client_id:
+        return ''
+    from accounts.services.proposal_client_service import (
+        build_client_display_name,
+    )
+
+    return build_client_display_name(record.client)
+
+
 def _income_client(record):
     """Client display name; blank for the unassigned rows."""
     if not record.client_id:
@@ -143,6 +154,9 @@ EXPORT_SECTIONS = {
             ('Total pagado', 'total_paid'),
             ('Activo', lambda r: 'Sí' if r.is_active else 'No'),
             ('Notas', 'notes'),
+            # Appended, never inserted (same rule as the income section):
+            # 'Cliente' above is the billing snapshot, this is the relation.
+            ('Cliente vinculado', _hosting_client),
         ],
     },
     'pocket': {

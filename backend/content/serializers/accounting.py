@@ -476,6 +476,19 @@ class IncomeClientBulkAssignSerializer(serializers.Serializer):
     )
 
 
+class HostingClientBulkAssignSerializer(serializers.Serializer):
+    """Assign one client to several hostings; ``client: null`` unlinks them."""
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
 # ── Expense ──
 
 class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
