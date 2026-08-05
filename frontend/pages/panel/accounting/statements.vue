@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH">
     <ConfirmModal
       v-model="confirmState.open"
       :title="confirmState.title"
@@ -185,6 +185,7 @@
 </template>
 
 <script setup>
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingMerchantInput from '~/components/accounting/AccountingMerchantInput.vue';

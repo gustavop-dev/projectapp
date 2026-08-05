@@ -6,10 +6,10 @@
     <p class="sr-only" aria-live="polite">
       {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
     </p>
-    <!-- Past the ceiling the table stops stretching and centres instead: a
-         2000px-wide table does not read better than a 1400px one. On a narrow
-         screen minWidth wins over maxWidth and the wrapper scrolls. -->
-    <table class="w-full mx-auto text-sm" :class="MAX_WIDTH" :style="{ minWidth: tableMinWidth }">
+    <!-- The width ceiling lives on the page root (PAGE_MAX_WIDTH), so the table
+         always fills its card; on a narrow screen minWidth wins and the card
+         scrolls. -->
+    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
@@ -152,7 +152,6 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import {
   TABLE_DENSITY,
-  TABLE_MAX_WIDTH,
   actionsWidthFor,
   minWidthFor,
   resolveColumns,
@@ -190,7 +189,6 @@ const props = defineProps({
 });
 
 const DENSITY = TABLE_DENSITY;
-const MAX_WIDTH = TABLE_MAX_WIDTH;
 
 /**
  * Widths come from what each column shows, and the slack is shared out in

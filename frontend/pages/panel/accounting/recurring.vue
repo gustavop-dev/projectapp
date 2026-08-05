@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -308,6 +308,7 @@
 </template>
 
 <script setup>
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { PlusIcon, TagIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

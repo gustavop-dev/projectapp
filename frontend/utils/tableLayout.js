@@ -42,8 +42,13 @@ export const TABLE_DENSITY = {
  */
 const NAME_CONTENT_CLASS = 'block max-w-[22rem]';
 
-/** Table ceiling: past 1400px a wider table is not a more readable one. */
-export const TABLE_MAX_WIDTH = 'max-w-[87.5rem]';
+/**
+ * Page ceiling: past 1400px a wider page is not a more readable one. It lives
+ * on each accounting page's root — not on the table — so on a wide monitor the
+ * whole page (KPIs, filters, table) centres as one column and the slack reads
+ * as page margin, never as empty bands inside the table's card.
+ */
+export const PAGE_MAX_WIDTH = 'max-w-[87.5rem] mx-auto';
 
 /**
  * Width vocabulary.

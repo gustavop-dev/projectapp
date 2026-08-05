@@ -71,11 +71,12 @@ describe('AccountingTable', () => {
     expect(amount.find('span').classes()).not.toContain('max-w-[22rem]');
   });
 
-  it('centres the table at its ceiling instead of stretching on a wide screen', () => {
+  it('fills its card edge to edge — the width ceiling lives on the page, not the table', () => {
     const table = mountTable().find('table');
 
-    expect(table.classes()).toContain('max-w-[87.5rem]');
-    expect(table.classes()).toContain('mx-auto');
+    expect(table.classes()).toContain('w-full');
+    expect(table.classes().some((c) => c.startsWith('max-w-'))).toBe(false);
+    expect(table.classes()).not.toContain('mx-auto');
     // The scroll floor still wins on a narrow screen.
     expect(table.element.style.minWidth).toMatch(/rem$/);
   });

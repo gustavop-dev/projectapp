@@ -328,14 +328,12 @@ function onDragEnd() {
   }
 }
 
-/* Ceiling + centring, same rule as AccountingTable: past 1400px the tracks stop
- * stretching. min-width wins over max-width by spec, so a narrow screen still
- * scrolls instead of squeezing a column past its content. */
+/* The width ceiling lives on the page root (PAGE_MAX_WIDTH), so the grid fills
+ * its card and the fr tracks share the slack; min-width still makes a narrow
+ * screen scroll instead of squeezing a column past its content. */
 .accounting-grid-scroll {
   display: grid;
   grid-template-columns: var(--cols);
-  max-width: 87.5rem;
-  margin-inline: auto;
 }
 
 /* Rowgroups and the draggable list are transparent for track sizing: without
