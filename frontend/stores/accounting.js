@@ -818,6 +818,34 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * bulkAssignHostingClient: link (or unlink) several hostings to one
+     * client. Replaces the affected rows in place, like the incomes one.
+     */
+    async bulkAssignHostingClient(hostingIds, client) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/hostings/bulk-assign-client/',
+          { hosting_ids: hostingIds, client },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.hostings = this.hostings.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning client to hostings:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * createCollectionAccount: create + issue + email a cuenta linked to an
      * income (panel modal). Prepends the created document to the list.
      */
