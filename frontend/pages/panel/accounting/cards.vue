@@ -68,6 +68,7 @@
       <span
         class="text-xs px-2.5 py-1 rounded-full bg-danger-soft text-danger-strong font-medium tabular-nums"
         data-testid="cards-total-debt"
+        title="La columna % pesa cada registro sobre esta deuda total actual; los snapshots históricos no suman 100%"
       >
         Deuda total (últimos por tarjeta): {{ formatMoney(latestDebtTotal) }}
       </span>
@@ -191,6 +192,7 @@ import {
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
+import { addWeightPct } from '~/utils/percent';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -279,6 +281,30 @@ const exportParams = computed(() =>
 
 const filteredRecords = computed(() => applyFilters(store.cardSnapshots));
 
+const latestDebtTotal = computed(() => {
+  const latestByCard = new Map();
+  for (const row of filteredRecords.value) {
+    const current = latestByCard.get(row.card_name);
+    if (!current || row.snapshot_date > current.snapshot_date) {
+      latestByCard.set(row.card_name, row);
+    }
+  }
+  return [...latestByCard.values()].reduce(
+    (sum, row) => sum + (Number(row.debt_amount) || 0),
+    0,
+  );
+});
+
+// Every snapshot's debt over TODAY's total debt (the chip's base: latest
+// snapshot per card). Historical rows keep their share against that current
+// total, so they don't sum to 100% and can even exceed it — that's the
+// intended reading: "what this snapshot would weigh in today's debt".
+const weightedRecords = computed(() =>
+  addWeightPct(filteredRecords.value, (row) => Number(row.debt_amount) || 0, {
+    base: latestDebtTotal.value,
+  }),
+);
+
 const {
   isModalOpen,
   editingRecord,
@@ -308,11 +334,12 @@ const {
 } = useAccountingCrudPage({
   entity: 'cards',
   store,
-  filteredRecords,
+  filteredRecords: weightedRecords,
   sortDefaults: {
     snapshot_date: 'desc',
     available_amount: 'desc',
     debt_amount: 'desc',
+    weight_pct: 'desc',
   },
   saveTab,
   resetFilters,
@@ -330,25 +357,12 @@ const {
   },
 });
 
-const latestDebtTotal = computed(() => {
-  const latestByCard = new Map();
-  for (const row of filteredRecords.value) {
-    const current = latestByCard.get(row.card_name);
-    if (!current || row.snapshot_date > current.snapshot_date) {
-      latestByCard.set(row.card_name, row);
-    }
-  }
-  return [...latestByCard.values()].reduce(
-    (sum, row) => sum + (Number(row.debt_amount) || 0),
-    0,
-  );
-});
-
 const columns = [
   { key: 'card_name', label: 'Tarjeta', sortable: true },
   { key: 'snapshot_date', label: 'Fecha', sortable: true },
   { key: 'available_amount', label: 'Disponible', format: 'money', sortable: true },
-  { key: 'debt_amount', label: 'Deuda', sortable: true },
+  { key: 'debt_amount', label: 'Deuda', group: 'money', sortable: true },
+  { key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true },
   { key: 'notes', label: 'Notas' },
 ];
 

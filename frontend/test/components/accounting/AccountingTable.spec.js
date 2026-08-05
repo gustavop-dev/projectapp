@@ -130,6 +130,31 @@ describe('AccountingTable', () => {
     expect(wrapper.text()).toContain(formatMoney(350000, 'COP'));
   });
 
+  it('formats percent cells rounded to one decimal, subtle and right-aligned', () => {
+    const wrapper = mountTable({
+      columns: [
+        { key: 'concept', label: 'Concepto' },
+        { key: 'weight_pct', label: '%', format: 'percent', sortable: true },
+      ],
+      rows: [{ id: 1, concept: 'Google Ads', weight_pct: 41.666 }],
+    });
+
+    const cell = wrapper.find('[data-testid="accounting-row-1"]').findAll('td')[1];
+    expect(cell.text()).toBe('41,7%');
+    expect(cell.classes()).toContain('text-right');
+    expect(cell.classes()).toContain('text-text-subtle');
+  });
+
+  it('percent columns sort through the shared header button', async () => {
+    const wrapper = mountTable({
+      columns: [{ key: 'weight_pct', label: '%', format: 'percent', sortable: true }],
+      rows: [{ id: 1, weight_pct: 100 }],
+    });
+
+    await wrapper.find('[data-testid="accounting-sort-weight_pct"]').trigger('click');
+    expect(wrapper.emitted('sort')).toEqual([['weight_pct']]);
+  });
+
   it('applies badge tone classes from badgeTones config', () => {
     const wrapper = mountTable();
 

@@ -151,7 +151,14 @@
 
     <template v-else>
       <p
-        v-if="isGrouped && !canReorder && !store.isLoading"
+        v-if="isGrouped && groupedWeightSort && !store.isLoading"
+        class="text-xs text-text-subtle mb-2"
+        data-testid="recurring-weight-sort-hint"
+      >
+        Orden por peso activo: quítalo para reordenar arrastrando.
+      </p>
+      <p
+        v-else-if="isGrouped && !canReorder && !store.isLoading"
         class="text-xs text-text-subtle mb-2"
         data-testid="recurring-reorder-hint"
       >
@@ -163,20 +170,33 @@
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="groupedColumns"
-        :groups="groups"
+        :groups="displayGroups"
         :highlight-query="currentFilters.search"
         :drag-enabled="canReorder"
         :collapsed-ids="collapsedGroupIds"
+        :weight-sort="groupedWeightSort"
+        sort-column-key="monthly_cop_cost"
         @edit="openEditModal"
         @delete="confirmDelete"
         @reorder="handleReorder"
         @toggle-group="toggleGroup"
+        @toggle-weight-sort="toggleGroupedWeightSort"
       >
         <template #cell-price="{ row }">
           <span class="tabular-nums">{{ formatMoney(Number(row.price), row.currency) }}</span>
         </template>
         <template #cell-monthly_price="{ row }">
           <span class="tabular-nums">{{ formatMonthlyPrice(row) }}</span>
+        </template>
+        <template #cell-monthly_cop_cost="{ row }">
+          <span class="tabular-nums">{{ formatMonthlyCop(row.monthly_cop_cost) }}</span>
+          <span
+            class="block text-xs text-text-subtle tabular-nums"
+            :data-testid="`recurring-weight-${row.id}`"
+            title="Peso sobre el total mensual COP de pagos activos"
+          >
+            {{ formatPercent(row.weight_pct) }}
+          </span>
         </template>
         <template #cell-billing_day="{ row }">
           {{ row.billing_day || '—' }}
@@ -221,6 +241,16 @@
           </template>
           <template #cell-monthly_price="{ row }">
             <span class="tabular-nums">{{ formatMonthlyPrice(row) }}</span>
+          </template>
+          <template #cell-monthly_cop_cost="{ row }">
+            <span class="tabular-nums">{{ formatMonthlyCop(row.monthly_cop_cost) }}</span>
+            <span
+              class="block text-xs text-text-subtle tabular-nums"
+              :data-testid="`recurring-weight-${row.id}`"
+              title="Peso sobre el total mensual COP de pagos activos"
+            >
+              {{ formatPercent(row.weight_pct) }}
+            </span>
           </template>
           <template #cell-category_name="{ row }">
             <span
@@ -342,7 +372,13 @@ import {
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
-import { formatMonthlyPrice, groupByCategory } from '~/utils/recurring';
+import { addWeightPct, formatPercent } from '~/utils/percent';
+import {
+  formatMonthlyCop,
+  formatMonthlyPrice,
+  groupByCategory,
+  withGroupWeights,
+} from '~/utils/recurring';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
@@ -510,6 +546,21 @@ const groupedColumns = SHARED_COLUMNS.map(({ sortable, ...col }) => col);
 
 const filteredRows = computed(() => applyFilters(store.recurringPayments));
 
+// Contribution to the weight base: only active rows count, matching the
+// server's monthly_cop_total meta. Inactive rows show 0% and stay out of the
+// base, so the active ones read as a 100% composition. NOTE: the grouped
+// view's footer grand total still sums active AND inactive rows ("total of
+// what is listed"); the percentages deliberately use the active-only base.
+function activeMonthlyCop(row) {
+  return row.is_active ? Number(row.monthly_cop_cost) || 0 : 0;
+}
+
+const weightedRows = computed(() => addWeightPct(filteredRows.value, activeMonthlyCop));
+
+const activeBase = computed(() =>
+  filteredRows.value.reduce((total, row) => total + activeMonthlyCop(row), 0),
+);
+
 // -------------------------------------------------------------------
 // View mode, grouping and manual order
 // -------------------------------------------------------------------
@@ -526,15 +577,46 @@ const collapsedGroupIds = ref([]);
 const showCategoriesModal = ref(false);
 
 const groups = computed(() =>
-  groupByCategory(filteredRows.value, store.recurringCategories),
+  withGroupWeights(
+    groupByCategory(weightedRows.value, store.recurringCategories),
+    activeBase.value,
+  ),
 );
 
+// Temporary weight-sort for the grouped view: '' | 'desc' | 'asc'. It only
+// reorders what is DISPLAYED — the persisted manual order is never written.
+const groupedWeightSort = ref('');
+
+function toggleGroupedWeightSort() {
+  groupedWeightSort.value =
+    groupedWeightSort.value === '' ? 'desc'
+      : groupedWeightSort.value === 'desc' ? 'asc' : '';
+}
+
+// Groups AND the rows inside them sort by weight while the toggle is on:
+// the point is scanning "what weighs most", which a catalog-ordered list of
+// groups would break. Copies only — clearing the sort falls back to the
+// untouched manual order.
+const displayGroups = computed(() => {
+  if (!groupedWeightSort.value) return groups.value;
+  const direction = groupedWeightSort.value === 'desc' ? -1 : 1;
+  return [...groups.value]
+    .sort((a, b) => direction * (a.groupWeightPct - b.groupWeightPct))
+    .map((group) => ({
+      ...group,
+      rows: [...group.rows].sort((a, b) => direction * (a.weight_pct - b.weight_pct)),
+    }));
+});
+
 /**
- * Dragging is only offered on the complete list. Reordering a filtered view
- * would let the operator arrange rows around neighbours they cannot see, and
- * then persist that as the real order.
+ * Dragging is only offered on the complete list in its manual order.
+ * Reordering a filtered view would let the operator arrange rows around
+ * neighbours they cannot see, and a weight-sorted view would persist an
+ * order they meant as a temporary reading.
  */
-const canReorder = computed(() => isGrouped.value && !hasActiveFilters.value);
+const canReorder = computed(() =>
+  isGrouped.value && !hasActiveFilters.value && !groupedWeightSort.value,
+);
 
 function toggleGroup(id) {
   collapsedGroupIds.value = collapsedGroupIds.value.includes(id)
@@ -582,7 +664,7 @@ const {
 } = useAccountingCrudPage({
   entity: 'recurring',
   store,
-  filteredRecords: filteredRows,
+  filteredRecords: weightedRows,
   labels: {
     created: 'Pago recurrente creado',
     updated: 'Pago recurrente actualizado',
@@ -600,6 +682,9 @@ const {
   // Refetch: the monthly COP total meta is computed server-side, and the
   // per-category payment counts shift whenever a record moves group.
   onAfterMutation: loadAll,
+  // Sorting the COP column sorts by weight: identical order for active rows
+  // (the % is monotonic on the value), inactive rows (0%) sink to the end.
+  sortAccessors: { monthly_cop_cost: 'weight_pct' },
   sortDefaults: { monthly_cop_cost: 'desc' },
   saveTab,
   isFilterPanelOpen,

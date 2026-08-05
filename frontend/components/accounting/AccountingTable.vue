@@ -97,6 +97,9 @@
                 <template v-if="col.format === 'money'">
                   {{ formatMoney(row[col.key], 'COP') }}
                 </template>
+                <template v-else-if="col.format === 'percent'">
+                  {{ formatPercent(row[col.key]) }}
+                </template>
                 <span
                   v-else-if="col.format === 'badge'"
                   class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -150,6 +153,7 @@ import {
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
+import { formatPercent } from '~/utils/percent';
 import {
   TABLE_DENSITY,
   actionsWidthFor,
@@ -159,7 +163,7 @@ import {
 
 const props = defineProps({
   /**
-   * Column config: { key, label, format ('money'|'date'|'text'|'badge'),
+   * Column config: { key, label, format ('money'|'percent'|'date'|'text'|'badge'),
    * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
    * sortable (Boolean), size (see utils/tableLayout SIZE_NAMES),
    * group (String — adjacent columns sharing one draw closer together),
@@ -244,6 +248,7 @@ function skeletonWidthClass(rowIndex, colIndex) {
 function cellClass(col) {
   const classes = [col.padClass, col.alignClass, col.nowrapClass, col.hideTableClass];
   if (col.format === 'money') classes.push('tabular-nums text-text-muted');
+  else if (col.format === 'percent') classes.push('tabular-nums text-text-subtle text-xs');
   else if (col.format === 'date') classes.push('text-text-muted text-xs');
   else classes.push('text-text-default');
   return classes;
