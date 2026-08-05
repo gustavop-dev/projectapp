@@ -34,6 +34,18 @@ def _income_payment_status(record):
         payment_status_for(record.paid_amount, record.total_amount), '',
     )
 
+
+def _income_client(record):
+    """Client display name; blank for the unassigned rows."""
+    if not record.client_id:
+        return ''
+    from accounts.services.proposal_client_service import (
+        build_client_display_name,
+    )
+
+    return build_client_display_name(record.client)
+
+
 EXPORT_SECTIONS = {
     'statement': {
         'title': 'Extractos TC',
@@ -92,6 +104,10 @@ EXPORT_SECTIONS = {
             ('Carlos', 'carlos_amount'),
             ('Destino', lambda r: r.get_destination_display()),
             ('Notas', 'notes'),
+            # Appended, never inserted: the CSV header test pins the first
+            # five columns.
+            ('Cliente', _income_client),
+            ('Origen', lambda r: r.get_origin_display()),
         ],
     },
     'expense': {

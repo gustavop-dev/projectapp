@@ -463,6 +463,19 @@ class IncomeSettlementSerializer(serializers.Serializer):
     expected_incomes = SettlementFollowUpSerializer(many=True, required=False)
 
 
+class IncomeClientBulkAssignSerializer(serializers.Serializer):
+    """Assign one client to several incomes; ``client: null`` unlinks them."""
+
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
 # ── Expense ──
 
 class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):

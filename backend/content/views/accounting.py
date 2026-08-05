@@ -52,6 +52,7 @@ from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
+    IncomeClientBulkAssignSerializer,
     IncomeSettlementSerializer,
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
@@ -229,7 +230,9 @@ _ENTITIES = {
         'date_field': 'period_date',
         'amount_field': 'total_amount',
         'search_fields': ('concept', 'notes'),
-        'choice_filters': ('kind', 'destination', 'ledger'),
+        'choice_filters': ('kind', 'destination', 'ledger', 'origin'),
+        'null_filters': ('client',),
+        'select_related': ('client', 'client__user'),
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
         'payment_status_filter': True,
@@ -413,6 +416,26 @@ def _apply_filters(queryset, params, config):
         value = params.get(field)
         if value in ('true', 'false'):
             queryset = queryset.filter(**{field: value == 'true'})
+
+    # Nullable FK filters: 'none' isolates the unassigned rows as a group,
+    # 'all'/empty means no filter, ids (comma-separated) filter as OR.
+    # Same sentinel vocabulary as the documents `folder` param.
+    for field in config.get('null_filters', ()):
+        value = (params.get(field) or '').strip()
+        if not value or value == 'all':
+            continue
+        if value == 'none':
+            queryset = queryset.filter(**{f'{field}__isnull': True})
+            continue
+        try:
+            ids = [int(item) for item in value.split(',') if item]
+        except ValueError:
+            raise ValueError(
+                f"El parámetro '{field}' debe ser 'none', 'all' o uno o "
+                'varios ids separados por coma.'
+            )
+        if ids:
+            queryset = queryset.filter(**{f'{field}__in': ids})
 
     if config.get('has_split') and params.get('partner'):
         partner = params['partner']
@@ -611,6 +634,28 @@ def settle_income_record(request, record_id):
             result['expected_incomes'], many=True,
         ).data,
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_income_client(request):
+    """Assign one client to several incomes at once (or clear it with null).
+
+    The completion tool for records created before the client link existed:
+    filter by "sin cliente", select the rows and assign in one step.
+    """
+    serializer = IncomeClientBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    updated = accounting_service.bulk_assign_income_client(
+        serializer.validated_data['income_ids'],
+        serializer.validated_data.get('client'),
+        request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': IncomeRecordSerializer(updated, many=True).data,
+    })
 
 
 @api_view(['GET'])

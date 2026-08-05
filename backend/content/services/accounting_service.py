@@ -393,6 +393,46 @@ def update_record(entity_type, instance, serializer, user, notify=True):
     return instance
 
 
+@transaction.atomic
+def bulk_assign_income_client(income_ids, client, user):
+    """Assign (or clear, with ``client=None``) the client of several incomes.
+
+    The backfill tool for records created before the client link existed.
+    One audit row per income on purpose: the history is per record, and a
+    single aggregate entry would make an individual income's timeline lie.
+    Rows already pointing at the target client are skipped, so re-running
+    the same assignment writes nothing.
+    """
+    records = list(
+        IncomeRecord.objects.select_related('client__user').filter(
+            pk__in=income_ids,
+        ),
+    )
+    updated = []
+    for income in records:
+        if income.client_id == (client.pk if client else None):
+            continue
+        old_values = snapshot_values(income, EntityType.INCOME)
+        income.client = client
+        income.save(update_fields=['client', 'updated_at'])
+        changes = compute_changes(
+            EntityType.INCOME,
+            old_values,
+            snapshot_values(income, EntityType.INCOME),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=EntityType.INCOME,
+                object_id=income.pk,
+                object_repr=object_repr(EntityType.INCOME, income),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+        updated.append(income)
+    return updated
+
+
 def _deletion_changes(entity_type, old_values):
     """Diff payload for a deletion: every non-empty field as old -> ''."""
     return [
