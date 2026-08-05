@@ -159,7 +159,7 @@
                 <span
                   v-if="client.is_orphan"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
-                  title="Sin propuestas, proyectos, diagnósticos ni ingresos — puede eliminarse"
+                  title="Sin propuestas, proyectos, diagnósticos, ingresos ni hostings — puede eliminarse"
                 >
                   Huérfano
                 </span>
@@ -909,10 +909,12 @@ function buildBlockedMessage(client) {
   const projects = client.projects_count || 0;
   const diagnostics = client.diagnostics_count || 0;
   const incomes = client.incomes_count || 0;
+  const hostings = client.hostings_count || 0;
   if (proposals > 0) parts.push(`${proposals} propuesta${proposals === 1 ? '' : 's'}`);
   if (projects > 0) parts.push(`${projects} proyecto${projects === 1 ? '' : 's'} de plataforma`);
   if (diagnostics > 0) parts.push(`${diagnostics} diagnóstico${diagnostics === 1 ? '' : 's'} web`);
   if (incomes > 0) parts.push(`${incomes} ingreso${incomes === 1 ? '' : 's'} contable${incomes === 1 ? '' : 's'}`);
+  if (hostings > 0) parts.push(`${hostings} hosting${hostings === 1 ? '' : 's'}`);
   const reason = parts.length > 0 ? parts.join(', ') : 'elementos asociados';
   return `No se puede eliminar a "${client.name}" porque tiene ${reason}. Elimina o archiva esos elementos antes de borrar el cliente.`;
 }

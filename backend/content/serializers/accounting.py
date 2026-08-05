@@ -605,11 +605,14 @@ class HostingRecordSerializer(serializers.ModelSerializer):
     payment_modality_label = serializers.CharField(
         source='get_payment_modality_display', read_only=True,
     )
+    client_display_name = serializers.SerializerMethodField()
+    billing_email = serializers.CharField(read_only=True)
 
     class Meta:
         model = HostingRecord
         fields = (
-            'id', 'client_name', 'client_email', 'client_contact_name',
+            'id', 'client', 'client_display_name', 'billing_email',
+            'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',
             'valid_from', 'valid_to', 'cycles_count',
@@ -621,10 +624,26 @@ class HostingRecordSerializer(serializers.ModelSerializer):
             'expiry_notice_last_sent_at', 'billing_requested_at',
         )
 
+    def get_client_display_name(self, obj):
+        """Linked client's display name; None keeps 'sin cliente' distinct
+        from the free-text `client_name` snapshot."""
+        if not obj.client_id:
+            return None
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(obj.client)
+
 
 class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
     monthly_value = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
     )
 
     class Meta:
@@ -633,11 +652,16 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         # history (HostingCycle) is the source of truth and the service
         # recalculates the denormalized columns.
         fields = (
-            'client_name', 'client_email', 'client_contact_name',
+            'client', 'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'benefit', 'valid_from', 'valid_to',
             'payment_per_cycle', 'is_active', 'notes',
         )
+        extra_kwargs = {
+            # Required on create only, alongside `client`: both are filled
+            # from the picker. Legacy records keep saving without either.
+            'client_name': {'required': False},
+        }
 
     def validate(self, data):
         data = super().validate(data)
@@ -646,6 +670,38 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
             if field in data:
                 return data[field]
             return getattr(self.instance, field, None)
+
+        # Every hosting belongs to a client, so new ones must say who —
+        # but an existing record with no client must stay editable while it
+        # is completed (it would be unsavable otherwise).
+        if self.instance is None and not data.get('client'):
+            raise serializers.ValidationError({
+                'client': 'Todo hosting nuevo debe tener un cliente asignado.',
+            })
+
+        client = effective('client')
+        if client is not None:
+            # Fill the billing snapshot from the profile when the form left
+            # it empty; whatever the operator typed always wins.
+            from content.services.collection_account_create_service import (
+                customer_snapshot_defaults,
+            )
+
+            defaults = customer_snapshot_defaults(client)
+            snapshot = {
+                'client_name': defaults['name'],
+                'client_email': defaults['email'],
+                'client_contact_name': defaults['contact_name'],
+                'client_identification': defaults['identification'],
+            }
+            for field, fallback in snapshot.items():
+                if not effective(field) and fallback:
+                    data[field] = fallback
+
+        if self.instance is None and not effective('client_name'):
+            raise serializers.ValidationError({
+                'client_name': 'El nombre del cliente es obligatorio.',
+            })
 
         valid_from = effective('valid_from')
         valid_to = effective('valid_to')

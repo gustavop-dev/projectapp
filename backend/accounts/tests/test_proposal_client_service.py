@@ -277,6 +277,23 @@ class TestDeleteOrphanClient:
         with pytest.raises(ValueError, match='client_has_projects:1'):
             proposal_client_service.delete_orphan_client(profile)
 
+    def test_blocks_deletion_when_client_has_hostings(self):
+        from decimal import Decimal
+
+        from content.models import HostingRecord
+
+        profile = proposal_client_service.get_or_create_client_for_proposal(
+            name='Has Hosting', email='hashosting@gmail.com',
+        )
+        HostingRecord.objects.create(
+            client=profile,
+            client_name='Has Hosting - Marca',
+            monthly_value=Decimal('50000.00'),
+        )
+        with pytest.raises(ValueError, match='client_has_hostings:1'):
+            proposal_client_service.delete_orphan_client(profile)
+        assert UserProfile.objects.filter(pk=profile.pk).exists()
+
     def test_blocks_deletion_when_client_has_incomes(self):
         from datetime import date
 

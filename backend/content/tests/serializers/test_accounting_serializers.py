@@ -413,8 +413,9 @@ class TestIncomePaymentState:
 
 @pytest.mark.django_db
 class TestEntityDefaults:
-    def test_hosting_payment_per_cycle_defaults_from_modality(self):
+    def test_hosting_payment_per_cycle_defaults_from_modality(self, make_client_profile):
         serializer = HostingRecordCreateUpdateSerializer(data={
+            'client': make_client_profile().pk,
             'client_name': 'German - Kore',
             'monthly_value': '91667.00',
             'payment_modality': HostingRecord.Modality.SEMIANNUAL,
@@ -422,8 +423,9 @@ class TestEntityDefaults:
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data['payment_per_cycle'] == Decimal('550002.00')
 
-    def test_hosting_validity_range_is_checked(self):
+    def test_hosting_validity_range_is_checked(self, make_client_profile):
         serializer = HostingRecordCreateUpdateSerializer(data={
+            'client': make_client_profile().pk,
             'client_name': 'X',
             'monthly_value': '100.00',
             'valid_from': '2026-09-02',
@@ -431,6 +433,34 @@ class TestEntityDefaults:
         })
         assert not serializer.is_valid()
         assert 'vigencia' in str(serializer.errors)
+
+    def test_hosting_requires_a_client_on_create_only(self, make_client_profile):
+        create = HostingRecordCreateUpdateSerializer(data={
+            'client_name': 'X', 'monthly_value': '100.00',
+        })
+        assert not create.is_valid()
+        assert 'client' in create.errors
+
+        # An existing record with no client must stay editable while it is
+        # completed — requiring it there would make it unsavable.
+        legacy = HostingRecord.objects.create(
+            client_name='Legacy', monthly_value=Decimal('100.00'),
+        )
+        edit = HostingRecordCreateUpdateSerializer(
+            legacy, data={'notes': 'al día'}, partial=True,
+        )
+        assert edit.is_valid(), edit.errors
+
+    def test_hosting_snapshot_is_filled_from_the_client(self, make_client_profile):
+        profile = make_client_profile(company='Acme SAS', nit='901234567')
+        serializer = HostingRecordCreateUpdateSerializer(data={
+            'client': profile.pk, 'monthly_value': '100.00',
+        })
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['client_name'] == 'Acme SAS'
+        assert serializer.validated_data['client_email'] == profile.user.email
+        assert serializer.validated_data['client_identification'] == '901234567'
 
     def test_recurring_cop_equivalent_defaults_to_price_for_cop(self):
         serializer = RecurringPaymentCreateUpdateSerializer(data={

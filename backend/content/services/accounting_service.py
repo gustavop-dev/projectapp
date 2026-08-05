@@ -88,6 +88,7 @@ TRACKED_FIELDS = {
         ('notes', 'Notas'),
     ],
     EntityType.HOSTING: [
+        ('client', 'Cliente vinculado'),
         ('client_name', 'Cliente'),
         ('client_email', 'Email del cliente'),
         ('client_contact_name', 'Contacto del cliente'),

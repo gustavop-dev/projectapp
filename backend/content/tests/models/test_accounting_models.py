@@ -259,3 +259,43 @@ class TestAttributedTo:
         with pytest.raises(ValidationError) as exc_info:
             income.full_clean()
         assert '100%' in str(exc_info.value)
+
+
+class TestHostingBillingEmail:
+    """Where the cuenta de cobro actually goes (override → client → none)."""
+
+    def _hosting(self, **kwargs):
+        from content.models import HostingRecord
+
+        defaults = {
+            'client_name': 'German - Kore',
+            'monthly_value': Decimal('91667.00'),
+        }
+        defaults.update(kwargs)
+        return HostingRecord.objects.create(**defaults)
+
+    def test_the_hosting_override_wins(self, make_client_profile):
+        hosting = self._hosting(
+            client=make_client_profile(), client_email='pagos@kore.co',
+        )
+
+        assert hosting.billing_email == 'pagos@kore.co'
+
+    def test_falls_back_to_the_linked_client(self, make_client_profile):
+        profile = make_client_profile()
+        hosting = self._hosting(client=profile)
+
+        assert hosting.billing_email == profile.user.email
+
+    def test_a_placeholder_address_does_not_count(self, make_client_profile):
+        profile = make_client_profile(
+            email='cliente_999@temp.example.com',
+            username='cliente_999@temp.example.com',
+        )
+        hosting = self._hosting(client=profile)
+
+        # Nothing can be mailed there, so the hosting is not billable yet.
+        assert hosting.billing_email == ''
+
+    def test_without_client_or_override_there_is_no_recipient(self, db):
+        assert self._hosting().billing_email == ''

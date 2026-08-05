@@ -17,10 +17,11 @@ def _mute_notifications():
 
 @pytest.mark.django_db
 class TestHostingEndpoints:
-    def test_create_defaults_payment_per_cycle(self, super_client):
+    def test_create_defaults_payment_per_cycle(self, super_client, make_client_profile):
         response = super_client.post(
             '/api/accounting/hostings/create/',
             {
+                'client': make_client_profile().pk,
                 'client_name': 'German - Kore',
                 'domain_url': 'https://korehealths.com/',
                 'monthly_value': '91667.00',
@@ -30,6 +31,16 @@ class TestHostingEndpoints:
         )
         assert response.status_code == 201, response.data
         assert response.data['payment_per_cycle'] == '550002.00'
+
+    def test_create_without_client_is_rejected(self, super_client):
+        # Every hosting belongs to a client; new ones must say which.
+        response = super_client.post(
+            '/api/accounting/hostings/create/',
+            {'client_name': 'German - Kore', 'monthly_value': '91667.00'},
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'cliente' in str(response.data['client'])
 
     def test_list_meta_reports_active_monthly_income(self, super_client):
         HostingRecord.objects.create(
