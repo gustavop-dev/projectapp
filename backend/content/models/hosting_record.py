@@ -27,9 +27,23 @@ class HostingRecord(AccountingRecordBase):
         Modality.ANNUAL: 12,
     }
 
+    # The client the hosting belongs to. Nullable at the DB level only so
+    # records created before the relation existed can still be opened and
+    # saved while they are completed; the write serializer requires it on
+    # create. PROTECT mirrors proposals, diagnostics and incomes.
+    client = models.ForeignKey(
+        'accounts.UserProfile',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='hosting_records',
+        limit_choices_to={'role': 'client'},
+    )
+    # Billing snapshot: what the cuenta de cobro prints and mails. Filled
+    # from the linked client and editable afterwards, because the billing
+    # contact may legitimately differ from the account holder. The FK above
+    # is the source of truth for grouping and filtering.
     client_name = models.CharField(max_length=255)
-    # Billing contact for the cuenta de cobro email (hosting records are
-    # deliberately not linked to platform users).
     client_email = models.EmailField(blank=True, default='')
     client_contact_name = models.CharField(max_length=255, blank=True, default='')
     client_identification = models.CharField(max_length=64, blank=True, default='')
@@ -66,6 +80,30 @@ class HostingRecord(AccountingRecordBase):
 
     class Meta:
         ordering = ['client_name']
+        indexes = [
+            models.Index(fields=['client']),
+        ]
+
+    @property
+    def billing_email(self):
+        """Where the cuenta de cobro actually goes.
+
+        The hosting's own address is an override for a billing contact that
+        differs from the account holder; with none, the linked client's
+        address is used. Placeholder addresses never count — they cannot
+        receive mail. An empty result means the hosting cannot be billed yet.
+        """
+        override = (self.client_email or '').strip()
+        if override:
+            return override
+        if not self.client_id:
+            return ''
+        from accounts.models import UserProfile
+
+        email = (self.client.user.email or '').strip()
+        if email and not email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN):
+            return email
+        return ''
 
     def __str__(self):
         return f'{self.client_name} — {self.domain_url or "(sin dominio)"}'

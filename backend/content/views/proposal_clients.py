@@ -17,8 +17,12 @@ Endpoints
 """
 
 import logging
+import re
 
-from django.db.models import Count, Max, OuterRef, Q, Subquery
+from django.db.models import (
+    Count, IntegerField, Max, OuterRef, Q, Subquery, Sum, Value,
+)
+from django.db.models.functions import Coalesce
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -27,8 +31,14 @@ from rest_framework.response import Response
 from accounts.models import UserProfile
 from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
-from content.models import BusinessProposal
+from content.models import BusinessProposal, HostingRecord, IncomeRecord
+from content.serializers.accounting import (
+    HostingRecordSerializer,
+    IncomeRecordSerializer,
+    money_str,
+)
 from content.serializers.proposal import ProposalListSerializer
+from content.services import accounting_service
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
     ProposalClientSerializer,
@@ -59,6 +69,33 @@ def _base_queryset():
                 .values('status')[:1]
             ),
             last_sent_at=Max('proposals__sent_at'),
+            # Subquery, not a fourth Count(distinct=True): three reverse
+            # joins already fan out here, and a fourth multiplies the rows
+            # every aggregate above has to de-duplicate.
+            incomes_count=Coalesce(
+                Subquery(
+                    IncomeRecord.objects
+                    .filter(client=OuterRef('pk'))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            hostings_count=Coalesce(
+                Subquery(
+                    HostingRecord.objects
+                    .filter(client=OuterRef('pk'))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
         )
     )
 
@@ -87,8 +124,9 @@ def list_proposal_clients(request):
     Query params:
         - ``search``: case-insensitive match on email, first/last name, company.
         - ``orphans``: ``true`` returns only profiles with 0 proposals AND
-          0 projects AND 0 diagnostics (matches ``is_orphan`` and the delete
-          guard). ``false`` returns the inverse. Omit to include all.
+          0 projects AND 0 diagnostics AND 0 incomes AND 0 hostings
+          (matches ``is_orphan`` and the delete guard). ``false`` returns
+          the inverse. Omit to include all.
         - ``inactive``: ``true`` returns only manually deactivated clients.
           Omitted/``false`` excludes them (panel default).
         - ``limit``: max rows to return (default 100, hard cap 500).
@@ -106,9 +144,15 @@ def list_proposal_clients(request):
 
     orphans = _parse_bool(request.query_params.get('orphans'))
     if orphans is True:
-        qs = qs.filter(proposals_count=0, projects_count=0, diagnostics_count=0)
+        qs = qs.filter(
+            proposals_count=0, projects_count=0, diagnostics_count=0,
+            incomes_count=0, hostings_count=0,
+        )
     elif orphans is False:
-        qs = qs.exclude(proposals_count=0, projects_count=0, diagnostics_count=0)
+        qs = qs.exclude(
+            proposals_count=0, projects_count=0, diagnostics_count=0,
+            incomes_count=0, hostings_count=0,
+        )
 
     inactive = _parse_bool(request.query_params.get('inactive'))
     if inactive is True:
@@ -151,7 +195,9 @@ def search_proposal_clients(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def retrieve_proposal_client(request, client_id):
-    """Return a single client with proposals, platform projects, and diagnostics nested."""
+    """Return a client with everything that belongs to them nested:
+    proposals, platform projects, diagnostics, accounting hostings and
+    incomes — the one surface that answers "todo sobre este cliente"."""
     profile = _get_profile_or_404(client_id)
     if profile is None:
         return Response(
@@ -168,6 +214,23 @@ def retrieve_proposal_client(request, client_id):
     payload['projects'] = ProjectListSerializer(projects, many=True).data
     diagnostics = profile.web_app_diagnostics.select_related('client__user').order_by('-created_at')
     payload['diagnostics'] = DiagnosticListSerializer(diagnostics, many=True).data
+
+    hostings = profile.hosting_records.order_by('-is_active', 'client_name')
+    payload['hostings'] = HostingRecordSerializer(hostings, many=True).data
+    # What the hostings of this client cost per month, active ones only —
+    # the number the per-client view exists to answer.
+    payload['hostings_monthly_total'] = money_str(
+        hostings.filter(is_active=True).aggregate(
+            total=Sum('monthly_value'),
+        )['total'] or 0,
+    )
+
+    incomes = (
+        profile.income_records
+        .annotate(paid_amount=accounting_service.paid_amount_subquery())
+        .order_by('-period_date')
+    )
+    payload['incomes'] = IncomeRecordSerializer(incomes, many=True).data
     return Response(payload)
 
 
@@ -218,6 +281,39 @@ def update_proposal_client(request, client_id):
         return Response(
             {'error': 'client_not_found'}, status=status.HTTP_404_NOT_FOUND,
         )
+
+    # Billing identity fields live on the profile only (no proposal cascade).
+    billing_updates = []
+    if 'nit' in request.data:
+        profile.nit = (request.data.get('nit') or '').strip()
+        billing_updates.append('nit')
+    if 'billing_code' in request.data:
+        code = (request.data.get('billing_code') or '').strip().upper() or None
+        if code and (not re.fullmatch(r'[A-Z0-9]{2,12}', code) or code.isdigit()):
+            return Response(
+                {
+                    'error': 'invalid_billing_code',
+                    'message': 'El código debe tener entre 2 y 12 caracteres '
+                               'alfanuméricos y no puede ser puramente numérico.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if code and (
+            UserProfile.objects.exclude(pk=profile.pk)
+            .filter(billing_code=code)
+            .exists()
+        ):
+            return Response(
+                {
+                    'error': 'billing_code_taken',
+                    'message': 'Ese código de facturación ya está en uso.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        profile.billing_code = code
+        billing_updates.append('billing_code')
+    if billing_updates:
+        profile.save(update_fields=billing_updates)
 
     payload = {}
     for key in ('name', 'email', 'phone', 'company'):

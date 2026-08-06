@@ -3,6 +3,7 @@ Generate a branded PDF for collection account documents from relational data.
 """
 import io
 import logging
+import textwrap
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
@@ -22,17 +23,23 @@ from content.services.pdf_utils import (
     _draw_footer,
     _draw_header_bar,
     _font,
+    _format_cop,
     _register_fonts,
+    amount_in_words_es,
+    format_date_es,
 )
 
 logger = logging.getLogger(__name__)
 
-STATUS_LABELS = {
-    'draft': 'Borrador',
-    'issued': 'Emitida',
-    'paid': 'Pagada',
-    'cancelled': 'Anulada',
-}
+_IDENT_LABELS = {'NIT': 'NIT', 'CC': 'C.C.'}
+
+
+def _ident_line(id_type, number):
+    """'NIT 901234567' / 'C.C. 12345678' / bare number when untyped."""
+    if not number:
+        return ''
+    label = _IDENT_LABELS.get((id_type or '').upper(), id_type or '')
+    return f'{label} {number}'.strip()
 
 
 class CollectionAccountPdfService:
@@ -98,17 +105,11 @@ class CollectionAccountPdfService:
                 y -= 6
 
             if document.issue_date:
-                line('Fecha de emisión', str(document.issue_date))
+                line('Fecha de emisión', format_date_es(document.issue_date))
             if document.due_date:
-                line('Fecha de vencimiento', str(document.due_date))
+                line('Fecha de vencimiento', format_date_es(document.due_date))
             if document.city:
                 line('Ciudad', document.city)
-            line(
-                'Estado',
-                STATUS_LABELS.get(
-                    document.commercial_status, document.commercial_status or '',
-                ),
-            )
 
             y -= 8
             ensure_space(60)
@@ -120,7 +121,7 @@ class CollectionAccountPdfService:
             c.setFillColor(GRAY_500)
             for t in (
                 ext.payer_name,
-                ext.payer_identification,
+                _ident_line(ext.payer_identification_type, ext.payer_identification),
                 ext.payer_address,
                 ext.payer_phone,
                 ext.payer_email,
@@ -140,7 +141,9 @@ class CollectionAccountPdfService:
             c.setFillColor(GRAY_500)
             for t in (
                 ext.customer_name,
-                ext.customer_identification,
+                _ident_line(
+                    ext.customer_identification_type, ext.customer_identification,
+                ),
                 ext.customer_contact_name,
                 ext.customer_email,
                 ext.customer_address,
@@ -175,20 +178,39 @@ class CollectionAccountPdfService:
                 desc = (item.description or '')[:70]
                 c.drawString(MARGIN_L, y, desc)
                 c.drawRightString(PAGE_W - MARGIN_R - 80, y, str(item.quantity))
-                c.drawRightString(PAGE_W - MARGIN_R, y, str(item.line_total))
+                c.drawRightString(
+                    PAGE_W - MARGIN_R, y, _format_cop(item.line_total),
+                )
                 y -= 14
 
             y -= 12
             ensure_space(50)
             c.setFont(_font('bold'), 9)
-            c.drawRightString(PAGE_W - MARGIN_R, y, f'Subtotal: {document.subtotal}')
-            y -= 12
-            c.drawRightString(PAGE_W - MARGIN_R, y, f'Impuestos: {document.tax_total}')
+            c.drawRightString(
+                PAGE_W - MARGIN_R, y,
+                f'Subtotal: {_format_cop(document.subtotal)}',
+            )
             y -= 12
             c.drawRightString(
-                PAGE_W - MARGIN_R, y, f'Total ({document.currency}): {document.total}',
+                PAGE_W - MARGIN_R, y,
+                f'Impuestos: {_format_cop(document.tax_total)}',
             )
-            y -= 24
+            y -= 12
+            c.drawRightString(
+                PAGE_W - MARGIN_R, y,
+                f'Total ({document.currency}): {_format_cop(document.total)}',
+            )
+            y -= 14
+
+            words = amount_in_words_es(document.total)
+            if words:
+                c.setFont(_font('regular'), 8)
+                c.setFillColor(GRAY_500)
+                for chunk in textwrap.wrap(f'Son: {words}', 95):
+                    ensure_space(16)
+                    c.drawString(MARGIN_L, y, chunk)
+                    y -= 11
+            y -= 13
 
             pms = list(document.payment_methods.all())
             if pms:
@@ -214,6 +236,28 @@ class CollectionAccountPdfService:
                     )
                     c.drawString(MARGIN_L, y, block[:110])
                     y -= 12
+
+            # Signature block: line + issuer name/identification. What makes
+            # the document a valid cuenta de cobro alongside the amounts.
+            ensure_space(96)
+            y -= 42
+            c.setStrokeColor(GRAY_500)
+            c.line(MARGIN_L, y, MARGIN_L + 200, y)
+            y -= 12
+            c.setFont(_font('regular'), 9)
+            c.setFillColor(GRAY_500)
+            if ext.payer_name:
+                c.drawString(MARGIN_L, y, str(ext.payer_name)[:100])
+                y -= 12
+            payer_ident = _ident_line(
+                ext.payer_identification_type, ext.payer_identification,
+            )
+            if payer_ident:
+                c.drawString(MARGIN_L, y, payer_ident[:100])
+                y -= 12
+            c.setFont(_font('bold'), 8)
+            c.setFillColor(GREEN_LIGHT)
+            c.drawString(MARGIN_L, y, 'Firma')
 
             _draw_footer(c, page_num, client_name=ext.customer_name or '')
             c.save()

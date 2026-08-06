@@ -2,15 +2,35 @@
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
+import { useProposalClientsStore } from '~/stores/proposal_clients'
 import { todayISO } from '~/utils/periodDates'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   record: { type: Object, default: null },
   saving: { type: Boolean, default: false },
+  /**
+   * Client fixed by the parent (id + display name). Set when this modal is
+   * stacked inside the cuenta-de-cobro flow, where the client was already
+   * chosen: a second picker there would be redundant and could contradict it.
+   */
+  lockedClient: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'submit'])
+
+const clientsStore = useProposalClientsStore()
+const creatingClient = ref(false)
+const inlineClientOpen = ref(false)
+const inlineClient = ref({ name: '', email: '', company: '' })
+
+const originOptions = [
+  { value: 'development', label: 'Desarrollo' },
+  { value: 'hosting', label: 'Hosting' },
+  { value: 'diagnostic', label: 'Diagnóstico' },
+  { value: 'other', label: 'Otro' },
+]
 
 const isEdit = computed(() => !!props.record)
 const title = computed(() => (isEdit.value ? 'Editar Ingreso' : 'Nuevo Ingreso'))
@@ -39,6 +59,9 @@ function defaultForm() {
     period_date: todayISO(),
     destination: 'partners',
     ledger: 'company',
+    client: null,
+    client_name: '',
+    origin: '',
     total_amount: '',
     gustavo_amount: '',
     carlos_amount: '',
@@ -69,6 +92,9 @@ watch(
         period_date: props.record.period_date ?? '',
         destination: props.record.destination ?? 'partners',
         ledger: props.record.ledger ?? 'company',
+        client: props.record.client ?? null,
+        client_name: props.record.client_name ?? '',
+        origin: props.record.origin ?? '',
         total_amount: props.record.total_amount ?? '',
         gustavo_amount: props.record.gustavo_amount ?? '',
         carlos_amount: props.record.carlos_amount ?? '',
@@ -78,9 +104,34 @@ watch(
       exactDate.value = true
       form.value = defaultForm()
     }
+    inlineClientOpen.value = false
+    if (props.lockedClient) {
+      form.value.client = props.lockedClient.id ?? null
+      form.value.client_name = props.lockedClient.name ?? ''
+    }
   },
   { immediate: true },
 )
+
+function onClientSelect(client) {
+  form.value.client_name = client?.name || ''
+}
+
+function onCreateNewClient(typedName) {
+  inlineClientOpen.value = true
+  inlineClient.value = { name: typedName || '', email: '', company: '' }
+}
+
+async function createInlineClient() {
+  creatingClient.value = true
+  const result = await clientsStore.createClient({ ...inlineClient.value })
+  creatingClient.value = false
+  if (result.success && result.data?.id) {
+    inlineClientOpen.value = false
+    form.value.client = result.data.id
+    form.value.client_name = result.data.name || ''
+  }
+}
 
 function onSubmit() {
   const payload = {
@@ -97,6 +148,10 @@ function onSubmit() {
         : 'partners',
     ledger: form.value.ledger,
     total_amount: form.value.total_amount,
+    // Always sent, null included: that is what lets an edit UNLINK a client
+    // (same reason `notes` is always sent).
+    client: form.value.client,
+    origin: form.value.origin,
   }
   if (!isPersonal.value) {
     payload.gustavo_amount = form.value.gustavo_amount
@@ -115,6 +170,68 @@ function onSubmit() {
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
       <BaseFormField label="Concepto" required>
         <BaseInput v-model="form.concept" data-testid="income-form-concept" required />
+      </BaseFormField>
+
+      <BaseFormField label="Cliente" hint="Opcional: un reembolso o un rendimiento no tiene cliente.">
+        <div
+          v-if="lockedClient"
+          class="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
+          data-testid="income-form-client-locked"
+        >
+          {{ form.client_name || lockedClient.name }}
+        </div>
+        <ClientAutocomplete
+          v-else
+          v-model="form.client"
+          :initial-label="form.client_name"
+          test-id="income-form-client"
+          @select="onClientSelect"
+          @create-new="onCreateNewClient"
+        />
+      </BaseFormField>
+
+      <!-- Inline client creation: the module de clientes without leaving the form -->
+      <div
+        v-if="inlineClientOpen"
+        class="rounded-xl border border-border-default bg-surface-raised p-4 space-y-3"
+        data-testid="income-form-inline-client"
+      >
+        <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <BaseFormField label="Nombre">
+            <BaseInput v-model="inlineClient.name" data-testid="income-form-inline-client-name" />
+          </BaseFormField>
+          <BaseFormField label="Email">
+            <BaseInput v-model="inlineClient.email" type="email" />
+          </BaseFormField>
+          <BaseFormField label="Empresa">
+            <BaseInput v-model="inlineClient.company" />
+          </BaseFormField>
+        </div>
+        <div class="flex justify-end gap-2">
+          <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            type="button"
+            variant="primary"
+            size="sm"
+            :disabled="creatingClient"
+            data-testid="income-form-inline-client-save"
+            @click="createInlineClient"
+          >
+            {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
+          </BaseButton>
+        </div>
+      </div>
+
+      <BaseFormField label="Origen" hint="Línea de negocio que genera el ingreso.">
+        <BaseSegmented
+          v-model="form.origin"
+          :options="originOptions"
+          full-width
+          data-testid="income-form-origin"
+        />
       </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">

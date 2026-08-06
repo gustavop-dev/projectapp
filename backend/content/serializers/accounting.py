@@ -10,6 +10,7 @@ from decimal import Decimal, ROUND_DOWN
 from django.db.models import Max, Sum
 from rest_framework import serializers
 
+from accounts.models import UserProfile
 from content.utils import SPANISH_MONTHS
 from content.models import (
     AccountingChangeLog,
@@ -17,6 +18,7 @@ from content.models import (
     AdsSpendRecord,
     CardBalanceSnapshot,
     CreditCard,
+    Document,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -198,6 +200,13 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     pending_amount = serializers.SerializerMethodField()
     payment_status = serializers.SerializerMethodField()
     payment_status_label = serializers.SerializerMethodField()
+    has_collection_account = serializers.SerializerMethodField()
+    collection_account_id = serializers.SerializerMethodField()
+    collection_account_number = serializers.SerializerMethodField()
+    client_name = serializers.SerializerMethodField()
+    origin_label = serializers.CharField(
+        source='get_origin_display', read_only=True,
+    )
 
     class Meta:
         model = IncomeRecord
@@ -205,12 +214,25 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
             'destination', 'destination_label', 'ledger', 'ledger_label',
+            'client', 'client_name', 'origin', 'origin_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
             'paid_amount', 'pending_amount',
             'payment_status', 'payment_status_label',
+            'has_collection_account', 'collection_account_id',
+            'collection_account_number',
             'notes', 'created_at', 'updated_at',
         )
+
+    def get_client_name(self, obj):
+        """Display name of the linked client; None keeps 'sin cliente' distinct."""
+        if not obj.client_id:
+            return None
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(obj.client)
 
     def _paid(self, obj):
         """Liquid total fulfilling this record; None for non-expected rows.
@@ -254,6 +276,41 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     def get_payment_status_label(self, obj):
         return PAYMENT_STATUS_LABELS.get(self.get_payment_status(obj))
 
+    def _collection_account(self, obj):
+        """(id, public_number) of the non-cancelled cuenta linked to this row.
+
+        The list/export querysets carry the collection_account_subqueries
+        annotations; NULL is a legitimate annotated value there (most rows
+        have no cuenta), so annotation presence is detected via __dict__,
+        not getattr — falling back to one memoized query only when the
+        instance was never annotated (retrieve/create/update paths).
+        """
+        if not hasattr(obj, '_collection_account_ref'):
+            if 'collection_account_id' in obj.__dict__:
+                obj._collection_account_ref = (
+                    obj.__dict__['collection_account_id'],
+                    obj.__dict__.get('collection_account_number') or '',
+                )
+            else:
+                row = (
+                    obj.collection_documents
+                    .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
+                    .order_by('-created_at')
+                    .values_list('id', 'public_number')
+                    .first()
+                )
+                obj._collection_account_ref = row or (None, '')
+        return obj._collection_account_ref
+
+    def get_has_collection_account(self, obj):
+        return self._collection_account(obj)[0] is not None
+
+    def get_collection_account_id(self, obj):
+        return self._collection_account(obj)[0]
+
+    def get_collection_account_number(self, obj):
+        return self._collection_account(obj)[1] or None
+
 
 class IncomeRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
@@ -264,11 +321,17 @@ class IncomeRecordCreateUpdateSerializer(
         required=False,
         allow_null=True,
     )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = IncomeRecord
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
+            'client', 'origin',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
@@ -400,6 +463,32 @@ class IncomeSettlementSerializer(serializers.Serializer):
     expected_incomes = SettlementFollowUpSerializer(many=True, required=False)
 
 
+class IncomeClientBulkAssignSerializer(serializers.Serializer):
+    """Assign one client to several incomes; ``client: null`` unlinks them."""
+
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
+class HostingClientBulkAssignSerializer(serializers.Serializer):
+    """Assign one client to several hostings; ``client: null`` unlinks them."""
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
 # ── Expense ──
 
 class ExpenseRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
@@ -529,11 +618,14 @@ class HostingRecordSerializer(serializers.ModelSerializer):
     payment_modality_label = serializers.CharField(
         source='get_payment_modality_display', read_only=True,
     )
+    client_display_name = serializers.SerializerMethodField()
+    billing_email = serializers.CharField(read_only=True)
 
     class Meta:
         model = HostingRecord
         fields = (
-            'id', 'client_name', 'client_email', 'client_contact_name',
+            'id', 'client', 'client_display_name', 'billing_email',
+            'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',
             'valid_from', 'valid_to', 'cycles_count',
@@ -545,10 +637,26 @@ class HostingRecordSerializer(serializers.ModelSerializer):
             'expiry_notice_last_sent_at', 'billing_requested_at',
         )
 
+    def get_client_display_name(self, obj):
+        """Linked client's display name; None keeps 'sin cliente' distinct
+        from the free-text `client_name` snapshot."""
+        if not obj.client_id:
+            return None
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(obj.client)
+
 
 class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
     monthly_value = serializers.DecimalField(
         max_digits=14, decimal_places=2, min_value=Decimal('0'),
+    )
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
     )
 
     class Meta:
@@ -557,11 +665,16 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         # history (HostingCycle) is the source of truth and the service
         # recalculates the denormalized columns.
         fields = (
-            'client_name', 'client_email', 'client_contact_name',
+            'client', 'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'benefit', 'valid_from', 'valid_to',
             'payment_per_cycle', 'is_active', 'notes',
         )
+        extra_kwargs = {
+            # Required on create only, alongside `client`: both are filled
+            # from the picker. Legacy records keep saving without either.
+            'client_name': {'required': False},
+        }
 
     def validate(self, data):
         data = super().validate(data)
@@ -570,6 +683,38 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
             if field in data:
                 return data[field]
             return getattr(self.instance, field, None)
+
+        # Every hosting belongs to a client, so new ones must say who —
+        # but an existing record with no client must stay editable while it
+        # is completed (it would be unsavable otherwise).
+        if self.instance is None and not data.get('client'):
+            raise serializers.ValidationError({
+                'client': 'Todo hosting nuevo debe tener un cliente asignado.',
+            })
+
+        client = effective('client')
+        if client is not None:
+            # Fill the billing snapshot from the profile when the form left
+            # it empty; whatever the operator typed always wins.
+            from content.services.collection_account_create_service import (
+                customer_snapshot_defaults,
+            )
+
+            defaults = customer_snapshot_defaults(client)
+            snapshot = {
+                'client_name': defaults['name'],
+                'client_email': defaults['email'],
+                'client_contact_name': defaults['contact_name'],
+                'client_identification': defaults['identification'],
+            }
+            for field, fallback in snapshot.items():
+                if not effective(field) and fallback:
+                    data[field] = fallback
+
+        if self.instance is None and not effective('client_name'):
+            raise serializers.ValidationError({
+                'client_name': 'El nombre del cliente es obligatorio.',
+            })
 
         valid_from = effective('valid_from')
         valid_to = effective('valid_to')

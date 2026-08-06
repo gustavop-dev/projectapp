@@ -565,6 +565,32 @@ def make_expense(db):
 
 
 @pytest.fixture
+def make_client_profile(db):
+    """Factory for client UserProfiles (accounting incomes, filters, totals)."""
+    from accounts.models import UserProfile
+
+    counter = {'n': 0}
+
+    def _make(company='Acme SAS', **kwargs):
+        counter['n'] += 1
+        suffix = counter['n']
+        user = User.objects.create_user(
+            username=kwargs.pop('username', f'client{suffix}@example.com'),
+            email=kwargs.pop('email', f'client{suffix}@example.com'),
+            first_name=kwargs.pop('first_name', 'Ana'),
+            last_name=kwargs.pop('last_name', f'Cliente{suffix}'),
+        )
+        return UserProfile.objects.create(
+            user=user,
+            role=UserProfile.ROLE_CLIENT,
+            company_name=company,
+            **kwargs,
+        )
+
+    return _make
+
+
+@pytest.fixture
 def diag_client_profile(db):
     """A client UserProfile suitable for attaching to a WebAppDiagnostic."""
     from accounts.models import UserProfile

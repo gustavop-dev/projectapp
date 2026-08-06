@@ -12,6 +12,17 @@
     <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+          <th v-if="selectable" class="w-10 px-3 py-2">
+            <input
+              type="checkbox"
+              class="align-middle accent-primary"
+              aria-label="Seleccionar todas las filas de esta página"
+              data-testid="accounting-select-page"
+              :checked="allPageSelected"
+              :indeterminate.prop="somePageSelected && !allPageSelected"
+              @change="togglePage($event.target.checked)"
+            >
+          </th>
           <th
             v-for="col in resolved"
             :key="col.key"
@@ -57,6 +68,7 @@
             class="bg-surface"
             data-testid="accounting-skeleton-row"
           >
+            <td v-if="selectable" :class="DENSITY.cell" />
             <td
               v-for="(col, colIndex) in resolved"
               :key="col.key"
@@ -85,6 +97,16 @@
             row[rowKey] === highlightId ? 'accounting-row-flash' : '',
           ]"
         >
+          <td v-if="selectable" class="w-10 px-3">
+            <input
+              type="checkbox"
+              class="align-middle accent-primary"
+              :aria-label="`Seleccionar fila ${row[rowKey]}`"
+              :data-testid="`accounting-select-${row[rowKey]}`"
+              :checked="selectedSet.has(row[rowKey])"
+              @change="toggleRow(row[rowKey], $event.target.checked)"
+            >
+          </td>
           <td
             v-for="col in resolved"
             :key="col.key"
@@ -190,6 +212,10 @@ const props = defineProps({
    * stylesheet order, not by this binding.
    */
   rowTone: { type: Function, default: null },
+  /** Opt-in checkbox column; every other tab keeps its current layout. */
+  selectable: { type: Boolean, default: false },
+  /** Selected row keys (v-model:selected). */
+  selected: { type: Array, default: () => [] },
 });
 
 const DENSITY = TABLE_DENSITY;
@@ -218,7 +244,40 @@ function rowBgClass(row) {
   return ROW_TONE_CLASSES[props.rowTone?.(row)] || 'bg-surface';
 }
 
-const emit = defineEmits(['edit', 'delete', 'sort']);
+const emit = defineEmits(['edit', 'delete', 'sort', 'update:selected']);
+
+// ── Row selection (opt-in via `selectable`) ──
+
+const selectedSet = computed(() => new Set(props.selected));
+
+const pageKeys = computed(() => props.rows.map((row) => row[props.rowKey]));
+
+const allPageSelected = computed(
+  () => pageKeys.value.length > 0
+    && pageKeys.value.every((key) => selectedSet.value.has(key)),
+);
+
+const somePageSelected = computed(
+  () => pageKeys.value.some((key) => selectedSet.value.has(key)),
+);
+
+function toggleRow(key, checked) {
+  const next = new Set(props.selected);
+  if (checked) next.add(key);
+  else next.delete(key);
+  emit('update:selected', [...next]);
+}
+
+/** The header checkbox works on the CURRENT page; the page owns any
+ *  "select every filtered row" affordance, which knows the full set. */
+function togglePage(checked) {
+  const next = new Set(props.selected);
+  pageKeys.value.forEach((key) => {
+    if (checked) next.add(key);
+    else next.delete(key);
+  });
+  emit('update:selected', [...next]);
+}
 
 function ariaSort(col) {
   if (!col.sortable) return undefined;
@@ -234,7 +293,11 @@ const TONE_CLASSES = {
   neutral: 'bg-surface-raised text-text-muted',
 };
 
-const colspan = computed(() => props.columns.length + (props.showActions ? 1 : 0));
+const colspan = computed(
+  () => props.columns.length
+    + (props.showActions ? 1 : 0)
+    + (props.selectable ? 1 : 0),
+);
 
 // Deterministic width variety for skeleton cells (no randomness so SSR
 // markup and snapshots stay stable).

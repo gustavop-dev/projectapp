@@ -9,12 +9,46 @@ from django.db.models import F
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from content.models import Document, DocumentCollectionAccount, DocumentNumberSequence
+from content.models import (
+    Document,
+    DocumentCollectionAccount,
+    DocumentNumberSequence,
+    DocumentPaymentMethod,
+    IssuerProfile,
+)
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 
 
 class CollectionAccountError(Exception):
     """Invalid state or input for collection account operations."""
+
+
+def get_default_issuer():
+    """First IssuerProfile by pk — the module's single-issuer convention."""
+    issuer = IssuerProfile.objects.order_by('pk').first()
+    if issuer is None:
+        raise CollectionAccountError(
+            'No hay un perfil emisor (IssuerProfile) configurado.',
+        )
+    return issuer
+
+
+def seed_default_payment_methods(document, issuer):
+    """Copy the issuer's default payment methods onto the document."""
+    for position, method in enumerate(issuer.default_payment_methods or []):
+        DocumentPaymentMethod.objects.create(
+            document=document,
+            payment_method_type=method.get('payment_method_type', 'bank_transfer'),
+            bank_name=method.get('bank_name', ''),
+            account_type=method.get('account_type', ''),
+            account_number=method.get('account_number', ''),
+            account_holder_name=method.get('account_holder_name', ''),
+            account_holder_identification=method.get(
+                'account_holder_identification', '',
+            ),
+            payment_instructions=method.get('payment_instructions', ''),
+            is_primary=position == 0,
+        )
 
 
 def is_collection_account(document):
@@ -113,14 +147,22 @@ def _fill_customer_from_user(extension, user):
         name = f'{user.first_name} {user.last_name}'.strip() or user.email
     extension.customer_name = name
     extension.customer_email = user.email or ''
-    if profile:
-        extension.customer_identification = profile.cedula or ''
-    extension.customer_contact_name = f'{user.first_name} {user.last_name}'.strip()
+    extension.customer_identification = ''
     extension.customer_identification_type = ''
+    if profile:
+        if profile.nit:
+            extension.customer_identification = profile.nit
+            extension.customer_identification_type = 'NIT'
+        elif profile.cedula:
+            extension.customer_identification = profile.cedula
+            extension.customer_identification_type = 'CC'
+    extension.customer_contact_name = f'{user.first_name} {user.last_name}'.strip()
 
 
 @transaction.atomic
-def issue_collection_account(document, *, issuer, acting_user=None, customer=None):
+def issue_collection_account(
+    document, *, issuer, acting_user=None, customer=None, number_allocator=None,
+):
     """
     Transition draft -> issued: allocate public number, set dates, snapshot payer/customer.
 
@@ -129,6 +171,9 @@ def issue_collection_account(document, *, issuer, acting_user=None, customer=Non
     explicitly for documents without a platform user (e.g. hosting-driven
     cuentas de cobro). Without it, the customer resolves from
     ``client_user`` / ``project.client`` as before.
+
+    ``number_allocator`` (optional zero-arg callable) overrides the default
+    per-issuer series — the income flow passes the per-client allocator.
     """
     if not is_collection_account(document):
         raise CollectionAccountError('Document is not a collection account.')
@@ -152,7 +197,11 @@ def issue_collection_account(document, *, issuer, acting_user=None, customer=Non
     today = timezone.now().date()
     document.issue_date = today
     document.issuer = issuer
-    document.public_number = allocate_public_number(issuer)
+    if not document.city:
+        document.city = issuer.city or ''
+    document.public_number = (
+        number_allocator() if number_allocator else allocate_public_number(issuer)
+    )
 
     ptt = ext.payment_term_type
     if ptt == DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE:

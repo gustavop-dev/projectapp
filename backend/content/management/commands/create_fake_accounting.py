@@ -13,6 +13,8 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
+from accounts.models import UserProfile
+
 from content.models import (
     AccountingSettings,
     CreditCardStatement,
@@ -74,11 +76,26 @@ class Command(BaseCommand):
         rng = random.Random(42)
 
         created = 0
+        # Client profiles may not exist at all: this command also runs
+        # standalone in tests. Without them every income stays unassigned,
+        # which is a legitimate (and useful) seed state.
+        client_profiles = list(UserProfile.objects.clients()[:8])
+
         for index in range(count):
             period = _month_start(rng.randrange(0, 12))
             total = Decimal(rng.randrange(400_000, 4_000_000, 10_000))
             gustavo, carlos = split_half(total)
             concept = rng.choice(INCOME_CONCEPTS)
+            origin = (
+                IncomeRecord.Origin.HOSTING if 'Hosting' in concept
+                else IncomeRecord.Origin.DEVELOPMENT
+            )
+            # Every third income is left without a client on purpose: the
+            # "Sin cliente" group is what the completion workflow works on.
+            client = (
+                client_profiles[index % len(client_profiles)]
+                if client_profiles and index % 3 != 2 else None
+            )
             # Written off: money we already know will never arrive. It stays
             # out of the expected projection, so it never gets a liquid row.
             is_lost = index % 8 == 3
@@ -92,6 +109,8 @@ class Command(BaseCommand):
                 total_amount=total,
                 gustavo_amount=gustavo,
                 carlos_amount=carlos,
+                client=client,
+                origin=origin,
                 source_ref=FAKE_REF,
             )
             created += 1
@@ -139,6 +158,8 @@ class Command(BaseCommand):
                 carlos_amount=Decimal('0') if to_pocket else paid_carlos,
                 expected_income=income,
                 pocket_movement=movement,
+                client=client,
+                origin=origin,
                 source_ref=FAKE_REF,
             )
             created += 1
@@ -159,10 +180,19 @@ class Command(BaseCommand):
             )
             created += 1
 
-        for client_name, domain in CLIENTS[:max(1, min(count, len(CLIENTS)))]:
+        for index, (client_name, domain) in enumerate(
+            CLIENTS[:max(1, min(count, len(CLIENTS)))],
+        ):
             monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
             cycles = rng.randrange(1, 4)
+            # One hosting is left unlinked on purpose: the "Sin cliente"
+            # group is what the completion workflow works on.
+            hosting_client = (
+                client_profiles[index % len(client_profiles)]
+                if client_profiles and index != 0 else None
+            )
             hosting = HostingRecord.objects.create(
+                client=hosting_client,
                 client_name=client_name,
                 client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,

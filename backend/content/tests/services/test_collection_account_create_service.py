@@ -1,0 +1,175 @@
+"""create_income_collection_account: guards, snapshot, numbering, terms."""
+from datetime import date
+from decimal import Decimal
+
+import pytest
+from accounts.models import UserProfile
+from django.contrib.auth import get_user_model
+from freezegun import freeze_time
+
+from content.models import Document, IncomeRecord, IssuerProfile
+from content.services.collection_account_create_service import (
+    create_income_collection_account,
+)
+from content.services.collection_account_service import (
+    CollectionAccountError,
+    mark_collection_account_cancelled,
+)
+
+User = get_user_model()
+pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def issuer():
+    profile = IssuerProfile.objects.order_by('pk').first()
+    profile.city = 'Bogotá'
+    profile.identification_number = '901000000'
+    profile.identification_type = 'NIT'
+    profile.default_payment_methods = [
+        {'payment_method_type': 'bank_transfer', 'bank_name': 'Bancolombia'},
+    ]
+    profile.save()
+    return profile
+
+
+def make_client(email='ana@acme.co', company='Acme Soluciones', **profile_kwargs):
+    user = User.objects.create_user(
+        username=email, email=email, password='pass12345',
+        first_name='Ana', last_name='Pérez',
+    )
+    UserProfile.objects.create(user=user, company_name=company, **profile_kwargs)
+    return user
+
+
+def make_income(**overrides):
+    fields = {
+        'concept': 'Desarrollo módulo de reportes',
+        'kind': IncomeRecord.Kind.EXPECTED,
+        'period_date': '2026-08-01',
+        'total_amount': Decimal('1490000.00'),
+        'gustavo_amount': Decimal('745000.00'),
+        'carlos_amount': Decimal('745000.00'),
+    }
+    fields.update(overrides)
+    return IncomeRecord.objects.create(**fields)
+
+
+def payload(client_user, income, **overrides):
+    data = {
+        'client_profile_id': client_user.profile.pk,
+        'income_record_id': income.pk,
+        'items': [{
+            'description': 'Desarrollo módulo de reportes',
+            'quantity': Decimal('1'),
+            'unit_price': Decimal('1490000.00'),
+        }],
+    }
+    data.update(overrides)
+    return data
+
+
+class TestHappyPath:
+    def test_issues_with_per_client_number_and_nit_snapshot(self):
+        client = make_client(nit='901234567')
+        income = make_income()
+
+        document = create_income_collection_account(
+            payload(client, income),
+        )
+
+        assert document.commercial_status == Document.CommercialStatus.ISSUED
+        assert document.public_number == 'PA-ACMESOLU-001'
+        assert document.income_record_id == income.pk
+        assert document.client_user_id == client.pk
+        assert document.total == Decimal('1490000.00')
+        assert document.city == 'Bogotá'
+        ext = document.collection_account
+        assert ext.customer_name == 'Acme Soluciones'
+        assert ext.customer_identification == '901234567'
+        assert ext.customer_identification_type == 'NIT'
+        assert ext.customer_email == 'ana@acme.co'
+        assert document.payment_methods.count() == 1
+
+    def test_cedula_when_no_nit_and_concept_defaults_from_income(self):
+        client = make_client(cedula='12345678')
+        income = make_income()
+
+        document = create_income_collection_account(payload(client, income))
+
+        ext = document.collection_account
+        assert ext.customer_identification == '12345678'
+        assert ext.customer_identification_type == 'CC'
+        assert ext.billing_concept == 'Desarrollo módulo de reportes'
+
+    def test_customer_overrides_win(self):
+        client = make_client(nit='901234567')
+        income = make_income()
+
+        document = create_income_collection_account(payload(
+            client, income,
+            customer={
+                'email': 'pagos@acme.co',
+                'identification': '999999',
+                'identification_type': 'CC',
+            },
+        ))
+
+        ext = document.collection_account
+        assert ext.customer_email == 'pagos@acme.co'
+        assert ext.customer_identification == '999999'
+        assert ext.customer_identification_type == 'CC'
+
+    @freeze_time('2026-08-05')
+    def test_days_after_issue_default_term(self):
+        document = create_income_collection_account(
+            payload(make_client(), make_income()),
+        )
+        assert document.due_date == date(2026, 8, 13)
+
+    def test_fixed_due_date_term(self):
+        document = create_income_collection_account(payload(
+            make_client(), make_income(), due_date=date(2026, 9, 1),
+        ))
+        assert document.due_date == date(2026, 9, 1)
+        assert document.collection_account.payment_term_type == 'fixed_date'
+
+    def test_manual_public_number(self):
+        document = create_income_collection_account(payload(
+            make_client(), make_income(), public_number='PA-ACMESOLU-044',
+        ))
+        assert document.public_number == 'PA-ACMESOLU-044'
+
+
+class TestGuards:
+    def test_lost_income_rejected(self):
+        income = make_income(kind=IncomeRecord.Kind.LOST)
+        with pytest.raises(CollectionAccountError) as exc:
+            create_income_collection_account(payload(make_client(), income))
+        assert 'perdido' in str(exc.value)
+
+    def test_income_with_active_cuenta_rejected(self):
+        client = make_client()
+        income = make_income()
+        create_income_collection_account(payload(client, income))
+
+        with pytest.raises(CollectionAccountError) as exc:
+            create_income_collection_account(payload(client, income))
+        assert 'ya tiene una cuenta de cobro' in str(exc.value)
+
+    def test_cancelled_cuenta_frees_the_income(self):
+        client = make_client()
+        income = make_income()
+        first = create_income_collection_account(payload(client, income))
+        mark_collection_account_cancelled(first)
+
+        second = create_income_collection_account(payload(client, income))
+
+        assert second.public_number == 'PA-ACMESOLU-002'
+        assert second.income_record_id == income.pk
+
+    def test_placeholder_email_rejected(self):
+        client = make_client(email='cliente@temp.example.com')
+        with pytest.raises(CollectionAccountError) as exc:
+            create_income_collection_account(payload(client, make_income()))
+        assert 'email real' in str(exc.value)

@@ -197,6 +197,59 @@ def test_generate_returns_pdf_bytes_for_issued_collection_account(issuer, projec
     assert pdf_bytes[:4] == b'%PDF'
 
 
+def test_generate_renders_words_formats_and_signature(issuer, project, client_user):
+    """Client-facing content: valor en letras, COP/date formats, ident types,
+    signature block — and no internal Estado label."""
+    dt = get_collection_account_document_type()
+    doc = Document.objects.create(
+        title='Cuenta de cobro — Desarrollo',
+        document_type=dt,
+        commercial_status=Document.CommercialStatus.ISSUED,
+        project=project,
+        client_user=client_user,
+        issuer=issuer,
+        public_number='PA-ACME-001',
+        issue_date=date(2026, 8, 5),
+        due_date=date(2026, 8, 13),
+        subtotal=Decimal('1490000'),
+        tax_total=Decimal('0'),
+        total=Decimal('1490000'),
+        currency='COP',
+        city='Bogotá',
+    )
+    DocumentCollectionAccount.objects.create(
+        document=doc,
+        payer_name='ProjectApp SAS',
+        payer_identification='901000000',
+        payer_identification_type='NIT',
+        customer_name='Acme Soluciones',
+        customer_identification='901234567',
+        customer_identification_type='NIT',
+        billing_concept='Desarrollo módulo de reportes',
+    )
+    DocumentItem.objects.create(
+        document=doc,
+        position=0,
+        description='Desarrollo módulo de reportes',
+        quantity=Decimal('1'),
+        unit_price=Decimal('1490000'),
+        line_total=Decimal('1490000'),
+    )
+
+    pdf_bytes = CollectionAccountPdfService.generate(doc)
+
+    text = ''.join(
+        page.extract_text() for page in PdfReader(io.BytesIO(pdf_bytes)).pages
+    )
+    assert 'Un millón cuatrocientos noventa mil pesos M/CTE' in text
+    assert '$1.490.000' in text
+    assert 'NIT 901234567' in text
+    assert 'NIT 901000000' in text
+    assert '5 de agosto de 2026' in text
+    assert 'Firma' in text
+    assert 'Estado' not in text
+
+
 def test_generate_returns_none_when_canvas_raises(project, client_user):
     """Return None when ReportLab canvas construction raises."""
     dt = get_collection_account_document_type()

@@ -22,7 +22,7 @@
     <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
       <AccountingStatCard
         label="Hostings activos"
         :value="String(hostingsMeta.active_count ?? 0)"
@@ -43,11 +43,17 @@
         label="Total pagado histórico"
         :value="formatMoney(hostingsMeta.total_paid ?? 0)"
       />
+      <AccountingStatCard
+        label="Sin cliente"
+        :value="String(hostingsMeta.without_client_count ?? 0)"
+        :tone="(hostingsMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Pendientes de vincular"
+      />
     </div>
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
-      :tabs="savedTabs"
+      :tabs="displayTabs"
       :active-tab-id="filterTabId"
       :is-tab-limit-reached="isTabLimitReached"
       @select="selectFilterTab"
@@ -87,6 +93,48 @@
       @clear-search="searchInput = ''"
     />
 
+    <!-- Bulk client assignment: the completion path for unlinked hostings -->
+    <div
+      v-if="selectedIds.length > 0"
+      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
+      data-testid="hostings-bulk-bar"
+    >
+      <span class="text-sm text-text-default whitespace-nowrap">
+        <span class="font-semibold tabular-nums">{{ selectedIds.length }}</span>
+        seleccionado{{ selectedIds.length === 1 ? '' : 's' }}
+      </span>
+      <BaseButton
+        v-if="!allFilteredSelected"
+        variant="ghost"
+        size="sm"
+        data-testid="hostings-select-all-filtered"
+        @click="selectAllFiltered"
+      >
+        Seleccionar los {{ filteredIds.length }} filtrados
+      </BaseButton>
+      <div class="flex-1 min-w-[16rem]">
+        <ClientAutocomplete
+          v-model="bulkClientId"
+          test-id="hostings-bulk-client"
+          placeholder="Cliente a asignar (vacío = desvincular)..."
+        />
+      </div>
+      <div class="flex items-center gap-2">
+        <BaseButton variant="secondary" size="sm" @click="clearSelection">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="sm"
+          :disabled="store.isUpdating"
+          data-testid="hostings-bulk-assign"
+          @click="assignClientToSelection"
+        >
+          Asignar cliente
+        </BaseButton>
+      </div>
+    </div>
+
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === 'fetch_failed'"
@@ -122,6 +170,8 @@
     <!-- Table -->
     <template v-else>
       <AccountingTable
+        v-model:selected="selectedIds"
+        selectable
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="columns"
@@ -134,11 +184,21 @@
         @sort="toggleSort"
       >
         <template #cell-client_name="{ row }">
-          <AccountingInlineCell
-            :value="row.client_name"
-            :saving="inlineSavingKey === `${row.id}:client_name`"
-            @save="saveInline(row, 'client_name', $event)"
-          />
+          <span class="inline-flex items-center gap-1.5">
+            <AccountingInlineCell
+              :value="row.client_name"
+              :saving="inlineSavingKey === `${row.id}:client_name`"
+              @save="saveInline(row, 'client_name', $event)"
+            />
+            <span
+              v-if="!row.client"
+              class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-semibold uppercase tracking-wider whitespace-nowrap"
+              title="Sin cliente vinculado — el cobro y los totales por cliente no lo cuentan"
+              :data-testid="`hosting-unlinked-${row.id}`"
+            >
+              sin vincular
+            </span>
+          </span>
         </template>
         <template #cell-domain_url="{ row }">
           <AccountingInlineCell
@@ -213,10 +273,10 @@
           <button
             type="button"
             aria-label="Enviar cuenta de cobro"
-            :title="row.client_email
-              ? 'Enviar cuenta de cobro al cliente'
-              : 'Configura el email del cliente para enviar la cuenta de cobro'"
-            :disabled="!row.client_email || billingId === row.id"
+            :title="row.billing_email
+              ? `Enviar cuenta de cobro a ${row.billing_email}`
+              : 'Vincula un cliente con correo o escribe un email de facturación'"
+            :disabled="!row.billing_email || billingId === row.id"
             :data-testid="`hosting-send-billing-${row.id}`"
             class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
             @click.stop="askSendBilling(row)"
@@ -299,6 +359,7 @@ import AccountingStatusSelect from '~/components/accounting/AccountingStatusSele
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -325,10 +386,24 @@ const notify = usePanelNotify();
 // Filters
 // -------------------------------------------------------------------
 
+// Sentinel shared with the backend filter: 'none' = still unassigned.
+const selectedIds = ref([]);
+const bulkClientId = ref(null);
+
+const NO_CLIENT_KEY = 'none';
+const NO_CLIENT_LABEL = 'Sin cliente';
+
+const matchClients = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (record.client == null) return value.includes(NO_CLIENT_KEY);
+  return value.includes(record.client);
+};
+matchClients.keys = ['clients'];
+
 const {
   currentFilters,
   searchInput,
-  savedTabs,
+  displayTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
   hasActiveFilters,
@@ -344,7 +419,15 @@ const {
   rebaseTab: rebaseFilterTab,
 } = useAccountingFilters({
   viewName: 'accounting_hosting',
+  builtinTabs: [
+    {
+      id: 'no-client',
+      name: 'Sin cliente',
+      filters: { clients: [NO_CLIENT_KEY] },
+    },
+  ],
   defaults: {
+    clients: [],
     modalities: [],
     valueMin: '',
     valueMax: '',
@@ -353,15 +436,37 @@ const {
     isActive: '',
   },
   matchers: {
+    clients: matchClients,
     modalities: matchIncludes('payment_modality', 'modalities'),
     value: matchNumberRange('monthly_value', 'valueMin', 'valueMax'),
     validTo: matchDateRange('valid_to', 'validToAfter', 'validToBefore'),
     isActive: matchBoolean('is_active', 'isActive'),
   },
-  searchFields: ['client_name', 'domain_url', 'notes'],
+  searchFields: ['client_name', 'client_display_name', 'domain_url', 'notes'],
 });
 
-const filterFields = [
+const clientFilterOptions = computed(() => {
+  // Derived from the loaded rows (the dropdown is a flat checkbox list),
+  // plus the sentinel for the records still pending assignment.
+  const seen = new Map();
+  store.hostings.forEach((row) => {
+    if (row.client != null && !seen.has(row.client)) {
+      seen.set(row.client, row.client_display_name || row.client_name || `Cliente #${row.client}`);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
+});
+
+const filterFields = computed(() => [
+  {
+    kind: 'multi',
+    key: 'clients',
+    label: 'Cliente',
+    options: clientFilterOptions.value,
+  },
   {
     kind: 'multi',
     key: 'modalities',
@@ -385,10 +490,11 @@ const filterFields = [
       { value: 'false', label: 'Inactivos' },
     ],
   },
-];
+]);
 
 // validTo range has no server-side equivalent (list filters valid_from)
 const EXPORT_MAPPING = {
+  clients: 'client',
   valueMin: 'amount_min',
   valueMax: 'amount_max',
   modalities: 'payment_modality',
@@ -438,6 +544,7 @@ const {
   goToPage,
   handleCreateFilterTab,
   handleResetFilters,
+  runMutation,
   sortKey,
   sortDir,
   toggleSort,
@@ -478,6 +585,36 @@ const columns = [
   { key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true },
   { key: 'is_active', label: 'Estado' },
 ];
+
+const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
+
+const allFilteredSelected = computed(
+  () => filteredIds.value.length > 0
+    && filteredIds.value.every((id) => selectedIds.value.includes(id)),
+);
+
+function selectAllFiltered() {
+  selectedIds.value = [...filteredIds.value];
+}
+
+function clearSelection() {
+  selectedIds.value = [];
+  bulkClientId.value = null;
+}
+
+async function assignClientToSelection() {
+  const ids = [...selectedIds.value];
+  const result = await runMutation(
+    () => store.bulkAssignHostingClient(ids, bulkClientId.value),
+    {
+      successTitle: bulkClientId.value
+        ? 'Cliente asignado a los hostings'
+        : 'Cliente desvinculado de los hostings',
+      errorTitle: 'No se pudo asignar el cliente',
+    },
+  );
+  if (result.success) clearSelection();
+}
 
 async function loadRecords() {
   await store.fetchRecords('hostings');
@@ -549,7 +686,7 @@ const billingConfirmMessage = computed(() => {
   if (!row) return '';
   return (
     `Se emitirá la cuenta de cobro por ${formatMoney(row.payment_per_cycle, 'COP')} ` +
-    `y se enviará con el PDF adjunto a ${row.client_email}. ` +
+    `y se enviará con el PDF adjunto a ${row.billing_email}. ` +
     'Los avisos de vencimiento de este hosting se pausan hasta la próxima renovación.'
   );
 });
@@ -571,13 +708,13 @@ async function sendBilling() {
     if (result.data?.email_sent) {
       notify.success({
         title: 'Cuenta de cobro enviada',
-        detail: number ? `Documento ${number} enviado a ${row.client_email}.` : '',
-        action: { label: 'Ver en Cobros', to: '/panel/accounting/collections' },
+        detail: number ? `Documento ${number} enviado a ${row.billing_email}.` : '',
+        action: { label: 'Ver en Cuentas de cobro', to: '/panel/accounting/collections' },
       });
     } else {
       notify.warning({
         title: 'Cuenta de cobro emitida, pero el correo falló',
-        detail: 'Reenvíala desde el tab Cobros.',
+        detail: 'Reenvíala desde el tab Cuentas de cobro.',
       });
     }
     loadRecords();

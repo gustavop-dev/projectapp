@@ -121,6 +121,8 @@ describe('useAccountingStore — error paths', () => {
       ['deleteHostingCycle', () => store.deleteHostingCycle(1, 50)],
       ['resendCollectionAccount', () => store.resendCollectionAccount(3)],
       ['cancelCollectionAccount', () => store.cancelCollectionAccount(3)],
+      ['createCollectionAccount', () => store.createCollectionAccount({ income_record_id: 8 })],
+      ['previewCollectionAccount', () => store.previewCollectionAccount({ income_record_id: 8 })],
     ]
 
     test.each(CASES)('%s resolves with success false', async (_name, run) => {

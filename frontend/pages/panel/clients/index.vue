@@ -159,7 +159,7 @@
                 <span
                   v-if="client.is_orphan"
                   class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
-                  title="Sin propuestas ni proyectos — puede eliminarse"
+                  title="Sin propuestas, proyectos, diagnósticos, ingresos ni hostings — puede eliminarse"
                 >
                   Huérfano
                 </span>
@@ -418,6 +418,91 @@
                 </table>
               </div>
             </div>
+
+            <!-- Accounting: what this client costs and pays -->
+            <div v-if="detailCache[client.id]?.hostings?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2 flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Hostings</p>
+                <p class="text-xs text-text-muted tabular-nums">
+                  {{ formatMoney(detailCache[client.id].hostings_monthly_total) }} /mes activos
+                </p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Hosting</th>
+                      <th class="px-4 py-3">Valor/mes</th>
+                      <th class="px-4 py-3">Vence</th>
+                      <th class="px-4 py-3">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="hosting in detailCache[client.id].hostings"
+                      :key="hosting.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-hosting-${hosting.id}`"
+                    >
+                      <td class="px-5 py-3 text-text-default">
+                        {{ hosting.domain_url || hosting.client_name }}
+                      </td>
+                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                        {{ formatMoney(hosting.monthly_value) }}
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
+                        {{ hosting.valid_to ? formatDate(hosting.valid_to) : '—' }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="text-xs px-2.5 py-1 rounded-full font-medium"
+                          :class="hosting.is_active
+                            ? 'bg-success-soft text-success-strong'
+                            : 'bg-surface-raised text-text-muted'"
+                        >
+                          {{ hosting.is_active ? 'Vigente' : 'Inactivo' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div v-if="detailCache[client.id]?.incomes?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Ingresos</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Concepto</th>
+                      <th class="px-4 py-3">Mes</th>
+                      <th class="px-4 py-3">Total</th>
+                      <th class="px-4 py-3">Cobro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="income in detailCache[client.id].incomes"
+                      :key="income.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-income-${income.id}`"
+                    >
+                      <td class="px-5 py-3 text-text-default">{{ income.concept }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ income.period_label }}</td>
+                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                        {{ formatMoney(income.total_amount) }}
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
+                        {{ income.payment_status_label || income.kind_label }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -554,6 +639,29 @@
               class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
             />
           </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1">NIT</label>
+              <input
+                v-model="editForm.nit"
+                type="text"
+                data-testid="clients-edit-nit"
+                placeholder="Para cuentas de cobro"
+                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-text-muted mb-1">Código de facturación</label>
+              <input
+                v-model="editForm.billing_code"
+                type="text"
+                maxlength="12"
+                data-testid="clients-edit-billing-code"
+                placeholder="Ej: ACME (numeración PA-ACME-001)"
+                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm uppercase focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              />
+            </div>
+          </div>
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <BaseButton variant="ghost" size="md" @click="closeEditModal">
@@ -587,6 +695,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
+import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
@@ -610,6 +719,11 @@ const { goToPlatform, isBridging } = usePanelToPlatformBridge();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const clientsStore = useProposalClientsStore();
+
+/** COP money from the API's string amounts. */
+function formatMoney(value) {
+  return formatMoneyRaw(Number(value ?? 0), 'COP');
+}
 const proposalStore = useProposalStore();
 const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
@@ -830,7 +944,9 @@ async function submitCreate() {
 // -------------------------------------------------------------------
 
 const editingClient = ref(null);
-const editForm = reactive({ name: '', email: '', phone: '', company: '' });
+const editForm = reactive({
+  name: '', email: '', phone: '', company: '', nit: '', billing_code: '',
+});
 const editError = ref('');
 
 function openEditModal(client) {
@@ -839,6 +955,8 @@ function openEditModal(client) {
   editForm.email = client.is_email_placeholder ? '' : (client.email || '');
   editForm.phone = client.phone || '';
   editForm.company = client.company || '';
+  editForm.nit = client.nit || '';
+  editForm.billing_code = client.billing_code || '';
   editError.value = '';
 }
 
@@ -854,12 +972,15 @@ async function submitEdit() {
     email: editForm.email.trim(),
     phone: editForm.phone.trim(),
     company: editForm.company.trim(),
+    nit: editForm.nit.trim(),
+    billing_code: editForm.billing_code.trim().toUpperCase(),
   };
   const result = await clientsStore.updateClient(editingClient.value.id, payload);
   if (result.success) {
     closeEditModal();
   } else {
     editError.value =
+      result.errors?.message ||
       result.errors?.error ||
       result.errors?.name?.[0] ||
       result.errors?.email?.[0] ||
@@ -878,9 +999,13 @@ function buildBlockedMessage(client) {
   const proposals = client.total_proposals || 0;
   const projects = client.projects_count || 0;
   const diagnostics = client.diagnostics_count || 0;
+  const incomes = client.incomes_count || 0;
+  const hostings = client.hostings_count || 0;
   if (proposals > 0) parts.push(`${proposals} propuesta${proposals === 1 ? '' : 's'}`);
   if (projects > 0) parts.push(`${projects} proyecto${projects === 1 ? '' : 's'} de plataforma`);
   if (diagnostics > 0) parts.push(`${diagnostics} diagnóstico${diagnostics === 1 ? '' : 's'} web`);
+  if (incomes > 0) parts.push(`${incomes} ingreso${incomes === 1 ? '' : 's'} contable${incomes === 1 ? '' : 's'}`);
+  if (hostings > 0) parts.push(`${hostings} hosting${hostings === 1 ? '' : 's'}`);
   const reason = parts.length > 0 ? parts.join(', ') : 'elementos asociados';
   return `No se puede eliminar a "${client.name}" porque tiene ${reason}. Elimina o archiva esos elementos antes de borrar el cliente.`;
 }

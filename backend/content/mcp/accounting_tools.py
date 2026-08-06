@@ -228,6 +228,15 @@ _ENTITY_FIELDS = {
             'total_amount': {'type': ['number', 'string']},
             'destination': {'type': 'string', 'enum': ['partners', 'pocket']},
             'ledger': {'type': 'string', 'enum': _LEDGER_ENUM},
+            'client': {
+                'type': ['integer', 'null'],
+                'description': 'ID del cliente (UserProfile con rol cliente).',
+            },
+            'origin': {
+                'type': 'string',
+                'enum': ['development', 'hosting', 'diagnostic', 'other'],
+                'description': 'Línea de negocio que origina el ingreso.',
+            },
             'gustavo_amount': {'type': ['number', 'string']},
             'carlos_amount': {'type': ['number', 'string']},
             'notes': {'type': 'string'},
@@ -249,6 +258,10 @@ _ENTITY_FIELDS = {
     },
     'hosting': {
         'props': {
+            'client': {
+                'type': ['integer', 'null'],
+                'description': 'ID del cliente (UserProfile con rol cliente).',
+            },
             'client_name': {'type': 'string'},
             'monthly_value': {'type': ['number', 'string']},
             'domain_url': {'type': 'string'},
@@ -262,7 +275,7 @@ _ENTITY_FIELDS = {
             'is_active': {'type': 'boolean'},
             'notes': {'type': 'string'},
         },
-        'required': ['client_name', 'monthly_value'],
+        'required': ['client', 'monthly_value'],
     },
     'pocket': {
         'props': {
@@ -351,6 +364,14 @@ def _list_schema(key):
         props[field] = {'type': 'string', 'description': 'Uno o varios valores separados por coma.'}
     for field in config.get('bool_filters', ()):
         props[field] = {'type': 'boolean'}
+    for field in config.get('null_filters', ()):
+        props[field] = {
+            'type': 'string',
+            'description': (
+                "'none' para los registros sin asignar, 'all' para no "
+                'filtrar, o uno o varios ids separados por coma.'
+            ),
+        }
     if config.get('has_split'):
         props['partner'] = {'type': 'string', 'enum': ['gustavo', 'carlos', 'projectapp', 'all']}
     if config.get('payment_status_filter'):

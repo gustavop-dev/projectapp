@@ -5774,13 +5774,28 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-dashboard.spec.js`
 
+### FLOW: `admin-accounting-income-client`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes`, `/panel/clients`
+- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk: checkboxes select rows (or every filtered row at once) and one action assigns the client to all of them via `POST /api/accounting/incomes/bulk-assign-client/`, writing one audit entry per income. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics).
+- **Steps:**
+  1. Superuser creates or edits an income and picks its client and origin (or creates the client inline).
+  2. The Cliente column and the Cliente/Origen filters read the ledger by client; the "Sin cliente" tab lists what is still unassigned.
+  3. Selecting rows reveals the bulk bar; assigning a client updates every selected income at once.
+  4. "Totales por cliente" answers how much each client was billed and how much is still pending, over the filtered set.
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment with payload assertion, totals modal breakdown)
+- **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
+
 ### FLOW: `admin-accounting-income-crud`
 
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`
-- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter).
+- **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
 - **Steps:**
   1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner).
   2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total, and the period field (shared PeriodDateField) defaults to today's exact date with a toggle down to month-only. Edits always open in full-date mode showing the stored day (01 remains the month-only storage sentinel; the toggle still downgrades to month).
@@ -5924,17 +5939,32 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
+### FLOW: `admin-accounting-hosting-client`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/clients`
+- **Description:** Every hosting belongs to a client, so the form carries a searchable client picker with inline creation and **requires it on new records**. Records saved before the relation kept the client as free text following the house convention `Persona - Marca`: opening one searches that text and **offers the matching registered client** for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as **pending** and stays saveable — completing it is a separate step, never a blocker. The table shows the client with a "sin vincular" pill, the filter panel gains a **Cliente** filter with a "Sin cliente" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to **assign a client in bulk** (one audit entry per hosting). Selecting a client seeds the billing snapshot (name, email, contact, identification) without overwriting what the operator typed. The cuenta de cobro then **inherits the client**: the send action gates on the resolved recipient (hosting override, else the client's address) instead of a hosting-only email, issues on that client's `PA-{CODE}-{NNN}` series and links the document to the client user. A client holding hostings can no longer be deleted (`client_has_hostings`), and the client card lists their hostings with the monthly total alongside their incomes.
+- **Steps:**
+  1. Superuser creates a hosting and picks its client (or creates it inline); the billing snapshot fills itself.
+  2. Opening a legacy hosting shows the suggested pairing; one click confirms it, or the record stays flagged as pending.
+  3. The "Sin cliente" tab lists what is left; selecting rows assigns the client to all of them at once.
+  4. With a client linked, "Enviar cuenta de cobro" becomes available even when the hosting has no email of its own.
+- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment with payload assertion; the form picker and the suggestion are covered by unit tests)
+- **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
+
 ### FLOW: `admin-accounting-hosting-billing`
 
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Send a client the cuenta de cobro from a hosting row. The paper-plane action (disabled without client email, tooltip explains) opens a ConfirmModal previewing amount and recipient; confirm POSTs `/api/accounting/hostings/:id/send-collection-account/`, which issues the Document (public number PA-YYYY-NNNN, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the Spanish PDF attached and stamps `billing_requested_at` (pauses the expiry notices; a "Cobro enviado" badge appears on the row). If the email fails the document stays issued and a warning toast points to Cobros for re-send.
+- **Description:** Send a client the cuenta de cobro from a hosting row. The paper-plane action (disabled without client email, tooltip explains) opens a ConfirmModal previewing amount and recipient; confirm POSTs `/api/accounting/hostings/:id/send-collection-account/`, which issues the Document (public number PA-YYYY-NNNN, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the Spanish PDF attached and stamps `billing_requested_at` (pauses the expiry notices; a "Cobro enviado" badge appears on the row). If the email fails the document stays issued and a warning toast points to Cuentas de cobro for re-send. Since PA-25 the recipient and the numbering come from the linked client (see `admin-accounting-hosting-client`): the action gates on `billing_email` (hosting override, else the client's address), and a linked hosting issues on that client's series.
 - **Steps:**
   1. Superuser opens `/panel/accounting/hostings` and clicks the paper-plane action on a row with client email.
   2. ConfirmModal previews `payment_per_cycle` and the recipient; confirm fires the POST.
-  3. Success toast (with "Ver en Cobros" action) and the row shows the "Cobro enviado" badge.
+  3. Success toast (with "Ver en Cuentas de cobro" action) and the row shows the "Cobro enviado" badge.
 - **Coverage:** ✅ Covered (email gate, confirm + POST + badge, email-failure warning)
 - **E2E Spec:** `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js`
 
@@ -5944,9 +5974,24 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/collections`
-- **Description:** Cobros monitor: status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: download PDF (`GET .../pdf/` blob), resend to client, mark paid and cancel (both behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume).
-- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend; PDF download not asserted)
+- **Description:** Cuentas de cobro center (tab renamed from "Cobros", key `collections` intact): status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen (Hosting/Proyecto/Ingreso/Otro)/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: view linked income (`?focus=` row flash on Ingresos), download PDF (`GET .../pdf/` blob), resend to client, mark paid (expected-linked cuentas route through the Liquidar modal — see `admin-accounting-collection-create`) and cancel (behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume, and cancelling frees the linked income for a new cuenta).
+- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend + resend-failure toast; PDF download not asserted)
 - **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
+
+### FLOW: `admin-accounting-collection-create`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/collections`, `/panel/accounting/incomes`
+- **Description:** Create a cuenta de cobro from the tab button ("Nueva cuenta de cobro" + empty-state CTA) or from an income row action (kind expected/liquid, never lost; rows with an active cuenta show "Ver cuenta de cobro" navigation instead, `?focus=` flashing both ways). The modal unifies with the clients module: `ClientAutocomplete` prefills the editable customer snapshot (razón social, NIT→`NIT`/cédula→`CC`, email, contacto) and supports inline client creation; the income link is MANDATORY via a searchable combobox (flagged incomes blocked, "Crear ingreso esperado" stacks the income form); the consecutivo is server-suggested per client (`PA-{CODE}-{NNN}`, continuous) and editable (sent only when edited, collision-checked). Step 2 previews the REAL email (subject + rendered body) and the attached PDF — produced by the same backend pipeline as the send inside a rolled-back transaction (no rows, no EmailLog, no consecutivo consumed) — before "Confirmar y enviar" issues, emails (PDF with valor en letras, NIT/C.C. types, formatted COP/dates, signature block) and links the document. Paid↔settlement stays synchronized: marking an expected-linked cuenta paid opens the Liquidar modal prefilled (409 on the direct endpoint while pending), and a fully-settled income auto-marks its issued cuenta paid.
+- **Steps:**
+  1. Superuser clicks "Nueva cuenta de cobro" (or the income row action, which preselects and locks the income).
+  2. Picks the client (snapshot + suggested consecutivo autofill) and the income; adjusts concept/value/terms.
+  3. "Previsualizar" renders the real email and PDF; "Volver a editar" keeps state.
+  4. "Confirmar y enviar" creates+issues+emails; the row appears and the income flags as linked.
+- **Coverage:** ✅ Covered (create-through-preview with payload assertions, Liquidar routing on mark-paid, generate icon opens locked modal, linked row navigates focused)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-hosting-cycles`
 
@@ -6006,9 +6051,11 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-expected-detail` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-stats-modals` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-dashboard.spec.js` |
 | `admin-accounting-income-crud` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
+| `admin-accounting-income-client` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-filters` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-filters.spec.js` |
 | `admin-accounting-expenses-crud` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
 | `admin-accounting-hostings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
+| `admin-accounting-hosting-client` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
 | `admin-accounting-pocket` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-recurring` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
@@ -6019,6 +6066,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-collections` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js` |
+| `admin-accounting-collection-create` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
 | `admin-accounting-settings-reset-tabs` | admin | superuser | P3 | ❌ Missing | — |

@@ -788,6 +788,135 @@ export const useAccountingStore = defineStore('accounting', {
       }
     },
 
+    /**
+     * bulkAssignIncomeClient: link (or unlink, with client=null) several
+     * incomes to one client. Replaces the affected rows in place so the
+     * table reflects the change without a full refetch.
+     */
+    async bulkAssignIncomeClient(incomeIds, client) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-assign-client/',
+          { income_ids: incomeIds, client },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning client to incomes:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignHostingClient: link (or unlink) several hostings to one
+     * client. Replaces the affected rows in place, like the incomes one.
+     */
+    async bulkAssignHostingClient(hostingIds, client) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/hostings/bulk-assign-client/',
+          { hosting_ids: hostingIds, client },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.hostings = this.hostings.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning client to hostings:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * createCollectionAccount: create + issue + email a cuenta linked to an
+     * income (panel modal). Prepends the created document to the list.
+     */
+    async createCollectionAccount(payload) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/collection-accounts/create/', payload,
+        );
+        const document = response.data?.document;
+        if (document?.id) {
+          this.collectionAccounts = [document, ...this.collectionAccounts];
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error creating collection account:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * previewCollectionAccount: same payload as create; the backend renders
+     * the real email + PDF inside a rolled-back transaction. No state writes.
+     */
+    async previewCollectionAccount(payload) {
+      try {
+        const response = await create_request(
+          'accounting/collection-accounts/preview/', payload,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error previewing collection account:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * fetchCollectionAccountNextNumber: suggested per-client consecutivo
+     * (never consumes the counter).
+     */
+    async fetchCollectionAccountNextNumber(clientProfileId) {
+      try {
+        const response = await get_request(
+          `accounting/collection-accounts/next-number/?client_profile_id=${clientProfileId}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching next collection number:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * searchIncomesForCollection: incomes eligible for a cuenta de cobro
+     * (expected or liquid, never lost). Returns rows WITHOUT touching the
+     * incomes tab state.
+     */
+    async searchIncomesForCollection(params = {}) {
+      try {
+        const response = await get_request(
+          `accounting/incomes/${buildQuery({ kind: 'expected,liquid', ...params })}`,
+        );
+        return { success: true, data: response.data.results ?? [] };
+      } catch (error) {
+        console.error('Error searching incomes for collection:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
     // ── Hosting cycles (payment history) ──
 
     async fetchHostingCycles(hostingId) {

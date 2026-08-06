@@ -22,6 +22,9 @@ function hostingRows({ billingSent }) {
     {
       id: 1,
       client_name: 'German - Kore',
+      client: 5,
+      client_display_name: 'Germán Franco',
+      billing_email: 'german@korehealths.com',
       client_email: 'german@korehealths.com',
       domain_url: 'https://korehealths.com/',
       monthly_value: '91667.00',
@@ -42,6 +45,9 @@ function hostingRows({ billingSent }) {
     {
       id: 2,
       client_name: 'Nestor - Xpandia',
+      client: null,
+      client_display_name: null,
+      billing_email: '',
       client_email: '',
       domain_url: 'https://xpandia.global/',
       monthly_value: '19000.00',
@@ -183,14 +189,27 @@ test.describe('Admin Accounting Hosting Billing', () => {
     });
   });
 
-  test('the send action requires a client email', {
+  test('the send action requires a resolvable recipient and previews it', {
     tag: [...ADMIN_ACCOUNTING_HOSTING_BILLING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the flow under
+    // test starts at the row's send action, which IS clicked below)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoHostings(page);
 
-    await expect(page.getByTestId('hosting-send-billing-1')).toBeEnabled();
+    // Row 2 has neither its own email nor a linked client: nothing to send to.
     await expect(page.getByTestId('hosting-send-billing-2')).toBeDisabled();
+
+    await page.getByTestId('hosting-send-billing-1').click();
+
+    // The confirm previews exactly where it is going before anything is sent.
+    await expect(
+      page.getByText('german@korehealths.com', { exact: false }),
+    ).toBeVisible();
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(
+      page.getByRole('heading', { name: 'Enviar cuenta de cobro' }),
+    ).toHaveCount(0);
   });
 
   test('sending the cuenta de cobro confirms, POSTs and shows the badge', {

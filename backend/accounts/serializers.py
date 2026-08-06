@@ -1,3 +1,4 @@
+import re
 from copy import deepcopy
 from decimal import Decimal
 
@@ -172,7 +173,26 @@ class UpdateClientSerializer(serializers.Serializer):
     last_name = serializers.CharField(max_length=150, required=False)
     company_name = serializers.CharField(max_length=200, required=False, allow_blank=True)
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    nit = serializers.CharField(max_length=32, required=False, allow_blank=True)
+    billing_code = serializers.CharField(
+        max_length=12, required=False, allow_blank=True,
+    )
     is_active = serializers.BooleanField(required=False)
+
+    def validate_billing_code(self, value):
+        value = (value or '').strip().upper()
+        if not value:
+            return ''
+        if not re.fullmatch(r'[A-Z0-9]{2,12}', value):
+            raise serializers.ValidationError(
+                'El código debe tener entre 2 y 12 caracteres alfanuméricos.',
+            )
+        if value.isdigit():
+            raise serializers.ValidationError(
+                'El código no puede ser puramente numérico (colisionaría con '
+                'la numeración PA-{año}-{NNNN}).',
+            )
+        return value
 
 
 class ClientListSerializer(serializers.ModelSerializer):
@@ -196,7 +216,8 @@ class ClientListSerializer(serializers.ModelSerializer):
         model = UserProfile
         fields = [
             'user_id', 'email', 'first_name', 'last_name',
-            'company_name', 'phone', 'is_onboarded', 'is_active',
+            'company_name', 'phone', 'nit', 'billing_code',
+            'is_onboarded', 'is_active',
             'profile_completed', 'avatar_display_url', 'created_at',
             'hosting_plan', 'hosting_renewal_at', 'hosting_renewal_value',
             'active_projects_count', 'total_projects_count',

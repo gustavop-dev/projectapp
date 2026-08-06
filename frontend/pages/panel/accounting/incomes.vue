@@ -8,15 +8,25 @@
           Ingresos esperados y líquidos del negocio, con su reparto entre socios.
         </p>
       </div>
-      <BaseButton
-        variant="primary"
-        size="md"
-        data-testid="incomes-new-button"
-        @click="openCreateModal"
-      >
-        <PlusIcon class="w-4 h-4" />
-        <span>Nuevo ingreso</span>
-      </BaseButton>
+      <div class="flex items-center gap-2">
+        <BaseButton
+          variant="secondary"
+          size="md"
+          data-testid="incomes-client-totals-button"
+          @click="openTotalsModal"
+        >
+          Totales por cliente
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="md"
+          data-testid="incomes-new-button"
+          @click="openCreateModal"
+        >
+          <PlusIcon class="w-4 h-4" />
+          <span>Nuevo ingreso</span>
+        </BaseButton>
+      </div>
     </div>
 
     <AccountingSubnav active="incomes" />
@@ -115,6 +125,48 @@
       </span>
     </div>
 
+    <!-- Bulk client assignment: the completion path for rows without client -->
+    <div
+      v-if="selectedIds.length > 0"
+      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
+      data-testid="incomes-bulk-bar"
+    >
+      <span class="text-sm text-text-default whitespace-nowrap">
+        <span class="font-semibold tabular-nums">{{ selectedIds.length }}</span>
+        seleccionado{{ selectedIds.length === 1 ? '' : 's' }}
+      </span>
+      <BaseButton
+        v-if="!allFilteredSelected"
+        variant="ghost"
+        size="sm"
+        data-testid="incomes-select-all-filtered"
+        @click="selectAllFiltered"
+      >
+        Seleccionar los {{ filteredIds.length }} filtrados
+      </BaseButton>
+      <div class="flex-1 min-w-[16rem]">
+        <ClientAutocomplete
+          v-model="bulkClientId"
+          test-id="incomes-bulk-client"
+          placeholder="Cliente a asignar (vacío = desvincular)..."
+        />
+      </div>
+      <div class="flex items-center gap-2">
+        <BaseButton variant="secondary" size="sm" @click="clearSelection">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="sm"
+          :disabled="store.isUpdating"
+          data-testid="incomes-bulk-assign"
+          @click="assignClientToSelection"
+        >
+          Asignar cliente
+        </BaseButton>
+      </div>
+    </div>
+
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === 'fetch_failed'"
@@ -150,6 +202,8 @@
     <!-- Table -->
     <template v-else>
       <AccountingTable
+        v-model:selected="selectedIds"
+        selectable
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="columns"
@@ -163,6 +217,32 @@
         @sort="toggleSort"
       >
         <template #row-actions="{ row }">
+          <template v-if="row.kind !== 'lost'">
+            <BaseButton
+              v-if="!row.has_collection_account"
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Generar cuenta de cobro"
+              title="Generar cuenta de cobro"
+              :data-testid="`income-generate-ca-${row.id}`"
+              @click.stop="openCollectionModal(row)"
+            >
+              <DocumentPlusIcon class="w-5 h-5" />
+            </BaseButton>
+            <BaseButton
+              v-else
+              variant="ghost"
+              icon-only
+              size="sm"
+              :aria-label="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+              :title="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+              :data-testid="`income-view-ca-${row.id}`"
+              @click.stop="goToCollectionAccount(row)"
+            >
+              <ArrowTopRightOnSquareIcon class="w-5 h-5" />
+            </BaseButton>
+          </template>
           <template v-if="row.kind === 'expected'">
             <button
               type="button"
@@ -245,6 +325,22 @@
       @submit="handleLiquidateSubmit"
     />
 
+    <!-- Totales por cliente sobre las filas filtradas -->
+    <IncomeClientTotalsModal
+      :open="totalsModalOpen"
+      :rows="filteredRecords"
+      :hosting-rows="store.hostings"
+      @close="totalsModalOpen = false"
+    />
+
+    <!-- Generar cuenta de cobro desde el ingreso (preseleccionado) -->
+    <CollectionAccountFormModal
+      :open="collectionModalOpen"
+      :income="collectionIncome"
+      @close="collectionModalOpen = false"
+      @created="onCollectionCreated"
+    />
+
     <!-- Confirm modal for delete / write-off -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -264,7 +360,14 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
-import { BanknotesIcon, PlusIcon, XCircleIcon } from '@heroicons/vue/24/outline';
+import {
+  ArrowTopRightOnSquareIcon,
+  BanknotesIcon,
+  DocumentPlusIcon,
+  PlusIcon,
+  XCircleIcon,
+} from '@heroicons/vue/24/outline';
+import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -274,6 +377,8 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
+import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsModal.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -302,6 +407,25 @@ function money(value) {
 // -------------------------------------------------------------------
 // Filters
 // -------------------------------------------------------------------
+
+// Sentinels shared with the backend filters: 'none' means "not set".
+const NO_CLIENT_KEY = 'none';
+const NO_CLIENT_LABEL = 'Sin cliente';
+const NO_ORIGIN_KEY = 'none';
+
+const matchClients = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (record.client == null) return value.includes(NO_CLIENT_KEY);
+  return value.includes(record.client);
+};
+matchClients.keys = ['clients'];
+
+const matchOrigin = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (!record.origin) return value.includes(NO_ORIGIN_KEY);
+  return value.includes(record.origin);
+};
+matchOrigin.keys = ['origin'];
 
 const matchPartner = (record, value) => {
   if (!value) return true;
@@ -347,6 +471,11 @@ const {
       filters: { kind: 'expected', paymentStatus: 'pending', search: 'hosting' },
     },
     { id: 'lost', name: 'Perdidos', filters: { kind: 'lost' } },
+    {
+      id: 'no-client',
+      name: 'Sin cliente',
+      filters: { clients: [NO_CLIENT_KEY] },
+    },
   ],
   // The day-to-day question is what is still uncollected, not the full ledger.
   defaultTabId: 'expected-pending',
@@ -359,6 +488,8 @@ const {
     paymentStatus: '',
     partner: '',
     ledger: '',
+    clients: [],
+    origin: [],
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
@@ -369,11 +500,29 @@ const {
     paymentStatus: matchEquals('payment_status', 'paymentStatus'),
     partner: matchPartner,
     ledger: matchEquals('ledger', 'ledger'),
+    clients: matchClients,
+    origin: matchOrigin,
   },
   searchFields: ['concept', 'notes'],
 });
 
-const filterFields = [
+const clientFilterOptions = computed(() => {
+  // Derived from the loaded rows, not the full client catalog: the dropdown
+  // is a flat checkbox list, so bounding it by what is actually on screen
+  // keeps it usable however many clients exist.
+  const seen = new Map();
+  store.incomes.forEach((row) => {
+    if (row.client != null && !seen.has(row.client)) {
+      seen.set(row.client, row.client_name || `Cliente #${row.client}`);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
+});
+
+const filterFields = computed(() => [
   { kind: 'daterange', label: 'Mes', minKey: 'periodAfter', maxKey: 'periodBefore' },
   { kind: 'range', label: 'Total', minKey: 'amountMin', maxKey: 'amountMax', type: 'money' },
   {
@@ -420,7 +569,25 @@ const filterFields = [
       { value: 'carlos', label: 'Personal Carlos' },
     ],
   },
-];
+  {
+    kind: 'multi',
+    key: 'clients',
+    label: 'Cliente',
+    options: clientFilterOptions.value,
+  },
+  {
+    kind: 'multi',
+    key: 'origin',
+    label: 'Origen',
+    options: [
+      { value: 'development', label: 'Desarrollo' },
+      { value: 'hosting', label: 'Hosting' },
+      { value: 'diagnostic', label: 'Diagnóstico' },
+      { value: 'other', label: 'Otro' },
+      { value: NO_ORIGIN_KEY, label: 'Sin clasificar' },
+    ],
+  },
+]);
 
 const EXPORT_MAPPING = {
   periodAfter: 'date_from',
@@ -431,6 +598,8 @@ const EXPORT_MAPPING = {
   paymentStatus: 'payment_status',
   partner: 'partner',
   ledger: 'ledger',
+  clients: 'client',
+  origin: 'origin',
   search: 'q',
 };
 
@@ -608,6 +777,7 @@ function confirmWriteOff(record) {
 // no column of its own next to what the row is actually about.
 const columns = [
   { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
+  { key: 'client_name', label: 'Cliente', size: 'name', sortable: true, hideBelow: 'md' },
   { key: 'kind_label', label: 'Tipo', size: 'badge' },
   { key: 'payment_status', label: 'Cobro', size: 'text' },
   { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
@@ -616,10 +786,89 @@ const columns = [
   { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
 ];
 
+// ── Selección múltiple + asignación masiva de cliente ──
+
+const selectedIds = ref([]);
+const bulkClientId = ref(null);
+const totalsModalOpen = ref(false);
+
+const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
+
+const allFilteredSelected = computed(
+  () => filteredIds.value.length > 0
+    && filteredIds.value.every((id) => selectedIds.value.includes(id)),
+);
+
+function selectAllFiltered() {
+  selectedIds.value = [...filteredIds.value];
+}
+
+function clearSelection() {
+  selectedIds.value = [];
+  bulkClientId.value = null;
+}
+
+async function assignClientToSelection() {
+  const ids = [...selectedIds.value];
+  const result = await runMutation(
+    () => store.bulkAssignIncomeClient(ids, bulkClientId.value),
+    {
+      successTitle: bulkClientId.value
+        ? 'Cliente asignado a los ingresos'
+        : 'Cliente desvinculado de los ingresos',
+      errorTitle: 'No se pudo asignar el cliente',
+    },
+  );
+  if (result.success) clearSelection();
+}
+
+// ── Cuenta de cobro desde el ingreso ──
+
+const collectionModalOpen = ref(false);
+const collectionIncome = ref(null);
+
+function openCollectionModal(row) {
+  collectionIncome.value = row;
+  collectionModalOpen.value = true;
+}
+
+async function openTotalsModal() {
+  totalsModalOpen.value = true;
+  // Hostings live in another tab: fetch them once so the per-client view
+  // can show both halves of what a client costs and pays.
+  if (!store.hostings.length) await store.fetchRecords('hostings');
+}
+
+function onCollectionCreated() {
+  collectionModalOpen.value = false;
+  collectionIncome.value = null;
+  // Reload so the row swaps to the "Ver cuenta de cobro" action.
+  loadRecords();
+}
+
+function goToCollectionAccount(row) {
+  navigateTo({
+    path: '/panel/accounting/collections',
+    query: { focus: row.collection_account_id },
+  });
+}
+
 async function loadRecords() {
   await store.fetchRecords('incomes');
 }
 
-onMounted(loadRecords);
+const route = useRoute();
+
+onMounted(async () => {
+  await loadRecords();
+  // ?focus=<id> flashes the row (navigation back from Cuentas de cobro).
+  const focus = Number(route.query.focus);
+  if (focus) {
+    lastMutatedId.value = focus;
+    setTimeout(() => {
+      if (lastMutatedId.value === focus) lastMutatedId.value = null;
+    }, 2500);
+  }
+});
 usePanelRefresh(loadRecords);
 </script>

@@ -257,6 +257,9 @@ class Command(BaseCommand):
                 'company_name': 'TechStartup Co.',
                 'phone': '+57 300 123 4567',
                 'cedula': '1020304050',
+                # Billing identity for cuentas de cobro (NIT wins over cedula
+                # in the customer snapshot; code drives PA-{CODE}-{NNN}).
+                'nit': '901234567-8',
                 'date_of_birth': '1992-06-15',
                 'gender': UserProfile.GENDER_FEMALE,
                 'education_level': UserProfile.EDUCATION_UNIVERSITY,

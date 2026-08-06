@@ -46,6 +46,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     total_proposals = serializers.SerializerMethodField()
     projects_count = serializers.SerializerMethodField()
     diagnostics_count = serializers.SerializerMethodField()
+    incomes_count = serializers.SerializerMethodField()
+    hostings_count = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
     deactivated_at = serializers.DateTimeField(read_only=True)
@@ -64,11 +66,16 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'email',
             'phone',
             'company',
+            'nit',
+            'cedula',
+            'billing_code',
             'is_onboarded',
             'is_email_placeholder',
             'total_proposals',
             'projects_count',
             'diagnostics_count',
+            'incomes_count',
+            'hostings_count',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -88,6 +95,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'total_proposals',
             'projects_count',
             'diagnostics_count',
+            'incomes_count',
+            'hostings_count',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -127,6 +136,18 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             return annotated
         return obj.web_app_diagnostics.count()
 
+    def get_incomes_count(self, obj):
+        annotated = getattr(obj, 'incomes_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.income_records.count()
+
+    def get_hostings_count(self, obj):
+        annotated = getattr(obj, 'hostings_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.hosting_records.count()
+
     def get_is_orphan(self, obj):
         if self.get_total_proposals(obj) > 0:
             return False
@@ -137,8 +158,13 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             return False
         diagnostics_annotated = getattr(obj, 'diagnostics_count', None)
         if diagnostics_annotated is not None:
-            return diagnostics_annotated == 0
-        return not obj.web_app_diagnostics.exists()
+            if diagnostics_annotated > 0:
+                return False
+        elif obj.web_app_diagnostics.exists():
+            return False
+        if self.get_incomes_count(obj) > 0:
+            return False
+        return self.get_hostings_count(obj) == 0
 
     def get_is_inactive(self, obj):
         return obj.deactivated_at is not None
@@ -243,7 +269,10 @@ class ProposalClientSearchSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserProfile
-        fields = ('id', 'name', 'email', 'phone', 'company', 'is_email_placeholder')
+        fields = (
+            'id', 'name', 'email', 'phone', 'company',
+            'nit', 'cedula', 'is_email_placeholder',
+        )
 
     def get_name(self, obj):
         return build_client_display_name(obj)

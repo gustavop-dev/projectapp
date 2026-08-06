@@ -1,5 +1,20 @@
 import { mount } from '@vue/test-utils';
+import { setActivePinia, createPinia } from 'pinia';
 import IncomeFormModal from '../../../components/accounting/IncomeFormModal.vue';
+
+jest.mock('../../../stores/services/request_http', () => ({
+  get_request: jest.fn(),
+  create_request: jest.fn(),
+  patch_request: jest.fn(),
+  delete_request: jest.fn(),
+}));
+
+const ClientAutocompleteStub = {
+  name: 'ClientAutocomplete',
+  props: ['modelValue', 'initialLabel', 'testId', 'placeholder'],
+  emits: ['update:modelValue', 'select', 'create-new'],
+  template: '<div data-testid="client-autocomplete-stub" />',
+};
 
 const PartnerSplitInputStub = {
   name: 'PartnerSplitInput',
@@ -15,6 +30,7 @@ const PartnerSplitInputStub = {
 };
 
 function mountModal(props = {}) {
+  setActivePinia(createPinia());
   return mount(IncomeFormModal, {
     props: {
       open: true,
@@ -24,6 +40,7 @@ function mountModal(props = {}) {
     },
     global: {
       stubs: {
+        ClientAutocomplete: ClientAutocompleteStub,
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
@@ -193,6 +210,8 @@ describe('IncomeFormModal', () => {
       total_amount: '1500',
       gustavo_amount: '900',
       carlos_amount: '600',
+      client: null,
+      origin: '',
       notes: 'Con nota',
     });
   });

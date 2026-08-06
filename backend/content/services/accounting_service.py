@@ -21,6 +21,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce, Greatest
 
+from accounts.models import UserProfile
 from content.api_errors import ProposalActionError
 from content.utils import format_cop_email, today_bogota
 from content.models import (
@@ -30,6 +31,7 @@ from content.models import (
     CreditCard,
     CreditCardStatement,
     CreditCardTransaction,
+    Document,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
@@ -38,6 +40,7 @@ from content.models import (
     PocketMovement,
     RecurringPayment,
 )
+from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.serializers.accounting import month_label, month_period, split_half
 
 logger = logging.getLogger(__name__)
@@ -64,6 +67,8 @@ TRACKED_FIELDS = {
         ('concept', 'Concepto'),
         ('kind', 'Tipo'),
         ('ledger', 'Contabilidad'),
+        ('client', 'Cliente'),
+        ('origin', 'Origen'),
         ('period_date', 'Período'),
         ('destination', 'Destino'),
         ('total_amount', 'Monto total'),
@@ -83,6 +88,7 @@ TRACKED_FIELDS = {
         ('notes', 'Notas'),
     ],
     EntityType.HOSTING: [
+        ('client', 'Cliente vinculado'),
         ('client_name', 'Cliente'),
         ('client_email', 'Email del cliente'),
         ('client_contact_name', 'Contacto del cliente'),
@@ -195,6 +201,14 @@ def display_value(instance, field_name):
         return ''
     if isinstance(value, bool):
         return 'Sí' if value else 'No'
+    if isinstance(value, UserProfile):
+        # A client FK renders as "email (Client)" through __str__, which is
+        # noise in the audit table and the notification email.
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(value)
     if isinstance(value, list):
         return ', '.join(str(item) for item in value)
     if isinstance(value, Decimal):
@@ -378,6 +392,48 @@ def update_record(entity_type, instance, serializer, user, notify=True):
         if notify:
             _notify(change_log)
     return instance
+
+
+@transaction.atomic
+def bulk_assign_client(entity_type, record_ids, client, user):
+    """Assign (or clear, with ``client=None``) the client of several records.
+
+    The completion tool for rows created before the client link existed,
+    shared by incomes and hostings. One audit row per record on purpose:
+    the history is per record, and a single aggregate entry would make an
+    individual timeline lie. Rows already pointing at the target client are
+    skipped, so re-running the same assignment writes nothing.
+    """
+    model = ENTITY_MODELS[entity_type]
+    records = list(
+        model.objects.select_related('client__user').filter(pk__in=record_ids),
+    )
+    updated = []
+    for record in records:
+        if record.client_id == (client.pk if client else None):
+            continue
+        old_values = snapshot_values(record, entity_type)
+        record.client = client
+        record.save(update_fields=['client', 'updated_at'])
+        changes = compute_changes(
+            entity_type, old_values, snapshot_values(record, entity_type),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=entity_type,
+                object_id=record.pk,
+                object_repr=object_repr(entity_type, record),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+        updated.append(record)
+    return updated
+
+
+def bulk_assign_income_client(income_ids, client, user):
+    """Incomes flavour of :func:`bulk_assign_client` (kept for its callers)."""
+    return bulk_assign_client(EntityType.INCOME, income_ids, client, user)
 
 
 def _deletion_changes(entity_type, old_values):
@@ -705,6 +761,27 @@ def _sum(queryset, field):
 
 _MONEY_FIELD = DecimalField(max_digits=14, decimal_places=2)
 _ZERO_MONEY = Value(Decimal('0.00'), output_field=_MONEY_FIELD)
+
+
+def collection_account_subqueries():
+    """Annotations linking each income to its cuenta de cobro, if any.
+
+    Same non-aggregate Subquery technique as paid_amount_subquery, for the
+    same reason. Cancelled cuentas free their income (the create flow's
+    duplicate guard uses the same exclude), so they never surface here.
+    """
+    base = (
+        Document.objects.filter(
+            income_record=OuterRef('pk'),
+            document_type__code=COLLECTION_ACCOUNT,
+        )
+        .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
+        .order_by('-created_at')
+    )
+    return {
+        'collection_account_id': Subquery(base.values('id')[:1]),
+        'collection_account_number': Subquery(base.values('public_number')[:1]),
+    }
 
 
 def paid_amount_subquery():

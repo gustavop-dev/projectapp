@@ -1,5 +1,5 @@
 {
-  "version": "2.61.0",
+  "version": "2.64.0",
   "lastUpdated": "2026-08-01",
   "flows": {
     "layout-navbar-navigation": {
@@ -3662,6 +3662,20 @@
         "failure"
       ]
     },
+    "admin-accounting-income-client": {
+      "name": "Admin Accounting Income Client Link",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser links each income to the client it came from at /panel/accounting/incomes. The income form carries a searchable client picker (with inline client creation) and an Origen control for the business line (desarrollo/hosting/diagnostico/otro); the client is optional, so a refund or a financial yield can stay unassigned. The table shows a Cliente column, the filter panel gains Cliente (options derived from the loaded rows plus a \"Sin cliente\" sentinel) and Origen filters, and a \"Sin cliente\" builtin tab isolates the rows still to be completed. Those rows are completed in bulk: checkboxes select rows (or every filtered row) and one action assigns the client to all of them, writing one audit entry per income. A \"Totales por cliente\" modal breaks the FILTERED incomes down into billed / collected / pending / weight per client with a totals row, so the period comes from the active filters. Settling an income carries its client and origin into the liquid child, and a client holding incomes can no longer be deleted.",
+      "expectedSpecs": 3,
+      "outcomes": [
+        "display",
+        "success"
+      ]
+    },
     "admin-accounting-filters": {
       "name": "Admin Accounting Filters",
       "module": "admin",
@@ -3704,6 +3718,20 @@
         "display",
         "success",
         "error"
+      ]
+    },
+    "admin-accounting-hosting-client": {
+      "name": "Admin Accounting Hosting Client Link",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Every hosting belongs to a client, so the hosting form carries a searchable client picker with inline creation and requires it on NEW records. Records saved before the relation kept the client as free text following the house convention \"Persona - Marca\": opening one searches that text and offers the matching registered client for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as pending and stays saveable — completing it is a separate step. The table shows the client with a \"sin vincular\" pill, the filter panel gains a Cliente filter with a \"Sin cliente\" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to assign a client in bulk (one audit entry per hosting). Selecting a client seeds the billing snapshot without overwriting what the operator typed. The cuenta de cobro then inherits the client: the send action gates on the resolved recipient (hosting override, else the client address) instead of a hosting-only email, issues on that client's PA-{CODE}-{NNN} series and links the document to the client user. A client holding hostings can no longer be deleted, and the client card lists their hostings with the monthly total alongside their incomes.",
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "admin-accounting-pocket": {
@@ -3797,18 +3825,32 @@
       ]
     },
     "admin-accounting-collections": {
-      "name": "Admin Accounting Cobros Monitor",
+      "name": "Admin Accounting Cuentas de Cobro Center",
       "module": "admin",
       "roles": [
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser monitors all cuentas de cobro at /panel/accounting/collections: status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with número/origen/cliente/total/emisión/vence/estado (Vencida tint via is_overdue) and row actions: download PDF, resend to client, mark paid, cancel (cancelling a hosting-linked account resumes its expiry notices).",
+      "description": "Superuser manages all cuentas de cobro at /panel/accounting/collections (tab renamed from Cobros): status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with numero/origen (hosting/proyecto/ingreso/otro)/cliente/total/emision/vence/estado (Vencida tint via is_overdue) and row actions: view linked income, download PDF, resend to client, mark paid (expected-linked accounts route through the Liquidar modal instead of a plain confirm), cancel (cancelling a hosting-linked account resumes its expiry notices; cancelling frees the linked income for a new cuenta).",
       "expectedSpecs": 5,
       "outcomes": [
         "display",
         "success",
         "failure"
+      ]
+    },
+    "admin-accounting-collection-create": {
+      "name": "Admin Accounting Cuenta de Cobro Create + Preview",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Superuser creates a cuenta de cobro from the Cuentas de cobro tab button or from an income row action (kind expected/liquid, never lost; incomes with an active cuenta are blocked and expose a Ver cuenta de cobro navigation instead). The modal unifies with the clients module (ClientAutocomplete prefills name/NIT/cedula/email into an editable snapshot; inline client creation without leaving the flow), requires selecting an income via searchable combobox (or creating the expected income inline via the stacked income form), suggests an editable per-client consecutivo PA-{CODE}-{NNN} (sent only when edited), and ends in a mandatory step-2 preview rendering the REAL email subject/body and attached PDF (same backend pipeline as the send, rolled back server-side) before Confirmar y enviar issues, emails and links the document to the income. Marking an expected-linked cuenta as paid opens the Liquidar modal prefilled (never a silent settlement); a fully-settled income auto-marks its cuenta paid backend-side.",
+      "expectedSpecs": 4,
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "admin-accounting-hosting-cycles": {

@@ -492,6 +492,27 @@ def client_detail_view(request, user_id):
     if identity_kwargs:
         update_client_profile(profile, **identity_kwargs)
 
+    billing_fields = []
+    if 'nit' in data:
+        profile.nit = data['nit'].strip()
+        billing_fields.append('nit')
+    if 'billing_code' in data:
+        # Unique column with NULLs allowed: blank always normalizes to None.
+        code = data['billing_code'] or None
+        if code and (
+            UserProfile.objects.exclude(pk=profile.pk)
+            .filter(billing_code=code)
+            .exists()
+        ):
+            return Response(
+                {'detail': 'Ese código de facturación ya está en uso.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        profile.billing_code = code
+        billing_fields.append('billing_code')
+    if billing_fields:
+        profile.save(update_fields=billing_fields)
+
     if 'is_active' in data:
         user = profile.user
         user.is_active = data['is_active']

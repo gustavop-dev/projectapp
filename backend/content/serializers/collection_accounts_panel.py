@@ -1,4 +1,6 @@
 """Serializers for the panel (accounting) view of collection accounts."""
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from content.models import Document, DocumentItem, DocumentPaymentMethod
@@ -26,6 +28,7 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     is_overdue = serializers.SerializerMethodField()
     origin = serializers.SerializerMethodField()
     origin_label = serializers.SerializerMethodField()
+    income_kind = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -33,6 +36,7 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'public_number', 'title',
             'billing_concept', 'customer_name', 'customer_email',
             'origin', 'origin_label', 'hosting_record_id', 'project_id',
+            'income_record_id', 'income_kind',
             'subtotal', 'tax_total', 'total', 'currency',
             'issue_date', 'due_date',
             'commercial_status', 'commercial_status_label', 'is_overdue',
@@ -45,11 +49,18 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     def get_is_overdue(self, obj):
         return commercial_is_overdue(obj)
 
+    def get_income_kind(self, obj):
+        if obj.income_record_id and obj.income_record:
+            return obj.income_record.kind
+        return None
+
     def get_origin(self, obj):
         if obj.hosting_record_id:
             return 'hosting'
         if obj.project_id:
             return 'project'
+        if obj.income_record_id:
+            return 'income'
         return 'other'
 
     def get_origin_label(self, obj):
@@ -57,6 +68,8 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             return f'Hosting · {obj.hosting_record.client_name}'
         if obj.project_id and obj.project:
             return f'Proyecto · {obj.project}'
+        if obj.income_record_id and obj.income_record:
+            return f'Ingreso · {obj.income_record.concept}'
         return 'Otro'
 
 
@@ -92,3 +105,69 @@ class CollectionAccountPanelDetailSerializer(CollectionAccountPanelListSerialize
         fields = CollectionAccountPanelListSerializer.Meta.fields + (
             'items', 'payment_methods', 'notes',
         )
+
+
+class _CreateItemSerializer(serializers.Serializer):
+    description = serializers.CharField(
+        max_length=512, required=False, allow_blank=True, default='',
+    )
+    quantity = serializers.DecimalField(
+        max_digits=12, decimal_places=2, min_value=Decimal('0.01'),
+        required=False, default=Decimal('1'),
+    )
+    unit_price = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+    period_start = serializers.DateField(required=False, allow_null=True)
+    period_end = serializers.DateField(required=False, allow_null=True)
+
+
+class _CustomerOverrideSerializer(serializers.Serializer):
+    name = serializers.CharField(
+        max_length=255, required=False, allow_blank=True,
+    )
+    identification = serializers.CharField(
+        max_length=64, required=False, allow_blank=True,
+    )
+    identification_type = serializers.CharField(
+        max_length=32, required=False, allow_blank=True,
+    )
+    email = serializers.EmailField(required=False, allow_blank=True)
+    contact_name = serializers.CharField(
+        max_length=255, required=False, allow_blank=True,
+    )
+    address = serializers.CharField(
+        max_length=512, required=False, allow_blank=True,
+    )
+
+
+class CollectionAccountCreateSerializer(serializers.Serializer):
+    """Shared payload of the panel create and preview endpoints."""
+
+    # UserProfile pk — what ClientAutocomplete / the clients module handle.
+    client_profile_id = serializers.IntegerField()
+    income_record_id = serializers.IntegerField()
+    # Sent ONLY when the operator edited the server suggestion; blank means
+    # auto-allocate from the client's series.
+    public_number = serializers.CharField(
+        max_length=64, required=False, allow_blank=True, default='',
+    )
+    billing_concept = serializers.CharField(
+        max_length=512, required=False, allow_blank=True, default='',
+    )
+    items = _CreateItemSerializer(many=True, allow_empty=False)
+    payment_term_days = serializers.IntegerField(
+        min_value=1, max_value=120, required=False, allow_null=True,
+    )
+    due_date = serializers.DateField(required=False, allow_null=True)
+    currency = serializers.CharField(
+        max_length=3, required=False, allow_blank=True, default='COP',
+    )
+    city = serializers.CharField(
+        max_length=120, required=False, allow_blank=True, default='',
+    )
+    customer = _CustomerOverrideSerializer(required=False)
+    observations = serializers.CharField(
+        required=False, allow_blank=True, default='',
+    )
+    notes = serializers.CharField(required=False, allow_blank=True, default='')

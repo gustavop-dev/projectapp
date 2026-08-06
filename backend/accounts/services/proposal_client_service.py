@@ -390,14 +390,20 @@ def sync_diagnostic_snapshot(diagnostic):
 def delete_orphan_client(profile):
     """
     Delete a client profile (and its underlying ``User``) **only** if it has
-    no proposals, no platform projects, and no diagnostics. Raises
-    ``ValueError`` with a machine-readable code otherwise.
+    no proposals, no platform projects, no diagnostics, no accounting
+    incomes and no hostings. Raises ``ValueError`` with a machine-readable
+    code otherwise.
 
     Error codes:
         - ``client_has_proposals``: linked to one or more BusinessProposals.
         - ``client_has_projects``: linked to one or more platform Projects
           (which transitively cover deliverables, requirements, etc.).
         - ``client_has_diagnostics``: linked to one or more WebAppDiagnostics.
+        - ``client_has_incomes``: linked to one or more IncomeRecords. The
+          FK is PROTECT, so the DB would refuse anyway — this raises the
+          actionable error before that happens.
+        - ``client_has_hostings``: linked to one or more HostingRecords,
+          same PROTECT rationale.
     """
     proposals_count = profile.proposals.count()
     if proposals_count > 0:
@@ -410,6 +416,14 @@ def delete_orphan_client(profile):
     diagnostics_count = profile.web_app_diagnostics.count()
     if diagnostics_count > 0:
         raise ValueError(f'client_has_diagnostics:{diagnostics_count}')
+
+    incomes_count = profile.income_records.count()
+    if incomes_count > 0:
+        raise ValueError(f'client_has_incomes:{incomes_count}')
+
+    hostings_count = profile.hosting_records.count()
+    if hostings_count > 0:
+        raise ValueError(f'client_has_hostings:{hostings_count}')
 
     user = profile.user
     profile.delete()

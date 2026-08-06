@@ -35,10 +35,11 @@ from decimal import ROUND_DOWN, Decimal
 from django.db import transaction
 from django.db.models import Sum
 
-from content.models import AccountingChangeLog, ExpenseRecord, IncomeRecord
+from content.models import AccountingChangeLog, Document, ExpenseRecord, IncomeRecord
 from content.serializers.accounting import (
     ExpenseRecordCreateUpdateSerializer,
     IncomeRecordCreateUpdateSerializer,
+    payment_status_for,
     split_half,
 )
 from content.services import accounting_service
@@ -66,6 +67,35 @@ def _paid_total(income):
         deduction_type='',
     ).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     return liquid + deducted
+
+
+def income_payment_status(income):
+    """Derived collection state ('pending'/'partial'/'paid') for an expected income.
+
+    Single owner of the "is it fully paid" question outside serializers:
+    the settle→cuenta sync below and the panel mark-paid guard both use it.
+    """
+    return payment_status_for(_paid_total(income), income.total_amount)
+
+
+def _sync_linked_collection_accounts(income, user):
+    """Fully paid income → its linked issued cuenta de cobro becomes paid.
+
+    Runs inside settle's transaction. Idempotent by construction: only
+    ISSUED documents are touched, so drafts stay drafts, cancelled stay
+    cancelled and an already-paid cuenta is never revisited.
+    """
+    if income_payment_status(income) != 'paid':
+        return
+    from content.services.collection_account_service import (
+        mark_collection_account_paid,
+    )
+
+    linked = income.collection_documents.filter(
+        commercial_status=Document.CommercialStatus.ISSUED,
+    )
+    for document in linked:
+        mark_collection_account_paid(document, acting_user=user)
 
 
 def _proportional_split(parent, amount):
@@ -159,6 +189,7 @@ def settle_expected_income(income, data, user):
     _stamp_source_ref(new_expected, income.pk)
 
     income.refresh_from_db()
+    _sync_linked_collection_accounts(income, user)
     return {
         'income': income,
         'liquid': liquid,
@@ -177,6 +208,10 @@ def _create_liquid_child(income, data, user):
         'ledger': income.ledger,
         'total_amount': data['total_amount'],
         'expected_income': income.pk,
+        # Inherited from the projection: without this the collected money
+        # would drop out of its client's totals the moment it is settled.
+        'client': income.client_id,
+        'origin': income.origin,
         'notes': data.get('notes', ''),
     }
     if data.get('gustavo_amount') is not None:
@@ -237,6 +272,8 @@ def _create_follow_up(income, follow_up, user):
         'total_amount': follow_up['amount'],
         'gustavo_amount': gustavo,
         'carlos_amount': carlos,
+        'client': income.client_id,
+        'origin': income.origin,
     })
     serializer.is_valid(raise_exception=True)
     return accounting_service.create_record(

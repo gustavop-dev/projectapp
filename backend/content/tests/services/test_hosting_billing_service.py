@@ -9,7 +9,10 @@ import pytest
 from django.core import mail
 
 from content.models import Document, EmailLog, HostingRecord, IssuerProfile
-from content.services import hosting_billing_service
+from content.services import (
+    collection_account_email_service,
+    hosting_billing_service,
+)
 from content.services.hosting_billing_service import (
     HostingBillingError,
     create_hosting_collection_account,
@@ -157,7 +160,7 @@ class TestSendFlow:
     def test_email_failure_keeps_document_issued(self):
         hosting = make_hosting()
         with patch.object(
-            hosting_billing_service.EmailMultiAlternatives,
+            collection_account_email_service.EmailMultiAlternatives,
             'send',
             side_effect=OSError('smtp down'),
         ):

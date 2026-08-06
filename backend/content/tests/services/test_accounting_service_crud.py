@@ -87,6 +87,25 @@ class TestUpdateRecord:
         assert change['new'] == "$1'200.000"
         notify.assert_called_once()
 
+    def test_logs_client_change_using_the_display_name(
+        self, superuser, make_income, make_client_profile,
+    ):
+        """Fails if the UserProfile branch is dropped and '__str__' noise leaks in."""
+        income = make_income()
+        profile = make_client_profile()
+        serializer = valid_serializer({'client': profile.pk}, instance=income)
+        with patch.object(accounting_service, '_notify') as notify:
+            accounting_service.update_record(
+                EntityType.INCOME, income, serializer, superuser,
+            )
+        log = AccountingChangeLog.objects.filter(action=Action.UPDATED).get()
+        assert len(log.changes) == 1
+        change = log.changes[0]
+        assert change['field'] == 'client'
+        assert change['old'] == ''
+        assert change['new'] == profile.user.get_full_name()
+        notify.assert_called_once()
+
     def test_noop_update_writes_no_log_and_no_email(
         self, superuser, make_income,
     ):
