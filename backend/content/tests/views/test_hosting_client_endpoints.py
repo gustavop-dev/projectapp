@@ -243,3 +243,42 @@ class TestBulkAssignClient:
         )
 
         assert response.status_code == 403
+
+
+class TestClientDetailConsolidation:
+    """The client card answers 'todo sobre este cliente' in one payload."""
+
+    def test_nests_hostings_with_their_monthly_total_and_incomes(
+        self, super_client, make_client_profile, make_income,
+    ):
+        profile = make_client_profile(company='Acme SAS')
+        make_hosting(client=profile, monthly_value=Decimal('91667.00'))
+        make_hosting(
+            client=profile, monthly_value=Decimal('19000.00'), is_active=False,
+        )
+        make_income(concept='Acme - Inicio 40%', client=profile)
+        make_hosting(client_name='De otro')
+
+        response = super_client.get(
+            f'/api/proposals/client-profiles/{profile.pk}/',
+        )
+
+        assert response.status_code == 200
+        assert len(response.data['hostings']) == 2
+        # Only the active one counts: an inactive hosting costs nothing.
+        assert response.data['hostings_monthly_total'] == '91667.00'
+        assert len(response.data['incomes']) == 1
+        assert response.data['hostings_count'] == 2
+
+    def test_a_client_without_accounting_gets_empty_sections(
+        self, super_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+
+        response = super_client.get(
+            f'/api/proposals/client-profiles/{profile.pk}/',
+        )
+
+        assert response.data['hostings'] == []
+        assert response.data['incomes'] == []
+        assert response.data['hostings_monthly_total'] == '0.00'

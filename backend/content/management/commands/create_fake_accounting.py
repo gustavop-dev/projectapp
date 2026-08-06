@@ -180,10 +180,19 @@ class Command(BaseCommand):
             )
             created += 1
 
-        for client_name, domain in CLIENTS[:max(1, min(count, len(CLIENTS)))]:
+        for index, (client_name, domain) in enumerate(
+            CLIENTS[:max(1, min(count, len(CLIENTS)))],
+        ):
             monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
             cycles = rng.randrange(1, 4)
+            # One hosting is left unlinked on purpose: the "Sin cliente"
+            # group is what the completion workflow works on.
+            hosting_client = (
+                client_profiles[index % len(client_profiles)]
+                if client_profiles and index != 0 else None
+            )
             hosting = HostingRecord.objects.create(
+                client=hosting_client,
                 client_name=client_name,
                 client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,

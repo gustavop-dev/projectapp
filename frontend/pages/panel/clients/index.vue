@@ -418,6 +418,91 @@
                 </table>
               </div>
             </div>
+
+            <!-- Accounting: what this client costs and pays -->
+            <div v-if="detailCache[client.id]?.hostings?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2 flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Hostings</p>
+                <p class="text-xs text-text-muted tabular-nums">
+                  {{ formatMoney(detailCache[client.id].hostings_monthly_total) }} /mes activos
+                </p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Hosting</th>
+                      <th class="px-4 py-3">Valor/mes</th>
+                      <th class="px-4 py-3">Vence</th>
+                      <th class="px-4 py-3">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="hosting in detailCache[client.id].hostings"
+                      :key="hosting.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-hosting-${hosting.id}`"
+                    >
+                      <td class="px-5 py-3 text-text-default">
+                        {{ hosting.domain_url || hosting.client_name }}
+                      </td>
+                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                        {{ formatMoney(hosting.monthly_value) }}
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
+                        {{ hosting.valid_to ? formatDate(hosting.valid_to) : '—' }}
+                      </td>
+                      <td class="px-4 py-3">
+                        <span
+                          class="text-xs px-2.5 py-1 rounded-full font-medium"
+                          :class="hosting.is_active
+                            ? 'bg-success-soft text-success-strong'
+                            : 'bg-surface-raised text-text-muted'"
+                        >
+                          {{ hosting.is_active ? 'Vigente' : 'Inactivo' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div v-if="detailCache[client.id]?.incomes?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Ingresos</p>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Concepto</th>
+                      <th class="px-4 py-3">Mes</th>
+                      <th class="px-4 py-3">Total</th>
+                      <th class="px-4 py-3">Cobro</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="income in detailCache[client.id].incomes"
+                      :key="income.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-income-${income.id}`"
+                    >
+                      <td class="px-5 py-3 text-text-default">{{ income.concept }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ income.period_label }}</td>
+                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                        {{ formatMoney(income.total_amount) }}
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">
+                        {{ income.payment_status_label || income.kind_label }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -610,6 +695,7 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
+import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
@@ -633,6 +719,11 @@ const { goToPlatform, isBridging } = usePanelToPlatformBridge();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const clientsStore = useProposalClientsStore();
+
+/** COP money from the API's string amounts. */
+function formatMoney(value) {
+  return formatMoneyRaw(Number(value ?? 0), 'COP');
+}
 const proposalStore = useProposalStore();
 const diagnosticsStore = useDiagnosticsStore();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =

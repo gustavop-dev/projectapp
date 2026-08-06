@@ -1,5 +1,5 @@
 {
-  "version": "2.63.0",
+  "version": "2.64.0",
   "lastUpdated": "2026-08-01",
   "flows": {
     "layout-navbar-navigation": {
@@ -3718,6 +3718,20 @@
         "display",
         "success",
         "error"
+      ]
+    },
+    "admin-accounting-hosting-client": {
+      "name": "Admin Accounting Hosting Client Link",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Every hosting belongs to a client, so the hosting form carries a searchable client picker with inline creation and requires it on NEW records. Records saved before the relation kept the client as free text following the house convention \"Persona - Marca\": opening one searches that text and offers the matching registered client for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as pending and stays saveable — completing it is a separate step. The table shows the client with a \"sin vincular\" pill, the filter panel gains a Cliente filter with a \"Sin cliente\" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to assign a client in bulk (one audit entry per hosting). Selecting a client seeds the billing snapshot without overwriting what the operator typed. The cuenta de cobro then inherits the client: the send action gates on the resolved recipient (hosting override, else the client address) instead of a hosting-only email, issues on that client's PA-{CODE}-{NNN} series and links the document to the client user. A client holding hostings can no longer be deleted, and the client card lists their hostings with the monthly total alongside their incomes.",
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "admin-accounting-pocket": {

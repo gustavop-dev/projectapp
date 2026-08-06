@@ -20,7 +20,7 @@ import logging
 import re
 
 from django.db.models import (
-    Count, IntegerField, Max, OuterRef, Q, Subquery, Value,
+    Count, IntegerField, Max, OuterRef, Q, Subquery, Sum, Value,
 )
 from django.db.models.functions import Coalesce
 from rest_framework import status
@@ -32,7 +32,13 @@ from accounts.models import UserProfile
 from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
 from content.models import BusinessProposal, HostingRecord, IncomeRecord
+from content.serializers.accounting import (
+    HostingRecordSerializer,
+    IncomeRecordSerializer,
+    money_str,
+)
 from content.serializers.proposal import ProposalListSerializer
+from content.services import accounting_service
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
     ProposalClientSerializer,
@@ -189,7 +195,9 @@ def search_proposal_clients(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def retrieve_proposal_client(request, client_id):
-    """Return a single client with proposals, platform projects, and diagnostics nested."""
+    """Return a client with everything that belongs to them nested:
+    proposals, platform projects, diagnostics, accounting hostings and
+    incomes — the one surface that answers "todo sobre este cliente"."""
     profile = _get_profile_or_404(client_id)
     if profile is None:
         return Response(
@@ -206,6 +214,23 @@ def retrieve_proposal_client(request, client_id):
     payload['projects'] = ProjectListSerializer(projects, many=True).data
     diagnostics = profile.web_app_diagnostics.select_related('client__user').order_by('-created_at')
     payload['diagnostics'] = DiagnosticListSerializer(diagnostics, many=True).data
+
+    hostings = profile.hosting_records.order_by('-is_active', 'client_name')
+    payload['hostings'] = HostingRecordSerializer(hostings, many=True).data
+    # What the hostings of this client cost per month, active ones only —
+    # the number the per-client view exists to answer.
+    payload['hostings_monthly_total'] = money_str(
+        hostings.filter(is_active=True).aggregate(
+            total=Sum('monthly_value'),
+        )['total'] or 0,
+    )
+
+    incomes = (
+        profile.income_records
+        .annotate(paid_amount=accounting_service.paid_amount_subquery())
+        .order_by('-period_date')
+    )
+    payload['incomes'] = IncomeRecordSerializer(incomes, many=True).data
     return Response(payload)
 
 

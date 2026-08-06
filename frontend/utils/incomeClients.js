@@ -42,7 +42,7 @@ function totalsFor(rows) {
  * Operates on whatever rows it receives — the page passes the FILTERED
  * ones, so the active period and filters define the scope.
  */
-export function groupByClient(rows = []) {
+export function groupByClient(rows = [], reducer = totalsFor, sortKey = 'billed') {
   const buckets = new Map();
 
   rows.forEach((row) => {
@@ -50,7 +50,9 @@ export function groupByClient(rows = []) {
     if (!buckets.has(id)) {
       buckets.set(id, {
         id,
-        name: row.client ? (row.client_name || `Cliente #${row.client}`) : NO_CLIENT_LABEL,
+        name: row.client
+          ? (row.client_display_name || row.client_name || `Cliente #${row.client}`)
+          : NO_CLIENT_LABEL,
         rows: [],
       });
     }
@@ -60,13 +62,35 @@ export function groupByClient(rows = []) {
   const groups = [...buckets.values()].map((group) => ({
     ...group,
     count: group.rows.length,
-    ...totalsFor(group.rows),
+    ...reducer(group.rows),
   }));
 
   const named = groups.filter((group) => group.id !== NO_CLIENT_KEY);
   const unassigned = groups.filter((group) => group.id === NO_CLIENT_KEY);
-  named.sort((a, b) => b.billed - a.billed);
+  named.sort((a, b) => b[sortKey] - a[sortKey]);
   return [...named, ...unassigned];
+}
+
+/**
+ * Totals of one client's hostings. Only ACTIVE rows carry a monthly cost —
+ * an inactive hosting is history, not a recurring charge — while paid and
+ * cycles are historical by definition.
+ */
+export function hostingTotalsFor(rows) {
+  return rows.reduce(
+    (totals, row) => {
+      if (row.is_active) totals.monthly += toNumber(row.monthly_value);
+      totals.paid += toNumber(row.total_paid);
+      totals.cycles += Number(row.cycles_count) || 0;
+      return totals;
+    },
+    { monthly: 0, paid: 0, cycles: 0 },
+  );
+}
+
+/** Group hostings by client, biggest monthly cost first. */
+export function groupHostingsByClient(rows = []) {
+  return groupByClient(rows, hostingTotalsFor, 'monthly');
 }
 
 /**
@@ -74,10 +98,10 @@ export function groupByClient(rows = []) {
  * The shares are read together as a set, so largestRemainder() keeps them
  * adding up to exactly 100.0. A zero base yields all zeros.
  */
-export function withClientWeights(groups = []) {
-  const base = groups.reduce((total, group) => total + group.billed, 0);
+export function withClientWeights(groups = [], key = 'billed') {
+  const base = groups.reduce((total, group) => total + group[key], 0);
   const rounded = largestRemainder(
-    groups.map((group) => percentOf(group.billed, base)),
+    groups.map((group) => percentOf(group[key], base)),
   );
   return groups.map((group, index) => ({ ...group, weightPct: rounded[index] }));
 }

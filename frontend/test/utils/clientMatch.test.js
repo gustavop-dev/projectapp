@@ -43,16 +43,21 @@ describe('suggestClient', () => {
 
   it('returns null when nothing resembles a registered client', () => {
     // Those clients simply do not exist yet — the operator creates them.
+    // Paired with a hit so the null is a real verdict, not a dead function.
     expect(suggestClient('Katerin Ruiz - Senses Candles', CLIENTS)).toBeNull();
     expect(suggestClient('Wilson Garcia - G&M', CLIENTS)).toBeNull();
+    expect(suggestClient('Aarón - Reno Partes', CLIENTS).id).toBe(4);
   });
 
   it('does not guess from very short fragments', () => {
     expect(suggestClient('A - B', CLIENTS)).toBeNull();
+    // Four characters is the floor, so this one does resolve.
+    expect(suggestClient('Kore - Reno', CLIENTS).id).toBe(4);
   });
 
   it('returns null without a name or without clients', () => {
     expect(suggestClient('', CLIENTS)).toBeNull();
     expect(suggestClient('German - Kore', [])).toBeNull();
+    expect(suggestClient('German - Kore', CLIENTS).id).toBe(2);
   });
 });

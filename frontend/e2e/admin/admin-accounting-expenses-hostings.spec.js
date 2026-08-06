@@ -11,6 +11,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_EXPENSES_CRUD,
   ADMIN_ACCOUNTING_HOSTINGS,
+  ADMIN_ACCOUNTING_HOSTING_CLIENT,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -68,9 +69,23 @@ const DEDUCTION_ROWS = [
   },
 ];
 
+const CLIENT_SEARCH_RESULT = [{
+  id: 5,
+  name: 'Germán Franco',
+  email: 'german@korehealths.com',
+  phone: '',
+  company: 'Kore',
+  nit: '901234567',
+  cedula: '',
+  is_email_placeholder: false,
+}];
+
 const HOSTING_ROWS = [
   {
     id: 1,
+    client: null,
+    client_display_name: null,
+    billing_email: '',
     client_name: 'German - Kore',
     domain_url: 'https://korehealths.com/',
     monthly_value: '91667.00',
@@ -89,6 +104,9 @@ const HOSTING_ROWS = [
   },
   {
     id: 2,
+    client: null,
+    client_display_name: null,
+    billing_email: '',
     client_name: 'Nestor - Xpandia',
     domain_url: 'https://xpandia.global/',
     monthly_value: '19000.00',
@@ -112,6 +130,8 @@ function buildHandler({
   createStatus = 201,
   expenses = [EXPENSE_ROW],
   expensesMeta = {},
+  hostings = HOSTING_ROWS,
+  hostingsMeta = { active_count: 1, monthly_income: '91667.00' },
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -150,10 +170,7 @@ function buildHandler({
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({
-          results: HOSTING_ROWS,
-          meta: { active_count: 1, monthly_income: '91667.00' },
-        }),
+        body: JSON.stringify({ results: hostings, meta: hostingsMeta }),
       };
     }
     if (apiPath === 'accounting/hostings/create/' && method === 'POST') {
@@ -163,6 +180,28 @@ function buildHandler({
         status: 201,
         contentType: 'application/json',
         body: JSON.stringify({ ...HOSTING_ROWS[0], id: 99, ...body }),
+      };
+    }
+    if (apiPath === 'accounting/hostings/bulk-assign-client/' && method === 'POST') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      const updated = body.hosting_ids.map((id) => ({
+        ...(hostings.find((row) => row.id === id) || HOSTING_ROWS[0]),
+        id,
+        client: body.client,
+        client_display_name: body.client ? 'Germán Franco' : null,
+      }));
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ updated: updated.length, results: updated }),
+      };
+    }
+    if (apiPath.startsWith('proposals/client-profiles/search/')) {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(CLIENT_SEARCH_RESULT),
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -332,14 +371,119 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.getByTestId('hostings-new-button').click();
     await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
 
-    // quality: allow-fragile-selector (the hosting modal's inputs have no testids; positional/attribute select is intentional)
-    await page.locator('form input[type="text"]').first().fill('Katerin Ruiz - Senses Candles');
-    // quality: allow-fragile-selector (numeric input has no testid; positional select is intentional)
-    await page.locator('form input[inputmode="numeric"]').first().fill('38333');
+    // Every hosting belongs to a client, so the picker comes first.
+    await page.getByTestId('hosting-form-client').fill('Kore');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('hosting-form-client-name').fill('Katerin Ruiz - Senses Candles');
+    await page.getByTestId('hosting-form-monthly').fill('38333');
     await page.getByTestId('hosting-form-submit').click();
 
     await expect(page.getByText('Hosting creado')).toContainText('Hosting creado');
     expect(calls).toHaveLength(1);
+    expect(calls[0].body.client).toBe(5);
     expect(calls[0].body.client_name).toBe('Katerin Ruiz - Senses Candles');
+  });
+});
+
+
+test.describe('Admin Accounting Hostings — errores de creación', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('a hosting rejected by the backend surfaces the error and keeps the modal', {
+    tag: [...ADMIN_ACCOUNTING_HOSTINGS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/hostings/create/' && ctx.method === 'POST') {
+        calls.push({ apiPath: ctx.apiPath, method: ctx.method });
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            client: ['Todo hosting nuevo debe tener un cliente asignado.'],
+          }),
+        };
+      }
+      return buildHandler({ calls: [] })(ctx);
+    });
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('hostings-new-button').click();
+    await page.getByTestId('hosting-form-client-name').fill('Sin cliente asignado');
+    await page.getByTestId('hosting-form-monthly').fill('38333');
+    await page.getByTestId('hosting-form-submit').click();
+
+    await expect(page.getByText('No se pudo guardar')).toBeVisible();
+    // The modal stays open so the operator can fix it instead of retyping.
+    await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
+    expect(calls).toHaveLength(1);
+  });
+});
+
+test.describe('Admin Accounting Hostings — cliente del hosting', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('unlinked hostings are flagged and the "Sin cliente" tab isolates them', {
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      hostings: [
+        { ...HOSTING_ROWS[0], client: 5, client_display_name: 'Germán Franco' },
+        HOSTING_ROWS[1],
+      ],
+      hostingsMeta: { active_count: 1, monthly_income: '91667.00', without_client_count: 1 },
+      calls: [],
+    }));
+    // quality: allow-deep-link (the tab is a subnav entry; what is under
+    // test is the Sin cliente tab, which IS clicked below)
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await expect(page.getByTestId('hosting-unlinked-2')).toBeVisible();
+    await expect(page.getByTestId('hosting-unlinked-1')).toHaveCount(0);
+
+    await page.getByTestId('filter-tabs-tab-no-client').click();
+
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+  });
+
+  test('assigning a client in bulk links every selected hosting', {
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('accounting-select-1').check();
+    await expect(page.getByTestId('hostings-bulk-bar')).toContainText('1 seleccionado');
+
+    await page.getByTestId('hostings-bulk-client').fill('Kore');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('hostings-bulk-assign').click();
+
+    await expect(page.getByTestId('hostings-bulk-bar')).toHaveCount(0);
+    const bulk = calls.find(
+      (call) => call.apiPath === 'accounting/hostings/bulk-assign-client/',
+    );
+    expect(bulk.body).toEqual({ hosting_ids: [1], client: 5 });
   });
 });

@@ -5939,13 +5939,28 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
+### FLOW: `admin-accounting-hosting-client`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/clients`
+- **Description:** Every hosting belongs to a client, so the form carries a searchable client picker with inline creation and **requires it on new records**. Records saved before the relation kept the client as free text following the house convention `Persona - Marca`: opening one searches that text and **offers the matching registered client** for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as **pending** and stays saveable — completing it is a separate step, never a blocker. The table shows the client with a "sin vincular" pill, the filter panel gains a **Cliente** filter with a "Sin cliente" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to **assign a client in bulk** (one audit entry per hosting). Selecting a client seeds the billing snapshot (name, email, contact, identification) without overwriting what the operator typed. The cuenta de cobro then **inherits the client**: the send action gates on the resolved recipient (hosting override, else the client's address) instead of a hosting-only email, issues on that client's `PA-{CODE}-{NNN}` series and links the document to the client user. A client holding hostings can no longer be deleted (`client_has_hostings`), and the client card lists their hostings with the monthly total alongside their incomes.
+- **Steps:**
+  1. Superuser creates a hosting and picks its client (or creates it inline); the billing snapshot fills itself.
+  2. Opening a legacy hosting shows the suggested pairing; one click confirms it, or the record stays flagged as pending.
+  3. The "Sin cliente" tab lists what is left; selecting rows assigns the client to all of them at once.
+  4. With a client linked, "Enviar cuenta de cobro" becomes available even when the hosting has no email of its own.
+- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment with payload assertion; the form picker and the suggestion are covered by unit tests)
+- **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
+
 ### FLOW: `admin-accounting-hosting-billing`
 
 - **Module:** admin
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Send a client the cuenta de cobro from a hosting row. The paper-plane action (disabled without client email, tooltip explains) opens a ConfirmModal previewing amount and recipient; confirm POSTs `/api/accounting/hostings/:id/send-collection-account/`, which issues the Document (public number PA-YYYY-NNNN, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the Spanish PDF attached and stamps `billing_requested_at` (pauses the expiry notices; a "Cobro enviado" badge appears on the row). If the email fails the document stays issued and a warning toast points to Cuentas de cobro for re-send.
+- **Description:** Send a client the cuenta de cobro from a hosting row. The paper-plane action (disabled without client email, tooltip explains) opens a ConfirmModal previewing amount and recipient; confirm POSTs `/api/accounting/hostings/:id/send-collection-account/`, which issues the Document (public number PA-YYYY-NNNN, one line item for the next modality period, issuer default payment methods), emails the client the branded message with the Spanish PDF attached and stamps `billing_requested_at` (pauses the expiry notices; a "Cobro enviado" badge appears on the row). If the email fails the document stays issued and a warning toast points to Cuentas de cobro for re-send. Since PA-25 the recipient and the numbering come from the linked client (see `admin-accounting-hosting-client`): the action gates on `billing_email` (hosting override, else the client's address), and a linked hosting issues on that client's series.
 - **Steps:**
   1. Superuser opens `/panel/accounting/hostings` and clicks the paper-plane action on a row with client email.
   2. ConfirmModal previews `payment_per_cycle` and the recipient; confirm fires the POST.
@@ -6040,6 +6055,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-filters` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-filters.spec.js` |
 | `admin-accounting-expenses-crud` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
 | `admin-accounting-hostings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
+| `admin-accounting-hosting-client` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-expenses-hostings.spec.js` |
 | `admin-accounting-pocket` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-recurring` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |

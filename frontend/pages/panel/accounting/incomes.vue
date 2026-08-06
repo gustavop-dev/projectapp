@@ -13,7 +13,7 @@
           variant="secondary"
           size="md"
           data-testid="incomes-client-totals-button"
-          @click="totalsModalOpen = true"
+          @click="openTotalsModal"
         >
           Totales por cliente
         </BaseButton>
@@ -329,6 +329,7 @@
     <IncomeClientTotalsModal
       :open="totalsModalOpen"
       :rows="filteredRecords"
+      :hosting-rows="store.hostings"
       @close="totalsModalOpen = false"
     />
 
@@ -829,6 +830,13 @@ const collectionIncome = ref(null);
 function openCollectionModal(row) {
   collectionIncome.value = row;
   collectionModalOpen.value = true;
+}
+
+async function openTotalsModal() {
+  totalsModalOpen.value = true;
+  // Hostings live in another tab: fetch them once so the per-client view
+  // can show both halves of what a client costs and pays.
+  if (!store.hostings.length) await store.fetchRecords('hostings');
 }
 
 function onCollectionCreated() {
