@@ -280,6 +280,30 @@ describe('CollectionAccountFormModal', () => {
     expect(wrapper.emitted('created')).toBeTruthy();
   });
 
+  it('stays on the form when the preview request fails', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    create_request.mockImplementation((url) => {
+      if (url.includes('preview')) {
+        return Promise.reject({ response: { status: 500, data: {} } });
+      }
+      return Promise.resolve({
+        data: { document: { id: 33, public_number: 'PA-ACME-003' }, email_sent: true },
+      });
+    });
+
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    // Falls if goPreview() ever moves `step.value = 'preview'` before the
+    // `!result.success` guard: the operator would see a stale/partial
+    // preview instead of staying on the form with the error notification.
+    expect(wrapper.find('[data-testid="collection-preview-subject"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="collection-form-concept"]').exists()).toBe(true);
+  });
+
   it('volver a editar returns to the form keeping its state', async () => {
     const wrapper = mountModal({ income: incomeFixture });
     await flushPromises();

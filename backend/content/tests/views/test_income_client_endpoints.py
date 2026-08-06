@@ -104,6 +104,19 @@ class TestOriginFilter:
         assert _ids(single) == {dev.pk}
         assert _ids(multi) == {dev.pk, hosting.pk}
 
+    def test_origin_none_isolates_the_unclassified_group(
+        self, super_client, make_income,
+    ):
+        """Fails (silently, zero rows) if 'none' stops isolating blank-origin rows."""
+        dev = make_income(concept='Kore', origin=IncomeRecord.Origin.DEVELOPMENT)
+        unclassified = make_income(concept='Sin clasificar')
+
+        none_only = super_client.get('/api/accounting/incomes/?origin=none')
+        dev_only = super_client.get('/api/accounting/incomes/?origin=development')
+
+        assert _ids(none_only) == {unclassified.pk}
+        assert _ids(dev_only) == {dev.pk}
+
     def test_origin_label_is_exposed(self, super_client, make_income):
         make_income(concept='Kore', origin=IncomeRecord.Origin.DIAGNOSTIC)
 

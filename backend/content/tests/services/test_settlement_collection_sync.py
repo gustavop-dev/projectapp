@@ -116,8 +116,17 @@ def test_deduction_credit_completes_payment_and_syncs(superuser):
 
 
 def test_already_paid_cuenta_stays_paid_without_error(superuser):
+    """Falla si volver a liquidar un ingreso ya completamente pagado vuelve a
+    escribir sobre una cuenta de cobro ya PAID. `commercial_status` por sí
+    solo no lo detectaría (PAID -> PAID no cambia de valor); `updated_at`/
+    `updated_by` sí, porque un `save()` de más los reescribe aunque el
+    estado quede igual.
+    """
     income = make_expected()
     cuenta = make_linked_cuenta(income, status=Document.CommercialStatus.PAID)
+    cuenta.refresh_from_db()
+    updated_at_before = cuenta.updated_at
+    updated_by_before = cuenta.updated_by
 
     accounting_settlement_service.settle_expected_income(
         income, settlement(), superuser,
@@ -125,3 +134,5 @@ def test_already_paid_cuenta_stays_paid_without_error(superuser):
 
     cuenta.refresh_from_db()
     assert cuenta.commercial_status == Document.CommercialStatus.PAID
+    assert cuenta.updated_at == updated_at_before
+    assert cuenta.updated_by == updated_by_before

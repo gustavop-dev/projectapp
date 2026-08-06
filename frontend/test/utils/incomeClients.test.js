@@ -1,6 +1,8 @@
 import {
   NO_CLIENT_KEY,
   groupByClient,
+  groupHostingsByClient,
+  hostingTotalsFor,
   sumClientGroups,
   withClientWeights,
 } from '../../utils/incomeClients';
@@ -13,6 +15,19 @@ function income(overrides = {}) {
     client_name: 'Acme SAS',
     total_amount: '1000000.00',
     pending_amount: '1000000.00',
+    ...overrides,
+  };
+}
+
+function hosting(overrides = {}) {
+  return {
+    id: 1,
+    client: 5,
+    client_name: 'Acme SAS',
+    is_active: true,
+    monthly_value: '50000.00',
+    total_paid: '600000.00',
+    cycles_count: 12,
     ...overrides,
   };
 }
@@ -71,15 +86,20 @@ describe('groupByClient', () => {
 });
 
 describe('withClientWeights', () => {
-  it('shares out billed amounts adding up to exactly 100', () => {
+  it('rounds a three-way tie via largest-remainder, not naive per-value rounding', () => {
     const groups = withClientWeights(groupByClient([
       income({ id: 1, client: 5, client_name: 'A', total_amount: '1000', pending_amount: '0' }),
-      income({ id: 2, client: 7, client_name: 'B', total_amount: '2000', pending_amount: '0' }),
-      income({ id: 3, client: 9, client_name: 'C', total_amount: '3000', pending_amount: '0' }),
+      income({ id: 2, client: 7, client_name: 'B', total_amount: '1000', pending_amount: '0' }),
+      income({ id: 3, client: 9, client_name: 'C', total_amount: '1000', pending_amount: '0' }),
     ]));
 
-    const total = groups.reduce((sum, group) => sum + group.weightPct, 0);
-    expect(Math.round(total * 10) / 10).toBe(100);
+    // Each group is exactly 1/3 of the 3000 total (33.333...%). Naive
+    // per-value rounding yields [33.3, 33.3, 33.3] (sums to 99.9, short by
+    // one tenth). Falls if largestRemainder (utils/percent.js:60) is
+    // bypassed or deleted and withClientWeights (incomeClients.js:103)
+    // rounds each share independently instead of handing the leftover
+    // tenth to the group with the largest remainder.
+    expect(groups.map((group) => group.weightPct)).toEqual([33.4, 33.3, 33.3]);
   });
 
   it('yields zeros when there is nothing billed', () => {
@@ -106,5 +126,57 @@ describe('sumClientGroups', () => {
       pending: 600,
       lost: 0,
     });
+  });
+});
+
+describe('hostingTotalsFor', () => {
+  it('counts an inactive hosting toward total paid but not monthly cost', () => {
+    const totals = hostingTotalsFor([
+      hosting({
+        id: 1, is_active: true, monthly_value: '50000', total_paid: '600000', cycles_count: 12,
+      }),
+      hosting({
+        id: 2, is_active: false, monthly_value: '30000', total_paid: '90000', cycles_count: 3,
+      }),
+    ]);
+
+    // Falls if the is_active gate (incomeClients.js:82) is dropped and an
+    // inactive hosting's monthly_value gets counted, overstating a client's
+    // standing monthly cost in the "Hostings por cliente" table.
+    expect(totals).toEqual({ monthly: 50000, paid: 690000, cycles: 15 });
+  });
+});
+
+describe('groupHostingsByClient', () => {
+  it('orders named clients by monthly cost, biggest first', () => {
+    const groups = groupHostingsByClient([
+      hosting({
+        id: 1, client: 5, client_name: 'Acme', monthly_value: '50000', total_paid: '0', cycles_count: 0,
+      }),
+      hosting({
+        id: 2, client: 7, client_name: 'Globex', monthly_value: '120000', total_paid: '0', cycles_count: 0,
+      }),
+    ]);
+
+    // Falls if groupHostingsByClient stops sorting by monthly cost (e.g.
+    // reverts to insertion order), silently reordering the client rows.
+    expect(groups.map((group) => group.name)).toEqual(['Globex', 'Acme']);
+  });
+
+  it('collects hostings without a client into a trailing "Sin cliente" bucket', () => {
+    const groups = groupHostingsByClient([
+      hosting({
+        id: 1, client: null, client_name: null, monthly_value: '40000', total_paid: '0', cycles_count: 0,
+      }),
+      hosting({
+        id: 2, client: 5, client_name: 'Acme', monthly_value: '10000', total_paid: '0', cycles_count: 0,
+      }),
+    ]);
+
+    // Falls if unassigned hostings stop bucketing under NO_CLIENT_KEY (e.g.
+    // get merged into a named group or dropped), losing their monthly total.
+    expect(groups.map((group) => group.id)).toEqual([5, NO_CLIENT_KEY]);
+    expect(groups[1].name).toBe('Sin cliente');
+    expect(groups[1].monthly).toBe(40000);
   });
 });

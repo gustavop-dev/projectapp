@@ -421,7 +421,12 @@ test.describe('Admin Accounting Hostings — errores de creación', () => {
     await page.getByTestId('hosting-form-monthly').fill('38333');
     await page.getByTestId('hosting-form-submit').click();
 
-    await expect(page.getByText('No se pudo guardar')).toBeVisible();
+    // Assert the backend's actual reason, not just the generic title — catches
+    // the operator losing the "why" if the server message stops reaching the
+    // toast (e.g. useAccountingCrudPage rendering an empty `detail`).
+    const alert = page.getByRole('alert');
+    await expect(alert).toContainText('No se pudo guardar');
+    await expect(alert).toContainText('Todo hosting nuevo debe tener un cliente asignado.');
     // The modal stays open so the operator can fix it instead of retyping.
     await expect(page.getByRole('heading', { name: 'Nuevo hosting' })).toBeVisible();
     expect(calls).toHaveLength(1);
