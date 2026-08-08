@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { CUSTOM_FREQUENCY, FREQUENCY_OPTIONS } from '~/utils/recurring'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -25,12 +26,7 @@ const paymentMethodOptions = [
   { value: 'credit_card', label: 'T.C' },
 ]
 
-const frequencyOptions = [
-  { value: 'monthly', label: 'Mensual' },
-  { value: 'annual', label: 'Anual' },
-  { value: 'biennial', label: 'Cada 2 años' },
-  { value: 'triennial', label: 'Cada 3 años' },
-]
+const frequencyOptions = FREQUENCY_OPTIONS
 
 const costTypeOptions = [
   { value: 'fixed', label: 'Fijo' },
@@ -53,6 +49,7 @@ function defaultForm() {
     cop_equivalent: '',
     payment_method: 'cash',
     frequency: 'monthly',
+    custom_months: '',
     billing_day: '',
     cost_type: 'fixed',
     category: '',
@@ -62,6 +59,8 @@ function defaultForm() {
 }
 
 const form = ref(defaultForm())
+
+const isCustomFrequency = computed(() => form.value.frequency === CUSTOM_FREQUENCY)
 
 watch(
   () => [props.open, props.record],
@@ -75,6 +74,7 @@ watch(
         cop_equivalent: props.record.cop_equivalent ?? '',
         payment_method: props.record.payment_method ?? 'cash',
         frequency: props.record.frequency ?? 'monthly',
+        custom_months: props.record.custom_months ?? '',
         billing_day: props.record.billing_day ?? '',
         cost_type: props.record.cost_type ?? 'fixed',
         category: props.record.category ?? '',
@@ -102,6 +102,10 @@ function onSubmit() {
     currency: form.value.currency,
     payment_method: form.value.payment_method,
     frequency: form.value.frequency,
+    // Only a custom cycle carries a month count; the API clears it otherwise.
+    custom_months: isCustomFrequency.value && form.value.custom_months !== ''
+      ? form.value.custom_months
+      : null,
     cost_type: form.value.cost_type,
     // '' is the "Sin categoría" option; the API expects an explicit null.
     category: form.value.category === '' ? null : form.value.category,
@@ -155,6 +159,21 @@ function onSubmit() {
           <BaseSelect v-model="form.frequency" :options="frequencyOptions" />
         </BaseFormField>
       </div>
+
+      <BaseFormField
+        v-if="isCustomFrequency"
+        label="Cada cuántos meses"
+        hint="El equivalente mensual es el precio dividido entre este número"
+        required
+      >
+        <BaseInput
+          v-model="form.custom_months"
+          type="number"
+          step="1"
+          min="1"
+          data-testid="recurring-payment-form-custom-months"
+        />
+      </BaseFormField>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <BaseFormField label="Día de cobro">

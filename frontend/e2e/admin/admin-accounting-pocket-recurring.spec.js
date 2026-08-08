@@ -100,6 +100,40 @@ const RECURRING_ROWS = [
 ];
 
 /**
+ * One row per shape the monthly columns have to normalize: a plain monthly
+ * charge, an every-two-years one, an intermediate cycle from the catalog and a
+ * custom "cada N meses". All four are priced so their monthly equivalent is a
+ * round number, which makes a wrong divisor impossible to miss.
+ */
+const MIXED_FREQUENCY_ROWS = [
+  recurringRow({
+    id: 1, name: 'Claude Code 20x', category: 1,
+    category_name: 'Suscripciones de IA', order: 0,
+  }),
+  recurringRow({
+    id: 3, name: 'Hostinger', category: 2,
+    category_name: 'Arquitectura e infraestructura', order: 0,
+    price: '789600.00', currency: 'COP', cop_equivalent: '789600.00',
+    frequency: 'biennial', frequency_label: 'Cada 2 años',
+    monthly_price: '32900.00', monthly_cop_cost: '32900.00',
+  }),
+  recurringRow({
+    id: 4, name: 'Figma equipo', category: 2,
+    category_name: 'Arquitectura e infraestructura', order: 1,
+    price: '300000.00', currency: 'COP', cop_equivalent: '300000.00',
+    frequency: 'quarterly', frequency_label: 'Trimestral',
+    monthly_price: '100000.00', monthly_cop_cost: '100000.00',
+  }),
+  recurringRow({
+    id: 5, name: 'Mantenimiento servidor', category: 2,
+    category_name: 'Arquitectura e infraestructura', order: 2,
+    price: '500000.00', currency: 'COP', cop_equivalent: '500000.00',
+    frequency: 'custom', frequency_label: 'Cada 5 meses', custom_months: 5,
+    monthly_price: '100000.00', monthly_cop_cost: '100000.00',
+  }),
+];
+
+/**
  * Same rows, but the second one is an outlier in every column that can hold one:
  * a name well above average, an amount with more digits, a payment method wider
  * than the "T.C" every other row shows, a two-digit billing day and "Inactivo"
@@ -418,13 +452,13 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     expect(header[indexOf('Día')].align).toBe('center');
   });
 
-  test('monthly columns normalize a biennial charge', {
+  test('monthly columns normalize every billing cycle, custom ones included', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (the helper lands on a sibling accounting
     // tab and then clicks the subnav, which is the navigation being
     // asserted; there is no pre-auth entry point in these mocked specs)
-    await mockApi(page, buildHandler({ calls: [] }));
+    await mockApi(page, buildHandler({ calls: [], rows: MIXED_FREQUENCY_ROWS }));
     await openSubview(page, 'recurring');
     await expect(page.getByTestId('accounting-row-3')).toBeVisible({ timeout: 25_000 });
 
@@ -433,9 +467,25 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       page.getByRole('columnheader', { name: 'Equiv. COP mensual' }),
     ).toBeVisible();
 
+    // Every row shows what it is charged next to what it costs per month.
     const hostinger = page.getByTestId('accounting-row-3');
+    await expect(hostinger).toContainText('Cada 2 años');
     await expect(hostinger).toContainText('$789.600 COP');
     await expect(hostinger).toContainText('$32.900 COP');
+
+    const figma = page.getByTestId('accounting-row-4');
+    await expect(figma).toContainText('Trimestral');
+    await expect(figma).toContainText('$300.000 COP');
+    await expect(figma).toContainText('$100.000 COP');
+
+    // A custom cycle names its length instead of a generic "Personalizada".
+    const maintenance = page.getByTestId('accounting-row-5');
+    await expect(maintenance).toContainText('Cada 5 meses');
+    await expect(maintenance).toContainText('$500.000 COP');
+    await expect(maintenance).toContainText('$100.000 COP');
+
+    // The subtotal adds the prorated figures, not the raw charges.
+    await expect(page.getByTestId('recurring-group-total-2')).toHaveText('$232.900 COP');
   });
 
   test('switching to the classic view restores sorting and pagination', {

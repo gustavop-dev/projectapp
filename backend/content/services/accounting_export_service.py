@@ -180,7 +180,7 @@ EXPORT_SECTIONS = {
             ('Equivalente COP', 'cop_equivalent'),
             ('Equiv. COP mensual', 'monthly_cop_cost'),
             ('Método de pago', lambda r: r.get_payment_method_display()),
-            ('Frecuencia', lambda r: r.get_frequency_display()),
+            ('Frecuencia', lambda r: r.frequency_display),
             ('Día de cobro', 'billing_day'),
             ('Tipo de costo', lambda r: r.get_cost_type_display()),
             ('Activo', lambda r: 'Sí' if r.is_active else 'No'),

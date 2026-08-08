@@ -5,6 +5,31 @@ import { largestRemainder, percentOf } from '~/utils/percent';
 export const UNCATEGORIZED_KEY = 'uncategorized';
 export const UNCATEGORIZED_LABEL = 'Sin categoría';
 
+/** Frequency the operator defines by hand, in months. */
+export const CUSTOM_FREQUENCY = 'custom';
+
+/**
+ * Billing frequencies, mirroring `RecurringPayment.Frequency` on the backend.
+ *
+ * Ordered from the shortest cycle to the longest so picking the right one is a
+ * matter of walking down the list; "Personalizada" trails at the end because it
+ * is the escape hatch, not a point on the scale.
+ *
+ * Shared by the form modal and the filter panel — they used to keep two copies
+ * that had to be edited in lockstep.
+ */
+export const FREQUENCY_OPTIONS = [
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'bimonthly', label: 'Bimestral' },
+  { value: 'quarterly', label: 'Trimestral' },
+  { value: 'four_monthly', label: 'Cuatrimestral' },
+  { value: 'semiannual', label: 'Semestral' },
+  { value: 'annual', label: 'Anual' },
+  { value: 'biennial', label: 'Cada 2 años' },
+  { value: 'triennial', label: 'Cada 3 años' },
+  { value: CUSTOM_FREQUENCY, label: 'Personalizada' },
+];
+
 /**
  * Format a monthly price in the record's own currency.
  *

@@ -262,6 +262,30 @@ describe('useAccountingStore', () => {
       expect(store.recurringTotalsByFrequency).toEqual({ 'Cada 3 años': 4499 })
     })
 
+    it('recurring breakdowns split each custom cycle under its own label', () => {
+      store.recurringPayments = [
+        {
+          is_active: true, frequency: 'custom', frequency_label: 'Cada 5 meses',
+          cop_equivalent: '500000.00', monthly_cop_cost: '100000.00',
+        },
+        {
+          is_active: true, frequency: 'custom', frequency_label: 'Cada 7 meses',
+          cop_equivalent: '700000.00', monthly_cop_cost: '100000.00',
+        },
+        {
+          is_active: true, frequency: 'quarterly', frequency_label: 'Trimestral',
+          cop_equivalent: '300000.00', monthly_cop_cost: '100000.00',
+        },
+      ]
+      // Two custom cycles of different length are different frequencies, so a
+      // shared "Personalizada" bucket would hide what the operator is paying for.
+      expect(store.recurringTotalsByFrequency).toEqual({
+        'Cada 5 meses': 100000,
+        'Cada 7 meses': 100000,
+        Trimestral: 100000,
+      })
+    })
+
     it('recurringTotalsByCategory follows the catalog order and buckets the uncategorized', () => {
       store.recurringCategories = [
         { id: 1, name: 'IA', order: 0 },

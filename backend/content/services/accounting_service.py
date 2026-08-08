@@ -119,6 +119,7 @@ TRACKED_FIELDS = {
         ('cop_equivalent', 'Equivalente COP'),
         ('payment_method', 'Método de pago'),
         ('frequency', 'Frecuencia'),
+        ('custom_months', 'Meses del ciclo'),
         ('billing_day', 'Día de cobro'),
         ('cost_type', 'Tipo de costo'),
         ('category', 'Categoría'),
