@@ -9,6 +9,7 @@ import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 from pypdf import PdfReader
+from reportlab.lib.pagesizes import A4, A5
 
 from content.models import (
     Document,
@@ -26,8 +27,9 @@ from content.services.document_type_utils import (
 User = get_user_model()
 pytestmark = pytest.mark.django_db
 
-# Enough line items to exhaust vertical space on A4 after headers (ensure_space / showPage).
-_PDF_LINE_COUNT_MULTIPAGE = 72
+# Far more detail lines than a real cuenta de cobro carries — enough that a
+# fixed-height page would have had to break.
+_PDF_LINE_COUNT_MANY = 72
 
 
 def _issued_collection_document_with_items_and_payments(issuer, project, client_user, line_count):
@@ -197,9 +199,9 @@ def test_generate_returns_pdf_bytes_for_issued_collection_account(issuer, projec
     assert pdf_bytes[:4] == b'%PDF'
 
 
-def test_generate_renders_words_formats_and_signature(issuer, project, client_user):
+def test_generate_renders_words_formats_and_parties(issuer, project, client_user):
     """Client-facing content: valor en letras, COP/date formats, ident types,
-    signature block — and no internal Estado label."""
+    party blocks — and none of the internal or non-applicable sections."""
     dt = get_collection_account_document_type()
     doc = Document.objects.create(
         title='Cuenta de cobro — Desarrollo',
@@ -238,16 +240,38 @@ def test_generate_renders_words_formats_and_signature(issuer, project, client_us
 
     pdf_bytes = CollectionAccountPdfService.generate(doc)
 
-    text = ''.join(
-        page.extract_text() for page in PdfReader(io.BytesIO(pdf_bytes)).pages
-    )
+    reader = PdfReader(io.BytesIO(pdf_bytes))
+    text = ''.join(page.extract_text() for page in reader.pages)
     assert 'Un millón cuatrocientos noventa mil pesos M/CTE' in text
-    assert '$1.490.000' in text
+    assert 'Total (COP): $1.490.000' in text
     assert 'NIT 901234567' in text
     assert 'NIT 901000000' in text
     assert '5 de agosto de 2026' in text
-    assert 'Firma' in text
     assert 'Estado' not in text
+
+    # The block above the amounts holds the issuer's own data (payer_* is
+    # snapshotted from the issuer), so it is the Emisor, not the Pagador.
+    assert 'Emisor' in text
+    assert 'ProjectApp SAS' in text
+    assert 'Pagador' not in text
+
+    # Sections that do not apply: nothing is billed by units, no tax is ever
+    # itemised (so Subtotal only ever repeated the Total), and the document
+    # carries no signature block.
+    assert 'Cant.' not in text
+    assert 'Impuestos' not in text
+    assert 'Subtotal' not in text
+    assert 'Firma' not in text
+
+    # The concepto is not repeated a third time in a field of its own.
+    assert 'Concepto de cobro' not in text
+    assert text.count('Desarrollo módulo de reportes') == 2
+
+    # Compact page: A5 width, height cut to the content instead of an A4 sheet.
+    page = reader.pages[0]
+    assert len(reader.pages) == 1
+    assert float(page.mediabox.width) == pytest.approx(A5[0], abs=1)
+    assert float(page.mediabox.height) < A4[1]
 
 
 def test_generate_returns_none_when_canvas_raises(project, client_user):
@@ -289,15 +313,31 @@ def test_generate_pdf_includes_payment_methods_when_document_has_payment_methods
     assert len(reader.pages) >= 1
 
 
-def test_generate_pdf_uses_more_than_one_page_when_line_items_trigger_page_breaks(
+def test_generate_grows_the_page_instead_of_breaking_it_on_many_line_items(
     issuer, project, client_user,
 ):
-    doc = _issued_collection_document_with_items_and_payments(
-        issuer, project, client_user, line_count=_PDF_LINE_COUNT_MULTIPAGE,
+    """Many line items stretch the single page rather than spilling onto a
+    second sheet — the operator reviews and the client reads one document."""
+    short = _issued_collection_document_with_items_and_payments(
+        issuer, project, client_user, line_count=1,
+    )
+    long = _issued_collection_document_with_items_and_payments(
+        issuer, project, client_user, line_count=_PDF_LINE_COUNT_MANY,
     )
 
-    pdf_bytes = CollectionAccountPdfService.generate(doc)
+    short_page = PdfReader(
+        io.BytesIO(CollectionAccountPdfService.generate(short)),
+    ).pages
+    long_pages = PdfReader(
+        io.BytesIO(CollectionAccountPdfService.generate(long)),
+    ).pages
 
-    assert pdf_bytes is not None
-    reader = PdfReader(io.BytesIO(pdf_bytes))
-    assert len(reader.pages) >= 2
+    assert len(short_page) == 1
+    assert len(long_pages) == 1
+    assert float(long_pages[0].mediabox.height) > float(
+        short_page[0].mediabox.height,
+    )
+    # Width stays put: only the height follows the content.
+    assert float(long_pages[0].mediabox.width) == pytest.approx(
+        float(short_page[0].mediabox.width),
+    )

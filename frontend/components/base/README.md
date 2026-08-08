@@ -126,7 +126,7 @@ prefer the bare class without `/N`.
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
-| `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`), `closeOnBackdrop`, `closeOnEsc`, `padding` |
+| `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`/`full`), `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled` — label via default slot                             |
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size` — wrap any control in the default slot |
@@ -139,6 +139,18 @@ prefer the bare class without `/N`.
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
+
+### Modals that hold a workspace, not a form
+
+By default the `BaseModal` panel grows to its content and scrolls as a whole
+(`max-h-[90vh] overflow-y-auto`) — right for every form modal. A modal that
+embeds documents (an email preview, a PDF, a diff) needs the opposite: pass
+`full-height` and the panel becomes a fixed non-scrolling 90vh flex column, so
+the slot can pin its own header/footer and let each pane scroll independently.
+Nesting a panel scrollbar around scrollbars the embedded documents already
+bring is what makes neither of them readable. Pair it with `size="full"`
+(~90vw, capped at 1600px) when the content needs the width — see
+`components/accounting/CollectionAccountFormModal.vue`.
 
 ## Button variants
 

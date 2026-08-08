@@ -168,6 +168,10 @@ class TestRecurringPayment:
 
     @pytest.mark.parametrize('frequency,expected', [
         (RecurringPayment.Frequency.MONTHLY, Decimal('720000.00')),
+        (RecurringPayment.Frequency.BIMONTHLY, Decimal('360000.00')),
+        (RecurringPayment.Frequency.QUARTERLY, Decimal('240000.00')),
+        (RecurringPayment.Frequency.FOUR_MONTHLY, Decimal('180000.00')),
+        (RecurringPayment.Frequency.SEMIANNUAL, Decimal('120000.00')),
         (RecurringPayment.Frequency.ANNUAL, Decimal('60000.00')),
         (RecurringPayment.Frequency.BIENNIAL, Decimal('30000.00')),
         (RecurringPayment.Frequency.TRIENNIAL, Decimal('20000.00')),
@@ -180,6 +184,59 @@ class TestRecurringPayment:
             frequency=frequency,
         )
         assert payment.monthly_price == expected
+
+    def test_custom_frequency_prorates_by_its_month_count(self):
+        payment = RecurringPayment.objects.create(
+            name='Mantenimiento servidor',
+            price=Decimal('500000.00'),
+            cop_equivalent=Decimal('500000.00'),
+            frequency=RecurringPayment.Frequency.CUSTOM,
+            custom_months=5,
+        )
+        assert payment.monthly_price == Decimal('100000.00')
+        assert payment.monthly_cop_cost == Decimal('100000.00')
+        assert payment.frequency_display == 'Cada 5 meses'
+
+    def test_custom_frequency_collapses_onto_the_catalog(self):
+        """Custom N=3 is the trimestral option written the long way."""
+        payment = RecurringPayment.objects.create(
+            name='Figma',
+            price=Decimal('270000.00'),
+            cop_equivalent=Decimal('270000.00'),
+            frequency=RecurringPayment.Frequency.CUSTOM,
+            custom_months=3,
+        )
+        payment.refresh_from_db()
+        assert payment.frequency == RecurringPayment.Frequency.QUARTERLY
+        assert payment.custom_months is None
+        assert payment.frequency_display == 'Trimestral'
+        assert payment.monthly_price == Decimal('90000.00')
+
+    def test_switching_off_custom_clears_the_month_count(self):
+        payment = RecurringPayment.objects.create(
+            name='Servidor',
+            price=Decimal('700000.00'),
+            cop_equivalent=Decimal('700000.00'),
+            frequency=RecurringPayment.Frequency.CUSTOM,
+            custom_months=7,
+        )
+        payment.frequency = RecurringPayment.Frequency.SEMIANNUAL
+        payment.save()
+        payment.refresh_from_db()
+        assert payment.custom_months is None
+        # The stale 7 must not survive to skew the proration.
+        assert payment.monthly_price == Decimal('116666.67')
+
+    def test_custom_frequency_without_months_is_rejected(self):
+        payment = RecurringPayment(
+            name='Sin ciclo',
+            price=Decimal('100000.00'),
+            cop_equivalent=Decimal('100000.00'),
+            frequency=RecurringPayment.Frequency.CUSTOM,
+        )
+        with pytest.raises(ValidationError) as excinfo:
+            payment.full_clean()
+        assert 'custom_months' in excinfo.value.message_dict
 
     def test_monthly_price_is_zero_without_a_price(self):
         payment = RecurringPayment.objects.create(

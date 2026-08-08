@@ -373,6 +373,20 @@ test.describe('Admin Accounting Collections', () => {
       .toContainText('PA-ACME-001');
     await expect(page.getByTestId('collection-preview-email')).toBeVisible();
     await expect(page.getByTestId('collection-preview-open-pdf')).toBeVisible();
+    // The viewer tab cannot name a blob: URL, so saving needs its own action.
+    await expect(page.getByTestId('collection-preview-download-pdf')).toBeVisible();
+
+    // Email and PDF reviewable at the same time, each scrolling on its own:
+    // the modal panel must not add a scrollbar nesting inside theirs, and the
+    // summary and the send button must be reachable without scrolling.
+    await expect(page.getByTestId('collection-preview-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-split-handle')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-subject')).toBeInViewport();
+    await expect(page.getByTestId('collection-form-confirm')).toBeInViewport();
+    const panelOverflow = await page
+      .locator('[role="dialog"] > div:nth-child(2)')
+      .evaluate((el) => el.scrollHeight - el.clientHeight);
+    expect(panelOverflow).toBeLessThanOrEqual(1);
 
     await page.getByTestId('collection-form-confirm').click();
 
@@ -385,6 +399,40 @@ test.describe('Admin Accounting Collections', () => {
     expect(createCall.body.client_profile_id).toBe(5);
     // Untouched suggestion → the payload lets the backend allocate.
     expect(createCall.body.public_number).toBeUndefined();
+  });
+
+  test('the preview swaps email and PDF behind tabs when the window is too narrow', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the layout under
+    // test lives in the create modal, which IS opened by clicking)
+    //
+    // Below 1024px two columns leave neither panel legible, so they collapse
+    // into tabs. Only a real browser can prove it: jsdom has no layout.
+    await page.setViewportSize({ width: 820, height: 900 });
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-option-8').click();
+    await page.getByTestId('collection-form-preview').click();
+
+    await expect(page.getByTestId('collection-preview-subject')).toBeVisible();
+    // Stacked: no divider to drag, and the email leads on a tablet.
+    await expect(page.getByTestId('collection-preview-split-handle')).toHaveCount(0);
+    await expect(page.getByTestId('collection-preview-email')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-pdf')).toBeHidden();
+
+    await page.getByTestId('collection-preview-tab-pdf').click();
+
+    await expect(page.getByTestId('collection-preview-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-email')).toBeHidden();
+    // Reviewing the document never costs the operator the send decision.
+    await expect(page.getByTestId('collection-form-confirm')).toBeInViewport();
   });
 
   test('marking an expected-linked cuenta as paid opens the Liquidar modal', {

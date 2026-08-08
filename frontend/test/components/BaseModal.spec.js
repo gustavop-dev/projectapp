@@ -39,10 +39,32 @@ describe('BaseModal', () => {
     ['xl', 'max-w-3xl'],
     ['2xl', 'max-w-4xl'],
     ['5xl', 'max-w-5xl'],
+    ['full', 'max-w-[min(90vw,1600px)]'],
   ])('maps size=%s to %s', (size, expected) => {
     const wrapper = mountModal({ size })
     const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
     expect(panel.className).toContain(expected)
+    wrapper.unmount()
+  })
+
+  it('lets the panel grow and scroll as a whole by default', () => {
+    const wrapper = mountModal()
+    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    expect(panel.className).toContain('max-h-[90vh]')
+    expect(panel.className).toContain('overflow-y-auto')
+    expect(panel.className).not.toContain('overflow-hidden')
+    wrapper.unmount()
+  })
+
+  it('pins the panel to a non-scrolling 90vh column with fullHeight', () => {
+    // The slot owns the scroll in this mode (fixed header/footer + panes that
+    // scroll on their own); a scrollbar on the panel would nest inside theirs.
+    const wrapper = mountModal({ fullHeight: true })
+    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    expect(panel.className).toContain('h-[90vh]')
+    expect(panel.className).toContain('overflow-hidden')
+    expect(panel.className).toContain('flex flex-col')
+    expect(panel.className).not.toContain('overflow-y-auto')
     wrapper.unmount()
   })
 

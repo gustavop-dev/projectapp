@@ -4,11 +4,16 @@ import { useFocusTrap } from '~/composables/useFocusTrap'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
-  size: { type: String, default: 'md' }, // sm | md | lg | xl | 2xl | 5xl
+  size: { type: String, default: 'md' }, // sm | md | lg | xl | 2xl | 5xl | full
   closeOnBackdrop: { type: Boolean, default: true },
   closeOnEsc: { type: Boolean, default: true },
   padding: { type: String, default: 'none' }, // none | md
   lockScroll: { type: Boolean, default: true },
+  /** Pins the panel to a fixed 90vh column that never scrolls itself, so the
+   * slot can own its scroll regions (fixed header/footer + independently
+   * scrolling panes). Off by default: the panel grows to its content and
+   * scrolls as a whole, which is what every form modal wants. */
+  fullHeight: { type: Boolean, default: false },
   /** id of the element that labels the dialog; when empty, the first
    * h1/h2/h3 found in the slot is auto-detected and used instead. */
   titleId: { type: String, default: '' },
@@ -26,10 +31,15 @@ const sizes = {
   xl: 'max-w-3xl',
   '2xl': 'max-w-4xl',
   '5xl': 'max-w-5xl',
+  // Near-fullscreen, capped so it stops stretching on ultrawide monitors.
+  full: 'max-w-[min(90vw,1600px)]',
 }
 
 const sizeClass = computed(() => sizes[props.size] || sizes.md)
 const paddingClass = computed(() => (props.padding === 'md' ? 'p-6' : ''))
+const heightClass = computed(() => (props.fullHeight
+  ? 'h-[90vh] overflow-hidden flex flex-col'
+  : 'max-h-[90vh] overflow-y-auto'))
 
 const panelRef = ref(null)
 const autoTitleId = ref('')
@@ -104,8 +114,8 @@ watch(
         <div
           ref="panelRef"
           tabindex="-1"
-          class="relative bg-surface rounded-2xl shadow-overlay w-full max-h-[90vh] overflow-y-auto border border-border-default focus:outline-none"
-          :class="[sizeClass, paddingClass]"
+          class="relative bg-surface rounded-2xl shadow-overlay w-full border border-border-default focus:outline-none"
+          :class="[sizeClass, paddingClass, heightClass]"
         >
           <slot />
         </div>

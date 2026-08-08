@@ -894,8 +894,10 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
     payment_method_label = serializers.CharField(
         source='get_payment_method_display', read_only=True,
     )
+    # `frequency_display` and not `get_frequency_display`: a custom cycle has
+    # to read "Cada 5 meses", not a bare "Personalizada".
     frequency_label = serializers.CharField(
-        source='get_frequency_display', read_only=True,
+        source='frequency_display', read_only=True,
     )
     cost_type_label = serializers.CharField(
         source='get_cost_type_display', read_only=True,
@@ -915,7 +917,7 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'price', 'currency', 'cop_equivalent',
             'payment_method', 'payment_method_label',
-            'frequency', 'frequency_label', 'billing_day',
+            'frequency', 'frequency_label', 'custom_months', 'billing_day',
             'cost_type', 'cost_type_label',
             'category', 'category_name', 'order',
             'monthly_price', 'monthly_cop_cost',
@@ -940,7 +942,7 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
         # reorder endpoint, so an ordinary edit can never scramble the list.
         fields = (
             'name', 'price', 'currency', 'cop_equivalent',
-            'payment_method', 'frequency', 'billing_day',
+            'payment_method', 'frequency', 'custom_months', 'billing_day',
             'cost_type', 'category', 'is_active', 'notes',
         )
 
@@ -951,7 +953,37 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
             currency = data.get('currency', RecurringPayment.Currency.COP)
             if currency == RecurringPayment.Currency.COP:
                 data['cop_equivalent'] = data.get('price', Decimal('0'))
+        self._validate_custom_months(data)
         return data
+
+    def _validate_custom_months(self, data):
+        """A custom frequency is meaningless without its cycle length.
+
+        Both fields are resolved against the instance first so a partial PATCH
+        that only flips the frequency still sees the months already stored (and
+        the other way around).
+        """
+        frequency = self._resolved(data, 'frequency', RecurringPayment.Frequency.MONTHLY)
+        if frequency != RecurringPayment.Frequency.CUSTOM:
+            # Outside CUSTOM the field carries no meaning; the model clears it
+            # on save, and dropping it here keeps the change log honest.
+            data['custom_months'] = None
+            return
+        months = self._resolved(data, 'custom_months', None)
+        if not months:
+            raise serializers.ValidationError({
+                'custom_months': (
+                    'Indica cada cuántos meses se cobra la frecuencia personalizada.'
+                )
+            })
+        data['custom_months'] = months
+
+    def _resolved(self, data, field, default):
+        if field in data:
+            return data[field]
+        if self.instance is not None:
+            return getattr(self.instance, field)
+        return default
 
     @staticmethod
     def _next_order(category):

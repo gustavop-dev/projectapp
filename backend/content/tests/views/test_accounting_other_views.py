@@ -221,6 +221,70 @@ class TestRecurringEndpoints:
             'Efectivo mensual',
         ]
 
+    def test_create_quarterly_prorates_the_monthly_columns(self, super_client):
+        response = super_client.post(
+            '/api/accounting/recurring/create/',
+            {
+                'name': 'Figma equipo',
+                'price': '300000.00',
+                'currency': 'COP',
+                'frequency': 'quarterly',
+            },
+            format='json',
+        )
+        assert response.status_code == 201
+        assert response.data['monthly_cop_cost'] == '100000.00'
+        assert response.data['monthly_price'] == '100000.00'
+        assert response.data['frequency_label'] == 'Trimestral'
+
+    def test_create_custom_frequency_reports_its_cycle(self, super_client):
+        response = super_client.post(
+            '/api/accounting/recurring/create/',
+            {
+                'name': 'Mantenimiento servidor',
+                'price': '500000.00',
+                'currency': 'COP',
+                'frequency': 'custom',
+                'custom_months': 5,
+            },
+            format='json',
+        )
+        assert response.status_code == 201
+        assert response.data['monthly_cop_cost'] == '100000.00'
+        assert response.data['frequency_label'] == 'Cada 5 meses'
+
+    def test_create_custom_frequency_requires_its_month_count(self, super_client):
+        response = super_client.post(
+            '/api/accounting/recurring/create/',
+            {
+                'name': 'Sin ciclo',
+                'price': '500000.00',
+                'currency': 'COP',
+                'frequency': 'custom',
+            },
+            format='json',
+        )
+        assert response.status_code == 400
+        assert 'custom_months' in str(response.data)
+
+    def test_update_to_a_catalog_frequency_drops_the_month_count(
+        self, super_client,
+    ):
+        payment = RecurringPayment.objects.create(
+            name='Servidor', price=Decimal('700000.00'),
+            cop_equivalent=Decimal('700000.00'),
+            frequency='custom', custom_months=7,
+        )
+        response = super_client.patch(
+            f'/api/accounting/recurring/{payment.id}/update/',
+            {'frequency': 'semiannual'},
+            format='json',
+        )
+        assert response.status_code == 200
+        assert response.data['custom_months'] is None
+        # The stale 7 must not survive to skew the proration.
+        assert response.data['monthly_cop_cost'] == '116666.67'
+
 
 @pytest.mark.django_db
 class TestAdsEndpoints:

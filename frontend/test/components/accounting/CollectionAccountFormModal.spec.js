@@ -14,6 +14,13 @@ jest.mock('@vueuse/core', () => ({
   onClickOutside: jest.fn(),
 }));
 
+jest.mock('../../../utils/downloadFile', () => ({
+  downloadBlob: jest.fn(),
+  filenameFromDisposition: jest.fn(() => ''),
+}));
+
+const { downloadBlob } = require('../../../utils/downloadFile');
+
 const { get_request, create_request } = require('../../../stores/services/request_http');
 
 const ClientAutocompleteStub = {
@@ -111,7 +118,7 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size'],
+          props: ['modelValue', 'size', 'fullHeight'],
           emits: ['close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -138,10 +145,10 @@ function mountModal(props = {}) {
             '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseSegmented: {
-          props: ['modelValue', 'options', 'fullWidth'],
+          props: ['modelValue', 'options', 'fullWidth', 'size'],
           emits: ['update:modelValue'],
           template:
-            '<div><button v-for="o in options" :key="o.value" type="button" @click="$emit(\'update:modelValue\', o.value)">{{ o.label }}</button></div>',
+            '<div><button v-for="o in options" :key="o.value" type="button" :data-testid="o.testId" @click="$emit(\'update:modelValue\', o.value)">{{ o.label }}</button></div>',
         },
         BaseButton: {
           props: ['variant', 'size', 'disabled', 'type', 'iconOnly'],
@@ -162,13 +169,53 @@ async function selectClient(wrapper, client = clientFixture) {
   await flushPromises();
 }
 
+/**
+ * `useIsMobile` reads `window.matchMedia`, which jsdom does not implement — so
+ * with no mock the modal stays in its desktop (two-column) branch. Call this to
+ * put the component at a specific viewport width instead.
+ */
+function mockViewport(width) {
+  window.matchMedia = jest.fn((query) => {
+    const max = Number(/max-width:\s*(\d+)px/.exec(query)?.[1] ?? Infinity);
+    return {
+      matches: width <= max,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+  });
+}
+
+/**
+ * Whether the pane holding `testId` is collapsed by `v-show`.
+ *
+ * Not `isVisible()`: jsdom caches the computed style of an element that was
+ * `display: none` and never refreshes it once Vue clears the inline style back
+ * to '', so a pane that was toggled off and on again still reads as hidden.
+ * The inline style is what `v-show` actually writes, and it is correct.
+ */
+function paneHidden(wrapper, testId) {
+  return wrapper.find(`[data-testid="${testId}"]`)
+    .element.closest('section').style.display === 'none';
+}
+
+async function goToPreview(wrapper) {
+  await selectClient(wrapper);
+  await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+  await flushPromises();
+}
+
 describe('CollectionAccountFormModal', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     jest.clearAllMocks();
     mockRequests();
+    window.localStorage.clear();
     global.URL.createObjectURL = jest.fn(() => 'blob:preview-pdf');
     global.URL.revokeObjectURL = jest.fn();
+  });
+
+  afterEach(() => {
+    delete window.matchMedia;
   });
 
   it('prefills concept and amount from the income prop and locks the selector', async () => {
@@ -373,5 +420,105 @@ describe('CollectionAccountFormModal', () => {
     expect(
       wrapper.find('[data-testid="collection-form-number"]').element.value,
     ).toBe('PA-ACME-003');
+  });
+
+  describe('preview layout', () => {
+    it('shows the email and the PDF side by side on wide screens', async () => {
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      // The whole point of the review step: both pieces readable at once,
+      // instead of the old stack where only one fit on screen.
+      expect(paneHidden(wrapper, 'collection-preview-email')).toBe(false);
+      expect(paneHidden(wrapper, 'collection-preview-pdf')).toBe(false);
+      expect(wrapper.find('[data-testid="collection-preview-split-handle"]').exists()).toBe(true);
+      // No tabs while both panes fit.
+      expect(wrapper.find('[data-testid="collection-preview-tab-pdf"]').exists()).toBe(false);
+    });
+
+    it('gives the PDF the wider column by default', async () => {
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      const handle = wrapper.find('[data-testid="collection-preview-split-handle"]');
+      expect(handle.element.parentElement.getAttribute('style'))
+        .toContain('grid-template-columns: 40% 1rem minmax(0, 1fr)');
+    });
+
+    it('collapses into tabs below 1024px, landing on the email', async () => {
+      mockViewport(800);
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-preview-split-handle"]').exists()).toBe(false);
+      expect(paneHidden(wrapper, 'collection-preview-email')).toBe(false);
+      expect(paneHidden(wrapper, 'collection-preview-pdf')).toBe(true);
+
+      await wrapper.find('[data-testid="collection-preview-tab-pdf"]').trigger('click');
+
+      expect(paneHidden(wrapper, 'collection-preview-pdf')).toBe(false);
+      expect(paneHidden(wrapper, 'collection-preview-email')).toBe(true);
+    });
+
+    it('lands on the PDF tab on a phone, where the document is what needs checking', async () => {
+      mockViewport(400);
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      expect(paneHidden(wrapper, 'collection-preview-pdf')).toBe(false);
+      expect(paneHidden(wrapper, 'collection-preview-email')).toBe(true);
+      // Opening the document full size stays available on every layout.
+      expect(wrapper.find('[data-testid="collection-preview-open-pdf"]').exists()).toBe(true);
+    });
+
+    it('clamps the dragged divider and remembers where it was left', async () => {
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      const handle = wrapper.find('[data-testid="collection-preview-split-handle"]');
+      handle.element.parentElement.getBoundingClientRect = () => ({
+        left: 0, top: 0, width: 1000, height: 500, right: 1000, bottom: 500,
+      });
+
+      await handle.trigger('pointerdown', { pointerId: 1 });
+      // Dragged to 90%: past the cap, so the PDF keeps a legible column.
+      await handle.trigger('pointermove', { clientX: 900 });
+      await handle.trigger('pointerup', { pointerId: 1 });
+
+      expect(handle.element.parentElement.getAttribute('style'))
+        .toContain('grid-template-columns: 60% 1rem minmax(0, 1fr)');
+      expect(window.localStorage.getItem('projectapp-collection-preview-split')).toBe('60');
+    });
+
+    it('restores the stored divider position on the next preview', async () => {
+      window.localStorage.setItem('projectapp-collection-preview-split', '55');
+
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      const handle = wrapper.find('[data-testid="collection-preview-split-handle"]');
+      expect(handle.element.parentElement.getAttribute('style'))
+        .toContain('grid-template-columns: 55% 1rem minmax(0, 1fr)');
+    });
+
+    it('downloads the preview PDF under the consecutivo, not as untitled', async () => {
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      await wrapper.find('[data-testid="collection-preview-download-pdf"]').trigger('click');
+
+      // A blob: URL carries no filename, so the viewer tab would save
+      // "untitled"; the name has to be passed explicitly.
+      const [blob, filename] = downloadBlob.mock.calls.at(-1);
+      expect(filename).toBe('PA-ACME-003.pdf');
+      expect(blob.type).toBe('application/pdf');
+    });
   });
 });

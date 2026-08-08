@@ -1,6 +1,14 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { usePlatformCollectionAccountsStore } from '../../stores/platform-collection-accounts'
 
+jest.mock('../../utils/downloadFile', () => ({
+  downloadBlob: jest.fn(),
+  filenameFromDisposition: jest.requireActual('../../utils/downloadFile')
+    .filenameFromDisposition,
+}))
+
+const { downloadBlob } = require('../../utils/downloadFile')
+
 jest.mock('../../composables/usePlatformApi', () => {
   const mockGet = jest.fn()
   const mockPost = jest.fn()
@@ -125,29 +133,32 @@ describe('usePlatformCollectionAccountsStore', () => {
     expect(result.success).toBe(true)
   })
 
-  it('downloadPdf creates object URL and clicks link', async () => {
-    const prevCreate = window.URL.createObjectURL
-    const prevRevoke = window.URL.revokeObjectURL
-    window.URL.createObjectURL = jest.fn(() => 'blob:x')
-    window.URL.revokeObjectURL = jest.fn()
-    const link = { href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn() }
-    jest.spyOn(document, 'createElement').mockReturnValue(link)
-    jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
-    mockGet.mockResolvedValueOnce({ data: new Blob(['p']) })
+  it('downloadPdf saves the file under the name the backend sent', async () => {
+    mockGet.mockResolvedValueOnce({
+      data: new Blob(['p']),
+      headers: { 'content-disposition': 'attachment; filename="PA-ACME-001.pdf"' },
+    })
 
-    const result = await store.downloadPdf(5, 'My Title Here')
+    const result = await store.downloadPdf(5, 'PA-ACME-001')
 
     expect(result.success).toBe(true)
     expect(mockGet).toHaveBeenCalledWith(
       'collection-accounts/5/pdf/',
       { responseType: 'blob' },
     )
-    expect(link.setAttribute).toHaveBeenCalledWith('download', 'My-Title-Here.pdf')
-    expect(link.click).toHaveBeenCalled()
-    window.URL.createObjectURL = prevCreate
-    window.URL.revokeObjectURL = prevRevoke
-    document.createElement.mockRestore()
-    document.body.appendChild.mockRestore()
+    const [blob, filename] = downloadBlob.mock.calls.at(-1)
+    expect(filename).toBe('PA-ACME-001.pdf')
+    expect(blob.type).toBe('application/pdf')
+  })
+
+  it('downloadPdf falls back to the consecutivo when the header is not exposed', async () => {
+    // CORS hides Content-Disposition unless the server allow-lists it, so the
+    // consecutivo — not a generic "collection-account" — is the fallback.
+    mockGet.mockResolvedValueOnce({ data: new Blob(['p']), headers: {} })
+
+    await store.downloadPdf(5, 'PA-ACME-001')
+
+    expect(downloadBlob.mock.calls.at(-1)[1]).toBe('PA-ACME-001.pdf')
   })
 
   it('downloadPdf returns failure on error', async () => {
@@ -316,26 +327,13 @@ describe('usePlatformCollectionAccountsStore', () => {
     expect(result.message).toBe('Could not cancel.')
   })
 
-  it('downloadPdf uses default title when not provided', async () => {
-    const prevCreate = window.URL.createObjectURL
-    const prevRevoke = window.URL.revokeObjectURL
-    window.URL.createObjectURL = jest.fn(() => 'blob:y')
-    window.URL.revokeObjectURL = jest.fn()
-    const link = { href: '', setAttribute: jest.fn(), click: jest.fn(), remove: jest.fn() }
-    jest.spyOn(document, 'createElement').mockReturnValue(link)
-    jest.spyOn(document.body, 'appendChild').mockImplementation(() => {})
-    mockGet.mockResolvedValueOnce({ data: new Blob(['p']) })
+  it('downloadPdf falls back to the account id when nothing names the file', async () => {
+    mockGet.mockResolvedValueOnce({ data: new Blob(['p']), headers: {} })
 
-    try {
-      await store.downloadPdf(5)
+    await store.downloadPdf(5)
 
-      expect(link.setAttribute).toHaveBeenCalledWith('download', 'collection-account.pdf')
-    } finally {
-      window.URL.createObjectURL = prevCreate
-      window.URL.revokeObjectURL = prevRevoke
-      document.createElement.mockRestore()
-      document.body.appendChild.mockRestore()
-    }
+    // Still identifiable — the old default named every file the same.
+    expect(downloadBlob.mock.calls.at(-1)[1]).toBe('cuenta-de-cobro-5.pdf')
   })
 
   it('downloadPdf uses fallback message when error has no detail', async () => {

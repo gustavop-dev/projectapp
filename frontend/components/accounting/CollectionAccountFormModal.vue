@@ -4,9 +4,12 @@ import { useDebounceFn } from '@vueuse/core';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE } from '~/components/base/inputClasses';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { usePersistedRef } from '~/composables/usePersistedRef';
 import { useAccountingStore } from '~/stores/accounting';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
+import { downloadBlob } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 
 /**
@@ -33,6 +36,7 @@ const previewing = ref(false);
 const saving = ref(false);
 const preview = ref(null);
 const pdfUrl = ref('');
+const pdfBlob = ref(null);
 
 // ── Client ──
 const clientId = ref(null);
@@ -263,6 +267,85 @@ async function handleIncomeCreated(payload) {
   }
 }
 
+// ── Preview layout: correo | PDF ──
+//
+// The review step shows two independently scrolling panes instead of the old
+// vertical stack, which produced three nested scrollbars (panel + email iframe
+// + PDF viewer) and let neither piece be read. Here the panel itself never
+// scrolls (BaseModal `fullHeight`); the scroll of each column is the one the
+// embedded document already brings — the srcdoc's own for the email, the
+// native viewer's for the PDF. One level per column, none on the modal.
+const SPLIT_MIN = 25;
+const SPLIT_MAX = 60;
+const SPLIT_DEFAULT = 40;
+const SPLIT_KEY = 'projectapp-collection-preview-split';
+
+// Below 1024px neither pane stays legible side by side, so both collapse into
+// tabs; below 640px the PDF is the one worth landing on.
+const { isMobile: isNarrow } = useIsMobile(1023);
+const { isMobile: isPhone } = useIsMobile(639);
+const isSplit = computed(() => !isNarrow.value);
+
+function clampSplit(value) {
+  const pct = Number(value);
+  if (!Number.isFinite(pct)) return SPLIT_DEFAULT;
+  return Math.min(SPLIT_MAX, Math.max(SPLIT_MIN, pct));
+}
+
+const { ref: emailPct, write: writeSplit } = usePersistedRef(SPLIT_KEY, SPLIT_DEFAULT);
+emailPct.value = clampSplit(emailPct.value);
+
+const previewPane = ref('email');
+const previewPaneOptions = [
+  { value: 'email', label: 'Correo', testId: 'collection-preview-tab-email' },
+  { value: 'pdf', label: 'PDF', testId: 'collection-preview-tab-pdf' },
+];
+
+const splitRef = ref(null);
+const dragging = ref(false);
+
+const gridStyle = computed(() => ({
+  gridTemplateColumns: isSplit.value
+    ? `${emailPct.value}% 1rem minmax(0, 1fr)`
+    : 'minmax(0, 1fr)',
+}));
+
+function showsPane(pane) {
+  return isSplit.value || previewPane.value === pane;
+}
+
+function onSplitDown(e) {
+  if (!isSplit.value) return;
+  dragging.value = true;
+  e.currentTarget.setPointerCapture?.(e.pointerId);
+}
+
+function onSplitMove(e) {
+  if (!dragging.value || !splitRef.value) return;
+  const rect = splitRef.value.getBoundingClientRect();
+  if (!rect.width) return;
+  emailPct.value = clampSplit(((e.clientX - rect.left) / rect.width) * 100);
+}
+
+function onSplitUp(e) {
+  if (!dragging.value) return;
+  dragging.value = false;
+  e.currentTarget.releasePointerCapture?.(e.pointerId);
+  writeSplit(emailPct.value);
+}
+
+function onSplitKey(e) {
+  let next = null;
+  if (e.key === 'ArrowLeft') next = emailPct.value - 2;
+  else if (e.key === 'ArrowRight') next = emailPct.value + 2;
+  else if (e.key === 'Home') next = SPLIT_MIN;
+  else if (e.key === 'End') next = SPLIT_MAX;
+  if (next === null) return;
+  e.preventDefault();
+  emailPct.value = clampSplit(next);
+  writeSplit(emailPct.value);
+}
+
 // ── Preview + confirm ──
 
 const canPreview = computed(() => (
@@ -317,10 +400,15 @@ async function goPreview() {
     const bytes = Uint8Array.from(
       atob(result.data.pdf_base64), (ch) => ch.charCodeAt(0),
     );
-    pdfUrl.value = URL.createObjectURL(
-      new Blob([bytes], { type: 'application/pdf' }),
-    );
+    // The Blob is kept as well as its object URL: a blob: URL carries no
+    // filename, so saving from the viewer tab yields "untitled". Downloading
+    // the Blob under an explicit name is what gives PA-XXXX-001.pdf.
+    pdfBlob.value = new Blob([bytes], { type: 'application/pdf' });
+    pdfUrl.value = URL.createObjectURL(pdfBlob.value);
   }
+  // On a phone two columns would leave ~180px each and the PDF unreadable, so
+  // the tabs open on the document; from a tablet up the email leads.
+  previewPane.value = isPhone.value ? 'pdf' : 'email';
   step.value = 'preview';
 }
 
@@ -354,6 +442,7 @@ async function confirmSend() {
 }
 
 function revokePdf() {
+  pdfBlob.value = null;
   if (pdfUrl.value) {
     URL.revokeObjectURL(pdfUrl.value);
     pdfUrl.value = '';
@@ -368,16 +457,23 @@ function close() {
 function openPdfTab() {
   if (pdfUrl.value) window.open(pdfUrl.value, '_blank', 'noopener');
 }
+
+function downloadPdf() {
+  if (!pdfBlob.value) return;
+  const number = preview.value?.public_number || 'cuenta-de-cobro';
+  downloadBlob(pdfBlob.value, `${number}.pdf`);
+}
 </script>
 
 <template>
   <BaseModal
     :model-value="open"
-    size="2xl"
+    :size="step === 'preview' ? 'full' : '2xl'"
+    :full-height="step === 'preview'"
     title-id="collection-form-title"
     @close="close"
   >
-    <div class="px-6 pt-6 pb-2 flex items-center justify-between gap-3">
+    <div class="shrink-0 px-6 pt-6 pb-2 flex items-center justify-between gap-3">
       <h3 id="collection-form-title" class="text-lg font-bold text-text-default">
         {{ step === 'form' ? 'Nueva cuenta de cobro' : 'Revisar antes de enviar' }}
       </h3>
@@ -642,62 +738,123 @@ function openPdfTab() {
     </form>
 
     <!-- ── Step 2: preview ── -->
-    <div v-else class="px-6 py-4 space-y-4">
-      <div class="rounded-xl border border-border-default bg-surface-raised p-4 space-y-1 text-sm">
-        <p class="text-text-default" data-testid="collection-preview-subject">
-          <span class="font-medium">Asunto:</span> {{ preview?.subject }}
-        </p>
-        <p class="text-text-subtle">
-          <span class="font-medium text-text-default">Para:</span>
-          {{ preview?.customer_email }}
-          <span class="mx-1">·</span>
-          <span class="font-medium text-text-default">Número:</span>
-          {{ preview?.public_number }}
-          <span class="mx-1">·</span>
-          <span class="font-medium text-text-default">Total:</span>
-          {{ formatMoney(Number(preview?.total ?? 0), 'COP') }}
-        </p>
-      </div>
-
-      <div>
-        <p class="text-sm font-medium text-text-default mb-2">Correo que recibirá el cliente</p>
-        <iframe
-          v-if="preview?.html_body"
-          :srcdoc="preview.html_body"
-          sandbox=""
-          title="Vista previa del correo"
-          class="w-full h-64 rounded-xl border border-border-default bg-surface"
-          data-testid="collection-preview-email"
+    <div v-else class="flex-1 min-h-0 flex flex-col">
+      <!-- Fixed: what is being sent and to whom, always in sight. -->
+      <div class="shrink-0 px-6 pb-3 space-y-3">
+        <div class="rounded-xl border border-border-default bg-surface-raised p-4 space-y-1 text-sm">
+          <p class="text-text-default" data-testid="collection-preview-subject">
+            <span class="font-medium">Asunto:</span> {{ preview?.subject }}
+          </p>
+          <p class="text-text-subtle">
+            <span class="font-medium text-text-default">Para:</span>
+            {{ preview?.customer_email }}
+            <span class="mx-1">·</span>
+            <span class="font-medium text-text-default">Número:</span>
+            {{ preview?.public_number }}
+            <span class="mx-1">·</span>
+            <span class="font-medium text-text-default">Total:</span>
+            {{ formatMoney(Number(preview?.total ?? 0), 'COP') }}
+          </p>
+        </div>
+        <BaseSegmented
+          v-if="!isSplit"
+          v-model="previewPane"
+          :options="previewPaneOptions"
+          size="sm"
+          full-width
         />
       </div>
 
-      <div>
-        <div class="flex items-center justify-between mb-2">
-          <p class="text-sm font-medium text-text-default">PDF adjunto</p>
-          <BaseButton
-            v-if="pdfUrl"
-            type="button"
-            variant="secondary"
-            size="sm"
-            data-testid="collection-preview-open-pdf"
-            @click="openPdfTab"
-          >
-            Abrir PDF
-          </BaseButton>
-        </div>
-        <embed
-          v-if="pdfUrl"
-          :src="pdfUrl"
-          type="application/pdf"
-          class="w-full h-72 rounded-xl border border-border-default"
-          data-testid="collection-preview-pdf"
+      <!-- The two panes. Each owns its scroll; the modal owns none. -->
+      <div
+        ref="splitRef"
+        class="flex-1 min-h-0 px-6 grid"
+        :class="dragging ? 'select-none' : ''"
+        :style="gridStyle"
+      >
+        <section v-show="showsPane('email')" class="min-h-0 flex flex-col">
+          <p class="shrink-0 text-sm font-medium text-text-default mb-2">
+            Correo que recibirá el cliente
+          </p>
+          <iframe
+            v-if="preview?.html_body"
+            :srcdoc="preview.html_body"
+            sandbox=""
+            title="Vista previa del correo"
+            class="flex-1 min-h-0 w-full rounded-xl border border-border-default bg-surface"
+            :class="dragging ? 'pointer-events-none' : ''"
+            data-testid="collection-preview-email"
+          />
+        </section>
+
+        <!-- Without capture + pointer-events-none the iframe/embed below swallow
+             the move events and the drag dies as soon as it enters a pane. -->
+        <div
+          v-if="isSplit"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Ajustar el ancho entre el correo y el PDF"
+          :aria-valuenow="Math.round(emailPct)"
+          :aria-valuemin="SPLIT_MIN"
+          :aria-valuemax="SPLIT_MAX"
+          tabindex="0"
+          class="group flex cursor-col-resize items-center justify-center focus:outline-none"
+          data-testid="collection-preview-split-handle"
+          @pointerdown="onSplitDown"
+          @pointermove="onSplitMove"
+          @pointerup="onSplitUp"
+          @pointercancel="onSplitUp"
+          @keydown="onSplitKey"
         >
-        <p v-else class="text-sm text-danger-strong">
-          No se pudo generar el PDF de previsualización.
-        </p>
+          <span
+            class="h-10 w-1 rounded-full bg-border-default transition-colors group-hover:bg-text-brand group-focus-visible:bg-text-brand"
+          />
+        </div>
+
+        <section v-show="showsPane('pdf')" class="min-h-0 flex flex-col">
+          <div class="shrink-0 flex items-center justify-between gap-2 mb-2">
+            <p class="text-sm font-medium text-text-default">PDF adjunto</p>
+            <div v-if="pdfUrl" class="flex items-center gap-2">
+              <!-- Saving from the viewer tab gives "untitled": a blob: URL has
+                   no filename. Downloading the Blob under an explicit name does. -->
+              <BaseButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                data-testid="collection-preview-download-pdf"
+                @click="downloadPdf"
+              >
+                Descargar
+              </BaseButton>
+              <BaseButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                data-testid="collection-preview-open-pdf"
+                @click="openPdfTab"
+              >
+                Abrir PDF
+              </BaseButton>
+            </div>
+          </div>
+          <embed
+            v-if="pdfUrl"
+            :src="pdfUrl"
+            type="application/pdf"
+            class="flex-1 min-h-0 w-full rounded-xl border border-border-default"
+            :class="dragging ? 'pointer-events-none' : ''"
+            data-testid="collection-preview-pdf"
+          >
+          <p v-else class="text-sm text-danger-strong">
+            No se pudo generar el PDF de previsualización.
+          </p>
+        </section>
       </div>
 
-      <div class="flex items-center justify-between gap-3 pt-2">
+      <!-- Fixed: the send decision never needs scrolling to reach. -->
+      <div
+        class="shrink-0 flex items-center justify-between gap-3 px-6 py-4 mt-4 border-t border-border-muted"
+      >
         <BaseButton
           type="button"
           variant="secondary"

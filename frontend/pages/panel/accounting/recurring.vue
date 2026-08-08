@@ -374,6 +374,7 @@ import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
 import { addWeightPct, formatPercent } from '~/utils/percent';
 import {
+  FREQUENCY_OPTIONS,
   formatMonthlyCop,
   formatMonthlyPrice,
   groupByCategory,
@@ -444,12 +445,8 @@ const filterFields = computed(() => [
     kind: 'multi',
     key: 'frequency',
     label: 'Frecuencia',
-    options: [
-      { value: 'monthly', label: 'Mensual' },
-      { value: 'annual', label: 'Anual' },
-      { value: 'biennial', label: 'Cada 2 años' },
-      { value: 'triennial', label: 'Cada 3 años' },
-    ],
+    // "Personalizada" matches every custom cycle, whatever its month count.
+    options: FREQUENCY_OPTIONS,
   },
   {
     kind: 'multi',

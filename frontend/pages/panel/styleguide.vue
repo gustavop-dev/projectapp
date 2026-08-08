@@ -16,6 +16,7 @@ const toggleA = ref(true)
 const toggleB = ref(false)
 const checkA = ref(false)
 const modalOpen = ref(false)
+const workspaceModalOpen = ref(false)
 const fieldError = ref(false)
 
 const segmented = ref('editor')
@@ -349,8 +350,11 @@ const shadowScale = [
     <section class="space-y-4">
       <h2 class="text-lg font-semibold text-text-default">11. BaseModal</h2>
       <BaseCard padding="md">
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <BaseButton variant="primary" @click="modalOpen = true">Abrir modal</BaseButton>
+          <BaseButton variant="secondary" @click="workspaceModalOpen = true">
+            Abrir modal full-height
+          </BaseButton>
           <span class="text-xs text-text-muted">El modal cierra con backdrop o tecla Esc.</span>
         </div>
       </BaseCard>
@@ -367,6 +371,33 @@ const shadowScale = [
             <BaseButton variant="ghost" @click="modalOpen = false">Cancelar</BaseButton>
             <BaseButton variant="primary" @click="modalOpen = false">Aceptar</BaseButton>
           </div>
+        </div>
+      </BaseModal>
+
+      <!-- size="full" + full-height: para modales que sostienen documentos
+           (previsualizaciones, PDFs) en vez de un formulario. El panel no
+           scrollea; cada columna trae su propio scroll. -->
+      <BaseModal v-model="workspaceModalOpen" size="full" full-height>
+        <div class="shrink-0 px-6 pt-6 pb-3">
+          <h3 class="text-lg font-semibold text-text-default">Modal de trabajo</h3>
+          <p class="text-sm text-text-muted">
+            Cabecera y pie fijos; el scroll vive en cada columna, no en el modal.
+          </p>
+        </div>
+        <div class="flex-1 min-h-0 px-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="min-h-0 overflow-y-auto rounded-xl border border-border-default p-4">
+            <p v-for="n in 40" :key="`l-${n}`" class="text-sm text-text-muted">
+              Columna izquierda · línea {{ n }}
+            </p>
+          </div>
+          <div class="min-h-0 overflow-y-auto rounded-xl border border-border-default p-4">
+            <p v-for="n in 40" :key="`r-${n}`" class="text-sm text-text-muted">
+              Columna derecha · línea {{ n }}
+            </p>
+          </div>
+        </div>
+        <div class="shrink-0 flex justify-end gap-2 px-6 py-4 mt-4 border-t border-border-muted">
+          <BaseButton variant="primary" @click="workspaceModalOpen = false">Cerrar</BaseButton>
         </div>
       </BaseModal>
     </section>

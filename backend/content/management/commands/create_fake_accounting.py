@@ -272,10 +272,31 @@ class Command(BaseCommand):
             )
             created += 2
 
-        for name, price, currency, cop, category_name in [
-            ('Claude Code 20x', '200.00', 'USD', '800000.00', 'Suscripciones de IA'),
-            ('Netflix', '39800.00', 'COP', '39800.00', 'Extras / otros'),
-            ('NameCheap', '10.98', 'USD', '43920.00', 'Arquitectura e infraestructura'),
+        frequencies = RecurringPayment.Frequency
+        # The frequency mix is deliberate: it spans a catalog entry per order of
+        # magnitude plus a custom cycle, so the monthly-equivalent column and the
+        # percentage weights get exercised by the fake dataset.
+        for name, price, currency, cop, category_name, frequency, months in [
+            (
+                'Claude Code 20x', '200.00', 'USD', '800000.00',
+                'Suscripciones de IA', frequencies.MONTHLY, None,
+            ),
+            (
+                'Netflix', '39800.00', 'COP', '39800.00',
+                'Extras / otros', frequencies.MONTHLY, None,
+            ),
+            (
+                'NameCheap', '10.98', 'USD', '43920.00',
+                'Arquitectura e infraestructura', frequencies.ANNUAL, None,
+            ),
+            (
+                'Plan Figma equipo', '270000.00', 'COP', '270000.00',
+                'Extras / otros', frequencies.QUARTERLY, None,
+            ),
+            (
+                'Mantenimiento servidor', '500000.00', 'COP', '500000.00',
+                'Arquitectura e infraestructura', frequencies.CUSTOM, 5,
+            ),
         ]:
             recurring_category = RecurringCategory.objects.filter(
                 name=category_name,
@@ -285,11 +306,8 @@ class Command(BaseCommand):
                 price=Decimal(price),
                 currency=currency,
                 cop_equivalent=Decimal(cop),
-                frequency=(
-                    RecurringPayment.Frequency.ANNUAL
-                    if name == 'NameCheap'
-                    else RecurringPayment.Frequency.MONTHLY
-                ),
+                frequency=frequency,
+                custom_months=months,
                 billing_day=rng.randrange(1, 29),
                 category=recurring_category,
                 source_ref=FAKE_REF,

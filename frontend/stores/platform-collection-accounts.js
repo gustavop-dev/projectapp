@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { usePlatformApi } from '~/composables/usePlatformApi'
+import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile'
 
 export const usePlatformCollectionAccountsStore = defineStore('platformCollectionAccounts', {
   state: () => ({
@@ -158,20 +159,24 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
       }
     },
 
-    async downloadPdf(id, title = 'collection-account') {
+    /**
+     * The backend names the file after the consecutivo; prefer that over any
+     * caller-supplied title so the client saves the same PA-XXXX-001.pdf the
+     * panel and the email attachment produce.
+     */
+    async downloadPdf(id, publicNumber = '') {
       try {
         const { get } = usePlatformApi()
         const response = await get(`collection-accounts/${id}/pdf/`, {
           responseType: 'blob',
         })
-        const url = window.URL.createObjectURL(new Blob([response.data]))
-        const link = document.createElement('a')
-        link.href = url
-        link.setAttribute('download', `${title.replace(/\s+/g, '-')}.pdf`)
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        window.URL.revokeObjectURL(url)
+        const filename =
+          filenameFromDisposition(response.headers?.['content-disposition'])
+          || `${publicNumber || `cuenta-de-cobro-${id}`}.pdf`
+        downloadBlob(
+          new Blob([response.data], { type: 'application/pdf' }),
+          filename,
+        )
         return { success: true }
       } catch (error) {
         return { success: false, message: error.response?.data?.detail || 'PDF download failed.' }

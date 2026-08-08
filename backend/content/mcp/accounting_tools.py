@@ -294,7 +294,23 @@ _ENTITY_FIELDS = {
             'currency': {'type': 'string', 'enum': ['COP', 'USD']},
             'cop_equivalent': {'type': ['number', 'string']},
             'payment_method': {'type': 'string', 'enum': ['cash', 'credit_card']},
-            'frequency': {'type': 'string', 'enum': ['monthly', 'annual', 'biennial', 'triennial']},
+            'frequency': {
+                'type': 'string',
+                'enum': [
+                    'monthly', 'bimonthly', 'quarterly', 'four_monthly',
+                    'semiannual', 'annual', 'biennial', 'triennial', 'custom',
+                ],
+            },
+            'custom_months': {
+                'type': ['integer', 'null'],
+                'minimum': 1,
+                'maximum': 600,
+                'description': (
+                    'Obligatorio con frequency="custom": cada cuántos meses se '
+                    'cobra. Si coincide con una frecuencia del catálogo (2, 3, '
+                    '4, 6, 12, 24, 36) se guarda como esa.'
+                ),
+            },
             'billing_day': {'type': 'integer', 'minimum': 1, 'maximum': 31},
             'cost_type': {'type': 'string', 'enum': ['fixed', 'variable']},
             'category': {
