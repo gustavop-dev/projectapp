@@ -174,7 +174,7 @@ def test_get_collection_account_pdf_returns_pdf_attachment_when_issued(
         **admin_headers,
     )
     aid = create.json()['id']
-    api_client.post(
+    issued = api_client.post(
         f'/api/accounts/collection-accounts/{aid}/issue/',
         format='json',
         **admin_headers,
@@ -188,6 +188,13 @@ def test_get_collection_account_pdf_returns_pdf_attachment_when_issued(
     assert resp.status_code == 200
     assert resp['Content-Type'] == 'application/pdf'
     assert resp.content[:4] == b'%PDF'
+    # The client saves the file under the consecutivo, exactly as the panel and
+    # the email attachment name it — not a lowercased slug of it.
+    public_number = issued.json()['public_number']
+    assert public_number
+    assert resp['Content-Disposition'] == (
+        f'attachment; filename="{public_number}.pdf"'
+    )
 
 
 @pytest.mark.django_db

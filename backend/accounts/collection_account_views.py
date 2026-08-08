@@ -369,9 +369,13 @@ def collection_account_pdf_view(request, account_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     from django.http import HttpResponse
-    from django.utils.text import slugify
 
-    filename = slugify(doc.public_number or doc.title) or 'collection-account'
+    from content.utils import safe_slug
+
+    # The consecutivo is already filename-safe and is how both sides refer to
+    # the document; slugify used to lowercase it into pa-mimittos-001, which
+    # did not match the name the panel and the email attachment produce.
+    filename = doc.public_number or safe_slug(doc.title, 'collection-account')
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
     return response

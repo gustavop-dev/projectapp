@@ -1117,14 +1117,21 @@ def _split_lines_for_page(lines, line_h, avail_h):
 # Drawing helpers
 # ─────────────────────────────────────────────────────────────
 
-def _draw_header_bar(c, theme=None):
-    """Draw a thin accent bar at the top of the page."""
+def _draw_header_bar(c, theme=None, page_w=None, page_h=None):
+    """Draw a thin accent bar at the top of the page.
+
+    ``page_w``/``page_h`` default to the shared A4 constants; pass them only
+    when the canvas is not A4 (the cuenta de cobro cuts its page to content),
+    otherwise the bar lands off the paper.
+    """
     t = _resolve_theme(theme)
+    page_w = PAGE_W if page_w is None else page_w
+    page_h = PAGE_H if page_h is None else page_h
     c.setFillColor(t.header_bar_color)
-    c.rect(0, PAGE_H - 6, PAGE_W, 6, fill=1, stroke=0)
+    c.rect(0, page_h - 6, page_w, 6, fill=1, stroke=0)
     # Accent dot
     c.setFillColor(t.header_dot_color)
-    c.circle(PAGE_W - 30, PAGE_H - 3, 3, fill=1, stroke=0)
+    c.circle(page_w - 30, page_h - 3, 3, fill=1, stroke=0)
 
 
 def _draw_green_bar(c):
@@ -1132,23 +1139,33 @@ def _draw_green_bar(c):
     _draw_header_bar(c)
 
 
-def _draw_footer(c, page_num, total_pages=None, client_name=''):
-    """Draw a discrete footer with page number and branding."""
-    footer_y = MARGIN_B - 14
+def _draw_footer(
+    c, page_num, total_pages=None, client_name='',
+    page_w=None, margin_x=None, margin_b=None,
+):
+    """Draw a discrete footer with page number and branding.
+
+    The geometry arguments default to the shared A4 constants; pass them only
+    for canvases with their own page size and margins.
+    """
+    page_w = PAGE_W if page_w is None else page_w
+    margin_l = MARGIN_L if margin_x is None else margin_x
+    margin_r = MARGIN_R if margin_x is None else margin_x
+    footer_y = (MARGIN_B if margin_b is None else margin_b) - 14
     c.setStrokeColor(GRAY_300)
     c.setLineWidth(0.4)
-    c.line(MARGIN_L, footer_y, PAGE_W - MARGIN_R, footer_y)
+    c.line(margin_l, footer_y, page_w - margin_r, footer_y)
     c.setFont(_font('regular'), 7)
     c.setFillColor(GRAY_500)
-    c.drawString(MARGIN_L, footer_y - 11, 'Project App  |  projectapp.co')
+    c.drawString(margin_l, footer_y - 11, 'Project App  |  projectapp.co')
     if client_name:
-        c.drawCentredString(PAGE_W / 2, footer_y - 11, client_name)
+        c.drawCentredString(page_w / 2, footer_y - 11, client_name)
     c.setFillColor(GREEN_LIGHT)
     page_label = (
         f'{page_num} / {total_pages}' if total_pages
         else f'P\u00e1gina {page_num}'
     )
-    c.drawRightString(PAGE_W - MARGIN_R, footer_y - 11, page_label)
+    c.drawRightString(page_w - margin_r, footer_y - 11, page_label)
 
 
 def _draw_section_header(c, y, index_str, title, ps=None, theme=None):
