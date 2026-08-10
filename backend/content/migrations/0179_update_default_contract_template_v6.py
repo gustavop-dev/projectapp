@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 HOSTING_SERVICE_CLAUSES = """\
 ## CLÁUSULA VIGÉSIMA PRIMERA — SERVICIO DE HOSTING, MANTENIMIENTO Y SOPORTE
 
-Las CLÁUSULAS VIGÉSIMA PRIMERA a VIGÉSIMA CUARTA aplican únicamente cuando EL CONTRATANTE contrate con EL CONTRATISTA el servicio de hosting, mantenimiento y soporte del producto software, cuyo valor, periodicidad y condiciones económicas se definen en el Documento Propuesta de Negocio o en el documento que las partes suscriban para el efecto. Este servicio comprende la operación de la plataforma en el ambiente de producción, su mantenimiento técnico y el soporte ante incidentes, dentro de la capacidad de infraestructura descrita en la CLÁUSULA VIGÉSIMA TERCERA.
+Las CLÁUSULAS VIGÉSIMA PRIMERA a VIGÉSIMA CUARTA aplican únicamente cuando EL CONTRATANTE contrate con EL CONTRATISTA el servicio de hosting, mantenimiento y soporte del producto software, cuyo valor, periodicidad y condiciones económicas se definen en el Documento Propuesta Comercial o en el documento que las partes suscriban para el efecto. Este servicio comprende la operación de la plataforma en el ambiente de producción, su mantenimiento técnico y el soporte ante incidentes, dentro de la capacidad de infraestructura descrita en la CLÁUSULA VIGÉSIMA TERCERA.
 
 ### Parágrafo Primero — Inicio del Cobro
 
@@ -45,7 +45,7 @@ El cobro del servicio se causa únicamente a partir de la fecha de puesta en pro
 
 ### Parágrafo Segundo — Forma y Fecha de Pago
 
-El servicio se paga por periodos anticipados, conforme a la periodicidad definida en el Documento Propuesta de Negocio. EL CONTRATISTA remitirá la cuenta de cobro o factura con una antelación no inferior a diez (10) días calendario al inicio de cada periodo, y EL CONTRATANTE la pagará dentro de los cinco (5) primeros días calendario del periodo que se inicia. El pago se entenderá realizado únicamente cuando los recursos hayan sido recibidos efectivamente por EL CONTRATISTA. La mora en el pago del servicio activa el protocolo previsto en la CLÁUSULA VIGÉSIMA CUARTA.
+El servicio se paga por periodos anticipados, conforme a la periodicidad definida en el Documento Propuesta Comercial. EL CONTRATISTA remitirá la cuenta de cobro o factura con una antelación no inferior a diez (10) días calendario al inicio de cada periodo, y EL CONTRATANTE la pagará dentro de los cinco (5) primeros días calendario del periodo que se inicia. El pago se entenderá realizado únicamente cuando los recursos hayan sido recibidos efectivamente por EL CONTRATISTA. La mora en el pago del servicio activa el protocolo previsto en la CLÁUSULA VIGÉSIMA CUARTA.
 
 ### Parágrafo Tercero — Reajuste Anual del Valor del Servicio
 
@@ -107,13 +107,13 @@ EL CONTRATISTA no tiene relación contractual alguna con los clientes, usuarios 
 
 ### Parágrafo Noveno — Límite de Responsabilidad del Servicio
 
-En ningún caso EL CONTRATISTA responderá por lucro cesante, pérdida de ingresos, de ventas, de negocio o de clientela, daño reputacional, ni por daños indirectos, imprevisibles o consecuenciales de EL CONTRATANTE o de terceros, derivados de la prestación o de la interrupción del servicio de hosting, mantenimiento y soporte, en concordancia con el artículo 1616 del Código Civil. La responsabilidad total y agregada de EL CONTRATISTA por toda reclamación derivada de dicho servicio no excederá el valor efectivamente pagado por EL CONTRATANTE por el último periodo de suscripción del servicio contratado —conforme a la periodicidad definida en el Documento Propuesta de Negocio, sea esta mensual, trimestral, semestral, anual u otra— inmediatamente anterior al hecho que la origine; cuando aún no se hubiere pagado un periodo completo del servicio, el límite será el valor vigente de un (1) periodo de suscripción del servicio. Este límite no aplica en los casos de dolo o culpa grave de EL CONTRATISTA, ni respecto de las obligaciones de confidencialidad y de protección de datos personales, conforme a los artículos 63 y 1522 del Código Civil. En lo no previsto en este parágrafo, rige la CLÁUSULA VIGÉSIMA.
+En ningún caso EL CONTRATISTA responderá por lucro cesante, pérdida de ingresos, de ventas, de negocio o de clientela, daño reputacional, ni por daños indirectos, imprevisibles o consecuenciales de EL CONTRATANTE o de terceros, derivados de la prestación o de la interrupción del servicio de hosting, mantenimiento y soporte, en concordancia con el artículo 1616 del Código Civil. La responsabilidad total y agregada de EL CONTRATISTA por toda reclamación derivada de dicho servicio no excederá el valor efectivamente pagado por EL CONTRATANTE por el último periodo de suscripción del servicio contratado —conforme a la periodicidad definida en el Documento Propuesta Comercial, sea esta mensual, trimestral, semestral, anual u otra— inmediatamente anterior al hecho que la origine; cuando aún no se hubiere pagado un periodo completo del servicio, el límite será el valor vigente de un (1) periodo de suscripción del servicio. Este límite no aplica en los casos de dolo o culpa grave de EL CONTRATISTA, ni respecto de las obligaciones de confidencialidad y de protección de datos personales, conforme a los artículos 63 y 1522 del Código Civil. En lo no previsto en este parágrafo, rige la CLÁUSULA VIGÉSIMA.
 
 ---
 
 ## CLÁUSULA VIGÉSIMA TERCERA — RECURSOS DE INFRAESTRUCTURA, CAPACIDAD OPERATIVA Y ESCALAMIENTO
 
-El servicio de hosting se presta sobre la infraestructura cuya capacidad técnica se describe en el Documento Propuesta de Negocio. El valor del servicio retribuye la operación, el mantenimiento y el soporte de la plataforma dentro de dicha capacidad; toda operación que la exceda requiere infraestructura de capacidad superior y no se encuentra comprendida en el valor pactado.
+El servicio de hosting se presta sobre la infraestructura cuya capacidad técnica se describe en el Documento Propuesta Comercial. El valor del servicio retribuye la operación, el mantenimiento y el soporte de la plataforma dentro de dicha capacidad; toda operación que la exceda requiere infraestructura de capacidad superior y no se encuentra comprendida en el valor pactado.
 
 ### Parágrafo Primero — Monitoreo y Reporte de Consumo
 
@@ -170,7 +170,7 @@ Este protocolo rige la suspensión de la operación de la plataforma por mora en
 
 
 HOSTING_SERVICE_POINTER = """\
-9. Cuando EL CONTRATANTE contrate con EL CONTRATISTA el servicio de hosting, mantenimiento y soporte, dicho servicio se regirá por las CLÁUSULAS VIGÉSIMA PRIMERA a VIGÉSIMA CUARTA del presente contrato y por las condiciones económicas definidas en el Documento Propuesta de Negocio."""
+9. Cuando EL CONTRATANTE contrate con EL CONTRATISTA el servicio de hosting, mantenimiento y soporte, dicho servicio se regirá por las CLÁUSULAS VIGÉSIMA PRIMERA a VIGÉSIMA CUARTA del presente contrato y por las condiciones económicas definidas en el Documento Propuesta Comercial."""
 
 
 # ---------------------------------------------------------------------------
