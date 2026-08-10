@@ -372,9 +372,15 @@ ORDINAL_TO_NUMBER.update({
     f'DÉCIMA {name}': 10 + i for i, name in enumerate(_BASE_ORDINALS, start=1)
 })
 ORDINAL_TO_NUMBER['VIGÉSIMA'] = 20
+ORDINAL_TO_NUMBER.update({
+    f'VIGÉSIMA {name}': 20 + i for i, name in enumerate(_BASE_ORDINALS, start=1)
+})
 
-_HEADING_RE = re.compile(r'^## CLÁUSULA ((?:DÉCIMA )?[A-ZÁÉÍÓÚ]+) —', re.MULTILINE)
-_REFERENCE_RE = re.compile(r'CLÁUSULA ((?:DÉCIMA )?[A-ZÁÉÍÓÚ]+)')
+# The compound ordinals have to be part of the alternation: without 'VIGÉSIMA ',
+# '## CLÁUSULA VIGÉSIMA PRIMERA —' matches nothing at all, and the v6 service
+# clauses would be invisible to both guards below instead of being checked.
+_HEADING_RE = re.compile(r'^## CLÁUSULA ((?:DÉCIMA |VIGÉSIMA )?[A-ZÁÉÍÓÚ]+) —', re.MULTILINE)
+_REFERENCE_RE = re.compile(r'CLÁUSULA ((?:DÉCIMA |VIGÉSIMA )?[A-ZÁÉÍÓÚ]+)')
 
 
 class TestClauseNumbering:
