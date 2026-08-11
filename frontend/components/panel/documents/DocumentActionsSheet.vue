@@ -64,9 +64,12 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   modelValue: { type: Boolean, default: false },
   document: { type: Object, default: null },
+  archived: { type: Boolean, default: false },
 });
 const emit = defineEmits([
   'update:modelValue',
@@ -77,10 +80,29 @@ const emit = defineEmits([
   'copy-markdown',
   'duplicate',
   'send-email',
+  'archive',
+  'unarchive',
   'delete',
 ]);
 
-const actions = [
+// La etiqueta de vuelta es "Restaurar", no "Desarchivar": es el término que ya
+// usa el tablero de tareas, y además evita que un buscador por substring de
+// "Archivar" matchee también la acción inversa.
+const ARCHIVE_ACTION = {
+  event: 'archive',
+  label: 'Archivar',
+  description: 'Lo saca de la lista y de los contadores; podrás restaurarlo',
+  icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
+};
+
+const UNARCHIVE_ACTION = {
+  event: 'unarchive',
+  label: 'Restaurar',
+  description: 'Lo devuelve a su carpeta original',
+  icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-7 9V11m0 0l-2.5 2.5M12 11l2.5 2.5',
+};
+
+const BASE_ACTIONS = [
   {
     event: 'edit',
     label: 'Editar contenido',
@@ -125,6 +147,7 @@ const actions = [
     label: 'Duplicar',
     icon: 'M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2',
   },
+  ARCHIVE_ACTION,
   {
     event: 'delete',
     label: 'Eliminar',
@@ -133,6 +156,21 @@ const actions = [
     icon: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
   },
 ];
+
+const isArchived = computed(() => props.archived || !!props.document?.is_archived);
+
+// Un documento archivado está fuera de circulación: editarlo, renombrarlo,
+// moverlo, enviarlo por correo o duplicarlo sería incoherente. Queda lo que
+// tiene sentido sobre algo guardado: consultarlo, restaurarlo o borrarlo.
+const ARCHIVED_EVENTS = new Set(['download-pdf', 'copy-markdown', 'delete']);
+
+const actions = computed(() => {
+  if (!isArchived.value) return BASE_ACTIONS;
+  return [
+    UNARCHIVE_ACTION,
+    ...BASE_ACTIONS.filter((a) => ARCHIVED_EVENTS.has(a.event)),
+  ];
+});
 
 function close() {
   emit('update:modelValue', false);

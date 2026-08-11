@@ -309,4 +309,94 @@ describe('useDocumentStore', () => {
       expect(result.success).toBe(false)
     })
   })
+
+  describe('archived scope', () => {
+    it('fetchArchivedDocuments requests the archived scope', async () => {
+      get_request.mockResolvedValueOnce({ data: [{ id: 9, title: 'Viejo' }] })
+
+      const result = await store.fetchArchivedDocuments()
+
+      expect(get_request).toHaveBeenCalledWith('documents/?archived=1')
+      expect(result.success).toBe(true)
+      expect(store.archivedDocuments).toEqual([{ id: 9, title: 'Viejo' }])
+    })
+
+    it('asks for the oldest first when requested', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+
+      await store.fetchArchivedDocuments({ order: 'oldest' })
+
+      expect(get_request).toHaveBeenCalledWith('documents/?archived=1&order=oldest')
+    })
+
+    it('composes the archived scope with the active tag filter', async () => {
+      store.activeTagIds = [2, 5]
+      get_request.mockResolvedValueOnce({ data: [] })
+
+      await store.fetchArchivedDocuments()
+
+      expect(get_request).toHaveBeenCalledWith('documents/?archived=1&tags=2%2C5')
+    })
+
+    it('fills archivedDocuments without touching the active list', async () => {
+      store.documents = [{ id: 1, title: 'Activo' }]
+      get_request.mockResolvedValueOnce({ data: [{ id: 9, title: 'Viejo' }] })
+
+      await store.fetchArchivedDocuments()
+
+      expect(store.documents).toEqual([{ id: 1, title: 'Activo' }])
+      expect(store.archivedDocuments).toHaveLength(1)
+    })
+
+    it('normalizes an archived fetch failure into a Spanish message', async () => {
+      get_request.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await store.fetchArchivedDocuments()
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudieron cargar los archivados.')
+    })
+
+    it('archiveDocument patches the archive route and drops the row from the list', async () => {
+      store.documents = [{ id: 7, title: 'Viejo' }, { id: 8, title: 'Otro' }]
+      patch_request.mockResolvedValueOnce({ data: { id: 7, is_archived: true } })
+
+      const result = await store.archiveDocument(7)
+
+      expect(patch_request).toHaveBeenCalledWith('documents/7/archive/', {})
+      expect(result.success).toBe(true)
+      expect(store.documents.map((d) => d.id)).toEqual([8])
+    })
+
+    it('unarchiveDocument patches the unarchive route and drops it from the archived slice', async () => {
+      store.archivedDocuments = [{ id: 7, title: 'Viejo' }]
+      patch_request.mockResolvedValueOnce({ data: { id: 7, is_archived: false } })
+
+      const result = await store.unarchiveDocument(7)
+
+      expect(patch_request).toHaveBeenCalledWith('documents/7/unarchive/', {})
+      expect(result.success).toBe(true)
+      expect(store.archivedDocuments).toEqual([])
+    })
+
+    it('normalizes an archive failure into a Spanish message', async () => {
+      store.documents = [{ id: 7 }]
+      patch_request.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await store.archiveDocument(7)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo archivar el documento.')
+      expect(store.documents).toHaveLength(1)
+    })
+
+    it('deleteDocument also removes the row from the archived slice', async () => {
+      store.archivedDocuments = [{ id: 7, title: 'Viejo' }]
+      delete_request.mockResolvedValueOnce({})
+
+      await store.deleteDocument(7)
+
+      expect(store.archivedDocuments).toEqual([])
+    })
+  })
 })

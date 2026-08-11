@@ -135,4 +135,62 @@ describe('DocumentActionsSheet', () => {
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
     });
   });
+
+  describe('archive actions', () => {
+    it('offers Archivar between Duplicar and Eliminar for an active document', () => {
+      const wrapper = mountSheet();
+      const labels = actionButtons(wrapper).map((b) => b.text());
+
+      const archiveAt = labels.findIndex((t) => t.includes('Archivar'));
+      const duplicateAt = labels.findIndex((t) => t.includes('Duplicar'));
+      const deleteAt = labels.findIndex((t) => t.includes('Eliminar'));
+
+      expect(archiveAt).toBeGreaterThan(duplicateAt);
+      expect(archiveAt).toBeLessThan(deleteAt);
+    });
+
+    it('emits archive and closes when Archivar is clicked', async () => {
+      const wrapper = mountSheet();
+
+      await actionByLabel(wrapper, 'Archivar').trigger('click');
+
+      expect(wrapper.emitted('archive')).toEqual([[]]);
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    });
+
+    it('swaps Archivar for Restaurar on an archived document', () => {
+      const wrapper = mountSheet({ archived: true });
+      const labels = actionButtons(wrapper).map((b) => b.text());
+
+      expect(labels.some((t) => t.includes('Restaurar'))).toBe(true);
+      expect(labels.some((t) => t.includes('Archivar'))).toBe(false);
+    });
+
+    it('hides the actions that make no sense on something out of circulation', () => {
+      const wrapper = mountSheet({ archived: true });
+      const labels = actionButtons(wrapper).map((b) => b.text()).join(' | ');
+
+      expect(labels).not.toContain('Editar contenido');
+      expect(labels).not.toContain('Mover a carpeta');
+      expect(labels).not.toContain('Enviar por correo');
+      // Consultarlo y borrarlo sí siguen teniendo sentido.
+      expect(labels).toContain('Descargar PDF');
+      expect(labels).toContain('Eliminar');
+    });
+
+    it('reads is_archived off the document when the scope prop is not set', () => {
+      const wrapper = mountSheet({ document: { ...baseDocument, is_archived: true } });
+      const labels = actionButtons(wrapper).map((b) => b.text());
+
+      expect(labels.some((t) => t.includes('Restaurar'))).toBe(true);
+    });
+
+    it('emits unarchive when Restaurar is clicked', async () => {
+      const wrapper = mountSheet({ archived: true });
+
+      await actionByLabel(wrapper, 'Restaurar').trigger('click');
+
+      expect(wrapper.emitted('unarchive')).toEqual([[]]);
+    });
+  });
 });

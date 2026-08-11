@@ -15,11 +15,16 @@ export const useDocumentStore = defineStore('documents', {
    */
   state: () => ({
     documents: [],
+    // Slice aparte para lo archivado: mantiene viva la lista activa al asomarse
+    // al archivo (sin parpadeo al volver) y deja que `documents.length` siga
+    // significando exactamente lo mismo que hoy para los contadores.
+    archivedDocuments: [],
     currentDocument: null,
     isLoading: false,
+    isArchivedLoading: false,
     isUpdating: false,
     error: null,
-    // Filters: 'all' | 'none' | <folder id>
+    // Filters: 'all' | 'none' | 'archived' | <folder id>
     activeFolderId: 'all',
     activeTagIds: [],
   }),
@@ -68,6 +73,89 @@ export const useDocumentStore = defineStore('documents', {
       /* c8 ignore next 3 */
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    /**
+     * fetchArchivedDocuments: List archived documents only.
+     *
+     * Vive aparte de fetchDocuments a propósito: esa acción la consumen
+     * create.vue, [id]/edit.vue y las pestañas de diagnóstico y propuestas,
+     * que nunca deben heredar el scope archivado.
+     *
+     * @param {object} options - { order: 'recent'|'oldest', tags? }
+     */
+    async fetchArchivedDocuments({ order = 'recent', tags } = {}) {
+      this.isArchivedLoading = true;
+      this.error = null;
+      try {
+        const activeTags = tags !== undefined ? tags : this.activeTagIds;
+
+        const params = new URLSearchParams();
+        params.set('archived', '1');
+        if (Array.isArray(activeTags) && activeTags.length > 0) {
+          params.set('tags', activeTags.join(','));
+        }
+        if (order === 'oldest') params.set('order', 'oldest');
+
+        const response = await get_request(`documents/?${params.toString()}`);
+        this.archivedDocuments = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_archived_failed';
+        console.error('Error fetching archived documents:', error);
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudieron cargar los archivados.'),
+        };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isArchivedLoading = false;
+      }
+    },
+
+    /** archiveDocument: take a document out of the main view, keeping it. */
+    async archiveDocument(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(`documents/${id}/archive/`, {});
+        this.documents = this.documents.filter((d) => d.id !== id);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'archive_failed';
+        console.error('Error archiving document:', error);
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo archivar el documento.'),
+        };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /** unarchiveDocument: return it to the main view (root if its folder is gone). */
+    async unarchiveDocument(id) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await patch_request(`documents/${id}/unarchive/`, {});
+        this.archivedDocuments = this.archivedDocuments.filter((d) => d.id !== id);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'unarchive_failed';
+        console.error('Error unarchiving document:', error);
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo restaurar el documento.'),
+        };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isUpdating = false;
       }
     },
 
@@ -177,6 +265,9 @@ export const useDocumentStore = defineStore('documents', {
       try {
         await delete_request(`documents/${id}/delete/`);
         this.documents = this.documents.filter((d) => d.id !== id);
+        // También del slice archivado: lo archivado se puede borrar desde su
+        // propia vista, y sin esto la fila se quedaría en pantalla.
+        this.archivedDocuments = this.archivedDocuments.filter((d) => d.id !== id);
         if (this.currentDocument?.id === id) {
           this.currentDocument = null;
         }

@@ -8,7 +8,7 @@
 const { useConfirmModal } = require('../../composables/useConfirmModal')
 
 describe('useConfirmModal', () => {
-  let confirmState, requestConfirm, handleConfirmed, handleCancelled
+  let confirmState, requestConfirm, handleConfirmed, handleCancelled, handleSecondaryAction
 
   beforeEach(() => {
     const result = useConfirmModal()
@@ -16,6 +16,7 @@ describe('useConfirmModal', () => {
     requestConfirm = result.requestConfirm
     handleConfirmed = result.handleConfirmed
     handleCancelled = result.handleCancelled
+    handleSecondaryAction = result.handleSecondaryAction
   })
 
   describe('initial state', () => {
@@ -189,6 +190,59 @@ describe('useConfirmModal', () => {
 
       expect(onConfirm).toHaveBeenCalledTimes(1)
       await expect(promise).resolves.toBe(true)
+    })
+  })
+
+  describe('secondary action', () => {
+    it('carries the secondary fields into confirmState', () => {
+      requestConfirm({
+        title: 'Eliminar documento',
+        secondaryText: 'Archivar en su lugar',
+        secondaryVariant: 'ghost',
+        secondaryHint: 'Archivar lo conserva.',
+      })
+
+      expect(confirmState.value.secondaryText).toBe('Archivar en su lugar')
+      expect(confirmState.value.secondaryVariant).toBe('ghost')
+      expect(confirmState.value.secondaryHint).toBe('Archivar lo conserva.')
+    })
+
+    it('defaults the secondary fields to empty so existing callers are unaffected', () => {
+      requestConfirm({ title: 'Test' })
+
+      expect(confirmState.value.secondaryText).toBe('')
+      expect(confirmState.value.secondaryHint).toBe('')
+      expect(confirmState.value.onSecondary).toBeNull()
+    })
+
+    it('runs onSecondary, closes, and resolves FALSE', async () => {
+      // Falso a propósito: los callers del patrón `await` hacen
+      // `if (!confirmed) return`, y elegir la alternativa no es confirmar.
+      const onSecondary = jest.fn()
+      const onConfirm = jest.fn()
+      const promise = requestConfirm({ title: 'Test', onSecondary, onConfirm })
+
+      await handleSecondaryAction()
+
+      expect(onSecondary).toHaveBeenCalledTimes(1)
+      expect(onConfirm).not.toHaveBeenCalled()
+      expect(confirmState.value.open).toBe(false)
+      await expect(promise).resolves.toBe(false)
+    })
+
+    it('awaits an async onSecondary before resolving', async () => {
+      const order = []
+      const onSecondary = jest.fn(async () => {
+        await Promise.resolve()
+        order.push('secondary')
+      })
+      const promise = requestConfirm({ title: 'Test', onSecondary })
+
+      await handleSecondaryAction()
+      await promise
+      order.push('resolved')
+
+      expect(order).toEqual(['secondary', 'resolved'])
     })
   })
 })

@@ -9,10 +9,11 @@ defineProps({
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
+  archived: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
-  'open', 'action', 'select-folder',
+  'open', 'action', 'select-folder', 'unarchive-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder',
@@ -40,10 +41,10 @@ const emit = defineEmits([
       }"
       role="button"
       tabindex="0"
-      draggable="true"
+      :draggable="!archived"
       :data-testid="`folder-card-${sub.id}`"
-      @click="emit('select-folder', sub.id)"
-      @keydown.enter.prevent="emit('select-folder', sub.id)"
+      @click="!archived && emit('select-folder', sub.id)"
+      @keydown.enter.prevent="!archived && emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
       @dragend="emit('folder-dragend')"
       @dragover="emit('folder-dragover', $event, sub.id)"
@@ -55,6 +56,15 @@ const emit = defineEmits([
       </svg>
       <span class="text-sm font-medium text-text-default truncate max-w-full">{{ sub.name }}</span>
       <span class="text-xs text-text-subtle">{{ folderRowSummary(sub) }}</span>
+      <BaseButton
+        v-if="archived"
+        variant="secondary"
+        size="sm"
+        data-testid="folder-unarchive"
+        @click.stop="emit('unarchive-folder', sub)"
+      >
+        Restaurar
+      </BaseButton>
     </div>
 
     <DocumentCard
@@ -64,6 +74,7 @@ const emit = defineEmits([
       :edit-to="editToFor(doc)"
       :dragging="draggingDocId === doc.id"
       :newly-created="newlyCreatedId === doc.id"
+      :archived="archived"
       @open="emit('open', doc)"
       @action="emit('action', doc)"
       @dragstart="emit('doc-dragstart', $event, doc)"

@@ -210,23 +210,23 @@ describe('FolderSidebar', () => {
       expect(wrapper.emitted('delete')).toEqual([[emptyFolder]]);
     });
 
-    it('blocks the delete icon and explains why when the folder holds documents', async () => {
+    it('emits delete for a folder that still holds documents', async () => {
+      // Ya no se bloquea: el modal decide eliminar vs archivar con el
+      // inventario a la vista, así que la carpeta con contenido debe llegar ahí.
       const wrapper = mountSidebar({ folders: [folderA] });
-      const blocked = wrapper.find('[data-testid="folder-delete-blocked"]');
 
-      expect(wrapper.find('[data-testid="folder-delete"]').exists()).toBe(false);
-      expect(blocked.attributes('aria-disabled')).toBe('true');
-      expect(wrapper.find('[data-testid="tooltip-body"]').text()).toContain('5 elementos');
+      expect(wrapper.find('[data-testid="folder-delete-blocked"]').exists()).toBe(false);
+      await wrapper.find('[data-testid="folder-delete"]').trigger('click');
 
-      await blocked.trigger('click');
-      expect(wrapper.emitted('delete')).toBeUndefined();
+      expect(wrapper.emitted('delete')).toEqual([[folderA]]);
     });
 
-    it('blocks the delete icon for a folder that only holds subfolders', () => {
+    it('emits delete for a folder that only holds subfolders', async () => {
       const wrapper = mountSidebar({ folders: [parentFolder] });
 
-      expect(wrapper.find('[data-testid="folder-delete-blocked"]').exists()).toBe(true);
-      expect(wrapper.find('[data-testid="tooltip-body"]').text()).toContain('2 elementos');
+      await wrapper.find('[data-testid="folder-delete"]').trigger('click');
+
+      expect(wrapper.emitted('delete')).toEqual([[parentFolder]]);
     });
   });
 

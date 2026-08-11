@@ -104,34 +104,11 @@
                   </svg>
                 </div>
 
-                <!-- Con contenido: aria-disabled en vez de disabled, porque un botón
-                     deshabilitado no dispara eventos de puntero y el tooltip —que es
-                     justo donde más se necesita— nunca aparecería. -->
-                <BaseTooltip
-                  v-if="isBlocked(folder)"
-                  position="left"
-                  width="max-w-[190px]"
-                  minWidth="min-w-[150px]"
-                >
-                  <template #trigger>
-                    <BaseButton
-                      variant="danger-ghost"
-                      icon-only
-                      size="sm"
-                      aria-disabled="true"
-                      :aria-label="`Eliminar carpeta ${folder.name}`"
-                      class="opacity-30 cursor-not-allowed"
-                      data-testid="folder-delete-blocked"
-                    >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </BaseButton>
-                  </template>
-                  {{ blockedReason(folder) }}
-                </BaseTooltip>
+                <!-- Un solo icono, dos desenlaces: el modal decide eliminar vs
+                     archivar con el inventario a la vista. Antes esto se
+                     bloqueaba con un tooltip cuando la carpeta tenía contenido,
+                     pero ahora sí hay algo que se puede hacer con ella. -->
                 <BaseButton
-                  v-else
                   variant="danger-ghost"
                   icon-only
                   size="sm"
@@ -150,6 +127,31 @@
           </li>
         </template>
       </draggable>
+
+      <!--
+        Archivados: tercera pseudo-entrada, junto a Todos y Sin carpeta.
+        A propósito NO es drop target: soltar algo encima sería un archivado
+        implícito, y archivar debe ser siempre un gesto explícito.
+      -->
+      <li class="my-1 border-t border-border-muted"></li>
+      <li>
+        <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
+        <button
+          type="button"
+          class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
+          :class="entryClass('archived')"
+          data-testid="folder-archived-entry"
+          @click="$emit('select', 'archived')"
+        >
+          <span class="flex items-center gap-2">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            Archivados
+          </span>
+          <span class="text-xs text-text-subtle">{{ archivedCount }}</span>
+        </button>
+      </li>
     </ul>
 
     <div class="p-3 border-t border-border-muted flex-shrink-0">
@@ -171,6 +173,7 @@ const props = defineProps({
   folders: { type: Array, default: () => [] },
   activeId: { type: [String, Number], default: 'all' },
   totalCount: { type: Number, default: 0 },
+  archivedCount: { type: Number, default: 0 },
   isDragging: { type: Boolean, default: false },
   draggingFolderId: { type: [String, Number], default: null },
 });
@@ -191,22 +194,6 @@ const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted';
 
 function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
-}
-
-// Espejo de la regla del backend: solo se borran carpetas vacías (sin documentos
-// y sin subcarpetas). La validación real vive en delete_document_folder (409).
-function blockedCount(folder) {
-  return (folder.document_count || 0) + (folder.children_count || 0);
-}
-
-function isBlocked(folder) {
-  return blockedCount(folder) > 0;
-}
-
-function blockedReason(folder) {
-  const total = blockedCount(folder);
-  const noun = total === 1 ? 'elemento' : 'elementos';
-  return `La carpeta contiene ${total} ${noun}. Vacíala antes de eliminarla.`;
 }
 
 function dropZoneClass(id) {
