@@ -47,10 +47,18 @@
                   <span class="text-xs text-text-muted dark:text-white/70">NIT</span>
                   <input v-model="form.contractor_nit" type="text" class="nda-input" />
                 </label>
-                <label class="block sm:col-span-2">
+                <label class="block">
+                  <span class="text-xs text-text-muted dark:text-white/70">Cédula</span>
+                  <input v-model="form.contractor_cedula" type="text" class="nda-input" />
+                </label>
+                <label class="block">
                   <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
                   <input v-model="form.contractor_email" type="email" class="nda-input" />
                 </label>
+                <p class="sm:col-span-2 text-xs text-text-muted dark:text-white/70">
+                  Indica al menos uno entre NIT y cédula. El NIT tiene prioridad en el acuerdo.
+                </p>
+                <p v-if="idError" class="sm:col-span-2 text-xs text-red-500">{{ idError }}</p>
               </div>
             </section>
 
@@ -129,6 +137,7 @@ const EMPTY_FORM = {
   client_email: '',
   contractor_full_name: '',
   contractor_nit: '',
+  contractor_cedula: '',
   contractor_email: '',
   contract_city: '',
   contract_day: '',
@@ -140,12 +149,14 @@ const EMPTY_FORM = {
 const form = ref({ ...EMPTY_FORM });
 const saving = ref(false);
 const error = ref('');
+const idError = ref('');
 
 watch(
   () => props.visible,
   (val) => {
     if (!val) return;
     error.value = '';
+    idError.value = '';
     const stored = props.diagnostic?.confidentiality_params || {};
     const clientName = props.diagnostic?.client?.name || '';
     const clientEmail = props.diagnostic?.client?.email || '';
@@ -160,7 +171,17 @@ watch(
   { immediate: true },
 );
 
+function validateIdentity() {
+  // The NDA names EL CONSULTOR by whichever document is on file; every other
+  // field may stay blank so the acuerdo can be printed and filled by hand.
+  const hasId = (form.value.contractor_nit || '').trim()
+    || (form.value.contractor_cedula || '').trim();
+  idError.value = hasId ? '' : 'Indica el NIT o la cédula del consultor';
+  return !idError.value;
+}
+
 async function handleSave() {
+  if (!validateIdentity()) return;
   saving.value = true;
   error.value = '';
   const payload = {};

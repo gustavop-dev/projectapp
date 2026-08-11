@@ -20,7 +20,13 @@ class CompanySettings(models.Model):
         max_length=30,
         default='',
         blank=True,
-        help_text='NIT del contratista (persona natural con NIT registrado).',
+        help_text='NIT del contratista. Tiene prioridad sobre la cédula en los documentos.',
+    )
+    contractor_cedula = models.CharField(
+        max_length=30,
+        default='',
+        blank=True,
+        help_text='Cédula del contratista. Se usa en los documentos sólo si no hay NIT.',
     )
     contractor_email = models.EmailField(
         default='',
@@ -78,11 +84,19 @@ class CompanySettings(models.Model):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
 
+    @property
+    def contractor_identity(self):
+        """``(id_type, id_number)`` for the contractor, NIT taking priority."""
+        from content.services.contractor_identity import resolve_contractor_identity
+
+        return resolve_contractor_identity(self.contractor_nit, self.contractor_cedula)
+
     def to_dict(self):
         """Return settings as a plain dict for contract param defaults."""
         return {
             'contractor_full_name': self.contractor_full_name,
             'contractor_nit': self.contractor_nit,
+            'contractor_cedula': self.contractor_cedula,
             'contractor_email': self.contractor_email,
             'bank_name': self.bank_name,
             'bank_account_type': self.bank_account_type,

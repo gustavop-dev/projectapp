@@ -38,9 +38,16 @@
                     <p v-if="formErrors.contractor_full_name" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_full_name }}</p>
                   </div>
                   <div>
-                    <label class="block text-xs text-text-muted mb-1">NIT *</label>
+                    <label class="block text-xs text-text-muted mb-1">NIT</label>
                     <BaseInput v-model="form.contractor_nit" type="text" size="sm" />
-                    <p v-if="formErrors.contractor_nit" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_nit }}</p>
+                  </div>
+                  <div>
+                    <label class="block text-xs text-text-muted mb-1">Cédula</label>
+                    <BaseInput v-model="form.contractor_cedula" type="text" size="sm" />
+                  </div>
+                  <div class="sm:col-span-2 -mt-2">
+                    <p class="text-xs text-text-muted">Indica al menos uno. El NIT tiene prioridad en el contrato.</p>
+                    <p v-if="formErrors.contractor_identity" class="text-xs text-danger-strong mt-1">{{ formErrors.contractor_identity }}</p>
                   </div>
                   <div>
                     <label class="block text-xs text-text-muted mb-1">Email de notificacion *</label>
@@ -235,6 +242,7 @@ const previewHtml = computed(() => DOMPurify.sanitize(parseMarkdown(debouncedMar
 const form = ref({
   contractor_full_name: '',
   contractor_nit: '',
+  contractor_cedula: '',
   contractor_email: '',
   bank_name: '',
   bank_account_type: 'Ahorros',
@@ -265,6 +273,7 @@ function resetForm() {
   form.value = {
     contractor_full_name: existing.contractor_full_name || defaults.contractor_full_name || '',
     contractor_nit: existing.contractor_nit || defaults.contractor_nit || '',
+    contractor_cedula: existing.contractor_cedula || defaults.contractor_cedula || '',
     contractor_email: existing.contractor_email || defaults.contractor_email || '',
     bank_name: existing.bank_name || defaults.bank_name || '',
     bank_account_type: existing.bank_account_type || defaults.bank_account_type || 'Ahorros',
@@ -301,7 +310,6 @@ function validate() {
   if (contractSource.value === 'default') {
     const required = [
       ['contractor_full_name', 'Nombre completo del contratista'],
-      ['contractor_nit', 'NIT del contratista'],
       ['contractor_email', 'Email del contratista'],
       ['contract_city', 'Ciudad del contrato'],
       ['bank_name', 'Banco'],
@@ -315,6 +323,13 @@ function validate() {
       if (!form.value[field]?.toString().trim()) {
         errors[field] = `${label} es obligatorio`;
       }
+    }
+    // The contract identifies EL CONTRATISTA by whichever document is on
+    // file, so either one satisfies the requirement — but not neither.
+    const nit = form.value.contractor_nit?.toString().trim();
+    const cedula = form.value.contractor_cedula?.toString().trim();
+    if (!nit && !cedula) {
+      errors.contractor_identity = 'Indica el NIT o la cédula del contratista';
     }
   } else {
     if (!customMarkdown.value.trim()) {

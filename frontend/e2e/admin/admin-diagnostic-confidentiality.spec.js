@@ -152,6 +152,11 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
     await modal.locator('label').filter({ hasText: 'NIT / C.C.' }).locator('input')
       .fill('900.123.456-7');
 
+    // The consultant must be identified by one of its two documents; the
+    // defaults do not carry either, so the save is gated until one is filled.
+    await contractorSection.locator('label').filter({ hasText: /^NIT$/ }).locator('input')
+      .fill('1021513348-7');
+
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();
 
     // Modal closes → generated state renders Descargar / Borrador / Editar parámetros.
@@ -166,9 +171,32 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
       client_full_name: 'Acme Corp SAS',
       client_cedula: '900.123.456-7',
       contractor_full_name: 'Project App SAS',
+      contractor_nit: '1021513348-7',
       contract_city: 'Medellín',
       contractor_email: 'team@projectapp.co',
     });
+  });
+
+  test('blocks the save when the consultant has no NIT and no cédula', {
+    tag: [...ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    let postCount = 0;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === `diagnostics/${DIAG_ID}/confidentiality/params/` && method === 'POST') {
+        postCount += 1;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({}) };
+      }
+      return baseHandler(buildDiagnostic())({ apiPath, method });
+    });
+
+    await openNdaModal(page);
+
+    // Neither consultant document is prefilled by DEFAULTS.
+    await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();
+
+    await expect(page.getByText('Indica el NIT o la cédula del consultor')).toBeVisible();
+    await expect(modalRoot(page)).toBeVisible();
+    expect(postCount).toBe(0);
   });
 
   test('surfaces server error when POST /confidentiality/params/ returns 400', {
@@ -186,6 +214,13 @@ test.describe('Admin Diagnostic — Generar NDA', () => {
     });
 
     await openNdaModal(page);
+
+    // Satisfy the client-side identity gate so the request actually fires and
+    // the server error is what we end up asserting on.
+    await modalRoot(page).locator('section')
+      .filter({ has: page.locator('h3', { hasText: 'Consultor' }) })
+      .locator('label').filter({ hasText: /^NIT$/ }).locator('input')
+      .fill('1021513348-7');
 
     await page.getByRole('button', { name: 'Guardar y generar PDF' }).click();
 

@@ -23,7 +23,11 @@ pytestmark = pytest.mark.django_db
 
 # Keys that _build_params() returns but are NOT used inside the markdown
 # template (e.g. consumed only by _draw_title_page).
-_TEMPLATE_EXEMPT_KEYS = {'contract_date'}
+# Keys _build_params() returns that the markdown template does not use:
+# contract_date is consumed by _draw_title_page, and the two raw contractor
+# documents are superseded by the computed {contractor_id_type}/
+# {contractor_id_number} pair but stay available for hand-edited templates.
+_TEMPLATE_EXEMPT_KEYS = {'contract_date', 'contractor_nit', 'contractor_cedula'}
 
 
 class TestBuildParams:
@@ -45,6 +49,38 @@ class TestBuildParams:
         result = _build_params({'contractor_full_name': 'Carlos'})
         assert result['client_full_name'] == '_______________'
         assert result['contractor_email'] == '_______________'
+
+    def test_identifies_the_contractor_by_nit_when_there_is_one(self):
+        result = _build_params({
+            'contractor_nit': '900.123.456-7',
+            'contractor_cedula': '1037635428',
+        })
+        assert result['contractor_id_type'] == 'NIT'
+        assert result['contractor_id_number'] == '900.123.456-7'
+
+    def test_identifies_the_contractor_by_cedula_when_there_is_no_nit(self):
+        result = _build_params({'contractor_cedula': '1037635428'})
+        assert result['contractor_id_type'] == 'C.C.'
+        assert result['contractor_id_number'] == '1037635428'
+
+    def test_blank_filler_is_not_mistaken_for_a_nit(self):
+        """The default filler is applied after resolution, never before it."""
+        result = _build_params({'contractor_cedula': '1037635428'})
+        assert result['contractor_nit'] == '_______________'
+        assert result['contractor_id_number'] == '1037635428'
+
+    def test_keeps_the_dual_label_when_no_document_is_on_file(self):
+        result = _build_params({})
+        assert result['contractor_id_type'] == 'NIT/C.C.'
+        assert result['contractor_id_number'] == '_______________'
+
+    def test_keeps_the_raw_documents_for_hand_edited_templates(self):
+        result = _build_params({
+            'contractor_nit': '900.123.456-7',
+            'contractor_cedula': '1037635428',
+        })
+        assert result['contractor_nit'] == '900.123.456-7'
+        assert result['contractor_cedula'] == '1037635428'
 
 
 class TestSubstitutePlaceholders:
@@ -356,6 +392,22 @@ class TestDefaultTemplateIntegrity:
         assert 'se transfieren de manera permanente desde el momento de la entrega' not in md
         assert 'conforme a la condición suspensiva establecida en la CLÁUSULA NOVENA' in md
         assert '### Parágrafo Tercero — Licencia Temporal de Uso' in md
+
+    def test_contractor_is_identified_by_the_resolved_document(self):
+        """A NIT must never print under the word "cédula" — that was the v7 fix."""
+        md = self.template.content_markdown
+        assert 'número de cédula {contractor_nit}' not in md
+        assert '{contractor_nit}' not in md
+        # Parties preamble and the bank-transfer sentence, both label-aware.
+        assert md.count('{contractor_id_type} número {contractor_id_number}') == 2
+        # The client keeps its own cédula field, untouched by the v7 anchors.
+        assert 'identificado con número de cédula {client_cedula}' in md
+
+    def test_annex_is_named_consistently(self):
+        """The v6 service clauses inherited a second name for the same annex."""
+        md = self.template.content_markdown
+        assert 'Documento Propuesta de Negocio' not in md
+        assert 'Documento Propuesta Comercial' in md
 
 
 # ---------------------------------------------------------------------------

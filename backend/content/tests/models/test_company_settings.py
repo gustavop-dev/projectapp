@@ -40,11 +40,32 @@ class TestCompanySettingsSingleton:
         assert settings.pk == 1
 
 
+class TestCompanySettingsContractorIdentity:
+    def test_prefers_the_nit_over_the_cedula(self, db):
+        settings = CompanySettings(
+            contractor_nit='900.123.456-7', contractor_cedula='1037635428',
+        )
+        assert settings.contractor_identity == ('NIT', '900.123.456-7')
+
+    def test_falls_back_to_the_cedula_with_its_own_label(self, db):
+        settings = CompanySettings(contractor_nit='', contractor_cedula='1037635428')
+        assert settings.contractor_identity == ('C.C.', '1037635428')
+
+    def test_load_still_creates_an_empty_singleton(self, db):
+        """The at-least-one rule lives on the admin form on purpose: enforcing
+        it on the model would break get_or_create and 500 every contract PDF."""
+        CompanySettings.objects.all().delete()
+        settings = CompanySettings.load()
+        assert settings.pk == 1
+        assert settings.contractor_identity == ('NIT/C.C.', '')
+
+
 class TestCompanySettingsToDict:
     def test_to_dict_returns_all_fields(self, company_settings):
         result = company_settings.to_dict()
         expected_keys = {
-            'contractor_full_name', 'contractor_nit', 'contractor_email',
+            'contractor_full_name', 'contractor_nit', 'contractor_cedula',
+            'contractor_email',
             'bank_name', 'bank_account_type', 'bank_account_number', 'contract_city',
         }
         assert expected_keys.issubset(set(result.keys()))

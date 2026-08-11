@@ -281,8 +281,11 @@ class PublicDiagnosticSerializer(serializers.ModelSerializer):
 class ConfidentialityParamsSerializer(serializers.Serializer):
     """Validate the params dict that fills the NDA template placeholders.
 
-    All fields are optional; missing/empty values render as ``_______________``
-    in the generated PDF, so the document can be printed and completed by hand.
+    Client-side fields are optional; missing/empty values render as
+    ``_______________`` in the generated PDF, so the document can be printed
+    and completed by hand. The contractor's identification is the exception:
+    the NDA has to name EL CONSULTOR by NIT or by cédula, so at least one of
+    the two is required.
     """
 
     client_full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
@@ -291,12 +294,23 @@ class ConfidentialityParamsSerializer(serializers.Serializer):
     client_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
     contractor_full_name = serializers.CharField(required=False, allow_blank=True, max_length=255)
     contractor_nit = serializers.CharField(required=False, allow_blank=True, max_length=64)
+    contractor_cedula = serializers.CharField(required=False, allow_blank=True, max_length=64)
     contractor_email = serializers.CharField(required=False, allow_blank=True, max_length=255)
     contract_city = serializers.CharField(required=False, allow_blank=True, max_length=120)
     contract_day = serializers.CharField(required=False, allow_blank=True, max_length=8)
     contract_month = serializers.CharField(required=False, allow_blank=True, max_length=20)
     contract_year = serializers.CharField(required=False, allow_blank=True, max_length=8)
     penal_clause_value = serializers.CharField(required=False, allow_blank=True, max_length=255)
+
+    def validate(self, data):
+        if not (
+            (data.get('contractor_nit') or '').strip()
+            or (data.get('contractor_cedula') or '').strip()
+        ):
+            raise serializers.ValidationError(
+                {'contractor_nit': 'Indica el NIT o la cédula del contratista (al menos uno).'}
+            )
+        return data
 
 
 class DiagnosticDefaultConfigSerializer(serializers.ModelSerializer):
