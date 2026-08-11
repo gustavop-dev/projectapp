@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    size="md"
+    :size="size"
     :close-on-backdrop="!hideCancel"
     :close-on-esc="!hideCancel"
     @update:model-value="(v) => !v && handleCancel()"
@@ -18,6 +18,15 @@
         <div class="flex-1 min-w-0">
           <h3 class="text-lg font-bold text-text-default">{{ title }}</h3>
           <p class="mt-1 text-sm text-text-muted leading-relaxed">{{ message }}</p>
+
+          <!--
+            Detalle estructurado del alcance (p. ej. la lista de registros que
+            una acción masiva va a tocar). Va entre el mensaje y la reja: lo
+            que se va a cambiar se lee antes de poder confirmarlo.
+          -->
+          <div v-if="$slots.default" class="mt-3" data-testid="confirm-modal-detail">
+            <slot />
+          </div>
 
           <!--
             La salida va ANTES del campo de confirmación, no después: tiene que
@@ -108,6 +117,13 @@ const props = defineProps({
   },
   requireTypeText: { type: String, default: '' },
   hideCancel: { type: Boolean, default: false },
+  // Ancho del diálogo, reenviado a BaseModal. Sólo lo suben los confirms que
+  // llevan detalle en el slot; el resto se queda en el 'md' de siempre.
+  size: {
+    type: String,
+    default: 'md',
+    validator: oneOf(['sm', 'md', 'lg', 'xl', '2xl', '5xl', 'full']),
+  },
   // Acción alternativa no destructiva. Opcional: sin `secondaryText` el modal
   // se comporta exactamente como antes para todos los call sites existentes.
   secondaryText: { type: String, default: '' },

@@ -103,6 +103,18 @@
         class="ml-auto"
         data-testid="recurring-view-mode"
       />
+      <!-- Divider, not a third segment: this opens a modal, it is not another
+           way of listing the table. -->
+      <span class="w-px h-6 bg-border-muted" aria-hidden="true" />
+      <BaseButton
+        variant="secondary"
+        size="sm"
+        data-testid="recurring-charts-button"
+        @click="showChartsModal = true"
+      >
+        <ChartPieIcon class="w-4 h-4" />
+        <span>Gráfico</span>
+      </BaseButton>
     </div>
 
     <!-- Filter panel -->
@@ -309,6 +321,17 @@
       @submit="submitForm"
     />
 
+    <!-- Charts -->
+    <RecurringChartsModal
+      :open="showChartsModal"
+      :rows="filteredRows"
+      :categories="store.recurringCategories"
+      :usd-exchange-rate="store.metaFor('recurring').usd_exchange_rate"
+      :inherited-chips="inheritedChartChips"
+      @close="showChartsModal = false"
+      @clear-filters="resetFilters"
+    />
+
     <!-- Category catalog -->
     <RecurringCategoriesModal
       :open="showCategoriesModal"
@@ -340,12 +363,13 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
-import { PlusIcon, TagIcon } from '@heroicons/vue/24/outline';
+import { ChartPieIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import RecurringGroupedTable from '~/components/accounting/RecurringGroupedTable.vue';
 import RecurringCategoriesModal from '~/components/accounting/RecurringCategoriesModal.vue';
+import RecurringChartsModal from '~/components/accounting/stats/RecurringChartsModal.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
@@ -527,6 +551,9 @@ const SHARED_COLUMNS = [
   { key: 'frequency_label', label: 'Frecuencia', hideBelow: 'lg' },
   { key: 'payment_method_label', label: 'Método', hideBelow: 'lg' },
   { key: 'billing_day', label: 'Día', align: 'center', size: 'tiny', sortable: true, hideBelow: 'md' },
+  // Preformatted by the API (like frequency_label), so both view modes render
+  // it as plain text and neither has to format a date.
+  { key: 'next_charge_label', label: 'Próximo cobro', size: 'text', hideBelow: 'md' },
   { key: 'cost_type_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
   { key: 'is_active', label: 'Estado', size: 'badge' },
 ];
@@ -572,6 +599,46 @@ const viewModeOptions = [
 
 const collapsedGroupIds = ref([]);
 const showCategoriesModal = ref(false);
+const showChartsModal = ref(false);
+
+/**
+ * Human labels for whatever the table is filtering by.
+ *
+ * The charts modal reads the same filtered rows the table shows, so its total
+ * can legitimately differ from the "Costo mensual (COP)" card. Spelling the
+ * filters out as chips is what turns that from a discrepancy into a caption.
+ */
+const inheritedChartChips = computed(() => {
+  const chips = [];
+
+  if (activeTabId.value !== 'all') {
+    const tab = savedTabs.value.find((saved) => String(saved.id) === String(activeTabId.value));
+    if (tab) chips.push(`Vista: ${tab.name}`);
+  }
+  if (currentFilters.search) chips.push(`Búsqueda: "${currentFilters.search}"`);
+
+  filterFields.value.forEach((field) => {
+    if (field.kind === 'range') {
+      const min = currentFilters[field.minKey];
+      const max = currentFilters[field.maxKey];
+      if (min || max) {
+        chips.push(`${field.label}: ${min ? money(min) : '—'} a ${max ? money(max) : '—'}`);
+      }
+      return;
+    }
+    const labelFor = (value) =>
+      field.options.find((option) => String(option.value) === String(value))?.label
+      ?? String(value);
+    const current = currentFilters[field.key];
+    if (Array.isArray(current)) {
+      if (current.length) chips.push(`${field.label}: ${current.map(labelFor).join(', ')}`);
+    } else if (current !== '' && current != null) {
+      chips.push(`${field.label}: ${labelFor(current)}`);
+    }
+  });
+
+  return chips;
+});
 
 const groups = computed(() =>
   withGroupWeights(

@@ -589,6 +589,33 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * muteIncomeReminders: silence (or resume) one income's calendar notices.
+     *
+     * Its own endpoint rather than a plain field PATCH: the generic update path
+     * emails both partners on every change, and silencing a receivable must
+     * not generate a notification of its own.
+     */
+    async muteIncomeReminders(incomeId, payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/incomes/${incomeId}/mute/`, payload,
+        );
+        this.incomes = this.incomes.map(
+          (r) => (r.id === incomeId ? response.data : r),
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'mute_failed';
+        console.error(`Error muting income ${incomeId}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * learnMerchantAlias: remember a hand-typed merchant for future statements.
      *
      * Upserts by normalized descriptor, so re-mapping a descriptor that already

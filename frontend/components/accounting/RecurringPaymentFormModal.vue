@@ -51,6 +51,7 @@ function defaultForm() {
     frequency: 'monthly',
     custom_months: '',
     billing_day: '',
+    cycle_anchor_date: '',
     cost_type: 'fixed',
     category: '',
     is_active: true,
@@ -61,6 +62,15 @@ function defaultForm() {
 const form = ref(defaultForm())
 
 const isCustomFrequency = computed(() => form.value.frequency === CUSTOM_FREQUENCY)
+const isMonthlyFrequency = computed(() => form.value.frequency === 'monthly')
+
+// A day of the month cannot say *which* month a quarterly or annual charge
+// lands on, so anything beyond monthly needs the reference date to be announced.
+const anchorHint = computed(() => (
+  isMonthlyFrequency.value
+    ? 'Opcional: con periodicidad mensual basta el día de cobro.'
+    : 'Cualquier cobro conocido. Sin ella este pago no genera avisos.'
+))
 
 watch(
   () => [props.open, props.record],
@@ -76,6 +86,7 @@ watch(
         frequency: props.record.frequency ?? 'monthly',
         custom_months: props.record.custom_months ?? '',
         billing_day: props.record.billing_day ?? '',
+        cycle_anchor_date: props.record.cycle_anchor_date ?? '',
         cost_type: props.record.cost_type ?? 'fixed',
         category: props.record.category ?? '',
         is_active: props.record.is_active ?? true,
@@ -115,6 +126,8 @@ function onSubmit() {
     payload.cop_equivalent = form.value.cop_equivalent
   }
   payload.billing_day = form.value.billing_day === '' ? null : form.value.billing_day
+  payload.cycle_anchor_date =
+    form.value.cycle_anchor_date === '' ? null : form.value.cycle_anchor_date
   payload.notes = form.value.notes
   emit('submit', payload)
 }
@@ -175,8 +188,22 @@ function onSubmit() {
         />
       </BaseFormField>
 
+      <BaseFormField
+        label="Fecha de referencia del cobro"
+        :hint="anchorHint"
+      >
+        <BaseInput
+          v-model="form.cycle_anchor_date"
+          type="date"
+          data-testid="recurring-payment-form-cycle-anchor-date"
+        />
+      </BaseFormField>
+
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BaseFormField label="Día de cobro">
+        <BaseFormField
+          label="Día de cobro"
+          :hint="isMonthlyFrequency ? '' : 'Sólo referencial: el próximo cobro sale de la fecha de arriba.'"
+        >
           <BaseInput v-model="form.billing_day" type="number" step="1" min="1" max="31" />
         </BaseFormField>
         <BaseFormField label="Tipo de costo">

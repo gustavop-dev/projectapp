@@ -4,7 +4,7 @@
     <div class="mb-6">
       <h1 class="text-2xl font-light text-text-default">Configuración</h1>
       <p class="text-sm text-text-subtle mt-1">
-        Preferencias de notificaciones del módulo contable.
+        Preferencias del módulo contable.
       </p>
     </div>
 
@@ -148,24 +148,79 @@
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
-        <h2 class="text-lg font-bold text-text-default mb-1">Avisos de vencimiento de hostings</h2>
+        <h2 class="text-lg font-bold text-text-default mb-1">Calendario de cobros y pagos</h2>
         <p class="text-sm text-text-muted mb-5">
-          Se envía un correo a los destinatarios de arriba 15 días antes del
-          vencimiento de cada hosting activo, otro a los 7 días, y luego cada
-          5 días hasta que se envíe la cuenta de cobro al cliente desde
-          <NuxtLink :to="localePath('/panel/accounting/hostings')" class="text-text-brand hover:underline">Hostings</NuxtLink>.
+          Un solo correo diario a los destinatarios de arriba con lo que está
+          por vencer. De cada fecha se avisa 15 días antes, 7 días antes y el
+          día mismo.
         </p>
         <div class="flex items-center justify-between gap-3">
-          <span class="text-sm font-medium text-text-default">Avisos activos</span>
+          <span class="text-sm font-medium text-text-default">Calendario activo</span>
           <BaseToggle
-            v-model="hostingExpiryReminderEnabled"
-            aria-label="Avisos de vencimiento de hostings activos"
-            data-testid="settings-hosting-expiry-toggle"
+            v-model="paymentCalendarEnabled"
+            aria-label="Calendario de cobros y pagos activo"
+            data-testid="settings-payment-calendar-toggle"
           />
         </div>
+
+        <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mt-5 mb-2">
+          Qué incluye
+        </p>
+        <ul class="space-y-2.5" data-testid="settings-payment-calendar-sources">
+          <li>
+            <span class="text-sm text-text-default">Ingresos esperados</span>
+            <p class="text-xs text-text-subtle">
+              Puedes silenciar un ingreso puntual desde su fila en
+              <NuxtLink :to="localePath('/panel/accounting/incomes')" class="text-text-brand hover:underline">Ingresos</NuxtLink>.
+            </p>
+          </li>
+          <li>
+            <span class="text-sm text-text-default">Próximo cobro de los gastos recurrentes</span>
+            <p class="text-xs text-text-subtle">
+              Se calcula con la fecha de referencia del cobro de cada
+              <NuxtLink :to="localePath('/panel/accounting/recurring')" class="text-text-brand hover:underline">recurrente</NuxtLink>.
+            </p>
+          </li>
+          <li class="flex items-start justify-between gap-3">
+            <div>
+              <span class="text-sm text-text-default">Vencimiento de hostings</span>
+              <p class="text-xs text-text-subtle">
+                15 y 7 días antes, luego cada 5 días hasta que se envíe la
+                cuenta de cobro al cliente.
+              </p>
+            </div>
+            <BaseToggle
+              v-model="hostingExpiryReminderEnabled"
+              :disabled="!paymentCalendarEnabled"
+              aria-label="Avisos de vencimiento de hostings activos"
+              data-testid="settings-hosting-expiry-toggle"
+            />
+          </li>
+        </ul>
+
+        <div class="mt-5 pt-5 border-t border-border-muted">
+          <span class="text-sm font-medium text-text-default">Recordatorio de vencidos</span>
+          <p class="text-xs text-text-subtle mb-2">
+            Cada cuánto se repite el aviso de un ingreso esperado que ya pasó
+            su fecha y sigue sin cobrarse, hasta que se registre el pago, se dé
+            por perdido o se silencie.
+          </p>
+          <BaseSegmented
+            v-model="overdueReminderFrequency"
+            :options="OVERDUE_FREQUENCY_OPTIONS"
+            :disabled="!paymentCalendarEnabled"
+            size="sm"
+            data-testid="settings-overdue-frequency"
+          />
+        </div>
+
         <p v-if="!notificationsEnabled" class="text-xs text-warning-strong mt-3">
-          Las notificaciones generales están apagadas: estos avisos tampoco se
-          enviarán mientras sigan así.
+          Las notificaciones generales están apagadas: este correo tampoco se
+          enviará mientras sigan así.
+        </p>
+        <p v-else-if="!paymentCalendarEnabled" class="text-xs text-warning-strong mt-3">
+          El calendario está apagado: se guarda la frecuencia, pero no saldrá
+          ningún aviso hasta que lo actives.
         </p>
       </div>
 
@@ -183,6 +238,24 @@
             data-testid="settings-usd-rate-input"
           />
         </div>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Vista de ingresos</h2>
+        <p class="text-sm text-text-muted mb-4">
+          Cómo abre
+          <NuxtLink :to="localePath('/panel/accounting/incomes')" class="text-text-brand hover:underline">Ingresos</NuxtLink>
+          en cada visita: agrupada por cliente o la tabla clásica. El
+          selector dentro de la página cambia la vista solo durante la
+          visita. Se guarda con "Guardar cambios".
+        </p>
+        <BaseSegmented
+          v-model="incomeDefaultViewMode"
+          :options="INCOME_VIEW_OPTIONS"
+          size="sm"
+          aria-label="Vista por defecto de ingresos"
+          data-testid="settings-income-view-mode"
+        />
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
@@ -234,6 +307,7 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -253,9 +327,22 @@ const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
 const statementReminderEnabled = ref(true);
 const hostingExpiryReminderEnabled = ref(true);
+const paymentCalendarEnabled = ref(true);
+const overdueReminderFrequency = ref('biweekly');
 const recipients = ref([]);
 const usdExchangeRate = ref(null);
+const incomeDefaultViewMode = ref('grouped');
 let rowId = 0;
+
+const INCOME_VIEW_OPTIONS = [
+  { value: 'grouped', label: 'Agrupado' },
+  { value: 'classic', label: 'Clásico' },
+];
+
+const OVERDUE_FREQUENCY_OPTIONS = [
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'biweekly', label: 'Quincenal' },
+];
 
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
@@ -264,6 +351,13 @@ function syncFromSettings(settings) {
   hostingExpiryReminderEnabled.value = Boolean(
     settings?.hosting_expiry_reminder_enabled,
   );
+  paymentCalendarEnabled.value = Boolean(settings?.payment_calendar_enabled);
+  // Anything unknown lands on 'biweekly', the backend default.
+  overdueReminderFrequency.value =
+    settings?.overdue_reminder_frequency === 'weekly' ? 'weekly' : 'biweekly';
+  // Anything unknown lands on 'grouped', the backend default.
+  incomeDefaultViewMode.value =
+    settings?.income_default_view_mode === 'classic' ? 'classic' : 'grouped';
   usdExchangeRate.value =
     settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
   recipients.value = (settings?.notification_recipients || []).map((email) => ({
@@ -309,6 +403,9 @@ async function save() {
     card_reminder_enabled: cardReminderEnabled.value,
     statement_reminder_enabled: statementReminderEnabled.value,
     hosting_expiry_reminder_enabled: hostingExpiryReminderEnabled.value,
+    payment_calendar_enabled: paymentCalendarEnabled.value,
+    overdue_reminder_frequency: overdueReminderFrequency.value,
+    income_default_view_mode: incomeDefaultViewMode.value,
   };
   // Only send the rate when the user has one loaded/typed: the backend
   // keeps its current value otherwise.

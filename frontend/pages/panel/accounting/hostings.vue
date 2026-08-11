@@ -94,46 +94,16 @@
     />
 
     <!-- Bulk client assignment: the completion path for unlinked hostings -->
-    <div
-      v-if="selectedIds.length > 0"
-      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
-      data-testid="hostings-bulk-bar"
-    >
-      <span class="text-sm text-text-default whitespace-nowrap">
-        <span class="font-semibold tabular-nums">{{ selectedIds.length }}</span>
-        seleccionado{{ selectedIds.length === 1 ? '' : 's' }}
-      </span>
-      <BaseButton
-        v-if="!allFilteredSelected"
-        variant="ghost"
-        size="sm"
-        data-testid="hostings-select-all-filtered"
-        @click="selectAllFiltered"
-      >
-        Seleccionar los {{ filteredIds.length }} filtrados
-      </BaseButton>
-      <div class="flex-1 min-w-[16rem]">
-        <ClientAutocomplete
-          v-model="bulkClientId"
-          test-id="hostings-bulk-client"
-          placeholder="Cliente a asignar (vacío = desvincular)..."
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <BaseButton variant="secondary" size="sm" @click="clearSelection">
-          Cancelar
-        </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          :disabled="store.isUpdating"
-          data-testid="hostings-bulk-assign"
-          @click="assignClientToSelection"
-        >
-          Asignar cliente
-        </BaseButton>
-      </div>
-    </div>
+    <ClientBulkAssignBar
+      v-model:selected="selectedIds"
+      :rows="store.hostings"
+      :filtered-ids="filteredIds"
+      :entity="HOSTING_ENTITY"
+      testid-prefix="hostings"
+      :record-label="hostingLabel"
+      :busy="store.isUpdating"
+      @submit="applyClientToSelection"
+    />
 
     <!-- Error -->
     <AccountingErrorState
@@ -359,7 +329,7 @@ import AccountingStatusSelect from '~/components/accounting/AccountingStatusSele
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
-import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -374,7 +344,9 @@ import {
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
+import { describeAssignmentResult } from '~/utils/clientAssignment';
 import { formatMoney } from '~/utils/formatMoney';
+import { clientLabelOf } from '~/utils/incomeClients';
 import { addWeightPct, formatPercent } from '~/utils/percent';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -382,13 +354,15 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 const store = useAccountingStore();
 const notify = usePanelNotify();
 
+/** Noun the bulk client bar uses in its confirmation and result copy. */
+const HOSTING_ENTITY = { singular: 'hosting', plural: 'hostings' };
+
 // -------------------------------------------------------------------
 // Filters
 // -------------------------------------------------------------------
 
 // Sentinel shared with the backend filter: 'none' = still unassigned.
 const selectedIds = ref([]);
-const bulkClientId = ref(null);
 
 const NO_CLIENT_KEY = 'none';
 const NO_CLIENT_LABEL = 'Sin cliente';
@@ -451,7 +425,7 @@ const clientFilterOptions = computed(() => {
   const seen = new Map();
   store.hostings.forEach((row) => {
     if (row.client != null && !seen.has(row.client)) {
-      seen.set(row.client, row.client_display_name || row.client_name || `Cliente #${row.client}`);
+      seen.set(row.client, clientLabelOf(row));
     }
   });
   const options = [...seen.entries()]
@@ -588,32 +562,27 @@ const columns = [
 
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
 
-const allFilteredSelected = computed(
-  () => filteredIds.value.length > 0
-    && filteredIds.value.every((id) => selectedIds.value.includes(id)),
-);
+/** What identifies a hosting in the bulk confirmation list. */
+const hostingLabel = (row) => row.domain_url || row.client_name || `Hosting #${row.id}`;
 
-function selectAllFiltered() {
-  selectedIds.value = [...filteredIds.value];
-}
-
-function clearSelection() {
-  selectedIds.value = [];
-  bulkClientId.value = null;
-}
-
-async function assignClientToSelection() {
-  const ids = [...selectedIds.value];
+async function applyClientToSelection({ ids, client, mode, plan }) {
   const result = await runMutation(
-    () => store.bulkAssignHostingClient(ids, bulkClientId.value),
+    () => store.bulkAssignHostingClient(ids, client),
     {
-      successTitle: bulkClientId.value
-        ? 'Cliente asignado a los hostings'
-        : 'Cliente desvinculado de los hostings',
-      errorTitle: 'No se pudo asignar el cliente',
+      successTitle: mode === 'unlink'
+        ? 'Cliente desvinculado de los hostings'
+        : 'Cliente asignado a los hostings',
+      // The server skips rows already on the target, so the count it returns
+      // is what actually changed — not what was selected.
+      successDetail: (r) => describeAssignmentResult(
+        plan, r.data?.updated ?? 0, { entity: HOSTING_ENTITY },
+      ),
+      errorTitle: mode === 'unlink'
+        ? 'No se pudo desvincular el cliente'
+        : 'No se pudo asignar el cliente',
     },
   );
-  if (result.success) clearSelection();
+  if (result.success) selectedIds.value = [];
 }
 
 async function loadRecords() {

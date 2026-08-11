@@ -141,16 +141,31 @@ export function useAccountingCrudPage({
       : labels.saveErrorTitle;
   }
 
+  /** Same string-or-function shape as `saveErrorTitle`, resolved lazily. */
+  function resolveCopy(value, result) {
+    return typeof value === 'function' ? value(result) : (value || '');
+  }
+
   /**
    * Shared mutation flow: run the store call, then notify + row-flash +
    * onAfterMutation on success, or an error toast with the backend message.
    * Also the escape hatch for page-specific actions (liquidate, write-off)
    * so they don't re-implement this dance.
+   *
+   * `successTitle` and `successDetail` may be `(result) => string` when the
+   * copy depends on what came back — a bulk action reporting how many rows
+   * the server actually wrote, for instance.
    */
-  async function runMutation(action, { successTitle, errorTitle, flashId } = {}) {
+  async function runMutation(
+    action,
+    { successTitle, successDetail, errorTitle, flashId } = {},
+  ) {
     const result = await action();
     if (result.success) {
-      notify.success({ title: successTitle });
+      notify.success({
+        title: resolveCopy(successTitle, result),
+        detail: resolveCopy(successDetail, result),
+      });
       markMutated(flashId ?? result.data?.id);
       if (onAfterMutation) await onAfterMutation();
     } else {
