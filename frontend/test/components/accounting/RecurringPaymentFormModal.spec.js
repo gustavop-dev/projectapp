@@ -83,6 +83,7 @@ function frequencySelect(wrapper) {
 }
 
 const CUSTOM_MONTHS = '[data-testid="recurring-payment-form-custom-months"]';
+const CYCLE_ANCHOR = '[data-testid="recurring-payment-form-cycle-anchor-date"]';
 
 describe('RecurringPaymentFormModal', () => {
   it('offers every frequency from the shortest cycle to the longest', () => {
@@ -131,6 +132,45 @@ describe('RecurringPaymentFormModal', () => {
       frequency: 'custom',
       custom_months: '5',
     });
+  });
+
+  it('submits the reference date that anchors the charge cycle', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('input[type="text"]').setValue('Dominio anual');
+    await wrapper.find('input[inputmode="numeric"]').setValue('80000');
+    await frequencySelect(wrapper).setValue('annual');
+    await wrapper.find(CYCLE_ANCHOR).setValue('2026-03-15');
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      frequency: 'annual',
+      cycle_anchor_date: '2026-03-15',
+    });
+  });
+
+  it('sends a null reference date when it is left empty', async () => {
+    const wrapper = mountModal();
+
+    await wrapper.find('input[type="text"]').setValue('Figma');
+    await wrapper.find('input[inputmode="numeric"]').setValue('60000');
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
+      cycle_anchor_date: null,
+    });
+  });
+
+  it('warns that a non-monthly cycle needs the reference date to notify', async () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.text()).toContain(
+      'Opcional: con periodicidad mensual basta el día de cobro.',
+    );
+
+    await frequencySelect(wrapper).setValue('annual');
+
+    expect(wrapper.text()).toContain('Sin ella este pago no genera avisos.');
   });
 
   it('clears the month count when a catalog frequency is picked back', async () => {

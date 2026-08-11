@@ -119,7 +119,10 @@ function buildHandler({ calls }) {
           notifications_enabled: true,
           card_reminder_enabled: true,
           hosting_expiry_reminder_enabled: true,
+          payment_calendar_enabled: true,
+          overdue_reminder_frequency: 'biweekly',
           usd_exchange_rate: '4000.00',
+          income_default_view_mode: 'grouped',
           updated_at: '2026-07-01T00:00:00Z',
         }),
       };
@@ -282,6 +285,83 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(page.getByText('Configuración guardada')).toBeVisible();
     const patch = calls.find((call) => call.method === 'PATCH');
     expect(patch.body.card_reminder_enabled).toBe(false);
+  });
+
+  test('settings switches the overdue reminder to weekly and saves it', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+
+    await expect(
+      page.getByText('Calendario de cobros y pagos'),
+    ).toBeVisible({ timeout: 25_000 });
+    // The mock serves 'biweekly', so the segmented control lands there.
+    await expect(
+      page.getByTestId('settings-overdue-frequency').getByRole('tab', { name: 'Quincenal' }),
+    ).toHaveAttribute('aria-selected', 'true');
+
+    await page
+      .getByTestId('settings-overdue-frequency')
+      .getByRole('tab', { name: 'Semanal' })
+      .click();
+    await page.getByTestId('settings-save-button').click();
+
+    await expect(page.getByText('Configuración guardada')).toBeVisible();
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch.body.overdue_reminder_frequency).toBe('weekly');
+  });
+
+  test('turning the calendar off locks the frequency but keeps its value', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+
+    await expect(
+      page.getByText('Calendario de cobros y pagos'),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('settings-payment-calendar-toggle').click();
+
+    // Disabled rather than hidden: the operator has to be able to see what
+    // will happen when the calendar is switched back on.
+    await expect(
+      page.getByTestId('settings-overdue-frequency').getByRole('tab', { name: 'Semanal' }),
+    ).toBeDisabled();
+    await expect(
+      page.getByText('El calendario está apagado'),
+    ).toBeVisible();
+
+    await page.getByTestId('settings-save-button').click();
+    await expect(page.getByText('Configuración guardada')).toBeVisible();
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch.body.payment_calendar_enabled).toBe(false);
+    expect(patch.body.overdue_reminder_frequency).toBe('biweekly');
+  });
+
+  test('settings persists the default incomes view mode', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Vista de ingresos')).toBeVisible({ timeout: 25_000 });
+    // The mock serves 'grouped', so the segmented control lands there.
+    await expect(
+      page.getByTestId('settings-income-view-mode').getByRole('tab', { name: 'Agrupado' }),
+    ).toHaveAttribute('aria-selected', 'true');
+
+    await page.getByTestId('settings-income-view-mode')
+      .getByRole('tab', { name: 'Clásico' }).click();
+    await page.getByTestId('settings-save-button').click();
+
+    await expect(page.getByText('Configuración guardada')).toBeVisible();
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch.body.income_default_view_mode).toBe('classic');
   });
 
   test('settings blocks saving an invalid email', {

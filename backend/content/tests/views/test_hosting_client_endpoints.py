@@ -282,3 +282,83 @@ class TestClientDetailConsolidation:
         assert response.data['hostings'] == []
         assert response.data['incomes'] == []
         assert response.data['hostings_monthly_total'] == '0.00'
+
+
+class TestSnapshotFollowsTheClient:
+    """Reassigning the FK must refresh the billing snapshot: the old values
+    are the PREVIOUS client's contact data, and billing_email prefers the
+    stored override — a stale email routes the cuenta al buzón equivocado."""
+
+    def test_reassigning_the_client_refreshes_the_billing_snapshot(
+        self, super_client, make_client_profile,
+    ):
+        old = make_client_profile(company='Kore SAS', email='kore@example.co')
+        new = make_client_profile(
+            company='Vastago SAS', email='gerencia@vastago.com.co',
+        )
+        hosting = make_hosting(
+            client=old, client_name='Kore SAS', client_email='kore@example.co',
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/hostings/{hosting.pk}/update/',
+            {'client': new.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        hosting.refresh_from_db()
+        assert hosting.client_id == new.pk
+        assert hosting.client_name == 'Vastago SAS'
+        assert hosting.client_email == 'gerencia@vastago.com.co'
+        assert hosting.billing_email == 'gerencia@vastago.com.co'
+
+    def test_an_override_in_the_same_request_wins(
+        self, super_client, make_client_profile,
+    ):
+        old = make_client_profile(company='Kore SAS', email='kore@example.co')
+        new = make_client_profile(
+            company='Vastago SAS', email='gerencia@vastago.com.co',
+        )
+        hosting = make_hosting(
+            client=old, client_name='Kore SAS', client_email='kore@example.co',
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/hostings/{hosting.pk}/update/',
+            {'client': new.pk, 'client_email': 'facturacion@vastago.com.co'},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        hosting.refresh_from_db()
+        # The explicit contact survives; the rest still points at the new client.
+        assert hosting.client_email == 'facturacion@vastago.com.co'
+        assert hosting.client_name == 'Vastago SAS'
+
+    def test_bulk_assign_refreshes_and_audits_the_snapshot(
+        self, super_client, make_client_profile,
+    ):
+        old = make_client_profile(company='Kore SAS', email='kore@example.co')
+        new = make_client_profile(
+            company='Vastago SAS', email='gerencia@vastago.com.co',
+        )
+        hosting = make_hosting(
+            client=old, client_name='Kore SAS', client_email='kore@example.co',
+        )
+
+        response = super_client.post(
+            BULK_URL,
+            {'hosting_ids': [hosting.pk], 'client': new.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        hosting.refresh_from_db()
+        assert hosting.client_email == 'gerencia@vastago.com.co'
+        assert hosting.client_name == 'Vastago SAS'
+        log = AccountingChangeLog.objects.filter(
+            entity_type='hosting', object_id=hosting.pk, action='updated',
+        ).latest('pk')
+        changed_fields = {change['field'] for change in log.changes}
+        assert 'client_email' in changed_fields

@@ -286,6 +286,31 @@ class TestRetrieveProposalClient:
         assert response.status_code == 200
         assert response.data['proposals'][0]['title'] == 'Newest proposal'
 
+    def test_nested_income_queries_do_not_scale_with_rows(
+        self, admin_client, make_client_profile, make_income,
+    ):
+        """The nested incomes reuse the list annotations + select_related;
+        without them the serializer falls back to ~3 queries PER row."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        profile = make_client_profile(company='Vastago SAS')
+        make_income(concept='Cuota 1', client=profile)
+        url = reverse('retrieve-proposal-client', args=[profile.pk])
+
+        admin_client.get(url)  # warm caches (content types, auth)
+        with CaptureQueriesContext(connection) as baseline:
+            assert admin_client.get(url).status_code == 200
+
+        for n in range(2, 8):
+            make_income(concept=f'Cuota {n}', client=profile)
+        with CaptureQueriesContext(connection) as grown:
+            response = admin_client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data['incomes']) == 7
+        assert len(grown) == len(baseline)
+
 
 # ---------------------------------------------------------------------------
 # Create (standalone)

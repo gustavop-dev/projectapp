@@ -13,6 +13,7 @@ from content.models import (
     IncomeRecord,
     McpConnector,
 )
+from content.serializers.accounting import AccountingSettingsSerializer
 from content.services import accounting_service
 
 
@@ -58,18 +59,19 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 7 ledgers × 5 CRUD + 4 non-CRUD + 15 statement tools = 54
-        assert len(names) == 54
+        # 7 ledgers × 5 CRUD + 5 non-CRUD + 15 statement tools = 55
+        assert len(names) == 55
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
-            'get_settings', 'update_settings', 'get_statement_instructions',
+            'get_settings', 'update_settings', 'mute_income',
+            'get_statement_instructions',
             'create_statement', 'resolve_merchants', 'finalize_statement',
         ):
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 54
+        assert len(ACCOUNTING_TOOLS) == 55
 
 
 @pytest.mark.django_db
@@ -269,6 +271,25 @@ class TestAccountingMcpHandlerBranches:
             'notification_recipients': 'no-es-lista',
         })
         assert response.data['result']['isError'] is True
+
+    def test_update_settings_changes_income_view_mode(
+        self, api_client, accounting_connector, mcp_superuser, accounting_settings,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'update_settings', {
+            'income_default_view_mode': 'classic',
+        })
+        assert response.data['result']['isError'] is False
+        assert AccountingSettings.load().income_default_view_mode == 'classic'
+
+    def test_update_settings_schema_declares_every_editable_field(self):
+        """The declared schema drifted behind the serializer once (it listed
+        3 of 6 editable fields); pin them to each other so it cannot again."""
+        tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'update_settings')
+        properties = tool['input_schema']['properties']
+        editable = set(AccountingSettingsSerializer.Meta.fields) - {'updated_at'}
+        assert set(properties) == editable
+        assert properties['income_default_view_mode']['enum'] == ['classic', 'grouped']
 
 
 @pytest.mark.django_db

@@ -115,6 +115,37 @@ describe('ConfirmModal', () => {
     warnSpy.mockRestore();
   });
 
+  describe('scope detail slot', () => {
+    it('renders slot content between the message and the confirm buttons', () => {
+      const wrapper = mount(ConfirmModal, {
+        props: { modelValue: true, message: 'Se asignará Ana Pérez a 2 hostings.' },
+        slots: { default: '<p>kore.com.co</p>' },
+        global: {
+          components: { BaseModal, BaseButton },
+          stubs: { Teleport: true, Transition: false },
+        },
+      });
+
+      const html = wrapper.html();
+      expect(wrapper.find('[data-testid="confirm-modal-detail"]').text())
+        .toContain('kore.com.co');
+      expect(html.indexOf('Se asignará')).toBeLessThan(html.indexOf('kore.com.co'));
+      expect(html.indexOf('kore.com.co'))
+        .toBeLessThan(html.indexOf('confirm-modal-confirm'));
+    });
+
+    it('leaves no empty detail block when nothing is passed', () => {
+      const wrapper = mountModal();
+
+      expect(wrapper.find('[data-testid="confirm-modal-detail"]').exists()).toBe(false);
+    });
+
+    it('widens the dialog only when asked to', () => {
+      expect(mountModal().findComponent(BaseModal).props('size')).toBe('md');
+      expect(mountModal({ size: 'lg' }).findComponent(BaseModal).props('size')).toBe('lg');
+    });
+  });
+
   describe('requireTypeText', () => {
     it('renders the type-to-confirm input when requireTypeText is set', () => {
       const wrapper = mountModal({ requireTypeText: 'DELETE' });
