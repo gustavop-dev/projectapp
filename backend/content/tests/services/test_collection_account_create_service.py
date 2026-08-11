@@ -89,7 +89,9 @@ class TestHappyPath:
         assert ext.customer_identification == '901234567'
         assert ext.customer_identification_type == 'NIT'
         assert ext.customer_email == 'ana@acme.co'
-        assert document.payment_methods.count() == 1
+        # The CompanySettings bank account plus the issuer's own extra channel.
+        assert document.payment_methods.count() == 2
+        assert document.payment_methods.filter(is_primary=True).count() == 1
 
     def test_cedula_when_no_nit_and_concept_defaults_from_income(self):
         client = make_client(cedula='12345678')

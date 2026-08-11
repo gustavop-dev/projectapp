@@ -4,13 +4,15 @@ from django.db import models
 class DocumentPaymentMethod(models.Model):
     """Structured payment instructions for a document."""
 
+    # Labels in Spanish: they are printed verbatim on the cuenta de cobro PDF
+    # and email, which are client-facing Spanish documents.
     class MethodType(models.TextChoices):
-        BANK_TRANSFER = 'bank_transfer', 'Bank transfer'
+        BANK_TRANSFER = 'bank_transfer', 'Transferencia bancaria'
         NEQUI = 'nequi', 'Nequi'
         DAVIPLATA = 'daviplata', 'Daviplata'
         WOMPI = 'wompi', 'Wompi'
-        CASH = 'cash', 'Cash'
-        OTHER = 'other', 'Other'
+        CASH = 'cash', 'Efectivo'
+        OTHER = 'other', 'Otro'
 
     document = models.ForeignKey(
         'content.Document',

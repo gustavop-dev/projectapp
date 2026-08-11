@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from content.models import (
+    CompanySettings,
     Document,
     DocumentCollectionAccount,
     DocumentNumberSequence,
@@ -33,9 +34,41 @@ def get_default_issuer():
     return issuer
 
 
+def default_payment_methods_config(issuer):
+    """Payment methods a new collection account starts with.
+
+    The bank transfer comes from ``CompanySettings`` — the same singleton that
+    fills the contract's payment clause — so the account only has to be updated
+    in one place to change every document that names it. The issuer's own
+    ``default_payment_methods`` are kept and appended after it: that JSON stays
+    the place to add a second channel (Nequi, Daviplata) without a migration.
+    """
+    company = CompanySettings.load()
+    methods = []
+    # A half-configured install would otherwise print a payment block with the
+    # labels and no data, which reads worse than no block at all.
+    if company.bank_name and company.bank_account_number:
+        id_label, id_number = company.contractor_identity
+        methods.append({
+            'payment_method_type': DocumentPaymentMethod.MethodType.BANK_TRANSFER,
+            'bank_name': company.bank_name,
+            'account_type': company.bank_account_type,
+            'account_number': company.bank_account_number,
+            'account_holder_name': company.contractor_full_name,
+            'account_holder_identification': f'{id_label} {id_number}'.strip(),
+        })
+    methods.extend(issuer.default_payment_methods or [])
+    return methods
+
+
 def seed_default_payment_methods(document, issuer):
-    """Copy the issuer's default payment methods onto the document."""
-    for position, method in enumerate(issuer.default_payment_methods or []):
+    """Snapshot the configured payment methods onto the document.
+
+    A snapshot, not a live read: a cuenta de cobro already freezes its payer and
+    customer at issue time, and a document reissued after the bank account
+    changed must keep naming the account the client was told to pay into.
+    """
+    for position, method in enumerate(default_payment_methods_config(issuer)):
         DocumentPaymentMethod.objects.create(
             document=document,
             payment_method_type=method.get('payment_method_type', 'bank_transfer'),

@@ -28,6 +28,7 @@ from django.conf import settings
 from reportlab.lib import colors
 from reportlab.lib.colors import HexColor
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
@@ -1137,6 +1138,61 @@ def _draw_header_bar(c, theme=None, page_w=None, page_h=None):
 def _draw_green_bar(c):
     """Alias kept for backward compatibility."""
     _draw_header_bar(c)
+
+
+# ── Brand watermark ──────────────────────────────────────────
+# Backend-owned copy of the ProjectApp wordmark. Deliberately not read from
+# `backend/static/frontend/_nuxt/`, whose filename carries a build hash that
+# changes on every frontend build.
+_LOGO_PATH = Path(settings.BASE_DIR) / 'static' / 'brand' / 'logo-projectapp.png'
+# The artwork is a 2084² square whose ink only occupies the middle ~1434×896;
+# rendering it uncropped would size the padding, not the wordmark. Downscaled
+# because a watermark never needs 2084px of detail.
+_LOGO_RASTER_W = 900
+
+
+@lru_cache(maxsize=1)
+def _watermark_image():
+    """The wordmark cropped to its ink and downscaled, or None if missing.
+
+    Missing asset is not an error: the PDF loses its watermark and keeps every
+    other element, the same way `_register_fonts` falls back to Helvetica.
+    """
+    try:
+        from PIL import Image
+
+        image = Image.open(_LOGO_PATH).convert('RGBA')
+        image = image.crop(image.getchannel('A').getbbox())
+        height = round(image.height * _LOGO_RASTER_W / image.width)
+        image = image.resize((_LOGO_RASTER_W, height), Image.LANCZOS)
+        return ImageReader(image)
+    except Exception:
+        logger.debug('Brand watermark unavailable at %s', _LOGO_PATH)
+        return None
+
+
+def _draw_logo_watermark(c, page_w, page_h, width_ratio=0.45, alpha=0.06):
+    """Paint the brand wordmark centred behind the page content.
+
+    Call this before drawing anything else on the page: PDF has no z-index, so
+    "behind" means "painted first". `alpha` is a constant fill alpha that
+    multiplies the artwork's own transparency, which is what keeps the mark
+    readable as branding without competing with the text over it.
+    """
+    image = _watermark_image()
+    if image is None:
+        return
+    img_w, img_h = image.getSize()
+    draw_w = page_w * width_ratio
+    draw_h = draw_w * img_h / img_w
+    c.saveState()
+    c.setFillAlpha(alpha)
+    c.drawImage(
+        image,
+        (page_w - draw_w) / 2, (page_h - draw_h) / 2,
+        width=draw_w, height=draw_h, mask='auto',
+    )
+    c.restoreState()
 
 
 def _draw_footer(

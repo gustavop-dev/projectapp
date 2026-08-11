@@ -1,4 +1,4 @@
-{{ greeting|default:"Hola" }}
+{% autoescape off %}{{ greeting|default:"Hola" }}
 
 {% for section in sections %}{{ section }}
 
@@ -12,3 +12,4 @@
 {{ signature_role }}
 
 projectapp.co · team@projectapp.co · WhatsApp +57 323 812 2373
+{% endautoescape %}
