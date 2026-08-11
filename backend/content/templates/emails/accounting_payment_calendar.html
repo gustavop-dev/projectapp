@@ -1,0 +1,111 @@
+{% load date_filters money_filters %}{% autoescape on %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>[Contabilidad] Calendario de cobros y pagos</title>
+</head>
+<body style="margin:0; padding:0; background-color:#f4f4f7; font-family:Arial, Helvetica, sans-serif; color:#1f2933;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7; padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:8px; overflow:hidden; max-width:600px; width:100%;">
+          <tr>
+            <td style="padding:20px 32px; background-color:{% if has_overdue %}#b91c1c{% else %}#b45309{% endif %}; color:#ffffff;">
+              <h1 style="margin:0; font-size:18px; font-weight:bold;">
+                Contabilidad · Calendario de cobros y pagos
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 32px;">
+
+              {% if incomes %}
+              <h2 style="margin:0 0 8px 0; font-size:15px; color:#1f2933;">Ingresos esperados</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; border-collapse:collapse; margin-bottom:24px;">
+                <tr>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Concepto</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Cliente</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Monto</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Fecha</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Estado</th>
+                </tr>
+                {% for item in incomes %}
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.title }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.client_name|default:"—" }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">
+                    ${{ item.amount|cop }}{% if item.total %}<br><span style="color:#6b7280;">de ${{ item.total|cop }}</span>{% endif %}
+                  </td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.due_date|bogota_date }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;{% if item.days_left < 0 %} color:#b91c1c;{% endif %}">{{ item.status }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% endif %}
+
+              {% if recurring %}
+              <h2 style="margin:0 0 8px 0; font-size:15px; color:#1f2933;">Gastos recurrentes</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; border-collapse:collapse; margin-bottom:24px;">
+                <tr>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Servicio</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Frecuencia</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Monto</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Próximo cobro</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Estado</th>
+                </tr>
+                {% for item in recurring %}
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.title }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.detail }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{% if item.currency == 'USD' %}US${% else %}${% endif %}{{ item.amount|cop }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.due_date|bogota_date }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.status }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% endif %}
+
+              {% if hostings %}
+              <h2 style="margin:0 0 8px 0; font-size:15px; color:#1f2933;">Hostings por vencer</h2>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:13px; border-collapse:collapse; margin-bottom:24px;">
+                <tr>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Cliente</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Dominio</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Pago por ciclo</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Vence</th>
+                  <th align="left" style="padding:8px; border-bottom:2px solid #e5e7eb; color:#6b7280; font-weight:600;">Estado</th>
+                </tr>
+                {% for item in hostings %}
+                <tr>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.title }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.subtitle }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">${{ item.amount|cop }} <span style="color:#6b7280;">({{ item.detail }})</span></td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;">{{ item.due_date|bogota_date }}</td>
+                  <td style="padding:8px; border-bottom:1px solid #f3f4f6;{% if item.days_left < 0 %} color:#b91c1c;{% endif %}">{{ item.status }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% endif %}
+
+              <p style="margin:0 0 8px 0;">
+                <a href="{{ panel_url }}" style="display:inline-block; padding:10px 20px; background-color:#1d4ed8; color:#ffffff; text-decoration:none; border-radius:6px; font-size:14px;">Ver ingresos</a>
+                {% if hostings %}<a href="{{ hostings_url }}" style="display:inline-block; padding:10px 20px; margin-left:8px; background-color:#e5e7eb; color:#1f2933; text-decoration:none; border-radius:6px; font-size:14px;">Ver hostings</a>{% endif %}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 32px; background-color:#f9fafb; color:#6b7280; font-size:12px;">
+              Aviso automático del módulo contable · ProjectApp. Los ingresos vencidos
+              se recuerdan con frecuencia {{ overdue_frequency_label|lower }} hasta que
+              se registran como pagados, se dan por perdidos o se silencian desde el panel.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+{% endautoescape %}

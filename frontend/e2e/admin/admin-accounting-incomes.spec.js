@@ -57,6 +57,12 @@ function incomeRow(overrides = {}) {
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
   savedTabs = [],
+  // Landing mode the mocked backend setting dictates. Production defaults to
+  // 'grouped'; the mock pins 'classic' because almost every test in this file
+  // exercises classic-only affordances (column sort, row checkboxes,
+  // pagination) — without this branch mockApi's empty fallback would leave
+  // the page grouped and break them all.
+  incomeViewMode = 'classic',
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -66,6 +72,13 @@ function buildHandler({
         body: JSON.stringify({
           user: { username: 'admin', is_staff: true, is_superuser: true },
         }),
+      };
+    }
+    if (apiPath === 'accounting/settings/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ income_default_view_mode: incomeViewMode }),
       };
     }
     if (apiPath === 'accounting/incomes/' && method === 'GET') {
@@ -857,6 +870,8 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await gotoIncomes(page);
 
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
+    // The unassigned row wears the completion pill instead of an empty cell.
+    await expect(page.getByTestId('income-unlinked-2')).toContainText('sin vincular');
 
     // The builtin tab is the completion group: only the unassigned survive.
     await page.getByTestId('filter-tabs-tab-no-client').click();
@@ -865,7 +880,7 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 
-  test('assigning a client in bulk updates every selected row', {
+  test('assigning a client in bulk confirms the scope, then updates every selected row', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -886,12 +901,75 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('incomes-bulk-assign').click();
 
+    // Nothing is written until the operator sees what the mass edit touches.
+    await expect(page.getByRole('dialog')).toContainText(
+      'Se asignará Ana Pérez a 2 ingresos sin cliente.',
+    );
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Inicio 40%');
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Entrega 30%');
+    expect(calls.some((c) => c.apiPath === 'accounting/incomes/bulk-assign-client/')).toBe(false);
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
     await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
     const bulk = calls.find(
       (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
     );
     expect(bulk.body).toEqual({ income_ids: [1, 2], client: 5 });
+  });
+
+  test('assigning stays blocked, with the reason on screen, until a client is picked', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ id: 1, concept: 'Kore - Inicio 40%' })],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+
+    // An empty picker no longer means "unlink": the action is simply off.
+    await expect(page.getByTestId('incomes-bulk-assign')).toBeDisabled();
+    await expect(page.getByTestId('incomes-bulk-hint')).toContainText(
+      'Elige un cliente para poder asignar',
+    );
+    await expect(page.getByTestId('incomes-bulk-unlink')).toHaveCount(0);
+  });
+
+  test('unlinking is its own action and names the client the rows are leaving', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%', client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({ id: 2, concept: 'Reembolso banco' }),
+      ],
+      calls,
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('incomes-bulk-unlink').click();
+
+    await expect(page.getByRole('dialog')).toContainText(
+      '1 ingreso quedará sin cliente: 1 de Ana Pérez.',
+    );
+    // Solo la fila enlazada entra en el alcance; la suelta no aparece.
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Inicio 40%');
+    await expect(page.getByTestId('client-bulk-summary-list')).not.toContainText('Reembolso banco');
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
+    const bulk = calls.find(
+      (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
+    );
+    // Only the linked row travels — the unassigned one had nothing to lose.
+    expect(bulk.body).toEqual({ income_ids: [1], client: null });
   });
 
   test('the totals modal breaks the filtered incomes down by client', {
@@ -916,5 +994,77 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('income-client-row-5')).toContainText('Ana Pérez');
     await expect(page.getByTestId('income-client-row-none')).toContainText('Sin cliente');
     await expect(page.getByTestId('income-client-billed-sum')).toContainText('1.500.000');
+  });
+});
+
+test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('lands grouped when the backend setting says so', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (the contract under test is the LANDING
+    // state itself — what renders before any interaction; the toggle path is
+    // exercised by the session-only test right below)
+    // quality: allow-deep-link (the tab is a subnav entry; what is under
+    // test is the landing mode the backend setting dictates)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({
+          id: 2, concept: 'Reembolso banco',
+          total_amount: '500000.00', pending_amount: '500000.00',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    // The setting, not a device preference, decides the landing mode.
+    await expect(
+      page.getByTestId('incomes-view-mode').getByRole('tab', { name: 'Agrupado' }),
+    ).toHaveAttribute('aria-selected', 'true');
+
+    await expect(page.getByTestId('income-group-5')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('income-group-billed-5')).toContainText('1.160.000');
+    // The unassigned bucket closes the list, flagged as completion work.
+    await expect(page.getByTestId('income-group-none')).toContainText('por completar');
+    await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');
+    // The rows keep their actions inside the group.
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('income-liquidate-1')).toBeVisible();
+  });
+
+  test('the in-page toggle is session-only: classic appears, nothing persists', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const settingsWrites = [];
+    page.on('request', (request) => {
+      if (request.url().includes('accounting/settings') && request.method() !== 'GET') {
+        settingsWrites.push(request.method());
+      }
+    });
+    await mockApi(page, buildHandler({
+      rows: [incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' })],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+    await expect(page.getByTestId('income-group-5')).toBeVisible();
+
+    await page.getByTestId('incomes-view-mode')
+      .getByRole('tab', { name: 'Clásico' }).click();
+
+    // The classic table takes over: selection checkboxes exist only there.
+    await expect(page.getByTestId('income-group-5')).toHaveCount(0);
+    await expect(page.getByTestId('accounting-select-1')).toBeVisible();
+    // …and the switch wrote nothing: the landing mode belongs to the setting.
+    expect(settingsWrites).toEqual([]);
   });
 });

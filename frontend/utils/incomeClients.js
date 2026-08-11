@@ -9,6 +9,19 @@ function toNumber(value) {
 }
 
 /**
+ * Display name of the client a record is linked to.
+ *
+ * Hostings expose the linked name as `client_display_name` — their
+ * `client_name` is a free-text snapshot that survives even when unlinked —
+ * while incomes serialize the derived name straight into `client_name`. The
+ * id fallback keeps a row identifiable instead of blank.
+ */
+export function clientLabelOf(row) {
+  if (!row || row.client == null) return NO_CLIENT_LABEL;
+  return row.client_display_name || row.client_name || `Cliente #${row.client}`;
+}
+
+/**
  * Totals of one client's incomes.
  *
  * `billed` is what was projected (expected records) and `collected` what
@@ -48,13 +61,7 @@ export function groupByClient(rows = [], reducer = totalsFor, sortKey = 'billed'
   rows.forEach((row) => {
     const id = row.client ?? NO_CLIENT_KEY;
     if (!buckets.has(id)) {
-      buckets.set(id, {
-        id,
-        name: row.client
-          ? (row.client_display_name || row.client_name || `Cliente #${row.client}`)
-          : NO_CLIENT_LABEL,
-        rows: [],
-      });
+      buckets.set(id, { id, name: clientLabelOf(row), rows: [] });
     }
     buckets.get(id).rows.push(row);
   });

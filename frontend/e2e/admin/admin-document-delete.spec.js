@@ -31,8 +31,16 @@ function baseRoutes(apiPath) {
 async function openDeleteConfirm(page) {
   await page.goto('/panel/documents');
   await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
-  await page.getByRole('button', { name: /Eliminar/i }).click();
+  await page.getByRole('button', { name: /^Eliminar/ }).click();
   await expect(page.getByText('Eliminar documento')).toBeVisible();
+}
+
+// El borrado de documento adoptó la reja escrita de las carpetas y del resto
+// del panel: hay que escribir DELETE antes de que el destructivo se habilite.
+async function passTypedGate(page) {
+  await expect(page.getByTestId('confirm-modal-confirm')).toBeDisabled();
+  await page.getByTestId('confirm-type-input').fill('DELETE');
+  await expect(page.getByTestId('confirm-modal-confirm')).toBeEnabled();
 }
 
 test.describe('Admin Document Delete', () => {
@@ -54,6 +62,7 @@ test.describe('Admin Document Delete', () => {
       return baseRoutes(apiPath);
     });
     await openDeleteConfirm(page);
+    await passTypedGate(page);
 
     await page.getByTestId('confirm-modal-confirm').click();
 
@@ -95,6 +104,7 @@ test.describe('Admin Document Delete', () => {
       return baseRoutes(apiPath);
     });
     await openDeleteConfirm(page);
+    await passTypedGate(page);
 
     await page.getByTestId('confirm-modal-confirm').click();
 

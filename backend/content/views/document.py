@@ -15,6 +15,7 @@ from content.serializers.document import (
     DocumentCreateUpdateSerializer,
     DocumentFromMarkdownSerializer,
 )
+from content.services import document_archive_service
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
 from content.services.markdown_parser import markdown_to_blocks
@@ -22,12 +23,39 @@ from content.utils import safe_slug
 
 logger = logging.getLogger(__name__)
 
+_ARCHIVE_ORDER = {'newest': '-archived_at', 'oldest': 'archived_at'}
+
+
+def wants_archived(request):
+    """True cuando el caller pide el scope archivado (`?archived=1`)."""
+    raw = request.query_params.get('archived')
+    return str(raw or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def archived_order_field(request):
+    """Campo de orden para el scope archivado; `order` inválido cae a newest.
+
+    A diferencia de `folder`/`tags`, que seleccionan datos y por eso responden
+    400, `order` sólo los presenta: un valor raro no justifica romper la vista.
+    """
+    raw = str(request.query_params.get('order') or '').strip().lower()
+    return _ARCHIVE_ORDER.get(raw, _ARCHIVE_ORDER['newest'])
+
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_documents(request):
-    """List all documents, optionally filtered by folder and/or tags."""
-    documents = Document.objects.all().prefetch_related('tags').select_related('folder')
+    """List all documents, optionally filtered by folder and/or tags.
+
+    Por defecto sólo devuelve documentos activos; `?archived=1` devuelve
+    únicamente los archivados, ordenados por fecha de archivado.
+    """
+    archived = wants_archived(request)
+    documents = (
+        Document.objects.filter(is_archived=archived)
+        .prefetch_related('tags')
+        .select_related('folder')
+    )
 
     folder_param = request.query_params.get('folder')
     if folder_param == 'none':
@@ -52,6 +80,11 @@ def list_documents(request):
             )
         if tag_ids:
             documents = documents.filter(tags__id__in=tag_ids).distinct()
+
+    if archived:
+        # `-created_at` desempata y protege el orden si alguna fila quedara sin
+        # `archived_at` (datos antiguos migrados a mano).
+        documents = documents.order_by(archived_order_field(request), '-created_at')
 
     serializer = DocumentListSerializer(documents, many=True)
     return Response(serializer.data)
@@ -269,10 +302,35 @@ def update_document(request, document_id):
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def delete_document(request, document_id):
-    """Delete a document."""
+    """Delete a document.
+
+    Los archivados siguen siendo borrables: archivar es el paso intermedio,
+    eliminar sigue disponible para la limpieza final.
+    """
     document = get_object_or_404(Document, pk=document_id)
     document.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def archive_document(request, document_id):
+    """Saca un documento de la vista principal sin destruirlo."""
+    document = get_object_or_404(Document, pk=document_id)
+    document_archive_service.archive_document(document)
+    return Response(DocumentListSerializer(document).data)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def unarchive_document(request, document_id):
+    """Devuelve un documento archivado a la vista principal.
+
+    Si su carpeta fue eliminada mientras tanto, reaparece en «Sin carpeta».
+    """
+    document = get_object_or_404(Document, pk=document_id)
+    document_archive_service.unarchive_document(document)
+    return Response(DocumentListSerializer(document).data)
 
 
 @api_view(['POST'])

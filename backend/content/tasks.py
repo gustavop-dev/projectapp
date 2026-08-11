@@ -1586,18 +1586,23 @@ def send_statement_reminder():
     return run_statement_reminder()
 
 
-# 13:30 UTC = 08:30 Bogotá (UTC-5, no DST).
+# 13:30 UTC = 08:30 Bogotá (UTC-5, no DST). Takes over the slot the standalone
+# hosting-expiry task used: those notices are now a section of this calendar,
+# and 08:30 puts it ahead of the card (09:00) and statement (09:05) reminders.
 @periodic_task(crontab(hour='13', minute='30'))
-@lock_task('hosting-expiry-notices')
-def send_hosting_expiry_notices():
+@lock_task('accounting-payment-calendar')
+def send_payment_calendar():
     """
-    Huey task (daily 8:30 Bogotá): hosting expiry notices.
+    Huey task (daily 8:30 Bogotá): the consolidated payment calendar.
 
-    Cadence logic (15/7 days before valid_to, then every 5 days until the
-    cuenta de cobro is sent) lives in content.services.hosting_expiry_service.
+    One email with the expected incomes, the next charge of the recurring
+    payments and the hostings about to expire — announced 15 and 7 days ahead
+    and on the date itself, with expected incomes reminded every week or
+    fortnight while they stay uncollected. Logic lives in
+    content.services.accounting_payment_calendar_service.
     """
-    from content.services.hosting_expiry_service import (
-        run_hosting_expiry_notices,
+    from content.services.accounting_payment_calendar_service import (
+        run_payment_calendar,
     )
 
-    return run_hosting_expiry_notices()
+    return run_payment_calendar()

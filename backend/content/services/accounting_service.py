@@ -75,6 +75,10 @@ TRACKED_FIELDS = {
         ('gustavo_amount', 'Monto Gustavo'),
         ('carlos_amount', 'Monto Carlos'),
         ('expected_income', 'Ingreso esperado'),
+        # Tracked but absent from the write serializer: muting is audited, and
+        # only the mute endpoint can write it.
+        ('reminders_muted', 'Avisos silenciados'),
+        ('reminders_muted_until', 'Silenciado hasta'),
         ('notes', 'Notas'),
     ],
     EntityType.EXPENSE: [
@@ -121,6 +125,7 @@ TRACKED_FIELDS = {
         ('frequency', 'Frecuencia'),
         ('custom_months', 'Meses del ciclo'),
         ('billing_day', 'Día de cobro'),
+        ('cycle_anchor_date', 'Fecha de referencia del cobro'),
         ('cost_type', 'Tipo de costo'),
         ('category', 'Categoría'),
         ('is_active', 'Activo'),
@@ -185,7 +190,10 @@ TRACKED_FIELDS = {
         ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
         ('statement_reminder_enabled', 'Recordatorio de extractos'),
         ('hosting_expiry_reminder_enabled', 'Avisos de vencimiento de hostings'),
+        ('payment_calendar_enabled', 'Calendario de cobros y pagos'),
+        ('overdue_reminder_frequency', 'Frecuencia de avisos vencidos'),
         ('usd_exchange_rate', 'Tasa de cambio USD'),
+        ('income_default_view_mode', 'Vista por defecto de ingresos'),
     ],
 }
 
@@ -370,6 +378,7 @@ def update_record(entity_type, instance, serializer, user, notify=True):
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     old_values = snapshot_values(instance, entity_type)
+    old_client_id = getattr(instance, 'client_id', None)
     with transaction.atomic():
         instance = serializer.save()
         _sync_pocket(
@@ -378,6 +387,12 @@ def update_record(entity_type, instance, serializer, user, notify=True):
         )
         if entity_type == EntityType.POCKET:
             _sync_from_pocket(instance, mirror_ledger, user, is_create=False)
+        if (
+            entity_type == EntityType.INCOME
+            and instance.kind == IncomeRecord.Kind.EXPECTED
+            and instance.client_id != old_client_id
+        ):
+            _cascade_client_to_liquid_children(instance, user)
     changes = compute_changes(
         entity_type, old_values, snapshot_values(instance, entity_type),
     )
@@ -393,6 +408,66 @@ def update_record(entity_type, instance, serializer, user, notify=True):
         if notify:
             _notify(change_log)
     return instance
+
+
+def _refresh_hosting_snapshot(record):
+    """Point the billing snapshot at the record's (new) client.
+
+    Reassigning the FK leaves the snapshot holding the PREVIOUS client's
+    contact data, and ``billing_email`` prefers the override — a stale
+    ``client_email`` routes the cuenta de cobro to the wrong inbox. Mutates
+    the instance and returns the changed field names for update_fields;
+    unlinking keeps the snapshot (it is the historical billing record).
+    """
+    if record.client_id is None:
+        return []
+    from content.services.collection_account_create_service import (
+        customer_snapshot_defaults,
+    )
+
+    defaults = customer_snapshot_defaults(record.client)
+    updates = {
+        'client_name': defaults['name'] or '',
+        'client_email': defaults['email'] or '',
+        'client_contact_name': defaults['contact_name'] or '',
+        'client_identification': defaults['identification'] or '',
+    }
+    changed = []
+    for field, value in updates.items():
+        if getattr(record, field) != value:
+            setattr(record, field, value)
+            changed.append(field)
+    return changed
+
+
+def _cascade_client_to_liquid_children(income, user):
+    """Carry an expected income's client to the liquids that settle it.
+
+    Settlement inherits the client only at creation time; when the link is
+    fixed later (bulk completion of legacy rows, or an edit), the money
+    already collected would stay under the old client — or "Sin cliente" —
+    and every per-client total would split one deal across two buckets.
+    One audit row per child, same as bulk_assign_client.
+    """
+    for child in income.liquid_records.select_related('client__user'):
+        if child.client_id == income.client_id:
+            continue
+        old_values = snapshot_values(child, EntityType.INCOME)
+        child.client = income.client
+        child.save(update_fields=['client', 'updated_at'])
+        changes = compute_changes(
+            EntityType.INCOME, old_values,
+            snapshot_values(child, EntityType.INCOME),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=EntityType.INCOME,
+                object_id=child.pk,
+                object_repr=object_repr(EntityType.INCOME, child),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
 
 
 @transaction.atomic
@@ -415,7 +490,10 @@ def bulk_assign_client(entity_type, record_ids, client, user):
             continue
         old_values = snapshot_values(record, entity_type)
         record.client = client
-        record.save(update_fields=['client', 'updated_at'])
+        update_fields = ['client', 'updated_at']
+        if entity_type == EntityType.HOSTING:
+            update_fields += _refresh_hosting_snapshot(record)
+        record.save(update_fields=update_fields)
         changes = compute_changes(
             entity_type, old_values, snapshot_values(record, entity_type),
         )
@@ -428,6 +506,11 @@ def bulk_assign_client(entity_type, record_ids, client, user):
                 changes=changes,
                 actor=user,
             )
+        if (
+            entity_type == EntityType.INCOME
+            and record.kind == IncomeRecord.Kind.EXPECTED
+        ):
+            _cascade_client_to_liquid_children(record, user)
         updated.append(record)
     return updated
 

@@ -102,6 +102,7 @@
               :deleting-id="deletingFolder?.id ?? null"
               class="py-1"
               @edit="startEdit"
+              @archive="askArchive"
               @delete="askDelete"
               @reorder="handleReorder"
             />
@@ -159,50 +160,6 @@
             <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
           </div>
 
-          <Transition name="fade-modal">
-            <div
-              v-if="deleteVariant"
-              class="mx-6 mb-4 flex-shrink-0 rounded-xl border p-4"
-              :class="deleteVariant.panel"
-            >
-              <div class="flex items-start gap-3">
-                <div
-                  class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5"
-                  :class="deleteVariant.iconWrap"
-                >
-                  <svg class="w-4 h-4" :class="deleteVariant.iconStroke" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold truncate" :class="deleteVariant.title">
-                    {{ deleteVariant.titleText }}
-                  </p>
-                  <p class="text-xs mt-0.5" :class="deleteVariant.body">
-                    {{ deleteVariant.bodyText }}
-                  </p>
-                  <div class="flex items-center gap-2 mt-3">
-                    <BaseButton
-                      v-if="deleteVariant.kind === 'destructive'"
-                      variant="danger"
-                      size="sm"
-                      :loading="folderStore.isUpdating"
-                      @click="confirmDelete"
-                    >
-                      Confirmar eliminación
-                    </BaseButton>
-                    <BaseButton
-                      :variant="deleteVariant.dismissVariant"
-                      size="sm"
-                      @click="deletingFolder = null"
-                    >
-                      {{ deleteVariant.dismissText }}
-                    </BaseButton>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Transition>
 
           <!-- Footer -->
           <div class="px-6 py-4 border-t border-border-muted flex justify-end flex-shrink-0">
@@ -214,18 +171,32 @@
         </div>
       </div>
     </Transition>
+
+    <!--
+      Un solo contrato de borrado de carpeta en toda la app: este modal delega
+      en DeleteFolderModal en vez de repetir un panel inline sin reja de
+      confirmación. Anidado sin conflicto: este Teleport va a z-[9990] y
+      BaseModal a z-[9999], y el focus trap vive sólo en BaseModal.
+    -->
+    <DeleteFolderModal
+      v-model="showDeleteFolder"
+      :folder="deletingFolder"
+      @deleted="onFolderDeleted"
+      @archived="onFolderArchived"
+    />
   </Teleport>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
 import FolderManagerTree from '~/components/panel/documents/FolderManagerTree.vue';
+import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   initialParent: { type: Number, default: null },
 });
-const emit = defineEmits(['update:modelValue', 'changed']);
+const emit = defineEmits(['update:modelValue', 'changed', 'archived']);
 
 const folderStore = useDocumentFolderStore();
 const newName = ref('');
@@ -234,12 +205,14 @@ const editingFolder = ref(null);
 const editName = ref('');
 const editParent = ref(null);
 const deletingFolder = ref(null);
+const showDeleteFolder = ref(false);
 const errorMsg = ref('');
 
 watch(() => props.modelValue, async (open) => {
   if (open) {
     errorMsg.value = '';
     deletingFolder.value = null;
+    showDeleteFolder.value = false;
     editingFolder.value = null;
     newName.value = '';
     newParent.value = props.initialParent ?? null;
@@ -316,63 +289,26 @@ async function commitEdit() {
 function askDelete(folder) {
   deletingFolder.value = folder;
   editingFolder.value = null;
+  showDeleteFolder.value = true;
 }
 
-const deleteVariant = computed(() => {
-  const folder = deletingFolder.value;
-  if (!folder) return null;
-  if (folder.document_count) {
-    return {
-      kind: 'blocked',
-      panel: 'border-warning-strong/30 bg-warning-soft',
-      iconWrap: 'bg-warning-soft',
-      iconStroke: 'text-warning-strong',
-      title: 'text-warning-strong',
-      body: 'text-warning-strong',
-      titleText: `No se puede eliminar "${folder.name}"`,
-      bodyText: `Primero mueve o elimina sus ${folder.document_count} documento(s).`,
-      dismissVariant: 'secondary',
-      dismissText: 'Entendido',
-    };
-  }
-  if (folder.children_count) {
-    return {
-      kind: 'blocked',
-      panel: 'border-warning-strong/30 bg-warning-soft',
-      iconWrap: 'bg-warning-soft',
-      iconStroke: 'text-warning-strong',
-      title: 'text-warning-strong',
-      body: 'text-warning-strong',
-      titleText: `No se puede eliminar "${folder.name}"`,
-      bodyText: `Primero mueve o elimina sus ${folder.children_count} subcarpeta(s).`,
-      dismissVariant: 'secondary',
-      dismissText: 'Entendido',
-    };
-  }
-  return {
-    kind: 'destructive',
-    panel: 'border-danger-strong/30 bg-danger-soft',
-    iconWrap: 'bg-danger-soft',
-    iconStroke: 'text-danger-strong',
-    title: 'text-danger-strong',
-    body: 'text-danger-strong',
-    titleText: `Eliminar "${folder.name}"`,
-    bodyText: 'Esta acción no se puede deshacer.',
-    dismissVariant: 'ghost',
-    dismissText: 'Cancelar',
-  };
-});
+// Archivar desde el árbol abre el mismo modal: con contenido presenta archivar
+// como la acción disponible, así que no hace falta una confirmación aparte.
+function askArchive(folder) {
+  askDelete(folder);
+}
 
-async function confirmDelete() {
-  if (!deletingFolder.value) return;
-  errorMsg.value = '';
-  const result = await folderStore.deleteFolder(deletingFolder.value.id);
+async function onFolderDeleted() {
   deletingFolder.value = null;
-  if (result.success) {
-    emit('changed');
-  } else {
-    errorMsg.value = formatErr(result.errors) || 'No se pudo eliminar.';
-  }
+  await folderStore.fetchFolders();
+  emit('changed');
+}
+
+async function onFolderArchived(payload) {
+  deletingFolder.value = null;
+  await folderStore.fetchFolders();
+  emit('archived', payload);
+  emit('changed');
 }
 
 async function handleReorder({ orderedIds }) {

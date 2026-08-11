@@ -60,8 +60,10 @@ class Command(BaseCommand):
         if not content.strip():
             raise CommandError(f'Markdown file is empty: {path}')
 
+        # `is_archived=False`: nunca archivar estimates nuevos en una carpeta
+        # que el usuario sacó de circulación.
         folder, folder_created = DocumentFolder.objects.get_or_create(
-            name=options['folder'], parent=None,
+            name=options['folder'], parent=None, is_archived=False,
         )
         doc_type, _ = DocumentType.objects.get_or_create(
             code=MARKDOWN, defaults={'name': 'Documento markdown'},

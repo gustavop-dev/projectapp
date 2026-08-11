@@ -23,6 +23,21 @@ class DocumentFolder(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Archivado: saca la carpeta de la vista sin destruirla. A diferencia de
+    # borrar, archivar SÍ está permitido con contenido: la cascada arrastra
+    # subcarpetas y documentos. `archived_via_folder` guarda la carpeta que
+    # causó el archivado (NULL = archivada por sí misma), y es lo que permite
+    # desarchivar devolviendo sólo lo que esta carpeta arrastró.
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_via_folder = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        related_name='cascade_archived_folders',
+        null=True,
+        blank=True,
+    )
+
     class Meta:
         ordering = ['order', 'name']
 

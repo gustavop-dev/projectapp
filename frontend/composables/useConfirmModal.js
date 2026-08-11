@@ -36,7 +36,13 @@ export function useConfirmModal() {
     variant: 'warning',
     requireTypeText: '',
     hideCancel: false,
+    // Acción alternativa no destructiva (p. ej. "Archivar en su lugar"), que
+    // se ofrece junto al botón de confirmación.
+    secondaryText: '',
+    secondaryVariant: 'secondary',
+    secondaryHint: '',
     onConfirm: null,
+    onSecondary: null,
     _resolve: null,
   })
 
@@ -45,7 +51,10 @@ export function useConfirmModal() {
    * When `onConfirm` callback is provided, it runs on confirm.
    * Always returns a Promise<boolean> that resolves to true on confirm, false on cancel.
    */
-  function requestConfirm({ title, message, confirmText, cancelText, variant, requireTypeText, hideCancel, onConfirm }) {
+  function requestConfirm({
+    title, message, confirmText, cancelText, variant, requireTypeText, hideCancel,
+    onConfirm, secondaryText, secondaryVariant, secondaryHint, onSecondary,
+  }) {
     return new Promise((resolve) => {
       confirmState.value = {
         open: true,
@@ -56,7 +65,11 @@ export function useConfirmModal() {
         variant: variant || 'warning',
         requireTypeText: requireTypeText || '',
         hideCancel: Boolean(hideCancel),
+        secondaryText: secondaryText || '',
+        secondaryVariant: secondaryVariant || 'secondary',
+        secondaryHint: secondaryHint || '',
         onConfirm: onConfirm || null,
+        onSecondary: onSecondary || null,
         _resolve: resolve,
       }
     })
@@ -70,13 +83,27 @@ export function useConfirmModal() {
     if (resolve) resolve(true)
   }
 
+  async function handleSecondaryAction() {
+    const fn = confirmState.value.onSecondary
+    const resolve = confirmState.value._resolve
+    confirmState.value.open = false
+    if (fn) await fn()
+    // Resuelve FALSE, no un centinela truthy: los callers del patrón `await`
+    // hacen `if (!confirmed) return`, y elegir la alternativa no es confirmar.
+    if (resolve) resolve(false)
+  }
+
   function handleCancelled() {
     const resolve = confirmState.value._resolve
     confirmState.value.open = false
     confirmState.value.onConfirm = null
+    confirmState.value.onSecondary = null
     confirmState.value._resolve = null
     if (resolve) resolve(false)
   }
 
-  return { confirmState, requestConfirm, handleConfirmed, handleCancelled }
+  return {
+    confirmState, requestConfirm,
+    handleConfirmed, handleSecondaryAction, handleCancelled,
+  }
 }

@@ -468,7 +468,7 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 
-  test('assigning a client in bulk links every selected hosting', {
+  test('assigning a client in bulk confirms the scope, then links every selected hosting', {
     tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -485,10 +485,75 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('hostings-bulk-assign').click();
 
+    // The mass edit names its scope before it runs, not after.
+    await expect(page.getByRole('dialog')).toContainText(
+      'Se asignará Germán Franco a 1 hosting sin cliente.',
+    );
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('korehealths.com');
+    expect(calls.some((c) => c.apiPath === 'accounting/hostings/bulk-assign-client/')).toBe(false);
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
     await expect(page.getByTestId('hostings-bulk-bar')).toHaveCount(0);
     const bulk = calls.find(
       (call) => call.apiPath === 'accounting/hostings/bulk-assign-client/',
     );
     expect(bulk.body).toEqual({ hosting_ids: [1], client: 5 });
+  });
+
+  test('assigning stays blocked, with the reason on screen, until a client is picked', {
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('accounting-select-1').check();
+
+    // An empty picker no longer means "unlink": the action is simply off.
+    await expect(page.getByTestId('hostings-bulk-assign')).toBeDisabled();
+    await expect(page.getByTestId('hostings-bulk-hint')).toContainText(
+      'Elige un cliente para poder asignar',
+    );
+    await expect(page.getByTestId('hostings-bulk-unlink')).toHaveCount(0);
+  });
+
+  test('unlinking is its own action and names the client the hostings are leaving', {
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      hostings: [
+        { ...HOSTING_ROWS[0], client: 5, client_display_name: 'Germán Franco' },
+        HOSTING_ROWS[1],
+      ],
+    }));
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('hostings-bulk-unlink').click();
+
+    await expect(page.getByRole('dialog')).toContainText(
+      '1 hosting quedará sin cliente: 1 de Germán Franco.',
+    );
+    // Solo la fila enlazada entra en el alcance; la suelta no aparece.
+    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('korehealths.com');
+    await expect(page.getByTestId('client-bulk-summary-list')).not.toContainText('xpandia');
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('hostings-bulk-bar')).toHaveCount(0);
+    const bulk = calls.find(
+      (call) => call.apiPath === 'accounting/hostings/bulk-assign-client/',
+    );
+    // Only the linked row travels — the unassigned one had nothing to lose.
+    expect(bulk.body).toEqual({ hosting_ids: [1], client: null });
   });
 });

@@ -204,51 +204,57 @@ describe('FolderManagerModal', () => {
   // ── Delete flow ───────────────────────────────────────────────────────────
 
   describe('delete flow', () => {
-    it('shows delete confirmation for an empty folder', async () => {
+    // El panel inline de borrado se consolidó en DeleteFolderModal: un solo
+    // contrato de borrado de carpeta (con reja de confirmación) en toda la app.
+
+    it('opens DeleteFolderModal with the folder when the tree delete icon is clicked', async () => {
       mockFolderStore.folders = [emptyFolder];
       const wrapper = mountModal();
+
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
 
-      expect(wrapper.text()).toContain('Confirmar eliminación');
+      const child = wrapper.findComponent({ name: 'DeleteFolderModal' });
+      expect(child.props('modelValue')).toBe(true);
+      expect(child.props('folder')).toEqual(emptyFolder);
     });
 
-    it('calls deleteFolder when Confirmar eliminación is clicked', async () => {
+    it('opens the same modal from the archive icon, which offers archiving for a filled folder', async () => {
+      mockFolderStore.folders = [baseFolder];
+      const wrapper = mountModal();
+
+      await wrapper.find('[title="Archivar carpeta"]').trigger('click');
+
+      const child = wrapper.findComponent({ name: 'DeleteFolderModal' });
+      expect(child.props('modelValue')).toBe(true);
+      expect(child.props('folder')).toEqual(baseFolder);
+    });
+
+    it('refreshes and emits changed after the child modal reports a delete', async () => {
       mockFolderStore.folders = [emptyFolder];
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
-      await wrapper.findAll('button').find((btn) => btn.text().includes('Confirmar eliminación')).trigger('click');
+
+      mockFolderStore.fetchFolders.mockClear();
+      wrapper.findComponent({ name: 'DeleteFolderModal' }).vm.$emit('deleted', emptyFolder);
       await flushPromises();
 
-      expect(mockFolderStore.deleteFolder).toHaveBeenCalledWith(emptyFolder.id);
+      // La lista se recarga en el scope activo, y el padre avisa una sola vez.
+      expect(mockFolderStore.fetchFolders).toHaveBeenCalledTimes(1);
+      expect(wrapper.emitted('changed')).toHaveLength(1);
+      expect(wrapper.findComponent({ name: 'DeleteFolderModal' }).props('folder')).toBeNull();
     });
 
-    it('hides the delete confirmation when Cancelar is clicked', async () => {
-      mockFolderStore.folders = [emptyFolder];
-      const wrapper = mountModal();
-      await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
-
-      expect(wrapper.text()).not.toContain('Confirmar eliminación');
-    });
-
-    it('blocks deletion and shows a warning when the folder has documents', async () => {
+    it('re-emits archived with the cascade counts after the child modal archives', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
+      await wrapper.find('[title="Archivar carpeta"]').trigger('click');
 
-      expect(wrapper.text()).toContain('No se puede eliminar');
-      expect(wrapper.text()).toContain('3 documento(s)');
-      expect(wrapper.text()).not.toContain('Confirmar eliminación');
-    });
+      const payload = { folder: baseFolder, folders: 1, documents: 3 };
+      wrapper.findComponent({ name: 'DeleteFolderModal' }).vm.$emit('archived', payload);
+      await flushPromises();
 
-    it('dismisses the warning when Entendido is clicked without calling deleteFolder', async () => {
-      mockFolderStore.folders = [baseFolder];
-      const wrapper = mountModal();
-      await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Entendido').trigger('click');
-
-      expect(wrapper.text()).not.toContain('No se puede eliminar');
-      expect(mockFolderStore.deleteFolder).not.toHaveBeenCalled();
+      expect(wrapper.emitted('archived')).toEqual([[payload]]);
+      expect(wrapper.emitted('changed')).toHaveLength(1);
     });
   });
 

@@ -1,4 +1,10 @@
-"""Tests for the hosting expiry notice cadence (15/7 days, then every 5)."""
+"""Tests for the hosting expiry cadence (15/7 days, then every 5).
+
+The cadence is unchanged; its delivery moved into the daily payment calendar,
+so these drive `run_payment_calendar` and assert on the hosting state. Keeping
+them pointed at the real entry point is the guarantee that absorbing the
+notices into the digest did not quietly drop them.
+"""
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -6,9 +12,9 @@ import pytest
 from django.core import mail
 
 from content.models import AccountingSettings, EmailLog, HostingRecord
-from content.services.hosting_expiry_service import (
+from content.services.accounting_payment_calendar_service import (
     TEMPLATE_KEY,
-    run_hosting_expiry_notices,
+    run_payment_calendar,
 )
 
 pytestmark = pytest.mark.django_db
@@ -49,7 +55,7 @@ def sent_count():
 class TestCadence:
     def test_first_notice_at_15_days(self):
         record = make_hosting(days_left=15)
-        assert run_hosting_expiry_notices(TODAY) == 1
+        assert run_payment_calendar(TODAY) == 1
         record.refresh_from_db()
         assert record.expiry_notice_count == 1
         assert record.expiry_notice_last_sent_at == TODAY
@@ -58,43 +64,43 @@ class TestCadence:
 
     def test_not_due_beyond_15_days(self):
         make_hosting(days_left=16)
-        assert run_hosting_expiry_notices(TODAY) == 0
+        assert run_payment_calendar(TODAY) == 0
 
     def test_catch_up_first_notice_inside_window(self):
         make_hosting(days_left=3)
-        assert run_hosting_expiry_notices(TODAY) == 1
+        assert run_payment_calendar(TODAY) == 1
 
     def test_no_repeat_between_15_and_7_days(self):
         record = make_hosting(days_left=15)
-        run_hosting_expiry_notices(TODAY)
+        run_payment_calendar(TODAY)
         # 5 days later there are 10 days left: still silent.
         record.refresh_from_db()
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=5)) == 0
+        assert run_payment_calendar(TODAY + timedelta(days=5)) == 0
 
     def test_second_notice_when_crossing_7_days(self):
         record = make_hosting(days_left=15)
-        run_hosting_expiry_notices(TODAY)
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=8)) == 1
+        run_payment_calendar(TODAY)
+        assert run_payment_calendar(TODAY + timedelta(days=8)) == 1
         record.refresh_from_db()
         assert record.expiry_notice_count == 2
 
     def test_repeats_every_5_days_after_7_day_notice(self):
         make_hosting(days_left=7)
-        run_hosting_expiry_notices(TODAY)
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=4)) == 0
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=5)) == 1
+        run_payment_calendar(TODAY)
+        assert run_payment_calendar(TODAY + timedelta(days=4)) == 0
+        assert run_payment_calendar(TODAY + timedelta(days=5)) == 1
 
     def test_continues_past_expiry(self):
         record = make_hosting(days_left=-3)
-        assert run_hosting_expiry_notices(TODAY) == 1
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=5)) == 1
+        assert run_payment_calendar(TODAY) == 1
+        assert run_payment_calendar(TODAY + timedelta(days=5)) == 1
         record.refresh_from_db()
         assert record.expiry_notice_count == 2
 
     def test_same_day_rerun_is_idempotent(self):
         make_hosting(days_left=15)
-        run_hosting_expiry_notices(TODAY)
-        assert run_hosting_expiry_notices(TODAY) == 0
+        run_payment_calendar(TODAY)
+        assert run_payment_calendar(TODAY) == 0
         assert sent_count() == 1
 
 
@@ -104,18 +110,18 @@ class TestStopsAndRearm:
         HostingRecord.objects.update(
             billing_requested_at=TODAY - timedelta(days=1),
         )
-        assert run_hosting_expiry_notices(TODAY) == 0
+        assert run_payment_calendar(TODAY) == 0
 
     def test_renewal_rearms_and_clears_billing_request(self):
         record = make_hosting(days_left=5)
-        run_hosting_expiry_notices(TODAY)
+        run_payment_calendar(TODAY)
         record.refresh_from_db()
         # Renewal: valid_to moves 6 months; billing was requested meanwhile.
         HostingRecord.objects.filter(pk=record.pk).update(
             valid_to=record.valid_to + timedelta(days=180),
             billing_requested_at=TODAY,
         )
-        assert run_hosting_expiry_notices(TODAY + timedelta(days=1)) == 0
+        assert run_payment_calendar(TODAY + timedelta(days=1)) == 0
         record.refresh_from_db()
         assert record.expiry_notice_count == 0
         assert record.expiry_notice_last_sent_at is None
@@ -125,37 +131,48 @@ class TestStopsAndRearm:
     def test_inactive_and_null_valid_to_are_skipped(self):
         make_hosting(days_left=5, is_active=False)
         make_hosting(days_left=5, valid_to=None, client_name='Sin vigencia')
-        assert run_hosting_expiry_notices(TODAY) == 0
+        assert run_payment_calendar(TODAY) == 0
 
-    def test_disabled_flag_gates_everything(self):
+    def test_disabled_flag_gates_the_hosting_section(self):
         make_hosting(days_left=5)
         config = AccountingSettings.load()
         config.hosting_expiry_reminder_enabled = False
         config.save()
-        assert run_hosting_expiry_notices(TODAY) == 0
+        assert run_payment_calendar(TODAY) == 0
 
     def test_no_recipients_retries_without_state_update(self):
         record = make_hosting(days_left=5)
         config = AccountingSettings.load()
         config.notification_recipients = []
         config.save()
-        assert run_hosting_expiry_notices(TODAY) == 0
+        assert run_payment_calendar(TODAY) == 0
         record.refresh_from_db()
         assert record.expiry_notice_count == 0
         assert record.expiry_notice_last_sent_at is None
 
-    def test_email_log_metadata(self):
-        record = make_hosting(days_left=7)
-        run_hosting_expiry_notices(TODAY)
-        log = EmailLog.objects.get(template_key=TEMPLATE_KEY)
-        assert log.metadata['hosting_id'] == record.pk
-        assert log.metadata['days_left'] == 7
-        assert log.metadata['notice_number'] == 1
 
-    def test_body_formats_payment_and_validity_dates(self):
+class TestDigestContent:
+    def test_email_log_names_the_hosting(self):
+        record = make_hosting(days_left=7)
+        run_payment_calendar(TODAY)
+        log = EmailLog.objects.get(template_key=TEMPLATE_KEY)
+        assert log.metadata['counts']['hostings'] == 1
+        entry = log.metadata['hostings'][0]
+        assert entry['id'] == record.pk
+        assert entry['days_left'] == 7
+        assert entry['notice_number'] == 1
+
+    def test_body_formats_money_and_the_expiry_date(self):
         make_hosting(days_left=15)
-        assert run_hosting_expiry_notices(TODAY) == 1
+        assert run_payment_calendar(TODAY) == 1
         body = mail.outbox[0].body
-        assert 'Pago por ciclo: $550.002' in body
-        assert 'Dom, 11 ene 2026 → Sáb, 25 jul 2026' in body
+        assert '$550.002' in body
+        assert 'Sáb, 25 jul 2026' in body
         assert '550002.00' not in body
+
+    def test_subject_counts_what_is_coming(self):
+        make_hosting(days_left=15)
+        run_payment_calendar(TODAY)
+        assert mail.outbox[0].subject == (
+            '[Contabilidad] Calendario de cobros y pagos: 1 próximo'
+        )

@@ -42,7 +42,8 @@ describe('ConfirmModal', () => {
   it('emits confirm and closes when the confirm button is clicked', async () => {
     const wrapper = mountModal();
 
-    await wrapper.findAll('button')[1].trigger('click');
+    // Por testid y no por índice: el modal puede montar un botón secundario.
+    await wrapper.find('[data-testid="confirm-modal-confirm"]').trigger('click');
 
     expect(wrapper.emitted('confirm')).toEqual([[]]);
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
@@ -114,6 +115,37 @@ describe('ConfirmModal', () => {
     warnSpy.mockRestore();
   });
 
+  describe('scope detail slot', () => {
+    it('renders slot content between the message and the confirm buttons', () => {
+      const wrapper = mount(ConfirmModal, {
+        props: { modelValue: true, message: 'Se asignará Ana Pérez a 2 hostings.' },
+        slots: { default: '<p>kore.com.co</p>' },
+        global: {
+          components: { BaseModal, BaseButton },
+          stubs: { Teleport: true, Transition: false },
+        },
+      });
+
+      const html = wrapper.html();
+      expect(wrapper.find('[data-testid="confirm-modal-detail"]').text())
+        .toContain('kore.com.co');
+      expect(html.indexOf('Se asignará')).toBeLessThan(html.indexOf('kore.com.co'));
+      expect(html.indexOf('kore.com.co'))
+        .toBeLessThan(html.indexOf('confirm-modal-confirm'));
+    });
+
+    it('leaves no empty detail block when nothing is passed', () => {
+      const wrapper = mountModal();
+
+      expect(wrapper.find('[data-testid="confirm-modal-detail"]').exists()).toBe(false);
+    });
+
+    it('widens the dialog only when asked to', () => {
+      expect(mountModal().findComponent(BaseModal).props('size')).toBe('md');
+      expect(mountModal({ size: 'lg' }).findComponent(BaseModal).props('size')).toBe('lg');
+    });
+  });
+
   describe('requireTypeText', () => {
     it('renders the type-to-confirm input when requireTypeText is set', () => {
       const wrapper = mountModal({ requireTypeText: 'DELETE' });
@@ -176,6 +208,63 @@ describe('ConfirmModal', () => {
       const wrapper = mountModal({ hideCancel: true });
 
       expect(wrapper.find('[data-testid="confirm-modal-confirm"]').exists()).toBe(true);
+    });
+  });
+
+  describe('secondary action', () => {
+    it('renders no secondary button by default', () => {
+      const wrapper = mountModal();
+
+      expect(wrapper.find('[data-testid="confirm-modal-secondary"]').exists()).toBe(false);
+    });
+
+    it('renders the secondary button when secondaryText is set', () => {
+      const wrapper = mountModal({ secondaryText: 'Archivar en su lugar' });
+
+      const secondary = wrapper.find('[data-testid="confirm-modal-secondary"]');
+      expect(secondary.exists()).toBe(true);
+      expect(secondary.text()).toContain('Archivar en su lugar');
+    });
+
+    it('emits secondary and closes without emitting confirm', async () => {
+      const wrapper = mountModal({ secondaryText: 'Archivar en su lugar' });
+
+      await wrapper.find('[data-testid="confirm-modal-secondary"]').trigger('click');
+
+      expect(wrapper.emitted('secondary')).toEqual([[]]);
+      expect(wrapper.emitted('confirm')).toBeUndefined();
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    });
+
+    it('keeps the secondary usable while the typed-word gate still blocks confirm', async () => {
+      const wrapper = mountModal({
+        secondaryText: 'Archivar en su lugar',
+        requireTypeText: 'DELETE',
+      });
+
+      // La reja bloquea el destructivo...
+      expect(
+        wrapper.find('[data-testid="confirm-modal-confirm"]').attributes('disabled'),
+      ).toBeDefined();
+
+      // ...pero la salida sigue disponible sin escribir nada.
+      await wrapper.find('[data-testid="confirm-modal-secondary"]').trigger('click');
+      expect(wrapper.emitted('secondary')).toEqual([[]]);
+    });
+
+    it('renders the secondary hint above the type-to-confirm input', () => {
+      const wrapper = mountModal({
+        secondaryText: 'Archivar en su lugar',
+        secondaryHint: 'Archivar lo conserva y lo saca de la lista.',
+        requireTypeText: 'DELETE',
+      });
+
+      const html = wrapper.html();
+      const hintAt = html.indexOf('confirm-modal-secondary-hint');
+      const inputAt = html.indexOf('confirm-type-input');
+      expect(hintAt).toBeGreaterThan(-1);
+      expect(inputAt).toBeGreaterThan(-1);
+      expect(hintAt).toBeLessThan(inputAt);
     });
   });
 });

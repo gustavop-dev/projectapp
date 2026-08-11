@@ -8,6 +8,7 @@
 
 const mockFolderStore = {
   deleteFolder: jest.fn(),
+  archiveFolder: jest.fn(),
   childrenOf: jest.fn(() => []),
 };
 
@@ -48,9 +49,16 @@ function confirmIsDisabled(wrapper) {
   return confirmButton(wrapper).element.disabled;
 }
 
+function archiveButton(wrapper) {
+  return wrapper.find('[data-testid="delete-folder-archive"]');
+}
+
 describe('DeleteFolderModal', () => {
   beforeEach(() => {
     mockFolderStore.deleteFolder.mockReset().mockResolvedValue({ success: true });
+    mockFolderStore.archiveFolder.mockReset().mockResolvedValue({
+      success: true, archivedFolders: 0, archivedDocuments: 0,
+    });
     mockFolderStore.childrenOf.mockReset().mockReturnValue([]);
   });
 
@@ -77,7 +85,9 @@ describe('DeleteFolderModal', () => {
       expect(inventory.text()).toContain('6 documentos');
       expect(inventory.text()).toContain('Contratos 2026');
       expect(typeInput(wrapper).exists()).toBe(false);
-      expect(confirmIsDisabled(wrapper)).toBe(true);
+      // El botón destructivo no se renderiza: un botón muerto ES el callejón
+      // sin salida que esta rama elimina.
+      expect(confirmButton(wrapper).exists()).toBe(false);
     });
   });
 
@@ -170,6 +180,70 @@ describe('DeleteFolderModal', () => {
 
       expect(mockFolderStore.deleteFolder).not.toHaveBeenCalled();
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    });
+  });
+
+  // ── Archivar como salida ───────────────────────────────────────────────────
+
+  describe('archive escape hatch', () => {
+    it('offers archiving before anything is typed, while the gate still blocks delete', () => {
+      const wrapper = mountModal();
+
+      // La salida está disponible de entrada...
+      expect(archiveButton(wrapper).exists()).toBe(true);
+      expect(archiveButton(wrapper).element.disabled).toBe(false);
+      // ...mientras el destructivo sigue bloqueado por la palabra.
+      expect(confirmIsDisabled(wrapper)).toBe(true);
+    });
+
+    it('explains what archiving does before the confirmation field', () => {
+      const wrapper = mountModal();
+      const html = wrapper.html();
+
+      expect(html).toContain('delete-folder-archive-hint');
+      expect(html.indexOf('delete-folder-archive-hint'))
+        .toBeLessThan(html.indexOf('delete-folder-type-input'));
+    });
+
+    it('archives, emits archived with the cascade counts and closes', async () => {
+      mockFolderStore.archiveFolder.mockResolvedValue({
+        success: true, archivedFolders: 2, archivedDocuments: 6,
+      });
+      const wrapper = mountModal({ folder: filledFolder });
+
+      await archiveButton(wrapper).trigger('click');
+      await nextTick();
+      await nextTick();
+
+      expect(mockFolderStore.archiveFolder).toHaveBeenCalledWith(filledFolder.id);
+      expect(wrapper.emitted('archived')[0][0]).toEqual({
+        folder: filledFolder, folders: 2, documents: 6,
+      });
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    });
+
+    it('presents archiving as the available action for a folder with content', () => {
+      const wrapper = mountModal({ folder: filledFolder });
+
+      expect(wrapper.text()).toContain('Esta carpeta no se puede eliminar');
+      expect(archiveButton(wrapper).text()).toContain('Archivar carpeta');
+      // Sin botón destructivo muerto: eso era el callejón sin salida.
+      expect(confirmButton(wrapper).exists()).toBe(false);
+    });
+
+    it('keeps the modal open and shows the error when archiving fails', async () => {
+      mockFolderStore.archiveFolder.mockResolvedValue({
+        success: false, errors: { detail: 'No se pudo archivar.' },
+      });
+      const wrapper = mountModal({ folder: filledFolder });
+
+      await archiveButton(wrapper).trigger('click');
+      await nextTick();
+      await nextTick();
+
+      expect(wrapper.find('[data-testid="delete-folder-error"]').text())
+        .toContain('No se pudo archivar.');
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
     });
   });
 });

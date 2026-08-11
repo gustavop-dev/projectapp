@@ -341,3 +341,121 @@ def test_generate_grows_the_page_instead_of_breaking_it_on_many_line_items(
     assert float(long_pages[0].mediabox.width) == pytest.approx(
         float(short_page[0].mediabox.width),
     )
+
+
+def _billable_document(issuer, project, client_user, **method_fields):
+    """Minimal issued cuenta de cobro with one line item and one payment method."""
+    dt = get_collection_account_document_type()
+    doc = Document.objects.create(
+        title='Cuenta de cobro — Hosting',
+        document_type=dt,
+        commercial_status=Document.CommercialStatus.ISSUED,
+        project=project,
+        client_user=client_user,
+        issuer=issuer,
+        public_number='PA-MIMITTOS-001',
+        issue_date=date(2026, 8, 11),
+        due_date=date(2026, 8, 19),
+        subtotal=Decimal('1490000'),
+        tax_total=Decimal('0'),
+        total=Decimal('1490000'),
+        currency='COP',
+        city='Medellín',
+    )
+    DocumentCollectionAccount.objects.create(
+        document=doc,
+        payer_name='ProjectApp',
+        customer_name='Mimittos SAS',
+        billing_concept='Hosting agosto 2026',
+    )
+    DocumentItem.objects.create(
+        document=doc,
+        position=0,
+        description='Hosting y mantenimiento',
+        quantity=Decimal('1'),
+        unit_price=Decimal('1490000'),
+        line_total=Decimal('1490000'),
+    )
+    if method_fields:
+        DocumentPaymentMethod.objects.create(document=doc, **method_fields)
+    return doc
+
+
+_BANK_METHOD = {
+    'payment_method_type': DocumentPaymentMethod.MethodType.BANK_TRANSFER,
+    'bank_name': 'Bancolombia',
+    'account_type': 'Ahorros',
+    'account_number': '00774149350',
+    'account_holder_name': 'GUSTAVO ADOLFO PEREZ PEREZ',
+    'account_holder_identification': 'NIT 1021513348-7',
+}
+
+
+def test_generate_writes_the_document_metadata(issuer, project, client_user):
+    """A viewer reads /Title, not the download filename — an empty one is what
+    made Chrome label the tab 'untitled'."""
+    doc = _billable_document(issuer, project, client_user, **_BANK_METHOD)
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+
+    assert reader.metadata['/Title'] == 'PA-MIMITTOS-001'
+    assert reader.metadata['/Author'] == 'ProjectApp'
+    assert reader.metadata['/Subject'] == (
+        'Cuenta de cobro — Mimittos SAS — 11 de agosto de 2026'
+    )
+    assert reader.metadata['/CreationDate']
+
+
+def test_generate_paints_the_brand_watermark_behind_the_content(
+    issuer, project, client_user,
+):
+    """The wordmark has to be there, faint, and not at the cost of the text."""
+    doc = _billable_document(issuer, project, client_user, **_BANK_METHOD)
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+    page = reader.pages[0]
+    images = [
+        ref.get_object() for ref in page['/Resources']['/XObject'].values()
+    ]
+    alphas = [
+        state.get_object()['/ca']
+        for state in page['/Resources']['/ExtGState'].values()
+        if '/ca' in state.get_object()
+    ]
+
+    assert any(image.get('/Subtype') == '/Image' for image in images)
+    # Low enough to sit behind the text rather than compete with it.
+    assert alphas and max(alphas) <= 0.1
+    # The point of a watermark is that the document still reads.
+    assert 'Cuenta de cobro' in page.extract_text()
+
+
+def test_generate_prints_the_full_payment_block(issuer, project, client_user):
+    """Entidad, tipo, número and titular all reach the page: dropping any of
+    them leaves the client unable to actually transfer the money."""
+    doc = _billable_document(issuer, project, client_user, **_BANK_METHOD)
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+    text = ''.join(page.extract_text() for page in reader.pages)
+
+    assert 'Formas de pago' in text
+    assert 'Transferencia bancaria' in text
+    assert 'Bancolombia' in text
+    assert 'Ahorros' in text
+    assert '00774149350' in text
+    assert 'GUSTAVO ADOLFO PEREZ PEREZ' in text
+    assert 'NIT 1021513348-7' in text
+
+
+def test_generate_omits_the_payment_block_when_no_method_is_configured(
+    issuer, project, client_user,
+):
+    """No configured account must print no box at all — an empty frame of
+    labels reads worse than nothing."""
+    doc = _billable_document(issuer, project, client_user)
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+    text = ''.join(page.extract_text() for page in reader.pages)
+
+    assert 'Formas de pago' not in text
+    assert 'Total (COP): $1.490.000' in text

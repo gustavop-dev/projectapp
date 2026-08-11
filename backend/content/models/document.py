@@ -194,6 +194,22 @@ class Document(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Archivado: saca el documento de la vista del panel sin destruirlo. Es
+    # independiente de `status` (borrador/publicado), que es estado editorial.
+    # `archived_via_folder` guarda la carpeta cuyo archivado lo arrastró
+    # (NULL = archivado por sí mismo); desarchivar esa carpeta devuelve sólo
+    # los que ella arrastró y respeta los archivados individualmente.
+    is_archived = models.BooleanField(default=False, db_index=True)
+    archived_at = models.DateTimeField(null=True, blank=True)
+    archived_via_folder = models.ForeignKey(
+        'content.DocumentFolder',
+        on_delete=models.SET_NULL,
+        related_name='cascade_archived_documents',
+        null=True,
+        blank=True,
+        help_text='Carpeta cuyo archivado arrastró a este documento. NULL = archivado por sí mismo.',
+    )
+
     class Meta:
         ordering = ['-created_at']
 

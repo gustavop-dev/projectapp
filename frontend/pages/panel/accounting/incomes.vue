@@ -32,7 +32,7 @@
     <AccountingSubnav active="incomes" />
 
     <!-- KPI cards (year scope, server-computed) -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
       <AccountingStatCard
         label="Total esperado (año)"
         :value="money(incomesMeta.expected_total)"
@@ -58,6 +58,12 @@
         :value="money(incomesMeta.lost_total)"
         :tone="Number(incomesMeta.lost_total) > 0 ? 'danger' : 'default'"
       />
+      <AccountingStatCard
+        label="Sin cliente"
+        :value="String(incomesMeta.without_client_count ?? 0)"
+        :tone="(incomesMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Pendientes de vincular"
+      />
     </div>
 
     <!-- Quick + saved filter tabs -->
@@ -78,7 +84,7 @@
       <BaseInput
         v-model="searchInput"
         type="text"
-        placeholder="Buscar por concepto o notas..."
+        placeholder="Buscar por concepto, notas o cliente..."
         data-testid="incomes-search-input"
         class="w-full sm:max-w-xs"
       />
@@ -88,6 +94,13 @@
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
       <AccountingExportButton section="income" :params="exportParams" />
+      <BaseSegmented
+        v-model="viewMode"
+        :options="viewModeOptions"
+        size="sm"
+        class="ml-auto"
+        data-testid="incomes-view-mode"
+      />
     </div>
 
     <!-- Filter panel -->
@@ -126,46 +139,16 @@
     </div>
 
     <!-- Bulk client assignment: the completion path for rows without client -->
-    <div
-      v-if="selectedIds.length > 0"
-      class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
-      data-testid="incomes-bulk-bar"
-    >
-      <span class="text-sm text-text-default whitespace-nowrap">
-        <span class="font-semibold tabular-nums">{{ selectedIds.length }}</span>
-        seleccionado{{ selectedIds.length === 1 ? '' : 's' }}
-      </span>
-      <BaseButton
-        v-if="!allFilteredSelected"
-        variant="ghost"
-        size="sm"
-        data-testid="incomes-select-all-filtered"
-        @click="selectAllFiltered"
-      >
-        Seleccionar los {{ filteredIds.length }} filtrados
-      </BaseButton>
-      <div class="flex-1 min-w-[16rem]">
-        <ClientAutocomplete
-          v-model="bulkClientId"
-          test-id="incomes-bulk-client"
-          placeholder="Cliente a asignar (vacío = desvincular)..."
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <BaseButton variant="secondary" size="sm" @click="clearSelection">
-          Cancelar
-        </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          :disabled="store.isUpdating"
-          data-testid="incomes-bulk-assign"
-          @click="assignClientToSelection"
-        >
-          Asignar cliente
-        </BaseButton>
-      </div>
-    </div>
+    <ClientBulkAssignBar
+      v-model:selected="selectedIds"
+      :rows="store.incomes"
+      :filtered-ids="filteredIds"
+      :entity="INCOME_ENTITY"
+      testid-prefix="incomes"
+      :record-label="incomeLabel"
+      :busy="store.isUpdating"
+      @submit="applyClientToSelection"
+    />
 
     <!-- Error -->
     <AccountingErrorState
@@ -199,22 +182,19 @@
       </template>
     </BaseEmptyState>
 
-    <!-- Table -->
+    <!-- Table: grouped by client (landing mode set in Configuración) or classic -->
     <template v-else>
-      <AccountingTable
-        v-model:selected="selectedIds"
-        selectable
+      <IncomeGroupedTable
+        v-if="isGrouped"
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
-        :columns="columns"
-        :rows="pagedRecords"
+        :columns="groupedColumns"
+        :groups="clientGroups"
         :highlight-query="currentFilters.search"
-        :sort-key="sortKey"
-        :sort-dir="sortDir"
-        :row-tone="incomeRowTone"
+        :collapsed-ids="collapsedGroupIds"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
-        @sort="toggleSort"
+        @toggle-group="toggleGroup"
       >
         <template #row-actions="{ row }">
           <template v-if="row.kind !== 'lost'">
@@ -254,6 +234,18 @@
             >
               <BanknotesIcon class="w-5 h-5" />
             </button>
+            <button
+              v-if="row.payment_status !== 'paid'"
+              type="button"
+              class="p-1.5 rounded-md text-text-muted hover:text-text-brand hover:bg-surface-raised transition-colors"
+              :aria-label="row.reminders_muted ? 'Reactivar avisos' : 'Silenciar avisos'"
+              :title="row.reminders_muted ? 'Reactivar avisos' : 'Silenciar avisos'"
+              :data-testid="row.reminders_muted ? `income-unmute-${row.id}` : `income-mute-${row.id}`"
+              @click.stop="row.reminders_muted ? unmuteIncome(row) : openMuteModal(row)"
+            >
+              <BellSlashIcon v-if="row.reminders_muted" class="w-5 h-5" />
+              <BellAlertIcon v-else class="w-5 h-5" />
+            </button>
             <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.payment_status === 'pending'" aria-label="Marcar como perdido" title="Marcar como perdido" :data-testid="`income-write-off-${row.id}`" @click.stop="confirmWriteOff(row)">
               <XCircleIcon class="w-5 h-5" />
             </BaseButton>
@@ -267,44 +259,119 @@
             {{ row.kind_label }}
           </span>
         </template>
-        <!-- Collection state gets its own column: sharing the Tipo cell with
-             the kind badge wrapped the pills and doubled the row height. -->
         <template #cell-payment_status="{ row }">
-          <span
-            v-if="row.payment_status"
-            class="inline-flex items-center gap-1.5 whitespace-nowrap"
-            :data-testid="`income-payment-${row.id}`"
-          >
-            <span
-              v-if="PAYMENT_BADGE_CLASSES[row.payment_status]"
-              class="text-xs px-2.5 py-1 rounded-full font-medium"
-              :class="PAYMENT_BADGE_CLASSES[row.payment_status]"
-            >
-              {{ row.payment_status_label }}
-            </span>
-            <span v-else class="text-text-subtle">—</span>
-            <span
-              v-if="row.payment_status === 'partial'"
-              class="text-2xs text-warning-strong tabular-nums"
-            >
-              faltan {{ formatMoney(Number(row.pending_amount)) }}
-            </span>
-          </span>
+          <IncomePaymentStateCell :row="row" />
         </template>
-      </AccountingTable>
+      </IncomeGroupedTable>
 
-      <BasePagination
-        v-if="!store.isLoading"
-        :current-page="currentPage"
-        :total-pages="totalPages"
-        :total-items="totalItems"
-        :range-from="rangeFrom"
-        :range-to="rangeTo"
-        class="mt-4"
-        @prev="prevPage"
-        @next="nextPage"
-        @go="goToPage"
-      />
+      <!-- Column sort, row selection (bulk client bar) and pagination are
+           classic-only affordances; the grouped view always renders the
+           whole filtered set. -->
+      <template v-else>
+        <AccountingTable
+          v-model:selected="selectedIds"
+          selectable
+          :loading="store.isLoading"
+          :highlight-id="lastMutatedId"
+          :columns="columns"
+          :rows="pagedRecords"
+          :highlight-query="currentFilters.search"
+          :sort-key="sortKey"
+          :sort-dir="sortDir"
+          :row-tone="incomeRowTone"
+          @edit="openEditModal"
+          @delete="confirmDeleteRecord"
+          @sort="toggleSort"
+        >
+          <template #row-actions="{ row }">
+            <template v-if="row.kind !== 'lost'">
+              <BaseButton
+                v-if="!row.has_collection_account"
+                variant="ghost"
+                icon-only
+                size="sm"
+                aria-label="Generar cuenta de cobro"
+                title="Generar cuenta de cobro"
+                :data-testid="`income-generate-ca-${row.id}`"
+                @click.stop="openCollectionModal(row)"
+              >
+                <DocumentPlusIcon class="w-5 h-5" />
+              </BaseButton>
+              <BaseButton
+                v-else
+                variant="ghost"
+                icon-only
+                size="sm"
+                :aria-label="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+                :title="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
+                :data-testid="`income-view-ca-${row.id}`"
+                @click.stop="goToCollectionAccount(row)"
+              >
+                <ArrowTopRightOnSquareIcon class="w-5 h-5" />
+              </BaseButton>
+            </template>
+            <template v-if="row.kind === 'expected'">
+              <button
+                type="button"
+                class="p-1.5 rounded-md text-text-muted hover:text-success-strong hover:bg-surface-raised transition-colors"
+                aria-label="Liquidar"
+                title="Liquidar"
+                :data-testid="`income-liquidate-${row.id}`"
+                @click.stop="openLiquidateModal(row)"
+              >
+                <BanknotesIcon class="w-5 h-5" />
+              </button>
+              <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.payment_status === 'pending'" aria-label="Marcar como perdido" title="Marcar como perdido" :data-testid="`income-write-off-${row.id}`" @click.stop="confirmWriteOff(row)">
+                <XCircleIcon class="w-5 h-5" />
+              </BaseButton>
+            </template>
+          </template>
+          <template #cell-kind_label="{ row }">
+            <span
+              class="text-xs px-2.5 py-1 rounded-full font-medium"
+              :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
+            >
+              {{ row.kind_label }}
+            </span>
+          </template>
+          <!-- An empty client cell hides the completion debt; the pill makes
+               it actionable, same as the hostings table. Grouped view needs
+               none: its "Sin cliente" bucket already carries the flag. -->
+          <template #cell-client_name="{ row }">
+            <HighlightText
+              v-if="row.client_name"
+              :text="row.client_name"
+              :query="currentFilters.search"
+            />
+            <span
+              v-else
+              class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-semibold uppercase tracking-wider whitespace-nowrap"
+              title="Sin cliente vinculado — los totales por cliente no lo cuentan"
+              :data-testid="`income-unlinked-${row.id}`"
+            >
+              sin vincular
+            </span>
+          </template>
+          <!-- Collection state gets its own column: sharing the Tipo cell with
+               the kind badge wrapped the pills and doubled the row height. -->
+          <template #cell-payment_status="{ row }">
+            <IncomePaymentStateCell :row="row" />
+          </template>
+        </AccountingTable>
+
+        <BasePagination
+          v-if="!store.isLoading"
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :total-items="totalItems"
+          :range-from="rangeFrom"
+          :range-to="rangeTo"
+          class="mt-4"
+          @prev="prevPage"
+          @next="nextPage"
+          @go="goToPage"
+        />
+      </template>
     </template>
 
     <!-- Create/edit modal -->
@@ -323,6 +390,14 @@
       :saving="store.isUpdating"
       @close="closeLiquidateModal"
       @submit="handleLiquidateSubmit"
+    />
+
+    <IncomeMuteModal
+      :open="muteModalOpen"
+      :record="mutingRecord"
+      :saving="store.isUpdating"
+      @close="muteModalOpen = false"
+      @submit="submitMute"
     />
 
     <!-- Totales por cliente sobre las filas filtradas -->
@@ -363,10 +438,15 @@ import { computed, onMounted, ref } from 'vue';
 import {
   ArrowTopRightOnSquareIcon,
   BanknotesIcon,
+  BellAlertIcon,
+  BellSlashIcon,
   DocumentPlusIcon,
   PlusIcon,
   XCircleIcon,
 } from '@heroicons/vue/24/outline';
+import IncomeMuteModal from '~/components/accounting/IncomeMuteModal.vue';
+import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
+import HighlightText from '~/components/ui/HighlightText.vue';
 import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -378,25 +458,39 @@ import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsModal.vue';
-import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
+import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
   useAccountingFilters,
   matchDateRange,
   matchNumberRange,
   matchEquals,
+  matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
+import { describeAssignmentResult } from '~/utils/clientAssignment';
+import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
+import {
+  clientLabelOf,
+  groupByClient,
+  withClientWeights,
+} from '~/utils/incomeClients';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+
+/** Noun the bulk client bar uses in its confirmation and result copy. */
+const INCOME_ENTITY = { singular: 'ingreso', plural: 'ingresos' };
 
 const incomesMeta = computed(() => store.metaFor('incomes'));
 
@@ -490,6 +584,7 @@ const {
     ledger: '',
     clients: [],
     origin: [],
+    muted: '',
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
@@ -502,8 +597,11 @@ const {
     ledger: matchEquals('ledger', 'ledger'),
     clients: matchClients,
     origin: matchOrigin,
+    muted: matchBoolean('reminders_muted', 'muted'),
   },
-  searchFields: ['concept', 'notes'],
+  // client_name mirrors the server-side q filter, which also reaches the
+  // linked client's name — see the income entity's search_fields.
+  searchFields: ['concept', 'notes', 'client_name'],
 });
 
 const clientFilterOptions = computed(() => {
@@ -513,7 +611,7 @@ const clientFilterOptions = computed(() => {
   const seen = new Map();
   store.incomes.forEach((row) => {
     if (row.client != null && !seen.has(row.client)) {
-      seen.set(row.client, row.client_name || `Cliente #${row.client}`);
+      seen.set(row.client, clientLabelOf(row));
     }
   });
   const options = [...seen.entries()]
@@ -545,6 +643,16 @@ const filterFields = computed(() => [
       { value: 'pending', label: 'Sin pagos' },
       { value: 'partial', label: 'Parcial' },
       { value: 'paid', label: 'Pagado' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'muted',
+    label: 'Avisos',
+    options: [
+      { value: '', label: 'Todos' },
+      { value: 'true', label: 'Silenciados' },
+      { value: 'false', label: 'Con aviso' },
     ],
   },
   {
@@ -771,6 +879,49 @@ function confirmWriteOff(record) {
   });
 }
 
+const muteModalOpen = ref(false);
+const mutingRecord = ref(null);
+
+function openMuteModal(record) {
+  mutingRecord.value = record;
+  muteModalOpen.value = true;
+}
+
+function submitMute(payload) {
+  const record = mutingRecord.value;
+  if (!record) return;
+  const detail = payload.until
+    ? `Los avisos de "${record.concept}" se reanudan el ${formatDate(payload.until)}.`
+    : `No se enviarán avisos de "${record.concept}" hasta que los reactives.`;
+  runMutation(
+    () => store.muteIncomeReminders(record.id, payload),
+    {
+      successTitle: 'Avisos silenciados',
+      successDetail: detail,
+      errorTitle: 'No se pudieron silenciar los avisos',
+      flashId: record.id,
+    },
+  ).then((result) => {
+    if (result?.success) {
+      muteModalOpen.value = false;
+      mutingRecord.value = null;
+    }
+  });
+}
+
+// No confirmation: reactivating is non-destructive and instantly reversible.
+function unmuteIncome(record) {
+  runMutation(
+    () => store.muteIncomeReminders(record.id, { muted: false }),
+    {
+      successTitle: 'Avisos reactivados',
+      successDetail: `"${record.concept}" vuelve al correo diario.`,
+      errorTitle: 'No se pudieron reactivar los avisos',
+      flashId: record.id,
+    },
+  );
+}
+
 // The three amounts read as one block (`group: 'money'`); concept gets the
 // widest floor. Concept, Total, Tipo and Cobro survive every width — the partner
 // splits and the period collapse first. The ledger is filter-only: it earned
@@ -786,40 +937,62 @@ const columns = [
   { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
 ];
 
+// ── Vista agrupada por cliente ──
+
+const { viewMode, isGrouped, initFromSettings } = useIncomeViewMode(store);
+
+const viewModeOptions = [
+  { value: 'grouped', label: 'Agrupado' },
+  { value: 'classic', label: 'Clásico' },
+];
+
+const collapsedGroupIds = ref([]);
+
+function toggleGroup(id) {
+  collapsedGroupIds.value = collapsedGroupIds.value.includes(id)
+    ? collapsedGroupIds.value.filter((groupId) => groupId !== id)
+    : [...collapsedGroupIds.value, id];
+}
+
+/** Grouped over the WHOLE filtered set (no pagination), like the totals modal. */
+const clientGroups = computed(() =>
+  withClientWeights(groupByClient(filteredRecords.value)),
+);
+
+// The group header already names the client, and column sort belongs to the
+// classic table — inside a group the rows keep the ledger order.
+const groupedColumns = columns
+  .filter((col) => col.key !== 'client_name')
+  .map(({ sortable, ...col }) => col);
+
 // ── Selección múltiple + asignación masiva de cliente ──
 
 const selectedIds = ref([]);
-const bulkClientId = ref(null);
 const totalsModalOpen = ref(false);
 
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
 
-const allFilteredSelected = computed(
-  () => filteredIds.value.length > 0
-    && filteredIds.value.every((id) => selectedIds.value.includes(id)),
-);
+/** What identifies an income in the bulk confirmation list. */
+const incomeLabel = (row) => row.concept || `Ingreso #${row.id}`;
 
-function selectAllFiltered() {
-  selectedIds.value = [...filteredIds.value];
-}
-
-function clearSelection() {
-  selectedIds.value = [];
-  bulkClientId.value = null;
-}
-
-async function assignClientToSelection() {
-  const ids = [...selectedIds.value];
+async function applyClientToSelection({ ids, client, mode, plan }) {
   const result = await runMutation(
-    () => store.bulkAssignIncomeClient(ids, bulkClientId.value),
+    () => store.bulkAssignIncomeClient(ids, client),
     {
-      successTitle: bulkClientId.value
-        ? 'Cliente asignado a los ingresos'
-        : 'Cliente desvinculado de los ingresos',
-      errorTitle: 'No se pudo asignar el cliente',
+      successTitle: mode === 'unlink'
+        ? 'Cliente desvinculado de los ingresos'
+        : 'Cliente asignado a los ingresos',
+      // The server skips rows already on the target, so the count it returns
+      // is what actually changed — not what was selected.
+      successDetail: (r) => describeAssignmentResult(
+        plan, r.data?.updated ?? 0, { entity: INCOME_ENTITY },
+      ),
+      errorTitle: mode === 'unlink'
+        ? 'No se pudo desvincular el cliente'
+        : 'No se pudo asignar el cliente',
     },
   );
-  if (result.success) clearSelection();
+  if (result.success) selectedIds.value = [];
 }
 
 // ── Cuenta de cobro desde el ingreso ──
@@ -860,6 +1033,10 @@ async function loadRecords() {
 const route = useRoute();
 
 onMounted(async () => {
+  // Sequential on purpose: the landing mode must be known before rows render
+  // (no mode flash), and fetchSettings shares store.isLoading with the rows
+  // fetch — in parallel, whichever finishes first would flash the empty state.
+  await initFromSettings();
   await loadRecords();
   // ?focus=<id> flashes the row (navigation back from Cuentas de cobro).
   const focus = Number(route.query.focus);

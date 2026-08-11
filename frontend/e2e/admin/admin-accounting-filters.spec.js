@@ -140,6 +140,15 @@ function buildHandler({ tabs = [] } = {}) {
         }),
       };
     }
+    // This suite was written against the flat table; pin the landing mode
+    // so the production default (grouped) never reshapes what it asserts.
+    if (apiPath === 'accounting/settings/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ income_default_view_mode: 'classic' }),
+      };
+    }
     if (apiPath === 'accounting/incomes/' && method === 'GET') {
       return {
         status: 200,

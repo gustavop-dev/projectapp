@@ -4,8 +4,15 @@
 effects — the preview endpoint reuses it, so what the operator previews is
 by construction what ``send_collection_account_email`` sends (same sections,
 same branded shell, same PDF service on the send side).
+
+Sections are authored in Markdown so the figures the client has to act on —
+period, amount, deadline, account number — can carry emphasis. The branded
+shell renders a section as raw HTML when it arrives as ``{'html': ...}``
+(emails/branded_email.html), and ``markdown_to_email_html`` escapes every
+character before emitting a tag, so the conversion is safe by construction.
 """
 import logging
+import re
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
@@ -15,52 +22,98 @@ from content.models import EmailLog
 from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
-from content.utils import format_cop_email
+from content.services.email_markdown import markdown_to_email_html
+from content.utils import format_bogota_date, format_cop_email
 
 logger = logging.getLogger(__name__)
 
 TEMPLATE_KEY = 'collection_account_sent'
+
+_BOLD_RE = re.compile(r'\*\*(.+?)\*\*')
+_HEADING_RE = re.compile(r'^#{1,3} ', re.MULTILINE)
+
+
+def _plain(markdown_text):
+    """The same section without its Markdown markers, for the text/plain part.
+
+    The multipart alternative is a real fallback, not a formality: leaving the
+    asterisks in it would show them verbatim to anyone reading in plain text.
+    """
+    return _BOLD_RE.sub(r'\1', _HEADING_RE.sub('', markdown_text))
+
+
+def _payment_methods_section(document):
+    """Payment data as its own Markdown block, or '' when none is configured.
+
+    Blank lines matter here: the Markdown parser folds single newlines into one
+    paragraph, so a list is what keeps each field on its own line.
+    """
+    methods = list(document.payment_methods.all())
+    if not methods:
+        return ''
+    parts = ['### Formas de pago']
+    for method in methods:
+        holder = method.account_holder_name
+        if method.account_holder_identification:
+            holder = (
+                f'{holder} ({method.account_holder_identification})' if holder
+                else method.account_holder_identification
+            )
+        lines = [f'**{method.get_payment_method_type_display()}**', '']
+        lines.extend(
+            f'- {label}: **{value}**'
+            for label, value in (
+                ('Entidad', method.bank_name),
+                ('Tipo de cuenta', method.account_type),
+                ('Número de cuenta', method.account_number),
+                ('Titular', holder),
+            ) if value
+        )
+        if method.payment_instructions:
+            lines.extend(['', method.payment_instructions])
+        parts.append('\n'.join(lines))
+    return '\n\n'.join(parts)
 
 
 def build_collection_account_email(document, *, resend=False):
     """Subject + rendered bodies for the client email. No side effects."""
     extension = document.collection_account
     total = format_cop_email(document.total)
-    due = f'{document.due_date:%d/%m/%Y}' if document.due_date else ''
     item = document.items.first()
-    period = ''
-    if item and item.period_start and item.period_end:
-        period = f'{item.period_start:%d/%m/%Y} a {item.period_end:%d/%m/%Y}'
 
-    sections = [
+    markdown_sections = [
         (
             f'Te compartimos la cuenta de cobro {document.public_number} por '
             f'{extension.billing_concept or document.title}.'
         ),
     ]
-    if period:
-        sections.append(f'Período facturado: {period}.')
-    sections.append(
-        f'Valor a pagar: ${total} COP'
-        + (f' · Fecha límite de pago: {due}.' if due else '.')
-    )
-    methods = list(document.payment_methods.all())
-    if methods:
-        lines = []
-        for method in methods:
-            parts = [method.get_payment_method_type_display()]
-            if method.bank_name:
-                parts.append(method.bank_name)
-            if method.account_number:
-                parts.append(f'cuenta {method.account_number}')
-            lines.append(' · '.join(parts))
-        sections.append(
-            'Formas de pago:\n' + '\n'.join(f'— {line}' for line in lines)
+    if item and item.period_start and item.period_end:
+        period = f'{item.period_start:%d/%m/%Y} a {item.period_end:%d/%m/%Y}'
+        markdown_sections.append(f'Período facturado: **{period}**.')
+    markdown_sections.append(f'Valor a pagar: **${total} COP**.')
+    if document.due_date:
+        # Its own line. Sharing the amount's line buried the one date the
+        # client has to act on, and the house weekday format reads faster
+        # than 19/08/2026 for a deadline.
+        markdown_sections.append(
+            'Fecha límite de pago: '
+            f'**{format_bogota_date(document.due_date)}**.'
         )
-    sections.append(
+    payment_methods = _payment_methods_section(document)
+    if payment_methods:
+        markdown_sections.append(payment_methods)
+    markdown_sections.append(
         'Adjuntamos el PDF con el detalle completo. Cualquier duda, '
         'responde este correo y con gusto te ayudamos.'
     )
+
+    # An empty conversion would silently drop a section, so each one falls
+    # back to its plain text — same guard as the composed-email pipeline.
+    text_sections = [_plain(section) for section in markdown_sections]
+    html_sections = [
+        {'html': html} if (html := markdown_to_email_html(section)) else plain
+        for section, plain in zip(markdown_sections, text_sections)
+    ]
 
     subject = f'Cuenta de cobro {document.public_number} — ProjectApp'
     greeting = (
@@ -70,7 +123,6 @@ def build_collection_account_email(document, *, resend=False):
     context = {
         'subject': subject,
         'greeting': greeting,
-        'sections': sections,
         'footer': '',
         'attachment_names': [attachment_name],
     }
@@ -80,9 +132,13 @@ def build_collection_account_email(document, *, resend=False):
     return {
         'subject': subject,
         'greeting': greeting,
-        'sections': sections,
-        'html_body': render_to_string('emails/branded_email.html', context),
-        'text_body': render_to_string('emails/branded_email.txt', context),
+        'sections': text_sections,
+        'html_body': render_to_string(
+            'emails/branded_email.html', {**context, 'sections': html_sections},
+        ),
+        'text_body': render_to_string(
+            'emails/branded_email.txt', {**context, 'sections': text_sections},
+        ),
         'attachment_name': attachment_name,
     }
 

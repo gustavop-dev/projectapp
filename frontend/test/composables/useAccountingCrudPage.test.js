@@ -1,11 +1,11 @@
 /**
- * Tests for the lastMutatedId row-flash feedback in useAccountingCrudPage.
- *
- * Covers: set on create/update success, expiry after the highlight delay,
- * and no-op on failed submits.
+ * Tests for useAccountingCrudPage: the lastMutatedId row-flash feedback
+ * (set on create/update success, expiry after the highlight delay, no-op on
+ * failed submits) and the success copy runMutation puts on the toast.
  */
 import { computed } from 'vue';
 import { useAccountingCrudPage } from '../../composables/useAccountingCrudPage';
+import { usePanelNotify } from '../../composables/usePanelNotify';
 
 const labels = {
   created: 'Registro creado',
@@ -80,5 +80,44 @@ describe('useAccountingCrudPage — lastMutatedId', () => {
     await page.handleSubmit({ concept: 'Nuevo' });
 
     expect(page.lastMutatedId.value).toBeNull();
+  });
+});
+
+describe('useAccountingCrudPage — runMutation success copy', () => {
+  const notify = usePanelNotify();
+
+  beforeEach(() => notify.clearAll());
+  afterEach(() => notify.clearAll());
+
+  it('resolves title and detail against the result so a bulk run can report its real count', async () => {
+    const page = makePage({});
+
+    await page.runMutation(
+      () => Promise.resolve({ success: true, data: { updated: 3 } }),
+      {
+        successTitle: 'Cliente asignado',
+        successDetail: (result) => `${result.data.updated} de 5 registros actualizados.`,
+      },
+    );
+
+    expect(notify.notifications.value[0]).toMatchObject({
+      type: 'success',
+      title: 'Cliente asignado',
+      detail: '3 de 5 registros actualizados.',
+    });
+  });
+
+  it('still takes plain strings, so the existing call sites keep working', async () => {
+    const page = makePage({});
+
+    await page.runMutation(
+      () => Promise.resolve({ success: true, data: { id: 1 } }),
+      { successTitle: 'Registro creado' },
+    );
+
+    expect(notify.notifications.value[0]).toMatchObject({
+      title: 'Registro creado',
+      detail: '',
+    });
   });
 });

@@ -146,3 +146,29 @@ class TestSettingsEndpoints:
             format='json',
         )
         assert rejected.status_code == 400
+
+    def test_income_view_mode_defaults_to_grouped(self, super_client):
+        response = super_client.get('/api/accounting/settings/')
+        assert response.data['income_default_view_mode'] == 'grouped'
+
+    def test_income_view_mode_roundtrip_and_audit(self, super_client):
+        """PATCH persists the landing mode and audits it with its label."""
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {'income_default_view_mode': 'classic'},
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+        assert response.data['income_default_view_mode'] == 'classic'
+        log = AccountingChangeLog.objects.get(entity_type='settings')
+        assert log.changes[0]['field'] == 'income_default_view_mode'
+        assert log.changes[0]['old'] == 'Agrupado'
+        assert log.changes[0]['new'] == 'Clásico'
+
+    def test_income_view_mode_rejects_unknown_value(self, super_client):
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {'income_default_view_mode': 'kanban'},
+            format='json',
+        )
+        assert response.status_code == 400

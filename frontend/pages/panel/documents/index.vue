@@ -21,7 +21,17 @@
       class="mb-5"
       data-enter
       style="--enter-delay: 60ms"
-    />
+    >
+      <template v-if="isArchived" #actions>
+        <BaseSegmented
+          :model-value="archivedOrder"
+          :options="ARCHIVED_ORDER_OPTIONS"
+          size="sm"
+          aria-label="Orden por fecha de archivado"
+          @update:model-value="handleArchivedOrderChange"
+        />
+      </template>
+    </DocumentsToolbar>
 
     <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
       <FolderSidebar
@@ -30,6 +40,7 @@
         :folders="folderStore.rootFolders"
         :active-id="documentStore.activeFolderId"
         :total-count="documentStore.documents.length + otherFoldersCount"
+        :archived-count="archivedTotalCount"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
@@ -40,7 +51,7 @@
 
       <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
         <FolderBreadcrumb
-          v-if="documentStore.activeFolderId !== 'all'"
+          v-if="documentStore.activeFolderId !== 'all' && !isArchived"
           :active-id="documentStore.activeFolderId"
           :dragging-folder-id="draggingFolder?.id ?? null"
           @select="handleSelectFolder"
@@ -59,7 +70,7 @@
         </div>
 
         <!-- Loading -->
-        <DocumentListSkeleton v-if="documentStore.isLoading" :mode="viewMode" />
+        <DocumentListSkeleton v-if="isListLoading" :mode="viewMode" />
 
         <!-- Load error (persistent: a toast would get lost) -->
         <BaseAlert
@@ -100,6 +111,22 @@
           </template>
           <template #actions>
             <BaseButton variant="secondary" size="sm" @click="handleClearTagFilters">Quitar filtros</BaseButton>
+          </template>
+        </BaseEmptyState>
+        <BaseEmptyState
+          v-else-if="!hasContent && isArchived"
+          title="No hay nada archivado"
+          description="Lo que archives saldrá de la vista principal y de los contadores, pero seguirá aquí."
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleSelectFolder('all')">
+              Volver a los activos
+            </BaseButton>
           </template>
         </BaseEmptyState>
         <BaseEmptyState
@@ -146,8 +173,10 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
+            :archived="isArchived"
             @open="openDocument"
             @action="actionDoc = $event"
+            @unarchive-folder="handleUnarchiveFolder"
             @select-folder="handleSelectFolder"
             @doc-dragstart="handleDragStart"
             @doc-dragend="handleDragEnd"
@@ -166,8 +195,10 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
+            :archived="isArchived"
             @open="openDocument"
             @action="actionDoc = $event"
+            @unarchive-folder="handleUnarchiveFolder"
             @select-folder="handleSelectFolder"
             @doc-dragstart="handleDragStart"
             @doc-dragend="handleDragEnd"
@@ -182,7 +213,7 @@
 
         <!-- Pagination -->
         <BasePagination
-          v-if="!documentStore.isLoading && !loadError && filteredDocuments.length > 0"
+          v-if="!isListLoading && !loadError && filteredDocuments.length > 0"
           :current-page="docPage"
           :total-pages="docTotalPages"
           :total-items="docTotalItems"
@@ -201,11 +232,13 @@
       v-model="showFolderManager"
       :initial-parent="typeof documentStore.activeFolderId === 'number' ? documentStore.activeFolderId : null"
       @changed="handleFoldersChanged"
+      @archived="handleFolderArchived"
     />
     <DeleteFolderModal
       v-model="showDeleteFolderModal"
       :folder="deletingFolder"
       @deleted="handleFolderDeleted"
+      @archived="handleFolderArchived"
     />
     <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
@@ -214,6 +247,9 @@
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
+      :archived="isArchived"
+      @archive="handleArchiveDoc(actionDoc)"
+      @unarchive="handleUnarchiveDoc(actionDoc)"
       @edit="handleEditDoc(actionDoc)"
       @rename="handleRenameDoc(actionDoc)"
       @move="handleMoveDoc(actionDoc)"
@@ -232,7 +268,12 @@
       :confirm-text="confirmState.confirmText"
       :cancel-text="confirmState.cancelText"
       :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
       @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
     />
   </div>
@@ -271,17 +312,33 @@ const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
 
 const notify = usePanelNotify();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const {
+  confirmState, requestConfirm,
+  handleConfirmed, handleSecondaryAction, handleCancelled,
+} = useConfirmModal();
 const { viewMode } = useDocumentViewMode();
 const { reducedMotion } = useReducedMotion();
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
 let newlyCreatedTimer = null;
+// Modo archivado: 'archived' es el tercer centinela de activeFolderId, junto a
+// 'all' y 'none'. La lista archivada vive en su propio slice del store.
+const isArchived = computed(() => documentStore.activeFolderId === 'archived');
+const archivedOrder = ref('recent');
+const ARCHIVED_ORDER_OPTIONS = [
+  { value: 'recent', label: 'Recientes', testId: 'archived-order-recent' },
+  { value: 'oldest', label: 'Más antiguos', testId: 'archived-order-oldest' },
+];
+
+const visibleDocuments = computed(
+  () => (isArchived.value ? documentStore.archivedDocuments : documentStore.documents),
+);
+
 const filteredDocuments = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return documentStore.documents;
-  return documentStore.documents.filter(
+  if (!q) return visibleDocuments.value;
+  return visibleDocuments.value.filter(
     (d) => d.title?.toLowerCase().includes(q) || d.client_name?.toLowerCase().includes(q),
   );
 });
@@ -289,9 +346,12 @@ const filteredDocuments = computed(() => {
 // Subcarpetas de la carpeta activa — solo cuando se navega dentro de una
 // carpeta concreta y no hay búsqueda activa (la búsqueda aplica a documentos).
 const currentSubfolders = computed(() => {
+  if (searchQuery.value.trim()) return [];
+  // En archivados el listado es plano: las carpetas archivadas se muestran como
+  // filas de carpeta arriba, reusando el bloque `subfolders` que ya existe.
+  if (isArchived.value) return folderStore.archivedFolders;
   const id = documentStore.activeFolderId;
   if (typeof id !== 'number') return [];
-  if (searchQuery.value.trim()) return [];
   return folderStore.childrenOf(id);
 });
 
@@ -320,6 +380,7 @@ watch(viewMode, (mode) => {
 });
 
 watch(searchQuery, () => docResetPage());
+watch(archivedOrder, () => docResetPage());
 watch(() => documentStore.activeFolderId, () => docResetPage());
 watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
 
@@ -366,6 +427,15 @@ const otherFoldersCount = computed(() => {
   return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
 });
 
+// Contador de la entrada "Archivados": documentos + carpetas archivadas.
+const archivedTotalCount = computed(
+  () => documentStore.archivedDocuments.length + folderStore.archivedFolders.length,
+);
+
+const isListLoading = computed(
+  () => (isArchived.value ? documentStore.isArchivedLoading : documentStore.isLoading),
+);
+
 const loadError = ref(null);
 
 async function loadDocuments() {
@@ -384,7 +454,71 @@ onMounted(loadDocuments);
 usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
+  if (id === 'archived') {
+    // El scope archivado no pasa por el filtro `folder` del backend: es su
+    // propio endpoint. Se guarda el centinela y se carga el slice archivado.
+    documentStore.activeFolderId = 'archived';
+    loadArchived();
+    return;
+  }
   documentStore.setFilters({ folder: id });
+}
+
+async function loadArchived() {
+  await Promise.all([
+    documentStore.fetchArchivedDocuments({ order: archivedOrder.value }),
+    folderStore.fetchFolders({ archived: true, order: archivedOrder.value }),
+  ]);
+}
+
+function handleArchivedOrderChange(order) {
+  archivedOrder.value = order;
+  loadArchived();
+}
+
+async function handleArchiveDoc(doc) {
+  if (!doc) return;
+  const result = await documentStore.archiveDocument(doc.id);
+  if (result.success) {
+    notify.success({ title: 'Documento archivado' });
+    await folderStore.fetchFolders();
+  } else {
+    notify.error({ title: 'No se pudo archivar el documento', detail: result.message });
+  }
+}
+
+async function handleUnarchiveDoc(doc) {
+  if (!doc) return;
+  const result = await documentStore.unarchiveDocument(doc.id);
+  if (result.success) {
+    notify.success({ title: 'Documento restaurado' });
+    await folderStore.fetchFolders();
+  } else {
+    notify.error({ title: 'No se pudo restaurar el documento', detail: result.message });
+  }
+}
+
+async function handleUnarchiveFolder(folder) {
+  if (!folder) return;
+  const result = await folderStore.unarchiveFolder(folder.id);
+  if (result.success) {
+    // Se reporta el conteo que devuelve la API, nunca "todo su contenido":
+    // lo archivado a mano se queda archivado a propósito.
+    const restored = result.restoredDocuments;
+    notify.success({
+      title: 'Carpeta restaurada',
+      detail: restored
+        ? `Se restauraron ${restored} documento(s) que archivó esta carpeta.`
+        : undefined,
+    });
+    await loadArchived();
+    await folderStore.fetchFolders();
+  } else {
+    notify.error({
+      title: 'No se pudo restaurar la carpeta',
+      detail: result.errors?.detail,
+    });
+  }
 }
 
 function handleToggleTag(id) {
@@ -404,6 +538,19 @@ function handleDeleteFolder(folder) {
   deletingFolder.value = folder;
 }
 
+async function handleFolderArchived({ folder, documents } = {}) {
+  notify.success({
+    title: 'Carpeta archivada',
+    detail: documents
+      ? `Se archivaron también ${documents} documento(s).`
+      : undefined,
+  });
+  if (documentStore.activeFolderId === folder?.id) {
+    handleSelectFolder('all');
+  }
+  await handleFoldersChanged();
+}
+
 async function handleFolderDeleted(folder) {
   notify.success({ title: 'Carpeta eliminada' });
   // La carpeta borrada era el filtro activo: no queda vista que mostrar.
@@ -418,6 +565,7 @@ async function handleFoldersChanged() {
     documentStore.fetchDocuments(),
     folderStore.fetchFolders(),
   ]);
+  if (isArchived.value) await loadArchived();
 }
 
 async function handleTagsChanged() {
@@ -582,11 +730,19 @@ async function handleCopyMarkdown(id) {
 
 function handleDelete(doc) {
   if (!doc) return;
+  // Ya archivado: no hay salida alternativa que ofrecer.
+  const alreadyArchived = isArchived.value || doc.is_archived;
   requestConfirm({
     title: 'Eliminar documento',
     message: `Se eliminará permanentemente "${doc.title}". Esta acción no se puede deshacer.`,
     variant: 'danger',
     confirmText: 'Eliminar',
+    requireTypeText: 'DELETE',
+    secondaryText: alreadyArchived ? '' : 'Archivar en su lugar',
+    secondaryHint: alreadyArchived
+      ? ''
+      : 'Archivar lo saca de la lista y de los contadores, pero lo conserva: podrás consultarlo o restaurarlo desde Archivados.',
+    onSecondary: () => handleArchiveDoc(doc),
     onConfirm: async () => {
       const result = await documentStore.deleteDocument(doc.id);
       if (result.success) {

@@ -8,7 +8,13 @@ import re
 import pytest
 from django.core import mail
 
-from content.models import Document, EmailLog, HostingRecord, IssuerProfile
+from content.models import (
+    CompanySettings,
+    Document,
+    EmailLog,
+    HostingRecord,
+    IssuerProfile,
+)
 from content.services import (
     collection_account_email_service,
     hosting_billing_service,
@@ -88,11 +94,25 @@ class TestCreateDraft:
         assert 'korehealths.com' in item.description
 
     def test_draft_seeds_payment_methods(self):
+        """The bank account leads and comes from CompanySettings — the same
+        singleton the contract's payment clause reads — with the issuer's own
+        extra channels seeded after it."""
+        company = CompanySettings.load()
+        company.bank_name = 'Bancolombia'
+        company.bank_account_type = 'Ahorros'
+        company.bank_account_number = '00774149350'
+        company.contractor_full_name = 'GUSTAVO ADOLFO PEREZ PEREZ'
+        company.save()
         hosting = make_hosting()
+
         document = create_hosting_collection_account(hosting)
+
         methods = list(document.payment_methods.all())
-        assert len(methods) == 2
-        assert methods[0].is_primary and methods[0].bank_name == 'Bancolombia'
+        # 1 from CompanySettings + the 2 the issuer fixture configures.
+        assert len(methods) == 3
+        assert methods[0].is_primary is True
+        assert methods[0].account_number == '00774149350'
+        assert methods[0].account_holder_name == 'GUSTAVO ADOLFO PEREZ PEREZ'
 
 
 class TestSendFlow:

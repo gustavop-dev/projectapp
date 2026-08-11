@@ -11,7 +11,7 @@ import pytest
 from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 
-from content.models import Document, IncomeRecord, IssuerProfile
+from content.models import CompanySettings, Document, IncomeRecord, IssuerProfile
 from content.services.collection_account_email_service import (
     build_collection_account_email,
 )
@@ -26,11 +26,29 @@ CREATE_URL = '/api/accounting/collection-accounts/create/'
 def issuer(settings):
     settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
     profile = IssuerProfile.objects.order_by('pk').first()
-    profile.default_payment_methods = [
-        {'payment_method_type': 'bank_transfer', 'bank_name': 'Bancolombia'},
-    ]
+    # Emptied on purpose: the bank data now comes from CompanySettings, and a
+    # leftover here would mask a regression that stopped reading it.
+    profile.default_payment_methods = []
     profile.save()
     return profile
+
+
+@pytest.fixture(autouse=True)
+def company_settings():
+    """The single source of the payment data, set explicitly.
+
+    A data migration seeds real values into the test database; pinning them
+    here keeps these assertions from drifting when that seed changes.
+    """
+    company = CompanySettings.load()
+    company.contractor_full_name = 'GUSTAVO ADOLFO PEREZ PEREZ'
+    company.contractor_nit = '1021513348-7'
+    company.contractor_cedula = ''
+    company.bank_name = 'Bancolombia'
+    company.bank_account_type = 'Ahorros'
+    company.bank_account_number = '00774149350'
+    company.save()
+    return company
 
 
 def make_client(email='ana@acme.co', company='Acme Soluciones'):
@@ -69,26 +87,31 @@ def payload(client_user, income, **overrides):
     return data
 
 
+def create_document(super_client, **payload_overrides):
+    client = make_client()
+    income = make_income()
+    response = super_client.post(
+        CREATE_URL, payload(client, income, **payload_overrides), format='json',
+    )
+    assert response.status_code == 201, response.data
+    return Document.objects.get(pk=response.data['document']['id'])
+
+
+PERIOD_ITEMS = [{
+    'description': 'Desarrollo módulo de reportes',
+    'quantity': '1',
+    'unit_price': '1490000.00',
+    'period_start': '2026-08-01',
+    'period_end': '2026-08-31',
+}]
+
+
 class TestBuildCollectionAccountEmail:
     def test_renders_period_valor_and_payment_methods_from_a_real_document(
         self, super_client,
     ):
         """Fails if a regression corrupts what the preview modal AND the real client email show (the only function both share)."""
-        client = make_client()
-        income = make_income()
-        response = super_client.post(
-            CREATE_URL,
-            payload(client, income, items=[{
-                'description': 'Desarrollo módulo de reportes',
-                'quantity': '1',
-                'unit_price': '1490000.00',
-                'period_start': '2026-08-01',
-                'period_end': '2026-08-31',
-            }]),
-            format='json',
-        )
-        assert response.status_code == 201, response.data
-        document = Document.objects.get(pk=response.data['document']['id'])
+        document = create_document(super_client, items=PERIOD_ITEMS)
 
         email = build_collection_account_email(document)
 
@@ -102,25 +125,72 @@ class TestBuildCollectionAccountEmail:
         methods = next(
             s for s in email['sections'] if s.startswith('Formas de pago')
         )
-        assert 'Bank transfer · Bancolombia' in methods
+        assert 'Transferencia bancaria' in methods
+        assert 'Entidad: Bancolombia' in methods
         assert email['greeting'] == 'Hola Ana Pérez'
 
     def test_omits_period_and_payment_methods_sections_when_absent(
-        self, super_client, issuer,
+        self, super_client, issuer, company_settings,
     ):
         """Fails if a dropped/inverted guard ships a blank or broken section."""
-        issuer.default_payment_methods = []
-        issuer.save()
-        client = make_client()
-        income = make_income()
-
-        response = super_client.post(
-            CREATE_URL, payload(client, income), format='json',
-        )
-        assert response.status_code == 201, response.data
-        document = Document.objects.get(pk=response.data['document']['id'])
+        # Both sources have to go quiet: an unconfigured bank account must not
+        # print a payment block with labels and nothing beside them.
+        company_settings.bank_name = ''
+        company_settings.bank_account_number = ''
+        company_settings.save()
+        document = create_document(super_client)
 
         email = build_collection_account_email(document)
 
         assert not any('Período facturado' in s for s in email['sections'])
         assert not any(s.startswith('Formas de pago') for s in email['sections'])
+
+    def test_emphasises_the_figures_the_client_has_to_act_on(self, super_client):
+        """Fails if the amount, deadline or account number lose their emphasis and sink back into running text."""
+        document = create_document(super_client, items=PERIOD_ITEMS)
+
+        html = build_collection_account_email(document)['html_body']
+
+        # The label stays plain and the datum carries the weight.
+        assert 'Período facturado: <strong style="font-weight:500;">' in html
+        assert 'Valor a pagar: <strong style="font-weight:500;">' in html
+        assert 'Fecha límite de pago: <strong style="font-weight:500;">' in html
+        assert '<strong style="font-weight:500;">00774149350</strong>' in html
+
+    def test_gives_the_payment_deadline_a_line_of_its_own(self, super_client):
+        """Fails if the deadline goes back to riding along on the amount's line, where it was invisible."""
+        document = create_document(super_client, items=PERIOD_ITEMS)
+
+        sections = build_collection_account_email(document)['sections']
+
+        valor = next(s for s in sections if s.startswith('Valor a pagar'))
+        assert 'Fecha límite' not in valor
+        deadline = next(
+            s for s in sections if s.startswith('Fecha límite de pago')
+        )
+        # The house weekday format, not 19/08/2026.
+        assert deadline == 'Fecha límite de pago: Mié, 19 ago 2026.'
+
+    def test_text_alternative_carries_no_markdown_markers(self, super_client):
+        """Fails if the plain-text part ships raw ** and ### to whoever reads without HTML."""
+        document = create_document(super_client, items=PERIOD_ITEMS)
+
+        email = build_collection_account_email(document)
+
+        assert '**' not in email['text_body']
+        assert '###' not in email['text_body']
+        assert "Valor a pagar: $1'490.000 COP." in email['text_body']
+
+    def test_payment_block_names_bank_account_and_holder(self, super_client):
+        """Fails if the block drops a field the client needs to actually transfer the money."""
+        document = create_document(super_client, items=PERIOD_ITEMS)
+
+        methods = next(
+            s for s in build_collection_account_email(document)['sections']
+            if s.startswith('Formas de pago')
+        )
+
+        assert 'Entidad: Bancolombia' in methods
+        assert 'Tipo de cuenta: Ahorros' in methods
+        assert 'Número de cuenta: 00774149350' in methods
+        assert 'Titular: GUSTAVO ADOLFO PEREZ PEREZ (NIT 1021513348-7)' in methods

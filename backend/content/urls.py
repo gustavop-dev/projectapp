@@ -2,7 +2,7 @@ from django.urls import path
 from content.views.accounting import (
     accounting_dashboard, accounting_stats,
     list_income_records, create_income_record, retrieve_income_record,
-    settle_income_record, bulk_assign_income_client,
+    settle_income_record, bulk_assign_income_client, mute_income_reminders,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
     update_expense_record, delete_expense_record,
@@ -140,6 +140,7 @@ from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
+    archive_document, unarchive_document,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -150,6 +151,7 @@ from content.views.document_folder import (
     list_document_folders, create_document_folder,
     update_document_folder, delete_document_folder,
     reorder_document_folders,
+    archive_document_folder, unarchive_document_folder,
 )
 from content.views.document_tag import (
     list_document_tags, create_document_tag,
@@ -357,6 +359,8 @@ urlpatterns = [
     path('documents/<int:document_id>/detail/', retrieve_document, name='retrieve-document'),
     path('documents/<int:document_id>/update/', update_document, name='update-document'),
     path('documents/<int:document_id>/delete/', delete_document, name='delete-document'),
+    path('documents/<int:document_id>/archive/', archive_document, name='archive-document'),
+    path('documents/<int:document_id>/unarchive/', unarchive_document, name='unarchive-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
 
@@ -366,6 +370,8 @@ urlpatterns = [
     path('document-folders/reorder/', reorder_document_folders, name='reorder-document-folders'),
     path('document-folders/<int:folder_id>/update/', update_document_folder, name='update-document-folder'),
     path('document-folders/<int:folder_id>/delete/', delete_document_folder, name='delete-document-folder'),
+    path('document-folders/<int:folder_id>/archive/', archive_document_folder, name='archive-document-folder'),
+    path('document-folders/<int:folder_id>/unarchive/', unarchive_document_folder, name='unarchive-document-folder'),
 
     # Kanban tasks (admin panel)
     path('tasks/', list_tasks, name='list-tasks'),
@@ -495,6 +501,7 @@ urlpatterns = [
     path('accounting/incomes/', list_income_records, name='list-income-records'),
     path('accounting/incomes/create/', create_income_record, name='create-income-record'),
     path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
+    path('accounting/incomes/<int:record_id>/mute/', mute_income_reminders, name='mute-income-reminders'),
     path('accounting/incomes/bulk-assign-client/', bulk_assign_income_client, name='bulk-assign-income-client'),
     path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),
     path('accounting/incomes/<int:record_id>/update/', update_income_record, name='update-income-record'),

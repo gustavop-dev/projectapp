@@ -1,5 +1,5 @@
 {
-  "version": "2.64.0",
+  "version": "2.65.0",
   "lastUpdated": "2026-08-01",
   "flows": {
     "layout-navbar-navigation": {
@@ -2897,6 +2897,22 @@
         "failure"
       ]
     },
+    "admin-document-archive": {
+      "name": "Admin Document Archive",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin archives documents and folders from /panel/documents: the actions sheet offers 'Archivar' (PATCH /api/documents/:id/archive/) and, on an archived document, 'Restaurar' (PATCH /api/documents/:id/unarchive/). The delete confirmation offers archiving as a secondary action that is visible and enabled BEFORE the DELETE word is typed. A folder that still holds content — previously an undeletable dead end — opens DeleteFolderModal reframed around archiving (PATCH /api/document-folders/:id/archive/, cascading over subfolders and documents and reporting the counts); it renders no destructive button at all in that branch. The 'Archivados' sidebar entry switches the list to GET /api/documents/?archived=1 + /api/document-folders/?archived=1, swapping the Creado column for Archivado plus a relative age, and offering a Recientes / Más antiguos order control (?order=oldest). Archived items are not drop targets and cannot be dragged.",
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-08-11 with the feature: archive from the sheet, the modal escape hatch before the typed word, the filled-folder branch, the Archivados view + order control, restore, and the archive failure toast. The cascade-memory rule (items archived individually stay archived when their folder is unarchived) is covered at the service and view layer in backend tests, not E2E.",
+      "outcomes": [
+        "success",
+        "failure",
+        "display"
+      ]
+    },
     "admin-document-folder-manage": {
       "name": "Admin Document Folder Management",
       "module": "admin",
@@ -2904,9 +2920,9 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create. The sidebar (FolderSidebar) also exposes a per-row trash icon: enabled on empty folders, aria-disabled + BaseTooltip explaining why on folders that still hold documents or subfolders. The enabled icon opens DeleteFolderModal, which lists the folder inventory and requires typing DELETE (case-sensitive) before confirming.",
+      "description": "Admin manages folders in FolderManagerModal: create folder with parent selector (POST /api/document-folders/create/), inline rename (PATCH /api/document-folders/:id/update/), delete with confirmation (DELETE /api/document-folders/:id/delete/) and drag-reorder (POST /api/document-folders/reorder/). Existing admin-document-folders spec only covers parent pre-selection on create. The sidebar (FolderSidebar) also exposes a per-row trash icon, enabled on every folder: it opens DeleteFolderModal, which lists the folder inventory. On an empty folder the modal requires typing DELETE (case-sensitive) before confirming and offers archiving alongside; on a folder that still holds content it drops the destructive button entirely and presents archiving as the available action. The folder manager's own delete icon delegates to that same modal, so folder deletion has one contract everywhere.",
       "expectedSpecs": 1,
-      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI). Sidebar delete (DELETE-typed confirm, blocked icon, 409 conflict) added 2026-08-04.",
+      "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): create/rename/delete + documents-blocking branch over mocked API. Drag-reorder intentionally not asserted (flaky in CI). Sidebar delete (DELETE-typed confirm, blocked icon, 409 conflict) added 2026-08-04. Rewritten 2026-08-11: the blocked-icon branch is gone (a filled folder now reaches the modal and is offered archiving), and the manager's inline confirmation panel was consolidated into DeleteFolderModal.",
       "outcomes": [
         "success",
         "error",
@@ -3669,11 +3685,12 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Superuser links each income to the client it came from at /panel/accounting/incomes. The income form carries a searchable client picker (with inline client creation) and an Origen control for the business line (desarrollo/hosting/diagnostico/otro); the client is optional, so a refund or a financial yield can stay unassigned. The table shows a Cliente column, the filter panel gains Cliente (options derived from the loaded rows plus a \"Sin cliente\" sentinel) and Origen filters, and a \"Sin cliente\" builtin tab isolates the rows still to be completed. Those rows are completed in bulk: checkboxes select rows (or every filtered row) and one action assigns the client to all of them, writing one audit entry per income. A \"Totales por cliente\" modal breaks the FILTERED incomes down into billed / collected / pending / weight per client with a totals row, so the period comes from the active filters. Settling an income carries its client and origin into the liquid child, and a client holding incomes can no longer be deleted.",
-      "expectedSpecs": 3,
+      "description": "Superuser links each income to the client it came from at /panel/accounting/incomes. The income form carries a searchable client picker (with inline client creation) and an Origen control for the business line (desarrollo/hosting/diagnostico/otro); the client is optional, so a refund or a financial yield can stay unassigned. The table shows a Cliente column, the filter panel gains Cliente (options derived from the loaded rows plus a \"Sin cliente\" sentinel) and Origen filters, and a \"Sin cliente\" builtin tab isolates the rows still to be completed. Those rows are completed in bulk from the shared ClientBulkAssignBar, the same component /panel/accounting/hostings uses: checkboxes select rows (or every filtered row) and TWO separate actions act on them. \"Asignar cliente\" stays disabled while no client is picked, with the reason inline — an empty picker no longer means unlink — and \"Desvincular cliente\" only appears when a selected row actually has a client. Either action opens a confirmation naming the scope before anything is written: how many rows gain a client, how many change one and from which client (a mixed selection is broken down instead of presented as a single operation), plus the full scrollable list of affected records. Only the rows that actually change travel in POST /api/accounting/incomes/bulk-assign-client/ (one audit entry per income), and the toast afterwards reports how many the server really wrote. A \"Totales por cliente\" modal breaks the FILTERED incomes down into billed / collected / pending / weight per client with a totals row, so the period comes from the active filters. Settling an income carries its client and origin into the liquid child, and a client holding incomes can no longer be deleted. The list can also render GROUPED BY CLIENT: the backend setting income_default_view_mode (edited in Configuración) decides the landing mode on every visit, the in-page Agrupado/Clásico segmented toggle lasts only the session (nothing persists on the device), and the grouped table shows per-client headers (count, billed, pending, weight share) over the whole filtered set with a trailing 'Sin cliente' bucket flagged 'por completar' and billed/collected/pending footer totals; sort, row selection and pagination stay classic-only. A 'Sin cliente' KPI card (without_client_count, whole filtered set) surfaces the completion debt, the search box also matches the linked client's name/company (server-side q included), each unassigned row in the classic table wears a 'sin vincular' pill, reassigning an expected's client cascades to its settled liquids, and the cuenta de cobro adopts the client on an orphan income or rejects a mismatched one.",
+      "expectedSpecs": 7,
       "outcomes": [
         "display",
-        "success"
+        "success",
+        "failure"
       ]
     },
     "admin-accounting-filters": {
@@ -3727,11 +3744,12 @@
         "admin"
       ],
       "priority": "P1",
-      "description": "Every hosting belongs to a client, so the hosting form carries a searchable client picker with inline creation and requires it on NEW records. Records saved before the relation kept the client as free text following the house convention \"Persona - Marca\": opening one searches that text and offers the matching registered client for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as pending and stays saveable — completing it is a separate step. The table shows the client with a \"sin vincular\" pill, the filter panel gains a Cliente filter with a \"Sin cliente\" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to assign a client in bulk (one audit entry per hosting). Selecting a client seeds the billing snapshot without overwriting what the operator typed. The cuenta de cobro then inherits the client: the send action gates on the resolved recipient (hosting override, else the client address) instead of a hosting-only email, issues on that client's PA-{CODE}-{NNN} series and links the document to the client user. A client holding hostings can no longer be deleted, and the client card lists their hostings with the monthly total alongside their incomes.",
-      "expectedSpecs": 2,
+      "description": "Every hosting belongs to a client, so the hosting form carries a searchable client picker with inline creation and requires it on NEW records. Records saved before the relation kept the client as free text following the house convention \"Persona - Marca\": opening one searches that text and offers the matching registered client for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as pending and stays saveable — completing it is a separate step. The table shows the client with a \"sin vincular\" pill, the filter panel gains a Cliente filter with a \"Sin cliente\" sentinel, a builtin tab isolates the pending group, and a header card counts it. Rows are completed in bulk from the shared ClientBulkAssignBar, the same component /panel/accounting/incomes uses: TWO separate actions act on the selection. \"Asignar cliente\" stays disabled while no client is picked, with the reason inline — an empty picker no longer means unlink — and \"Desvincular cliente\" only appears when a selected row actually has a client. Either action opens a confirmation naming the scope before anything is written: how many rows gain a client, how many change one and from which client (a mixed selection is broken down instead of presented as a single operation), plus the full scrollable list of affected records. Only the rows that actually change travel in POST /api/accounting/hostings/bulk-assign-client/ (one audit entry per hosting), and the toast afterwards reports how many the server really wrote. Selecting a client seeds the billing snapshot without overwriting what the operator typed. The cuenta de cobro then inherits the client: the send action gates on the resolved recipient (hosting override, else the client address) instead of a hosting-only email, issues on that client's PA-{CODE}-{NNN} series and links the document to the client user. A client holding hostings can no longer be deleted, and the client card lists their hostings with the monthly total alongside their incomes.",
+      "expectedSpecs": 4,
       "outcomes": [
         "display",
-        "success"
+        "success",
+        "failure"
       ]
     },
     "admin-accounting-pocket": {
@@ -3756,8 +3774,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), a monthly breakdown card switchable by category/frequency/payment method, and modal CRUD where the COP-equivalent field only applies to USD payments. The default grouped view lists payments by category with per-group monthly COP subtotals, a grand total, drag-and-drop manual ordering (disabled while a filter is active) and an editable category catalog; a classic view keeps the sortable, paginated table. The frequency catalog runs from monthly through bimestral, trimestral, cuatrimestral, semestral, anual and the every-2/3-years options, plus a \"Personalizada\" cycle of N months whose form field only appears once it is picked. Every amount is normalized to its monthly equivalent, so a quarterly or custom charge is comparable with a monthly one.",
-      "expectedSpecs": 10,
+      "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), a monthly breakdown card switchable by category/frequency/payment method, and modal CRUD where the COP-equivalent field only applies to USD payments. The default grouped view lists payments by category with per-group monthly COP subtotals, a grand total, drag-and-drop manual ordering (disabled while a filter is active) and an editable category catalog; a classic view keeps the sortable, paginated table. The frequency catalog runs from monthly through bimestral, trimestral, cuatrimestral, semestral, anual and the every-2/3-years options, plus a \"Personalizada\" cycle of N months whose form field only appears once it is picked. Every amount is normalized to its monthly equivalent, so a quarterly or custom charge is comparable with a monthly one. A \"Gráfico\" action beside the view toggle opens a wide charts modal over the same filtered rows — donut by category, ranked bars by item, composition by currency/method/cost type and a calendar of charges by day of month — with the table's active filters shown as chips, a category drill-down from the legend, an inactive-payments toggle and PNG export.",
+      "expectedSpecs": 12,
       "outcomes": [
         "display",
         "success",
@@ -3785,8 +3803,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate used by the recurring USD KPI.",
-      "expectedSpecs": 3,
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent), the USD exchange rate used by the recurring USD KPI, and the 'Vista de ingresos' segmented control (income_default_view_mode: whether /panel/accounting/incomes lands grouped by client or as the classic table on every visit; the in-page toggle is session-only).",
+      "expectedSpecs": 4,
       "outcomes": [
         "display",
         "success",

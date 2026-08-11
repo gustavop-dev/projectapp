@@ -7,7 +7,12 @@ from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
 from freezegun import freeze_time
 
-from content.models import Document, IncomeRecord, IssuerProfile
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    IncomeRecord,
+    IssuerProfile,
+)
 from content.services.collection_account_create_service import (
     create_income_collection_account,
 )
@@ -89,7 +94,9 @@ class TestHappyPath:
         assert ext.customer_identification == '901234567'
         assert ext.customer_identification_type == 'NIT'
         assert ext.customer_email == 'ana@acme.co'
-        assert document.payment_methods.count() == 1
+        # The CompanySettings bank account plus the issuer's own extra channel.
+        assert document.payment_methods.count() == 2
+        assert document.payment_methods.filter(is_primary=True).count() == 1
 
     def test_cedula_when_no_nit_and_concept_defaults_from_income(self):
         client = make_client(cedula='12345678')
@@ -173,3 +180,33 @@ class TestGuards:
         with pytest.raises(CollectionAccountError) as exc:
             create_income_collection_account(payload(client, make_income()))
         assert 'email real' in str(exc.value)
+
+
+class TestClientOwnershipSync:
+    def test_adopts_the_client_when_the_income_has_none(self):
+        """Issuing the cuenta claims the orphan income for its client."""
+        client = make_client(nit='901234567')
+        income = make_income()
+
+        create_income_collection_account(payload(client, income))
+
+        income.refresh_from_db()
+        assert income.client_id == client.profile.pk
+        # Audited through the shared assignment pathway.
+        log = AccountingChangeLog.objects.get(
+            entity_type='income', object_id=income.pk, action='updated',
+        )
+        assert log.changes[0]['field'] == 'client'
+
+    def test_rejects_an_income_owned_by_another_client(self):
+        owner = make_client(email='owner@acme.co', company='Dueno SAS')
+        other = make_client(email='other@acme.co', company='Otro SAS')
+        income = make_income(client=owner.profile)
+
+        with pytest.raises(CollectionAccountError) as exc:
+            create_income_collection_account(payload(other, income))
+
+        assert 'pertenece a otro cliente' in str(exc.value)
+        assert not Document.objects.filter(income_record=income).exists()
+        income.refresh_from_db()
+        assert income.client_id == owner.profile.pk

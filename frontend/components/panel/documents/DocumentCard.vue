@@ -1,7 +1,9 @@
 <script setup>
 import { computed } from 'vue'
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue'
-import { statusBadgeClass, statusLabel, formatDocumentDate } from '~/utils/documentStatus'
+import {
+  statusBadgeClass, statusLabel, formatDocumentDate, archivedAgeLabel,
+} from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 
@@ -10,6 +12,7 @@ const props = defineProps({
   editTo: { type: [String, Object], default: null },
   newlyCreated: { type: Boolean, default: false },
   dragging: { type: Boolean, default: false },
+  archived: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['open', 'action', 'dragstart', 'dragend'])
@@ -24,7 +27,11 @@ const extraTagNames = computed(() => tags.value.slice(MAX_TAGS).map((t) => t.nam
 const meta = computed(() => {
   const parts = []
   if (props.document.client_name) parts.push(props.document.client_name)
-  parts.push(formatDocumentDate(props.document.created_at))
+  if (props.archived) {
+    parts.push(`Archivado · ${archivedAgeLabel(props.document.archived_at) || '—'}`)
+  } else {
+    parts.push(formatDocumentDate(props.document.created_at))
+  }
   return parts.join(' · ')
 })
 </script>
@@ -40,7 +47,7 @@ const meta = computed(() => {
       { 'opacity-50': dragging },
       { 'ring-2 ring-focus-ring/40 bg-primary-soft': newlyCreated },
     ]"
-    draggable="true"
+    :draggable="!archived"
     :data-testid="`document-card-${document.id}`"
     @click="emit('open')"
     @dragstart="emit('dragstart', $event)"
@@ -62,6 +69,13 @@ const meta = computed(() => {
       </div>
       <div class="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-surface to-transparent"></div>
       <span
+        v-if="archived"
+        class="absolute top-2 right-2 inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-2xs font-semibold uppercase text-text-muted shadow-sm dark:text-text-subtle"
+      >
+        Archivado
+      </span>
+      <span
+        v-else
         class="absolute top-2 right-2 inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium shadow-sm"
         :class="statusBadgeClass(document.status)"
       >

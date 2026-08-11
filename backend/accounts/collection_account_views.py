@@ -55,6 +55,9 @@ def _get_project_or_403(request, project_id):
 
 
 def _base_collection_qs():
+    # Sin filtro `is_archived`: archivar es orden interno del panel. La plata
+    # que se debe no puede desaparecerle al cliente porque un admin ordenó una
+    # carpeta; para retirar una cuenta está `commercial_status`.
     return Document.objects.filter(
         document_type__code=COLLECTION_ACCOUNT,
     ).select_related(

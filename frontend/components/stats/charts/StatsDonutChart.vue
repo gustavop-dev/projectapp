@@ -2,7 +2,13 @@
   <div data-testid="stats-donut-chart">
     <BaseEmptyState v-if="isEmpty" :title="emptyTitle" />
     <ClientOnly v-else>
-      <apexchart type="donut" :height="height" :options="options" :series="values" />
+      <apexchart
+        type="donut"
+        :height="height"
+        :options="options"
+        :series="values"
+        @data-point-selection="onDataPointSelection"
+      />
       <template #fallback>
         <div
           class="rounded-xl bg-surface-raised motion-safe:animate-pulse"
@@ -33,9 +39,26 @@ const props = defineProps({
   /** Override slice colors; defaults to the categorical ramp. */
   colors: { type: Array, default: null },
   emptyTitle: { type: String, default: 'Sin datos para distribuir' },
+  /** Replaces the tooltip's value line when the default figure is not enough. */
+  tooltipValueFormatter: { type: Function, default: null },
+  /** Apex chart id, required only to drive `ApexCharts.exec` (image export). */
+  chartId: { type: String, default: '' },
+  /**
+   * Off when the consumer renders its own legend. Apex's names the slices but
+   * carries no value or share, so pairing it with a richer legend just prints
+   * the same list twice.
+   */
+  showLegend: { type: Boolean, default: true },
 });
 
+/** `select` carries the index into `labels`/`values`, for drill-down. */
+const emit = defineEmits(['select']);
+
 const { palette, baseOptions } = useChartTheme();
+
+function onDataPointSelection(_event, _context, config) {
+  emit('select', config?.dataPointIndex);
+}
 
 const isEmpty = computed(() => props.values.every((value) => !value));
 
@@ -46,9 +69,18 @@ const totalFormatter = computed(() => {
 
 const options = computed(() => ({
   ...baseOptions.value,
+  chart: {
+    ...baseOptions.value.chart,
+    ...(props.chartId ? { id: props.chartId } : {}),
+  },
   labels: props.labels,
   colors: props.colors || palette.value.categorical,
-  legend: { ...baseOptions.value.legend, position: 'bottom', horizontalAlign: 'center' },
+  legend: {
+    ...baseOptions.value.legend,
+    position: 'bottom',
+    horizontalAlign: 'center',
+    show: props.showLegend,
+  },
   stroke: { width: 0 },
   plotOptions: {
     pie: {
@@ -71,7 +103,7 @@ const options = computed(() => ({
   },
   tooltip: {
     ...baseOptions.value.tooltip,
-    y: { formatter: tooltipFormatter(props.valueFormat) },
+    y: { formatter: props.tooltipValueFormatter || tooltipFormatter(props.valueFormat) },
   },
 }));
 </script>

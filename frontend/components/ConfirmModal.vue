@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="modelValue"
-    size="md"
+    :size="size"
     :close-on-backdrop="!hideCancel"
     :close-on-esc="!hideCancel"
     @update:model-value="(v) => !v && handleCancel()"
@@ -18,6 +18,28 @@
         <div class="flex-1 min-w-0">
           <h3 class="text-lg font-bold text-text-default">{{ title }}</h3>
           <p class="mt-1 text-sm text-text-muted leading-relaxed">{{ message }}</p>
+
+          <!--
+            Detalle estructurado del alcance (p. ej. la lista de registros que
+            una acción masiva va a tocar). Va entre el mensaje y la reja: lo
+            que se va a cambiar se lee antes de poder confirmarlo.
+          -->
+          <div v-if="$slots.default" class="mt-3" data-testid="confirm-modal-detail">
+            <slot />
+          </div>
+
+          <!--
+            La salida va ANTES del campo de confirmación, no después: tiene que
+            estar en el camino de lectura antes de que el usuario llegue a la reja.
+          -->
+          <div
+            v-if="secondaryHint"
+            class="mt-3 rounded-lg border border-border-muted bg-surface-muted px-3 py-2"
+            data-testid="confirm-modal-secondary-hint"
+          >
+            <p class="text-xs text-text-muted leading-relaxed">{{ secondaryHint }}</p>
+          </div>
+
           <div v-if="requireTypeText" class="mt-4">
             <label class="block text-xs text-text-muted mb-1.5">
               Escribe <span class="font-mono font-bold text-text-default">{{ requireTypeText }}</span> para confirmar
@@ -46,6 +68,19 @@
         @click="handleCancel"
       >
         {{ cancelText }}
+      </BaseButton>
+      <!--
+        Entre Cancelar y Confirmar: el destructivo se queda a la derecha.
+        Nunca se deshabilita con `canConfirm` — es una salida, no un paso más.
+      -->
+      <BaseButton
+        v-if="secondaryText"
+        :variant="secondaryVariant"
+        size="md"
+        data-testid="confirm-modal-secondary"
+        @click="handleSecondary"
+      >
+        {{ secondaryText }}
       </BaseButton>
       <BaseButton
         :variant="variant === 'danger' ? 'danger' : 'primary'"
@@ -82,9 +117,25 @@ const props = defineProps({
   },
   requireTypeText: { type: String, default: '' },
   hideCancel: { type: Boolean, default: false },
+  // Ancho del diálogo, reenviado a BaseModal. Sólo lo suben los confirms que
+  // llevan detalle en el slot; el resto se queda en el 'md' de siempre.
+  size: {
+    type: String,
+    default: 'md',
+    validator: oneOf(['sm', 'md', 'lg', 'xl', '2xl', '5xl', 'full']),
+  },
+  // Acción alternativa no destructiva. Opcional: sin `secondaryText` el modal
+  // se comporta exactamente como antes para todos los call sites existentes.
+  secondaryText: { type: String, default: '' },
+  secondaryVariant: {
+    type: String,
+    default: 'secondary',
+    validator: oneOf(['secondary', 'ghost', 'primary']),
+  },
+  secondaryHint: { type: String, default: '' },
 })
 
-const emit = defineEmits(['update:modelValue', 'confirm', 'cancel'])
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel', 'secondary'])
 
 const typeInputRef = ref(null)
 const typedValue = ref('')
@@ -106,6 +157,11 @@ const variantIcon = computed(() => variantClasses.value.icon)
 function handleConfirm() {
   if (!canConfirm.value) return
   emit('confirm')
+  emit('update:modelValue', false)
+}
+
+function handleSecondary() {
+  emit('secondary')
   emit('update:modelValue', false)
 }
 

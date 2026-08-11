@@ -10,9 +10,11 @@ from django.contrib.auth import get_user_model
 from freezegun import freeze_time
 
 from content.models import (
+    CompanySettings,
     Document,
     DocumentCollectionAccount,
     DocumentItem,
+    DocumentPaymentMethod,
     IssuerProfile,
 )
 from content.services.collection_account_service import (
@@ -20,6 +22,7 @@ from content.services.collection_account_service import (
     allocate_public_number,
     assert_draft_for_mutation,
     commercial_is_overdue,
+    default_payment_methods_config,
     is_collection_account,
     issue_collection_account,
     mark_collection_account_cancelled,
@@ -523,3 +526,78 @@ def test_issue_collection_account_uses_person_name_when_user_has_no_profile(
 
     assert ext.customer_name == 'Sam Rivera'
     assert ext.customer_contact_name == 'Sam Rivera'
+
+
+@pytest.fixture
+def bank_settings():
+    """The contract's payment clause source, which now also feeds the cuenta."""
+    company = CompanySettings.load()
+    company.contractor_full_name = 'GUSTAVO ADOLFO PEREZ PEREZ'
+    company.contractor_nit = '1021513348-7'
+    company.contractor_cedula = ''
+    company.bank_name = 'Bancolombia'
+    company.bank_account_type = 'Ahorros'
+    company.bank_account_number = '00774149350'
+    company.save()
+    return company
+
+
+def test_default_payment_methods_come_from_company_settings(issuer, bank_settings):
+    """One source for the bank account: updating CompanySettings has to reach
+    the cuenta de cobro, not just the contract."""
+    issuer.default_payment_methods = []
+    issuer.save()
+
+    methods = default_payment_methods_config(issuer)
+
+    assert len(methods) == 1
+    assert methods[0] == {
+        'payment_method_type': DocumentPaymentMethod.MethodType.BANK_TRANSFER,
+        'bank_name': 'Bancolombia',
+        'account_type': 'Ahorros',
+        'account_number': '00774149350',
+        'account_holder_name': 'GUSTAVO ADOLFO PEREZ PEREZ',
+        'account_holder_identification': 'NIT 1021513348-7',
+    }
+
+
+def test_default_payment_methods_label_the_holder_id_by_document_type(
+    issuer, bank_settings,
+):
+    """Naming a cédula 'NIT' on a billing document is a defect, not cosmetics."""
+    bank_settings.contractor_nit = ''
+    bank_settings.contractor_cedula = '1037635428'
+    bank_settings.save()
+
+    methods = default_payment_methods_config(issuer)
+
+    assert methods[0]['account_holder_identification'] == 'C.C. 1037635428'
+
+
+def test_default_payment_methods_keep_the_issuer_extras_after_the_bank(
+    issuer, bank_settings,
+):
+    """The issuer JSON stays the place to add a second channel without a migration."""
+    issuer.default_payment_methods = [
+        {'payment_method_type': 'nequi', 'account_number': '3238122373'},
+    ]
+    issuer.save()
+
+    methods = default_payment_methods_config(issuer)
+
+    assert [m['payment_method_type'] for m in methods] == [
+        DocumentPaymentMethod.MethodType.BANK_TRANSFER, 'nequi',
+    ]
+
+
+def test_default_payment_methods_skip_the_bank_when_unconfigured(issuer):
+    """A half-filled CompanySettings must yield no method rather than a block
+    of labels with nothing beside them."""
+    company = CompanySettings.load()
+    company.bank_name = 'Bancolombia'
+    company.bank_account_number = ''
+    company.save()
+    issuer.default_payment_methods = []
+    issuer.save()
+
+    assert default_payment_methods_config(issuer) == []

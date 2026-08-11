@@ -82,6 +82,21 @@ class RecurringPayment(AccountingRecordBase):
         blank=True,
         validators=[MinValueValidator(1), MaxValueValidator(31)],
     )
+    # Anchor for the payment calendar: any known charge date. The next charge is
+    # computed from it by adding whole frequency cycles, so it is never stored
+    # and never drifts. `billing_day` alone cannot do this beyond the monthly
+    # frequency — a day of the month does not say *which* month a quarterly or
+    # annual charge lands on.
+    cycle_anchor_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text='Cualquier fecha de cobro conocida: a partir de ella se calculan las siguientes.',
+    )
+    # Cadence state, not user settings. Recurring payments are announced 15 and
+    # 7 days ahead and on the charge day, and then stop: an unpaid cycle does
+    # not nag, the next cycle simply re-arms from the anchor.
+    reminder_target_date = models.DateField(null=True, blank=True)
+    reminder_last_sent_at = models.DateField(null=True, blank=True)
     cost_type = models.CharField(
         max_length=10, choices=CostType.choices, default=CostType.FIXED,
     )

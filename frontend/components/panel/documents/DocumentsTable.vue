@@ -2,7 +2,9 @@
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 import {
   statusBadgeClass, statusLabel, formatDocumentDate, folderRowSummary,
+  archivedAgeLabel,
 } from '~/utils/documentStatus'
+import { formatDateTime } from '~/utils/formatDate'
 
 defineProps({
   documents: { type: Array, default: () => [] },
@@ -11,10 +13,11 @@ defineProps({
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
+  archived: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
-  'open', 'action', 'select-folder',
+  'open', 'action', 'select-folder', 'unarchive-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder',
@@ -30,7 +33,7 @@ const emit = defineEmits([
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Creado</th>
+          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ archived ? 'Archivado' : 'Creado' }}</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
       </thead>
@@ -39,10 +42,13 @@ const emit = defineEmits([
         <tr
           v-for="sub in subfolders"
           :key="`folder-${sub.id}`"
-          class="transition-colors cursor-pointer select-none hover:bg-surface-muted"
-          :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
-          draggable="true"
-          @click="emit('select-folder', sub.id)"
+          class="transition-colors select-none hover:bg-surface-muted"
+          :class="[
+            archived ? '' : 'cursor-pointer',
+            { 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id },
+          ]"
+          :draggable="!archived"
+          @click="!archived && emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"
           @dragover="emit('folder-dragover', $event, sub.id)"
@@ -60,8 +66,17 @@ const emit = defineEmits([
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="3">
             {{ folderRowSummary(sub) }}
           </td>
-          <td class="px-6 py-4">
-            <svg class="w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <td class="px-6 py-4" @click.stop>
+            <BaseButton
+              v-if="archived"
+              variant="secondary"
+              size="sm"
+              data-testid="folder-unarchive"
+              @click="emit('unarchive-folder', sub)"
+            >
+              Restaurar
+            </BaseButton>
+            <svg v-else class="w-4 h-4 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </td>
@@ -74,7 +89,7 @@ const emit = defineEmits([
             { 'opacity-50': draggingDocId === doc.id },
             { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
           ]"
-          draggable="true"
+          :draggable="!archived"
           @click="emit('open', doc)"
           @dragstart="emit('doc-dragstart', $event, doc)"
           @dragend="emit('doc-dragend')"
@@ -116,6 +131,13 @@ const emit = defineEmits([
           </td>
           <td class="px-6 py-4">
             <span
+              v-if="archived"
+              class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle"
+            >
+              Archivado
+            </span>
+            <span
+              v-else
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
               :class="statusBadgeClass(doc.status)"
             >
@@ -123,7 +145,11 @@ const emit = defineEmits([
             </span>
           </td>
           <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
-            {{ formatDocumentDate(doc.created_at) }}
+            <template v-if="archived">
+              <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at) }}</span>
+              <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at) }}</span>
+            </template>
+            <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
           </td>
           <td class="px-6 py-4" @click.stop>
             <button

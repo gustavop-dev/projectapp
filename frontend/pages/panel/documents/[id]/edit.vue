@@ -39,6 +39,28 @@
       </div>
     </div>
 
+    <!-- Llegar por URL directa a un archivado no daría ninguna señal de que
+         está fuera de circulación: la lista ya no lo muestra. -->
+    <BaseAlert
+      v-if="documentStore.currentDocument?.is_archived && !loadError"
+      variant="warning"
+      title="Este documento está archivado"
+      class="mb-6"
+      data-testid="document-archived-banner"
+    >
+      <p>No aparece en el listado, en la búsqueda ni en los contadores.</p>
+      <div class="mt-3">
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :loading="documentStore.isUpdating"
+          @click="handleUnarchive"
+        >
+          Restaurar
+        </BaseButton>
+      </div>
+    </BaseAlert>
+
     <div
       v-if="documentStore.isLoading"
       class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
@@ -362,10 +384,11 @@ const templateStyleOptions = [
   { value: 'professional', label: 'Profesional', testId: 'doc-style-professional' },
 ];
 
+// Sin 'archived': "Archivado" es ahora el estado que saca el documento de la
+// vista (acción Archivar), no un estado editorial homónimo que no ocultaba nada.
 const statusOptions = [
   { value: 'draft', label: 'Borrador' },
   { value: 'published', label: 'Publicado' },
-  { value: 'archived', label: 'Archivado' },
 ];
 
 const statusLabel = computed(
@@ -407,6 +430,18 @@ async function handlePasteContent() {
       title: 'No se pudo pegar desde el portapapeles',
       detail: 'Tu navegador bloqueó el acceso al portapapeles.',
     });
+  }
+}
+
+async function handleUnarchive() {
+  const id = documentStore.currentDocument?.id;
+  if (!id) return;
+  const result = await documentStore.unarchiveDocument(id);
+  if (result.success) {
+    notify.success({ title: 'Documento restaurado' });
+    await documentStore.fetchDocument(id);
+  } else {
+    notify.error({ title: 'No se pudo restaurar el documento', detail: result.message });
   }
 }
 

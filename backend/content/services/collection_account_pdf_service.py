@@ -16,9 +16,11 @@ from reportlab.pdfgen import canvas
 from content.services.collection_account_service import is_collection_account
 from content.services.pdf_utils import (
     ESMERALD,
+    ESMERALD_LIGHT,
     GRAY_700,
     _draw_footer,
     _draw_header_bar,
+    _draw_logo_watermark,
     _font,
     _format_cop,
     _register_fonts,
@@ -47,6 +49,15 @@ _MAX_PAGE_H = 14400
 
 _AMOUNT_COL_W = 70                  # room for "$1.490.000" at 8pt
 
+# ── "Formas de pago" box ─────────────────────────────────────
+# The client's next action after reading the total is paying, so the payment
+# data gets a filled box of its own instead of the single 8pt line it used to
+# share with the footer.
+_PAY_PAD = 12                       # inner padding of the box
+_PAY_LABEL_W = 84                   # "Número de cuenta" at 8pt bold plus air
+_PAY_ROW_H = 11
+_PAY_VALUE_W = CONTENT_W - 2 * _PAY_PAD - _PAY_LABEL_W
+
 
 def _ident_line(id_type, number):
     """'NIT 901234567' / 'C.C. 12345678' / bare number when untyped."""
@@ -63,6 +74,101 @@ def _wrap(text, style, size, width):
     and was calibrated for A4's wider column.
     """
     return simpleSplit(str(text or ''), _font(style), size, width)
+
+
+def _payment_blocks(methods):
+    """Pre-measure each payment method into ``(title, rows, instructions)``.
+
+    Everything is wrapped up front because the box is painted before its own
+    text — its height has to be known while the cursor is still at the top.
+    """
+    blocks = []
+    for method in methods:
+        rows = []
+        for label, value in (
+            ('Entidad', method.bank_name),
+            ('Tipo de cuenta', method.account_type),
+            ('Número de cuenta', method.account_number),
+            ('Titular', method.account_holder_name),
+            # The holder's id continues the Titular row rather than opening one
+            # of its own: it qualifies the name, it is not a separate fact.
+            ('', method.account_holder_identification),
+        ):
+            if value:
+                rows.append((label, _wrap(value, 'regular', 8, _PAY_VALUE_W)))
+        instructions = _wrap(
+            method.payment_instructions, 'regular', 8, CONTENT_W - 2 * _PAY_PAD,
+        ) if method.payment_instructions else []
+        blocks.append((
+            method.get_payment_method_type_display(), rows, instructions,
+        ))
+    return blocks
+
+
+def _payment_box_height(blocks):
+    """Height the whole box will consume, headings and padding included.
+
+    Every line is counted by its leading, so the last one already carries the
+    air under its own baseline and the bottom padding lands even with the top.
+    """
+    height = 2 * _PAY_PAD + 14          # top/bottom padding + 'Formas de pago'
+    for index, (_, rows, instructions) in enumerate(blocks):
+        if index:
+            height += 8                 # air between two methods
+        height += 13                    # the method's own title
+        height += sum(len(lines) for _, lines in rows) * _PAY_ROW_H
+        height += len(instructions) * _PAY_ROW_H
+    return height
+
+
+def _draw_payment_methods(c, y, methods, ensure_space):
+    """Draw the 'Formas de pago' box and return the ``y`` below it."""
+    blocks = _payment_blocks(methods)
+    if not blocks:
+        return y
+
+    box_h = _payment_box_height(blocks)
+    ensure_space(box_h + 6)
+
+    box_bottom = y - box_h
+    c.setFillColor(ESMERALD_LIGHT)
+    c.roundRect(
+        MARGIN_X, box_bottom, CONTENT_W, box_h, 6, fill=1, stroke=0,
+    )
+
+    text_x = MARGIN_X + _PAY_PAD
+    y -= _PAY_PAD + 10
+    c.setFont(_font('bold'), 10)
+    c.setFillColor(ESMERALD)
+    c.drawString(text_x, y, 'Formas de pago')
+    y -= 14
+
+    for index, (title, rows, instructions) in enumerate(blocks):
+        if index:
+            y -= 8
+        c.setFont(_font('medium'), 9)
+        c.setFillColor(ESMERALD)
+        c.drawString(text_x, y, title)
+        y -= 13
+        for label, lines in rows:
+            if label:
+                c.setFont(_font('bold'), 8)
+                c.setFillColor(GRAY_700)
+                c.drawString(text_x, y, label)
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(GRAY_700)
+            for line in lines:
+                c.drawString(text_x + _PAY_LABEL_W, y, line)
+                y -= _PAY_ROW_H
+        for line in instructions:
+            c.setFont(_font('regular'), 8)
+            c.setFillColor(GRAY_700)
+            c.drawString(text_x, y, line)
+            y -= _PAY_ROW_H
+
+    # The box bottom, not the text cursor: the cursor sits a full row below the
+    # last baseline, which would pad the page with a phantom empty line.
+    return box_bottom
 
 
 class CollectionAccountPdfService:
@@ -85,8 +191,12 @@ class CollectionAccountPdfService:
             # the height it consumes does not depend on where it starts — draw
             # it once on a throwaway tall canvas to measure, then for real on a
             # page cut to exactly that. Nothing from the first pass is kept.
+            # The watermark costs a raster decode and changes no `y`, so the
+            # discarded pass does not pay for it.
             probe = canvas.Canvas(io.BytesIO(), pagesize=(PAGE_W, _PROBE_H))
-            content_h = _PROBE_H - cls._draw(probe, document, ext, _PROBE_H)
+            content_h = _PROBE_H - cls._draw(
+                probe, document, ext, _PROBE_H, watermark=False,
+            )
             page_h = min(_MAX_PAGE_H, content_h + MARGIN_BOTTOM)
 
             # The page was cut to fit, so paging is off for the real pass:
@@ -95,6 +205,7 @@ class CollectionAccountPdfService:
             # content did not fit the format's maximum page height.
             buf = io.BytesIO()
             c = canvas.Canvas(buf, pagesize=(PAGE_W, page_h))
+            cls._set_metadata(c, document, ext)
             cls._draw(c, document, ext, page_h, paginate=page_h >= _MAX_PAGE_H)
             c.save()
             out = buf.getvalue()
@@ -105,7 +216,28 @@ class CollectionAccountPdfService:
             return None
 
     @classmethod
-    def _draw(cls, c, document, ext, page_h, paginate=True):
+    def _set_metadata(cls, c, document, ext):
+        """Fill the PDF's DocInfo so viewers can name and file the document.
+
+        Without `/Title` a viewer has nothing to show but "untitled" — the
+        download filename lives in a Content-Disposition header the PDF itself
+        never sees. `/CreationDate` is written by ReportLab on save; it has no
+        public setter, so it marks when this copy was rendered.
+        """
+        title = document.public_number or f'Cuenta de cobro #{document.id}'
+        issued = format_date_es(document.issue_date) if document.issue_date else ''
+        subject = ' — '.join(
+            part for part in (
+                'Cuenta de cobro', ext.customer_name or '', issued,
+            ) if part
+        )
+        c.setTitle(title)
+        c.setAuthor(ext.payer_name or 'Project App')
+        c.setSubject(subject)
+        c.setCreator('Project App')
+
+    @classmethod
+    def _draw(cls, c, document, ext, page_h, paginate=True, watermark=True):
         """Render the whole document; return the `y` where the content ended.
 
         Called twice by `generate` — once to measure, once for real.
@@ -120,6 +252,13 @@ class CollectionAccountPdfService:
                 page_w=PAGE_W, margin_x=MARGIN_X, margin_b=MARGIN_BOTTOM,
             )
 
+        def start_page():
+            """Chrome every page opens with. The watermark goes first because
+            PDF has no z-index: behind the content means painted before it."""
+            if watermark:
+                _draw_logo_watermark(c, PAGE_W, page_h)
+            _draw_header_bar(c, page_w=PAGE_W, page_h=page_h)
+
         def ensure_space(need):
             """Page break valve. Off on a page cut to content — it only fires
             for a document too tall for the PDF format itself."""
@@ -129,7 +268,7 @@ class CollectionAccountPdfService:
             footer()
             c.showPage()
             page_num += 1
-            _draw_header_bar(c, page_w=PAGE_W, page_h=page_h)
+            start_page()
             y = page_h - MARGIN_TOP
 
         def paragraph(text, style, size, color, leading, width=CONTENT_W):
@@ -142,7 +281,7 @@ class CollectionAccountPdfService:
                 c.drawString(MARGIN_X, y, chunk)
                 y -= leading
 
-        _draw_header_bar(c, page_w=PAGE_W, page_h=page_h)
+        start_page()
 
         c.setFont(_font('bold'), 16)
         c.setFillColor(ESMERALD)
@@ -263,27 +402,9 @@ class CollectionAccountPdfService:
             paragraph(f'Son: {words}', 'regular', 8, GRAY_700, 11)
         y -= 10
 
-        pms = list(document.payment_methods.all())
-        if pms:
-            ensure_space(38)
-            c.setFont(_font('bold'), 10)
-            c.setFillColor(ESMERALD)
-            c.drawString(MARGIN_X, y, 'Formas de pago')
-            y -= 16
-            for pm in pms:
-                block = ' | '.join(
-                    filter(
-                        None,
-                        [
-                            pm.get_payment_method_type_display(),
-                            pm.bank_name,
-                            pm.account_number,
-                            pm.payment_instructions or '',
-                        ],
-                    ),
-                )
-                paragraph(block, 'regular', 8, GRAY_700, 11)
-                y -= 3
+        y = _draw_payment_methods(
+            c, y, list(document.payment_methods.all()), ensure_space,
+        )
 
         footer()
         return y

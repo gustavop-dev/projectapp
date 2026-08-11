@@ -1188,7 +1188,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`
-- **Description:** View a Mini-CRM client list with tab filtering (Todos/Activos/Huérfanos/Inactivos), search, expand client to see linked proposals, and empty state. The orphan filter counts proposals, projects AND diagnostics (a client with only a diagnostic is NOT orphan); inactive (manually deactivated) clients are hidden from Todos/Activos/Huérfanos.
+- **Description:** View a Mini-CRM client list with tab filtering (Todos/Activos/Huérfanos/Inactivos), search, expand client to see linked proposals, and empty state. The orphan filter counts proposals, projects, diagnostics AND (Ago 2026) accounting incomes and hostings (a client with only a diagnostic, an income or a hosting is NOT orphan); inactive (manually deactivated) clients are hidden from Todos/Activos/Huérfanos.
 - **Steps:**
   1. Admin navigates to `/panel/clients/`.
   2. Client list loads from `GET /api/proposals/client-profiles/`.
@@ -1229,7 +1229,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`
-- **Description:** Delete an orphan client (zero proposals + zero platform projects) via the trash icon that appears only on orphan rows. A confirm modal prevents accidental deletion.
+- **Description:** Delete an orphan client (zero proposals, platform projects, diagnostics, accounting incomes and hostings — the five-block guard) via the trash icon that appears only on orphan rows. A confirm modal prevents accidental deletion.
 - **Steps:**
   1. Admin navigates to `/panel/clients/` (or switches to Huérfanos tab).
   2. Orphan client rows show a trash icon (data-testid: `client-delete-<id>`).
@@ -2792,6 +2792,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
+| `admin-document-archive` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-archive.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
@@ -3717,7 +3718,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
   - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. The "Dentro de:" parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).
-  - [Branch C — Delete folder] Deleting a folder is blocked with HTTP 409 if it still holds documents or subfolders; documents themselves use `folder = SET_NULL`.
+  - [Branch C — Delete folder] Deleting a folder is still blocked with HTTP 409 if it holds documents or subfolders (archived content counts too — content is content); documents themselves use `folder = SET_NULL`. Since 2026-08-11 that is no longer a dead end: the modal offers **archiving** instead, which IS allowed with content and cascades over subfolders and documents. See `admin-document-archive`.
   - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
@@ -3827,6 +3828,30 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-delete.spec.js` (confirm + cancel + error-toast branches; added 2026-07-22)
 
+#### FLOW: `admin-document-archive`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/archive/`, `PATCH /api/documents/<id>/unarchive/`, `PATCH /api/document-folders/<id>/archive/`, `PATCH /api/document-folders/<id>/unarchive/`, `GET /api/documents/?archived=1[&order=oldest]`, `GET /api/document-folders/?archived=1`
+- **Description:** Archivar saca algo de circulación sin destruirlo — el punto intermedio que faltaba entre editar y eliminar. Lo archivado desaparece del listado, de la búsqueda y de los contadores de carpeta, pero se consulta desde la entrada "Archivados" del sidebar y se devuelve con "Restaurar".
+- **Steps:**
+  1. Admin abre la hoja de acciones de un documento → "Archivar" → sale de la lista, con toast.
+  2. Admin intenta eliminar un documento → el modal ofrece "Archivar en su lugar" **antes** de escribir `DELETE`.
+  3. Admin intenta eliminar una carpeta con contenido → el modal se reencuadra y ofrece "Archivar carpeta".
+  4. Admin entra a "Archivados" → carpetas y documentos archivados, con la fecha de archivado y su antigüedad.
+  5. Admin alterna Recientes / Más antiguos → refetch ordenado por `archived_at`.
+  6. Admin pulsa "Restaurar" → el ítem vuelve a la vista principal.
+- **Branches:**
+  - [Branch A — Cascada con memoria] Archivar una carpeta arrastra subcarpetas y documentos, marcando cada uno con la carpeta que lo causó (`archived_via_folder`). Al desarchivarla vuelve sólo lo que ella arrastró: lo que el usuario había archivado por su cuenta se queda archivado.
+  - [Branch B — Carpeta con contenido] La rama que antes era un callejón sin salida (botón destructivo permanentemente deshabilitado). Ahora no renderiza botón destructivo en absoluto y presenta archivar como la acción disponible.
+  - [Branch C — Sin carpeta padre] Un documento cuya carpeta fue eliminada mientras estaba archivado vuelve a "Sin carpeta" (`folder` es `SET_NULL`).
+  - [Branch D — Padre aún archivado] Restaurar una subcarpeta cuyo padre sigue archivado responde 409: quedaría invisible en ambas vistas.
+  - [Branch E — Sin arrastre] En modo archivado no hay drag & drop, y la entrada "Archivados" no es drop target: archivar es siempre un gesto explícito.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-archive.spec.js` (added 2026-08-11). La cascada con memoria se cubre en backend (`content/tests/services/test_document_archive_service.py`).
+
 #### FLOW: `admin-document-folder-manage`
 
 - **Module:** admin
@@ -3834,9 +3859,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
-- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create. El sidebar (`FolderSidebar`) expone además un ícono de eliminar por fila: habilitado en carpetas vacías, `aria-disabled` + tooltip explicando el motivo cuando la carpeta tiene documentos o subcarpetas. El ícono habilitado abre `DeleteFolderModal`, que muestra el inventario de la carpeta y exige escribir `DELETE` (sensible a mayúsculas) para confirmar.
-- **Coverage:** ✅ Covered (create/rename/delete + blocking branch; sidebar delete con confirmación DELETE, ícono bloqueado y conflicto 409; drag-reorder not asserted — flaky in CI)
-- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04)
+- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create. El sidebar (`FolderSidebar`) expone además un ícono de eliminar por fila, habilitado en **todas** las carpetas: abre `DeleteFolderModal`, que muestra el inventario. En una carpeta vacía exige escribir `DELETE` (sensible a mayúsculas) y ofrece archivar al lado; en una carpeta con contenido no renderiza el botón destructivo y presenta archivar como la acción disponible. El ícono del gestor de carpetas delega en ese mismo modal, así que el borrado de carpeta tiene un solo contrato.
+- **Coverage:** ✅ Covered (create/rename/delete; sidebar delete con confirmación DELETE y conflicto 409; rama de carpeta con contenido que ofrece archivar; drag-reorder not asserted — flaky in CI)
+- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04; rama bloqueada reemplazada por la de archivar 2026-08-11)
 
 #### FLOW: `admin-document-tags-manage`
 
@@ -3968,6 +3993,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
+| `admin-document-archive` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-archive.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
@@ -5780,13 +5806,20 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/incomes`, `/panel/clients`
-- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk: checkboxes select rows (or every filtered row at once) and one action assigns the client to all of them via `POST /api/accounting/incomes/bulk-assign-client/`, writing one audit entry per income. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics).
+- **Description:** Each income records the client it came from. The income form carries a searchable client picker (with inline client creation, so an unregistered client never blocks the entry) and an **Origen** control for the business line (desarrollo / hosting / diagnóstico / otro); the client stays **optional**, because a refund or a financial yield legitimately has none. The table shows a **Cliente** column; the filter panel gains **Cliente** (options derived from the loaded rows, plus a "Sin cliente" sentinel) and **Origen**; and a **"Sin cliente"** builtin tab isolates the rows still to complete. Those are completed in bulk from the shared `ClientBulkAssignBar` — the same component `/panel/accounting/hostings` uses, so the two views cannot drift apart. Checkboxes select rows (or every filtered row at once) and **two separate actions** act on the selection: **"Asignar cliente"**, disabled with the reason inline while no client is picked (an empty picker no longer means unlink), and **"Desvincular cliente"**, which only appears when a selected row actually has a client. Either one opens a confirmation naming the scope *before* anything is written — how many rows gain a client, how many change one and **from which client**, the rows already on the target that will not move, and the full scrollable list of affected records. Only the rows that actually change travel in `POST /api/accounting/incomes/bulk-assign-client/` (one audit entry per income), and the toast afterwards reports how many the server really wrote. **"Totales por cliente"** opens a read-only modal breaking the FILTERED incomes into billed / collected / pending / weight per client with a totals row — the period is whatever the active filters say. Settling an income carries its client and origin into the liquid child and the follow-up expected records, and a client holding incomes can no longer be deleted (`client_has_incomes`, same guard family as proposals/projects/diagnostics). (Ago 2026) The list also renders **agrupada por cliente**: the backend setting `income_default_view_mode` (card "Vista de ingresos" in Configuración, default `grouped`) decides the landing mode on **every** visit; the in-page **Agrupado/Clásico** segmented toggle lasts only the session — deliberately unlike recurrentes' localStorage. The grouped table (`IncomeGroupedTable`, subgrid clone of the recurrentes one without drag) groups the WHOLE filtered set via `groupByClient` — per-client collapsible headers with count, Facturado, Pendiente and weight share, a trailing "Sin cliente" bucket flagged "por completar", billed/collected/pending footer totals, and the row actions (liquidar, cuenta de cobro, write-off) intact; column sort, row selection (bulk bar) and pagination stay classic-only. A **"Sin cliente"** KPI card (`without_client_count`, whole filtered set — legacy rows in past years included) surfaces the completion debt, the search box also matches the linked client's name/company (`q` server-side too), reassigning an expected's client **cascades to its settled liquids** (update + bulk paths, one audit row per child), creating a cuenta de cobro adopts the client on an orphan income or rejects a mismatched one, and each unassigned row in the classic table wears the **"sin vincular"** pill (mirror of hostings; the grouped bucket already carries its flag). Sibling fix on hostings: reassigning a hosting's client refreshes the billing snapshot (serializer + bulk paths — a stale `client_email` routed the cuenta to the previous client's inbox), with same-request overrides winning.
 - **Steps:**
   1. Superuser creates or edits an income and picks its client and origin (or creates the client inline).
   2. The Cliente column and the Cliente/Origen filters read the ledger by client; the "Sin cliente" tab lists what is still unassigned.
-  3. Selecting rows reveals the bulk bar; assigning a client updates every selected income at once.
-  4. "Totales por cliente" answers how much each client was billed and how much is still pending, over the filtered set.
-- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment with payload assertion, totals modal breakdown)
+  3. Selecting rows reveals the bulk bar. "Asignar cliente" stays off until a client is picked, with the reason on screen; "Desvincular cliente" only shows up when the selection has a client to lose.
+  4. Either action confirms first: the modal breaks the selection into what gains a client, what changes one and from whom, and lists every affected record. Cancelling writes nothing.
+  5. On confirm only the rows that change are sent, and the toast reports how many the server actually modified.
+  6. "Totales por cliente" answers how much each client was billed and how much is still pending, over the filtered set.
+- **Error cases:**
+  - [No client picked] "Asignar cliente" is disabled and the bar reads "Elige un cliente para poder asignar." — no request leaves the page.
+  - [Selection already on the target] "Asignar cliente" is disabled with "Todo lo seleccionado ya tiene a {cliente}."
+  - [Nothing linked] "Desvincular cliente" is not rendered at all.
+  - [Cancelled confirmation] No request fires and the selection survives untouched.
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing)
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-crud`
@@ -5910,7 +5943,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/settings`
-- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the statement reminder toggle (`statement_reminder_enabled`, Jul 2026: emails every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the "Catálogo de tarjetas" section (see `admin-accounting-card-catalog`), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent) and the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI. Coverage note: recipients + card toggle are tested; the statement reminder toggle, hosting toggle and USD rate field are not asserted yet (partial).
+- **Description:** Notification recipients (email list with add/remove + validation) and the global notifications toggle; changes are themselves audited. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the statement reminder toggle (`statement_reminder_enabled`, Jul 2026: emails every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the "Catálogo de tarjetas" section (see `admin-accounting-card-catalog`), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent), the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI, and (Ago 2026) the "Vista de ingresos" segmented control — `income_default_view_mode`, default `grouped`: whether `/panel/accounting/incomes` lands agrupada por cliente or as the classic table on every visit; the in-page toggle is session-only. Coverage note: recipients + card toggle + income view mode are tested; the statement reminder toggle, hosting toggle and USD rate field are not asserted yet (partial).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
@@ -5945,13 +5978,19 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/hostings`, `/panel/clients`
-- **Description:** Every hosting belongs to a client, so the form carries a searchable client picker with inline creation and **requires it on new records**. Records saved before the relation kept the client as free text following the house convention `Persona - Marca`: opening one searches that text and **offers the matching registered client** for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as **pending** and stays saveable — completing it is a separate step, never a blocker. The table shows the client with a "sin vincular" pill, the filter panel gains a **Cliente** filter with a "Sin cliente" sentinel, a builtin tab isolates the pending group, a header card counts it, and rows can be selected to **assign a client in bulk** (one audit entry per hosting). Selecting a client seeds the billing snapshot (name, email, contact, identification) without overwriting what the operator typed. The cuenta de cobro then **inherits the client**: the send action gates on the resolved recipient (hosting override, else the client's address) instead of a hosting-only email, issues on that client's `PA-{CODE}-{NNN}` series and links the document to the client user. A client holding hostings can no longer be deleted (`client_has_hostings`), and the client card lists their hostings with the monthly total alongside their incomes.
+- **Description:** Every hosting belongs to a client, so the form carries a searchable client picker with inline creation and **requires it on new records**. Records saved before the relation kept the client as free text following the house convention `Persona - Marca`: opening one searches that text and **offers the matching registered client** for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as **pending** and stays saveable — completing it is a separate step, never a blocker. The table shows the client with a "sin vincular" pill, the filter panel gains a **Cliente** filter with a "Sin cliente" sentinel, a builtin tab isolates the pending group, and a header card counts it. Rows are completed in bulk from the shared `ClientBulkAssignBar` — the same component `/panel/accounting/incomes` uses, so the two views cannot drift apart. **Two separate actions** act on the selection: **"Asignar cliente"**, disabled with the reason inline while no client is picked (an empty picker no longer means unlink), and **"Desvincular cliente"**, which only appears when a selected row actually has a client. Either one opens a confirmation naming the scope *before* anything is written — how many rows gain a client, how many change one and **from which client**, the rows already on the target that will not move, and the full scrollable list of affected records. Only the rows that actually change travel in `POST /api/accounting/hostings/bulk-assign-client/` (one audit entry per hosting), and the toast afterwards reports how many the server really wrote. Selecting a client seeds the billing snapshot (name, email, contact, identification) without overwriting what the operator typed. The cuenta de cobro then **inherits the client**: the send action gates on the resolved recipient (hosting override, else the client's address) instead of a hosting-only email, issues on that client's `PA-{CODE}-{NNN}` series and links the document to the client user. A client holding hostings can no longer be deleted (`client_has_hostings`), and the client card lists their hostings with the monthly total alongside their incomes.
 - **Steps:**
   1. Superuser creates a hosting and picks its client (or creates it inline); the billing snapshot fills itself.
   2. Opening a legacy hosting shows the suggested pairing; one click confirms it, or the record stays flagged as pending.
-  3. The "Sin cliente" tab lists what is left; selecting rows assigns the client to all of them at once.
-  4. With a client linked, "Enviar cuenta de cobro" becomes available even when the hosting has no email of its own.
-- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment with payload assertion; the form picker and the suggestion are covered by unit tests)
+  3. The "Sin cliente" tab lists what is left. Selecting rows reveals the bulk bar: "Asignar cliente" stays off until a client is picked, with the reason on screen; "Desvincular cliente" only shows up when the selection has a client to lose.
+  4. Either action confirms first: the modal breaks the selection into what gains a client, what changes one and from whom, and lists every affected hosting. Cancelling writes nothing. On confirm only the rows that change are sent, and the toast reports how many the server actually modified.
+  5. With a client linked, "Enviar cuenta de cobro" becomes available even when the hosting has no email of its own.
+- **Error cases:**
+  - [No client picked] "Asignar cliente" is disabled and the bar reads "Elige un cliente para poder asignar." — no request leaves the page.
+  - [Selection already on the target] "Asignar cliente" is disabled with "Todo lo seleccionado ya tiene a {cliente}."
+  - [Nothing linked] "Desvincular cliente" is not rendered at all.
+  - [Cancelled confirmation] No request fires and the selection survives untouched.
+- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows; the form picker and the suggestion are covered by unit tests)
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
 ### FLOW: `admin-accounting-hosting-billing`

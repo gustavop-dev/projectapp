@@ -110,6 +110,157 @@ class TestDeleteDocumentFolder:
 
         assert response.status_code == 404
 
+    def test_archived_folder_with_archived_documents_still_returns_409(
+        self, admin_client, folder,
+    ):
+        """Contenido es contenido: archivarlo no lo hace borrable."""
+        Document.objects.create(title='Inside', folder=folder)
+        archive_url = reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        admin_client.patch(archive_url)
+
+        url = reverse('delete-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 409
+        assert response.json()['document_count'] == 1
+
+    def test_archived_empty_folder_can_be_deleted(self, admin_client, folder):
+        archive_url = reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        admin_client.patch(archive_url)
+
+        url = reverse('delete-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 204
+        assert not DocumentFolder.objects.filter(pk=folder.id).exists()
+
+
+class TestListDocumentFoldersArchived:
+    def test_default_listing_excludes_archived_folders(self, admin_client, folder):
+        archived = DocumentFolder.objects.create(name='Vieja')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'))
+
+        names = [f['name'] for f in response.json()]
+        assert 'Cuentas de cobro' in names
+        assert 'Vieja' not in names
+
+    def test_archived_param_returns_only_archived_folders(self, admin_client, folder):
+        archived = DocumentFolder.objects.create(name='Vieja')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'), {'archived': '1'})
+
+        body = response.json()
+        assert [f['name'] for f in body] == ['Vieja']
+        assert body[0]['is_archived'] is True
+        assert body[0]['archived_at'] is not None
+        assert body[0]['archived_cause'] == 'manual'
+
+    def test_document_count_excludes_archived_documents(self, admin_client, folder):
+        Document.objects.create(title='Activo', folder=folder)
+        stale = Document.objects.create(title='Viejo', folder=folder)
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': stale.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'))
+
+        entry = next(f for f in response.json() if f['id'] == folder.id)
+        assert entry['document_count'] == 1
+
+    def test_children_count_excludes_archived_subfolders(self, admin_client, folder):
+        DocumentFolder.objects.create(name='Activa', parent=folder)
+        stale = DocumentFolder.objects.create(name='Vieja', parent=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': stale.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'))
+
+        entry = next(f for f in response.json() if f['id'] == folder.id)
+        assert entry['children_count'] == 1
+
+
+class TestArchiveDocumentFolderView:
+    def test_archives_folder_with_content_and_reports_counts(self, admin_client, folder):
+        Document.objects.create(title='Inside', folder=folder)
+        DocumentFolder.objects.create(name='Sub', parent=folder)
+
+        url = reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url)
+
+        assert response.status_code == 200
+        body = response.json()
+        assert body['archived_documents'] == 1
+        assert body['archived_folders'] == 1
+        assert body['folder']['is_archived'] is True
+
+    def test_requires_admin_auth(self, api_client, folder):
+        url = reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        assert api_client.patch(url).status_code == 401
+
+    def test_returns_404_for_nonexistent(self, admin_client):
+        url = reverse('archive-document-folder', kwargs={'folder_id': 99999})
+        assert admin_client.patch(url).status_code == 404
+
+
+class TestUnarchiveDocumentFolderView:
+    def test_restores_folder_and_cascaded_content(self, admin_client, folder):
+        doc = Document.objects.create(title='Inside', folder=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        url = reverse('unarchive-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url)
+
+        assert response.status_code == 200
+        assert response.json()['restored_documents'] == 1
+        doc.refresh_from_db()
+        assert doc.is_archived is False
+
+    def test_keeps_individually_archived_document_archived(self, admin_client, folder):
+        loose = Document.objects.create(title='Viejo', folder=folder)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': loose.id}))
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        admin_client.patch(
+            reverse('unarchive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        loose.refresh_from_db()
+        assert loose.is_archived is True
+
+    def test_returns_409_when_parent_still_archived(self, admin_client, folder):
+        child = DocumentFolder.objects.create(name='Sub', parent=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        url = reverse('unarchive-document-folder', kwargs={'folder_id': child.id})
+        response = admin_client.patch(url)
+
+        assert response.status_code == 409
+        assert 'detail' in response.json()
+
+
+class TestUpdateDocumentFolderArchiveGuard:
+    def test_update_endpoint_cannot_set_is_archived(self, admin_client, folder):
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'is_archived': True}, format='json')
+
+        assert response.status_code == 200
+        folder.refresh_from_db()
+        assert folder.is_archived is False
+
 
 class TestListDocumentsFolderFilter:
     def test_filter_by_folder_id_returns_only_matching(self, admin_client, folder):

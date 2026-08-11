@@ -117,6 +117,20 @@ def test_get_filters_by_view(api_client, admin_a, admin_a_headers):
 # POST — create
 # ---------------------------------------------------------------------------
 
+def test_post_accepts_the_accounting_cards_view(api_client, admin_a, admin_a_headers):
+    """Cards saves custom tabs like every accounting view; the choice was
+    missing from VIEW_CHOICES and every save attempt on that page 400ed."""
+    payload = {
+        'view': 'accounting_cards', 'name': 'Solo 0064',
+        'filters': {'cardName': ['T.C 0064']},
+    }
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/', payload, format='json', **admin_a_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()['view'] == 'accounting_cards'
+
+
 def test_post_creates_tab(api_client, admin_a, admin_a_headers):
     payload = {'view': 'proposal', 'name': 'Activos', 'filters': {'statuses': ['active']}}
     resp = api_client.post(

@@ -1,0 +1,18 @@
+{% load date_filters money_filters %}{% autoescape off %}[Contabilidad] Calendario de cobros y pagos
+{% if incomes %}
+INGRESOS ESPERADOS
+{% for item in incomes %}- {{ item.title }}{% if item.client_name %} — {{ item.client_name }}{% endif %} — ${{ item.amount|cop }}{% if item.total %} de ${{ item.total|cop }}{% endif %} — {{ item.due_date|bogota_date }} — {{ item.status }}
+{% endfor %}{% endif %}{% if recurring %}
+GASTOS RECURRENTES
+{% for item in recurring %}- {{ item.title }} — {{ item.detail }} — {% if item.currency == 'USD' %}US${% else %}${% endif %}{{ item.amount|cop }} — {{ item.due_date|bogota_date }} — {{ item.status }}
+{% endfor %}{% endif %}{% if hostings %}
+HOSTINGS POR VENCER
+{% for item in hostings %}- {{ item.title }} — {{ item.subtitle }} — ${{ item.amount|cop }} ({{ item.detail }}) — {{ item.due_date|bogota_date }} — {{ item.status }}
+{% endfor %}{% endif %}
+Ver ingresos: {{ panel_url }}{% if hostings %}
+Ver hostings: {{ hostings_url }}{% endif %}
+
+—
+Aviso automático del módulo contable · ProjectApp. Los ingresos vencidos se
+recuerdan con frecuencia {{ overdue_frequency_label|lower }} hasta que se
+registran como pagados, se dan por perdidos o se silencian desde el panel.{% endautoescape %}

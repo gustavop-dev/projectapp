@@ -1,4 +1,6 @@
 """Tests for the Documents MCP connector HTTP endpoint."""
+import json
+
 import pytest
 
 from content.models import Document, DocumentFolder, DocumentType, McpConnector
@@ -425,4 +427,71 @@ class TestDocumentsMcpHandlerBranches:
         response = _call(api_client, token, 'append_document', {
             'document_id': doc.id, 'markdown': 'Más texto', 'separator': 7,
         })
+        assert response.data['result']['isError'] is True
+
+
+@pytest.mark.django_db
+class TestDocumentsMcpArchiveAwareness:
+    """Lo archivado sale de circulación también para el MCP, no sólo el panel."""
+
+    def test_list_documents_hides_archived(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        _make_doc(markdown_doc_type, title='Activo')
+        _make_doc(markdown_doc_type, title='Viejo', is_archived=True)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'list_documents', {})
+
+        text = response.data['result']['content'][0]['text']
+        assert 'Activo' in text
+        assert 'Viejo' not in text
+
+    def test_list_folders_hides_archived_folders(
+        self, api_client, documents_connector,
+    ):
+        DocumentFolder.objects.create(name='Activa')
+        DocumentFolder.objects.create(name='Vieja', is_archived=True)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'list_folders', {})
+
+        text = response.data['result']['content'][0]['text']
+        assert 'Activa' in text
+        assert 'Vieja' not in text
+
+    def test_folder_document_count_excludes_archived(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        _make_doc(markdown_doc_type, title='Activo', folder=folder)
+        _make_doc(markdown_doc_type, title='Viejo', folder=folder, is_archived=True)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'list_folders', {})
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        entry = next(f for f in payload['folders'] if f['id'] == folder.id)
+        assert entry['document_count'] == 1
+
+    def test_read_document_rejects_an_archived_document(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type, is_archived=True)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'read_document', {'document_id': doc.id})
+
+        assert response.data['result']['isError'] is True
+
+    def test_create_document_rejects_an_archived_folder(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Vieja', is_archived=True)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'create_document', {
+            'title': 'Nuevo', 'markdown': '# Hola', 'folder_id': folder.id,
+        })
+
         assert response.data['result']['isError'] is True

@@ -698,4 +698,47 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].body.name).toBe('Netflix');
   });
+
+  test('the charts modal distributes the monthly COP cost by category', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is covered
+    // by the display specs above; this one pins the charts modal)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('recurring-charts-button').click();
+
+    // Same base as the table's group headers: 880.000 and 32.900 over 912.900.
+    const legend = page.getByTestId('recurring-chart-legend');
+    await expect(legend).toContainText('Suscripciones de IA');
+    await expect(legend).toContainText('$880.000 COP');
+    await expect(legend).toContainText('96,4%');
+    await expect(legend).toContainText('$32.900 COP');
+    await expect(legend).toContainText('3,6%');
+  });
+
+  test('drilling into a category from the legend narrows the item ranking', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId('recurring-charts-button').click();
+
+    await page.getByTestId('recurring-chart-legend-item-2').click();
+    // Scoped to the modal: the page's breakdown card is a BaseSegmented, which
+    // also renders role="tab" buttons.
+    await page.getByTestId('stats-modal').getByRole('tab', { name: 'Ítems' }).click();
+
+    // Only the infrastructure payment survives the drill-down.
+    const items = page.getByTestId('stats-bar-chart');
+    await expect(items).toContainText('Hostinger');
+    await expect(items).not.toContainText('Chat-GPT');
+  });
 });

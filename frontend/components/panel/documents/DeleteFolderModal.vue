@@ -6,14 +6,28 @@
   >
     <div v-if="folder" class="px-6 pt-6 pb-2">
       <div class="flex items-start gap-4">
-        <div class="flex-shrink-0 w-10 h-10 rounded-xl bg-danger-soft flex items-center justify-center">
-          <ExclamationCircleIcon class="w-5 h-5 text-danger-strong" />
+        <div
+          class="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
+          :class="isEmpty ? 'bg-danger-soft' : 'bg-warning-soft'"
+        >
+          <ExclamationCircleIcon
+            class="w-5 h-5"
+            :class="isEmpty ? 'text-danger-strong' : 'text-warning-strong'"
+          />
         </div>
         <div class="flex-1 min-w-0">
-          <h3 class="text-lg font-bold text-text-default break-words">Eliminar "{{ folder.name }}"</h3>
-          <p class="mt-1 text-sm text-text-muted leading-relaxed">
-            Esta acción no se puede deshacer.
-          </p>
+          <template v-if="isEmpty">
+            <h3 class="text-lg font-bold text-text-default break-words">Eliminar "{{ folder.name }}"</h3>
+            <p class="mt-1 text-sm text-text-muted leading-relaxed">
+              Esta acción no se puede deshacer.
+            </p>
+          </template>
+          <template v-else>
+            <h3 class="text-lg font-bold text-text-default">Esta carpeta no se puede eliminar</h3>
+            <p class="mt-1 text-sm text-text-muted leading-relaxed break-words">
+              "{{ folder.name }}" todavía tiene contenido.
+            </p>
+          </template>
 
           <!-- Inventario: qué contiene la carpeta hoy -->
           <div
@@ -43,10 +57,24 @@
                   <span>{{ documentCount }} {{ documentCount === 1 ? 'documento' : 'documentos' }}</span>
                 </li>
               </ul>
-              <p class="mt-2 text-xs text-danger-strong">
-                Mueve o elimina su contenido antes de borrar la carpeta.
+              <p class="mt-2 text-xs text-text-muted">
+                Archívala: saldrá de la vista con todo su contenido y podrás restaurarla cuando quieras.
               </p>
             </template>
+          </div>
+
+          <!--
+            La salida va ANTES del campo de confirmación: es una salida, no un
+            paso adicional, así que tiene que verse antes de escribir la palabra.
+          -->
+          <div
+            v-if="isEmpty"
+            class="mt-3 rounded-lg border border-border-muted bg-surface-muted px-3 py-2"
+            data-testid="delete-folder-archive-hint"
+          >
+            <p class="text-xs text-text-muted leading-relaxed">
+              ¿No quieres perderla? Archivarla la saca de la vista y de los contadores, pero la conserva.
+            </p>
           </div>
 
           <!-- Confirmación escrita — mismo contrato que ConfirmModal: exacto y sensible a mayúsculas -->
@@ -80,8 +108,24 @@
     </div>
 
     <div class="flex items-center justify-end gap-3 px-6 py-4">
-      <BaseButton variant="ghost" size="md" @click="close">Cancelar</BaseButton>
+      <BaseButton variant="ghost" size="md" :disabled="isBusy" @click="close">Cancelar</BaseButton>
+      <!--
+        Con contenido, archivar es la acción principal: un botón destructivo
+        permanentemente deshabilitado ES el callejón sin salida, así que ahí
+        directamente no se renderiza.
+      -->
       <BaseButton
+        :variant="isEmpty ? 'secondary' : 'primary'"
+        size="md"
+        data-testid="delete-folder-archive"
+        :disabled="isDeleting"
+        :loading="isArchiving"
+        @click="confirmArchive"
+      >
+        {{ isEmpty ? 'Archivar en su lugar' : 'Archivar carpeta' }}
+      </BaseButton>
+      <BaseButton
+        v-if="isEmpty"
         variant="danger"
         size="md"
         data-testid="delete-folder-confirm"
@@ -105,13 +149,14 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   folder: { type: Object, default: null },
 });
-const emit = defineEmits(['update:modelValue', 'deleted']);
+const emit = defineEmits(['update:modelValue', 'deleted', 'archived']);
 
 const folderStore = useDocumentFolderStore();
 
 const typedValue = ref('');
 const errorMsg = ref('');
 const isDeleting = ref(false);
+const isArchiving = ref(false);
 const typeInputRef = ref(null);
 const typeInputId = useId();
 
@@ -122,7 +167,8 @@ const childCount = computed(() => Math.max(childFolders.value.length, props.fold
 const documentCount = computed(() => props.folder?.document_count || 0);
 const isEmpty = computed(() => documentCount.value === 0 && childCount.value === 0);
 
-const canConfirm = computed(() => isEmpty.value && typedValue.value === CONFIRM_WORD && !isDeleting.value);
+const isBusy = computed(() => isDeleting.value || isArchiving.value);
+const canConfirm = computed(() => isEmpty.value && typedValue.value === CONFIRM_WORD && !isBusy.value);
 
 watch(() => props.modelValue, (open) => {
   typedValue.value = '';
@@ -149,5 +195,23 @@ async function confirmDelete() {
   }
   // El backend responde 409 con copy en español; si no llega, texto genérico.
   errorMsg.value = result.errors?.detail || 'No se pudo eliminar la carpeta.';
+}
+
+async function confirmArchive() {
+  if (isBusy.value || !props.folder) return;
+  isArchiving.value = true;
+  errorMsg.value = '';
+  const result = await folderStore.archiveFolder(props.folder.id);
+  isArchiving.value = false;
+  if (result.success) {
+    emit('archived', {
+      folder: props.folder,
+      folders: result.archivedFolders,
+      documents: result.archivedDocuments,
+    });
+    close();
+    return;
+  }
+  errorMsg.value = result.errors?.detail || 'No se pudo archivar la carpeta.';
 }
 </script>

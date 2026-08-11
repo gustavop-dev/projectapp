@@ -38,6 +38,23 @@ const props = defineProps({
   annotationY: { type: Number, default: null },
   annotationLabel: { type: String, default: '' },
   emptyTitle: { type: String, default: 'Sin datos en el período' },
+  /**
+   * One color per bar instead of one per series, for a single series whose
+   * bars carry an identity of their own (each item's category). Apex would
+   * otherwise emit a legend entry per bar, so the legend is dropped and the
+   * identity is carried by whatever legend the consumer renders itself.
+   */
+  distributed: { type: Boolean, default: false },
+  /**
+   * Off when the consumer renders its own legend — a stacked bar whose rows
+   * each mean something different ("COP vs USD", "T.C vs Efectivo") cannot be
+   * described by one series legend.
+   */
+  showLegend: { type: Boolean, default: true },
+  /** Replaces the tooltip's value line when the default figure is not enough. */
+  tooltipValueFormatter: { type: Function, default: null },
+  /** Apex chart id, required only to drive `ApexCharts.exec` (image export). */
+  chartId: { type: String, default: '' },
 });
 
 const { palette, baseOptions } = useChartTheme();
@@ -55,7 +72,11 @@ const valueFormatterMap = computed(() => ({
 
 const options = computed(() => ({
   ...baseOptions.value,
-  chart: { ...baseOptions.value.chart, stacked: props.stacked },
+  chart: {
+    ...baseOptions.value.chart,
+    stacked: props.stacked,
+    ...(props.chartId ? { id: props.chartId } : {}),
+  },
   colors: props.colors || palette.value.measures,
   plotOptions: {
     bar: {
@@ -63,7 +84,12 @@ const options = computed(() => ({
       borderRadius: 3,
       columnWidth: '55%',
       barHeight: '65%',
+      distributed: props.distributed,
     },
+  },
+  legend: {
+    ...baseOptions.value.legend,
+    show: props.showLegend && !props.distributed,
   },
   stroke: { width: 0 },
   xaxis: {
@@ -80,7 +106,7 @@ const options = computed(() => ({
     : { labels: { formatter: valueFormatterMap.value.values } },
   tooltip: {
     ...baseOptions.value.tooltip,
-    y: { formatter: valueFormatterMap.value.tooltip },
+    y: { formatter: props.tooltipValueFormatter || valueFormatterMap.value.tooltip },
   },
   ...(props.annotationY !== null
     ? {
