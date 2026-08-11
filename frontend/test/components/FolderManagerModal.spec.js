@@ -234,11 +234,14 @@ describe('FolderManagerModal', () => {
       const wrapper = mountModal();
       await wrapper.find('[title="Eliminar carpeta"]').trigger('click');
 
+      mockFolderStore.fetchFolders.mockClear();
       wrapper.findComponent({ name: 'DeleteFolderModal' }).vm.$emit('deleted', emptyFolder);
       await flushPromises();
 
-      expect(mockFolderStore.fetchFolders).toHaveBeenCalled();
-      expect(wrapper.emitted('changed')).toBeTruthy();
+      // La lista se recarga en el scope activo, y el padre avisa una sola vez.
+      expect(mockFolderStore.fetchFolders).toHaveBeenCalledTimes(1);
+      expect(wrapper.emitted('changed')).toHaveLength(1);
+      expect(wrapper.findComponent({ name: 'DeleteFolderModal' }).props('folder')).toBeNull();
     });
 
     it('re-emits archived with the cascade counts after the child modal archives', async () => {
@@ -251,7 +254,7 @@ describe('FolderManagerModal', () => {
       await flushPromises();
 
       expect(wrapper.emitted('archived')).toEqual([[payload]]);
-      expect(wrapper.emitted('changed')).toBeTruthy();
+      expect(wrapper.emitted('changed')).toHaveLength(1);
     });
   });
 

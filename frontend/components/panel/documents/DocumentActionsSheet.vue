@@ -27,7 +27,7 @@
           </div>
 
           <!-- Actions list -->
-          <div class="p-2">
+          <div class="p-2" data-testid="document-actions-list">
             <button
               v-for="action in actions"
               :key="action.template ? `${action.event}-${action.template}` : action.event"

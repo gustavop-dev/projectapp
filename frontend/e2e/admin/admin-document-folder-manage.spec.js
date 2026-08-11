@@ -97,7 +97,10 @@ test.describe('Admin Document Folder Manage', () => {
 
     await page.getByTestId('folder-manager-delete').first().click();
     await expect(page.getByText('Eliminar "Contratos"')).toBeVisible();
-    await page.getByRole('button', { name: 'Confirmar eliminación' }).click();
+    // El gestor delega en DeleteFolderModal: un solo contrato de borrado, con
+    // la misma reja escrita que la papelera del sidebar.
+    await page.getByTestId('delete-folder-type-input').fill('DELETE');
+    await page.getByTestId('delete-folder-confirm').click();
 
     await expect.poll(() => deleteCalled).toBe(true);
   });
@@ -147,8 +150,8 @@ test.describe('Admin Document Folder Manage', () => {
     await expect.poll(() => deleteCalled).toBe(true);
   });
 
-  test('blocks the sidebar delete icon for a folder that still holds documents', {
-    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:error'],
+  test('the sidebar delete icon opens the modal, which offers archiving for a filled folder', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let deleteCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
@@ -160,13 +163,14 @@ test.describe('Admin Document Folder Manage', () => {
     });
     await page.goto('/panel/documents');
 
-    const blocked = page.getByTestId('folder-delete-blocked');
-    await expect(blocked).toBeDisabled();
-    // El tooltip es la única explicación del bloqueo: debe salir en ese estado.
-    await blocked.hover();
+    // Ya no hay icono bloqueado: había que dar una salida, no explicar un muro.
+    await expect(page.getByTestId('folder-delete-blocked')).toHaveCount(0);
+    await page.getByTestId('folder-delete').click();
 
-    await expect(page.getByText('Vacíala antes de eliminarla.')).toBeVisible();
-    await expect(page.getByTestId('delete-folder-confirm')).toBeHidden();
+    await expect(page.getByText('Esta carpeta no se puede eliminar')).toBeVisible();
+    await expect(page.getByTestId('delete-folder-archive')).toBeEnabled();
+    // Sin botón destructivo muerto en esta rama.
+    await expect(page.getByTestId('delete-folder-confirm')).toHaveCount(0);
     expect(deleteCalled).toBe(false);
   });
 

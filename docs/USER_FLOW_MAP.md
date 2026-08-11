@@ -2792,6 +2792,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
+| `admin-document-archive` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-archive.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
@@ -3717,7 +3718,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Branches:**
   - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
   - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. The "Dentro de:" parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).
-  - [Branch C — Delete folder] Deleting a folder is blocked with HTTP 409 if it still holds documents or subfolders; documents themselves use `folder = SET_NULL`.
+  - [Branch C — Delete folder] Deleting a folder is still blocked with HTTP 409 if it holds documents or subfolders (archived content counts too — content is content); documents themselves use `folder = SET_NULL`. Since 2026-08-11 that is no longer a dead end: the modal offers **archiving** instead, which IS allowed with content and cascades over subfolders and documents. See `admin-document-archive`.
   - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-folders.spec.js`
@@ -3827,6 +3828,30 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-delete.spec.js` (confirm + cancel + error-toast branches; added 2026-07-22)
 
+#### FLOW: `admin-document-archive`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **API:** `PATCH /api/documents/<id>/archive/`, `PATCH /api/documents/<id>/unarchive/`, `PATCH /api/document-folders/<id>/archive/`, `PATCH /api/document-folders/<id>/unarchive/`, `GET /api/documents/?archived=1[&order=oldest]`, `GET /api/document-folders/?archived=1`
+- **Description:** Archivar saca algo de circulación sin destruirlo — el punto intermedio que faltaba entre editar y eliminar. Lo archivado desaparece del listado, de la búsqueda y de los contadores de carpeta, pero se consulta desde la entrada "Archivados" del sidebar y se devuelve con "Restaurar".
+- **Steps:**
+  1. Admin abre la hoja de acciones de un documento → "Archivar" → sale de la lista, con toast.
+  2. Admin intenta eliminar un documento → el modal ofrece "Archivar en su lugar" **antes** de escribir `DELETE`.
+  3. Admin intenta eliminar una carpeta con contenido → el modal se reencuadra y ofrece "Archivar carpeta".
+  4. Admin entra a "Archivados" → carpetas y documentos archivados, con la fecha de archivado y su antigüedad.
+  5. Admin alterna Recientes / Más antiguos → refetch ordenado por `archived_at`.
+  6. Admin pulsa "Restaurar" → el ítem vuelve a la vista principal.
+- **Branches:**
+  - [Branch A — Cascada con memoria] Archivar una carpeta arrastra subcarpetas y documentos, marcando cada uno con la carpeta que lo causó (`archived_via_folder`). Al desarchivarla vuelve sólo lo que ella arrastró: lo que el usuario había archivado por su cuenta se queda archivado.
+  - [Branch B — Carpeta con contenido] La rama que antes era un callejón sin salida (botón destructivo permanentemente deshabilitado). Ahora no renderiza botón destructivo en absoluto y presenta archivar como la acción disponible.
+  - [Branch C — Sin carpeta padre] Un documento cuya carpeta fue eliminada mientras estaba archivado vuelve a "Sin carpeta" (`folder` es `SET_NULL`).
+  - [Branch D — Padre aún archivado] Restaurar una subcarpeta cuyo padre sigue archivado responde 409: quedaría invisible en ambas vistas.
+  - [Branch E — Sin arrastre] En modo archivado no hay drag & drop, y la entrada "Archivados" no es drop target: archivar es siempre un gesto explícito.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-archive.spec.js` (added 2026-08-11). La cascada con memoria se cubre en backend (`content/tests/services/test_document_archive_service.py`).
+
 #### FLOW: `admin-document-folder-manage`
 
 - **Module:** admin
@@ -3834,9 +3859,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P2
 - **Routes:** `/panel/documents`
 - **API:** `POST /api/document-folders/create/`, `PATCH /api/document-folders/<id>/update/`, `DELETE /api/document-folders/<id>/delete/`, `POST /api/document-folders/reorder/`
-- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create. El sidebar (`FolderSidebar`) expone además un ícono de eliminar por fila: habilitado en carpetas vacías, `aria-disabled` + tooltip explicando el motivo cuando la carpeta tiene documentos o subcarpetas. El ícono habilitado abre `DeleteFolderModal`, que muestra el inventario de la carpeta y exige escribir `DELETE` (sensible a mayúsculas) para confirmar.
-- **Coverage:** ✅ Covered (create/rename/delete + blocking branch; sidebar delete con confirmación DELETE, ícono bloqueado y conflicto 409; drag-reorder not asserted — flaky in CI)
-- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04)
+- **Description:** Admin manages folders in `FolderManagerModal`: create with parent selector, inline rename, delete with confirmation and drag-reorder. `admin-document-folders` only covers parent pre-selection on create. El sidebar (`FolderSidebar`) expone además un ícono de eliminar por fila, habilitado en **todas** las carpetas: abre `DeleteFolderModal`, que muestra el inventario. En una carpeta vacía exige escribir `DELETE` (sensible a mayúsculas) y ofrece archivar al lado; en una carpeta con contenido no renderiza el botón destructivo y presenta archivar como la acción disponible. El ícono del gestor de carpetas delega en ese mismo modal, así que el borrado de carpeta tiene un solo contrato.
+- **Coverage:** ✅ Covered (create/rename/delete; sidebar delete con confirmación DELETE y conflicto 409; rama de carpeta con contenido que ofrece archivar; drag-reorder not asserted — flaky in CI)
+- **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04; rama bloqueada reemplazada por la de archivar 2026-08-11)
 
 #### FLOW: `admin-document-tags-manage`
 
@@ -3968,6 +3993,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-send-email` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-document-send-email.spec.js` |
 | `admin-document-rename` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-rename.spec.js` |
 | `admin-document-delete` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-delete.spec.js` |
+| `admin-document-archive` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-archive.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
