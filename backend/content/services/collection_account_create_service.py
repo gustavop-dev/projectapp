@@ -16,6 +16,7 @@ from content.models import (
     DocumentItem,
     IncomeRecord,
 )
+from content.services import accounting_service
 from content.services.collection_account_numbering import allocate_client_number
 from content.services.collection_account_service import (
     CollectionAccountError,
@@ -100,6 +101,23 @@ def create_income_collection_account(data, *, acting_user=None):
             'Este ingreso ya tiene una cuenta de cobro. Anúlala para '
             'generar otra.',
         )
+
+    # The cuenta de cobro is the strongest ownership signal available:
+    # refuse a mismatch outright (client B's cuenta over client A's income
+    # would split one deal across two clients) and adopt the client when
+    # the income never got one — audited through the same pathway as the
+    # bulk completion tool, which also cascades to settled liquids.
+    if income.client_id and income.client_id != profile.pk:
+        raise CollectionAccountError(
+            'El ingreso seleccionado pertenece a otro cliente. Revisa el '
+            'ingreso o cambia el cliente de la cuenta.',
+        )
+    if income.client_id is None:
+        accounting_service.bulk_assign_client(
+            accounting_service.EntityType.INCOME, [income.pk], profile,
+            acting_user,
+        )
+        income.client = profile
 
     customer = _resolve_customer(profile, data.get('customer'))
     billing_concept = (

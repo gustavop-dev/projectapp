@@ -78,6 +78,22 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         related_name='income_record',
     )
 
+    # Payment calendar: an expected income is announced 15 and 7 days before
+    # `period_date`, again on the day itself, and then every week or fortnight
+    # (see AccountingSettings.overdue_reminder_frequency) until it is collected.
+    # Muting silences one income on its own, for the cases where the delay is
+    # already known and the reminder is only noise. `reminders_muted_until`
+    # empty while muted means indefinitely; a date resumes the notices by
+    # itself, so nothing gets silenced and forgotten.
+    reminders_muted = models.BooleanField(default=False)
+    reminders_muted_until = models.DateField(null=True, blank=True)
+    # Cadence state, not user settings: `reminder_target_date` snapshots the
+    # period_date the cadence is armed against, so moving the expected date
+    # re-arms it automatically on the next daily run.
+    reminder_target_date = models.DateField(null=True, blank=True)
+    reminder_last_sent_at = models.DateField(null=True, blank=True)
+    reminder_count = models.PositiveSmallIntegerField(default=0)
+
     class Meta:
         ordering = ['-period_date', '-created_at']
         indexes = [

@@ -215,7 +215,14 @@ def retrieve_proposal_client(request, client_id):
     diagnostics = profile.web_app_diagnostics.select_related('client__user').order_by('-created_at')
     payload['diagnostics'] = DiagnosticListSerializer(diagnostics, many=True).data
 
-    hostings = profile.hosting_records.order_by('-is_active', 'client_name')
+    # select_related + the list annotations keep this per-row-query free:
+    # the serializers fall back to one query per row for the client display
+    # name and the collection-account flags otherwise.
+    hostings = (
+        profile.hosting_records
+        .select_related('client__user')
+        .order_by('-is_active', 'client_name')
+    )
     payload['hostings'] = HostingRecordSerializer(hostings, many=True).data
     # What the hostings of this client cost per month, active ones only —
     # the number the per-client view exists to answer.
@@ -227,7 +234,11 @@ def retrieve_proposal_client(request, client_id):
 
     incomes = (
         profile.income_records
-        .annotate(paid_amount=accounting_service.paid_amount_subquery())
+        .select_related('client__user')
+        .annotate(
+            paid_amount=accounting_service.paid_amount_subquery(),
+            **accounting_service.collection_account_subqueries(),
+        )
         .order_by('-period_date')
     )
     payload['incomes'] = IncomeRecordSerializer(incomes, many=True).data

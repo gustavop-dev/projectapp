@@ -195,6 +195,30 @@ def list_change_logs(arguments):
     return {'results': data, 'count': total, 'page': page, 'num_pages': num_pages}
 
 
+def mute_income(arguments):
+    """Silence (or resume) the payment-calendar notices of an expected income."""
+    from content.models import IncomeRecord
+    from content.serializers.accounting import (
+        IncomeRecordSerializer,
+        IncomeReminderMuteSerializer,
+    )
+    from content.services import accounting_income_mute_service
+
+    income = _get_instance_or_error('income', arguments.get('record_id'))
+    if income.kind != IncomeRecord.Kind.EXPECTED:
+        raise ToolError('Solo se pueden silenciar los avisos de un ingreso esperado.')
+    serializer = IncomeReminderMuteSerializer(data=arguments)
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    income = accounting_income_mute_service.set_income_reminder_mute(
+        income,
+        muted=serializer.validated_data['muted'],
+        until=serializer.validated_data.get('until'),
+        user=mcp_actor(),
+    )
+    return IncomeRecordSerializer(income).data
+
+
 def get_settings(arguments):
     return AccountingSettingsSerializer(AccountingSettings.load()).data
 
@@ -312,6 +336,15 @@ _ENTITY_FIELDS = {
                 ),
             },
             'billing_day': {'type': 'integer', 'minimum': 1, 'maximum': 31},
+            'cycle_anchor_date': {
+                'type': ['string', 'null'],
+                'description': (
+                    'YYYY-MM-DD. Fecha de un cobro conocido: desde ella se '
+                    'calcula el próximo cobro y sus avisos. Imprescindible '
+                    'para las frecuencias que no son mensuales, porque el día '
+                    'de cobro no dice en qué mes cae el ciclo.'
+                ),
+            },
             'cost_type': {'type': 'string', 'enum': ['fixed', 'variable']},
             'category': {
                 'type': ['integer', 'null'],
@@ -484,15 +517,43 @@ _NON_CRUD_TOOLS = [
     },
     {
         'name': 'get_settings',
-        'description': 'Devuelve la configuración contable (destinatarios de notificación, recordatorio de tarjeta).',
+        'description': (
+            'Devuelve la configuración contable (notificaciones, recordatorios, '
+            'tasa USD, vista por defecto de ingresos).'
+        ),
         'input_schema': {'type': 'object', 'properties': {}},
         'handler': get_settings,
+    },
+    {
+        'name': 'mute_income',
+        'description': (
+            'Silencia los avisos de cobro de un ingreso esperado, o los '
+            'reactiva con muted=false. Sin `until` el silencio dura hasta que '
+            'se levante a mano; con `until` los avisos se reanudan ese día.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'record_id': {'type': 'integer'},
+                'muted': {'type': 'boolean'},
+                'until': {
+                    'type': ['string', 'null'],
+                    'description': 'YYYY-MM-DD, posterior a hoy.',
+                },
+            },
+            'required': ['record_id', 'muted'],
+        },
+        'handler': mute_income,
     },
     {
         'name': 'update_settings',
         'description': (
             'Actualiza (parcial) la configuración contable: notification_recipients '
-            '(lista de emails), notifications_enabled, card_reminder_enabled.'
+            '(lista de emails), notifications_enabled, card_reminder_enabled, '
+            'statement_reminder_enabled, hosting_expiry_reminder_enabled, '
+            'payment_calendar_enabled, overdue_reminder_frequency '
+            '(weekly|biweekly), usd_exchange_rate e income_default_view_mode '
+            '(classic|grouped).'
         ),
         'input_schema': {
             'type': 'object',
@@ -500,6 +561,19 @@ _NON_CRUD_TOOLS = [
                 'notification_recipients': {'type': 'array', 'items': {'type': 'string'}},
                 'notifications_enabled': {'type': 'boolean'},
                 'card_reminder_enabled': {'type': 'boolean'},
+                'statement_reminder_enabled': {'type': 'boolean'},
+                'hosting_expiry_reminder_enabled': {'type': 'boolean'},
+                'payment_calendar_enabled': {'type': 'boolean'},
+                'overdue_reminder_frequency': {
+                    'type': 'string',
+                    'enum': ['weekly', 'biweekly'],
+                    'description': (
+                        'Cada cuánto se recuerda un ingreso esperado que ya '
+                        'pasó su fecha y sigue sin cobrarse.'
+                    ),
+                },
+                'usd_exchange_rate': {'type': ['number', 'string']},
+                'income_default_view_mode': {'type': 'string', 'enum': ['classic', 'grouped']},
             },
         },
         'handler': update_settings,

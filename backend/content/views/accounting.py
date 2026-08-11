@@ -54,6 +54,7 @@ from content.serializers.accounting import (
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
     IncomeClientBulkAssignSerializer,
+    IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
@@ -66,7 +67,11 @@ from content.serializers.accounting_statement import (
     MerchantAliasSerializer,
     MerchantAliasWriteSerializer,
 )
-from content.services import accounting_service, accounting_settlement_service
+from content.services import (
+    accounting_income_mute_service,
+    accounting_service,
+    accounting_settlement_service,
+)
 from content.utils import today_bogota
 
 EntityType = AccountingChangeLog.EntityType
@@ -126,6 +131,9 @@ def _income_meta(queryset, params):
         'received_pct': received_pct,
         'current_month_liquid': _money(totals['month_liquid'] or 0),
         'top_income': _top_record(year_qs.filter(kind='liquid')),
+        # Completion debt of the client link over the whole filtered set —
+        # legacy rows live in past years, so the year window would hide them.
+        'without_client_count': queryset.filter(client__isnull=True).count(),
     }
 
 
@@ -232,7 +240,10 @@ _ENTITIES = {
         'write': IncomeRecordCreateUpdateSerializer,
         'date_field': 'period_date',
         'amount_field': 'total_amount',
-        'search_fields': ('concept', 'notes'),
+        'search_fields': (
+            'concept', 'notes', 'client__company_name',
+            'client__user__first_name', 'client__user__last_name',
+        ),
         'choice_filters': ('kind', 'destination', 'ledger', 'origin'),
         'null_filters': ('client',),
         'select_related': ('client', 'client__user'),
@@ -657,6 +668,32 @@ def settle_income_record(request, record_id):
             result['expected_incomes'], many=True,
         ).data,
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def mute_income_reminders(request, record_id):
+    """Silence (or resume) the payment-calendar notices of one expected income.
+
+    For the cases where the delay is already known and the daily reminder is
+    only noise. `until` schedules the resume, so nothing gets silenced and
+    forgotten; without it the mute lasts until it is lifted by hand.
+    """
+    income = get_object_or_404(IncomeRecord, pk=record_id)
+    if income.kind != IncomeRecord.Kind.EXPECTED:
+        return error_response(
+            'Solo se pueden silenciar los avisos de un ingreso esperado.',
+        )
+    serializer = IncomeReminderMuteSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income = accounting_income_mute_service.set_income_reminder_mute(
+        income,
+        muted=serializer.validated_data['muted'],
+        until=serializer.validated_data.get('until'),
+        user=request.user,
+    )
+    return Response(IncomeRecordSerializer(income).data)
 
 
 @api_view(['POST'])

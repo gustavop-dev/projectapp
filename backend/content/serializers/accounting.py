@@ -11,7 +11,7 @@ from django.db.models import Max, Sum
 from rest_framework import serializers
 
 from accounts.models import UserProfile
-from content.utils import SPANISH_MONTHS
+from content.utils import SPANISH_MONTHS, format_bogota_date, today_bogota
 from content.models import (
     AccountingChangeLog,
     AccountingSettings,
@@ -221,7 +221,16 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'payment_status', 'payment_status_label',
             'has_collection_account', 'collection_account_id',
             'collection_account_number',
+            'reminders_muted', 'reminders_muted_until',
+            'reminder_last_sent_at', 'reminder_count',
             'notes', 'created_at', 'updated_at',
+        )
+        # Muting is written only by the mute endpoint, never by a generic
+        # PATCH: that path emails both partners on every change, which is the
+        # noise the payment calendar exists to remove.
+        read_only_fields = (
+            'reminders_muted', 'reminders_muted_until',
+            'reminder_last_sent_at', 'reminder_count',
         )
 
     def get_client_name(self, obj):
@@ -476,6 +485,23 @@ class IncomeClientBulkAssignSerializer(serializers.Serializer):
     )
 
 
+class IncomeReminderMuteSerializer(serializers.Serializer):
+    """Silence an expected income's notices, optionally until a given date."""
+
+    muted = serializers.BooleanField()
+    until = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, data):
+        data = super().validate(data)
+        if data.get('muted') and data.get('until'):
+            if data['until'] <= today_bogota():
+                # Silencing "until today" would end the moment it began.
+                raise serializers.ValidationError({
+                    'until': 'La fecha de reanudación debe ser posterior a hoy.',
+                })
+        return data
+
+
 class HostingClientBulkAssignSerializer(serializers.Serializer):
     """Assign one client to several hostings; ``client: null`` unlinks them."""
 
@@ -693,9 +719,17 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
             })
 
         client = effective('client')
+        # Swapping the FK makes the stored snapshot the PREVIOUS client's
+        # contact data — and billing_email prefers the override, so a stale
+        # client_email would route the cuenta de cobro to the wrong inbox.
+        client_changed = (
+            self.instance is not None
+            and 'client' in data
+            and getattr(data['client'], 'pk', None) != self.instance.client_id
+        )
         if client is not None:
             # Fill the billing snapshot from the profile when the form left
-            # it empty; whatever the operator typed always wins.
+            # it empty; whatever the operator typed IN THIS REQUEST wins.
             from content.services.collection_account_create_service import (
                 customer_snapshot_defaults,
             )
@@ -708,7 +742,13 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
                 'client_identification': defaults['identification'],
             }
             for field, fallback in snapshot.items():
-                if not effective(field) and fallback:
+                if field in data:
+                    continue
+                if client_changed:
+                    # On reassignment the old values are the other client's:
+                    # refresh everything not explicitly overridden here.
+                    data[field] = fallback or ''
+                elif not effective(field) and fallback:
                     data[field] = fallback
 
         if self.instance is None and not effective('client_name'):
@@ -911,6 +951,10 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
     monthly_cop_cost = serializers.DecimalField(
         max_digits=14, decimal_places=2, read_only=True,
     )
+    next_charge_date = serializers.SerializerMethodField()
+    # Preformatted like `period_label` and `frequency_label`: the table renders
+    # it as plain text in both view modes, so neither has to format a date.
+    next_charge_label = serializers.SerializerMethodField()
 
     class Meta:
         model = RecurringPayment
@@ -918,12 +962,33 @@ class RecurringPaymentSerializer(serializers.ModelSerializer):
             'id', 'name', 'price', 'currency', 'cop_equivalent',
             'payment_method', 'payment_method_label',
             'frequency', 'frequency_label', 'custom_months', 'billing_day',
+            'cycle_anchor_date', 'next_charge_date', 'next_charge_label',
             'cost_type', 'cost_type_label',
             'category', 'category_name', 'order',
             'monthly_price', 'monthly_cop_cost',
             'is_active', 'notes', 'created_at', 'updated_at',
         )
         read_only_fields = ('order',)
+
+    def _next_charge(self, obj):
+        if not hasattr(obj, '_next_charge_cache'):
+            from content.services.recurring_schedule import next_charge_date
+
+            obj._next_charge_cache = next_charge_date(obj, today_bogota())
+        return obj._next_charge_cache
+
+    def get_next_charge_date(self, obj):
+        value = self._next_charge(obj)
+        return value.isoformat() if value else None
+
+    def get_next_charge_label(self, obj):
+        """"Jue, 30 sep 2026", or a dash when the cycle has no reference date.
+
+        A dash rather than an empty cell: "sin fecha de cobro" is something to
+        fill in — that payment generates no notices — not something missing.
+        """
+        value = self._next_charge(obj)
+        return format_bogota_date(value) if value else '—'
 
 
 class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
@@ -943,6 +1008,7 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
         fields = (
             'name', 'price', 'currency', 'cop_equivalent',
             'payment_method', 'frequency', 'custom_months', 'billing_day',
+            'cycle_anchor_date',
             'cost_type', 'category', 'is_active', 'notes',
         )
 
@@ -1172,5 +1238,6 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
             'notification_recipients', 'notifications_enabled',
             'card_reminder_enabled', 'statement_reminder_enabled',
             'hosting_expiry_reminder_enabled',
-            'usd_exchange_rate', 'updated_at',
+            'payment_calendar_enabled', 'overdue_reminder_frequency',
+            'usd_exchange_rate', 'income_default_view_mode', 'updated_at',
         )

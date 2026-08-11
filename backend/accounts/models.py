@@ -1445,6 +1445,10 @@ class SavedFilterTab(models.Model):
     VIEW_ACCOUNTING_RECURRING = 'accounting_recurring'
     VIEW_ACCOUNTING_ADS = 'accounting_ads'
     VIEW_ACCOUNTING_HISTORY = 'accounting_history'
+    # Cards has no seeded tabs (nothing to "reset" in Configuración), but the
+    # page saves custom tabs like every other accounting view; without the
+    # choice the serializer 400s each attempt.
+    VIEW_ACCOUNTING_CARDS = 'accounting_cards'
     VIEW_CHOICES = [
         (VIEW_PROPOSAL, 'Proposal'),
         (VIEW_CLIENT, 'Client'),
@@ -1457,6 +1461,7 @@ class SavedFilterTab(models.Model):
         (VIEW_ACCOUNTING_RECURRING, 'Accounting Recurring'),
         (VIEW_ACCOUNTING_ADS, 'Accounting Ads'),
         (VIEW_ACCOUNTING_HISTORY, 'Accounting History'),
+        (VIEW_ACCOUNTING_CARDS, 'Accounting Cards'),
     ]
 
     MAX_TABS_PER_VIEW = 12
