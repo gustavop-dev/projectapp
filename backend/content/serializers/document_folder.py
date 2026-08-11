@@ -14,6 +14,7 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
 
     document_count = serializers.SerializerMethodField()
     children_count = serializers.SerializerMethodField()
+    archived_cause = serializers.SerializerMethodField()
     parent = serializers.PrimaryKeyRelatedField(
         queryset=DocumentFolder.objects.all(),
         required=False,
@@ -25,20 +26,34 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'name', 'slug', 'parent', 'order',
             'document_count', 'children_count', 'created_at', 'updated_at',
+            'is_archived', 'archived_at', 'archived_cause',
         )
-        read_only_fields = ('slug', 'created_at', 'updated_at')
+        # `is_archived`/`archived_at` son read-only a propósito: update_document_folder
+        # usa este mismo serializer para PATCH, y dejarlos escribibles permitiría
+        # archivar saltándose la cascada del servicio.
+        read_only_fields = (
+            'slug', 'created_at', 'updated_at', 'is_archived', 'archived_at',
+        )
 
     def get_document_count(self, obj):
         value = getattr(obj, 'document_count', None)
         if isinstance(value, int):
             return value
-        return obj.documents.count()
+        # Sin annotation (respuestas single-object) el conteo sigue el mismo
+        # scope que la lista: una carpeta activa cuenta documentos activos.
+        return obj.documents.filter(is_archived=obj.is_archived).count()
 
     def get_children_count(self, obj):
         value = getattr(obj, 'children_count', None)
         if isinstance(value, int):
             return value
-        return obj.children.count()
+        return obj.children.filter(is_archived=obj.is_archived).count()
+
+    def get_archived_cause(self, obj):
+        """'folder' si lo arrastró una carpeta, 'manual' si fue por sí misma."""
+        if not obj.is_archived:
+            return None
+        return 'folder' if obj.archived_via_folder_id else 'manual'
 
     def validate_parent(self, value):
         """Impide que una carpeta sea su propio padre o descienda de sí misma."""

@@ -40,6 +40,7 @@ class TestDocumentListSerializer:
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
             'content_excerpt', 'created_at', 'updated_at',
+            'is_archived', 'archived_at', 'archived_cause',
         }
         assert set(data.keys()) == expected
 
@@ -100,6 +101,7 @@ class TestDocumentDetailSerializer:
             'include_contraportada', 'folder', 'folder_name',
             'tag_ids', 'tag_details',
             'created_at', 'updated_at',
+            'is_archived', 'archived_at', 'archived_cause',
         }
         assert set(data.keys()) == expected
 

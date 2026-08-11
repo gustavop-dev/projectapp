@@ -94,7 +94,10 @@ def _documents_summary(today):
         outstanding_total=Sum('total'),
     )
     return {
-        'by_status': _status_counts(Document),
+        # Lo archivado sale de circulación: no cuenta en el resumen del panel.
+        'by_status': _status_counts(
+            Document, queryset=Document.objects.filter(is_archived=False),
+        ),
         'collection_accounts': {
             'issued_count': collection['issued_count'] or 0,
             'overdue_issued': collection['overdue_issued'] or 0,

@@ -126,8 +126,10 @@ def _ensure_folders():
 
     def walk(specs, parent):
         for name, children in specs:
+            # `is_archived=False` en el lookup: si una corrida previa archivó
+            # esta carpeta, se crea una activa en vez de reusar la archivada.
             folder, _ = DocumentFolder.objects.get_or_create(
-                name=name, parent=parent,
+                name=name, parent=parent, is_archived=False,
                 defaults={'order': 0},
             )
             if children:
@@ -276,12 +278,83 @@ class Command(BaseCommand):
         # ── Client-portal signable contracts (unsigned + signed) ─────────────
         self._create_signable_documents(admin, md_type, leaves)
 
+        # ── Estado archivado de demo ────────────────────────────────────────
+        archived = self._archive_demo_state(leaves, md_type, admin)
+
         self.stdout.write(self.style.SUCCESS(
             f'Documents created: {created_md} markdown + {created_ca} collection accounts. '
-            f'Issuer "{issuer.name}", {len(leaves)} leaf folders, {len(tags)} tags.'
+            f'Issuer "{issuer.name}", {len(leaves)} leaf folders, {len(tags)} tags. '
+            f'Archivados de demo: {archived}.'
         ))
 
     # ── helpers ────────────────────────────────────────────────────────────
+
+    def _archive_demo_state(self, leaves, md_type, admin):
+        """Deja archivados de demo que cubren los casos que la UI debe mostrar.
+
+        Usa el servicio real (no escribe los campos a mano) para que la data
+        generada ejercite la misma cascada que el panel. Incluye a propósito el
+        caso de la memoria: un documento archivado A MANO dentro de una carpeta
+        que después se archiva entera — al desarchivar la carpeta ese debe
+        quedarse archivado, y sin este fixture no es observable en QA ni E2E.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from content.services import document_archive_service as archive_svc
+
+        summary = []
+
+        # 1. Documentos archivados sueltos, en carpetas que siguen activas:
+        #    demuestran que los contadores de carpeta excluyen lo archivado.
+        loose = list(
+            Document.objects.filter(
+                document_type=md_type, is_archived=False, folder__isnull=False,
+            ).order_by('id')[:3]
+        )
+        for doc in loose:
+            archive_svc.archive_document(doc)
+        summary.append(f'{len(loose)} sueltos')
+
+        # 2. Una carpeta CON contenido archivada en cascada, con un documento
+        #    previamente archivado a mano dentro.
+        target = next(
+            (
+                f for f in leaves
+                if not f.is_archived
+                and Document.objects.filter(folder=f, is_archived=False).count() >= 2
+            ),
+            None,
+        )
+        if target:
+            pre_archived = (
+                Document.objects
+                .filter(folder=target, is_archived=False)
+                .order_by('id')
+                .first()
+            )
+            archive_svc.archive_document(pre_archived)
+            counts = archive_svc.archive_folder(target)
+            summary.append(
+                f'carpeta "{target.name}" (+{counts["documents"]} docs, '
+                f'1 pre-archivado que NO debe volver)'
+            )
+
+        # 3. Escalonar las fechas para que el orden Recientes/Más antiguos sea
+        #    demostrable: el servicio siempre estampa `timezone.now()`.
+        now = timezone.now()
+        for offset_days, doc_ids in (
+            (1, [d.pk for d in loose[:1]]),
+            (7, [d.pk for d in loose[1:2]]),
+            (30, [d.pk for d in loose[2:3]]),
+        ):
+            if doc_ids:
+                Document.objects.filter(pk__in=doc_ids).update(
+                    archived_at=now - timedelta(days=offset_days),
+                )
+
+        return ', '.join(summary) if summary else 'ninguno'
 
     # Repeating cycle with business-realistic weights: ~1 draft, 4 issued,
     # 6 paid, 2 overdue, 1 cancelled per 14 accounts.

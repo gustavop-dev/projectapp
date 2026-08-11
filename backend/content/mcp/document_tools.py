@@ -12,7 +12,9 @@ Guardrails baked in:
   deliberately out of reach.
 - Published documents cannot be deleted (unpublish first or use the panel).
 - Folders can be listed, created and renamed, but not deleted, so the MCP
-  cannot dismantle the existing structure.
+  cannot dismantle the existing structure. Archivar una carpeta arrastra su
+  contenido en cascada, así que por la misma razón tampoco se expone: es una
+  acción del panel. Lo archivado simplemente deja de verse desde aquí.
 
 Each entry: {'name', 'description', 'input_schema', 'handler'}. Handlers
 receive the raw `arguments` dict, return a JSON-serializable dict, and raise
@@ -33,8 +35,13 @@ COVER_TYPE_CHOICES = {c[0] for c in Document.CoverType.choices}
 # ── Querysets & lookups ──────────────────────────────────────────────────────
 
 def _markdown_qs():
-    """Only markdown documents — never commercial collection accounts."""
-    return Document.objects.filter(document_type__code=MARKDOWN)
+    """Only markdown documents — never commercial collection accounts.
+
+    Lo archivado tampoco es visible por MCP: sale de circulación para todos los
+    callers, no sólo para el panel. Esto cierra de una vez list/read/update/
+    append/delete, que se apoyan en este queryset.
+    """
+    return Document.objects.filter(document_type__code=MARKDOWN, is_archived=False)
 
 
 def _get_markdown_doc_or_error(document_id):
@@ -48,16 +55,26 @@ def _get_markdown_doc_or_error(document_id):
 
 
 def _resolve_folder(folder_id):
-    """Turn a folder_id argument into a DocumentFolder (or None for root)."""
+    """Turn a folder_id argument into a DocumentFolder (or None for root).
+
+    Rechaza carpetas archivadas: el panel sólo ofrece carpetas activas como
+    destino, y el MCP no tiene UI que lo impida.
+    """
     if folder_id in (None, '', 'none', 'null'):
         return None
     try:
-        return DocumentFolder.objects.get(pk=int(folder_id))
+        folder = DocumentFolder.objects.get(pk=int(folder_id))
     except (DocumentFolder.DoesNotExist, TypeError, ValueError):
         raise ToolError(
             f'No existe una carpeta con id={folder_id}. '
             'Usa list_folders para ver las disponibles.'
         )
+    if folder.is_archived:
+        raise ToolError(
+            f'La carpeta "{folder.name}" está archivada y no admite documentos. '
+            'Usa list_folders para ver las disponibles.'
+        )
+    return folder
 
 
 # ── Payload shaping ──────────────────────────────────────────────────────────
@@ -74,7 +91,9 @@ def _folder_payload(folder):
         'path': _folder_path(folder),
         'parent_id': folder.parent_id,
         # Count only markdown docs, to match what list_documents exposes.
-        'document_count': folder.documents.filter(document_type__code=MARKDOWN).count(),
+        'document_count': folder.documents.filter(
+            document_type__code=MARKDOWN, is_archived=False,
+        ).count(),
     }
 
 
@@ -113,7 +132,7 @@ def _build_content_json(doc, markdown_text):
 # ── Handlers ─────────────────────────────────────────────────────────────────
 
 def list_folders(arguments):
-    folders = DocumentFolder.objects.all().select_related('parent')
+    folders = DocumentFolder.objects.filter(is_archived=False).select_related('parent')
     return {'folders': [_folder_payload(f) for f in folders]}
 
 

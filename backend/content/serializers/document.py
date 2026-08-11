@@ -9,12 +9,20 @@ class _TagSummarySerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'color')
 
 
+def _archived_cause(obj):
+    """'folder' si lo arrastró el archivado de una carpeta, 'manual' si no."""
+    if not obj.is_archived:
+        return None
+    return 'folder' if obj.archived_via_folder_id else 'manual'
+
+
 class DocumentListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for document lists."""
 
     folder_name = serializers.CharField(source='folder.name', read_only=True, default=None)
     tag_details = _TagSummarySerializer(source='tags', many=True, read_only=True)
     content_excerpt = serializers.SerializerMethodField()
+    archived_cause = serializers.SerializerMethodField()
 
     EXCERPT_MAX_CHARS = 500
 
@@ -26,7 +34,11 @@ class DocumentListSerializer(serializers.ModelSerializer):
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_details', 'content_excerpt',
             'created_at', 'updated_at',
+            'is_archived', 'archived_at', 'archived_cause',
         )
+
+    def get_archived_cause(self, obj):
+        return _archived_cause(obj)
 
     def get_content_excerpt(self, obj):
         """First ~500 chars of the markdown, cut at the last complete line.
@@ -52,6 +64,7 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
     tag_ids = serializers.PrimaryKeyRelatedField(
         source='tags', many=True, read_only=True,
     )
+    archived_cause = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -62,7 +75,11 @@ class DocumentDetailSerializer(serializers.ModelSerializer):
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',
             'created_at', 'updated_at',
+            'is_archived', 'archived_at', 'archived_cause',
         )
+
+    def get_archived_cause(self, obj):
+        return _archived_cause(obj)
 
 
 class DocumentCreateUpdateSerializer(serializers.ModelSerializer):

@@ -278,6 +278,142 @@ class TestDeleteDocument:
 
         assert response.status_code == 404
 
+    def test_archived_document_can_still_be_deleted(self, admin_client, document):
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': document.id})
+        )
+
+        url = reverse('delete-document', kwargs={'document_id': document.id})
+        response = admin_client.delete(url)
+
+        assert response.status_code == 204
+        assert not Document.objects.filter(pk=document.id).exists()
+
+
+# ── archived scope ──
+
+class TestListDocumentsArchivedFilter:
+    def test_default_listing_excludes_archived(self, admin_client, document, markdown_doc_type):
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(reverse('list-documents'))
+
+        titles = [d['title'] for d in response.json()]
+        assert 'Test Document' in titles
+        assert 'Viejo' not in titles
+
+    def test_archived_param_returns_only_archived(self, admin_client, document, markdown_doc_type):
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(reverse('list-documents'), {'archived': '1'})
+
+        body = response.json()
+        assert [d['title'] for d in body] == ['Viejo']
+        assert body[0]['is_archived'] is True
+        assert body[0]['archived_cause'] == 'manual'
+
+    def test_archived_listing_orders_by_archived_at_desc(self, admin_client, markdown_doc_type):
+        first = Document.objects.create(title='Primero', document_type=markdown_doc_type)
+        second = Document.objects.create(title='Segundo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': first.id}))
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': second.id}))
+
+        response = admin_client.get(reverse('list-documents'), {'archived': '1'})
+
+        assert [d['title'] for d in response.json()] == ['Segundo', 'Primero']
+
+    def test_order_oldest_reverses_the_archived_listing(self, admin_client, markdown_doc_type):
+        first = Document.objects.create(title='Primero', document_type=markdown_doc_type)
+        second = Document.objects.create(title='Segundo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': first.id}))
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': second.id}))
+
+        response = admin_client.get(
+            reverse('list-documents'), {'archived': '1', 'order': 'oldest'},
+        )
+
+        assert [d['title'] for d in response.json()] == ['Primero', 'Segundo']
+
+    def test_invalid_order_falls_back_to_newest(self, admin_client, markdown_doc_type):
+        first = Document.objects.create(title='Primero', document_type=markdown_doc_type)
+        second = Document.objects.create(title='Segundo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': first.id}))
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': second.id}))
+
+        response = admin_client.get(
+            reverse('list-documents'), {'archived': '1', 'order': 'banana'},
+        )
+
+        assert response.status_code == 200
+        assert [d['title'] for d in response.json()] == ['Segundo', 'Primero']
+
+
+class TestArchiveDocumentView:
+    def test_archives_and_returns_the_row(self, admin_client, document):
+        url = reverse('archive-document', kwargs={'document_id': document.id})
+        response = admin_client.patch(url)
+
+        assert response.status_code == 200
+        assert response.json()['is_archived'] is True
+        document.refresh_from_db()
+        assert document.archived_at is not None
+
+    def test_requires_admin_auth(self, api_client, document):
+        url = reverse('archive-document', kwargs={'document_id': document.id})
+        assert api_client.patch(url).status_code == 401
+
+    def test_returns_404_for_nonexistent(self, admin_client):
+        url = reverse('archive-document', kwargs={'document_id': 99999})
+        assert admin_client.patch(url).status_code == 404
+
+
+class TestUnarchiveDocumentView:
+    def test_restores_the_document(self, admin_client, document):
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': document.id})
+        )
+
+        url = reverse('unarchive-document', kwargs={'document_id': document.id})
+        response = admin_client.patch(url)
+
+        assert response.status_code == 200
+        assert response.json()['is_archived'] is False
+        document.refresh_from_db()
+        assert document.archived_at is None
+
+    def test_returns_document_to_root_when_folder_was_deleted(
+        self, admin_client, document,
+    ):
+        from content.models import DocumentFolder
+
+        folder = DocumentFolder.objects.create(name='Temporal')
+        Document.objects.filter(pk=document.id).update(folder=folder)
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': document.id})
+        )
+        Document.objects.filter(pk=document.id).update(folder=None)
+        folder.delete()
+
+        admin_client.patch(
+            reverse('unarchive-document', kwargs={'document_id': document.id})
+        )
+
+        document.refresh_from_db()
+        assert document.is_archived is False
+        assert document.folder_id is None
+
+
+class TestUpdateDocumentArchiveGuard:
+    def test_update_endpoint_cannot_set_is_archived(self, admin_client, document):
+        url = reverse('update-document', kwargs={'document_id': document.id})
+        response = admin_client.patch(url, {'is_archived': True}, format='json')
+
+        assert response.status_code == 200
+        document.refresh_from_db()
+        assert document.is_archived is False
+
 
 # ── duplicate_document ──
 

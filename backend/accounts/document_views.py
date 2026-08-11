@@ -39,6 +39,9 @@ def _visible_docs_qs(request):
 
     Excludes commercial collection accounts (those have their own portal).
     Admins see every published portal document; clients only their own.
+
+    No filtra por `is_archived` a propósito: archivar es una herramienta de
+    orden del panel admin y no cambia lo que el cliente ve en su portal.
     """
     qs = (
         Document.objects

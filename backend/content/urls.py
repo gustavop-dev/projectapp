@@ -140,6 +140,7 @@ from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
+    archive_document, unarchive_document,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -150,6 +151,7 @@ from content.views.document_folder import (
     list_document_folders, create_document_folder,
     update_document_folder, delete_document_folder,
     reorder_document_folders,
+    archive_document_folder, unarchive_document_folder,
 )
 from content.views.document_tag import (
     list_document_tags, create_document_tag,
@@ -357,6 +359,8 @@ urlpatterns = [
     path('documents/<int:document_id>/detail/', retrieve_document, name='retrieve-document'),
     path('documents/<int:document_id>/update/', update_document, name='update-document'),
     path('documents/<int:document_id>/delete/', delete_document, name='delete-document'),
+    path('documents/<int:document_id>/archive/', archive_document, name='archive-document'),
+    path('documents/<int:document_id>/unarchive/', unarchive_document, name='unarchive-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
 
@@ -366,6 +370,8 @@ urlpatterns = [
     path('document-folders/reorder/', reorder_document_folders, name='reorder-document-folders'),
     path('document-folders/<int:folder_id>/update/', update_document_folder, name='update-document-folder'),
     path('document-folders/<int:folder_id>/delete/', delete_document_folder, name='delete-document-folder'),
+    path('document-folders/<int:folder_id>/archive/', archive_document_folder, name='archive-document-folder'),
+    path('document-folders/<int:folder_id>/unarchive/', unarchive_document_folder, name='unarchive-document-folder'),
 
     # Kanban tasks (admin panel)
     path('tasks/', list_tasks, name='list-tasks'),
