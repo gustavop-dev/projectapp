@@ -14,6 +14,10 @@ import re
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+from content.services.contractor_identity import (
+    UNKNOWN_LABEL,
+    resolve_contractor_identity,
+)
 from content.services.markdown_parser import markdown_to_blocks
 from content.services.pdf_utils import (
     CONTENT_W,
@@ -55,6 +59,11 @@ _PARAM_KEYS = (
     'client_email',
     'contractor_full_name',
     'contractor_nit',
+    'contractor_cedula',
+    # Computed from the two above by _build_params; listed here so the key set
+    # stays the single source of truth for what a params dict contains.
+    'contractor_id_type',
+    'contractor_id_number',
     'contractor_email',
     'contract_city',
     'contract_day',
@@ -74,10 +83,14 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
     """Build a substitution dict with sensible defaults for missing values.
 
     When draft=True every value is replaced with XXX-XXX-XXX so no sensitive
-    data leaks in draft PDFs sent for client review.
+    data leaks in draft PDFs sent for client review — except the contractor's
+    document type, which is a label rather than data and stays readable.
     """
     if draft:
-        return {key: _PLACEHOLDER_DRAFT for key in _PARAM_KEYS}
+        out = {key: _PLACEHOLDER_DRAFT for key in _PARAM_KEYS}
+        out['contractor_id_type'] = UNKNOWN_LABEL
+        out['contractor_id_number'] = _PLACEHOLDER_DRAFT
+        return out
 
     out = {}
     for key in _PARAM_KEYS:
@@ -86,6 +99,16 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
             out[key] = str(value)
         else:
             out[key] = _DEFAULT_CONTRACTOR.get(key, _PLACEHOLDER_BLANK)
+
+    # Resolve from the raw values, not from `out`: unset fields have already
+    # been replaced by the blank filler above, which would read as a NIT.
+    id_type, id_number = resolve_contractor_identity(
+        (raw_params or {}).get('contractor_nit'),
+        (raw_params or {}).get('contractor_cedula'),
+        blank=_PLACEHOLDER_BLANK,
+    )
+    out['contractor_id_type'] = id_type
+    out['contractor_id_number'] = id_number
     return out
 
 
@@ -265,7 +288,8 @@ def _draw_signature_block(c, y, params, ps):
     c.drawString(col2_x, y, params.get('contractor_full_name', ''))
     y -= 12
     c.drawString(col1_x, y, f'C.C./NIT {params.get("client_cedula", "")}')
-    c.drawString(col2_x, y, f'NIT {params.get("contractor_nit", "")}')
+    contractor_id = f'{params.get("contractor_id_type", "")} {params.get("contractor_id_number", "")}'
+    c.drawString(col2_x, y, contractor_id.strip())
 
     return y
 

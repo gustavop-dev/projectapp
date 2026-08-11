@@ -707,6 +707,50 @@ class TestContractParamsSerializerValidation:
         payload = {
             'client_cedula': '123456',
             'contract_source': 'default',
+            'contractor_nit': '900.123.456-7',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_accepts_a_contractor_identified_only_by_cedula(self):
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'default',
+            'contractor_nit': '',
+            'contractor_cedula': '1037635428',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_rejects_a_contractor_with_neither_document(self):
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'default',
+            'contractor_nit': '',
+            'contractor_cedula': '',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert not serializer.is_valid()
+        assert 'contractor_nit' in serializer.errors
+
+    def test_blank_documents_are_accepted_as_values(self):
+        """allow_blank matters: the modal legitimately posts one empty field."""
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'default',
+            'contractor_nit': '',
+            'contractor_cedula': '1037635428',
+        }
+        serializer = ContractParamsSerializer(data=payload)
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['contractor_nit'] == ''
+
+    def test_custom_source_is_exempt_from_the_identity_rule(self):
+        """The contractor fieldset is not rendered in custom mode."""
+        payload = {
+            'client_cedula': '123456',
+            'contract_source': 'custom',
+            'custom_contract_markdown': '# Contract',
         }
         serializer = ContractParamsSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors

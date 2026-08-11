@@ -21,6 +21,10 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from content.services.contractor_identity import (
+    UNKNOWN_LABEL,
+    resolve_contractor_identity,
+)
 from content.services.markdown_parser import markdown_to_blocks
 from content.services.pdf_utils import (
     ESMERALD,
@@ -65,12 +69,24 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
     When draft=True all fields are replaced with XXX-XXX-XXX regardless of
     what is stored in contract_params, so no sensitive data is exposed in
     draft PDFs sent or downloaded for client review.
+
+    ``contractor_nit`` and ``contractor_cedula`` are carried through raw even
+    though the shipped template no longer references them. Templates are
+    hand-editable from Django admin and the v7 patch only rewrites anchors it
+    finds, so a drifted copy can still hold ``{contractor_nit}``; dropping the
+    key would make format() raise and leak a literal ``{contractor_nit}`` into
+    a signed PDF. It also keeps a rollback of v7 working with no code change.
     """
     if draft:
         blank = _PLACEHOLDER_DRAFT
         return {
             'contractor_full_name': blank,
             'contractor_nit': blank,
+            'contractor_cedula': blank,
+            # The type is a label, not sensitive data, so it stays readable in
+            # drafts instead of being masked like the values around it.
+            'contractor_id_type': UNKNOWN_LABEL,
+            'contractor_id_number': blank,
             'contractor_email': blank,
             'bank_name': blank,
             'bank_account_type': blank,
@@ -82,9 +98,17 @@ def _build_params(raw_params: dict, draft: bool = False) -> dict:
             'contract_date': blank,
         }
     blank = _PLACEHOLDER_BLANK
+    id_type, id_number = resolve_contractor_identity(
+        raw_params.get('contractor_nit'),
+        raw_params.get('contractor_cedula'),
+        blank=blank,
+    )
     return {
         'contractor_full_name': raw_params.get('contractor_full_name', blank),
         'contractor_nit': raw_params.get('contractor_nit', blank),
+        'contractor_cedula': raw_params.get('contractor_cedula', blank),
+        'contractor_id_type': id_type,
+        'contractor_id_number': id_number,
         'contractor_email': raw_params.get('contractor_email', blank),
         'bank_name': raw_params.get('bank_name', blank),
         'bank_account_type': raw_params.get('bank_account_type', 'Ahorros'),
@@ -295,7 +319,8 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
     c.drawString(col2_x, y, params.get('contractor_full_name', ''))
     y -= 12
     c.drawString(col1_x, y, f'C.C. {params.get("client_cedula", "")}')
-    c.drawString(col2_x, y, f'NIT {params.get("contractor_nit", "")}')
+    contractor_id = f'{params.get("contractor_id_type", "")} {params.get("contractor_id_number", "")}'
+    c.drawString(col2_x, y, contractor_id.strip())
 
     return y
 

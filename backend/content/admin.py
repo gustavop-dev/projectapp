@@ -1,5 +1,6 @@
 import logging
 
+from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.models import User, Group
 from django.contrib.auth.admin import UserAdmin, GroupAdmin
@@ -190,6 +191,33 @@ class BusinessProposalAdmin(admin.ModelAdmin):
     )
 
 
+class CompanySettingsForm(forms.ModelForm):
+    """Require one of the contractor's two identification documents.
+
+    The rule lives on the form and not on the model: ``CompanySettings.load()``
+    creates the singleton through ``get_or_create``, which would start failing
+    if an empty instance stopped being valid.
+    """
+
+    class Meta:
+        model = CompanySettings
+        fields = '__all__'
+
+    def clean(self):
+        cleaned = super().clean()
+        if not (cleaned.get('contractor_nit') or '').strip() and not (
+            cleaned.get('contractor_cedula') or ''
+        ).strip():
+            raise forms.ValidationError(
+                {'contractor_nit': 'Indica el NIT o la cédula del contratista (al menos uno).'}
+            )
+        return cleaned
+
+
+class CompanySettingsAdmin(admin.ModelAdmin):
+    form = CompanySettingsForm
+
+
 class ProposalDefaultConfigAdmin(admin.ModelAdmin):
     """
     Admin configuration for the ProposalDefaultConfig model.
@@ -376,7 +404,7 @@ admin_site.register(EmailTemplateConfig, EmailTemplateConfigAdmin)
 admin_site.register(Document, DocumentAdmin)
 admin_site.register(DocumentType)
 admin_site.register(IssuerProfile)
-admin_site.register(CompanySettings)
+admin_site.register(CompanySettings, CompanySettingsAdmin)
 admin_site.register(ProposalDocument)
 admin_site.register(ContractTemplate)
 admin_site.register(ConfidentialityTemplate)

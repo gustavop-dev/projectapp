@@ -14,7 +14,13 @@ class ContractTemplate(models.Model):
 
     name = models.CharField(max_length=255)
     content_markdown = models.TextField(
-        help_text='Markdown text. Use {client_full_name}, {contractor_nit}, etc. for placeholders.',
+        help_text=(
+            'Markdown text. Use {client_full_name}, {contractor_id_type}, '
+            '{contractor_id_number}, etc. for placeholders. Prefer the '
+            '{contractor_id_*} pair over {contractor_nit}: it resolves to the '
+            'NIT when there is one and to the cédula otherwise, and carries '
+            'the matching label.'
+        ),
     )
     is_default = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

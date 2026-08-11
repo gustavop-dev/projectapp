@@ -95,3 +95,62 @@ describe('ContractParamsModal', () => {
     expect(wrapper.find('form').exists()).toBe(false);
   });
 });
+
+describe('ContractParamsModal — identificación del contratista', () => {
+  // The contract prints whichever document is on file, preferring the NIT, so
+  // either one on its own is a complete answer — but neither is not.
+  const FILLED = {
+    contractor_full_name: 'GUSTAVO ADOLFO PEREZ PEREZ',
+    contractor_email: 'team@projectapp.co',
+    contract_city: 'Medellín',
+    bank_name: 'Bancolombia',
+    bank_account_number: '123456789',
+    client_full_name: 'Acme Corp',
+    client_cedula: '123456',
+    client_email: 'client@acme.com',
+    contract_date: '2026-08-11',
+  };
+
+  // The `visible` watcher is not immediate, so mounting straight to true never
+  // runs resetForm() and the form would stay empty. Toggle it instead.
+  async function openWith(params) {
+    const wrapper = mountContractParamsModal({ visible: false, initialParams: params });
+    await wrapper.setProps({ visible: true });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await wrapper.vm.$nextTick();
+    return wrapper;
+  }
+
+  function submit(wrapper) {
+    return wrapper.find('form').trigger('submit');
+  }
+
+  it('blocks the submit and explains why when neither document is filled', async () => {
+    const wrapper = await openWith({ ...FILLED, contractor_nit: '', contractor_cedula: '' });
+
+    await submit(wrapper);
+
+    expect(wrapper.emitted('confirm')).toBeFalsy();
+    expect(wrapper.text()).toContain('Indica el NIT o la cédula del contratista');
+  });
+
+  it('accepts a contractor identified only by NIT', async () => {
+    const wrapper = await openWith({ ...FILLED, contractor_nit: '900.123.456-7', contractor_cedula: '' });
+
+    await submit(wrapper);
+
+    expect(wrapper.emitted('confirm')).toBeTruthy();
+    expect(wrapper.emitted('confirm')[0][0].contractor_nit).toBe('900.123.456-7');
+  });
+
+  it('accepts a contractor identified only by cédula and sends it', async () => {
+    const wrapper = await openWith({ ...FILLED, contractor_nit: '', contractor_cedula: '1037635428' });
+
+    await submit(wrapper);
+
+    expect(wrapper.emitted('confirm')).toBeTruthy();
+    const payload = wrapper.emitted('confirm')[0][0];
+    expect(payload.contractor_cedula).toBe('1037635428');
+    expect(payload.contractor_nit).toBe('');
+  });
+});

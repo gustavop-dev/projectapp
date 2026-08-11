@@ -322,7 +322,12 @@ class ContractParamsSerializer(serializers.Serializer):
     client_cedula = serializers.CharField(max_length=30)
     client_email = serializers.EmailField(required=False, default='')
     contractor_full_name = serializers.CharField(max_length=255, required=False, default='')
-    contractor_nit = serializers.CharField(max_length=30, required=False, default='')
+    contractor_nit = serializers.CharField(
+        max_length=30, required=False, default='', allow_blank=True,
+    )
+    contractor_cedula = serializers.CharField(
+        max_length=30, required=False, default='', allow_blank=True,
+    )
     contractor_email = serializers.EmailField(required=False, default='')
     bank_name = serializers.CharField(max_length=100, required=False, default='')
     bank_account_type = serializers.ChoiceField(
@@ -337,6 +342,16 @@ class ContractParamsSerializer(serializers.Serializer):
         if data.get('contract_source') == 'custom' and not data.get('custom_contract_markdown'):
             raise serializers.ValidationError(
                 {'custom_contract_markdown': 'Required when contract_source is "custom".'}
+            )
+        # The contract names EL CONTRATISTA by whichever document is on file,
+        # so exactly one of the two has to be there. Scoped to the default
+        # template, matching where the other required fields are enforced.
+        if data.get('contract_source', 'default') == 'default' and not (
+            (data.get('contractor_nit') or '').strip()
+            or (data.get('contractor_cedula') or '').strip()
+        ):
+            raise serializers.ValidationError(
+                {'contractor_nit': 'Indica el NIT o la cédula del contratista (al menos uno).'}
             )
         return data
 

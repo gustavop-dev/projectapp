@@ -71,9 +71,13 @@ class TestBuildParams:
         result = _build_params({'client_cedula': '12345678'})
         assert result['client_cedula'] == '12345678'
 
-    def test_draft_sets_all_values_to_draft_placeholder(self):
+    def test_draft_masks_every_value_except_the_document_label(self):
+        """The label is a two-value word, not data — masking it would print
+        "identificado con XXX-XXX-XXX número XXX-XXX-XXX" on client drafts."""
         result = _build_params(None, draft=True)
-        assert all(v == _PLACEHOLDER_DRAFT for v in result.values())
+        masked = {k: v for k, v in result.items() if k != 'contractor_id_type'}
+        assert all(v == _PLACEHOLDER_DRAFT for v in masked.values())
+        assert result['contractor_id_type'] == 'NIT/C.C.'
 
     def test_draft_includes_all_param_keys(self):
         result = _build_params(None, draft=True)
@@ -82,6 +86,26 @@ class TestBuildParams:
     def test_draft_overrides_provided_params(self):
         result = _build_params({'client_full_name': 'Ana'}, draft=True)
         assert result['client_full_name'] == _PLACEHOLDER_DRAFT
+
+    def test_identifies_the_consultant_by_nit_when_there_is_one(self):
+        result = _build_params({
+            'contractor_nit': '900.123.456-7',
+            'contractor_cedula': '1037635428',
+        })
+        assert result['contractor_id_type'] == 'NIT'
+        assert result['contractor_id_number'] == '900.123.456-7'
+
+    def test_identifies_the_consultant_by_cedula_when_there_is_no_nit(self):
+        """Resolution reads the raw params, so the blank filler the loop writes
+        into contractor_nit must not win over a real cédula."""
+        result = _build_params({'contractor_cedula': '1037635428'})
+        assert result['contractor_id_type'] == 'C.C.'
+        assert result['contractor_id_number'] == '1037635428'
+
+    def test_keeps_the_dual_label_when_no_document_is_on_file(self):
+        result = _build_params(None)
+        assert result['contractor_id_type'] == 'NIT/C.C.'
+        assert result['contractor_id_number'] == _PLACEHOLDER_BLANK
 
 
 # -- _substitute_placeholders ------------------------------------------------
