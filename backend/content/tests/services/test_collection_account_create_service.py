@@ -172,7 +172,10 @@ class TestGuards:
 
         second = create_income_collection_account(payload(client, income))
 
-        assert second.public_number == 'PA-ACMESOLU-002'
+        # The code comes from the legal holder, not from company_name: this
+        # client has no NIT, so the series belongs to the person (Ana Pérez),
+        # not to the brand stored in company_name.
+        assert second.public_number == 'PA-ANAPEREZ-002'
         assert second.income_record_id == income.pk
 
     def test_placeholder_email_rejected(self):

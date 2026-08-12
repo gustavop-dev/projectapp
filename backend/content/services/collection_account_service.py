@@ -167,29 +167,38 @@ def _fill_customer_from_data(extension, customer):
     extension.customer_identification_type = customer.get('identification_type', '')
     extension.customer_contact_name = customer.get('contact_name', '')
     extension.customer_address = customer.get('address', '')
+    extension.customer_project_name = customer.get('project_name', '')
 
 
-def _fill_customer_from_user(extension, user):
-    from accounts.models import UserProfile
+def _fill_customer_from_user(extension, user, project=None):
+    """Snapshot the customer from a platform user.
+
+    Defers to the same legal-identity rule the panel flow uses, so the
+    platform-issued document cannot name the party differently from a
+    panel-issued one for the same client.
+    """
+    from content.services.collection_account_create_service import (
+        client_legal_identity,
+    )
 
     profile = getattr(user, 'profile', None)
-    name = ''
-    if profile and profile.company_name:
-        name = profile.company_name
+    full_name = f'{user.first_name} {user.last_name}'.strip()
+    if profile is None:
+        extension.customer_name = full_name or user.email
+        extension.customer_email = user.email or ''
+        extension.customer_identification = ''
+        extension.customer_identification_type = ''
+        extension.customer_contact_name = full_name
     else:
-        name = f'{user.first_name} {user.last_name}'.strip() or user.email
-    extension.customer_name = name
-    extension.customer_email = user.email or ''
-    extension.customer_identification = ''
-    extension.customer_identification_type = ''
-    if profile:
-        if profile.nit:
-            extension.customer_identification = profile.nit
-            extension.customer_identification_type = 'NIT'
-        elif profile.cedula:
-            extension.customer_identification = profile.cedula
-            extension.customer_identification_type = 'CC'
-    extension.customer_contact_name = f'{user.first_name} {user.last_name}'.strip()
+        name, identification, identification_type, contact_name = (
+            client_legal_identity(profile)
+        )
+        extension.customer_name = name
+        extension.customer_email = user.email or ''
+        extension.customer_identification = identification
+        extension.customer_identification_type = identification_type
+        extension.customer_contact_name = contact_name
+    extension.customer_project_name = project.name if project else ''
 
 
 @transaction.atomic
@@ -225,7 +234,9 @@ def issue_collection_account(
         client_user = _resolve_client_user(document)
         if not client_user:
             raise CollectionAccountError('client_user or project with client is required to issue.')
-        _fill_customer_from_user(ext, client_user)
+        _fill_customer_from_user(
+            ext, client_user, project=document.project if document.project_id else None,
+        )
 
     today = timezone.now().date()
     document.issue_date = today

@@ -10,7 +10,7 @@ from decimal import Decimal, ROUND_DOWN
 from django.db.models import Max, Sum
 from rest_framework import serializers
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from content.utils import SPANISH_MONTHS, format_bogota_date, today_bogota
 from content.models import (
     AccountingChangeLog,
@@ -204,6 +204,11 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     collection_account_id = serializers.SerializerMethodField()
     collection_account_number = serializers.SerializerMethodField()
     client_name = serializers.SerializerMethodField()
+    # None, not '': "sin proyecto" has to stay distinguishable from a blank
+    # name, same convention get_client_name follows.
+    project_name = serializers.CharField(
+        source='project.name', read_only=True, default=None,
+    )
     origin_label = serializers.CharField(
         source='get_origin_display', read_only=True,
     )
@@ -214,7 +219,8 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
             'destination', 'destination_label', 'ledger', 'ledger_label',
-            'client', 'client_name', 'origin', 'origin_label',
+            'client', 'client_name', 'project', 'project_name',
+            'origin', 'origin_label',
             'total_amount', 'gustavo_amount', 'carlos_amount', 'company_amount',
             'expected_income', 'pocket_movement',
             'paid_amount', 'pending_amount',
@@ -321,6 +327,31 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
         return self._collection_account(obj)[1] or None
 
 
+def validate_project_client_match(project, client):
+    """A record's project must belong to the record's own client.
+
+    The two relations disagree on what they point at: `Project.client` is a
+    FK to the User, while every accounting record's `client` is a
+    UserProfile. `UserProfile.user` is a OneToOne, so `client.user_id` is a
+    plain column and the check costs no extra query.
+
+    Raises a field-scoped error so the panel and the MCP both render it on
+    the project input.
+    """
+    if project is None:
+        return
+    if client is None:
+        raise serializers.ValidationError({
+            'project': 'Asigna primero el cliente: el proyecto debe ser suyo.',
+        })
+    if project.client_id != client.user_id:
+        raise serializers.ValidationError({
+            'project': (
+                f'El proyecto "{project.name}" pertenece a otro cliente.'
+            ),
+        })
+
+
 class IncomeRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
@@ -335,12 +366,19 @@ class IncomeRecordCreateUpdateSerializer(
         required=False,
         allow_null=True,
     )
+    # Not scoped by client here on purpose: a field-level queryset cannot see
+    # its sibling's value, so the ownership rule lives in validate().
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = IncomeRecord
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
-            'client', 'origin',
+            'client', 'project', 'origin',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
@@ -408,6 +446,18 @@ class IncomeRecordCreateUpdateSerializer(
                 'Este ingreso esperado ya tiene liquidaciones. Reduce su monto '
                 'y registra la diferencia como un ingreso perdido aparte.'
             )
+        # Moving the record to another client orphans a project that belonged
+        # to the previous one — not merely a stale value like the hosting
+        # billing snapshot, but a record pointing at someone else's project.
+        # Clearing is the only safe default; the operator re-picks explicitly.
+        if (
+            'client' in data
+            and self.instance is not None
+            and data['client'] != self.instance.client
+            and 'project' not in data
+        ):
+            data['project'] = None
+        validate_project_client_match(effective('project'), effective('client'))
         return data
 
 
@@ -645,12 +695,17 @@ class HostingRecordSerializer(serializers.ModelSerializer):
         source='get_payment_modality_display', read_only=True,
     )
     client_display_name = serializers.SerializerMethodField()
+    # The `Marca` half of the old `Persona - Marca` label, now its own field.
+    project_name = serializers.CharField(
+        source='project.name', read_only=True, default=None,
+    )
     billing_email = serializers.CharField(read_only=True)
 
     class Meta:
         model = HostingRecord
         fields = (
             'id', 'client', 'client_display_name', 'billing_email',
+            'project', 'project_name',
             'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',
@@ -684,6 +739,13 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    # See the note on the income serializer: the ownership rule needs both
+    # values, so it lives in validate() rather than in a scoped queryset.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = HostingRecord
@@ -691,7 +753,8 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         # history (HostingCycle) is the source of truth and the service
         # recalculates the denormalized columns.
         fields = (
-            'client', 'client_name', 'client_email', 'client_contact_name',
+            'client', 'project', 'client_name', 'client_email',
+            'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'benefit', 'valid_from', 'valid_to',
             'payment_per_cycle', 'is_active', 'notes',
@@ -750,6 +813,14 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
                     data[field] = fallback or ''
                 elif not effective(field) and fallback:
                     data[field] = fallback
+
+        # Same rule as on incomes: a reassigned hosting cannot keep pointing
+        # at the previous client's project. Unlike the billing snapshot above
+        # this is not a staleness problem but an ownership one, so it clears
+        # instead of refreshing.
+        if client_changed and 'project' not in data:
+            data['project'] = None
+        validate_project_client_match(effective('project'), client)
 
         if self.instance is None and not effective('client_name'):
             raise serializers.ValidationError({

@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
+import ProjectSelect from '~/components/accounting/ProjectSelect.vue'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
 import { suggestClient } from '~/utils/clientMatch'
 import { formatMoney } from '~/utils/formatMoney'
@@ -33,6 +34,7 @@ const modalityOptions = [
 function defaultForm() {
   return {
     client: null,
+    project: null,
     client_display_name: '',
     client_name: '',
     client_email: '',
@@ -59,6 +61,7 @@ watch(
     if (props.record) {
       form.value = {
         client: props.record.client ?? null,
+        project: props.record.project ?? null,
         client_display_name: props.record.client_display_name ?? '',
         client_name: props.record.client_name ?? '',
         client_email: props.record.client_email ?? '',
@@ -154,6 +157,8 @@ function addIfFilled(payload, key, value) {
 function onSubmit() {
   const payload = {
     client: form.value.client,
+    // Always sent, null included: that is what lets an edit unlink it.
+    project: form.value.project,
     client_name: form.value.client_name,
     monthly_value: form.value.monthly_value,
     payment_modality: form.value.payment_modality,
@@ -221,6 +226,13 @@ function onSubmit() {
           </BaseButton>
         </div>
       </BaseFormField>
+
+      <!-- The `Marca` half of the old `Persona - Marca` label, as a relation -->
+      <ProjectSelect
+        v-model="form.project"
+        :client-profile-id="form.client"
+        testid="hosting-form-project"
+      />
 
       <!-- Inline client creation: the clients module without leaving the form -->
       <div

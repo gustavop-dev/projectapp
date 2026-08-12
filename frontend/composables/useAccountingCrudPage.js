@@ -231,7 +231,11 @@ export function useAccountingCrudPage({
     sortKey,
     sortDir,
     toggleSort,
+    // The sorted set behind the current page: a deep link needs it to work
+    // out WHICH page holds the row it was sent to.
+    sortedRecords,
     // pagination
+    pageSize: PAGE_SIZE,
     currentPage,
     totalPages,
     totalItems,

@@ -14,6 +14,7 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_COLLECTIONS,
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
+  ADMIN_ACCOUNTING_COLLECTION_DETAIL,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -23,8 +24,14 @@ function makeRows() {
     {
       id: 1,
       public_number: 'PA-2026-0001',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'German - Kore',
+      client: 101,
+      client_display_name: 'Germán Franco',
+      project_name: 'Kore',
       total: '550002.00',
       issue_date: '2026-06-01',
       due_date: '2026-06-15',
@@ -35,8 +42,14 @@ function makeRows() {
     {
       id: 2,
       public_number: 'PA-2026-0002',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'Nestor - Xpandia',
+      client: 102,
+      client_display_name: 'Néstor Franco',
+      project_name: 'Xpandia',
       total: '550002.00',
       issue_date: '2026-07-10',
       due_date: '2026-07-30',
@@ -47,8 +60,14 @@ function makeRows() {
     {
       id: 3,
       public_number: 'PA-2026-0003',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'Laura - Mi Huella',
+      client: 103,
+      client_display_name: 'Laura Gómez',
+      project_name: 'Mi Huella',
       total: '550002.00',
       issue_date: '2026-05-01',
       due_date: '2026-05-15',
@@ -91,6 +110,26 @@ const ELIGIBLE_INCOME = {
   collection_account_number: null,
 };
 
+/** Rows where #2 carries an income link, so the detail modal has a history.
+ *  Overridden locally rather than in makeRows(): the plain mark-paid test
+ *  depends on the base rows NOT routing through Liquidar. */
+async function mockWithLinkedIncome(page, calls = []) {
+  const handler = buildHandler({ calls });
+  await mockApi(page, async (ctx) => {
+    if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+      const rows = makeRows();
+      rows[1].income_record_id = 8;
+      rows[1].income_kind = 'expected';
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ results: rows, meta: META }),
+      };
+    }
+    return handler(ctx);
+  });
+}
+
 function buildHandler({ calls, incomeDetail = null }) {
   const state = { rows: makeRows() };
   return async ({ route, apiPath, method }) => {
@@ -108,6 +147,52 @@ function buildHandler({ calls, incomeDetail = null }) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(CLIENT_SEARCH_RESULT),
+      };
+    }
+    if (/^accounting\/collection-accounts\/\d+\/$/.test(apiPath) && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 1,
+          items: [{
+            id: 1,
+            description: 'Servicio de hosting kore.com.co',
+            period_start: '2026-06-01',
+            period_end: '2026-08-31',
+            line_total: '550002.00',
+          }],
+          payment_methods: [],
+          notes: '',
+        }),
+      };
+    }
+    // Must precede the incomes catch-all below, which would otherwise answer
+    // /detail/ with the LIST shape.
+    if (/^accounting\/incomes\/\d+\/detail\/$/.test(apiPath) && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          income: {
+            ...ELIGIBLE_INCOME,
+            concept: 'Hosting: Trimestral',
+            period_label: 'Agosto 2026',
+            gustavo_amount: '116640.00',
+            carlos_amount: '116640.00',
+            company_amount: '0.00',
+          },
+          liquid: [{
+            id: 51, concept: 'Abono 1',
+            total_amount: '88000.00', period_date: '2026-08-05',
+          }],
+          expenses: [{
+            id: 61, concept: 'Comisión pasarela',
+            total_amount: '12000.00', period_date: '2026-08-06',
+            deduction_type_label: 'Comisión de pasarela',
+          }],
+          collection_account: null,
+        }),
       };
     }
     if (/^accounting\/incomes\/\d+\/$/.test(apiPath) && method === 'GET') {
@@ -156,8 +241,12 @@ function buildHandler({ calls, incomeDetail = null }) {
       const created = {
         id: 9,
         public_number: 'PA-ACME-001',
-        origin_label: 'Ingreso · Desarrollo módulo de reportes',
+        origin: 'income',
+        origin_label: 'Ingreso',
         customer_name: 'Acme Soluciones',
+        client: 110,
+        client_display_name: 'Ana Pérez',
+        project_name: '',
         total: '1490000.00',
         issue_date: '2026-08-05',
         due_date: '2026-08-13',
@@ -299,7 +388,7 @@ test.describe('Admin Accounting Collections', () => {
     });
   });
 
-  test('resending a paid account notifies without a confirm step', {
+  test('resending a paid account asks for confirmation naming the recipient', {
     tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -307,6 +396,11 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+
+    // One click used to email a client outright. It now confirms first, and
+    // the message says who is about to receive it.
+    await expect(page.getByText('Reenviar cuenta de cobro')).toBeVisible();
+    await page.getByRole('button', { name: 'Reenviar', exact: true }).click();
 
     await expect(
       page.getByText('Cuenta de cobro reenviada al cliente'),
@@ -337,6 +431,7 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+    await page.getByRole('button', { name: 'Reenviar', exact: true }).click();
 
     await expect(page.getByText('No se pudo reenviar')).toBeVisible();
     // The row keeps its state — nothing was mutated by the failed send.
@@ -470,5 +565,85 @@ test.describe('Admin Accounting Collections', () => {
     expect(calls.some(
       (call) => call.apiPath.endsWith('/mark-paid/'),
     )).toBe(false);
+  });
+
+  test('Cliente and Proyecto are separate columns, each sortable on its own', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the column sort, which IS clicked below)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    // The fixture carries the old `Persona - Marca` snapshot in
+    // customer_name; the columns must show the two halves apart.
+    const row = page.getByTestId('accounting-row-1');
+    await expect(row).toContainText('Germán Franco');
+    await expect(row).toContainText('Kore');
+
+    // Sorting by Proyecto alone is what "filtrables y ordenables por
+    // separado" actually means — a shared column could not do this.
+    await page.getByTestId('accounting-sort-project_name').click();
+
+    const projects = page.locator('[data-testid^="accounting-row-"]');
+    await expect(projects.first()).toContainText('Kore');
+    await expect(projects.last()).toContainText('Xpandia');
+  });
+
+  test('opening the detail shows the linked income and its settlement history', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the detail modal, which IS opened by clicking the row action)
+    await mockWithLinkedIncome(page);
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-view-detail-2').click();
+
+    const modal = page.getByTestId('collection-detail-modal');
+    await expect(modal).toBeVisible();
+    await expect(page.getByTestId('collection-detail-client'))
+      .toHaveText('Néstor Franco');
+    await expect(page.getByTestId('collection-detail-project'))
+      .toHaveText('Xpandia');
+    // The history the panel could not reach before this branch.
+    await expect(
+      page.getByTestId('collection-detail-settlement-row'),
+    ).toHaveCount(2);
+    await expect(modal).toContainText('Abono 1');
+    await expect(modal).toContainText('Comisión de pasarela');
+  });
+
+  test('the Documento tab embeds the PDF instead of downloading it', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the Documento tab, reached by clicking the row action then the tab)
+    await mockWithLinkedIncome(page);
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-view-detail-2').click();
+    await page.getByRole('tab', { name: 'Documento' }).click();
+
+    await expect(page.getByTestId('collection-detail-pdf')).toHaveAttribute(
+      'src', '/api/accounting/collection-accounts/2/pdf/?inline=1',
+    );
+  });
+
+  test('going to the income lands on a tab that does not filter it out', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the exit link inside the modal, which IS clicked)
+    await mockWithLinkedIncome(page);
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-view-detail-2').click();
+    await page.getByTestId('collection-detail-go-to-income').click();
+
+    // Without the tab param Ingresos lands on its "Solo esperados" builtin,
+    // which filters the focused row straight out of its own list.
+    await expect(page).toHaveURL(/accounting_incomeTab=all/);
+    await expect(page).toHaveURL(/focus=8/);
   });
 });

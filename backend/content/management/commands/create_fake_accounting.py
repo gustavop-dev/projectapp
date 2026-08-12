@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 
 from content.models import (
     AccountingSettings,
@@ -80,6 +80,26 @@ class Command(BaseCommand):
         # standalone in tests. Without them every income stays unassigned,
         # which is a legitimate (and useful) seed state.
         client_profiles = list(UserProfile.objects.clients()[:8])
+        # A record's project must belong to its own client (the write
+        # serializers enforce it), so the seed resolves projects per client
+        # rather than picking from a global pool. Clients with no project
+        # simply seed rows without one — a legitimate state, and the one a
+        # cobro por diagnóstico is in.
+        projects_by_client = {
+            profile.pk: list(Project.objects.filter(client_id=profile.user_id))
+            for profile in client_profiles
+        }
+
+        def project_for(profile, index):
+            """One of the client's own projects, or None.
+
+            Every fourth linked row is left without a project on purpose:
+            'Sin proyecto' is a real state the filters have a bucket for.
+            """
+            if profile is None or index % 4 == 1:
+                return None
+            options = projects_by_client.get(profile.pk) or []
+            return options[index % len(options)] if options else None
 
         for index in range(count):
             period = _month_start(rng.randrange(0, 12))
@@ -110,6 +130,7 @@ class Command(BaseCommand):
                 gustavo_amount=gustavo,
                 carlos_amount=carlos,
                 client=client,
+                project=project_for(client, index),
                 origin=origin,
                 source_ref=FAKE_REF,
             )
@@ -193,6 +214,7 @@ class Command(BaseCommand):
             )
             hosting = HostingRecord.objects.create(
                 client=hosting_client,
+                project=project_for(hosting_client, index),
                 client_name=client_name,
                 client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,

@@ -311,6 +311,12 @@ class CollectionAccountPdfService:
             paragraph(value, 'regular', 9, GRAY_700, 12)
             y -= 6
 
+        # The project gets a labelled line of its own. It used to reach the
+        # document only by hiding inside the client's name (a cobro that read
+        # "MIMITTOS" next to a personal cédula); naming it explicitly is what
+        # lets the Cliente block state the legal holder and nothing else.
+        if ext.customer_project_name:
+            field('Proyecto', ext.customer_project_name)
         if document.issue_date:
             field('Fecha de emisión', format_date_es(document.issue_date))
         if document.due_date:

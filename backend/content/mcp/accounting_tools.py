@@ -256,6 +256,13 @@ _ENTITY_FIELDS = {
                 'type': ['integer', 'null'],
                 'description': 'ID del cliente (UserProfile con rol cliente).',
             },
+            'project': {
+                'type': ['integer', 'null'],
+                'description': (
+                    'ID del proyecto (accounts.Project). Debe pertenecer al '
+                    'mismo cliente del registro.'
+                ),
+            },
             'origin': {
                 'type': 'string',
                 'enum': ['development', 'hosting', 'diagnostic', 'other'],
@@ -285,6 +292,13 @@ _ENTITY_FIELDS = {
             'client': {
                 'type': ['integer', 'null'],
                 'description': 'ID del cliente (UserProfile con rol cliente).',
+            },
+            'project': {
+                'type': ['integer', 'null'],
+                'description': (
+                    'ID del proyecto (accounts.Project). Debe pertenecer al '
+                    'mismo cliente del registro.'
+                ),
             },
             'client_name': {'type': 'string'},
             'monthly_value': {'type': ['number', 'string']},

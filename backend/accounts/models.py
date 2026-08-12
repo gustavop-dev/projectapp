@@ -1449,6 +1449,7 @@ class SavedFilterTab(models.Model):
     # page saves custom tabs like every other accounting view; without the
     # choice the serializer 400s each attempt.
     VIEW_ACCOUNTING_CARDS = 'accounting_cards'
+    VIEW_ACCOUNTING_COLLECTIONS = 'accounting_collections'
     VIEW_CHOICES = [
         (VIEW_PROPOSAL, 'Proposal'),
         (VIEW_CLIENT, 'Client'),
@@ -1462,6 +1463,7 @@ class SavedFilterTab(models.Model):
         (VIEW_ACCOUNTING_ADS, 'Accounting Ads'),
         (VIEW_ACCOUNTING_HISTORY, 'Accounting History'),
         (VIEW_ACCOUNTING_CARDS, 'Accounting Cards'),
+        (VIEW_ACCOUNTING_COLLECTIONS, 'Accounting Collections'),
     ]
 
     MAX_TABS_PER_VIEW = 12
@@ -1471,7 +1473,10 @@ class SavedFilterTab(models.Model):
         on_delete=models.CASCADE,
         related_name='saved_filter_tabs',
     )
-    view = models.CharField(max_length=20, choices=VIEW_CHOICES, db_index=True)
+    # 32, not 20: 'accounting_recurring' already sat exactly on the old
+    # ceiling and 'accounting_collections' is 22, so the next view to be
+    # added would have been silently truncated at the database level.
+    view = models.CharField(max_length=32, choices=VIEW_CHOICES, db_index=True)
     name = models.CharField(max_length=200)
     filters = models.JSONField(default=dict, blank=True)
     # Restore point: the tab's definition as seeded/created. The panel

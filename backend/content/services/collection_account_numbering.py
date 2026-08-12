@@ -26,14 +26,24 @@ def _issuer_prefix(issuer):
 
 def derive_billing_code(profile):
     """
-    Short uppercase code from company/name/email. Never purely numeric (a
-    numeric code would make PA-{CODE}-{NNN} collide with the legacy
-    PA-{year}-{NNNN} pattern); falls back to C{pk}; suffixes on collision.
+    Short uppercase code from the client's legal name, falling back to the
+    email local part. Never purely numeric (a numeric code would make
+    PA-{CODE}-{NNN} collide with the legacy PA-{year}-{NNNN} pattern); falls
+    back to C{pk}; suffixes on collision.
+
+    The base is the legal holder rather than `company_name`, which operators
+    use for the brand — deriving from it turned a client series into a
+    project one (`PA-MIMITTOS-001` for a client named Daniel). This is only
+    ever the SUGGESTED default: `billing_code` is stored on first use and
+    stays editable in /panel/clients, so codes already issued never move.
     """
+    from content.services.collection_account_create_service import (
+        legal_name_for,
+    )
+
     user = profile.user
     base = (
-        profile.company_name
-        or f'{user.first_name} {user.last_name}'.strip()
+        legal_name_for(profile)
         or (user.email or '').split('@')[0]
     )
     normalized = unicodedata.normalize('NFKD', base)

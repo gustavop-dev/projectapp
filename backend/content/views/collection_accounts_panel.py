@@ -184,12 +184,22 @@ def list_collection_accounts(request):
     if commercial_status:
         qs = qs.filter(commercial_status=commercial_status)
     origin = params.get('origin')
+    # Mirrors get_origin()'s precedence so the four origins stay a partition.
+    # Since a cuenta now inherits its origin record's project, a bare
+    # project__isnull=False would also match every income- and hosting-driven
+    # row and double-count them.
     if origin == 'hosting':
         qs = qs.filter(hosting_record__isnull=False)
-    elif origin == 'project':
-        qs = qs.filter(project__isnull=False)
     elif origin == 'income':
-        qs = qs.filter(income_record__isnull=False)
+        qs = qs.filter(
+            hosting_record__isnull=True, income_record__isnull=False,
+        )
+    elif origin == 'project':
+        qs = qs.filter(
+            hosting_record__isnull=True,
+            income_record__isnull=True,
+            project__isnull=False,
+        )
     elif origin == 'other':
         qs = qs.filter(
             hosting_record__isnull=True,
@@ -253,7 +263,12 @@ def collection_account_pdf(request, doc_id):
         return error_response('No se pudo generar el PDF.', status=500)
     filename = f'{document.public_number or document.pk}.pdf'
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    # `?inline=1` lets the panel embed the document in a viewer instead of
+    # downloading it — previewing a cuenta should not litter the operator's
+    # Downloads folder. Default stays `attachment` so the download action and
+    # every existing caller keep behaving exactly as before.
+    disposition = 'inline' if request.query_params.get('inline') else 'attachment'
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
     return response
 
 

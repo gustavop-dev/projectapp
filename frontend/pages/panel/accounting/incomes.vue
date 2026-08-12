@@ -192,64 +192,25 @@
         :groups="clientGroups"
         :highlight-query="currentFilters.search"
         :collapsed-ids="collapsedGroupIds"
+        :show-actions="false"
         @edit="openEditModal"
         @delete="confirmDeleteRecord"
         @toggle-group="toggleGroup"
       >
-        <template #row-actions="{ row }">
-          <template v-if="row.kind !== 'lost'">
+        <template #cell-row_actions="{ row }">
+          <div class="flex items-center justify-end">
             <BaseButton
-              v-if="!row.has_collection_account"
               variant="ghost"
               icon-only
               size="sm"
-              aria-label="Generar cuenta de cobro"
-              title="Generar cuenta de cobro"
-              :data-testid="`income-generate-ca-${row.id}`"
-              @click.stop="openCollectionModal(row)"
+              aria-label="Acciones"
+              title="Acciones"
+              :data-testid="`income-actions-${row.id}`"
+              @click.stop="openActions(row)"
             >
-              <DocumentPlusIcon class="w-5 h-5" />
+              <EllipsisVerticalIcon class="w-5 h-5" />
             </BaseButton>
-            <BaseButton
-              v-else
-              variant="ghost"
-              icon-only
-              size="sm"
-              :aria-label="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
-              :title="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
-              :data-testid="`income-view-ca-${row.id}`"
-              @click.stop="goToCollectionAccount(row)"
-            >
-              <ArrowTopRightOnSquareIcon class="w-5 h-5" />
-            </BaseButton>
-          </template>
-          <template v-if="row.kind === 'expected'">
-            <button
-              type="button"
-              class="p-1.5 rounded-md text-text-muted hover:text-success-strong hover:bg-surface-raised transition-colors"
-              aria-label="Liquidar"
-              title="Liquidar"
-              :data-testid="`income-liquidate-${row.id}`"
-              @click.stop="openLiquidateModal(row)"
-            >
-              <BanknotesIcon class="w-5 h-5" />
-            </button>
-            <button
-              v-if="row.payment_status !== 'paid'"
-              type="button"
-              class="p-1.5 rounded-md text-text-muted hover:text-text-brand hover:bg-surface-raised transition-colors"
-              :aria-label="row.reminders_muted ? 'Reactivar avisos' : 'Silenciar avisos'"
-              :title="row.reminders_muted ? 'Reactivar avisos' : 'Silenciar avisos'"
-              :data-testid="row.reminders_muted ? `income-unmute-${row.id}` : `income-mute-${row.id}`"
-              @click.stop="row.reminders_muted ? unmuteIncome(row) : openMuteModal(row)"
-            >
-              <BellSlashIcon v-if="row.reminders_muted" class="w-5 h-5" />
-              <BellAlertIcon v-else class="w-5 h-5" />
-            </button>
-            <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.payment_status === 'pending'" aria-label="Marcar como perdido" title="Marcar como perdido" :data-testid="`income-write-off-${row.id}`" @click.stop="confirmWriteOff(row)">
-              <XCircleIcon class="w-5 h-5" />
-            </BaseButton>
-          </template>
+          </div>
         </template>
         <template #cell-kind_label="{ row }">
           <span
@@ -279,52 +240,25 @@
           :sort-key="sortKey"
           :sort-dir="sortDir"
           :row-tone="incomeRowTone"
+          :show-actions="false"
           @edit="openEditModal"
           @delete="confirmDeleteRecord"
           @sort="toggleSort"
         >
-          <template #row-actions="{ row }">
-            <template v-if="row.kind !== 'lost'">
+          <template #cell-row_actions="{ row }">
+            <div class="flex items-center justify-end">
               <BaseButton
-                v-if="!row.has_collection_account"
                 variant="ghost"
                 icon-only
                 size="sm"
-                aria-label="Generar cuenta de cobro"
-                title="Generar cuenta de cobro"
-                :data-testid="`income-generate-ca-${row.id}`"
-                @click.stop="openCollectionModal(row)"
+                aria-label="Acciones"
+                title="Acciones"
+                :data-testid="`income-actions-${row.id}`"
+                @click.stop="openActions(row)"
               >
-                <DocumentPlusIcon class="w-5 h-5" />
+                <EllipsisVerticalIcon class="w-5 h-5" />
               </BaseButton>
-              <BaseButton
-                v-else
-                variant="ghost"
-                icon-only
-                size="sm"
-                :aria-label="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
-                :title="`Ver cuenta de cobro ${row.collection_account_number || ''}`"
-                :data-testid="`income-view-ca-${row.id}`"
-                @click.stop="goToCollectionAccount(row)"
-              >
-                <ArrowTopRightOnSquareIcon class="w-5 h-5" />
-              </BaseButton>
-            </template>
-            <template v-if="row.kind === 'expected'">
-              <button
-                type="button"
-                class="p-1.5 rounded-md text-text-muted hover:text-success-strong hover:bg-surface-raised transition-colors"
-                aria-label="Liquidar"
-                title="Liquidar"
-                :data-testid="`income-liquidate-${row.id}`"
-                @click.stop="openLiquidateModal(row)"
-              >
-                <BanknotesIcon class="w-5 h-5" />
-              </button>
-              <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.payment_status === 'pending'" aria-label="Marcar como perdido" title="Marcar como perdido" :data-testid="`income-write-off-${row.id}`" @click.stop="confirmWriteOff(row)">
-                <XCircleIcon class="w-5 h-5" />
-              </BaseButton>
-            </template>
+            </div>
           </template>
           <template #cell-kind_label="{ row }">
             <span
@@ -383,6 +317,28 @@
       @submit="handleSubmit"
     />
 
+    <!-- Row actions: one list for both view modes, opened from the kebab -->
+    <IncomeActionsModal
+      :open="actionsOpen"
+      :record="actionsRow"
+      @close="actionsOpen = false"
+      @detail="openIncomeDetail"
+      @edit="openEditModal"
+      @liquidate="openLiquidateModal"
+      @generate-collection="openCollectionModal"
+      @view-collection="goToCollectionAccount"
+      @toggle-mute="toggleMute"
+      @write-off="confirmWriteOff"
+      @delete="confirmDeleteRecord"
+    />
+
+    <!-- Detalle del ingreso, reutilizando el modal de cuentas de cobro -->
+    <IncomeDetailModal
+      :open="detailOpen"
+      :income-id="detailIncomeId"
+      @close="detailOpen = false"
+    />
+
     <!-- Liquidate modal: settles an expected income into a linked liquid one -->
     <IncomeLiquidateModal
       :open="isLiquidateModalOpen"
@@ -434,16 +390,13 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import {
-  ArrowTopRightOnSquareIcon,
-  BanknotesIcon,
-  BellAlertIcon,
-  BellSlashIcon,
-  DocumentPlusIcon,
+  EllipsisVerticalIcon,
   PlusIcon,
-  XCircleIcon,
 } from '@heroicons/vue/24/outline';
+import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
+import IncomeDetailModal from '~/components/accounting/IncomeDetailModal.vue';
 import IncomeMuteModal from '~/components/accounting/IncomeMuteModal.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
@@ -514,6 +467,16 @@ const matchClients = (record, value) => {
 };
 matchClients.keys = ['clients'];
 
+const NO_PROJECT_KEY = 'none';
+const NO_PROJECT_LABEL = 'Sin proyecto';
+
+const matchProjects = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (record.project == null) return value.includes(NO_PROJECT_KEY);
+  return value.includes(record.project);
+};
+matchProjects.keys = ['projects'];
+
 const matchOrigin = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
   if (!record.origin) return value.includes(NO_ORIGIN_KEY);
@@ -583,6 +546,7 @@ const {
     partner: '',
     ledger: '',
     clients: [],
+    projects: [],
     origin: [],
     muted: '',
   },
@@ -596,12 +560,13 @@ const {
     partner: matchPartner,
     ledger: matchEquals('ledger', 'ledger'),
     clients: matchClients,
+    projects: matchProjects,
     origin: matchOrigin,
     muted: matchBoolean('reminders_muted', 'muted'),
   },
   // client_name mirrors the server-side q filter, which also reaches the
   // linked client's name — see the income entity's search_fields.
-  searchFields: ['concept', 'notes', 'client_name'],
+  searchFields: ['concept', 'notes', 'client_name', 'project_name'],
 });
 
 const clientFilterOptions = computed(() => {
@@ -618,6 +583,20 @@ const clientFilterOptions = computed(() => {
     .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
   return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
+});
+
+/** Same shape as clientFilterOptions: bounded by the rows on screen. */
+const projectFilterOptions = computed(() => {
+  const seen = new Map();
+  store.incomes.forEach((row) => {
+    if (row.project != null && !seen.has(row.project)) {
+      seen.set(row.project, row.project_name || `Proyecto #${row.project}`);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_PROJECT_KEY, label: NO_PROJECT_LABEL }, ...options];
 });
 
 const filterFields = computed(() => [
@@ -685,6 +664,12 @@ const filterFields = computed(() => [
   },
   {
     kind: 'multi',
+    key: 'projects',
+    label: 'Proyecto',
+    options: projectFilterOptions.value,
+  },
+  {
+    kind: 'multi',
     key: 'origin',
     label: 'Origen',
     options: [
@@ -734,6 +719,8 @@ const {
   handleConfirmed,
   handleCancelled,
   currentPage,
+  sortedRecords,
+  pageSize: PAGE_SIZE,
   totalPages,
   totalItems,
   rangeFrom,
@@ -922,19 +909,21 @@ function unmuteIncome(record) {
   );
 }
 
-// The three amounts read as one block (`group: 'money'`); concept gets the
-// widest floor. Concept, Total, Tipo and Cobro survive every width — the partner
-// splits and the period collapse first. The ledger is filter-only: it earned
-// no column of its own next to what the row is actually about.
+// Concepto gets the widest floor; Concepto, Total, Tipo and Cobro survive
+// every width and the period collapses first. The ledger is filter-only: it
+// earned no column of its own next to what the row is actually about.
+// The partner splits left the table — with six to eight actions per row the
+// grid had no room left for what the operator actually scans by. The whole
+// split (Gustavo, Carlos and la empresa) lives in the income detail modal.
 const columns = [
   { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'client_name', label: 'Cliente', size: 'name', sortable: true, hideBelow: 'md' },
+  { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'lg' },
   { key: 'kind_label', label: 'Tipo', size: 'badge' },
   { key: 'payment_status', label: 'Cobro', size: 'text' },
   { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
-  { key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
+  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
+  { key: 'row_actions', label: '', align: 'right' },
 ];
 
 // ── Vista agrupada por cliente ──
@@ -960,7 +949,8 @@ const clientGroups = computed(() =>
 );
 
 // The group header already names the client, and column sort belongs to the
-// classic table — inside a group the rows keep the ledger order.
+// classic table — inside a group the rows keep the ledger order. Proyecto
+// stays: inside one client's group it is exactly what tells rows apart.
 const groupedColumns = columns
   .filter((col) => col.key !== 'client_name')
   .map(({ sortable, ...col }) => col);
@@ -1026,6 +1016,33 @@ function goToCollectionAccount(row) {
   });
 }
 
+// ── Acciones de fila: un solo menú para las dos vistas ──
+//
+// The two view modes each carried their own copy of the action block and had
+// already drifted: the classic table had silently lost silenciar avisos. One
+// component makes that impossible.
+
+const actionsOpen = ref(false);
+const actionsRow = ref(null);
+
+function openActions(row) {
+  actionsRow.value = row;
+  actionsOpen.value = true;
+}
+
+const detailOpen = ref(false);
+const detailIncomeId = ref(null);
+
+function openIncomeDetail(row) {
+  detailIncomeId.value = row.id;
+  detailOpen.value = true;
+}
+
+function toggleMute(row) {
+  if (row.reminders_muted) unmuteIncome(row);
+  else openMuteModal(row);
+}
+
 async function loadRecords() {
   await store.fetchRecords('incomes');
 }
@@ -1038,14 +1055,35 @@ onMounted(async () => {
   // fetch — in parallel, whichever finishes first would flash the empty state.
   await initFromSettings();
   await loadRecords();
-  // ?focus=<id> flashes the row (navigation back from Cuentas de cobro).
-  const focus = Number(route.query.focus);
-  if (focus) {
-    lastMutatedId.value = focus;
-    setTimeout(() => {
-      if (lastMutatedId.value === focus) lastMutatedId.value = null;
-    }, 2500);
-  }
+  // ?focus=<id> reveals the row (navigation back from Cuentas de cobro).
+  // Flashing alone was not enough: with PAGE_SIZE rows per page the target
+  // is often not rendered at all, and even when it is the operator has no
+  // idea where on the page it landed.
+  await revealFocusedRow(Number(route.query.focus));
 });
+
+/**
+ * Bring the deep-linked row into view: jump to the page holding it, scroll
+ * to it, then flash it.
+ */
+async function revealFocusedRow(focusId) {
+  if (!focusId) return;
+  const index = sortedRecords.value.findIndex((row) => row.id === focusId);
+  if (index === -1) return;
+  // The grouped view renders the whole filtered set, so it never paginates.
+  if (!isGrouped.value) {
+    currentPage.value = Math.floor(index / PAGE_SIZE) + 1;
+  }
+  lastMutatedId.value = focusId;
+  await nextTick();
+  if (typeof document === 'undefined') return;
+  const element = document.querySelector(`[data-testid="accounting-row-${focusId}"]`);
+  if (element && typeof element.scrollIntoView === 'function') {
+    element.scrollIntoView({ block: 'center' });
+  }
+  setTimeout(() => {
+    if (lastMutatedId.value === focusId) lastMutatedId.value = null;
+  }, 2500);
+}
 usePanelRefresh(loadRecords);
 </script>

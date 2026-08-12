@@ -136,24 +136,26 @@
               </span>
               <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                 <slot name="row-actions" :row="row" />
-                <button
-                  type="button"
-                  aria-label="Editar"
-                  :data-testid="`accounting-edit-${row.id}`"
-                  class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-                  @click.stop="emit('edit', row)"
-                >
-                  <PencilSquareIcon class="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Eliminar"
-                  :data-testid="`accounting-delete-${row.id}`"
-                  class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-                  @click.stop="emit('delete', row)"
-                >
-                  <TrashIcon class="w-4 h-4" />
-                </button>
+                <template v-if="showActions">
+                  <button
+                    type="button"
+                    aria-label="Editar"
+                    :data-testid="`accounting-edit-${row.id}`"
+                    class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                    @click.stop="emit('edit', row)"
+                  >
+                    <PencilSquareIcon class="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Eliminar"
+                    :data-testid="`accounting-delete-${row.id}`"
+                    class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                    @click.stop="emit('delete', row)"
+                  >
+                    <TrashIcon class="w-4 h-4" />
+                  </button>
+                </template>
               </span>
             </div>
           </div>
@@ -217,6 +219,8 @@ const props = defineProps({
   highlightQuery: { type: String, default: '' },
   /** Ids of the collapsed groups. */
   collapsedIds: { type: Array, default: () => [] },
+  /** Mirrors AccountingTable: false lets the page own every row action. */
+  showActions: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['edit', 'delete', 'toggle-group']);

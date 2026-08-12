@@ -129,3 +129,53 @@ class TestCreateFakeAccounting:
             source_ref='fake:accounting',
         ).exists()
         assert IncomeRecord.objects.filter(pk=real_income.pk).exists()
+
+    def test_seeded_rows_link_to_their_own_clients_project(self):
+        """Seeding the project link is what makes the Proyecto column, its
+        filter and the cuenta's inheritance visible without hand-editing."""
+        from accounts.models import Project, UserProfile
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username='cliente@example.com', email='cliente@example.com',
+            password='pass12345', first_name='Ana', last_name='Pérez',
+        )
+        profile = UserProfile.objects.create(user=user, role='client')
+        project = Project.objects.create(name='MIMITTOS', client=user)
+
+        call_command('create_fake_accounting', '--count', '8')
+
+        linked = IncomeRecord.objects.filter(project=project)
+        assert linked.exists()
+        # A project always belongs to the row's own client — the rule the
+        # write serializers enforce.
+        for income in linked:
+            assert income.client_id == profile.pk
+        # And some rows stay without one: "Sin proyecto" is a real state.
+        assert IncomeRecord.objects.filter(
+            client=profile, project__isnull=True,
+        ).exists()
+
+    def test_the_full_cycle_survives_projects_being_deleted_first(self):
+        """delete_fake_data deletes Projects BEFORE the accounting sweep.
+        With PROTECT on the project FKs this would raise ProtectedError and
+        the whole cycle would stop working."""
+        from accounts.models import Project, UserProfile
+        from django.contrib.auth import get_user_model
+
+        user = get_user_model().objects.create_user(
+            username='cliente@example.com', email='cliente@example.com',
+            password='pass12345', first_name='Ana', last_name='Pérez',
+        )
+        UserProfile.objects.create(user=user, role='client')
+        Project.objects.create(name='MIMITTOS', client=user)
+
+        call_command('create_fake_accounting', '--count', '8')
+        call_command('delete_fake_data', '--confirm')
+
+        assert not IncomeRecord.objects.filter(
+            source_ref='fake:accounting',
+        ).exists()
+        assert not HostingRecord.objects.filter(
+            source_ref='fake:accounting',
+        ).exists()

@@ -159,10 +159,13 @@ class TestNextNumberEndpoint:
         )
 
         assert first.status_code == 200
-        assert first.data['suggested_number'] == 'PA-ACMESOLU-001'
-        assert first.data['billing_code'] == 'ACMESOLU'
+        # No NIT on this client, so the series belongs to the person. The
+        # sibling tests above pass nit=... and still get PA-ACMESOLU-001:
+        # the code follows the identification, it does not just prefer people.
+        assert first.data['suggested_number'] == 'PA-ANAPEREZ-001'
+        assert first.data['billing_code'] == 'ANAPEREZ'
         assert first.data['issuer_city'] == 'Bogotá'
-        assert second.data['suggested_number'] == 'PA-ACMESOLU-001'
+        assert second.data['suggested_number'] == 'PA-ANAPEREZ-001'
 
     def test_missing_param_is_400(self, super_client):
         response = super_client.get(

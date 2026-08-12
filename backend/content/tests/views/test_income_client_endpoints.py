@@ -84,7 +84,7 @@ class TestClientFilter:
         assert 'Reembolso banco' not in body
         # Appended columns: the header keeps its first five in place and the
         # client rides along in the same row, under its display name.
-        assert body.splitlines()[0].endswith('Cliente,Origen')
+        assert body.splitlines()[0].endswith('Cliente,Origen,Proyecto')
         assert build_client_display_name(acme) in body
 
 

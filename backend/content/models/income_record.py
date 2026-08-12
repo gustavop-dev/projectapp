@@ -47,6 +47,20 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         related_name='income_records',
         limit_choices_to={'role': 'client'},
     )
+    # The project the income belongs to. Optional by nature, not by
+    # tolerance: a cobro por diagnóstico happens before any project exists,
+    # and a refund or a financial yield never has one. SET_NULL — unlike
+    # `client`, which is PROTECT — because the money is permanent and the
+    # project is a label on it: losing the label must never block deleting a
+    # project, and `delete_fake_data` deletes projects BEFORE the accounting
+    # sweep, so PROTECT here would break the fake-data cycle outright.
+    project = models.ForeignKey(
+        'accounts.Project',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='income_records',
+    )
     # Business line. Blank means "sin clasificar" (records predating the
     # field); hosting incomes rely on it because hosting clients are stored
     # as plain text and often have no platform profile to link to.
@@ -99,6 +113,7 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         indexes = [
             models.Index(fields=['kind', 'period_date']),
             models.Index(fields=['client', 'period_date']),
+            models.Index(fields=['project', 'period_date']),
         ]
 
     def __str__(self):
