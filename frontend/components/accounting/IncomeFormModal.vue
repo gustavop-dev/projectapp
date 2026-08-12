@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
+import ProjectSelect from '~/components/accounting/ProjectSelect.vue'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
 import { todayISO } from '~/utils/periodDates'
 
@@ -60,6 +61,7 @@ function defaultForm() {
     destination: 'partners',
     ledger: 'company',
     client: null,
+    project: null,
     client_name: '',
     origin: '',
     total_amount: '',
@@ -93,6 +95,7 @@ watch(
         destination: props.record.destination ?? 'partners',
         ledger: props.record.ledger ?? 'company',
         client: props.record.client ?? null,
+        project: props.record.project ?? null,
         client_name: props.record.client_name ?? '',
         origin: props.record.origin ?? '',
         total_amount: props.record.total_amount ?? '',
@@ -151,6 +154,8 @@ function onSubmit() {
     // Always sent, null included: that is what lets an edit UNLINK a client
     // (same reason `notes` is always sent).
     client: form.value.client,
+    // Always sent, null included: that is what lets an edit unlink it.
+    project: form.value.project,
     origin: form.value.origin,
   }
   if (!isPersonal.value) {
@@ -189,6 +194,12 @@ function onSubmit() {
           @create-new="onCreateNewClient"
         />
       </BaseFormField>
+
+      <ProjectSelect
+        v-model="form.project"
+        :client-profile-id="form.client"
+        testid="income-form-project"
+      />
 
       <!-- Inline client creation: the module de clientes without leaving the form -->
       <div

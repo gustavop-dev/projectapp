@@ -211,6 +211,7 @@ describe('IncomeFormModal', () => {
       gustavo_amount: '900',
       carlos_amount: '600',
       client: null,
+      project: null,
       origin: '',
       notes: 'Con nota',
     });

@@ -153,13 +153,20 @@
         @delete="confirmDeleteRecord"
         @sort="toggleSort"
       >
-        <template #cell-client_name="{ row }">
+        <!-- The relation, not the free-text label. `client_name` held the
+             house convention `Persona - Marca` ("German - Kore"), fusing two
+             different facts into one editable cell; it is now the billing
+             snapshot and lives in the form. -->
+        <template #cell-client_display_name="{ row }">
           <span class="inline-flex items-center gap-1.5">
-            <AccountingInlineCell
-              :value="row.client_name"
-              :saving="inlineSavingKey === `${row.id}:client_name`"
-              @save="saveInline(row, 'client_name', $event)"
+            <HighlightText
+              v-if="row.client_display_name"
+              :text="row.client_display_name"
+              :query="currentFilters.search"
             />
+            <!-- Nothing linked yet: show the legacy label so the row is
+                 still recognizable while it is completed. -->
+            <span v-else class="text-text-subtle italic">{{ row.client_name }}</span>
             <span
               v-if="!row.client"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-warning-soft text-warning-strong font-semibold uppercase tracking-wider whitespace-nowrap"
@@ -169,6 +176,19 @@
               sin vincular
             </span>
           </span>
+        </template>
+        <template #cell-project_name="{ row }">
+          <HighlightText
+            v-if="row.project_name"
+            :text="row.project_name"
+            :query="currentFilters.search"
+          />
+          <span
+            v-else
+            class="text-text-subtle"
+            title="Sin proyecto vinculado"
+            :data-testid="`hosting-no-project-${row.id}`"
+          >—</span>
         </template>
         <template #cell-domain_url="{ row }">
           <AccountingInlineCell
@@ -321,6 +341,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
@@ -374,6 +395,15 @@ const matchClients = (record, value) => {
 };
 matchClients.keys = ['clients'];
 
+const NO_PROJECT_KEY = 'none';
+
+const matchProjects = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (record.project == null) return value.includes(NO_PROJECT_KEY);
+  return value.includes(record.project);
+};
+matchProjects.keys = ['projects'];
+
 const {
   currentFilters,
   searchInput,
@@ -402,6 +432,7 @@ const {
   ],
   defaults: {
     clients: [],
+    projects: [],
     modalities: [],
     valueMin: '',
     valueMax: '',
@@ -411,12 +442,15 @@ const {
   },
   matchers: {
     clients: matchClients,
+    projects: matchProjects,
     modalities: matchIncludes('payment_modality', 'modalities'),
     value: matchNumberRange('monthly_value', 'valueMin', 'valueMax'),
     validTo: matchDateRange('valid_to', 'validToAfter', 'validToBefore'),
     isActive: matchBoolean('is_active', 'isActive'),
   },
-  searchFields: ['client_name', 'client_display_name', 'domain_url', 'notes'],
+  searchFields: [
+    'client_name', 'client_display_name', 'project_name', 'domain_url', 'notes',
+  ],
 });
 
 const clientFilterOptions = computed(() => {
@@ -434,12 +468,32 @@ const clientFilterOptions = computed(() => {
   return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
 });
 
+/** Same shape as clientFilterOptions: bounded by the rows on screen. */
+const projectFilterOptions = computed(() => {
+  const seen = new Map();
+  store.hostings.forEach((row) => {
+    if (row.project != null && !seen.has(row.project)) {
+      seen.set(row.project, row.project_name || `Proyecto #${row.project}`);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options];
+});
+
 const filterFields = computed(() => [
   {
     kind: 'multi',
     key: 'clients',
     label: 'Cliente',
     options: clientFilterOptions.value,
+  },
+  {
+    kind: 'multi',
+    key: 'projects',
+    label: 'Proyecto',
+    options: projectFilterOptions.value,
   },
   {
     kind: 'multi',
@@ -550,7 +604,8 @@ const {
 });
 
 const columns = [
-  { key: 'client_name', label: 'Cliente', sortable: true },
+  { key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true },
+  { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md' },
   { key: 'domain_url', label: 'Dominio' },
   { key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true },
   { key: 'payment_modality_label', label: 'Modalidad' },
