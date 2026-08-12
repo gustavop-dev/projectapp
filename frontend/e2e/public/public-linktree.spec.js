@@ -73,6 +73,7 @@ test.describe('Public Linktree', () => {
   test('renders identity, buttons and footer for a valid handle', {
     tag: [...PUBLIC_LINKTREE_VIEW, '@role:visitor', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (public linktree is reached from a QR scan / external short link — there is no in-app navigation to it)
     // quality: allow-no-interaction (public display contract: the page renders API data; actions are covered by unit tests)
     await setupPublicMock(page);
     await page.goto('/es-co/lk/@gustavo');
@@ -89,6 +90,7 @@ test.describe('Public Linktree', () => {
   test('renders an unresolved destination as a dashed PENDIENTE button', {
     tag: [...PUBLIC_LINKTREE_VIEW, '@role:visitor', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (public linktree is reached from a QR scan / external short link — there is no in-app navigation to it)
     // quality: allow-no-interaction (pending buttons are inert by design — the assertion IS that they don't navigate)
     await setupPublicMock(page);
     await page.goto('/es-co/lk/@gustavo');
@@ -102,11 +104,13 @@ test.describe('Public Linktree', () => {
   test('shows the not-available state for an unknown handle', {
     tag: [...PUBLIC_LINKTREE_VIEW, '@role:visitor', '@outcome:failure'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (public linktree is reached from a QR scan / external short link — there is no in-app navigation to it)
+    // quality: allow-no-interaction (failure outcome is a terminal state: the API 404s and the page offers nothing to interact with)
     await setupPublicMock(page, { found: false });
     await page.goto('/es-co/lk/@nadie');
     await page.waitForLoadState('domcontentloaded');
 
-    await expect(page.getByTestId('linktree-not-found')).toBeVisible();
-    await expect(page.getByTestId('linktree-card')).not.toBeVisible();
+    await expect(page.getByTestId('linktree-not-found')).toContainText('Este enlace no está disponible.');
+    await expect(page.getByTestId('linktree-card')).toHaveCount(0);
   });
 });
