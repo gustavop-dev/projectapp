@@ -124,8 +124,8 @@ EXPORT_SECTIONS = {
             # Appended, never inserted: the CSV header test pins the first
             # five columns.
             ('Cliente', _income_client),
-            ('Proyecto', _record_project),
             ('Origen', lambda r: r.get_origin_display()),
+            ('Proyecto', _record_project),
         ],
     },
     'expense': {

@@ -96,7 +96,7 @@ class TestClientFilter:
 
         body = response.content.decode('utf-8-sig')
         # Appended, so the historical column order is untouched.
-        assert body.splitlines()[0].endswith('Cliente vinculado')
+        assert body.splitlines()[0].endswith('Cliente vinculado,Proyecto')
         assert build_client_display_name(profile) in body
 
 
@@ -133,7 +133,12 @@ class TestBillingInheritsTheClient:
     def test_a_linked_hosting_uses_the_per_client_series(
         self, super_client, make_client_profile,
     ):
-        hosting = make_hosting(client=make_client_profile(company='Acme SAS'))
+        # NIT present, so the code derives from the company name. Without one
+        # the same client would number under the person's name — the code
+        # follows the identification, not company_name on its own.
+        hosting = make_hosting(client=make_client_profile(
+            company='Acme SAS', nit='900123456-7',
+        ))
 
         response = super_client.post(
             f'/api/accounting/hostings/{hosting.pk}/send-collection-account/',
@@ -294,7 +299,10 @@ class TestSnapshotFollowsTheClient:
     ):
         old = make_client_profile(company='Kore SAS', email='kore@example.co')
         new = make_client_profile(
-            company='Vastago SAS', email='gerencia@vastago.com.co',
+            # NIT present: the billing name follows the identification, so a
+            # company with a tax id is billed under its company name.
+            company='Vastago SAS', nit='900987654-3',
+            email='gerencia@vastago.com.co',
         )
         hosting = make_hosting(
             client=old, client_name='Kore SAS', client_email='kore@example.co',
@@ -318,7 +326,10 @@ class TestSnapshotFollowsTheClient:
     ):
         old = make_client_profile(company='Kore SAS', email='kore@example.co')
         new = make_client_profile(
-            company='Vastago SAS', email='gerencia@vastago.com.co',
+            # NIT present: the billing name follows the identification, so a
+            # company with a tax id is billed under its company name.
+            company='Vastago SAS', nit='900987654-3',
+            email='gerencia@vastago.com.co',
         )
         hosting = make_hosting(
             client=old, client_name='Kore SAS', client_email='kore@example.co',
@@ -341,7 +352,10 @@ class TestSnapshotFollowsTheClient:
     ):
         old = make_client_profile(company='Kore SAS', email='kore@example.co')
         new = make_client_profile(
-            company='Vastago SAS', email='gerencia@vastago.com.co',
+            # NIT present: the billing name follows the identification, so a
+            # company with a tax id is billed under its company name.
+            company='Vastago SAS', nit='900987654-3',
+            email='gerencia@vastago.com.co',
         )
         hosting = make_hosting(
             client=old, client_name='Kore SAS', client_email='kore@example.co',
