@@ -6013,8 +6013,18 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/collections`
-- **Description:** Cuentas de cobro center (tab renamed from "Cobros", key `collections` intact): status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), table with número/origen (Hosting/Proyecto/Ingreso/Otro)/cliente/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`) and row actions: view linked income (`?focus=` row flash on Ingresos), download PDF (`GET .../pdf/` blob), resend to client, mark paid (expected-linked cuentas route through the Liquidar modal — see `admin-accounting-collection-create`) and cancel (behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume, and cancelling frees the linked income for a new cuenta).
-- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend + resend-failure toast; PDF download not asserted)
+- **Description:** Cuentas de cobro center (tab renamed from "Cobros", key `collections` intact): status counters (emitidas/pagadas/vencidas/anuladas with money totals from list meta), segmented status filter (Todas/Emitidas/Vencidas/Pagadas/Anuladas), search box + filter panel + saved tabs (`accounting_collections`) with multi filters for **Cliente** and **Proyecto** (each with its "Sin cliente" / "Sin proyecto" bucket), emisión and total ranges. Table with número/origen (badge)/**cliente**/**proyecto**/total/emisión/vence/estado (badge shows "Vencida" via `is_overdue`). Cliente and Proyecto are separate sortable columns since Aug 2026 — the single Cliente column showed `customer_name`, the frozen billing snapshot, which held a brand ("MIMITTOS") where the client is a person. Row actions: ver detalle (opens `admin-accounting-collection-detail`), descargar PDF (`GET .../pdf/` blob), reenviar al cliente (behind ConfirmModal naming the recipient), marcar pagada (expected-linked cuentas route through the Liquidar modal — see `admin-accounting-collection-create`) and anular (behind ConfirmModal; cancelling a hosting-linked account clears `billing_requested_at` so the expiry notices resume, and cancelling frees the linked income for a new cuenta).
+- **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend behind its confirm + resend-failure toast; PDF download not asserted)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
+
+### FLOW: `admin-accounting-collection-detail`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/collections`
+- **Description:** Inspecting one cuenta de cobro without leaving the tab. The row's "Ver detalle" opens a modal keyed on the **cuenta**, not on the income — a cuenta raised from a hosting has no income at all (`hosting_billing_service` sets `hosting_record` only), and those rows previously had no inspection action of any kind. **Resumen** shows cliente and proyecto as separate facts, the concept and its items, and the linked income with its amounts, status (`IncomePaymentStateCell`), partner split and **historial de liquidación** (liquid children + linked deductions, from `GET accounting/incomes/<id>/detail/` — before that endpoint the children were unreachable from the panel). When the frozen `customer_name` differs from the linked client the modal says so outright, naming both, since issued documents are never rewritten. **Documento** embeds the PDF via `?inline=1` so previewing never downloads. "Ver en Ingresos" is the optional exit and passes `accounting_incomeTab=all`, because Ingresos otherwise lands on its "Solo esperados" builtin and filters the focused row out of its own list.
+- **Coverage:** ✅ Covered (columns separated, detail + settlement history, inline document embed, the exit landing on a non-filtering tab)
 - **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
 
 ### FLOW: `admin-accounting-collection-create`
@@ -6105,6 +6115,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-ads` | admin | superuser | P3 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
 | `admin-accounting-hosting-billing` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-collections` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js` |
+| `admin-accounting-collection-detail` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js` |
 | `admin-accounting-collection-create` | admin | superuser | P1 | ✅ Covered | `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js` |
 | `admin-accounting-hosting-cycles` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js` |
 | `admin-accounting-hosting-inline-edit` | admin | superuser | P3 | ❌ Missing | — |
