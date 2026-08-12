@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
 from content.models import Document, DocumentFolder, DocumentTag
+from content.services.document_archive_service import (
+    DocumentArchiveError, ensure_active_target,
+)
 
 
 class _TagSummarySerializer(serializers.ModelSerializer):
@@ -107,6 +110,23 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
             'content_json': {'required': False},
         }
 
+    def validate(self, attrs):
+        """Impide dejar un documento activo dentro de una carpeta archivada.
+
+        Va a nivel de objeto y no de campo porque la regla depende del estado
+        de la propia instancia: mover un documento YA archivado entre carpetas
+        es un caso soportado.
+        """
+        if 'folder' in attrs:
+            try:
+                ensure_active_target(
+                    attrs['folder'],
+                    moving_archived=bool(self.instance and self.instance.is_archived),
+                )
+            except DocumentArchiveError as exc:
+                raise serializers.ValidationError({'folder_id': str(exc)}) from exc
+        return attrs
+
     def create(self, validated_data):
         tag_ids = validated_data.pop('tag_ids', None)
         document = super().create(validated_data)
@@ -147,3 +167,11 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
     tag_ids = serializers.PrimaryKeyRelatedField(
         queryset=DocumentTag.objects.all(), many=True, required=False,
     )
+
+    def validate_folder_id(self, value):
+        """Un documento nuevo nace activo: su carpeta tiene que estarlo también."""
+        try:
+            ensure_active_target(value)
+        except DocumentArchiveError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
+        return value

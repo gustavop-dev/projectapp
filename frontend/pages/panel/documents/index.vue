@@ -18,11 +18,14 @@
     <DocumentsToolbar
       v-model:search="searchQuery"
       v-model:view-mode="viewMode"
+      :scope="documentStore.archiveScope"
+      :scope-locked="isSearching"
       class="mb-5"
       data-enter
       style="--enter-delay: 60ms"
+      @update:scope="handleScopeChange"
     >
-      <template v-if="isArchived" #actions>
+      <template v-if="isArchived && !isSearching" #actions>
         <BaseSegmented
           :model-value="archivedOrder"
           :options="ARCHIVED_ORDER_OPTIONS"
@@ -39,24 +42,35 @@
         style="--enter-delay: 120ms"
         :folders="folderStore.rootFolders"
         :active-id="documentStore.activeFolderId"
-        :total-count="documentStore.documents.length + otherFoldersCount"
-        :archived-count="archivedTotalCount"
+        :archive-scope="documentStore.archiveScope"
+        :total-count="documentStore.counts.documents.active"
+        :archived-count="documentStore.counts.documents.archived"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
         @manage="openFolderManager"
         @folder-drop="handleDropOnFolder"
         @delete="handleDeleteFolder"
+        @archive="handleArchiveFolder"
+        @view-archived="handleViewArchivedFolder"
       />
 
       <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
         <FolderBreadcrumb
-          v-if="documentStore.activeFolderId !== 'all' && !isArchived"
+          v-if="showBreadcrumb"
           :active-id="documentStore.activeFolderId"
           :dragging-folder-id="draggingFolder?.id ?? null"
+          :root-label="isArchived ? 'Archivados' : 'Todos'"
+          :root-value="isArchived ? 'root' : 'all'"
           @select="handleSelectFolder"
           @nest="handleNestFolder"
         />
+
+        <!-- La búsqueda ignora carpeta y estado: decirlo evita la lectura de
+             que el filtro visible está acotando los resultados. -->
+        <BaseAlert v-if="isSearching" variant="info" class="mb-4">
+          Buscando «{{ searchQuery.trim() }}» en todo el gestor, activos y archivados.
+        </BaseAlert>
 
         <!-- Tag filter chips -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
@@ -124,7 +138,7 @@
             </svg>
           </template>
           <template #actions>
-            <BaseButton variant="secondary" size="sm" @click="handleSelectFolder('all')">
+            <BaseButton variant="secondary" size="sm" @click="handleBackToActive">
               Volver a los activos
             </BaseButton>
           </template>
@@ -173,10 +187,11 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
-            :archived="isArchived"
+            :scope="documentStore.archiveScope"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
+            @view-archived-folder="handleViewArchivedFolder"
             @select-folder="handleSelectFolder"
             @doc-dragstart="handleDragStart"
             @doc-dragend="handleDragEnd"
@@ -195,10 +210,11 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
-            :archived="isArchived"
+            :scope="documentStore.archiveScope"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
+            @view-archived-folder="handleViewArchivedFolder"
             @select-folder="handleSelectFolder"
             @doc-dragstart="handleDragStart"
             @doc-dragend="handleDragEnd"
@@ -247,7 +263,7 @@
     <DocumentActionsSheet
       v-model="showActionsSheet"
       :document="actionDoc"
-      :archived="isArchived"
+      :archived="!!actionDoc?.is_archived"
       @archive="handleArchiveDoc(actionDoc)"
       @unarchive="handleUnarchiveDoc(actionDoc)"
       @edit="handleEditDoc(actionDoc)"
@@ -280,7 +296,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
@@ -299,6 +315,8 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { isRootInScope } from '~/utils/archiveScope';
+import { folderRowSummary } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
@@ -322,37 +340,41 @@ const { reducedMotion } = useReducedMotion();
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
 let newlyCreatedTimer = null;
-// Modo archivado: 'archived' es el tercer centinela de activeFolderId, junto a
-// 'all' y 'none'. La lista archivada vive en su propio slice del store.
-const isArchived = computed(() => documentStore.activeFolderId === 'archived');
-const archivedOrder = ref('recent');
+// El estado es un eje propio: `activeFolderId` dice DÓNDE ('all' | 'root' |
+// 'none' | id) y `archiveScope` dice EN QUÉ ESTADO. Antes compartían campo, y
+// por eso no se podía entrar a una carpeta archivada ni filtrar dentro de ella.
+const isArchived = computed(() => documentStore.archiveScope === 'archived');
+const isSearching = computed(() => searchQuery.value.trim().length > 0);
+const archivedOrder = computed(() => documentStore.archivedOrder);
 const ARCHIVED_ORDER_OPTIONS = [
   { value: 'recent', label: 'Recientes', testId: 'archived-order-recent' },
   { value: 'oldest', label: 'Más antiguos', testId: 'archived-order-oldest' },
 ];
 
-const visibleDocuments = computed(
-  () => (isArchived.value ? documentStore.archivedDocuments : documentStore.documents),
+const showBreadcrumb = computed(
+  () => !isSearching.value
+    && documentStore.activeFolderId !== 'all'
+    && !(documentStore.activeFolderId === 'root' && !isArchived.value),
 );
 
 const filteredDocuments = computed(() => {
-  const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return visibleDocuments.value;
-  return visibleDocuments.value.filter(
-    (d) => d.title?.toLowerCase().includes(q) || d.client_name?.toLowerCase().includes(q),
+  if (isSearching.value) return documentStore.searchResults;
+  if (documentStore.activeFolderId !== 'root') return documentStore.documents;
+  // En la cima del árbol sólo se listan los documentos que no cuelgan de una
+  // carpeta visible: los demás se ven entrando a su carpeta.
+  return documentStore.documents.filter(
+    (d) => isRootInScope(d.folder, folderStore.folderById, documentStore.archiveScope),
   );
 });
 
-// Subcarpetas de la carpeta activa — solo cuando se navega dentro de una
-// carpeta concreta y no hay búsqueda activa (la búsqueda aplica a documentos).
+// Filas de carpeta del listado: las raíces del scope en la cima, las hijas
+// dentro de una carpeta, y las coincidencias mientras se busca.
 const currentSubfolders = computed(() => {
-  if (searchQuery.value.trim()) return [];
-  // En archivados el listado es plano: las carpetas archivadas se muestran como
-  // filas de carpeta arriba, reusando el bloque `subfolders` que ya existe.
-  if (isArchived.value) return folderStore.archivedFolders;
+  if (isSearching.value) return searchFolders.value;
   const id = documentStore.activeFolderId;
+  if (id === 'root') return folderStore.scopedRootFolders(documentStore.archiveScope);
   if (typeof id !== 'number') return [];
-  return folderStore.childrenOf(id);
+  return folderStore.childrenOf(id, documentStore.archiveScope);
 });
 
 const hasContent = computed(
@@ -382,7 +404,57 @@ watch(viewMode, (mode) => {
 watch(searchQuery, () => docResetPage());
 watch(archivedOrder, () => docResetPage());
 watch(() => documentStore.activeFolderId, () => docResetPage());
+watch(() => documentStore.archiveScope, () => docResetPage());
 watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
+
+// ── Búsqueda global ──────────────────────────────────────────────────────────
+// Recorre todo el gestor y los dos estados: buscar sirve para encontrar algo
+// cuya ubicación no se recuerda, y acotarlo a la vista era justo lo que impedía
+// dar con lo archivado.
+const searchFolders = ref([]);
+const scopeBeforeSearch = ref(null);
+const scopeTouchedDuringSearch = ref(false);
+let searchTimer = null;
+
+async function runSearch(term) {
+  const [docs, folders] = await Promise.all([
+    documentStore.searchDocuments(term),
+    folderStore.searchFolders(term),
+  ]);
+  searchFolders.value = folders.data || [];
+  if (!docs.success) {
+    notify.error({ title: 'No se pudo completar la búsqueda', detail: docs.message });
+  }
+}
+
+watch(searchQuery, (value) => {
+  const term = value.trim();
+  clearTimeout(searchTimer);
+  if (!term) {
+    searchFolders.value = [];
+    // Al limpiar se devuelve el control a donde estaba, salvo que el usuario lo
+    // haya movido él mismo mientras buscaba: ahí manda su elección.
+    if (scopeBeforeSearch.value && !scopeTouchedDuringSearch.value) {
+      documentStore.setFilters({ scope: scopeBeforeSearch.value });
+    }
+    scopeBeforeSearch.value = null;
+    scopeTouchedDuringSearch.value = false;
+    return;
+  }
+  if (!scopeBeforeSearch.value) {
+    scopeBeforeSearch.value = documentStore.archiveScope;
+    scopeTouchedDuringSearch.value = false;
+    // El control se mueve a la vista: la búsqueda ensancha el eje, y dejarlo en
+    // «Solo activos» mientras devuelve archivados sería una interfaz mentirosa.
+    if (documentStore.archiveScope !== 'all') documentStore.archiveScope = 'all';
+  }
+  searchTimer = setTimeout(() => runSearch(term), 300);
+});
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer);
+  clearTimeout(newlyCreatedTimer);
+});
 
 const showFolderManager = ref(false);
 const showTagManager = ref(false);
@@ -423,57 +495,68 @@ const createLink = computed(() => {
   return localePath('/panel/documents/create');
 });
 
-const otherFoldersCount = computed(() => {
-  return folderStore.folders.reduce((sum, f) => sum + (f.document_count || 0), 0);
-});
-
-// Contador de la entrada "Archivados": documentos + carpetas archivadas.
-const archivedTotalCount = computed(
-  () => documentStore.archivedDocuments.length + folderStore.archivedFolders.length,
-);
-
-const isListLoading = computed(
-  () => (isArchived.value ? documentStore.isArchivedLoading : documentStore.isLoading),
-);
+const isListLoading = computed(() => documentStore.isLoading);
 
 const loadError = ref(null);
 
-async function loadDocuments() {
+/**
+ * Única ruta de refresco de la vista.
+ *
+ * Antes cada handler decidía qué refetchear, y por eso los contadores del panel
+ * lateral quedaban desactualizados según por dónde se hubiera archivado. Con un
+ * solo camino, ningún handler puede olvidarse de una de las tres piezas.
+ */
+async function refreshView({ tags = false } = {}) {
   loadError.value = null;
   const [docsResult] = await Promise.all([
-    documentStore.fetchDocuments(),
+    documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
     folderStore.fetchFolders(),
-    tagStore.fetchTags(),
+    documentStore.fetchCounts(),
+    tags ? tagStore.fetchTags() : Promise.resolve(),
   ]);
   if (docsResult && !docsResult.success) {
     loadError.value = docsResult.message || 'No se pudieron cargar los documentos.';
   }
+  if (isSearching.value) await runSearch(searchQuery.value.trim());
+}
+
+function loadDocuments() {
+  return refreshView({ tags: true });
 }
 
 onMounted(loadDocuments);
 usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
+  // «Archivados» es un atajo sobre los dos ejes, no una carpeta.
   if (id === 'archived') {
-    // El scope archivado no pasa por el filtro `folder` del backend: es su
-    // propio endpoint. Se guarda el centinela y se carga el slice archivado.
-    documentStore.activeFolderId = 'archived';
-    loadArchived();
+    documentStore.setFilters({ folder: 'root', scope: 'archived' });
     return;
   }
+  // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
+  // se está viendo y cambiarlo por debajo lo volvería mentiroso.
   documentStore.setFilters({ folder: id });
 }
 
-async function loadArchived() {
-  await Promise.all([
-    documentStore.fetchArchivedDocuments({ order: archivedOrder.value }),
-    folderStore.fetchFolders({ archived: true, order: archivedOrder.value }),
-  ]);
+/** Devuelve los dos ejes a su posición de reposo. */
+function handleBackToActive() {
+  documentStore.setFilters({ folder: 'all', scope: 'active' });
+}
+
+/** Entra a la carpeta en su scope archivado — el destino de la insignia. */
+function handleViewArchivedFolder(folder) {
+  if (!folder) return;
+  searchQuery.value = '';
+  documentStore.setFilters({ folder: folder.id, scope: 'archived' });
+}
+
+function handleScopeChange(scope) {
+  if (isSearching.value) scopeTouchedDuringSearch.value = true;
+  documentStore.setFilters({ scope });
 }
 
 function handleArchivedOrderChange(order) {
-  archivedOrder.value = order;
-  loadArchived();
+  documentStore.setFilters({ order });
 }
 
 async function handleArchiveDoc(doc) {
@@ -481,7 +564,7 @@ async function handleArchiveDoc(doc) {
   const result = await documentStore.archiveDocument(doc.id);
   if (result.success) {
     notify.success({ title: 'Documento archivado' });
-    await folderStore.fetchFolders();
+    await refreshView();
   } else {
     notify.error({ title: 'No se pudo archivar el documento', detail: result.message });
   }
@@ -491,11 +574,30 @@ async function handleUnarchiveDoc(doc) {
   if (!doc) return;
   const result = await documentStore.unarchiveDocument(doc.id);
   if (result.success) {
-    notify.success({ title: 'Documento restaurado' });
-    await folderStore.fetchFolders();
+    notify.success({
+      title: 'Documento restaurado',
+      detail: restoredChainDetail(result),
+    });
+    await refreshView();
   } else {
     notify.error({ title: 'No se pudo restaurar el documento', detail: result.message });
   }
+}
+
+/**
+ * Explica la carpeta que volvió con el elemento.
+ *
+ * Restaurar reabre la cadena contenedora, y sin decirlo el usuario ve reaparecer
+ * una carpeta que él había archivado sin entender por qué.
+ */
+function restoredChainDetail(result) {
+  if (result.movedToRoot) {
+    return 'No se pudo reconstruir su carpeta, así que quedó en «Sin carpeta».';
+  }
+  const chain = result.restoredChain || [];
+  if (!chain.length) return undefined;
+  const names = chain.map((f) => `«${f.name}»`).join(' › ');
+  return `Se restauró también ${names} para que tenga dónde volver.`;
 }
 
 async function handleUnarchiveFolder(folder) {
@@ -505,20 +607,48 @@ async function handleUnarchiveFolder(folder) {
     // Se reporta el conteo que devuelve la API, nunca "todo su contenido":
     // lo archivado a mano se queda archivado a propósito.
     const restored = result.restoredDocuments;
+    const chainDetail = restoredChainDetail(result);
+    const details = [
+      restored ? `Se restauraron ${restored} documento(s) que archivó esta carpeta.` : null,
+      chainDetail,
+    ].filter(Boolean);
     notify.success({
       title: 'Carpeta restaurada',
-      detail: restored
-        ? `Se restauraron ${restored} documento(s) que archivó esta carpeta.`
-        : undefined,
+      detail: details.length ? details.join(' ') : undefined,
     });
-    await loadArchived();
-    await folderStore.fetchFolders();
+    await refreshView();
   } else {
     notify.error({
       title: 'No se pudo restaurar la carpeta',
       detail: result.errors?.detail,
     });
   }
+}
+
+function handleArchiveFolder(folder) {
+  if (!folder) return;
+  requestConfirm({
+    title: `Archivar "${folder.name}"`,
+    message: `Se archivará junto con su contenido (${folderRowSummary(folder, 'all')}). `
+      + 'Sale de la vista y de los contadores, pero podrás restaurarla cuando quieras.',
+    variant: 'warning',
+    confirmText: 'Archivar',
+    onConfirm: async () => {
+      const result = await folderStore.archiveFolder(folder.id);
+      if (!result.success) {
+        notify.error({ title: 'No se pudo archivar la carpeta' });
+        return;
+      }
+      notify.success({
+        title: 'Carpeta archivada',
+        detail: result.archivedDocuments
+          ? `Se archivaron también ${result.archivedDocuments} documento(s).`
+          : undefined,
+      });
+      if (documentStore.activeFolderId === folder.id) handleSelectFolder('all');
+      await refreshView();
+    },
+  });
 }
 
 function handleToggleTag(id) {
@@ -548,7 +678,7 @@ async function handleFolderArchived({ folder, documents } = {}) {
   if (documentStore.activeFolderId === folder?.id) {
     handleSelectFolder('all');
   }
-  await handleFoldersChanged();
+  await refreshView();
 }
 
 async function handleFolderDeleted(folder) {
@@ -557,30 +687,23 @@ async function handleFolderDeleted(folder) {
   if (documentStore.activeFolderId === folder?.id) {
     handleSelectFolder('all');
   }
-  await handleFoldersChanged();
+  await refreshView();
 }
 
-async function handleFoldersChanged() {
-  await Promise.all([
-    documentStore.fetchDocuments(),
-    folderStore.fetchFolders(),
-  ]);
-  if (isArchived.value) await loadArchived();
+function handleFoldersChanged() {
+  return refreshView();
 }
 
-async function handleTagsChanged() {
-  await documentStore.fetchDocuments();
+function handleTagsChanged() {
+  return refreshView({ tags: true });
 }
 
 function handleMoveDoc(doc) {
   movingDoc.value = doc;
 }
 
-async function handleMoved() {
-  await Promise.all([
-    documentStore.fetchDocuments(),
-    folderStore.fetchFolders(),
-  ]);
+function handleMoved() {
+  return refreshView();
 }
 
 function handleEditDoc(doc) {
@@ -600,8 +723,8 @@ function handleRenameDoc(doc) {
   renamingDoc.value = doc;
 }
 
-async function handleRenamed() {
-  await documentStore.fetchDocuments();
+function handleRenamed() {
+  return refreshView();
 }
 
 function handleSendEmail(doc) {
@@ -636,6 +759,9 @@ function canDropFolderOn(destId) {
   if (!folder) return false;
   if (destId === folder.id) return false;
   if (destId != null && folderStore.descendantIdsOf(folder.id).has(destId)) return false;
+  // Soltar algo activo dentro de una carpeta archivada lo dejaría sin ubicación
+  // alcanzable; el backend además lo rechaza con 400.
+  if (destId != null && folderStore.folderById(destId)?.is_archived) return false;
   return true;
 }
 
@@ -654,7 +780,7 @@ async function reparentFolder(folder, destId) {
   if ((folder.parent ?? null) === (destId ?? null)) return;
   const result = await folderStore.updateFolder(folder.id, { parent: destId });
   if (result.success) {
-    await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
+    await refreshView();
   } else {
     notify.error({ title: 'No se pudo mover la carpeta' });
   }
@@ -677,7 +803,7 @@ async function handleDropOnFolder(folderId) {
   if (!draggingDoc.value) return;
   const doc = draggingDoc.value;
   draggingDoc.value = null;
-  if (doc.folder_id === folderId) return;
+  if (doc.folder === folderId) return;
   const result = await documentStore.updateDocument(doc.id, { folder_id: folderId });
   if (result.success) {
     const folderName = folderStore.folderById(folderId)?.name;
@@ -685,7 +811,7 @@ async function handleDropOnFolder(folderId) {
   } else {
     notify.error({ title: 'No se pudo mover el documento', detail: result.message });
   }
-  await Promise.all([documentStore.fetchDocuments(), folderStore.fetchFolders()]);
+  await refreshView();
 }
 
 async function handleDownloadPdf(doc, template = null) {
@@ -703,7 +829,7 @@ async function handleDuplicate(id) {
   }
   notify.success({ title: 'Documento duplicado' });
   clearTimeout(newlyCreatedTimer);
-  await documentStore.fetchDocuments();
+  await refreshView();
   docResetPage();
   newlyCreatedId.value = result.data.id;
   newlyCreatedTimer = setTimeout(() => { newlyCreatedId.value = null; }, 2500);
@@ -731,7 +857,7 @@ async function handleCopyMarkdown(id) {
 function handleDelete(doc) {
   if (!doc) return;
   // Ya archivado: no hay salida alternativa que ofrecer.
-  const alreadyArchived = isArchived.value || doc.is_archived;
+  const alreadyArchived = !!doc.is_archived;
   requestConfirm({
     title: 'Eliminar documento',
     message: `Se eliminará permanentemente "${doc.title}". Esta acción no se puede deshacer.`,
@@ -750,6 +876,9 @@ function handleDelete(doc) {
       } else {
         notify.error({ title: 'No se pudo eliminar el documento', detail: result.message });
       }
+      // También al eliminar: los contadores de carpeta salen del backend y sin
+      // esto la fila desaparece pero el número de al lado se queda viejo.
+      await refreshView();
     },
   });
 }

@@ -10,6 +10,8 @@ const mockFolderStore = {
   deleteFolder: jest.fn(),
   archiveFolder: jest.fn(),
   childrenOf: jest.fn(() => []),
+  archivedContentCount: (f) => (f?.archived_document_count || 0)
+    + (f?.archived_children_count || 0),
 };
 
 // Nuxt auto-import — must be set before the component is required

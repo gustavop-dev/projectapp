@@ -11,6 +11,10 @@ const mockDocumentStore = {
 
 const mockFolderStore = {
   folders: [],
+  // El selector de destino sólo puede ofrecer carpetas activas.
+  get activeFolders() {
+    return mockFolderStore.folders.filter((f) => !f.is_archived);
+  },
   childrenOf: (id) => mockFolderStore.folders.filter((f) => f.parent === id),
 };
 
@@ -26,7 +30,7 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-const baseDocument = { id: 10, title: 'Especificaciones técnicas', folder_id: null };
+const baseDocument = { id: 10, title: 'Especificaciones técnicas', folder: null };
 const baseFolder = { id: 3, name: 'Propuestas', parent: null, document_count: 5 };
 
 function mountModal(props = {}) {
@@ -98,7 +102,7 @@ describe('MoveFolderModal', () => {
   describe('moveToFolder', () => {
     it('calls updateDocument with null when Sin carpeta is clicked', async () => {
       const wrapper = mountModal({
-        document: { ...baseDocument, folder_id: 5 },
+        document: { ...baseDocument, folder: 5 },
       });
       const sinCarpetaBtn = wrapper.findAll('button').find(b => b.text().includes('Sin carpeta'));
       await sinCarpetaBtn.trigger('click');
@@ -112,7 +116,7 @@ describe('MoveFolderModal', () => {
 
     it('calls updateDocument with the folder id when a folder button is clicked', async () => {
       mockFolderStore.folders = [baseFolder];
-      const wrapper = mountModal({ document: { ...baseDocument, folder_id: null } });
+      const wrapper = mountModal({ document: { ...baseDocument, folder: null } });
       const folderBtn = wrapper.findAll('button').find(b => b.text().includes('Propuestas'));
       await folderBtn.trigger('click');
       await flushPromises();
@@ -125,7 +129,7 @@ describe('MoveFolderModal', () => {
 
     it('emits changed after a successful move', async () => {
       const wrapper = mountModal({
-        document: { ...baseDocument, folder_id: 5 },
+        document: { ...baseDocument, folder: 5 },
       });
       const sinCarpetaBtn = wrapper.findAll('button').find(b => b.text().includes('Sin carpeta'));
       await sinCarpetaBtn.trigger('click');
@@ -137,7 +141,7 @@ describe('MoveFolderModal', () => {
     it('shows an error message when the move fails', async () => {
       mockDocumentStore.updateDocument.mockResolvedValueOnce({ success: false });
       const wrapper = mountModal({
-        document: { ...baseDocument, folder_id: 5 },
+        document: { ...baseDocument, folder: 5 },
       });
       const sinCarpetaBtn = wrapper.findAll('button').find(b => b.text().includes('Sin carpeta'));
       await sinCarpetaBtn.trigger('click');
@@ -147,8 +151,8 @@ describe('MoveFolderModal', () => {
     });
 
     it('does not call updateDocument when the current folder is already selected', async () => {
-      // document.folder_id === null and clicking Sin carpeta (null) → should just close
-      const wrapper = mountModal({ document: { ...baseDocument, folder_id: null } });
+      // document.folder === null and clicking Sin carpeta (null) → should just close
+      const wrapper = mountModal({ document: { ...baseDocument, folder: null } });
       const sinCarpetaBtn = wrapper.findAll('button').find(b => b.text().includes('Sin carpeta'));
       await sinCarpetaBtn.trigger('click');
       await flushPromises();

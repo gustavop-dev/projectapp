@@ -5,8 +5,9 @@
  * Covers: FolderManagerModal create with the root-parent default, inline
  *         rename through the edit panel, delete confirmation for empty
  *         folders and the blocking panel for folders with documents, plus
- *         the sidebar delete affordance (DELETE-typed confirmation on empty
- *         folders, blocked icon on folders that still hold content).
+ *         the sidebar row actions (DELETE-typed confirmation on empty folders,
+ *         delete disabled on folders that still hold content — archived
+ *         included, matching the backend 409 — and archive as the way out).
  *         Drag-reorder is intentionally not asserted (flaky in CI).
  */
 import { test, expect } from '../helpers/test.js';
@@ -150,27 +151,44 @@ test.describe('Admin Document Folder Manage', () => {
     await expect.poll(() => deleteCalled).toBe(true);
   });
 
-  test('the sidebar delete icon opens the modal, which offers archiving for a filled folder', {
+  test('the sidebar delete icon goes inert for a filled folder, and archive takes over', {
     tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let deleteCalled = false;
+    let archiveCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath.startsWith('document-folders/') && method === 'DELETE') {
         deleteCalled = true;
         return { status: 204, contentType: 'application/json', body: '' };
       }
+      if (apiPath === 'document-folders/11/archive/' && method === 'PATCH') {
+        archiveCalled = true;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            folder: { ...busyFolder, is_archived: true },
+            archived_folders: 0,
+            archived_documents: 3,
+          }),
+        };
+      }
       return baseRoutes(apiPath, [busyFolder]);
     });
     await page.goto('/panel/documents');
 
-    // Ya no hay icono bloqueado: había que dar una salida, no explicar un muro.
-    await expect(page.getByTestId('folder-delete-blocked')).toHaveCount(0);
-    await page.getByTestId('folder-delete').click();
+    // El backend responde 409 con cualquier contenido, así que el ícono lo
+    // dice de entrada en vez de llevar a un modal sin salida.
+    await expect(page.getByTestId('folder-delete')).toBeDisabled();
+    // El tooltip sólo aparece al pasar por encima; es donde vive la explicación.
+    await page.getByTestId('folder-delete').hover();
+    await expect(page.getByText(/No se puede eliminar/)).toBeVisible();
 
-    await expect(page.getByText('Esta carpeta no se puede eliminar')).toBeVisible();
-    await expect(page.getByTestId('delete-folder-archive')).toBeEnabled();
-    // Sin botón destructivo muerto en esta rama.
-    await expect(page.getByTestId('delete-folder-confirm')).toHaveCount(0);
+    await page.getByTestId('folder-archive').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Carpeta archivada')).toBeVisible();
+    await expect.poll(() => archiveCalled).toBe(true);
     expect(deleteCalled).toBe(false);
   });
 

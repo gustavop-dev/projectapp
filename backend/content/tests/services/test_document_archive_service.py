@@ -53,8 +53,9 @@ class TestUnarchiveDocument:
         doc.refresh_from_db()
         assert doc.archived_via_folder_id == folder.pk
 
-        assert svc.unarchive_document(doc) is True
+        result = svc.unarchive_document(doc)
 
+        assert result['changed'] is True
         doc.refresh_from_db()
         assert doc.is_archived is False
         assert doc.archived_at is None
@@ -73,6 +74,133 @@ class TestUnarchiveDocument:
         doc.refresh_from_db()
         assert doc.is_archived is False
         assert doc.folder_id is None
+
+
+class TestUnarchiveDocumentRestoresItsChain:
+    """El bug que perdió un documento: restaurar sin mirar el contenedor.
+
+    Un documento activo dentro de una carpeta archivada no sale en ninguna de
+    las dos vistas del panel, así que restaurar tiene que reabrir la cadena.
+    """
+
+    def test_reopens_every_archived_ancestor(self, folder, make_doc):
+        child = DocumentFolder.objects.create(name='2024', parent=folder)
+        doc = make_doc('Anexo', folder=child)
+        svc.archive_folder(folder)
+
+        result = svc.unarchive_document(Document.objects.get(pk=doc.pk))
+
+        folder.refresh_from_db()
+        child.refresh_from_db()
+        doc.refresh_from_db()
+        assert doc.is_archived is False
+        assert doc.folder_id == child.pk, 'vuelve a su carpeta, no a la raíz'
+        assert child.is_archived is False
+        assert folder.is_archived is False
+        assert {f.pk for f in result['restored_chain']} == {folder.pk, child.pk}
+
+    def test_leaves_the_rest_of_those_folders_archived(self, folder, make_doc):
+        child = DocumentFolder.objects.create(name='2024', parent=folder)
+        rescued = make_doc('Anexo', folder=child)
+        sibling_doc = make_doc('Marco', folder=folder)
+        sibling_folder = DocumentFolder.objects.create(name='2023', parent=folder)
+        svc.archive_folder(folder)
+
+        svc.unarchive_document(Document.objects.get(pk=rescued.pk))
+
+        sibling_doc.refresh_from_db()
+        sibling_folder.refresh_from_db()
+        assert sibling_doc.is_archived is True
+        assert sibling_folder.is_archived is True
+
+    def test_does_not_touch_folders_when_the_chain_is_already_active(
+        self, folder, make_doc,
+    ):
+        doc = make_doc('Acta', folder=folder)
+        svc.archive_document(doc)
+
+        result = svc.unarchive_document(Document.objects.get(pk=doc.pk))
+
+        folder.refresh_from_db()
+        assert folder.is_archived is False
+        assert result['restored_chain'] == []
+        assert result['moved_to_root'] is False
+
+    def test_sends_the_document_to_root_when_the_chain_is_cyclic(
+        self, folder, make_doc,
+    ):
+        child = DocumentFolder.objects.create(name='2024', parent=folder)
+        doc = make_doc('Anexo', folder=child)
+        svc.archive_folder(folder)
+        # Sólo alcanzable con datos corruptos: el serializer bloquea el ciclo.
+        DocumentFolder.objects.filter(pk=folder.pk).update(parent=child)
+
+        result = svc.unarchive_document(Document.objects.get(pk=doc.pk))
+
+        doc.refresh_from_db()
+        child.refresh_from_db()
+        assert doc.is_archived is False
+        assert doc.folder_id is None, 'sin ubicación reconstruible, va a la raíz'
+        assert result['moved_to_root'] is True
+        assert child.is_archived is True, 'no se toca ninguna carpeta del ciclo'
+
+    def test_is_a_noop_when_the_document_is_not_archived(self, make_doc):
+        doc = make_doc('Acta')
+
+        result = svc.unarchive_document(doc)
+
+        assert result == {'changed': False, 'restored_chain': [], 'moved_to_root': False}
+
+    def test_rearchiving_after_a_chain_restore_drags_the_leftovers_again(
+        self, folder, make_doc,
+    ):
+        rescued = make_doc('Anexo', folder=folder)
+        leftover = make_doc('Marco', folder=folder)
+        svc.archive_folder(folder)
+        svc.unarchive_document(Document.objects.get(pk=rescued.pk))
+
+        svc.archive_folder(DocumentFolder.objects.get(pk=folder.pk))
+        svc.unarchive_folder(DocumentFolder.objects.get(pk=folder.pk))
+
+        rescued.refresh_from_db()
+        leftover.refresh_from_db()
+        assert rescued.is_archived is False
+        assert leftover.is_archived is False
+
+
+class TestEnsureActiveTarget:
+    def test_rejects_an_archived_folder(self, folder):
+        svc.archive_folder(folder)
+
+        with pytest.raises(svc.DocumentArchiveError):
+            svc.ensure_active_target(DocumentFolder.objects.get(pk=folder.pk))
+
+    def test_allows_an_archived_folder_when_the_item_is_archived_too(self, folder):
+        # Mover un documento YA archivado entre carpetas es un caso soportado:
+        # el desarchivado restaura por procedencia, no por ubicación.
+        svc.archive_folder(folder)
+        archived = DocumentFolder.objects.get(pk=folder.pk)
+
+        assert svc.ensure_active_target(archived, moving_archived=True) is None
+
+    def test_allows_no_folder_at_all(self):
+        assert svc.ensure_active_target(None) is None
+
+
+class TestPanelCounts:
+    def test_counts_each_document_once(self, folder, make_doc):
+        make_doc('Con carpeta', folder=folder)
+        make_doc('Suelto')
+        archived = make_doc('Archivado', folder=folder)
+        svc.archive_document(archived)
+
+        counts = svc.panel_counts()
+
+        assert counts['documents']['active'] == 2
+        assert counts['documents']['archived'] == 1
+        assert counts['documents']['unfiled_active'] == 1
+        assert counts['folders']['active'] == 1
+        assert counts['folders']['archived'] == 0
 
 
 class TestArchiveFolder:
@@ -166,7 +294,9 @@ class TestUnarchiveFolder:
         assert child.is_archived is False
         assert doc.is_archived is False
         assert nested.is_archived is False
-        assert counts == {'folders': 1, 'documents': 2}
+        assert counts['folders'] == 1
+        assert counts['documents'] == 2
+        assert counts['restored_chain'] == []
 
     def test_keeps_individually_archived_documents_archived(self, folder, make_doc):
         dragged = make_doc('Nuevo', folder=folder)
@@ -206,12 +336,32 @@ class TestUnarchiveFolder:
         assert doc.is_archived is False
         assert doc.folder_id == other.pk
 
-    def test_raises_when_the_parent_folder_is_still_archived(self, folder):
+    def test_reopens_the_parent_chain_instead_of_refusing(self, folder):
         child = DocumentFolder.objects.create(name='2024', parent=folder)
         svc.archive_folder(folder)
 
-        with pytest.raises(svc.DocumentArchiveError):
-            svc.unarchive_folder(DocumentFolder.objects.get(pk=child.pk))
+        counts = svc.unarchive_folder(DocumentFolder.objects.get(pk=child.pk))
+
+        child.refresh_from_db()
+        folder.refresh_from_db()
+        assert child.is_archived is False
+        assert folder.is_archived is False, 'la cadena contenedora tiene que volver'
+        assert [f.pk for f in counts['restored_chain']] == [folder.pk]
+
+    def test_reopening_the_chain_leaves_the_rest_of_the_parent_archived(
+        self, folder, make_doc,
+    ):
+        child = DocumentFolder.objects.create(name='2024', parent=folder)
+        sibling = DocumentFolder.objects.create(name='2023', parent=folder)
+        sibling_doc = make_doc('Marco', folder=folder)
+        svc.archive_folder(folder)
+
+        svc.unarchive_folder(DocumentFolder.objects.get(pk=child.pk))
+
+        sibling.refresh_from_db()
+        sibling_doc.refresh_from_db()
+        assert sibling.is_archived is True
+        assert sibling_doc.is_archived is True
 
     def test_allows_restoring_a_child_whose_parent_is_active(self, folder):
         child = DocumentFolder.objects.create(name='2024', parent=folder)

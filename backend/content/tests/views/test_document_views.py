@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from django.urls import reverse
 
-from content.models import Document, DocumentType
+from content.models import Document, DocumentFolder, DocumentType
 
 pytestmark = pytest.mark.django_db
 
@@ -350,6 +350,180 @@ class TestListDocumentsArchivedFilter:
         assert [d['title'] for d in response.json()] == ['Segundo', 'Primero']
 
 
+class TestListDocumentsScopeParam:
+    def test_scope_all_returns_both_states_marked(
+        self, admin_client, document, markdown_doc_type,
+    ):
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(reverse('list-documents'), {'scope': 'all'})
+
+        body = {d['title']: d['is_archived'] for d in response.json()}
+        assert body['Test Document'] is False
+        assert body['Viejo'] is True
+
+    def test_scope_archived_matches_the_legacy_param(
+        self, admin_client, document, markdown_doc_type,
+    ):
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(reverse('list-documents'), {'scope': 'archived'})
+
+        assert [d['title'] for d in response.json()] == ['Viejo']
+
+    def test_scope_wins_over_the_legacy_archived_param(
+        self, admin_client, document, markdown_doc_type,
+    ):
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(
+            reverse('list-documents'), {'archived': '1', 'scope': 'active'},
+        )
+
+        assert [d['title'] for d in response.json()] == ['Test Document']
+
+    def test_invalid_scope_returns_400(self, admin_client):
+        response = admin_client.get(reverse('list-documents'), {'scope': 'banana'})
+
+        assert response.status_code == 400
+        assert 'scope' in response.json()
+
+
+class TestListDocumentsSearch:
+    def test_matches_a_partial_title_case_insensitively(
+        self, admin_client, document, markdown_doc_type,
+    ):
+        Document.objects.create(title='Otra cosa', document_type=markdown_doc_type)
+
+        response = admin_client.get(reverse('list-documents'), {'search': 'test doc'})
+
+        assert [d['title'] for d in response.json()] == ['Test Document']
+
+    def test_matches_the_client_name(self, admin_client, document, markdown_doc_type):
+        Document.objects.create(
+            title='Acta', client_name='Ferretería Norte', document_type=markdown_doc_type,
+        )
+
+        response = admin_client.get(reverse('list-documents'), {'search': 'ferreter'})
+
+        assert [d['title'] for d in response.json()] == ['Acta']
+
+    def test_reaches_archived_documents_with_scope_all(
+        self, admin_client, markdown_doc_type,
+    ):
+        stale = Document.objects.create(title='Mapeo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(
+            reverse('list-documents'), {'search': 'mape', 'scope': 'all'},
+        )
+
+        body = response.json()
+        assert [d['title'] for d in body] == ['Mapeo']
+        assert body[0]['is_archived'] is True
+
+    def test_blank_search_is_a_noop(self, admin_client, document):
+        response = admin_client.get(reverse('list-documents'), {'search': '   '})
+
+        assert response.status_code == 200
+        assert [d['title'] for d in response.json()] == ['Test Document']
+
+
+class TestDocumentCountsView:
+    def test_counts_each_document_once(self, admin_client, markdown_doc_type):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        Document.objects.create(
+            title='Con carpeta', folder=folder, document_type=markdown_doc_type,
+        )
+        Document.objects.create(title='Suelto', document_type=markdown_doc_type)
+        stale = Document.objects.create(title='Viejo', document_type=markdown_doc_type)
+        admin_client.patch(reverse('archive-document', kwargs={'document_id': stale.id}))
+
+        response = admin_client.get(reverse('document-counts'))
+
+        body = response.json()
+        assert body['documents']['active'] == 2
+        assert body['documents']['archived'] == 1
+        assert body['documents']['unfiled_active'] == 1
+        assert body['folders']['active'] == 1
+
+    def test_ignores_list_filters(self, admin_client, markdown_doc_type):
+        Document.objects.create(title='Suelto', document_type=markdown_doc_type)
+
+        response = admin_client.get(
+            reverse('document-counts'), {'search': 'nada', 'folder': 'none'},
+        )
+
+        assert response.json()['documents']['active'] == 1
+
+
+class TestDocumentArchivedFolderGuards:
+    """Cerrar las puertas por las que se colaban documentos huérfanos."""
+
+    def test_cannot_move_an_active_document_into_an_archived_folder(
+        self, admin_client, document,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        response = admin_client.patch(
+            reverse('update-document', kwargs={'document_id': document.id}),
+            {'folder_id': folder.id},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'folder_id' in response.json()
+        document.refresh_from_db()
+        assert document.folder_id is None
+
+    def test_an_archived_document_may_still_change_folder(
+        self, admin_client, document,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': document.id})
+        )
+
+        response = admin_client.patch(
+            reverse('update-document', kwargs={'document_id': document.id}),
+            {'folder_id': folder.id},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        document.refresh_from_db()
+        assert document.folder_id == folder.id
+
+    def test_duplicating_from_an_archived_folder_lands_in_no_folder(
+        self, admin_client, markdown_doc_type,
+    ):
+        folder = DocumentFolder.objects.create(name='Contratos')
+        original = Document.objects.create(
+            title='Acta', folder=folder, document_type=markdown_doc_type,
+        )
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        response = admin_client.post(
+            reverse('duplicate-document', kwargs={'document_id': original.id})
+        )
+
+        assert response.status_code == 201
+        copy = Document.objects.get(pk=response.json()['id'])
+        assert copy.is_archived is False
+        assert copy.folder_id is None, 'no puede nacer dentro de una carpeta archivada'
+
+
 class TestArchiveDocumentView:
     def test_archives_and_returns_the_row(self, admin_client, document):
         url = reverse('archive-document', kwargs={'document_id': document.id})
@@ -382,6 +556,25 @@ class TestUnarchiveDocumentView:
         assert response.json()['is_archived'] is False
         document.refresh_from_db()
         assert document.archived_at is None
+
+    def test_reports_the_container_chain_it_reopened(self, admin_client, document):
+        folder = DocumentFolder.objects.create(name='Temporal')
+        Document.objects.filter(pk=document.id).update(folder=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        response = admin_client.patch(
+            reverse('unarchive-document', kwargs={'document_id': document.id})
+        )
+
+        assert response.json()['restored_chain'] == [
+            {'id': folder.id, 'name': 'Temporal'},
+        ]
+        document.refresh_from_db()
+        folder.refresh_from_db()
+        assert document.folder_id == folder.id
+        assert folder.is_archived is False, 'el documento tiene que quedar alcanzable'
 
     def test_returns_document_to_root_when_folder_was_deleted(
         self, admin_client, document,

@@ -6,13 +6,14 @@
     <button
       type="button"
       class="px-2 py-1 rounded-lg transition-colors"
-      :class="segmentClass(dragOverId === 'all')"
-      @click="$emit('select', 'all')"
-      @dragover="onDragOver($event, 'all')"
+      :class="segmentClass(dragOverId === 'root')"
+      data-testid="folder-breadcrumb-root"
+      @click="$emit('select', rootValue)"
+      @dragover="onDragOver($event, 'root')"
       @dragleave="dragOverId = null"
-      @drop.prevent="onDrop('all')"
+      @drop.prevent="onDrop('root')"
     >
-      Todos
+      {{ rootLabel }}
     </button>
 
     <template v-if="activeId === 'none'">
@@ -40,6 +41,14 @@
       >
         {{ crumb.name }}
       </span>
+      <!-- Navegando el archivo, el tramo archivado se marca: la ruta puede
+           mezclar carpetas activas y archivadas tras una restauración por cadena. -->
+      <span
+        v-if="crumb.is_archived"
+        class="inline-flex items-center rounded-full bg-surface-raised px-1.5 py-0.5 text-2xs font-medium text-text-muted"
+      >
+        Archivado
+      </span>
     </template>
   </nav>
 </template>
@@ -50,6 +59,10 @@ import { computed, ref } from 'vue';
 const props = defineProps({
   activeId: { type: [String, Number], default: 'all' },
   draggingFolderId: { type: [String, Number], default: null },
+  // La raíz cambia con el eje de estado: navegando el archivo el primer tramo
+  // es «Archivados», no «Todos».
+  rootLabel: { type: String, default: 'Todos' },
+  rootValue: { type: [String, Number], default: 'all' },
 });
 const emit = defineEmits(['select', 'nest']);
 
@@ -70,12 +83,15 @@ function segmentClass(isOver) {
 // misma ni uno de sus descendientes (evita ciclos).
 function isValidTarget(id) {
   if (props.draggingFolderId == null) return false;
-  const destId = id === 'all' ? null : id;
+  const destId = id === 'root' ? null : id;
   if (destId === props.draggingFolderId) return false;
   if (destId != null
     && folderStore.descendantIdsOf(props.draggingFolderId).has(destId)) {
     return false;
   }
+  // Soltar algo activo dentro de una carpeta archivada lo dejaría sin
+  // ubicación alcanzable, que es justo el estado que este cambio elimina.
+  if (destId != null && folderStore.folderById(destId)?.is_archived) return false;
   return true;
 }
 
@@ -89,7 +105,7 @@ function onDrop(id) {
   dragOverId.value = null;
   if (!isValidTarget(id)) return;
   emit('nest', {
-    destId: id === 'all' ? null : id,
+    destId: id === 'root' ? null : id,
     draggedFolderId: props.draggingFolderId,
   });
 }

@@ -341,7 +341,26 @@ class Command(BaseCommand):
                 f'1 pre-archivado que NO debe volver)'
             )
 
-        # 3. Escalonar las fechas para que el orden Recientes/Más antiguos sea
+        # 3. Un subárbol archivado de DOS niveles. Sin él, la vista de
+        #    archivados no tiene nada que navegar: la carpeta se vería como
+        #    contenedor pero no habría subcarpeta adentro a la que entrar, ni
+        #    forma de comprobar que restaurar algo de dentro reabre la cadena.
+        nested_parent = next(
+            (
+                f for f in DocumentFolder.objects.filter(is_archived=False, parent__isnull=True)
+                if DocumentFolder.objects.filter(parent=f, is_archived=False).exists()
+                and f.pk != getattr(target, 'pk', None)
+            ),
+            None,
+        )
+        if nested_parent:
+            counts = archive_svc.archive_folder(nested_parent)
+            summary.append(
+                f'subárbol "{nested_parent.name}" '
+                f'(+{counts["folders"]} subcarpetas, +{counts["documents"]} docs)'
+            )
+
+        # 4. Escalonar las fechas para que el orden Recientes/Más antiguos sea
         #    demostrable: el servicio siempre estampa `timezone.now()`.
         now = timezone.now()
         for offset_days, doc_ids in (

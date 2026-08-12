@@ -14,9 +14,14 @@ const mockFolderStore = {
   updateFolder: jest.fn(),
   deleteFolder: jest.fn(),
   reorderFolders: jest.fn(),
+  archivedContentCount: (f) => (f?.archived_document_count || 0)
+    + (f?.archived_children_count || 0),
   // Getters de jerarquía, espejo de los del store real document_folders.js.
+  get activeFolders() {
+    return mockFolderStore.folders.filter((f) => !f.is_archived);
+  },
   get rootFolders() {
-    return mockFolderStore.folders.filter((f) => f.parent == null);
+    return mockFolderStore.folders.filter((f) => f.parent == null && !f.is_archived);
   },
   childrenOf: (id) => mockFolderStore.folders.filter((f) => f.parent === id),
   descendantIdsOf: (id) => {

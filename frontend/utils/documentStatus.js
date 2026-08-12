@@ -48,10 +48,35 @@ export function archivedAgeLabel(dateStr) {
   return `hace ${years} ${years === 1 ? 'año' : 'años'}`;
 }
 
-export function folderRowSummary(folder) {
+/**
+ * Inventario legible de una carpeta, en el scope pedido.
+ *
+ * Con `'all'` suma los dos estados: es lo que necesita el tooltip del ícono de
+ * eliminar, porque el 409 del backend cuenta todo el contenido y un resumen
+ * que sólo mirara lo activo diría «Vacía» de una carpeta imborrable.
+ */
+export function folderRowSummary(folder, scope = 'active') {
+  // Los `active_*`/`archived_*` son absolutos; `document_count` es relativo al
+  // estado de la fila y sumarlo con el archivado duplicaría una carpeta
+  // archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
+  const activeDocs = folder.active_document_count
+    ?? (folder.is_archived ? 0 : folder.document_count || 0);
+  const activeSubs = folder.active_children_count
+    ?? (folder.is_archived ? 0 : folder.children_count || 0);
+  const archivedDocs = folder.archived_document_count || 0;
+  const archivedSubs = folder.archived_children_count || 0;
+
+  let docs = activeDocs;
+  let subs = activeSubs;
+  if (scope === 'archived') {
+    docs = archivedDocs;
+    subs = archivedSubs;
+  } else if (scope === 'all') {
+    docs = activeDocs + archivedDocs;
+    subs = activeSubs + archivedSubs;
+  }
+
   const parts = [];
-  const docs = folder.document_count || 0;
-  const subs = folder.children_count || 0;
   if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
   if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
   return parts.length ? parts.join(' · ') : 'Vacía';

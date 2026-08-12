@@ -3,13 +3,23 @@
  *
  * Covers: Todos/Sin-carpeta entries, folder list, select emits,
  * manage emits, active styling, reorderFolders on drag-end,
- * folder-drop emit on document drop, row alignment and the
- * delete affordance (enabled on empty folders, blocked otherwise).
+ * folder-drop emit on document drop, row alignment, the archived-content
+ * badge, and the two row actions: archivar (siempre disponible, es la salida
+ * de una carpeta con contenido) y eliminar (deshabilitado en cuanto la carpeta
+ * contiene algo, archivado incluido, igual que el 409 del backend).
  */
+
+const archivedContentCount = (f) => (f?.archived_document_count || 0)
+  + (f?.archived_children_count || 0);
 
 const mockFolderStore = {
   reorderFolders: jest.fn(),
   fetchFolders: jest.fn(),
+  // Espejo de los getters reales: el ícono de eliminar depende de ellos.
+  archivedContentCount,
+  totalContentCount: (f) => (f?.active_document_count ?? f?.document_count ?? 0)
+    + (f?.active_children_count ?? f?.children_count ?? 0)
+    + archivedContentCount(f),
 };
 
 // Nuxt auto-import — must be set before the component is required
@@ -27,6 +37,18 @@ const folderA = { id: 1, name: 'Propuestas', document_count: 5, children_count: 
 const folderB = { id: 2, name: 'Contratos', document_count: 2, children_count: 0 };
 const emptyFolder = { id: 3, name: 'Xpandia Project', document_count: 0, children_count: 0 };
 const parentFolder = { id: 4, name: 'Clientes', document_count: 0, children_count: 2 };
+// Estado mixto: activa por fuera, con archivados dentro — lo que deja una
+// restauración por cadena.
+const mixedFolder = {
+  id: 5,
+  name: 'temp',
+  document_count: 0,
+  children_count: 0,
+  active_document_count: 0,
+  active_children_count: 0,
+  archived_document_count: 2,
+  archived_children_count: 0,
+};
 
 // Stub that renders all items from v-model and can emit @end
 const DraggableStub = {
@@ -199,7 +221,7 @@ describe('FolderSidebar', () => {
     });
   });
 
-  // ── Delete affordance ─────────────────────────────────────────────────────
+  // ── Row actions ───────────────────────────────────────────────────────────
 
   describe('delete affordance', () => {
     it('emits delete with the folder when an empty folder’s delete icon is clicked', async () => {
@@ -210,23 +232,89 @@ describe('FolderSidebar', () => {
       expect(wrapper.emitted('delete')).toEqual([[emptyFolder]]);
     });
 
-    it('emits delete for a folder that still holds documents', async () => {
-      // Ya no se bloquea: el modal decide eliminar vs archivar con el
-      // inventario a la vista, así que la carpeta con contenido debe llegar ahí.
+    it('disables delete for a folder that still holds documents', async () => {
       const wrapper = mountSidebar({ folders: [folderA] });
 
-      expect(wrapper.find('[data-testid="folder-delete-blocked"]').exists()).toBe(false);
-      await wrapper.find('[data-testid="folder-delete"]').trigger('click');
-
-      expect(wrapper.emitted('delete')).toEqual([[folderA]]);
+      const button = wrapper.find('[data-testid="folder-delete"]');
+      expect(button.element.disabled).toBe(true);
+      await button.trigger('click');
+      expect(wrapper.emitted('delete')).toBeUndefined();
     });
 
-    it('emits delete for a folder that only holds subfolders', async () => {
+    it('disables delete for a folder that only holds subfolders', () => {
       const wrapper = mountSidebar({ folders: [parentFolder] });
 
-      await wrapper.find('[data-testid="folder-delete"]').trigger('click');
+      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
+    });
 
-      expect(wrapper.emitted('delete')).toEqual([[parentFolder]]);
+    it('disables delete when the only content left is archived', () => {
+      // El 409 del backend cuenta lo archivado, así que el ícono también.
+      const wrapper = mountSidebar({ folders: [mixedFolder] });
+
+      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
+    });
+
+    it('explains in the tooltip why a filled folder cannot be deleted', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      expect(wrapper.text()).toContain('No se puede eliminar');
+      expect(wrapper.text()).toContain('Archívala en su lugar');
+    });
+
+    it('names the action in the tooltip when the folder can be deleted', () => {
+      const wrapper = mountSidebar({ folders: [emptyFolder] });
+
+      expect(wrapper.text()).toContain('Eliminar carpeta');
+    });
+  });
+
+  describe('archive affordance', () => {
+    it('emits archive with the folder when the archive icon is clicked', async () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      await wrapper.find('[data-testid="folder-archive"]').trigger('click');
+
+      expect(wrapper.emitted('archive')).toEqual([[folderA]]);
+    });
+
+    it('stays enabled for a filled folder — it is the way out', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      expect(wrapper.find('[data-testid="folder-archive"]').element.disabled).toBe(false);
+      expect(wrapper.text()).toContain('Archivar carpeta');
+    });
+  });
+
+  describe('archived content indicator', () => {
+    it('shows the badge on a folder that still holds archived items', () => {
+      const wrapper = mountSidebar({ folders: [mixedFolder] });
+
+      expect(wrapper.find('[data-testid="folder-archived-badge"]').text()).toContain('2');
+    });
+
+    it('hides the badge when nothing is archived inside', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      expect(wrapper.find('[data-testid="folder-archived-badge"]').exists()).toBe(false);
+    });
+
+    it('emits view-archived so the row can be opened in its archived scope', async () => {
+      const wrapper = mountSidebar({ folders: [mixedFolder] });
+
+      await wrapper.find('[data-testid="folder-archived-badge"]').trigger('click');
+
+      expect(wrapper.emitted('view-archived')).toEqual([[mixedFolder]]);
+    });
+  });
+
+  describe('Archivados entry', () => {
+    it('highlights only at the top of the archive, not inside a subfolder', () => {
+      const atRoot = mountSidebar({ archiveScope: 'archived', activeId: 'root' });
+      const inside = mountSidebar({ archiveScope: 'archived', activeId: 9 });
+
+      const entryOf = (w) => w.find('[data-testid="folder-archived-entry"]').classes().join(' ');
+      expect(entryOf(atRoot)).toContain('text-text-brand');
+      expect(entryOf(inside)).not.toContain('text-text-brand');
     });
   });
 

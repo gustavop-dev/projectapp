@@ -37,7 +37,7 @@ describe('useDocumentFolderStore', () => {
     const result = await store.fetchFolders()
     expect(result.success).toBe(true)
     expect(store.folders).toEqual([{ id: 1, name: 'X', order: 0 }])
-    expect(get_request).toHaveBeenCalledWith('document-folders/')
+    expect(get_request).toHaveBeenCalledWith('document-folders/?scope=all')
   })
 
   it('fetchFolders sets error on failure', async () => {
@@ -155,38 +155,39 @@ describe('useDocumentFolderStore', () => {
     })
   })
 
-  describe('archived scope', () => {
-    it('fetchFolders defaults to the active scope and fills folders', async () => {
-      get_request.mockResolvedValueOnce({ data: [{ id: 1, name: 'Activa' }] })
+  describe('archive scope', () => {
+    it('fetchFolders brings both states in one list', async () => {
+      get_request.mockResolvedValueOnce({
+        data: [{ id: 1, name: 'Activa' }, { id: 9, name: 'Vieja', is_archived: true }],
+      })
 
       await store.fetchFolders()
 
-      expect(get_request).toHaveBeenCalledWith('document-folders/')
-      expect(store.folders).toEqual([{ id: 1, name: 'Activa' }])
-      expect(store.archivedFolders).toEqual([])
-    })
-
-    it('fetchFolders({ archived: true }) hits the archived scope without touching folders', async () => {
-      store.folders = [{ id: 1, name: 'Activa' }]
-      get_request.mockResolvedValueOnce({ data: [{ id: 9, name: 'Vieja' }] })
-
-      await store.fetchFolders({ archived: true })
-
-      expect(get_request).toHaveBeenCalledWith('document-folders/?archived=1')
-      expect(store.archivedFolders).toEqual([{ id: 9, name: 'Vieja' }])
-      expect(store.folders).toEqual([{ id: 1, name: 'Activa' }])
+      expect(get_request).toHaveBeenCalledWith('document-folders/?scope=all')
+      expect(store.activeFolders.map((f) => f.id)).toEqual([1])
+      expect(store.archivedFolders.map((f) => f.id)).toEqual([9])
     })
 
     it('fetchFolders passes the oldest-first order in the archived scope', async () => {
       get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchFolders({ archived: true, order: 'oldest' })
+      await store.fetchFolders({ scope: 'archived', order: 'oldest' })
 
-      expect(get_request).toHaveBeenCalledWith('document-folders/?archived=1&order=oldest')
+      expect(get_request).toHaveBeenCalledWith('document-folders/?scope=archived&order=oldest')
     })
 
-    it('archiveFolder patches the archive route, drops the row and returns the cascade counts', async () => {
-      store.folders = [{ id: 4, name: 'Contratos' }, { id: 5, name: 'Otra' }]
+    it('searchFolders reaches both states without touching the tree', async () => {
+      store.folders = [{ id: 1, name: 'Activa' }]
+      get_request.mockResolvedValueOnce({ data: [{ id: 9, name: 'temp', is_archived: true }] })
+
+      const result = await store.searchFolders('temp')
+
+      expect(get_request).toHaveBeenCalledWith('document-folders/?scope=all&search=temp')
+      expect(result.data).toEqual([{ id: 9, name: 'temp', is_archived: true }])
+      expect(store.folders).toEqual([{ id: 1, name: 'Activa' }])
+    })
+
+    it('archiveFolder patches the archive route and returns the cascade counts', async () => {
       patch_request.mockResolvedValueOnce({
         data: { folder: { id: 4 }, archived_folders: 2, archived_documents: 7 },
       })
@@ -197,42 +198,81 @@ describe('useDocumentFolderStore', () => {
       expect(result.success).toBe(true)
       expect(result.archivedFolders).toBe(2)
       expect(result.archivedDocuments).toBe(7)
-      expect(store.folders.map((f) => f.id)).toEqual([5])
     })
 
-    it('unarchiveFolder patches the unarchive route and drops it from the archived slice', async () => {
-      store.archivedFolders = [{ id: 4, name: 'Contratos' }]
+    it('unarchiveFolder reports the ancestor chain it reopened', async () => {
       patch_request.mockResolvedValueOnce({
-        data: { folder: { id: 4 }, restored_folders: 1, restored_documents: 3 },
+        data: {
+          folder: { id: 4 },
+          restored_folders: 1,
+          restored_documents: 3,
+          restored_chain: [{ id: 2, name: 'Clientes' }],
+        },
       })
 
       const result = await store.unarchiveFolder(4)
 
       expect(patch_request).toHaveBeenCalledWith('document-folders/4/unarchive/', {})
       expect(result.restoredDocuments).toBe(3)
-      expect(store.archivedFolders).toEqual([])
+      expect(result.restoredChain).toEqual([{ id: 2, name: 'Clientes' }])
     })
 
-    it('unarchiveFolder surfaces the raw 409 detail when the parent is still archived', async () => {
-      store.archivedFolders = [{ id: 4, name: 'Sub' }]
-      patch_request.mockRejectedValueOnce({
-        response: { status: 409, data: { detail: 'Su carpeta contenedora sigue archivada.' } },
-      })
-
-      const result = await store.unarchiveFolder(4)
-
-      expect(result.success).toBe(false)
-      expect(result.errors.detail).toBe('Su carpeta contenedora sigue archivada.')
-      expect(store.archivedFolders).toHaveLength(1)
-    })
-
-    it('deleteFolder also removes the row from the archived slice', async () => {
-      store.archivedFolders = [{ id: 4, name: 'Contratos' }]
+    it('deleteFolder removes the row whatever its state', async () => {
+      store.folders = [{ id: 4, name: 'Contratos', is_archived: true }]
       delete_request.mockResolvedValueOnce({})
 
       await store.deleteFolder(4)
 
-      expect(store.archivedFolders).toEqual([])
+      expect(store.folders).toEqual([])
+    })
+  })
+
+  describe('hierarchy across states', () => {
+    beforeEach(() => {
+      store.folders = [
+        { id: 1, name: 'Clientes', parent: null },
+        { id: 2, name: '2026', parent: 1 },
+        { id: 3, name: 'temp', parent: null, is_archived: true },
+        { id: 4, name: 'Actas', parent: 3, is_archived: true },
+      ]
+    })
+
+    it('rootFolders only offers the active tree', () => {
+      expect(store.rootFolders.map((f) => f.id)).toEqual([1])
+    })
+
+    it('scopedRootFolders tops the archive at the folders whose parent is out of scope', () => {
+      expect(store.scopedRootFolders('archived').map((f) => f.id)).toEqual([3])
+    })
+
+    it('surfaces an archived folder whose parent is active, so it stays reachable', () => {
+      store.folders = [
+        { id: 1, name: 'Clientes', parent: null },
+        { id: 2, name: 'Vieja', parent: 1, is_archived: true },
+      ]
+
+      expect(store.scopedRootFolders('archived').map((f) => f.id)).toEqual([2])
+    })
+
+    it('childrenOf filters by scope, defaulting to active', () => {
+      expect(store.childrenOf(3).map((f) => f.id)).toEqual([])
+      expect(store.childrenOf(3, 'archived').map((f) => f.id)).toEqual([4])
+    })
+
+    it('ancestorsOf resolves a chain that runs through archived folders', () => {
+      expect(store.ancestorsOf(4).map((f) => f.name)).toEqual(['temp', 'Actas'])
+    })
+
+    it('totalContentCount counts archived content, matching the delete 409', () => {
+      const folder = {
+        active_document_count: 0,
+        active_children_count: 0,
+        archived_document_count: 2,
+        archived_children_count: 1,
+      }
+
+      expect(store.archivedContentCount(folder)).toBe(3)
+      expect(store.totalContentCount(folder)).toBe(3)
     })
   })
 })
