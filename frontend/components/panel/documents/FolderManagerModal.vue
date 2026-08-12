@@ -66,10 +66,10 @@
             </label>
           </div>
 
-          <div v-if="folderStore.folders.length" class="px-6 pb-2 flex-shrink-0">
+          <div v-if="folderStore.activeFolders.length" class="px-6 pb-2 flex-shrink-0">
             <div class="flex items-center gap-2">
               <span class="text-[11px] font-semibold text-text-subtle uppercase tracking-wider">
-                {{ folderStore.folders.length }} carpeta{{ folderStore.folders.length !== 1 ? 's' : '' }}
+                {{ folderStore.activeFolders.length }} carpeta{{ folderStore.activeFolders.length !== 1 ? 's' : '' }}
               </span>
               <div class="flex-1 h-px bg-surface-raised"></div>
               <span class="text-2xs text-text-subtle flex items-center gap-1">
@@ -83,7 +83,7 @@
 
           <!-- Folder tree -->
           <div class="flex-1 overflow-y-auto px-6 pb-2">
-            <div v-if="!folderStore.folders.length" class="flex flex-col items-center justify-center py-12 text-center">
+            <div v-if="!folderStore.activeFolders.length" class="flex flex-col items-center justify-center py-12 text-center">
               <div class="w-14 h-14 rounded-2xl bg-surface-raised flex items-center justify-center mb-3">
                 <svg class="w-7 h-7 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />

@@ -1,28 +1,44 @@
 import { defineStore } from 'pinia';
+import { isRootInScope, matchesScope } from '~/utils/archiveScope';
 import {
   get_request, create_request, patch_request, delete_request,
 } from './services/request_http';
 
 export const useDocumentFolderStore = defineStore('documentFolders', {
   state: () => ({
+    // Una sola lista con los dos estados. La jerarquía archivada necesita saber
+    // si el padre de una carpeta está activo o archivado, y con listas
+    // separadas «el padre no vino en esta página» y «el padre está activo» son
+    // indistinguibles. Los consumidores que sólo aceptan destinos activos usan
+    // el getter `activeFolders`.
     folders: [],
-    // Slice aparte y no una lista mezclada: los getters de jerarquía
-    // (childrenOf/ancestorsOf/descendantIdsOf) alimentan los selectores de
-    // carpeta y los chequeos de ciclo del drag & drop, y meter archivadas
-    // ahí los corrompería.
-    archivedFolders: [],
     isLoading: false,
-    isArchivedLoading: false,
     isUpdating: false,
     error: null,
   }),
 
   getters: {
-    rootFolders: (state) => state.folders.filter((f) => f.parent == null),
+    activeFolders: (state) => state.folders.filter((f) => !f.is_archived),
+
+    archivedFolders: (state) => state.folders.filter((f) => f.is_archived),
+
+    rootFolders() {
+      return this.scopedRootFolders('active');
+    },
+
+    // Carpetas en la cima del scope: sin padre, o con un padre que no se lista
+    // en este scope y por lo tanto no puede contenerlas visualmente.
+    scopedRootFolders: (state) => (scope) => state.folders.filter(
+      (f) => matchesScope(f, scope)
+        && isRootInScope(f.parent, (id) => state.folders.find((c) => c.id === id) || null, scope),
+    ),
 
     folderById: (state) => (id) => state.folders.find((f) => f.id === id) || null,
 
-    childrenOf: (state) => (id) => state.folders.filter((f) => f.parent === id),
+    // El default 'active' preserva a todos los callers previos al eje de estado.
+    childrenOf: (state) => (id, scope = 'active') => state.folders.filter(
+      (f) => f.parent === id && matchesScope(f, scope),
+    ),
 
     // Cadena raíz → carpeta actual; set de visitados evita bucles con datos cíclicos.
     ancestorsOf: (state) => (id) => {
@@ -53,31 +69,49 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       }
       return result;
     },
+
+    /** Elementos archivados que la carpeta todavía guarda (estado mixto). */
+    archivedContentCount: () => (folder) => (folder?.archived_document_count || 0)
+      + (folder?.archived_children_count || 0),
+
+    /**
+     * Todo lo que contiene, archivado incluido.
+     *
+     * Es el criterio del 409 de borrado del backend, así que es el que decide
+     * si el ícono de eliminar puede ofrecerse: contarlo sólo con lo activo
+     * dejaba habilitado un botón que después fallaba. Usa los contadores
+     * absolutos: `document_count` es relativo al estado de la fila y sumarlo
+     * con el archivado duplicaría una carpeta archivada.
+     */
+    totalContentCount() {
+      return (folder) => {
+        const activeDocs = folder?.active_document_count
+          ?? (folder?.is_archived ? 0 : folder?.document_count || 0);
+        const activeSubs = folder?.active_children_count
+          ?? (folder?.is_archived ? 0 : folder?.children_count || 0);
+        return activeDocs + activeSubs + this.archivedContentCount(folder);
+      };
+    },
   },
 
   actions: {
     /**
-     * Carpetas activas por defecto. `{ archived: true }` trae sólo las
-     * archivadas y las deja en su propio slice.
+     * Trae las carpetas de los dos estados; `{ scope }` acota si hace falta.
      *
-     * El default active-only es deliberado: los selectores de carpeta destino
-     * de create.vue y [id]/edit.vue llaman a esta acción, y una carpeta
-     * archivada nunca debe ofrecerse como destino.
+     * El default `all` es deliberado: una lista que sólo a veces contiene
+     * archivadas volvería dependiente del estado cada cálculo de raíz y cada
+     * insignia. Quien necesite sólo activas usa el getter `activeFolders`.
      */
-    async fetchFolders({ archived = false, order } = {}) {
-      const loadingKey = archived ? 'isArchivedLoading' : 'isLoading';
-      this[loadingKey] = true;
+    async fetchFolders({ scope = 'all', order, search } = {}) {
+      this.isLoading = true;
       this.error = null;
       try {
         const params = new URLSearchParams();
-        if (archived) params.set('archived', '1');
-        if (archived && order === 'oldest') params.set('order', 'oldest');
-        const query = params.toString();
-        const response = await get_request(
-          query ? `document-folders/?${query}` : 'document-folders/',
-        );
-        if (archived) this.archivedFolders = response.data;
-        else this.folders = response.data;
+        params.set('scope', scope);
+        if (search) params.set('search', search);
+        if (scope === 'archived' && order === 'oldest') params.set('order', 'oldest');
+        const response = await get_request(`document-folders/?${params.toString()}`);
+        this.folders = response.data;
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'fetch_folders_failed';
@@ -85,7 +119,26 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
         return { success: false, errors: error.response?.data };
       /* c8 ignore next 3 */
       } finally {
-        this[loadingKey] = false;
+        this.isLoading = false;
+      }
+    },
+
+    /**
+     * Carpetas que coinciden con el texto, en cualquier estado.
+     *
+     * Vive aparte de `fetchFolders` para no pisar el árbol de navegación con
+     * un subconjunto: la búsqueda es una vista, no un filtro del árbol.
+     */
+    async searchFolders(term) {
+      this.error = null;
+      try {
+        const params = new URLSearchParams({ scope: 'all', search: term });
+        const response = await get_request(`document-folders/?${params.toString()}`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'search_folders_failed';
+        console.error('Error searching folders:', error);
+        return { success: false, errors: error.response?.data, data: [] };
       }
     },
 
@@ -95,7 +148,6 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       this.error = null;
       try {
         const response = await patch_request(`document-folders/${id}/archive/`, {});
-        this.folders = this.folders.filter((f) => f.id !== id);
         return {
           success: true,
           data: response.data,
@@ -112,18 +164,23 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       }
     },
 
-    /** Restaura la carpeta y exactamente lo que su archivado arrastró. */
+    /**
+     * Restaura la carpeta, su cadena de contenedores y lo que ella arrastró.
+     *
+     * `restoredChain` son los ancestros que hubo que reabrir; `restoredFolders`
+     * y `restoredDocuments` siguen contando sólo la cascada propia.
+     */
     async unarchiveFolder(id) {
       this.isUpdating = true;
       this.error = null;
       try {
         const response = await patch_request(`document-folders/${id}/unarchive/`, {});
-        this.archivedFolders = this.archivedFolders.filter((f) => f.id !== id);
         return {
           success: true,
           data: response.data,
           restoredFolders: response.data?.restored_folders || 0,
           restoredDocuments: response.data?.restored_documents || 0,
+          restoredChain: response.data?.restored_chain || [],
         };
       } catch (error) {
         this.error = 'unarchive_folder_failed';
@@ -177,9 +234,6 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       try {
         await delete_request(`document-folders/${id}/delete/`);
         this.folders = this.folders.filter((f) => f.id !== id);
-        // También del slice archivado: lo archivado se puede borrar desde su
-        // propia vista, y la fila debe desaparecer de ahí.
-        this.archivedFolders = this.archivedFolders.filter((f) => f.id !== id);
         return { success: true };
       } catch (error) {
         this.error = 'delete_folder_failed';
@@ -196,8 +250,14 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       this.error = null;
       try {
         await create_request('document-folders/reorder/', { ids: orderedIds });
-        const reordered = orderedIds.map((id) => this.folders.find((f) => f.id === id)).filter(Boolean);
-        if (reordered.length === this.folders.length) this.folders = reordered;
+        // Se replica lo que hace el backend (`order` = índice) y se reordena
+        // con el mismo criterio del modelo. Reemplazar la lista entera no
+        // servía: `orderedIds` es sólo el nivel que se arrastró, no el árbol.
+        orderedIds.forEach((id, index) => {
+          const folder = this.folders.find((f) => f.id === id);
+          if (folder) folder.order = index;
+        });
+        this.folders.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name));
         return { success: true };
       } catch (error) {
         console.error('Error reordering folders:', error);

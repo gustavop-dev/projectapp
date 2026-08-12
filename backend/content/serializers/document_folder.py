@@ -1,19 +1,32 @@
 from rest_framework import serializers
 
 from content.models import DocumentFolder
+from content.services.document_archive_service import (
+    DocumentArchiveError, ensure_active_target,
+)
 
 
 class DocumentFolderSerializer(serializers.ModelSerializer):
     """Serializer para carpetas de documentos (jerárquicas).
 
-    `document_count` y `children_count` se leen de annotations del queryset
-    cuando el caller las provee; de lo contrario caen a un COUNT por carpeta
-    para que las respuestas single-object (create/update) sigan incluyendo los
-    campos.
+    Los contadores se leen de annotations del queryset cuando el caller las
+    provee; de lo contrario caen a un COUNT por carpeta para que las respuestas
+    single-object (create/update) sigan incluyendo los campos.
+
+    `document_count`/`children_count` son relativos al estado de la carpeta
+    (una activa cuenta contenido activo) y se conservan por compatibilidad. Los
+    cuatro `active_*`/`archived_*` son absolutos: sumarlos siempre da el
+    contenido real, mientras que sumar los relativos duplicaría el conteo de una
+    carpeta archivada. Son además los que permiten a una carpeta activa avisar
+    que todavía guarda elementos archivados.
     """
 
     document_count = serializers.SerializerMethodField()
     children_count = serializers.SerializerMethodField()
+    active_document_count = serializers.SerializerMethodField()
+    active_children_count = serializers.SerializerMethodField()
+    archived_document_count = serializers.SerializerMethodField()
+    archived_children_count = serializers.SerializerMethodField()
     archived_cause = serializers.SerializerMethodField()
     parent = serializers.PrimaryKeyRelatedField(
         queryset=DocumentFolder.objects.all(),
@@ -25,7 +38,10 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         model = DocumentFolder
         fields = (
             'id', 'name', 'slug', 'parent', 'order',
-            'document_count', 'children_count', 'created_at', 'updated_at',
+            'document_count', 'children_count',
+            'active_document_count', 'active_children_count',
+            'archived_document_count', 'archived_children_count',
+            'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         )
         # `is_archived`/`archived_at` son read-only a propósito: update_document_folder
@@ -36,7 +52,8 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         )
 
     def get_document_count(self, obj):
-        value = getattr(obj, 'document_count', None)
+        attr = 'archived_document_count' if obj.is_archived else 'active_document_count'
+        value = getattr(obj, attr, None)
         if isinstance(value, int):
             return value
         # Sin annotation (respuestas single-object) el conteo sigue el mismo
@@ -44,10 +61,35 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         return obj.documents.filter(is_archived=obj.is_archived).count()
 
     def get_children_count(self, obj):
-        value = getattr(obj, 'children_count', None)
+        attr = 'archived_children_count' if obj.is_archived else 'active_children_count'
+        value = getattr(obj, attr, None)
         if isinstance(value, int):
             return value
         return obj.children.filter(is_archived=obj.is_archived).count()
+
+    def get_active_document_count(self, obj):
+        value = getattr(obj, 'active_document_count', None)
+        if isinstance(value, int):
+            return value
+        return obj.documents.filter(is_archived=False).count()
+
+    def get_active_children_count(self, obj):
+        value = getattr(obj, 'active_children_count', None)
+        if isinstance(value, int):
+            return value
+        return obj.children.filter(is_archived=False).count()
+
+    def get_archived_document_count(self, obj):
+        value = getattr(obj, 'archived_document_count', None)
+        if isinstance(value, int):
+            return value
+        return obj.documents.filter(is_archived=True).count()
+
+    def get_archived_children_count(self, obj):
+        value = getattr(obj, 'archived_children_count', None)
+        if isinstance(value, int):
+            return value
+        return obj.children.filter(is_archived=True).count()
 
     def get_archived_cause(self, obj):
         """'folder' si lo arrastró una carpeta, 'manual' si fue por sí misma."""
@@ -69,4 +111,10 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     'No se puede mover una carpeta dentro de una de sus subcarpetas.'
                 )
+        try:
+            ensure_active_target(
+                value, moving_archived=bool(instance and instance.is_archived),
+            )
+        except DocumentArchiveError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         return value

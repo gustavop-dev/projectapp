@@ -1,5 +1,6 @@
 <script setup>
 import DocumentCard from '~/components/panel/documents/DocumentCard.vue'
+import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 import { folderRowSummary } from '~/utils/documentStatus'
 
 defineProps({
@@ -9,15 +10,20 @@ defineProps({
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
-  archived: { type: Boolean, default: false },
+  // Igual que en la tabla: el scope no decide nada por fila, sólo acompaña.
+  scope: { type: String, default: 'active' },
 })
 
 const emit = defineEmits([
-  'open', 'action', 'select-folder', 'unarchive-folder',
+  'open', 'action', 'select-folder', 'unarchive-folder', 'view-archived-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder',
 ])
+
+function archivedContentCount(folder) {
+  return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
+}
 </script>
 
 <template>
@@ -41,10 +47,10 @@ const emit = defineEmits([
       }"
       role="button"
       tabindex="0"
-      :draggable="!archived"
+      :draggable="!sub.is_archived"
       :data-testid="`folder-card-${sub.id}`"
-      @click="!archived && emit('select-folder', sub.id)"
-      @keydown.enter.prevent="!archived && emit('select-folder', sub.id)"
+      @click="emit('select-folder', sub.id)"
+      @keydown.enter.prevent="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
       @dragend="emit('folder-dragend')"
       @dragover="emit('folder-dragover', $event, sub.id)"
@@ -55,9 +61,17 @@ const emit = defineEmits([
         <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
       </svg>
       <span class="text-sm font-medium text-text-default truncate max-w-full">{{ sub.name }}</span>
-      <span class="text-xs text-text-subtle">{{ folderRowSummary(sub) }}</span>
+      <span class="text-xs text-text-subtle">
+        {{ folderRowSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+      </span>
+      <FolderArchivedBadge
+        v-if="!sub.is_archived && archivedContentCount(sub)"
+        :count="archivedContentCount(sub)"
+        :folder-name="sub.name"
+        @view="emit('view-archived-folder', sub)"
+      />
       <BaseButton
-        v-if="archived"
+        v-if="sub.is_archived"
         variant="secondary"
         size="sm"
         data-testid="folder-unarchive"
@@ -74,7 +88,7 @@ const emit = defineEmits([
       :edit-to="editToFor(doc)"
       :dragging="draggingDocId === doc.id"
       :newly-created="newlyCreatedId === doc.id"
-      :archived="archived"
+      :archived="!!doc.is_archived"
       @open="emit('open', doc)"
       @action="emit('action', doc)"
       @dragstart="emit('doc-dragstart', $event, doc)"

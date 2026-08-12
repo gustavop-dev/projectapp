@@ -85,28 +85,28 @@ describe('useDocumentStore', () => {
     it('calls documents/ with no query params when no filters active', async () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments()
-      expect(get_request).toHaveBeenCalledWith('documents/')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active')
     })
 
     it('sends folder query param when activeFolderId is a numeric id', async () => {
       store.activeFolderId = 7
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments()
-      expect(get_request).toHaveBeenCalledWith('documents/?folder=7')
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=7&scope=active')
     })
 
     it('sends folder=none when activeFolderId is "none"', async () => {
       store.activeFolderId = 'none'
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments()
-      expect(get_request).toHaveBeenCalledWith('documents/?folder=none')
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=none&scope=active')
     })
 
     it('sends tags query param when activeTagIds has values', async () => {
       store.activeTagIds = [3, 5]
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments()
-      expect(get_request).toHaveBeenCalledWith('documents/?tags=3%2C5')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=3%2C5')
     })
 
     it('accepts override params without mutating store filters', async () => {
@@ -114,7 +114,7 @@ describe('useDocumentStore', () => {
       store.activeTagIds = []
       get_request.mockResolvedValueOnce({ data: [] })
       await store.fetchDocuments({ folder: 2, tags: [9] })
-      expect(get_request).toHaveBeenCalledWith('documents/?folder=2&tags=9')
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=2&scope=active&tags=9')
       expect(store.activeFolderId).toBe('all')
       expect(store.activeTagIds).toEqual([])
     })
@@ -125,7 +125,7 @@ describe('useDocumentStore', () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.setFilters({ folder: 4 })
       expect(store.activeFolderId).toBe(4)
-      expect(get_request).toHaveBeenCalledWith('documents/?folder=4')
+      expect(get_request).toHaveBeenCalledWith('documents/?folder=4&scope=active')
     })
 
     it('updates tags array by cloning input', async () => {
@@ -141,7 +141,7 @@ describe('useDocumentStore', () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.setFilters({ tags: [] })
       expect(store.activeTagIds).toEqual([])
-      expect(get_request).toHaveBeenCalledWith('documents/')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active')
     })
   })
 
@@ -150,7 +150,7 @@ describe('useDocumentStore', () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.toggleTagFilter(8)
       expect(store.activeTagIds).toEqual([8])
-      expect(get_request).toHaveBeenCalledWith('documents/?tags=8')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=8')
     })
 
     it('removes a tag id when already present', async () => {
@@ -158,7 +158,7 @@ describe('useDocumentStore', () => {
       get_request.mockResolvedValueOnce({ data: [] })
       await store.toggleTagFilter(2)
       expect(store.activeTagIds).toEqual([1, 3])
-      expect(get_request).toHaveBeenCalledWith('documents/?tags=1%2C3')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=1%2C3')
     })
   })
 
@@ -310,54 +310,78 @@ describe('useDocumentStore', () => {
     })
   })
 
-  describe('archived scope', () => {
-    it('fetchArchivedDocuments requests the archived scope', async () => {
+  describe('archive scope', () => {
+    it('requests the archived scope when asked for it', async () => {
       get_request.mockResolvedValueOnce({ data: [{ id: 9, title: 'Viejo' }] })
 
-      const result = await store.fetchArchivedDocuments()
+      const result = await store.fetchDocuments({ scope: 'archived' })
 
-      expect(get_request).toHaveBeenCalledWith('documents/?archived=1')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived')
       expect(result.success).toBe(true)
-      expect(store.archivedDocuments).toEqual([{ id: 9, title: 'Viejo' }])
+      expect(store.documents).toEqual([{ id: 9, title: 'Viejo' }])
     })
 
-    it('asks for the oldest first when requested', async () => {
+    it('asks for the oldest first when the archived order says so', async () => {
+      store.archivedOrder = 'oldest'
       get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchArchivedDocuments({ order: 'oldest' })
+      await store.fetchDocuments({ scope: 'archived' })
 
-      expect(get_request).toHaveBeenCalledWith('documents/?archived=1&order=oldest')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&order=oldest')
+    })
+
+    it('ignores the archived order outside the archived scope', async () => {
+      store.archivedOrder = 'oldest'
+      get_request.mockResolvedValueOnce({ data: [] })
+
+      await store.fetchDocuments({ scope: 'all' })
+
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=all')
     })
 
     it('composes the archived scope with the active tag filter', async () => {
       store.activeTagIds = [2, 5]
       get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchArchivedDocuments()
+      await store.fetchDocuments({ scope: 'archived' })
 
-      expect(get_request).toHaveBeenCalledWith('documents/?archived=1&tags=2%2C5')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&tags=2%2C5')
     })
 
-    it('fills archivedDocuments without touching the active list', async () => {
-      store.documents = [{ id: 1, title: 'Activo' }]
-      get_request.mockResolvedValueOnce({ data: [{ id: 9, title: 'Viejo' }] })
+    it('never inherits the scope from the store', async () => {
+      // create.vue, edit.vue y las pestañas de diagnóstico llaman sin scope y
+      // jamás deben heredar el archivado que el gestor haya dejado puesto.
+      store.archiveScope = 'archived'
+      get_request.mockResolvedValueOnce({ data: [] })
 
-      await store.fetchArchivedDocuments()
+      await store.fetchDocuments()
 
-      expect(store.documents).toEqual([{ id: 1, title: 'Activo' }])
-      expect(store.archivedDocuments).toHaveLength(1)
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active')
     })
 
-    it('normalizes an archived fetch failure into a Spanish message', async () => {
-      get_request.mockRejectedValueOnce(new Error('boom'))
+    it('omits the folder param at the hierarchical root', async () => {
+      store.activeFolderId = 'root'
+      get_request.mockResolvedValueOnce({ data: [] })
 
-      const result = await store.fetchArchivedDocuments()
+      await store.fetchDocuments({ scope: 'archived' })
 
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('No se pudieron cargar los archivados.')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived')
     })
 
-    it('archiveDocument patches the archive route and drops the row from the list', async () => {
+    it('discards a stale list response', async () => {
+      let resolveFirst
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
+      get_request.mockResolvedValueOnce({ data: [{ id: 2, title: 'Nuevo' }] })
+
+      const first = store.fetchDocuments({ scope: 'active' })
+      await store.fetchDocuments({ scope: 'active' })
+      resolveFirst({ data: [{ id: 1, title: 'Viejo' }] })
+      await first
+
+      expect(store.documents).toEqual([{ id: 2, title: 'Nuevo' }])
+    })
+
+    it('archiveDocument drops the row while the active scope is showing', async () => {
       store.documents = [{ id: 7, title: 'Viejo' }, { id: 8, title: 'Otro' }]
       patch_request.mockResolvedValueOnce({ data: { id: 7, is_archived: true } })
 
@@ -368,15 +392,28 @@ describe('useDocumentStore', () => {
       expect(store.documents.map((d) => d.id)).toEqual([8])
     })
 
-    it('unarchiveDocument patches the unarchive route and drops it from the archived slice', async () => {
-      store.archivedDocuments = [{ id: 7, title: 'Viejo' }]
-      patch_request.mockResolvedValueOnce({ data: { id: 7, is_archived: false } })
+    it('archiveDocument keeps the row under the mixed scope, flipping its badge', async () => {
+      store.archiveScope = 'all'
+      store.documents = [{ id: 7, title: 'Viejo', is_archived: false }]
+      patch_request.mockResolvedValueOnce({ data: { id: 7, title: 'Viejo', is_archived: true } })
+
+      await store.archiveDocument(7)
+
+      expect(store.documents).toEqual([{ id: 7, title: 'Viejo', is_archived: true }])
+    })
+
+    it('unarchiveDocument reports the container chain that came back', async () => {
+      store.archiveScope = 'archived'
+      store.documents = [{ id: 7, title: 'Viejo' }]
+      patch_request.mockResolvedValueOnce({
+        data: { id: 7, is_archived: false, restored_chain: [{ id: 4, name: 'temp' }] },
+      })
 
       const result = await store.unarchiveDocument(7)
 
       expect(patch_request).toHaveBeenCalledWith('documents/7/unarchive/', {})
-      expect(result.success).toBe(true)
-      expect(store.archivedDocuments).toEqual([])
+      expect(result.restoredChain).toEqual([{ id: 4, name: 'temp' }])
+      expect(store.documents).toEqual([])
     })
 
     it('normalizes an archive failure into a Spanish message', async () => {
@@ -390,13 +427,64 @@ describe('useDocumentStore', () => {
       expect(store.documents).toHaveLength(1)
     })
 
-    it('deleteDocument also removes the row from the archived slice', async () => {
-      store.archivedDocuments = [{ id: 7, title: 'Viejo' }]
+    it('deleteDocument also removes the row from the search results', async () => {
+      store.searchResults = [{ id: 7, title: 'Viejo' }]
       delete_request.mockResolvedValueOnce({})
 
       await store.deleteDocument(7)
 
-      expect(store.archivedDocuments).toEqual([])
+      expect(store.searchResults).toEqual([])
+    })
+  })
+
+  describe('global search', () => {
+    it('ignores folder and scope so nothing stays hidden', async () => {
+      store.activeFolderId = 7
+      store.archiveScope = 'active'
+      get_request.mockResolvedValueOnce({ data: [{ id: 9, is_archived: true }] })
+
+      const result = await store.searchDocuments('mapeo')
+
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=all&search=mapeo')
+      expect(result.success).toBe(true)
+      expect(store.searchResults).toEqual([{ id: 9, is_archived: true }])
+    })
+
+    it('discards a stale search response', async () => {
+      let resolveFirst
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
+      get_request.mockResolvedValueOnce({ data: [{ id: 2 }] })
+
+      const first = store.searchDocuments('ma')
+      await store.searchDocuments('mapeo')
+      resolveFirst({ data: [{ id: 1 }] })
+      await first
+
+      expect(store.searchResults).toEqual([{ id: 2 }])
+    })
+  })
+
+  describe('panel counts', () => {
+    it('fetches the authoritative sidebar totals', async () => {
+      get_request.mockResolvedValueOnce({
+        data: { documents: { active: 89, archived: 1 }, folders: { active: 25, archived: 1 } },
+      })
+
+      await store.fetchCounts()
+
+      expect(get_request).toHaveBeenCalledWith('documents/counts/')
+      expect(store.counts.documents.active).toBe(89)
+      expect(store.counts.folders.archived).toBe(1)
+    })
+
+    it('merges a partial payload instead of blanking the sidebar', async () => {
+      store.counts.documents.active = 89
+      get_request.mockResolvedValueOnce({ data: { documents: { archived: 3 } } })
+
+      await store.fetchCounts()
+
+      expect(store.counts.documents.active).toBe(89)
+      expect(store.counts.documents.archived).toBe(3)
     })
   })
 })

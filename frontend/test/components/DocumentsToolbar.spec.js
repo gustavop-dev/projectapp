@@ -1,43 +1,76 @@
-import { mount } from '@vue/test-utils'
+/**
+ * Tests for DocumentsToolbar.vue.
+ *
+ * Cubre el buscador, el toggle de vista y el filtro de estado — que queda
+ * inerte durante la búsqueda porque la búsqueda recorre los dos estados.
+ */
 
-import DocumentsToolbar from '../../components/panel/documents/DocumentsToolbar.vue'
-import BaseInput from '../../components/base/BaseInput.vue'
-import BaseSegmented from '../../components/base/BaseSegmented.vue'
+import { mount } from '@vue/test-utils';
+import DocumentsToolbar from '../../components/panel/documents/DocumentsToolbar.vue';
+import BaseSegmented from '../../components/base/BaseSegmented.vue';
+import BaseInput from '../../components/base/BaseInput.vue';
 
-function mountToolbar(props = {}, options = {}) {
+function mountToolbar(props = {}) {
   return mount(DocumentsToolbar, {
-    props: { search: '', viewMode: 'list', ...props },
-    global: { components: { BaseInput, BaseSegmented } },
-    ...options,
-  })
+    props,
+    global: { components: { BaseSegmented, BaseInput } },
+  });
+}
+
+function segmentedByLabel(wrapper, label) {
+  return wrapper.findAll('button').find((b) => b.text() === label);
 }
 
 describe('DocumentsToolbar', () => {
-  it('re-emits search updates from the search input', async () => {
-    const wrapper = mountToolbar()
-    await wrapper.find('input[type="search"]').setValue('contrato')
-    expect(wrapper.emitted('update:search')).toEqual([['contrato']])
-  })
+  it('renders the search input', () => {
+    const wrapper = mountToolbar({ search: 'acta' });
 
-  it('binds the search prop into the input value', () => {
-    const wrapper = mountToolbar({ search: 'acme' })
-    expect(wrapper.find('input[type="search"]').element.value).toBe('acme')
-  })
+    expect(wrapper.find('input[type="search"]').element.value).toBe('acta');
+  });
 
-  it('re-emits the view mode when picking the gallery segment', async () => {
-    const wrapper = mountToolbar()
-    await wrapper.find('[data-testid="doc-view-grid"]').trigger('click')
-    expect(wrapper.emitted('update:viewMode')).toEqual([['grid']])
-  })
+  it('relays what the user types', async () => {
+    const wrapper = mountToolbar();
 
-  it('renders content passed through the actions slot', () => {
-    const wrapper = mountToolbar({}, undefined)
-    const withSlot = mount(DocumentsToolbar, {
-      props: { search: '', viewMode: 'list' },
-      global: { components: { BaseInput, BaseSegmented } },
-      slots: { actions: '<button data-testid="new-doc">Nuevo</button>' },
-    })
-    expect(withSlot.find('[data-testid="new-doc"]').exists()).toBe(true)
-    expect(wrapper.find('[data-testid="new-doc"]').exists()).toBe(false)
-  })
-})
+    await wrapper.find('input[type="search"]').setValue('mapeo');
+
+    expect(wrapper.emitted('update:search').at(-1)).toEqual(['mapeo']);
+  });
+
+  describe('state filter', () => {
+    it('offers the three states', () => {
+      const wrapper = mountToolbar();
+
+      const labels = wrapper.find('[data-testid="doc-state-filter"]')
+        .findAll('button').map((b) => b.text());
+      expect(labels).toEqual(['Todos', 'Solo activos', 'Solo archivados']);
+    });
+
+    it('emits the picked state', async () => {
+      const wrapper = mountToolbar({ scope: 'active' });
+
+      await segmentedByLabel(wrapper, 'Solo archivados').trigger('click');
+
+      expect(wrapper.emitted('update:scope')).toEqual([['archived']]);
+    });
+
+    it('goes inert while a search is running', async () => {
+      // La búsqueda ignora el estado: dejar el control operativo sería ofrecer
+      // un filtro que no filtra.
+      const wrapper = mountToolbar({ scope: 'all', scopeLocked: true });
+
+      await segmentedByLabel(wrapper, 'Solo activos').trigger('click');
+
+      expect(wrapper.emitted('update:scope')).toBeUndefined();
+    });
+  });
+
+  describe('view mode', () => {
+    it('emits the picked view mode', async () => {
+      const wrapper = mountToolbar({ viewMode: 'list' });
+
+      await segmentedByLabel(wrapper, 'Galería').trigger('click');
+
+      expect(wrapper.emitted('update:viewMode')).toEqual([['grid']]);
+    });
+  });
+});

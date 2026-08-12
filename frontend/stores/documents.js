@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia';
+import { DEFAULT_SCOPE, matchesScope, normalizeScope } from '~/utils/archiveScope';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
 import { normalizeApiError } from './services/normalize_api_error';
+
+// Fuera del store para que no sean reactivos: descartan respuestas viejas
+// cuando dos peticiones se pisan (búsqueda con debounce, refrescos encadenados).
+let listToken = 0;
+let searchToken = 0;
 
 export const useDocumentStore = defineStore('documents', {
   /**
@@ -15,17 +21,23 @@ export const useDocumentStore = defineStore('documents', {
    */
   state: () => ({
     documents: [],
-    // Slice aparte para lo archivado: mantiene viva la lista activa al asomarse
-    // al archivo (sin parpadeo al volver) y deja que `documents.length` siga
-    // significando exactamente lo mismo que hoy para los contadores.
-    archivedDocuments: [],
+    // Resultados de búsqueda: viven aparte porque la búsqueda es global
+    // (ignora carpeta y estado) y no debe pisar la lista de navegación.
+    searchResults: [],
+    counts: {
+      documents: { active: 0, archived: 0, unfiled_active: 0, unfiled_archived: 0 },
+      folders: { active: 0, archived: 0 },
+    },
     currentDocument: null,
     isLoading: false,
-    isArchivedLoading: false,
     isUpdating: false,
     error: null,
-    // Filters: 'all' | 'none' | 'archived' | <folder id>
+    // Dónde: 'all' | 'root' | 'none' | <folder id>
     activeFolderId: 'all',
+    // Estado, eje independiente de la carpeta: 'active' | 'archived' | 'all'
+    archiveScope: DEFAULT_SCOPE,
+    archivedOrder: 'recent',
+    searchQuery: '',
     activeTagIds: [],
   }),
 
@@ -40,27 +52,39 @@ export const useDocumentStore = defineStore('documents', {
   actions: {
     /**
      * fetchDocuments: List all documents (admin), applying current filters.
-     * Pass `{ folder, tags }` to override the stored filters for this call.
+     * Pass `{ folder, scope, tags, order }` to override for this call.
+     *
+     * `scope` sale de los overrides o cae a 'active', NUNCA del store: esta
+     * acción también la consumen create.vue, [id]/edit.vue y las pestañas de
+     * diagnóstico y propuestas, que jamás deben heredar el scope archivado.
+     * La página del gestor es la única que pasa el suyo explícito.
      */
     async fetchDocuments(overrides = {}) {
+      const token = ++listToken;
       this.isLoading = true;
       this.error = null;
       try {
         const folder = overrides.folder !== undefined ? overrides.folder : this.activeFolderId;
         const tags = overrides.tags !== undefined ? overrides.tags : this.activeTagIds;
+        const scope = normalizeScope(overrides.scope);
+        const order = overrides.order !== undefined ? overrides.order : this.archivedOrder;
 
         const params = new URLSearchParams();
-        if (folder && folder !== 'all') {
+        // 'root' se resuelve en el cliente: la partición necesita el árbol de
+        // carpetas completo, que el store de carpetas ya tiene cargado.
+        if (folder && folder !== 'all' && folder !== 'root') {
           params.set('folder', folder === 'none' ? 'none' : String(folder));
         }
+        params.set('scope', scope);
         if (Array.isArray(tags) && tags.length > 0) {
           params.set('tags', tags.join(','));
         }
-        const query = params.toString();
-        const url = query ? `documents/?${query}` : 'documents/';
+        if (scope === 'archived' && order === 'oldest') params.set('order', 'oldest');
 
-        const response = await get_request(url);
-        this.documents = response.data;
+        const response = await get_request(`documents/?${params.toString()}`);
+        // Con búsqueda debounced y refrescos por mutación, las respuestas fuera
+        // de orden son probables: sólo escribe la última pedida.
+        if (token === listToken) this.documents = response.data;
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'fetch_failed';
@@ -77,42 +101,67 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
-     * fetchArchivedDocuments: List archived documents only.
+     * searchDocuments: busca por título o cliente en TODO el gestor.
      *
-     * Vive aparte de fetchDocuments a propósito: esa acción la consumen
-     * create.vue, [id]/edit.vue y las pestañas de diagnóstico y propuestas,
-     * que nunca deben heredar el scope archivado.
-     *
-     * @param {object} options - { order: 'recent'|'oldest', tags? }
+     * Ignora la carpeta actual y el estado a propósito: buscar sirve para
+     * encontrar algo cuya ubicación no se recuerda, y acotarlo al scope visible
+     * es justo lo que impedía dar con lo archivado.
      */
-    async fetchArchivedDocuments({ order = 'recent', tags } = {}) {
-      this.isArchivedLoading = true;
+    async searchDocuments(term) {
+      const token = ++searchToken;
       this.error = null;
       try {
-        const activeTags = tags !== undefined ? tags : this.activeTagIds;
-
-        const params = new URLSearchParams();
-        params.set('archived', '1');
-        if (Array.isArray(activeTags) && activeTags.length > 0) {
-          params.set('tags', activeTags.join(','));
-        }
-        if (order === 'oldest') params.set('order', 'oldest');
-
+        const params = new URLSearchParams({ scope: 'all', search: term });
         const response = await get_request(`documents/?${params.toString()}`);
-        this.archivedDocuments = response.data;
+        if (token === searchToken) this.searchResults = response.data;
         return { success: true, data: response.data };
       } catch (error) {
-        this.error = 'fetch_archived_failed';
-        console.error('Error fetching archived documents:', error);
+        this.error = 'search_failed';
+        console.error('Error searching documents:', error);
         return {
           success: false,
           errors: error.response?.data,
-          ...normalizeApiError(error, 'No se pudieron cargar los archivados.'),
+          ...normalizeApiError(error, 'No se pudo completar la búsqueda.'),
         };
-      /* c8 ignore next 3 */
-      } finally {
-        this.isArchivedLoading = false;
       }
+    },
+
+    /**
+     * fetchCounts: totales autoritativos para el panel lateral.
+     *
+     * No se pueden derivar de la lista: viene filtrada por carpeta, y sumar el
+     * `document_count` de cada carpeta ignora los documentos sin carpeta y
+     * duplica los que sí la tienen.
+     */
+    async fetchCounts() {
+      try {
+        const response = await get_request('documents/counts/');
+        // Merge y no reemplazo: un payload parcial no debe vaciar el sidebar.
+        this.counts = {
+          documents: { ...this.counts.documents, ...(response.data?.documents || {}) },
+          folders: { ...this.counts.folders, ...(response.data?.folders || {}) },
+        };
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching document counts:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /**
+     * Reconcilia una fila que cambió de estado con el scope que se está viendo.
+     *
+     * Bajo 'all' la fila se queda y sólo cambia su insignia; bajo un scope
+     * concreto se va si dejó de pertenecer.
+     */
+    _reconcileScope(id, updated) {
+      if (matchesScope(updated, this.archiveScope)) {
+        const index = this.documents.findIndex((d) => d.id === id);
+        if (index !== -1) this.documents.splice(index, 1, updated);
+      } else {
+        this.documents = this.documents.filter((d) => d.id !== id);
+      }
+      this.searchResults = this.searchResults.map((d) => (d.id === id ? updated : d));
     },
 
     /** archiveDocument: take a document out of the main view, keeping it. */
@@ -121,7 +170,7 @@ export const useDocumentStore = defineStore('documents', {
       this.error = null;
       try {
         const response = await patch_request(`documents/${id}/archive/`, {});
-        this.documents = this.documents.filter((d) => d.id !== id);
+        this._reconcileScope(id, response.data);
         return { success: true, data: response.data };
       } catch (error) {
         this.error = 'archive_failed';
@@ -137,14 +186,24 @@ export const useDocumentStore = defineStore('documents', {
       }
     },
 
-    /** unarchiveDocument: return it to the main view (root if its folder is gone). */
+    /**
+     * unarchiveDocument: lo devuelve a la vista principal.
+     *
+     * `restoredChain` son las carpetas contenedoras que el backend reabrió para
+     * que el documento quede alcanzable; la UI las nombra en el aviso.
+     */
     async unarchiveDocument(id) {
       this.isUpdating = true;
       this.error = null;
       try {
         const response = await patch_request(`documents/${id}/unarchive/`, {});
-        this.archivedDocuments = this.archivedDocuments.filter((d) => d.id !== id);
-        return { success: true, data: response.data };
+        this._reconcileScope(id, response.data);
+        return {
+          success: true,
+          data: response.data,
+          restoredChain: response.data?.restored_chain || [],
+          movedToRoot: !!response.data?.moved_to_root,
+        };
       } catch (error) {
         this.error = 'unarchive_failed';
         console.error('Error unarchiving document:', error);
@@ -161,12 +220,14 @@ export const useDocumentStore = defineStore('documents', {
 
     /**
      * setFilters: Update active filters and refetch the list.
-     * @param {object} filters - { folder?, tags? }
+     * @param {object} filters - { folder?, scope?, tags?, order? }
      */
-    async setFilters({ folder, tags } = {}) {
+    async setFilters({ folder, scope, tags, order } = {}) {
       if (folder !== undefined) this.activeFolderId = folder;
+      if (scope !== undefined) this.archiveScope = normalizeScope(scope);
+      if (order !== undefined) this.archivedOrder = order;
       if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
-      return this.fetchDocuments();
+      return this.fetchDocuments({ scope: this.archiveScope });
     },
 
     /**
@@ -265,9 +326,9 @@ export const useDocumentStore = defineStore('documents', {
       try {
         await delete_request(`documents/${id}/delete/`);
         this.documents = this.documents.filter((d) => d.id !== id);
-        // También del slice archivado: lo archivado se puede borrar desde su
-        // propia vista, y sin esto la fila se quedaría en pantalla.
-        this.archivedDocuments = this.archivedDocuments.filter((d) => d.id !== id);
+        // También de los resultados de búsqueda: lo archivado se puede borrar
+        // desde ahí, y sin esto la fila se quedaría en pantalla.
+        this.searchResults = this.searchResults.filter((d) => d.id !== id);
         if (this.currentDocument?.id === id) {
           this.currentDocument = null;
         }

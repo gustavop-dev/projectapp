@@ -1,6 +1,7 @@
 import copy
 import logging
 
+from django.db.models import Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -25,11 +26,46 @@ logger = logging.getLogger(__name__)
 
 _ARCHIVE_ORDER = {'newest': '-archived_at', 'oldest': 'archived_at'}
 
+_SCOPES = ('active', 'archived', 'all')
+
+_SEARCH_MAX_LENGTH = 200
+
 
 def wants_archived(request):
     """True cuando el caller pide el scope archivado (`?archived=1`)."""
     raw = request.query_params.get('archived')
     return str(raw or '').strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def archive_scope(request):
+    """Scope pedido: 'active' (default), 'archived' o 'all'. None si es inválido.
+
+    `?archived=1` se conserva como alias heredado del store del panel y de la
+    batería de tests que llegó con el archivado; si llegan los dos, manda
+    `scope`. El parámetro selecciona datos, así que un valor inválido responde
+    400 — igual que `folder` y `tags`, y a diferencia de `order`, que sólo los
+    presenta.
+    """
+    raw = str(request.query_params.get('scope') or '').strip().lower()
+    if not raw:
+        return 'archived' if wants_archived(request) else 'active'
+    return raw if raw in _SCOPES else None
+
+
+def apply_archive_scope(queryset, scope):
+    """Filtra por `is_archived`; 'all' no filtra y deja ver el estado mixto."""
+    if scope == 'all':
+        return queryset
+    return queryset.filter(is_archived=(scope == 'archived'))
+
+
+def search_term(request):
+    """Texto de búsqueda ya normalizado; cadena vacía cuando no se pidió.
+
+    Un `search` en blanco no es un error sino un no-op: a diferencia de un
+    `folder` malformado, no hay ninguna intención que malinterpretar.
+    """
+    return str(request.query_params.get('search') or '').strip()[:_SEARCH_MAX_LENGTH]
 
 
 def archived_order_field(request):
@@ -45,14 +81,21 @@ def archived_order_field(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_documents(request):
-    """List all documents, optionally filtered by folder and/or tags.
+    """List all documents, optionally filtered by folder, tags and/or search.
 
-    Por defecto sólo devuelve documentos activos; `?archived=1` devuelve
-    únicamente los archivados, ordenados por fecha de archivado.
+    Por defecto sólo devuelve documentos activos; `?scope=archived` devuelve
+    únicamente los archivados, ordenados por fecha de archivado, y `?scope=all`
+    devuelve los dos estados mezclados — cada fila trae `is_archived`, que es lo
+    que permite marcarla en una lista mixta.
     """
-    archived = wants_archived(request)
+    scope = archive_scope(request)
+    if scope is None:
+        return Response(
+            {'scope': 'El estado solicitado no es válido. Usa active, archived o all.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
     documents = (
-        Document.objects.filter(is_archived=archived)
+        apply_archive_scope(Document.objects.all(), scope)
         .prefetch_related('tags')
         .select_related('folder')
     )
@@ -81,9 +124,17 @@ def list_documents(request):
         if tag_ids:
             documents = documents.filter(tags__id__in=tag_ids).distinct()
 
-    if archived:
+    search = search_term(request)
+    if search:
+        documents = documents.filter(
+            Q(title__icontains=search) | Q(client_name__icontains=search),
+        )
+
+    if scope == 'archived':
         # `-created_at` desempata y protege el orden si alguna fila quedara sin
-        # `archived_at` (datos antiguos migrados a mano).
+        # `archived_at` (datos antiguos migrados a mano). Con `scope=all` no se
+        # aplica: las filas activas tienen `archived_at` en NULL y el orden
+        # mentiría; ahí manda el `-created_at` del modelo.
         documents = documents.order_by(archived_order_field(request), '-created_at')
 
     serializer = DocumentListSerializer(documents, many=True)
@@ -213,6 +264,13 @@ def upload_document_markdown(request):
         from content.models import DocumentFolder
         folder = DocumentFolder.objects.filter(pk=folder_id).first()
 
+    # La guarda va en la vista y no en un serializer porque este endpoint no
+    # pasa por ninguno: recibe multipart y arma el documento a mano.
+    try:
+        document_archive_service.ensure_active_target(folder)
+    except document_archive_service.DocumentArchiveError as exc:
+        return Response({'folder_id': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
     document = Document.objects.create(
         title=title,
         document_type=get_markdown_document_type(),
@@ -326,17 +384,41 @@ def archive_document(request, document_id):
 def unarchive_document(request, document_id):
     """Devuelve un documento archivado a la vista principal.
 
-    Si su carpeta fue eliminada mientras tanto, reaparece en «Sin carpeta».
+    Reabre además la cadena de carpetas que lo contiene, y la reporta en
+    `restored_chain` para que la UI pueda decir qué carpeta volvió con él. Si su
+    carpeta fue eliminada mientras tanto, reaparece en «Sin carpeta».
+
+    Las claves extra van al lado de los campos del documento y no en un
+    envelope: el store devuelve `response.data` tal cual a la página.
     """
     document = get_object_or_404(Document, pk=document_id)
-    document_archive_service.unarchive_document(document)
-    return Response(DocumentListSerializer(document).data)
+    result = document_archive_service.unarchive_document(document)
+    return Response({
+        **DocumentListSerializer(document).data,
+        'restored_chain': [
+            {'id': folder.id, 'name': folder.name}
+            for folder in result['restored_chain']
+        ],
+        'moved_to_root': result['moved_to_root'],
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def document_counts(request):
+    """Contadores autoritativos del panel lateral. No acepta filtros a propósito."""
+    return Response(document_archive_service.panel_counts())
 
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def duplicate_document(request, document_id):
-    """Duplicate a document."""
+    """Duplicate a document.
+
+    La copia hereda la carpeta sólo si sigue activa: el duplicado nace sin
+    archivar, y dejarlo dentro de una carpeta archivada lo volvería invisible
+    en las dos vistas del panel.
+    """
     document = get_object_or_404(Document, pk=document_id)
     if document.document_type and document.document_type.code == COLLECTION_ACCOUNT:
         return Response(
@@ -345,6 +427,7 @@ def duplicate_document(request, document_id):
         )
 
     doc_type = document.document_type or get_markdown_document_type()
+    folder = document.folder if document.folder and not document.folder.is_archived else None
     new_document = Document.objects.create(
         title=f'{document.title} (copia)',
         document_type=doc_type,
@@ -354,7 +437,7 @@ def duplicate_document(request, document_id):
         include_portada=document.include_portada,
         include_subportada=document.include_subportada,
         include_contraportada=document.include_contraportada,
-        folder=document.folder,
+        folder=folder,
         status=Document.Status.DRAFT,
         content_markdown=document.content_markdown,
         content_json=copy.deepcopy(document.content_json),

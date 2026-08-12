@@ -56,6 +56,19 @@
                   </svg>
                   <span>{{ documentCount }} {{ documentCount === 1 ? 'documento' : 'documentos' }}</span>
                 </li>
+                <!-- Se lista aparte porque no se ve en la carpeta: sin esta
+                     línea, una carpeta «vacía» que igual no se puede borrar no
+                     tendría explicación. -->
+                <li
+                  v-if="archivedCount"
+                  class="flex items-center gap-2 text-sm text-text-muted"
+                  data-testid="delete-folder-archived-line"
+                >
+                  <svg class="w-3.5 h-3.5 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                  </svg>
+                  <span>{{ archivedCount }} {{ archivedCount === 1 ? 'elemento archivado' : 'elementos archivados' }}</span>
+                </li>
               </ul>
               <p class="mt-2 text-xs text-text-muted">
                 Archívala: saldrá de la vista con todo su contenido y podrás restaurarla cuando quieras.
@@ -165,7 +178,13 @@ const childFolders = computed(() => (props.folder ? folderStore.childrenOf(props
 // El contador del servidor manda cuando el store aún no trajo las subcarpetas.
 const childCount = computed(() => Math.max(childFolders.value.length, props.folder?.children_count || 0));
 const documentCount = computed(() => props.folder?.document_count || 0);
-const isEmpty = computed(() => documentCount.value === 0 && childCount.value === 0);
+const archivedCount = computed(() => folderStore.archivedContentCount(props.folder));
+
+// El 409 del backend cuenta TODO el contenido, archivado incluido. Mirar sólo
+// lo activo ofrecía el borrado de una carpeta que después no se podía borrar.
+const isEmpty = computed(
+  () => documentCount.value === 0 && childCount.value === 0 && archivedCount.value === 0,
+);
 
 const isBusy = computed(() => isDeleting.value || isArchiving.value);
 const canConfirm = computed(() => isEmpty.value && typedValue.value === CONFIRM_WORD && !isBusy.value);

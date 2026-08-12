@@ -239,7 +239,7 @@ class TestUnarchiveDocumentFolderView:
         loose.refresh_from_db()
         assert loose.is_archived is True
 
-    def test_returns_409_when_parent_still_archived(self, admin_client, folder):
+    def test_reopens_the_parent_chain_and_reports_it(self, admin_client, folder):
         child = DocumentFolder.objects.create(name='Sub', parent=folder)
         admin_client.patch(
             reverse('archive-document-folder', kwargs={'folder_id': folder.id})
@@ -248,8 +248,123 @@ class TestUnarchiveDocumentFolderView:
         url = reverse('unarchive-document-folder', kwargs={'folder_id': child.id})
         response = admin_client.patch(url)
 
-        assert response.status_code == 409
-        assert 'detail' in response.json()
+        assert response.status_code == 200
+        assert response.json()['restored_chain'] == [
+            {'id': folder.id, 'name': folder.name},
+        ]
+        child.refresh_from_db()
+        folder.refresh_from_db()
+        assert child.is_archived is False
+        assert folder.is_archived is False
+
+
+class TestFolderArchivedContentCounters:
+    """Una carpeta activa tiene que poder avisar que guarda archivados."""
+
+    def test_active_folder_reports_its_archived_documents(self, admin_client, folder):
+        Document.objects.create(title='Activo', folder=folder)
+        archived = Document.objects.create(title='Archivado', folder=folder)
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': archived.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'))
+
+        payload = next(f for f in response.json() if f['id'] == folder.id)
+        assert payload['document_count'] == 1, 'el contador visible sigue siendo el activo'
+        assert payload['archived_document_count'] == 1
+
+    def test_active_folder_reports_its_archived_subfolders(self, admin_client, folder):
+        child = DocumentFolder.objects.create(name='Sub', parent=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': child.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'))
+
+        payload = next(f for f in response.json() if f['id'] == folder.id)
+        assert payload['children_count'] == 0
+        assert payload['archived_children_count'] == 1
+
+
+class TestListDocumentFoldersScope:
+    def test_scope_all_returns_both_states(self, admin_client, folder):
+        archived = DocumentFolder.objects.create(name='Vieja')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'), {'scope': 'all'})
+
+        ids = [f['id'] for f in response.json()]
+        assert folder.id in ids
+        assert archived.id in ids
+
+    def test_invalid_scope_returns_400(self, admin_client):
+        response = admin_client.get(
+            reverse('list-document-folders'), {'scope': 'banana'},
+        )
+
+        assert response.status_code == 400
+        assert 'scope' in response.json()
+
+    def test_search_filters_by_name(self, admin_client, folder):
+        DocumentFolder.objects.create(name='Propuestas')
+
+        response = admin_client.get(
+            reverse('list-document-folders'), {'search': 'cuenta'},
+        )
+
+        names = [f['name'] for f in response.json()]
+        assert names == [folder.name]
+
+    def test_search_reaches_archived_folders(self, admin_client):
+        archived = DocumentFolder.objects.create(name='Temporal')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived.id})
+        )
+
+        response = admin_client.get(
+            reverse('list-document-folders'), {'search': 'tempo', 'scope': 'all'},
+        )
+
+        payload = response.json()
+        assert [f['id'] for f in payload] == [archived.id]
+        assert payload[0]['is_archived'] is True
+
+
+class TestFolderParentArchiveGuard:
+    def test_cannot_create_a_folder_inside_an_archived_one(self, admin_client, folder):
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        response = admin_client.post(
+            reverse('create-document-folder'),
+            {'name': 'Nueva', 'parent': folder.id},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'parent' in response.json()
+
+    def test_cannot_move_an_active_folder_under_an_archived_one(
+        self, admin_client, folder,
+    ):
+        other = DocumentFolder.objects.create(name='Otra')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': folder.id})
+        )
+
+        response = admin_client.patch(
+            reverse('update-document-folder', kwargs={'folder_id': other.id}),
+            {'parent': folder.id},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        other.refresh_from_db()
+        assert other.parent_id is None
 
 
 class TestUpdateDocumentFolderArchiveGuard:
@@ -357,9 +472,15 @@ class TestFolderHierarchy:
         self, admin_client, folder,
     ):
         DocumentFolder.objects.create(name='Sub A', parent=folder)
-        DocumentFolder.objects.create(name='Sub B', parent=folder)
+        archived_child = DocumentFolder.objects.create(name='Sub B', parent=folder)
         Document.objects.create(title='Doc 1', folder=folder)
-        Document.objects.create(title='Doc 2', folder=folder)
+        archived_doc = Document.objects.create(title='Doc 2', folder=folder)
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived_child.id})
+        )
+        admin_client.patch(
+            reverse('archive-document', kwargs={'document_id': archived_doc.id})
+        )
 
         url = reverse('list-document-folders')
         response = admin_client.get(url)
@@ -367,6 +488,9 @@ class TestFolderHierarchy:
         assert response.status_code == 200
         entry = next(f for f in response.json() if f['id'] == folder.id)
         assert entry['parent'] is None
-        # Sin distinct=True el JOIN cruzado daría 4 en ambos campos.
-        assert entry['document_count'] == 2
-        assert entry['children_count'] == 2
+        # Sin distinct=True el JOIN cruzado multiplicaría los cuatro contadores
+        # entre sí; los cuatro agregados reusan los mismos dos JOINs.
+        assert entry['document_count'] == 1
+        assert entry['children_count'] == 1
+        assert entry['archived_document_count'] == 1
+        assert entry['archived_children_count'] == 1

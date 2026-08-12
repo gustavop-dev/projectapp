@@ -36,7 +36,7 @@
               type="button"
               :disabled="isMoving"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
-              :class="document.folder_id === null
+              :class="document.folder === null
                 ? 'border-info-strong/30 bg-info-soft'
                 : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               @click="moveToFolder(null)"
@@ -48,7 +48,7 @@
               </div>
               <span class="flex-1 text-sm font-medium text-text-default">Sin carpeta</span>
               <svg
-                v-if="document.folder_id === null"
+                v-if="document.folder === null"
                 class="w-4 h-4 text-info-strong flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
@@ -65,7 +65,7 @@
               type="button"
               :disabled="isMoving"
               class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left disabled:opacity-50"
-              :class="document.folder_id === folder.id
+              :class="document.folder === folder.id
                 ? 'border-info-strong/30 bg-info-soft'
                 : 'border-border-muted hover:border-border-default hover:bg-surface-muted'"
               :style="{ paddingLeft: `${12 + folder.depth * 18}px` }"
@@ -79,7 +79,7 @@
               <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ folder.name }}</span>
               <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
               <svg
-                v-if="document.folder_id === folder.id"
+                v-if="document.folder === folder.id"
                 class="w-4 h-4 text-info-strong flex-shrink-0"
                 fill="currentColor"
                 viewBox="0 0 24 24"
@@ -88,7 +88,7 @@
               </svg>
             </button>
 
-            <div v-if="!folderStore.folders.length" class="text-center py-4">
+            <div v-if="!folderStore.activeFolders.length" class="text-center py-4">
               <p class="text-sm text-text-muted">No hay carpetas creadas.</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ function close() {
 
 async function moveToFolder(folderId) {
   if (!props.document) return;
-  if (props.document.folder_id === folderId) {
+  if (props.document.folder === folderId) {
     close();
     return;
   }

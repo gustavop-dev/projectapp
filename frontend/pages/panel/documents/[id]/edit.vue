@@ -152,7 +152,7 @@
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
                 <option :value="null">Sin carpeta</option>
-                <option v-for="folder in folderStore.folders" :key="folder.id" :value="folder.id">
+                <option v-for="folder in folderStore.activeFolders" :key="folder.id" :value="folder.id">
                   {{ folder.name }}
                 </option>
               </select>

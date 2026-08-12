@@ -4,24 +4,38 @@ import {
   statusBadgeClass, statusLabel, formatDocumentDate, folderRowSummary,
   archivedAgeLabel,
 } from '~/utils/documentStatus'
+import { computed } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
+import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 
-defineProps({
+const props = defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
   editToFor: { type: Function, default: () => null },
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
-  archived: { type: Boolean, default: false },
+  // El scope sólo decide el encabezado de columna. Todo lo demás (insignia,
+  // fecha, arrastre) lo decide `is_archived` de cada fila: con `scope='all'` y
+  // con la búsqueda global la lista es mixta.
+  scope: { type: String, default: 'active' },
 })
 
 const emit = defineEmits([
-  'open', 'action', 'select-folder', 'unarchive-folder',
+  'open', 'action', 'select-folder', 'unarchive-folder', 'view-archived-folder',
   'doc-dragstart', 'doc-dragend',
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder',
 ])
+
+const dateHeader = computed(() => {
+  if (props.scope === 'archived') return 'Archivado'
+  return props.scope === 'all' ? 'Fecha' : 'Creado'
+})
+
+function archivedContentCount(folder) {
+  return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
+}
 </script>
 
 <template>
@@ -33,7 +47,7 @@ const emit = defineEmits([
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ archived ? 'Archivado' : 'Creado' }}</th>
+          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
       </thead>
@@ -42,13 +56,10 @@ const emit = defineEmits([
         <tr
           v-for="sub in subfolders"
           :key="`folder-${sub.id}`"
-          class="transition-colors select-none hover:bg-surface-muted"
-          :class="[
-            archived ? '' : 'cursor-pointer',
-            { 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id },
-          ]"
-          :draggable="!archived"
-          @click="!archived && emit('select-folder', sub.id)"
+          class="transition-colors select-none hover:bg-surface-muted cursor-pointer"
+          :class="{ 'ring-2 ring-inset ring-success-strong': dragOverFolderId === sub.id }"
+          :draggable="!sub.is_archived"
+          @click="emit('select-folder', sub.id)"
           @dragstart="emit('folder-dragstart', $event, sub)"
           @dragend="emit('folder-dragend')"
           @dragover="emit('folder-dragover', $event, sub.id)"
@@ -61,14 +72,20 @@ const emit = defineEmits([
                 <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
               </svg>
               <span class="text-sm font-medium text-text-default truncate">{{ sub.name }}</span>
+              <FolderArchivedBadge
+                v-if="!sub.is_archived && archivedContentCount(sub)"
+                :count="archivedContentCount(sub)"
+                :folder-name="sub.name"
+                @view="emit('view-archived-folder', sub)"
+              />
             </div>
           </td>
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="3">
-            {{ folderRowSummary(sub) }}
+            {{ folderRowSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
           <td class="px-6 py-4" @click.stop>
             <BaseButton
-              v-if="archived"
+              v-if="sub.is_archived"
               variant="secondary"
               size="sm"
               data-testid="folder-unarchive"
@@ -89,7 +106,7 @@ const emit = defineEmits([
             { 'opacity-50': draggingDocId === doc.id },
             { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
           ]"
-          :draggable="!archived"
+          :draggable="!doc.is_archived"
           @click="emit('open', doc)"
           @dragstart="emit('doc-dragstart', $event, doc)"
           @dragend="emit('doc-dragend')"
@@ -131,8 +148,9 @@ const emit = defineEmits([
           </td>
           <td class="px-6 py-4">
             <span
-              v-if="archived"
+              v-if="doc.is_archived"
               class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle"
+              data-testid="doc-archived-badge"
             >
               Archivado
             </span>
@@ -145,7 +163,7 @@ const emit = defineEmits([
             </span>
           </td>
           <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
-            <template v-if="archived">
+            <template v-if="doc.is_archived">
               <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at) }}</span>
               <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at) }}</span>
             </template>
