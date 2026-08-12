@@ -32,6 +32,9 @@ function setupQrCardsMock(page, { cards = [] } = {}) {
   let store = [...cards];
   return mockApi(page, async ({ apiPath, route }) => {
     if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath === 'linktrees/admin/' && route.request().method() === 'GET') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
     if (apiPath === 'qr-cards/admin/' && route.request().method() === 'GET') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(store) };
     }

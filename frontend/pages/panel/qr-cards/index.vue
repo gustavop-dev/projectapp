@@ -45,7 +45,13 @@
               </div>
             </td>
             <td class="px-4 py-3 text-text-muted">
-              <span v-if="card.destination_url">{{ card.destination_url }}</span>
+              <span v-if="card.destination_type === 'linktree' && card.linktree_handle">
+                Linktree: @{{ card.linktree_handle }}
+              </span>
+              <span v-else-if="card.destination_type === 'linktree'" class="text-text-subtle italic">
+                Linktree sin asignar
+              </span>
+              <span v-else-if="card.destination_url">{{ card.destination_url }}</span>
               <span v-else class="text-text-subtle italic">Sin configurar</span>
             </td>
             <td class="px-4 py-3">
@@ -93,7 +99,20 @@
             <BaseInput id="qr-card-name" v-model="formModal.name" data-testid="qr-card-name-input" />
           </BaseFormField>
 
+          <BaseFormField label="Tipo de destino" for="qr-card-destination-type">
+            <BaseSegmented
+              id="qr-card-destination-type"
+              v-model="formModal.destinationType"
+              data-testid="qr-card-destination-type"
+              :options="[
+                { value: 'url', label: 'URL directa' },
+                { value: 'linktree', label: 'Linktree' },
+              ]"
+            />
+          </BaseFormField>
+
           <BaseFormField
+            v-if="formModal.destinationType === 'url'"
             label="Link de destino"
             for="qr-card-destination"
             hint="Opcional — podés dejarlo vacío y completarlo después."
@@ -104,6 +123,21 @@
               v-model="formModal.destinationUrl"
               placeholder="https://..."
               data-testid="qr-card-destination-input"
+            />
+          </BaseFormField>
+
+          <BaseFormField
+            v-else
+            label="Linktree de destino"
+            for="qr-card-linktree"
+            hint="Creá y personalizá linktrees en el módulo Linktrees."
+            :error="formErrors.linktree"
+          >
+            <BaseSelect
+              id="qr-card-linktree"
+              v-model="formModal.linktreeId"
+              data-testid="qr-card-linktree-select"
+              :options="linktreeOptions"
             />
           </BaseFormField>
         </div>
@@ -133,32 +167,48 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue';
+import { computed, onMounted, reactive } from 'vue';
 import { ClipboardIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
+import BaseSelect from '~/components/base/BaseSelect.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import DownloadQrModal from '~/components/panel/qr-cards/DownloadQrModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useQrCardsStore } from '~/stores/qr_cards';
+import { useLinktreesStore } from '~/stores/linktrees';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = useQrCardsStore();
+const linktreesStore = useLinktreesStore();
 const notify = usePanelNotify();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 
-const formModal = reactive({ open: false, editingId: null, name: '', destinationUrl: '' });
-const formErrors = reactive({ name: '', destination_url: '' });
+const formModal = reactive({
+  open: false, editingId: null, name: '', destinationUrl: '',
+  destinationType: 'url', linktreeId: '',
+});
+const formErrors = reactive({ name: '', destination_url: '', linktree: '' });
 const downloadModal = reactive({ open: false, card: null });
+
+const linktreeOptions = computed(() => [
+  { value: '', label: 'Sin asignar' },
+  ...linktreesStore.linktrees.map((tree) => ({
+    value: tree.id,
+    label: `${tree.name} (@${tree.handle})`,
+  })),
+]);
 
 onMounted(() => {
   store.fetchCards();
+  linktreesStore.fetchLinktrees();
 });
 
 function shortLinkFor(card) {
@@ -178,8 +228,11 @@ function openCreateModal() {
   formModal.editingId = null;
   formModal.name = '';
   formModal.destinationUrl = '';
+  formModal.destinationType = 'url';
+  formModal.linktreeId = '';
   formErrors.name = '';
   formErrors.destination_url = '';
+  formErrors.linktree = '';
   formModal.open = true;
 }
 
@@ -187,8 +240,11 @@ function openEditModal(card) {
   formModal.editingId = card.id;
   formModal.name = card.name;
   formModal.destinationUrl = card.destination_url;
+  formModal.destinationType = card.destination_type || 'url';
+  formModal.linktreeId = card.linktree || '';
   formErrors.name = '';
   formErrors.destination_url = '';
+  formErrors.linktree = '';
   formModal.open = true;
 }
 
@@ -207,7 +263,13 @@ async function onToggleActive(card, value) {
 async function onSubmit() {
   formErrors.name = '';
   formErrors.destination_url = '';
-  const payload = { name: formModal.name, destination_url: formModal.destinationUrl };
+  formErrors.linktree = '';
+  const payload = {
+    name: formModal.name,
+    destination_url: formModal.destinationUrl,
+    destination_type: formModal.destinationType,
+    linktree: formModal.destinationType === 'linktree' ? formModal.linktreeId || null : null,
+  };
   const result = formModal.editingId
     ? await store.updateCard(formModal.editingId, payload)
     : await store.createCard(payload);
@@ -215,6 +277,7 @@ async function onSubmit() {
   if (!result.success) {
     formErrors.name = result.errors?.name?.[0] || '';
     formErrors.destination_url = result.errors?.destination_url?.[0] || '';
+    formErrors.linktree = result.errors?.linktree?.[0] || '';
     if (!result.errors) {
       notify.error({ title: 'No se pudo guardar la tarjeta' });
     }

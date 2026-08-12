@@ -52,6 +52,10 @@ from content.views.portfolio_works import (
     delete_portfolio_work, duplicate_portfolio_work,
     upload_portfolio_cover_image,
 )
+from content.views.linktree import (
+    list_admin_linktrees, retrieve_admin_linktree, create_linktree,
+    update_linktree, delete_linktree, public_linktree, upload_linktree_avatar,
+)
 from content.views.qr_cards import (
     list_admin_qr_cards, create_qr_card, update_qr_card, delete_qr_card,
 )
@@ -474,6 +478,15 @@ urlpatterns = [
     path('qr-cards/admin/create/', create_qr_card, name='create-qr-card'),
     path('qr-cards/admin/<uuid:card_id>/update/', update_qr_card, name='update-qr-card'),
     path('qr-cards/admin/<uuid:card_id>/delete/', delete_qr_card, name='delete-qr-card'),
+
+    # Linktrees (admin CRUD + public by handle)
+    path('linktrees/admin/', list_admin_linktrees, name='list-admin-linktrees'),
+    path('linktrees/admin/create/', create_linktree, name='create-linktree'),
+    path('linktrees/admin/<uuid:linktree_id>/', retrieve_admin_linktree, name='retrieve-admin-linktree'),
+    path('linktrees/admin/<uuid:linktree_id>/update/', update_linktree, name='update-linktree'),
+    path('linktrees/admin/<uuid:linktree_id>/delete/', delete_linktree, name='delete-linktree'),
+    path('linktrees/admin/<uuid:linktree_id>/avatar/', upload_linktree_avatar, name='upload-linktree-avatar'),
+    path('linktrees/public/<str:handle>/', public_linktree, name='public-linktree'),
 
     # Hour packages — admin catalog CRUD (per-nationality pricing)
     path('hour-packages/admin/', list_admin_hour_packages, name='list-admin-hour-packages'),

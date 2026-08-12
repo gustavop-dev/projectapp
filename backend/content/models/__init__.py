@@ -31,6 +31,7 @@ from .proposal_section_view import ProposalSectionView
 from .proposal_change_log import ProposalChangeLog
 from .proposal_share_link import ProposalShareLink
 from .qr_cards import QRCard
+from .linktree import Linktree, LinktreeButton
 from .proposal_default_config import ProposalDefaultConfig
 from .email_template_config import EmailTemplateConfig
 from .email_log import EmailLog

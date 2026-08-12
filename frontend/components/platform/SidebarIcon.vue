@@ -176,6 +176,12 @@
       <path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z" />
     </template>
 
+    <!-- Link / Linktrees -->
+    <template v-else-if="name === 'link'">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </template>
+
     <!-- Fallback: circle -->
     <template v-else>
       <circle cx="12" cy="12" r="10" />

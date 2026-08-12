@@ -4305,6 +4305,45 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-qr-cards.spec.js`
 
+#### FLOW: `admin-linktrees`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/linktrees`, `/panel/linktrees/:id/edit`
+- **API:** `GET/POST /api/linktrees/admin/`, `GET /api/linktrees/admin/:id/`, `PATCH /api/linktrees/admin/:id/update/`, `DELETE /api/linktrees/admin/:id/delete/`.
+- **Description:** Admin creates a linktree (internal name + unique customizable handle, personal/company kind) and edits its identity block, tiered buttons, PWA-install block and vCard data. The public URL is `/lk/@handle`. Button tiers follow the design system's hard rules — exactly 1 `primary`, at most 1 `featured`, `pair` buttons in twos, at most 6 `row` — enforced by the backend serializer. A linktree can be assigned as the destination of a QR card (`destination_type: linktree`), keeping the printed QR's short link intact.
+- **Steps:**
+  1. Admin opens `/panel/linktrees`.
+  2. Clicks "Nuevo linktree", fills name + handle (with or without `@`), picks the kind, saves — lands on the editor.
+  3. Edits identity fields, adds/reorders buttons per tier, configures the PWA block and vCard data, saves.
+  4. Copies the public URL or opens it in a new tab.
+  5. In `/panel/qr-cards`, edits a card, switches destination to "Linktree" and selects one.
+- **Branches:**
+  - [Branch A — duplicate/reserved/invalid handle] Backend returns 400 with a specific handle error rendered under the field.
+  - [Branch B — tier cardinality violation] Backend returns 400 with the violated rule; the editor surfaces it in an alert.
+  - [Branch C — delete with assigned QR cards] Cards fall back to `SET_NULL` and scan as "not configured" until reassigned.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-linktrees.spec.js`
+
+#### FLOW: `public-linktree-view`
+
+- **Module:** public
+- **Role:** visitor
+- **Priority:** P2
+- **Routes:** `/lk/@:handle` (Django clean-URL redirect), `/es-co/lk/@:handle` (SPA page)
+- **API:** `GET /api/linktrees/public/:handle/`; QR short link `GET /t/:uuid/` 302s here when the card's destination is a linktree.
+- **Description:** Visitor opens a linktree via the QR short link or the clean `/lk/@handle` URL and sees the brand-fixed page (esmerald/lemon palette, Ubuntu): identity block per kind, buttons rendered by tier in order (pairs side by side), vCard download, PWA install block and footer tagline. Buttons without a resolved destination render dashed with a `PENDIENTE` tag and are inert.
+- **Steps:**
+  1. Visitor scans the QR (or opens `/lk/@handle`) and lands on the SPA page.
+  2. Page fetches the public payload by handle and renders the design.
+  3. Visitor taps a button: URL/mailto navigate, "Guardar" downloads the `.vcf`, "Añadir a mi pantalla" triggers the install prompt or instructions.
+- **Branches:**
+  - [Branch A — unknown or inactive handle] Page shows the "Este enlace no está disponible." state (API 404).
+  - [Branch B — pending button] Dashed gray render, no navigation on click.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/public/public-linktree.spec.js`
+
 ### 11.2 New Flows Coverage Index
 
 | Flow ID | Module | Role | Priority | Status | Suggested Spec |
@@ -4316,6 +4355,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `public-terms-conditions` | public | guest | P4 | ✅ Covered | `e2e/public/public-terms-conditions.spec.js` |
 | `admin-proposal-project-schedule` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-project-schedule.spec.js` |
 | `admin-qr-cards` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-qr-cards.spec.js` |
+| `admin-linktrees` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-linktrees.spec.js` |
+| `public-linktree-view` | public | visitor | P2 | ✅ Covered | `e2e/public/public-linktree.spec.js` |
 
 ---
 
