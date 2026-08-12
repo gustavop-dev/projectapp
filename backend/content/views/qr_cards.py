@@ -65,11 +65,19 @@ def delete_qr_card(request, card_id):
 @permission_classes([AllowAny])
 def qr_card_redirect(request, card_id):
     """Resolve a QR card's UUID to its configured destination and redirect."""
-    card = get_object_or_404(QRCard, pk=card_id)
+    card = get_object_or_404(QRCard.objects.select_related('linktree'), pk=card_id)
     if not card.is_active:
         return HttpResponse(
             'Este enlace no está disponible.', content_type='text/plain; charset=utf-8'
         )
+    if card.destination_type == QRCard.DestinationType.LINKTREE:
+        if card.linktree is None or not card.linktree.is_active:
+            return HttpResponse(
+                'Este enlace aún no ha sido configurado.',
+                content_type='text/plain; charset=utf-8',
+            )
+        # Single-language linktrees live under the es-co locale prefix.
+        return HttpResponseRedirect(f'/es-co{card.linktree.public_path}')
     if not card.destination_url:
         return HttpResponse(
             'Este enlace aún no ha sido configurado.', content_type='text/plain; charset=utf-8'

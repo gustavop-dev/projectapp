@@ -9,6 +9,7 @@ from django.conf.urls.static import static
 from .views import serve_nuxt
 from content.views.blog import serve_sitemap_xml
 from content.views.qr_cards import qr_card_redirect
+from content.views.linktree import linktree_short_redirect
 
 
 def health_check(request):
@@ -40,6 +41,12 @@ urlpatterns = [
     path('api/accounts/', include('accounts.urls')),
     path('sitemap.xml', serve_sitemap_xml, name='sitemap-xml'),
     path('t/<uuid:card_id>/', qr_card_redirect, name='qr-card-redirect'),
+    # Clean shareable linktree URL without locale prefix: /lk/@handle
+    re_path(
+        r'^lk/(?P<handle>@?[a-zA-Z0-9_.-]+)/?$',
+        linktree_short_redirect,
+        name='linktree-short-redirect',
+    ),
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

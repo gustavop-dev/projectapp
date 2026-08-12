@@ -3,7 +3,7 @@ registered in projectapp/urls.py — NOT under /api/)."""
 import pytest
 from django.urls import reverse
 
-from content.models import QRCard
+from content.models import Linktree, QRCard
 
 pytestmark = pytest.mark.django_db
 
@@ -34,3 +34,41 @@ class TestQrCardRedirect:
         response = api_client.get(url)
         assert response.status_code == 200
         assert 'aún no ha sido configurado' in response.content.decode()
+
+
+class TestQrCardLinktreeRedirect:
+    def test_redirects_to_linktree_public_page(self, api_client):
+        tree = Linktree.objects.create(handle='gustavo', name='Gustavo')
+        card = QRCard.objects.create(
+            name='X', destination_type=QRCard.DestinationType.LINKTREE, linktree=tree
+        )
+        response = api_client.get(reverse('qr-card-redirect', kwargs={'card_id': card.id}))
+        assert response.status_code == 302
+        assert response.url == '/es-co/lk/@gustavo'
+
+    def test_returns_200_with_message_when_linktree_missing(self, api_client):
+        card = QRCard.objects.create(
+            name='X', destination_type=QRCard.DestinationType.LINKTREE, linktree=None
+        )
+        response = api_client.get(reverse('qr-card-redirect', kwargs={'card_id': card.id}))
+        assert response.status_code == 200
+        assert 'aún no ha sido configurado' in response.content.decode()
+
+    def test_returns_200_with_message_when_linktree_inactive(self, api_client):
+        tree = Linktree.objects.create(handle='gustavo', name='Gustavo', is_active=False)
+        card = QRCard.objects.create(
+            name='X', destination_type=QRCard.DestinationType.LINKTREE, linktree=tree
+        )
+        response = api_client.get(reverse('qr-card-redirect', kwargs={'card_id': card.id}))
+        assert response.status_code == 200
+        assert 'aún no ha sido configurado' in response.content.decode()
+
+    def test_linktree_destination_ignores_destination_url(self, api_client):
+        tree = Linktree.objects.create(handle='gustavo', name='Gustavo')
+        card = QRCard.objects.create(
+            name='X', destination_type=QRCard.DestinationType.LINKTREE,
+            linktree=tree, destination_url='https://otro.example.com',
+        )
+        response = api_client.get(reverse('qr-card-redirect', kwargs={'card_id': card.id}))
+        assert response.status_code == 302
+        assert response.url == '/es-co/lk/@gustavo'
