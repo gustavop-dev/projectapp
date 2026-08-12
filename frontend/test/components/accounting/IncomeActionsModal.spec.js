@@ -105,7 +105,12 @@ describe('IncomeActionsModal', () => {
   it('hides marcar perdido once the income is partially collected', () => {
     const wrapper = mountModal({ ...EXPECTED, payment_status: 'partial' });
 
-    expect(actionIds(wrapper)).not.toContain('write-off');
+    // Asserted as the full set rather than a bare absence: a menu that
+    // failed to render would satisfy "does not contain write-off" too.
+    expect(actionIds(wrapper)).toEqual([
+      'detail', 'edit', 'liquidate', 'generate-collection',
+      'toggle-mute', 'delete',
+    ]);
   });
 
   it('emits the action and closes, so the row never stays half-acted-on', async () => {

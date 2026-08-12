@@ -214,3 +214,30 @@ class TestExpectedIncomeFilter:
         )
 
         assert [r['id'] for r in response.data['results']] == [child.pk]
+
+
+class TestProjectDeletionDoesNotBlockTheLedger:
+    def test_deleting_a_project_blanks_the_label_instead_of_raising(self):
+        """SET_NULL rather than PROTECT, and that is forced rather than
+        aesthetic: `delete_fake_data` deletes every Project BEFORE the
+        accounting sweep, so PROTECT here would break the
+        create_fake_data -> delete_fake_data cycle outright."""
+        from content.models import HostingRecord
+
+        owner = make_client('daniel@example.com')
+        project = Project.objects.create(name='MIMITTOS', client=owner.user)
+        income = make_income(client=owner, project=project)
+        hosting = HostingRecord.objects.create(
+            client=owner, project=project, client_name='Daniel - Mimittos',
+            monthly_value=Decimal('77760.00'),
+        )
+
+        # No ProtectedError: the money is permanent, the label is not.
+        project.delete()
+
+        income.refresh_from_db()
+        hosting.refresh_from_db()
+        assert income.project_id is None
+        assert hosting.project_id is None
+        # The client link, which IS PROTECT, is untouched.
+        assert income.client_id == owner.pk

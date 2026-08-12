@@ -321,7 +321,8 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await mockApi(page, buildHandler({ rows, calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('accounting-edit-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-edit-1').click();
     await expect(page.getByRole('heading', { name: 'Editar ingreso' })).toBeVisible();
     await expect(page.getByTestId('income-form-concept')).toHaveValue('Kore - Inicio 40%');
 
@@ -341,7 +342,8 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('accounting-delete-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-delete-1').click();
     await expect(page.getByText('Eliminar ingreso')).toBeVisible();
     await page.getByTestId('confirm-modal-confirm').click();
 
@@ -357,7 +359,8 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('accounting-delete-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-delete-1').click();
     await expect(page.getByText('Eliminar ingreso')).toBeVisible();
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
@@ -532,7 +535,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await expect(
       page.getByRole('heading', { name: 'Liquidar ingreso esperado' }),
     ).toBeVisible();
@@ -567,7 +571,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     // 600.000 pending, 592.000 received → an 8.000 gateway fee.
     await page.getByTestId('partner-split-total').fill('592000');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
@@ -599,7 +604,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('0');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
 
@@ -628,7 +634,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('500000');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
 
@@ -659,7 +666,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
     await page.getByTestId('income-liquidate-submit').click();
 
@@ -677,7 +685,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('592000');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
     // The deductions group auto-expands the moment the shortfall appears.
@@ -704,7 +713,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('592000');
     await page.getByTestId('income-liquidate-period').fill('2026-11-17');
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
@@ -733,7 +743,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [partialRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-liquidate-11').click();
+    await page.getByTestId('income-actions-11').click();
+    await page.getByTestId('income-action-liquidate-11').click();
     await page.getByTestId('partner-split-total').fill('592000');
     await expect(page.getByTestId('income-liquidate-deduction-0')).toBeVisible();
     await expect(page.getByTestId('income-liquidate-remaining'))
@@ -756,7 +767,8 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-write-off-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-write-off-1').click();
     await page.getByRole('button', { name: 'Marcar como perdido' }).last().click();
 
     await expect.poll(() => calls.filter((c) => c.method === 'PATCH').length)
@@ -776,9 +788,15 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     }));
     await gotoIncomes(page);
 
-    await expect(page.getByTestId('income-liquidate-10')).toBeVisible();
-    await expect(page.getByTestId('income-write-off-10')).toHaveCount(0);
-    await expect(page.getByTestId('income-write-off-11')).toHaveCount(0);
+    await page.getByTestId('income-actions-10').click();
+    await expect(page.getByTestId('income-action-liquidate-10')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.getByTestId('income-actions-10').click();
+    await expect(page.getByTestId('income-action-write-off-10')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.getByTestId('income-actions-11').click();
+    await expect(page.getByTestId('income-action-write-off-11')).toHaveCount(0);
+    await page.keyboard.press('Escape');
   });
 
   test('shows no row actions on a written-off income', {
@@ -793,8 +811,12 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
 
     // Lost rows are visible in the default "Todos" view.
     await expect(page.getByTestId('accounting-row-12')).toBeVisible();
-    await expect(page.getByTestId('income-liquidate-12')).toHaveCount(0);
-    await expect(page.getByTestId('income-write-off-12')).toHaveCount(0);
+    await page.getByTestId('income-actions-12').click();
+    await expect(page.getByTestId('income-action-liquidate-12')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.getByTestId('income-actions-12').click();
+    await expect(page.getByTestId('income-action-write-off-12')).toHaveCount(0);
+    await page.keyboard.press('Escape');
   });
 });
 
@@ -814,7 +836,8 @@ test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => 
     }));
     await gotoIncomes(page);
 
-    await page.getByTestId('income-generate-ca-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-generate-collection-1').click();
 
     await expect(
       page.getByRole('heading', { name: 'Nueva cuenta de cobro' }),
@@ -838,8 +861,11 @@ test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => 
     }));
     await gotoIncomes(page);
 
-    await expect(page.getByTestId('income-generate-ca-1')).toHaveCount(0);
-    await page.getByTestId('income-view-ca-1').click();
+    await page.getByTestId('income-actions-1').click();
+    await expect(page.getByTestId('income-action-generate-collection-1')).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-view-collection-1').click();
 
     await page.waitForURL('**/panel/accounting/collections?focus=33');
     expect(page.url()).toContain('/panel/accounting/collections?focus=33');
@@ -1038,7 +1064,9 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');
     // The rows keep their actions inside the group.
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
-    await expect(page.getByTestId('income-liquidate-1')).toBeVisible();
+    await page.getByTestId('income-actions-1').click();
+    await expect(page.getByTestId('income-action-liquidate-1')).toBeVisible();
+    await page.keyboard.press('Escape');
   });
 
   test('the in-page toggle is session-only: classic appears, nothing persists', {
