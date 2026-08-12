@@ -93,18 +93,6 @@
       @clear-search="searchInput = ''"
     />
 
-    <!-- Bulk client assignment: the completion path for unlinked hostings -->
-    <ClientBulkAssignBar
-      v-model:selected="selectedIds"
-      :rows="store.hostings"
-      :filtered-ids="filteredIds"
-      :entity="HOSTING_ENTITY"
-      testid-prefix="hostings"
-      :record-label="hostingLabel"
-      :busy="store.isUpdating"
-      @submit="applyClientToSelection"
-    />
-
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === 'fetch_failed'"
@@ -289,6 +277,23 @@
         @go="goToPage"
       />
     </template>
+
+    <!--
+      Bulk client assignment: the completion path for unlinked hostings.
+      Below the table and sticky (shared bar, same as incomes); outside the
+      error/empty/table chain, because a selection whose rows the filter just
+      hid still needs its actions.
+    -->
+    <ClientBulkAssignBar
+      v-model:selected="selectedIds"
+      :rows="store.hostings"
+      :filtered-ids="filteredIds"
+      :entity="HOSTING_ENTITY"
+      testid-prefix="hostings"
+      :record-label="hostingLabel"
+      :busy="store.isUpdating"
+      @submit="applyClientToSelection"
+    />
 
     <!-- Create/edit modal -->
     <HostingFormModal

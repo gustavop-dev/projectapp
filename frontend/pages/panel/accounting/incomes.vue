@@ -138,18 +138,6 @@
       </span>
     </div>
 
-    <!-- Bulk client assignment: the completion path for rows without client -->
-    <ClientBulkAssignBar
-      v-model:selected="selectedIds"
-      :rows="store.incomes"
-      :filtered-ids="filteredIds"
-      :entity="INCOME_ENTITY"
-      testid-prefix="incomes"
-      :record-label="incomeLabel"
-      :busy="store.isUpdating"
-      @submit="applyClientToSelection"
-    />
-
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === 'fetch_failed'"
@@ -186,6 +174,8 @@
     <template v-else>
       <IncomeGroupedTable
         v-if="isGrouped"
+        v-model:selected="selectedIds"
+        selectable
         :loading="store.isLoading"
         :highlight-id="lastMutatedId"
         :columns="groupedColumns"
@@ -225,9 +215,9 @@
         </template>
       </IncomeGroupedTable>
 
-      <!-- Column sort, row selection (bulk client bar) and pagination are
-           classic-only affordances; the grouped view always renders the
-           whole filtered set. -->
+      <!-- Column sort and pagination stay classic-only affordances; the
+           grouped view always renders the whole filtered set, and its own
+           checkboxes feed the same selection (and the same bulk bar). -->
       <template v-else>
         <AccountingTable
           v-model:selected="selectedIds"
@@ -307,6 +297,23 @@
         />
       </template>
     </template>
+
+    <!--
+      Bulk client assignment: the completion path for rows without client.
+      Below the table and sticky, so it stays reachable after selecting at the
+      bottom of the grouped view; outside the error/empty/table chain, because
+      a selection whose rows the filter just hid still needs its actions.
+    -->
+    <ClientBulkAssignBar
+      v-model:selected="selectedIds"
+      :rows="store.incomes"
+      :filtered-ids="filteredIds"
+      :entity="INCOME_ENTITY"
+      testid-prefix="incomes"
+      :record-label="incomeLabel"
+      :busy="store.isUpdating"
+      @submit="applyClientToSelection"
+    />
 
     <!-- Create/edit modal -->
     <IncomeFormModal

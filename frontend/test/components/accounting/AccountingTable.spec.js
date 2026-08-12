@@ -349,3 +349,42 @@ describe('AccountingTable', () => {
     });
   });
 });
+
+/**
+ * The header checkbox is page-scoped on purpose — the page owns any "select
+ * every filtered row" affordance. Pinned down here because the arithmetic now
+ * lives in utils/rowSelection, shared with IncomeGroupedTable.
+ */
+describe('AccountingTable — selección de filas', () => {
+  it('adds the whole page to the selection from the header checkbox', async () => {
+    const wrapper = mountTable({ selectable: true, selected: [99] });
+
+    await wrapper.find('[data-testid="accounting-select-page"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([99, 1, 2]);
+  });
+
+  it('removes only the page rows when the header checkbox is unticked', async () => {
+    const wrapper = mountTable({ selectable: true, selected: [1, 2, 99] });
+
+    await wrapper.find('[data-testid="accounting-select-page"]').setValue(false);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([99]);
+  });
+
+  it('shows the header checkbox indeterminate while only part of the page is selected', () => {
+    const wrapper = mountTable({ selectable: true, selected: [1] });
+
+    const pageBox = wrapper.find('[data-testid="accounting-select-page"]').element;
+    expect(pageBox.indeterminate).toBe(true);
+    expect(pageBox.checked).toBe(false);
+  });
+
+  it('ticks one row without disturbing the ids selected elsewhere', async () => {
+    const wrapper = mountTable({ selectable: true, selected: [99] });
+
+    await wrapper.find('[data-testid="accounting-select-2"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([99, 2]);
+  });
+});

@@ -205,4 +205,19 @@ describe('ClientBulkAssignBar — selection plumbing', () => {
     expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
       .toContain('Elige un cliente para poder asignar');
   });
+
+  // The selection survives a filter change and the action still runs on all of
+  // it, so the count alone would disagree with what the table is showing.
+  it('flags the selected rows the active filter no longer shows', () => {
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
+      .toContain('1 fuera del filtro actual');
+  });
+
+  it('says nothing about the filter while the whole selection passes it', () => {
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1, 2, 3] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+  });
 });

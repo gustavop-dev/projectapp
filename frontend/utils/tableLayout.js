@@ -89,6 +89,15 @@ for (const spec of Object.values(SIZES)) {
 export const HANDLE_TRACK = '1.75rem';
 export const HANDLE_PAD = 'pl-4 pr-1 py-1.5';
 
+/**
+ * Grid track for the selection checkbox column — same width as the `w-10` cell
+ * the classic table gives it, so the two views line up. Like the handle it is
+ * not part of `columns`, and taking the first position it inherits the job of
+ * the `first:pl-4` in TABLE_DENSITY: the padding lives here instead.
+ */
+export const SELECT_TRACK = '2.5rem';
+export const SELECT_PAD = 'pl-4 pr-1 py-1.5';
+
 export const SIZE_NAMES = Object.keys(SIZES);
 
 /**
@@ -211,11 +220,15 @@ export function resolveColumns(columns = [], { hasActions = true } = {}) {
  * dropped entirely — CSS cannot remove a track, so each breakpoint gets its own
  * template and the component picks between them with a media query.
  */
-export function trackListFor(resolved, { breakpoint = 'lg', hasHandle = false, hasActions = true } = {}) {
+export function trackListFor(
+  resolved,
+  { breakpoint = 'lg', hasHandle = false, hasSelect = false, hasActions = true } = {},
+) {
   const tracks = resolved
     .filter((col) => isVisibleAt(col, breakpoint))
     .map((col) => col.track);
   return [
+    ...(hasSelect ? [SELECT_TRACK] : []),
     ...(hasHandle ? [HANDLE_TRACK] : []),
     ...tracks,
     ...(hasActions ? [SIZES.icons.track] : []),
@@ -239,11 +252,16 @@ export function actionsWidthFor(resolved) {
  * min-w-[1120px], which were guesses. Below this the proportional share would
  * squeeze a column past its content, so the wrapper scrolls instead.
  */
-export function minWidthFor(resolved, { breakpoint = 'lg', hasHandle = false, hasActions = true } = {}) {
+export function minWidthFor(
+  resolved,
+  { breakpoint = 'lg', hasHandle = false, hasSelect = false, hasActions = true } = {},
+) {
   const columnsRem = resolved
     .filter((col) => isVisibleAt(col, breakpoint))
     .reduce((total, col) => total + col.minRem, 0);
-  const extras = (hasHandle ? 1.75 : 0) + (hasActions ? SIZES.icons.rem : 0);
+  const extras = (hasHandle ? 1.75 : 0)
+    + (hasSelect ? 2.5 : 0)
+    + (hasActions ? SIZES.icons.rem : 0);
   // No padding term: cell padding lives inside each track, so the floors above
   // already include it. Adding it again inflated the table past its container
   // and forced a horizontal scroll that clipped the last column.

@@ -176,6 +176,7 @@ import {
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
+import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
   TABLE_DENSITY,
   actionsWidthFor,
@@ -252,31 +253,20 @@ const selectedSet = computed(() => new Set(props.selected));
 
 const pageKeys = computed(() => props.rows.map((row) => row[props.rowKey]));
 
-const allPageSelected = computed(
-  () => pageKeys.value.length > 0
-    && pageKeys.value.every((key) => selectedSet.value.has(key)),
-);
+const pageSummary = computed(() => selectionSummary(pageKeys.value, selectedSet.value));
 
-const somePageSelected = computed(
-  () => pageKeys.value.some((key) => selectedSet.value.has(key)),
-);
+const allPageSelected = computed(() => pageSummary.value.all);
+
+const somePageSelected = computed(() => pageSummary.value.some);
 
 function toggleRow(key, checked) {
-  const next = new Set(props.selected);
-  if (checked) next.add(key);
-  else next.delete(key);
-  emit('update:selected', [...next]);
+  emit('update:selected', toggleKeys(props.selected, [key], checked));
 }
 
 /** The header checkbox works on the CURRENT page; the page owns any
  *  "select every filtered row" affordance, which knows the full set. */
 function togglePage(checked) {
-  const next = new Set(props.selected);
-  pageKeys.value.forEach((key) => {
-    if (checked) next.add(key);
-    else next.delete(key);
-  });
-  emit('update:selected', [...next]);
+  emit('update:selected', toggleKeys(props.selected, pageKeys.value, checked));
 }
 
 function ariaSort(col) {

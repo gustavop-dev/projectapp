@@ -1089,10 +1089,110 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await page.getByTestId('incomes-view-mode')
       .getByRole('tab', { name: 'Clásico' }).click();
 
-    // The classic table takes over: selection checkboxes exist only there.
+    // The classic table takes over: the client groups are gone and column
+    // sort — which stayed classic-only — is back.
     await expect(page.getByTestId('income-group-5')).toHaveCount(0);
-    await expect(page.getByTestId('accounting-select-1')).toBeVisible();
+    await expect(page.getByTestId('accounting-sort-concept')).toBeVisible();
     // …and the switch wrote nothing: the landing mode belongs to the setting.
     expect(settingsWrites).toEqual([]);
+  });
+
+  test('assigns a client in bulk from the grouped view, group checkbox and all', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Cierre 30%' }),
+      ],
+      calls,
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    // One click on the bucket that names the pending work takes its two rows.
+    await page.getByTestId('income-group-select-none').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+    await expect(page.getByTestId('accounting-select-2')).toBeChecked();
+    await expect(page.getByTestId('accounting-select-3')).toBeChecked();
+    // The row that already has a client is in another group and stays out.
+    await expect(page.getByTestId('accounting-select-1')).not.toBeChecked();
+
+    await page.getByTestId('incomes-bulk-client').fill('Ana');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('incomes-bulk-assign').click();
+    await expect(page.getByRole('dialog')).toContainText(
+      'Se asignará Ana Pérez a 2 ingresos sin cliente.',
+    );
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // The completion path closes: the bucket the grouping exposed is empty.
+    await expect(page.getByTestId('income-group-none')).toHaveCount(0);
+    await expect(page.getByTestId('income-group-5')).toContainText('(3)');
+    const bulk = calls.find(
+      (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
+    );
+    expect(bulk.body).toEqual({ income_ids: [2, 3], client: 5 });
+  });
+
+  test('a partly selected group reads indeterminate and says so once collapsed', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is the tri-state the grouping shows once rows are ticked, and the test
+    // does drive it — the landing path has its own spec above)
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({
+          id: 2, client: 5, client_name: 'Ana Pérez', concept: 'Kore - Entrega 30%',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+
+    await expect(page.getByTestId('income-group-select-5'))
+      .toBeChecked({ indeterminate: true });
+    await expect(page.getByTestId('accounting-select-all'))
+      .toBeChecked({ indeterminate: true });
+
+    // Collapsing hides the ticked row, so the header has to own up to it.
+    await page.getByTestId('income-group-toggle-5').click();
+
+    await expect(page.getByTestId('income-group-selected-5'))
+      .toHaveText('1 seleccionado');
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('1 seleccionado');
+  });
+
+  test('the selection survives switching from grouped to classic', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-group-select-none').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+
+    await page.getByTestId('incomes-view-mode')
+      .getByRole('tab', { name: 'Clásico' }).click();
+
+    // Same ids, other table: changing view must not cost the work done.
+    await expect(page.getByTestId('accounting-sort-concept')).toBeVisible();
+    await expect(page.getByTestId('accounting-select-1')).toBeChecked();
+    await expect(page.getByTestId('accounting-select-2')).toBeChecked();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
   });
 });

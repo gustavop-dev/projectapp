@@ -189,3 +189,105 @@ describe('IncomeGroupedTable', () => {
       .not.toContain('accounting-row-flash');
   });
 });
+
+/**
+ * The bulk client assignment is what this view was missing: "Sin cliente" is
+ * visible here and nowhere else, so the rows that need a client have to be
+ * selectable without leaving the grouping behind.
+ */
+describe('IncomeGroupedTable — selección múltiple', () => {
+  function mountSelectable(props = {}) {
+    return mountTable({ selectable: true, selected: [], ...props });
+  }
+
+  it('renders no checkbox at all unless the page asks for selection', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.find('[data-testid="accounting-select-217"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="income-group-select-22"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="accounting-select-all"]').exists()).toBe(false);
+  });
+
+  it('adds the row to the selection when its checkbox is ticked', async () => {
+    const wrapper = mountSelectable({ selected: [300] });
+
+    await wrapper.find('[data-testid="accounting-select-217"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([300, 217]);
+  });
+
+  it('drops the row from the selection when its checkbox is unticked', async () => {
+    const wrapper = mountSelectable({ selected: [217, 300] });
+
+    await wrapper.find('[data-testid="accounting-select-217"]').setValue(false);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([300]);
+  });
+
+  it('selects every row of a group — and only that group — from its header', async () => {
+    const wrapper = mountSelectable();
+
+    await wrapper.find('[data-testid="income-group-select-22"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([217, 218]);
+  });
+
+  it('clears just that group when its header checkbox is unticked', async () => {
+    const wrapper = mountSelectable({ selected: [217, 218, 300] });
+
+    await wrapper.find('[data-testid="income-group-select-22"]').setValue(false);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([300]);
+  });
+
+  it('shows the group checkbox indeterminate while only part of it is selected', () => {
+    const wrapper = mountSelectable({ selected: [217] });
+
+    const groupBox = wrapper.find('[data-testid="income-group-select-22"]').element;
+    expect(groupBox.indeterminate).toBe(true);
+    expect(groupBox.checked).toBe(false);
+  });
+
+  it('ticks the group checkbox once every row of the group is selected', () => {
+    const wrapper = mountSelectable({ selected: [217, 218] });
+
+    const groupBox = wrapper.find('[data-testid="income-group-select-22"]').element;
+    expect(groupBox.checked).toBe(true);
+    expect(groupBox.indeterminate).toBe(false);
+  });
+
+  // No pagination here: the groups ARE the filtered set, so "todos" cannot
+  // reach beyond what the active filters left on screen.
+  it('selects every row of every group from the header checkbox', async () => {
+    const wrapper = mountSelectable();
+
+    await wrapper.find('[data-testid="accounting-select-all"]').setValue(true);
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([217, 218, 300]);
+  });
+
+  it('shows the header checkbox indeterminate while a group is only partly selected', () => {
+    const wrapper = mountSelectable({ selected: [217, 218] });
+
+    const allBox = wrapper.find('[data-testid="accounting-select-all"]').element;
+    expect(allBox.indeterminate).toBe(true);
+    expect(allBox.checked).toBe(false);
+  });
+
+  it('reports how much of a collapsed group is selected, since it still counts', () => {
+    const wrapper = mountSelectable({ selected: [217], collapsedIds: [22] });
+
+    expect(wrapper.find('[data-testid="income-group-selected-22"]').text())
+      .toBe('1 seleccionado');
+    // The open group says nothing: its ticked rows are on screen.
+    expect(wrapper.find('[data-testid="income-group-selected-none"]').exists())
+      .toBe(false);
+  });
+
+  it('keeps the collapsed badge quiet when nothing in that group is selected', () => {
+    const wrapper = mountSelectable({ selected: [300], collapsedIds: [22] });
+
+    expect(wrapper.find('[data-testid="income-group-selected-22"]').exists())
+      .toBe(false);
+  });
+});

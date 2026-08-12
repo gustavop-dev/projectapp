@@ -1,13 +1,34 @@
 <template>
+  <!--
+    Sticky: the incomes grouped view renders the WHOLE filtered set with no
+    pagination, so a selection made at the bottom of a long list used to leave
+    the bar off screen. `pr-20` keeps the actions clear of the fixed refresh
+    FAB (bottom-6 right-6), which paints above this bar.
+  -->
   <div
     v-if="selected.length > 0"
-    class="flex flex-col gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
+    class="sticky bottom-4 z-20 flex flex-col gap-3 mt-4 p-3 pr-20 rounded-xl border border-border-default bg-surface-raised shadow-lg"
     :data-testid="`${testidPrefix}-bulk-bar`"
   >
     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-      <span class="text-sm text-text-default whitespace-nowrap">
-        <span class="font-semibold tabular-nums">{{ selected.length }}</span>
-        seleccionado{{ selected.length === 1 ? '' : 's' }}
+      <span class="text-sm text-text-default">
+        <span class="whitespace-nowrap">
+          <span class="font-semibold tabular-nums">{{ selected.length }}</span>
+          seleccionado{{ selected.length === 1 ? '' : 's' }}
+        </span>
+        <!--
+          Selecting survives a filter change, and the action runs on the whole
+          selection — so when part of it no longer passes the filter, the bar
+          says so instead of letting the count disagree with the table.
+        -->
+        <span
+          v-if="outsideCount > 0"
+          class="text-xs text-text-muted whitespace-nowrap"
+          title="Se marcaron con otro filtro activo. La acción los incluye igual; la confirmación los lista uno por uno."
+          :data-testid="`${testidPrefix}-bulk-outside`"
+        >
+          · {{ outsideCount }} fuera del filtro actual
+        </span>
       </span>
       <BaseButton
         v-if="!allFilteredSelected"
@@ -26,7 +47,7 @@
           @select="onClientSelect"
         />
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <BaseButton variant="secondary" size="sm" @click="clearSelection">
           Cancelar
         </BaseButton>
@@ -148,6 +169,12 @@ const allFilteredSelected = computed(
   () => props.filteredIds.length > 0
     && props.filteredIds.every((id) => props.selected.includes(id)),
 );
+
+/** Selected rows the active filters no longer show — the action still runs on them. */
+const outsideCount = computed(() => {
+  const filtered = new Set(props.filteredIds);
+  return props.selected.filter((id) => !filtered.has(id)).length;
+});
 
 const assignPlan = computed(() => buildAssignmentPlan({
   rows: props.rows,

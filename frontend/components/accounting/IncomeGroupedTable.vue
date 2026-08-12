@@ -22,6 +22,20 @@
         role="row"
         class="accounting-grid-row items-end bg-surface-raised text-xs text-text-muted uppercase tracking-wider leading-tight"
       >
+        <!-- Must stay in flow to occupy the selection track; without the cell
+             every label would shift one track left. The grouped view never
+             paginates, so this covers the whole filtered set. -->
+        <span v-if="selectable" role="columnheader" :class="SELECT_PAD">
+          <input
+            type="checkbox"
+            class="align-middle accent-primary"
+            aria-label="Seleccionar todos los ingresos filtrados"
+            data-testid="accounting-select-all"
+            :checked="allSummary.all"
+            :indeterminate.prop="allSummary.some && !allSummary.all"
+            @change="toggleAll($event.target.checked)"
+          >
+        </span>
         <span
           v-for="col in resolved"
           :key="col.key"
@@ -53,28 +67,54 @@
             class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`income-group-${group.id}`"
           >
-            <button
-              type="button"
-              role="columnheader"
-              class="inline-flex items-center gap-2 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-              :aria-expanded="!isCollapsed(group.id)"
-              :aria-controls="`income-group-body-${group.id}`"
-              :data-testid="`income-group-toggle-${group.id}`"
-              @click="emit('toggle-group', group.id)"
-            >
-              <ChevronDownIcon
-                class="w-4 h-4 text-text-subtle transition-transform"
-                :class="isCollapsed(group.id) ? '-rotate-90' : ''"
-              />
-              <span class="truncate">{{ group.name }}</span>
-              <span
-                v-if="group.id === NO_CLIENT_KEY"
-                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong"
+            <div class="flex items-center gap-2 min-w-0">
+              <!-- Sibling of the toggle, never inside it: a checkbox nested in
+                   a <button> is invalid, and its click would collapse the
+                   group instead of selecting it. -->
+              <input
+                v-if="selectable"
+                type="checkbox"
+                class="align-middle accent-primary flex-shrink-0"
+                :aria-label="`Seleccionar los ${group.count} ingresos de ${group.name}`"
+                :data-testid="`income-group-select-${group.id}`"
+                :checked="groupSummary(group.id).all"
+                :indeterminate.prop="groupSummary(group.id).some && !groupSummary(group.id).all"
+                @change="toggleGroupSelection(group, $event.target.checked)"
               >
-                por completar
+              <button
+                type="button"
+                role="columnheader"
+                class="inline-flex items-center gap-2 min-w-0 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+                :aria-expanded="!isCollapsed(group.id)"
+                :aria-controls="`income-group-body-${group.id}`"
+                :data-testid="`income-group-toggle-${group.id}`"
+                @click="emit('toggle-group', group.id)"
+              >
+                <ChevronDownIcon
+                  class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
+                  :class="isCollapsed(group.id) ? '-rotate-90' : ''"
+                />
+                <span class="truncate">{{ group.name }}</span>
+                <span
+                  v-if="group.id === NO_CLIENT_KEY"
+                  class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong whitespace-nowrap"
+                >
+                  por completar
+                </span>
+                <span class="text-xs text-text-subtle font-normal">({{ group.count }})</span>
+              </button>
+              <!-- A collapsed group still counts towards the bulk action, so
+                   it has to say how much of it is selected — otherwise the
+                   confirmation lists rows the operator cannot see. -->
+              <span
+                v-if="selectable && isCollapsed(group.id) && groupSummary(group.id).count > 0"
+                class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-primary-soft text-text-brand whitespace-nowrap"
+                :data-testid="`income-group-selected-${group.id}`"
+              >
+                {{ groupSummary(group.id).count }}
+                seleccionado{{ groupSummary(group.id).count === 1 ? '' : 's' }}
               </span>
-              <span class="text-xs text-text-subtle font-normal">({{ group.count }})</span>
-            </button>
+            </div>
             <span class="text-sm tabular-nums text-text-muted whitespace-nowrap">
               <span class="text-xs text-text-subtle">Facturado </span>
               <span :data-testid="`income-group-billed-${group.id}`">
@@ -111,6 +151,16 @@
               class="accounting-grid-row items-center min-h-9 bg-surface hover:bg-surface-raised transition-colors text-sm"
               :class="row.id === highlightId ? 'accounting-row-flash' : ''"
             >
+              <span v-if="selectable" role="cell" :class="SELECT_PAD">
+                <input
+                  type="checkbox"
+                  class="align-middle accent-primary"
+                  :aria-label="`Seleccionar fila ${row.id}`"
+                  :data-testid="`accounting-select-${row.id}`"
+                  :checked="selectedSet.has(row.id)"
+                  @change="toggleRow(row.id, $event.target.checked)"
+                >
+              </span>
               <span
                 v-for="col in resolved"
                 :key="col.key"
@@ -201,7 +251,9 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
 import { NO_CLIENT_KEY, sumClientGroups } from '~/utils/incomeClients';
+import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
+  SELECT_PAD,
   TABLE_DENSITY,
   minWidthFor,
   resolveColumns,
@@ -221,9 +273,13 @@ const props = defineProps({
   collapsedIds: { type: Array, default: () => [] },
   /** Mirrors AccountingTable: false lets the page own every row action. */
   showActions: { type: Boolean, default: true },
+  /** Opt-in checkbox column, same contract as AccountingTable. */
+  selectable: { type: Boolean, default: false },
+  /** Selected row ids (v-model:selected). */
+  selected: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['edit', 'delete', 'toggle-group']);
+const emit = defineEmits(['edit', 'delete', 'toggle-group', 'update:selected']);
 
 const DENSITY = TABLE_DENSITY;
 
@@ -236,7 +292,7 @@ const resolved = computed(() => resolveColumns(props.columns));
  * its own list as a custom property and a media query picks between them.
  */
 const gridVars = computed(() => {
-  const opts = { hasHandle: false, hasActions: true };
+  const opts = { hasSelect: props.selectable, hasActions: true };
   return {
     '--cols-base': trackListFor(resolved.value, { ...opts, breakpoint: 'base' }),
     '--cols-md': trackListFor(resolved.value, { ...opts, breakpoint: 'md' }),
@@ -245,7 +301,7 @@ const gridVars = computed(() => {
 });
 
 const containerVars = computed(() => {
-  const opts = { hasHandle: false, hasActions: true };
+  const opts = { hasSelect: props.selectable, hasActions: true };
   return {
     '--minw-base': minWidthFor(resolved.value, { ...opts, breakpoint: 'base' }),
     '--minw-md': minWidthFor(resolved.value, { ...opts, breakpoint: 'md' }),
@@ -265,6 +321,47 @@ function money(value) {
 
 function isCollapsed(id) {
   return props.collapsedIds.includes(id);
+}
+
+// ── Row selection (opt-in via `selectable`) ──
+//
+// The scope of a group checkbox is its own rows and the scope of the header
+// one is every group — collapsed included, because a collapsed group keeps
+// counting towards the bulk action. `groups` is built from the FILTERED rows
+// and this view never paginates, so "all" here means the filtered set.
+
+const selectedSet = computed(() => new Set(props.selected));
+
+const groupSummaries = computed(() => new Map(
+  props.groups.map((group) => [
+    group.id,
+    selectionSummary(group.rows.map((row) => row.id), selectedSet.value),
+  ]),
+));
+
+const EMPTY_SUMMARY = { count: 0, all: false, some: false };
+
+function groupSummary(id) {
+  return groupSummaries.value.get(id) || EMPTY_SUMMARY;
+}
+
+const allKeys = computed(
+  () => props.groups.flatMap((group) => group.rows.map((row) => row.id)),
+);
+
+const allSummary = computed(() => selectionSummary(allKeys.value, selectedSet.value));
+
+function toggleRow(id, checked) {
+  emit('update:selected', toggleKeys(props.selected, [id], checked));
+}
+
+function toggleGroupSelection(group, checked) {
+  const keys = group.rows.map((row) => row.id);
+  emit('update:selected', toggleKeys(props.selected, keys, checked));
+}
+
+function toggleAll(checked) {
+  emit('update:selected', toggleKeys(props.selected, allKeys.value, checked));
 }
 
 /** `col` is already resolved, so alignment, padding and visibility come precomputed. */
