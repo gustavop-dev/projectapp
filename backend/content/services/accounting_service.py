@@ -21,7 +21,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce, Greatest
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from content.api_errors import ProposalActionError
 from content.utils import format_cop_email, today_bogota
 from content.models import (
@@ -68,6 +68,7 @@ TRACKED_FIELDS = {
         ('kind', 'Tipo'),
         ('ledger', 'Contabilidad'),
         ('client', 'Cliente'),
+        ('project', 'Proyecto'),
         ('origin', 'Origen'),
         ('period_date', 'Período'),
         ('destination', 'Destino'),
@@ -93,6 +94,7 @@ TRACKED_FIELDS = {
     ],
     EntityType.HOSTING: [
         ('client', 'Cliente vinculado'),
+        ('project', 'Proyecto'),
         ('client_name', 'Cliente'),
         ('client_email', 'Email del cliente'),
         ('client_contact_name', 'Contacto del cliente'),
@@ -218,6 +220,11 @@ def display_value(instance, field_name):
         )
 
         return build_client_display_name(value)
+    if isinstance(value, Project):
+        # Same reason: Project.__str__ is "{name} — {client.email}", so
+        # without this every project change would put a client's address in
+        # the audit table and in the mail both partners receive.
+        return value.name
     if isinstance(value, list):
         return ', '.join(str(item) for item in value)
     if isinstance(value, Decimal):

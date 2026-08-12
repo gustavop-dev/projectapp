@@ -29,12 +29,26 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     origin = serializers.SerializerMethodField()
     origin_label = serializers.SerializerMethodField()
     income_kind = serializers.SerializerMethodField()
+    # The live client relation, which is what the Cliente column sorts and
+    # filters on. `customer_name` stays alongside it as the FROZEN name the
+    # PDF actually printed: the two can legitimately differ on a document
+    # issued before this rule, and the panel shows that rather than hiding it.
+    client = serializers.SerializerMethodField()
+    client_display_name = serializers.SerializerMethodField()
+    # Read from the snapshot, not from `project.name`, so the column can
+    # never disagree with the emitted document.
+    project_name = serializers.CharField(
+        source='collection_account.customer_project_name',
+        read_only=True,
+        default='',
+    )
 
     class Meta:
         model = Document
         fields = (
             'id', 'uuid', 'public_number', 'title',
             'billing_concept', 'customer_name', 'customer_email',
+            'client', 'client_display_name', 'project_name',
             'origin', 'origin_label', 'hosting_record_id', 'project_id',
             'income_record_id', 'income_kind',
             'subtotal', 'tax_total', 'total', 'currency',
@@ -42,6 +56,26 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             'commercial_status', 'commercial_status_label', 'is_overdue',
             'created_at', 'updated_at',
         )
+
+    def _client_profile(self, obj):
+        if not obj.client_user_id:
+            return None
+        return getattr(obj.client_user, 'profile', None)
+
+    def get_client(self, obj):
+        profile = self._client_profile(obj)
+        return profile.pk if profile else None
+
+    def get_client_display_name(self, obj):
+        """None keeps 'sin cliente' distinct from a blank name."""
+        profile = self._client_profile(obj)
+        if profile is None:
+            return None
+        from accounts.services.proposal_client_service import (
+            build_client_display_name,
+        )
+
+        return build_client_display_name(profile)
 
     def get_commercial_status_label(self, obj):
         return STATUS_LABELS.get(obj.commercial_status, obj.commercial_status)
@@ -55,22 +89,36 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
         return None
 
     def get_origin(self, obj):
+        """Which record the cuenta was raised from.
+
+        `project` ranks LAST on purpose. It used to outrank `income`, which
+        was harmless only while nothing populated `Document.project` from the
+        panel; now that a cuenta inherits its income's project, that order
+        would relabel every income-driven cuenta as project-originated and
+        break the origin filter. A project is a dimension every origin
+        carries — only a document with neither hosting nor income is
+        genuinely project-originated, which is the platform/JWT flow.
+        """
         if obj.hosting_record_id:
             return 'hosting'
-        if obj.project_id:
-            return 'project'
         if obj.income_record_id:
             return 'income'
+        if obj.project_id:
+            return 'project'
         return 'other'
 
     def get_origin_label(self, obj):
-        if obj.hosting_record_id and obj.hosting_record:
-            return f'Hosting · {obj.hosting_record.client_name}'
-        if obj.project_id and obj.project:
-            return f'Proyecto · {obj.project}'
-        if obj.income_record_id and obj.income_record:
-            return f'Ingreso · {obj.income_record.concept}'
-        return 'Otro'
+        """The origin TYPE only.
+
+        It used to append the hosting's client, the project or the income's
+        concept — data that now has columns of its own, so repeating it here
+        printed the client twice in every hosting row.
+        """
+        return {
+            'hosting': 'Hosting',
+            'income': 'Ingreso',
+            'project': 'Proyecto',
+        }.get(self.get_origin(obj), 'Otro')
 
 
 class _PanelItemSerializer(serializers.ModelSerializer):

@@ -184,12 +184,22 @@ def list_collection_accounts(request):
     if commercial_status:
         qs = qs.filter(commercial_status=commercial_status)
     origin = params.get('origin')
+    # Mirrors get_origin()'s precedence so the four origins stay a partition.
+    # Since a cuenta now inherits its origin record's project, a bare
+    # project__isnull=False would also match every income- and hosting-driven
+    # row and double-count them.
     if origin == 'hosting':
         qs = qs.filter(hosting_record__isnull=False)
-    elif origin == 'project':
-        qs = qs.filter(project__isnull=False)
     elif origin == 'income':
-        qs = qs.filter(income_record__isnull=False)
+        qs = qs.filter(
+            hosting_record__isnull=True, income_record__isnull=False,
+        )
+    elif origin == 'project':
+        qs = qs.filter(
+            hosting_record__isnull=True,
+            income_record__isnull=True,
+            project__isnull=False,
+        )
     elif origin == 'other':
         qs = qs.filter(
             hosting_record__isnull=True,

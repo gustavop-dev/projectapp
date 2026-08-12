@@ -194,8 +194,8 @@ class TestIncomeLinkedAccounts:
             client_email='nestor@xpandia.global',
             domain_url='https://xpandia.global/',
         )), income)
-        # An income link outranks nothing but hosting/project in get_origin,
-        # so clear the hosting FK to model a modal-created cuenta.
+        # Only hosting outranks an income link in get_origin, so clear the
+        # hosting FK to model a modal-created cuenta.
         Document.objects.filter(pk=document.pk).update(hosting_record=None)
 
         response = super_client.get(
@@ -205,9 +205,40 @@ class TestIncomeLinkedAccounts:
         assert len(response.data['results']) == 1
         row = response.data['results'][0]
         assert row['origin'] == 'income'
-        assert row['origin_label'] == 'Ingreso · Kore - Inicio 40%'
+        assert row['origin_label'] == 'Ingreso'
         assert row['income_record_id'] == income.pk
         assert row['income_kind'] == 'expected'
+
+    def test_a_project_does_not_relabel_an_income_driven_cuenta(
+        self, super_client,
+    ):
+        """A cuenta inherits its income's project; that must not turn its
+        origin into 'project' and drop it out of the income filter."""
+        from accounts.models import Project
+        from django.contrib.auth import get_user_model
+
+        client_user = get_user_model().objects.create_user(
+            username='nestor@xpandia.global', email='nestor@xpandia.global',
+            password='pass12345', first_name='Néstor', last_name='Franco',
+        )
+        income = make_income()
+        document = link_income(issue_for(make_hosting()), income)
+        project = Project.objects.create(name='Xpandia', client=client_user)
+        Document.objects.filter(pk=document.pk).update(
+            hosting_record=None, project=project,
+        )
+
+        response = super_client.get(
+            '/api/accounting/collection-accounts/?origin=income',
+        )
+
+        assert [r['id'] for r in response.data['results']] == [document.pk]
+        assert response.data['results'][0]['origin'] == 'income'
+        # And it must not leak into the project bucket either.
+        projects = super_client.get(
+            '/api/accounting/collection-accounts/?origin=project',
+        )
+        assert projects.data['results'] == []
 
     def test_mark_paid_blocked_while_linked_income_pending(self, super_client):
         income = make_income()
