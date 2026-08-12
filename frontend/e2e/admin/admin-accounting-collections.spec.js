@@ -567,9 +567,11 @@ test.describe('Admin Accounting Collections', () => {
     )).toBe(false);
   });
 
-  test('the row shows Cliente and Proyecto as two separate columns', {
+  test('Cliente and Proyecto are separate columns, each sortable on its own', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the column sort, which IS clicked below)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
 
@@ -578,11 +580,21 @@ test.describe('Admin Accounting Collections', () => {
     const row = page.getByTestId('accounting-row-1');
     await expect(row).toContainText('Germán Franco');
     await expect(row).toContainText('Kore');
+
+    // Sorting by Proyecto alone is what "filtrables y ordenables por
+    // separado" actually means — a shared column could not do this.
+    await page.getByTestId('accounting-sort-project_name').click();
+
+    const projects = page.locator('[data-testid^="accounting-row-"]');
+    await expect(projects.first()).toContainText('Kore');
+    await expect(projects.last()).toContainText('Xpandia');
   });
 
   test('opening the detail shows the linked income and its settlement history', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the detail modal, which IS opened by clicking the row action)
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
@@ -605,6 +617,8 @@ test.describe('Admin Accounting Collections', () => {
   test('the Documento tab embeds the PDF instead of downloading it', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the Documento tab, reached by clicking the row action then the tab)
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
@@ -619,6 +633,8 @@ test.describe('Admin Accounting Collections', () => {
   test('going to the income lands on a tab that does not filter it out', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_DETAIL, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the behaviour under
+    // test is the exit link inside the modal, which IS clicked)
     await mockWithLinkedIncome(page);
     await gotoCollections(page);
 
