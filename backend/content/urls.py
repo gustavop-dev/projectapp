@@ -2,6 +2,7 @@ from django.urls import path
 from content.views.accounting import (
     accounting_dashboard, accounting_stats,
     list_income_records, create_income_record, retrieve_income_record,
+    retrieve_income_detail, list_client_projects,
     settle_income_record, bulk_assign_income_client, mute_income_reminders,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
@@ -500,6 +501,7 @@ urlpatterns = [
 
     path('accounting/incomes/', list_income_records, name='list-income-records'),
     path('accounting/incomes/create/', create_income_record, name='create-income-record'),
+    path('accounting/incomes/<int:record_id>/detail/', retrieve_income_detail, name='retrieve-income-detail'),
     path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
     path('accounting/incomes/<int:record_id>/mute/', mute_income_reminders, name='mute-income-reminders'),
     path('accounting/incomes/bulk-assign-client/', bulk_assign_income_client, name='bulk-assign-income-client'),
@@ -533,6 +535,7 @@ urlpatterns = [
     path('accounting/collection-accounts/preview/', preview_collection_account_view, name='preview-collection-account'),
     path('accounting/collection-accounts/next-number/', collection_account_next_number_view, name='collection-account-next-number'),
     path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),
+    path('accounting/projects/', list_client_projects, name='list-client-projects'),
     path('accounting/collection-accounts/<int:doc_id>/pdf/', collection_account_pdf, name='collection-account-pdf'),
     path('accounting/collection-accounts/<int:doc_id>/resend/', resend_collection_account, name='resend-collection-account'),
     path('accounting/collection-accounts/<int:doc_id>/mark-paid/', mark_collection_account_paid_view, name='mark-collection-account-paid'),

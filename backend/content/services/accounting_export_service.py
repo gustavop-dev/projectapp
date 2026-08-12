@@ -46,6 +46,12 @@ def _hosting_client(record):
     return build_client_display_name(record.client)
 
 
+def _record_project(record):
+    """Linked project's name; blank when the row has none (a cobro por
+    diagnóstico legitimately does)."""
+    return record.project.name if record.project_id else ''
+
+
 def _income_client(record):
     """Client display name; blank for the unassigned rows."""
     if not record.client_id:
@@ -118,6 +124,7 @@ EXPORT_SECTIONS = {
             # Appended, never inserted: the CSV header test pins the first
             # five columns.
             ('Cliente', _income_client),
+            ('Proyecto', _record_project),
             ('Origen', lambda r: r.get_origin_display()),
         ],
     },
@@ -157,6 +164,7 @@ EXPORT_SECTIONS = {
             # Appended, never inserted (same rule as the income section):
             # 'Cliente' above is the billing snapshot, this is the relation.
             ('Cliente vinculado', _hosting_client),
+            ('Proyecto', _record_project),
         ],
     },
     'pocket': {

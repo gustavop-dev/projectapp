@@ -263,7 +263,12 @@ def collection_account_pdf(request, doc_id):
         return error_response('No se pudo generar el PDF.', status=500)
     filename = f'{document.public_number or document.pk}.pdf'
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    # `?inline=1` lets the panel embed the document in a viewer instead of
+    # downloading it — previewing a cuenta should not litter the operator's
+    # Downloads folder. Default stays `attachment` so the download action and
+    # every existing caller keep behaving exactly as before.
+    disposition = 'inline' if request.query_params.get('inline') else 'attachment'
+    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
     return response
 
 

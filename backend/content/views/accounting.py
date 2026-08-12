@@ -16,6 +16,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
+from accounts.models import Project
 from content.api_errors import error_response, error_response_from_exc
 from content.models import (
     AccountingChangeLog,
@@ -24,6 +25,7 @@ from content.models import (
     CardBalanceSnapshot,
     CreditCard,
     CreditCardStatement,
+    Document,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
@@ -243,10 +245,14 @@ _ENTITIES = {
         'search_fields': (
             'concept', 'notes', 'client__company_name',
             'client__user__first_name', 'client__user__last_name',
+            'project__name',
         ),
         'choice_filters': ('kind', 'destination', 'ledger', 'origin'),
-        'null_filters': ('client',),
-        'select_related': ('client', 'client__user'),
+        # `expected_income` is here so the liquid children of one expected
+        # record are finally queryable (?expected_income=<id>); nothing could
+        # reach them from the panel before.
+        'null_filters': ('client', 'project', 'expected_income'),
+        'select_related': ('client', 'client__user', 'project'),
         'has_split': True,
         'pocket_filter': Q(destination=IncomeRecord.Destination.POCKET),
         'payment_status_filter': True,
@@ -284,12 +290,12 @@ _ENTITIES = {
         'search_fields': (
             'client_name', 'domain_url', 'notes',
             'client__company_name', 'client__user__first_name',
-            'client__user__last_name',
+            'client__user__last_name', 'project__name',
         ),
         'choice_filters': ('payment_modality',),
         'bool_filters': ('is_active',),
-        'null_filters': ('client',),
-        'select_related': ('client', 'client__user'),
+        'null_filters': ('client', 'project'),
+        'select_related': ('client', 'client__user', 'project'),
         'meta': _hosting_meta,
     },
     'pocket': {
@@ -567,6 +573,83 @@ def _retrieve_record(request, key, record_id):
     config = _ENTITIES[key]
     instance = get_object_or_404(config['model'], pk=record_id)
     return Response(config['read'](instance).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def retrieve_income_detail(request, record_id):
+    """One income with everything needed to inspect it without leaving the row.
+
+    Its own endpoint rather than a fatter `read` serializer: `config['read']`
+    is shared with the list, the create/update responses and the MCP
+    get_income handler, so nesting three lists there would weigh down every
+    one of them.
+
+    The shape deliberately mirrors the settle endpoint's, so the UI renders
+    one structure for both "just settled" and "opened the detail".
+    """
+    config = _ENTITIES['income']
+    income = get_object_or_404(
+        config['model'].objects.select_related(
+            'client', 'client__user', 'project',
+        ).annotate(**config['annotations']),
+        pk=record_id,
+    )
+    children = income.liquid_records.filter(
+        kind=IncomeRecord.Kind.LIQUID,
+    ).select_related('client', 'client__user', 'project').order_by(
+        'period_date', 'id',
+    )
+    # Deductions credit the gross total without ever arriving as a liquid
+    # child, so the history is incomplete without them.
+    deductions = income.deduction_records.exclude(
+        deduction_type='',
+    ).order_by('period_date', 'id')
+    cuenta = (
+        income.collection_documents
+        .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
+        .order_by('-created_at')
+        .first()
+    )
+    return Response({
+        'income': config['read'](income).data,
+        'liquid': IncomeRecordSerializer(children, many=True).data,
+        'expenses': ExpenseRecordSerializer(deductions, many=True).data,
+        'collection_account': {
+            'id': cuenta.pk,
+            'public_number': cuenta.public_number,
+            'commercial_status': cuenta.commercial_status,
+            'total': cuenta.total,
+            'issue_date': cuenta.issue_date,
+            'due_date': cuenta.due_date,
+        } if cuenta else None,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_client_projects(request):
+    """Projects to pick from, optionally scoped to one client.
+
+    A panel endpoint of its own instead of reusing /api/accounts/projects/:
+    that one speaks User ids while the accounting module speaks UserProfile
+    ids everywhere, it is IsAuthenticated rather than IsSuperUser, and its
+    serializer runs several per-row aggregates that a dropdown has no use for.
+    """
+    qs = Project.objects.all().order_by('name')
+    client_profile_id = request.query_params.get('client')
+    if client_profile_id:
+        # The picker is scoped by UserProfile, the project by User.
+        qs = qs.filter(client__profile__id=client_profile_id)
+    return Response({'results': [
+        {
+            'id': project.pk,
+            'name': project.name,
+            'status': project.status,
+            'status_label': project.status_display,
+        }
+        for project in qs
+    ]})
 
 
 def _update_record(request, key, record_id):
