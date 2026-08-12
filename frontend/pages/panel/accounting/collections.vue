@@ -45,10 +45,54 @@
       />
     </div>
 
-    <!-- Status filter -->
-    <div class="mb-5">
-      <BaseSegmented v-model="statusFilter" :options="statusOptions" />
+    <!-- Quick + saved filter tabs -->
+    <ProposalFilterTabs
+      :tabs="displayTabs"
+      :active-tab-id="filterTabId"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="selectFilterTab"
+      @create="handleCreateFilterTab"
+      @rename="renameFilterTab"
+      @delete="deleteFilterTab"
+      @restore="restoreFilterTab"
+      @rebase="rebaseFilterTab"
+    />
+
+    <!-- Search + filter toggle -->
+    <div class="flex items-center gap-2 mb-5">
+      <BaseInput
+        v-model="searchInput"
+        type="text"
+        placeholder="Buscar por número, cliente, proyecto o concepto..."
+        data-testid="collections-search-input"
+        class="w-full sm:max-w-xs"
+      />
+      <UiFilterToggleButton
+        :open="isFilterPanelOpen"
+        :count="activeFilterCount"
+        @click="isFilterPanelOpen = !isFilterPanelOpen"
+      />
+      <!-- The status bar stays out of the panel: it is the day-to-day
+           control and the panel is collapsed by default. -->
+      <BaseSegmented
+        v-model="currentFilters.status"
+        :options="statusOptions"
+        size="sm"
+        class="ml-auto"
+      />
     </div>
+
+    <!-- Filter panel -->
+    <AccountingFilterPanel
+      :fields="filterFields"
+      :model-value="currentFilters"
+      :is-open="isFilterPanelOpen"
+      :results-count="filteredRows.length"
+      :search-value="currentFilters.search"
+      @update:model-value="Object.assign(currentFilters, $event)"
+      @reset="handleResetFilters"
+      @clear-search="searchInput = ''"
+    />
 
     <!-- Error -->
     <AccountingErrorState
@@ -61,8 +105,10 @@
     <!-- Empty -->
     <BaseEmptyState
       v-else-if="!store.isLoading && filteredRows.length === 0"
-      title="Sin cuentas de cobro"
-      description="Crea la primera con 'Nueva cuenta de cobro', desde un ingreso en el tab Ingresos, o desde Hostings con 'Enviar cuenta de cobro'."
+      :title="hasActiveFilters ? 'Sin resultados con esos filtros' : 'Sin cuentas de cobro'"
+      :description="hasActiveFilters
+        ? 'Ajusta o limpia los filtros para ver más registros.'
+        : `Crea la primera con 'Nueva cuenta de cobro', desde un ingreso en el tab Ingresos, o desde Hostings con 'Enviar cuenta de cobro'.`"
     >
       <BaseButton variant="primary" data-testid="collection-empty-create" @click="openCreateModal">
         Nueva cuenta de cobro
@@ -240,6 +286,8 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import CollectionAccountDetailModal from '~/components/accounting/CollectionAccountDetailModal.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
@@ -248,6 +296,11 @@ import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import {
+  useAccountingFilters,
+  matchDateRange,
+  matchNumberRange,
+} from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useAccountingStore } from '~/stores/accounting';
 import { get_request } from '~/stores/services/request_http';
@@ -270,7 +323,6 @@ function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');
 }
 
-const statusFilter = ref('');
 const statusOptions = [
   { value: '', label: 'Todas' },
   { value: 'issued', label: 'Emitidas' },
@@ -279,12 +331,137 @@ const statusOptions = [
   { value: 'cancelled', label: 'Anuladas' },
 ];
 
-const filteredRows = computed(() => {
-  const rows = store.collectionAccounts;
-  if (!statusFilter.value) return rows;
-  if (statusFilter.value === 'overdue') return rows.filter((row) => row.is_overdue);
-  return rows.filter((row) => row.commercial_status === statusFilter.value);
+const NO_CLIENT_KEY = 'none';
+const NO_PROJECT_KEY = 'none';
+
+const matchClients = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (record.client == null) return value.includes(NO_CLIENT_KEY);
+  return value.includes(record.client);
+};
+matchClients.keys = ['clients'];
+
+const matchProjects = (record, value) => {
+  if (!Array.isArray(value) || value.length === 0) return true;
+  if (!record.project_name) return value.includes(NO_PROJECT_KEY);
+  return value.includes(record.project_name);
+};
+matchProjects.keys = ['projects'];
+
+// `overdue` is a computed serializer field, not a commercial_status value,
+// so matchEquals cannot express it.
+const matchCommercialStatus = (record, value) => {
+  if (!value) return true;
+  if (value === 'overdue') return Boolean(record.is_overdue);
+  return record.commercial_status === value;
+};
+matchCommercialStatus.keys = ['status'];
+
+const {
+  currentFilters,
+  searchInput,
+  displayTabs,
+  activeTabId: filterTabId,
+  isFilterPanelOpen,
+  hasActiveFilters,
+  activeFilterCount,
+  isTabLimitReached,
+  applyFilters,
+  resetFilters,
+  selectTab: selectFilterTab,
+  saveTab,
+  deleteTab: deleteFilterTab,
+  renameTab: renameFilterTab,
+  restoreTab: restoreFilterTab,
+  rebaseTab: rebaseFilterTab,
+} = useAccountingFilters({
+  viewName: 'accounting_collections',
+  builtinTabs: [
+    { id: 'open', name: 'Por cobrar', filters: { status: 'issued' } },
+    { id: 'overdue', name: 'Vencidas', filters: { status: 'overdue' } },
+    { id: 'no-project', name: 'Sin proyecto', filters: { projects: [NO_PROJECT_KEY] } },
+  ],
+  // 'all', never a narrowing builtin: this is the page other tabs deep-link
+  // INTO, and Ingresos landing on its own builtin is exactly what made a
+  // focused row arrive filtered out of its own list.
+  defaultTabId: 'all',
+  defaults: {
+    clients: [],
+    projects: [],
+    status: '',
+    issueAfter: '',
+    issueBefore: '',
+    totalMin: '',
+    totalMax: '',
+  },
+  matchers: {
+    clients: matchClients,
+    projects: matchProjects,
+    status: matchCommercialStatus,
+    issue: matchDateRange('issue_date', 'issueAfter', 'issueBefore'),
+    total: matchNumberRange('total', 'totalMin', 'totalMax'),
+  },
+  searchFields: [
+    'public_number', 'client_display_name', 'project_name',
+    'billing_concept', 'customer_name',
+  ],
 });
+
+const filteredRows = computed(() => applyFilters(store.collectionAccounts));
+
+/** Derived from the loaded rows, like every other accounting tab. */
+const clientFilterOptions = computed(() => {
+  const seen = new Map();
+  store.collectionAccounts.forEach((row) => {
+    if (row.client != null && !seen.has(row.client)) {
+      seen.set(row.client, row.client_display_name || `Cliente #${row.client}`);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_CLIENT_KEY, label: 'Sin cliente' }, ...options];
+});
+
+// Keyed by name, not id: `project_name` is the frozen snapshot the row
+// carries, so the document and the filter can never disagree.
+const projectFilterOptions = computed(() => {
+  const seen = new Set();
+  store.collectionAccounts.forEach((row) => {
+    if (row.project_name) seen.add(row.project_name);
+  });
+  const options = [...seen]
+    .map((name) => ({ value: name, label: name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options];
+});
+
+const filterFields = computed(() => [
+  {
+    kind: 'multi', key: 'clients', label: 'Cliente',
+    options: clientFilterOptions.value,
+  },
+  {
+    kind: 'multi', key: 'projects', label: 'Proyecto',
+    options: projectFilterOptions.value,
+  },
+  {
+    kind: 'daterange', label: 'Emisión',
+    minKey: 'issueAfter', maxKey: 'issueBefore',
+  },
+  {
+    kind: 'range', label: 'Total',
+    minKey: 'totalMin', maxKey: 'totalMax', type: 'money',
+  },
+]);
+
+function handleCreateFilterTab(name) {
+  return saveTab(name);
+}
+
+function handleResetFilters() {
+  resetFilters();
+}
 
 const overdueCount = computed(
   () => store.collectionAccounts.filter((row) => row.is_overdue).length,
