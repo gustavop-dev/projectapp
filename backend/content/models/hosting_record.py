@@ -39,6 +39,18 @@ class HostingRecord(AccountingRecordBase):
         related_name='hosting_records',
         limit_choices_to={'role': 'client'},
     )
+    # The project this hosting serves. The house convention crammed it into
+    # `client_name` as `Persona - Marca` ("German - Kore"); this is the half
+    # that was never a client. SET_NULL for the same reason as on incomes:
+    # the project is a label, and `delete_fake_data` deletes projects before
+    # the accounting sweep.
+    project = models.ForeignKey(
+        'accounts.Project',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='hosting_records',
+    )
     # Billing snapshot: what the cuenta de cobro prints and mails. Filled
     # from the linked client and editable afterwards, because the billing
     # contact may legitimately differ from the account holder. The FK above
@@ -82,6 +94,7 @@ class HostingRecord(AccountingRecordBase):
         ordering = ['client_name']
         indexes = [
             models.Index(fields=['client']),
+            models.Index(fields=['project']),
         ]
 
     @property

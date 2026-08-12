@@ -31,8 +31,20 @@ from content.services.document_type_utils import (
 PAYMENT_TERM_DAYS = 8
 
 
-def customer_snapshot_defaults(profile):
-    """Editable snapshot prefill from the client profile (NIT over cédula)."""
+def client_legal_identity(profile):
+    """Who the cuenta de cobro is legally issued to.
+
+    The name has to agree with the identification printed beside it: a NIT
+    belongs to a company, a cédula to a person. Preferring `company_name`
+    unconditionally — as this did — printed a brand next to a personal
+    cédula, which is what made a cobro read "MIMITTOS · C.C. 1049654583"
+    while the actual debtor's name sat unused in `contact_name`.
+
+    `company_name` is where operators keep the brand, so it is exactly the
+    field that must NOT decide the legal name on its own.
+
+    Returns (name, identification, identification_type, contact_name).
+    """
     user = profile.user
     full_name = f'{user.first_name} {user.last_name}'.strip()
     if profile.nit:
@@ -41,9 +53,33 @@ def customer_snapshot_defaults(profile):
         identification, identification_type = profile.cedula, 'CC'
     else:
         identification, identification_type = '', ''
+    name = legal_name_for(profile) or (user.email or '')
+    return name, identification, identification_type, full_name
+
+
+def legal_name_for(profile):
+    """The client's legal name by identification type, or '' when unknown.
+
+    Split out from `client_legal_identity` because the numbering code needs
+    the name WITHOUT its email fallback: falling back to a full address
+    there would yield a code like 'ANAACMEC' instead of dropping through to
+    the email local part.
+    """
+    user = profile.user
+    full_name = f'{user.first_name} {user.last_name}'.strip()
+    if profile.nit:
+        return profile.company_name or full_name
+    return full_name or profile.company_name
+
+
+def customer_snapshot_defaults(profile):
+    """Editable snapshot prefill from the client profile (NIT over cédula)."""
+    name, identification, identification_type, full_name = (
+        client_legal_identity(profile)
+    )
     return {
-        'name': profile.company_name or full_name or (user.email or ''),
-        'email': user.email or '',
+        'name': name,
+        'email': profile.user.email or '',
         'identification': identification,
         'identification_type': identification_type,
         'contact_name': full_name,
@@ -120,6 +156,11 @@ def create_income_collection_account(data, *, acting_user=None):
         income.client = profile
 
     customer = _resolve_customer(profile, data.get('customer'))
+    # The cuenta inherits the project from its income exactly as it inherits
+    # the client: the income is the origin record, and the two must never
+    # disagree about which deal is being charged.
+    if income.project_id:
+        customer['project_name'] = income.project.name
     billing_concept = (
         (data.get('billing_concept') or '').strip() or income.concept
     )
@@ -130,6 +171,7 @@ def create_income_collection_account(data, *, acting_user=None):
         commercial_status=Document.CommercialStatus.DRAFT,
         client_user=client,
         income_record=income,
+        project=income.project,
         client_name=customer['name'],
         currency=(data.get('currency') or 'COP').upper(),
         city=data.get('city') or '',

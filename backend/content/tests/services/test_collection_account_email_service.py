@@ -10,6 +10,7 @@ from decimal import Decimal
 import pytest
 from accounts.models import UserProfile
 from django.contrib.auth import get_user_model
+from freezegun import freeze_time
 
 from content.models import CompanySettings, Document, IncomeRecord, IssuerProfile
 from content.services.collection_account_email_service import (
@@ -157,8 +158,12 @@ class TestBuildCollectionAccountEmail:
         assert 'Fecha límite de pago: <strong style="font-weight:500;">' in html
         assert '<strong style="font-weight:500;">00774149350</strong>' in html
 
+    @freeze_time('2026-08-11')
     def test_gives_the_payment_deadline_a_line_of_its_own(self, super_client):
         """Fails if the deadline goes back to riding along on the amount's line, where it was invisible."""
+        # Frozen because the deadline is issue date + PAYMENT_TERM_DAYS: the
+        # assertion below is a literal date, so without this the test starts
+        # failing the day after it was written.
         document = create_document(super_client, items=PERIOD_ITEMS)
 
         sections = build_collection_account_email(document)['sections']

@@ -27,6 +27,9 @@ from content.services.collection_account_email_service import (
     TEMPLATE_KEY,
     send_collection_account_email,
 )
+from content.services.collection_account_create_service import (
+    client_legal_identity,
+)
 from content.services.collection_account_numbering import allocate_client_number
 from content.services.collection_account_service import (
     CollectionAccountError,
@@ -81,6 +84,7 @@ def create_hosting_collection_account(hosting, *, acting_user=None):
         commercial_status=Document.CommercialStatus.DRAFT,
         hosting_record=hosting,
         client_user=hosting.client.user if hosting.client_id else None,
+        project=hosting.project,
         currency='COP',
         created_by=acting_user,
         updated_by=acting_user,
@@ -145,16 +149,37 @@ def send_hosting_collection_account(hosting, *, acting_user=None):
     allocator = (
         (lambda: allocate_client_number(profile, issuer)) if profile else None
     )
+    # `client_name` is a free-text label following the house convention
+    # `Persona - Marca` ("German - Kore"), so using it as the legal name put
+    # a person and a brand fused together on the cobro. With a client linked,
+    # the legal holder comes from the profile — the same rule the panel flow
+    # uses — and the brand half now travels as the project line instead.
+    # Unlinked legacy records keep the label: it is all they have.
+    if profile:
+        legal_name, legal_id, legal_id_type, contact = client_legal_identity(
+            profile,
+        )
+    else:
+        legal_name, legal_id, legal_id_type, contact = (
+            hosting.client_name,
+            hosting.client_identification,
+            '',
+            hosting.client_contact_name,
+        )
     try:
         issue_collection_account(
             document,
             issuer=issuer,
             acting_user=acting_user,
             customer={
-                'name': hosting.client_name,
+                'name': legal_name,
                 'email': recipient,
-                'identification': hosting.client_identification,
-                'contact_name': hosting.client_contact_name,
+                'identification': hosting.client_identification or legal_id,
+                'identification_type': legal_id_type,
+                'contact_name': hosting.client_contact_name or contact,
+                'project_name': (
+                    hosting.project.name if hosting.project_id else ''
+                ),
             },
             number_allocator=allocator,
         )

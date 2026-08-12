@@ -36,6 +36,14 @@ class DocumentCollectionAccount(models.Model):
     customer_contact_name = models.CharField(max_length=255, blank=True, default='')
     customer_email = models.EmailField(blank=True, default='')
     customer_address = models.CharField(max_length=512, blank=True, default='')
+    # The brand/project the cobro is for, printed on its own line so it never
+    # again has to masquerade as the client's name. Snapshot rather than a
+    # live read of `Document.project`: that FK is SET_NULL, so deleting a
+    # project would silently erase the line from a reprint of an already
+    # issued document.
+    customer_project_name = models.CharField(
+        max_length=200, blank=True, default='',
+    )
 
     observations = models.TextField(blank=True, default='')
     support_reference = models.CharField(max_length=512, blank=True, default='')
