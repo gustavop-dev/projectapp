@@ -24,7 +24,10 @@ class DocumentItem(models.Model):
         choices=ItemType.choices,
         default=ItemType.SERVICE,
     )
-    description = models.CharField(max_length=1024)
+    # TextField, not CharField: the panel lets the operator write the detalle
+    # of a cuenta de cobro as several paragraphs (which requirements were
+    # attended), and 1024 characters did not hold an enumeration.
+    description = models.TextField()
     quantity = models.DecimalField(max_digits=14, decimal_places=4, default=1)
     unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)

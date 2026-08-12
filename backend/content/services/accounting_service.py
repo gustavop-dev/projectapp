@@ -260,7 +260,9 @@ def object_repr(entity_type, instance):
     if entity_type in (EntityType.INCOME, EntityType.EXPENSE, EntityType.POCKET):
         return instance.concept
     if entity_type == EntityType.HOSTING:
-        return instance.client_name
+        # Both halves: the audit row has to stay recognisable years later,
+        # and either one alone is ambiguous across a client's hostings.
+        return instance.display_label
     if entity_type == EntityType.RECURRING:
         return instance.name
     if entity_type == EntityType.ADS:
@@ -425,6 +427,10 @@ def _refresh_hosting_snapshot(record):
     ``client_email`` routes the cuenta de cobro to the wrong inbox. Mutates
     the instance and returns the changed field names for update_fields;
     unlinking keeps the snapshot (it is the historical billing record).
+
+    ``project_name`` is deliberately NOT in this set: it is what the client
+    bought, not how they are billed. Refreshing it from the profile would
+    erase the brand on every reassignment — the bug the split fixed.
     """
     if record.client_id is None:
         return []

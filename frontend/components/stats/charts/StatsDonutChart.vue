@@ -39,6 +39,12 @@ const props = defineProps({
   /** Override slice colors; defaults to the categorical ramp. */
   colors: { type: Array, default: null },
   emptyTitle: { type: String, default: 'Sin datos para distribuir' },
+  /**
+   * Caption above the figure in the center. Says WHICH total that figure is,
+   * which stops meaning "everything" as soon as the consumer filters the set.
+   * Keep it short: Apex does not wrap the center label.
+   */
+  totalLabel: { type: String, default: 'Total' },
   /** Replaces the tooltip's value line when the default figure is not enough. */
   tooltipValueFormatter: { type: Function, default: null },
   /** Apex chart id, required only to drive `ApexCharts.exec` (image export). */
@@ -90,7 +96,7 @@ const options = computed(() => ({
           show: true,
           total: {
             show: true,
-            label: 'Total',
+            label: props.totalLabel,
             formatter: (w) =>
               totalFormatter.value(
                 w.globals.seriesTotals.reduce((sum, value) => sum + value, 0),

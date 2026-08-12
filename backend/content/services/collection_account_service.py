@@ -142,7 +142,12 @@ def allocate_public_number(issuer):
     return f'{prefix}-{year}-{seq.last_value:04d}'
 
 
-def _resolve_client_user(document):
+def resolve_client_user(document):
+    """The client behind a document: linked directly, or through its project.
+
+    Public because the numbering helper answers "whose series is this?" from
+    the same two places, and the two answers must never diverge.
+    """
     if document.client_user_id:
         return document.client_user
     if document.project_id:
@@ -231,7 +236,7 @@ def issue_collection_account(
             raise CollectionAccountError('customer requires name and email.')
         _fill_customer_from_data(ext, customer)
     else:
-        client_user = _resolve_client_user(document)
+        client_user = resolve_client_user(document)
         if not client_user:
             raise CollectionAccountError('client_user or project with client is required to issue.')
         _fill_customer_from_user(

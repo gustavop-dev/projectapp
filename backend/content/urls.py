@@ -33,6 +33,7 @@ from content.views.collection_accounts_panel import (
     cancel_collection_account_view,
     collection_account_next_number_view,
     collection_account_pdf,
+    collection_account_preview_pdf_view,
     create_collection_account_view,
     list_collection_accounts,
     mark_collection_account_paid_view,
@@ -547,6 +548,9 @@ urlpatterns = [
     path('accounting/collection-accounts/', list_collection_accounts, name='list-collection-accounts'),
     path('accounting/collection-accounts/create/', create_collection_account_view, name='create-collection-account'),
     path('accounting/collection-accounts/preview/', preview_collection_account_view, name='preview-collection-account'),
+    # No trailing slash: the last segment has to BE the consecutivo, because a
+    # viewer that ignores Content-Disposition names the download after the URL.
+    path('accounting/collection-accounts/preview/<str:token>/<str:filename>', collection_account_preview_pdf_view, name='collection-account-preview-pdf'),
     path('accounting/collection-accounts/next-number/', collection_account_next_number_view, name='collection-account-next-number'),
     path('accounting/collection-accounts/<int:doc_id>/', retrieve_collection_account, name='retrieve-collection-account'),
     path('accounting/projects/', list_client_projects, name='list-client-projects'),

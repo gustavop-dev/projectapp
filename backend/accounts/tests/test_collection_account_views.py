@@ -1,4 +1,6 @@
 """Tests for accounts/collection_account_views.py — all functions untested."""
+import re
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -225,6 +227,50 @@ class TestUpdateCollectionAccount:
         )
 
         assert response.status_code in (403, 404)
+
+
+# ---------------------------------------------------------------------------
+# collection_account_issue_view — numbering
+# ---------------------------------------------------------------------------
+
+class TestIssueNumbering:
+    """One client, one consecutivo — whichever surface issues the cuenta.
+
+    The platform used to fall through to the legacy per-issuer series while
+    the panel and hosting flows numbered per client, so the same client ended
+    up with two parallel numberings.
+    """
+
+    def _issue(self, admin_client, client_user):
+        created = admin_client.post(
+            BASE_URL,
+            data=_create_payload(client_user_id=client_user.id),
+            format='json',
+        )
+        return admin_client.post(f'{BASE_URL}{created.json()["id"]}/issue/')
+
+    def test_issue_joins_the_client_own_series(self, admin_client, client_user_obj):
+        profile = client_user_obj.profile
+        profile.company_name = 'Torrios'
+        profile.save(update_fields=['company_name'])
+
+        response = self._issue(admin_client, client_user_obj)
+
+        assert response.status_code == 200, response.json()
+        assert response.json()['public_number'] == 'PA-TORRIOS-001'
+
+    def test_client_without_profile_keeps_the_legacy_series(self, admin_client):
+        bare = User.objects.create_user(
+            username='ca2-bare@test.com',
+            email='ca2-bare@test.com',
+            password='pass12345',
+        )
+
+        response = self._issue(admin_client, bare)
+
+        assert response.status_code == 200, response.json()
+        number = response.json()['public_number']
+        assert re.fullmatch(r'PA-\d{4}-\d{4}', number), number
 
 
 # ---------------------------------------------------------------------------

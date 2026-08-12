@@ -339,6 +339,70 @@ class TestCreateProposalClient:
         assert response.data['is_email_placeholder'] is True
         assert response.data['email'].endswith('@temp.example.com')
 
+    def test_create_persists_the_billing_identity(self, admin_client):
+        # Parity with the edit form: the pair used to be dropped in silence, so
+        # a client had to be created and then immediately edited.
+        response = admin_client.post(
+            reverse('create-proposal-client'),
+            {
+                'name': 'G&M', 'email': 'gym@example.com',
+                'nit': '901234567-1', 'billing_code': 'g&m',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 201
+        profile = UserProfile.objects.get(pk=response.data['id'])
+        assert profile.nit == '901234567-1'
+        assert profile.billing_code == 'G&M'
+
+    def test_create_without_a_code_stores_null_not_blank(self, admin_client):
+        # `billing_code` is unique, so a second '' would hit the constraint.
+        first = admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Sin Codigo Uno', 'email': 'uno@example.com'},
+            format='json',
+        )
+        second = admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Sin Codigo Dos', 'email': 'dos@example.com'},
+            format='json',
+        )
+
+        assert (first.status_code, second.status_code) == (201, 201)
+        assert UserProfile.objects.get(pk=first.data['id']).billing_code is None
+        assert UserProfile.objects.get(pk=second.data['id']).billing_code is None
+
+    def test_create_rejects_a_code_that_would_break_the_document_chain(
+        self, admin_client,
+    ):
+        response = admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Barra', 'email': 'barra@example.com', 'billing_code': 'G/M'},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'invalid_billing_code'
+        assert not UserProfile.objects.filter(user__email='barra@example.com').exists()
+
+    def test_create_rejects_a_code_another_client_already_holds(self, admin_client):
+        admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Primero', 'email': 'primero@example.com', 'billing_code': 'G&M'},
+            format='json',
+        )
+
+        response = admin_client.post(
+            reverse('create-proposal-client'),
+            {'name': 'Segundo', 'email': 'segundo@example.com', 'billing_code': 'G&M'},
+            format='json',
+        )
+
+        # A clean 400, not the IntegrityError the unique column would raise.
+        assert response.status_code == 400
+        assert response.data['error'] == 'billing_code_taken'
+
     def test_create_rejects_completely_empty_payload(self, admin_client):
         response = admin_client.post(
             reverse('create-proposal-client'), {}, format='json',

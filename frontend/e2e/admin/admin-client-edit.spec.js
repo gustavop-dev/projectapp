@@ -111,6 +111,33 @@ test.describe('Admin Client Edit Modal', () => {
     expect(capturedPayload.name).toBe('Laura Pérez Actualizada');
   });
 
+  test('round-trips a billing code carrying an ampersand', {
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // G&M is a real trade name. The field used to reject `&`, so the code for
+    // this client could not be written as it is actually spelled.
+    let capturedPayload = null;
+    await setupMock(page, {
+      onUpdate: (route) => {
+        capturedPayload = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockClients[0], billing_code: 'G&M' }),
+        };
+      },
+    });
+    await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId('client-edit-301').click();
+    await page.getByTestId('clients-edit-billing-code').fill('g&m');
+    await page.getByTestId('clients-edit-submit').click();
+
+    await expect(page.getByTestId('clients-edit-name')).not.toBeVisible({ timeout: 5_000 });
+    expect(capturedPayload.billing_code).toBe('G&M');
+  });
+
   test('surfaces server error when update returns 400', {
     tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {

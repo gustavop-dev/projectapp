@@ -15,6 +15,10 @@ import { UNCATEGORIZED_KEY, UNCATEGORIZED_LABEL, sumMonthlyCop } from '~/utils/r
 export const OTHER_CATEGORIES_KEY = 'other-categories';
 export const OTHER_CATEGORIES_LABEL = 'Otras categorías';
 
+/** Same, for the items of a single category once the donut drills into one. */
+export const OTHER_ITEMS_KEY = 'other-items';
+export const OTHER_ITEMS_LABEL = 'Otros ítems';
+
 const DAYS_IN_MONTH_MAX = 31;
 
 /**
@@ -88,18 +92,25 @@ export function totalsByCategory(rows = [], categories = []) {
 }
 
 /**
- * Collapse the category buckets the palette cannot color into a single
- * "Otras categorías" slice.
+ * Collapse the buckets the palette cannot color into a single trailing slice.
  *
- * Which ones fold is decided by position in the catalog, not by weight: a
- * weight-based tail would reshuffle the donut every time a filter changes
- * the ranking. The operator already controls the catalog order by dragging,
- * so they control which categories keep a hue.
+ * The reason to fold is palette exhaustion, which is true of any bucket list:
+ * categories in the general view, and the items of one category once the donut
+ * drills into it — hence the caller-supplied key and label.
  *
- * Only the CHART folds — the legend keeps listing every category with its own
+ * Which ones fold is decided by position, not by weight: a weight-based tail
+ * would reshuffle the donut every time a filter changes the ranking. For
+ * categories the position is the catalog order the operator drags, so they
+ * control which categories keep a hue.
+ *
+ * Only the CHART folds — the legend keeps listing every bucket with its own
  * value, because it doubles as the table view and nothing may be hidden there.
  */
-export function foldChartBuckets(buckets = [], slotCount = 4) {
+export function foldChartBuckets(
+  buckets = [],
+  slotCount = 4,
+  { key = OTHER_CATEGORIES_KEY, label = OTHER_CATEGORIES_LABEL } = {},
+) {
   if (buckets.length <= slotCount) return [...buckets];
 
   const kept = buckets.slice(0, slotCount);
@@ -108,13 +119,13 @@ export function foldChartBuckets(buckets = [], slotCount = 4) {
   return [
     ...kept,
     {
-      key: OTHER_CATEGORIES_KEY,
-      id: OTHER_CATEGORIES_KEY,
+      key,
+      id: key,
       // A single folded bucket keeps its own name: calling one leftover
       // category "Otras categorías (1)" hides a name the reader could have had.
       name: folded.length === 1
         ? folded[0].name
-        : `${OTHER_CATEGORIES_LABEL} (${folded.length})`,
+        : `${label} (${folded.length})`,
       total: folded.reduce((sum, bucket) => sum + bucket.total, 0),
       pct: folded.reduce((sum, bucket) => sum + bucket.pct, 0),
     },

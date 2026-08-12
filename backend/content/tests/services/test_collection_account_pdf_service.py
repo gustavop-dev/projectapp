@@ -18,7 +18,10 @@ from content.models import (
     DocumentPaymentMethod,
     IssuerProfile,
 )
-from content.services.collection_account_pdf_service import CollectionAccountPdfService
+from content.services.collection_account_pdf_service import (
+    CollectionAccountPdfService,
+    _wrap,
+)
 from content.services.document_type_utils import (
     get_collection_account_document_type,
     get_markdown_document_type,
@@ -459,3 +462,87 @@ def test_generate_omits_the_payment_block_when_no_method_is_configured(
 
     assert 'Formas de pago' not in text
     assert 'Total (COP): $1.490.000' in text
+
+
+_LONG_DESCRIPTION = (
+    'Requerimientos atendidos en el ciclo:\n'
+    '\n'
+    '- Ajuste del formulario de cotización para aceptar descuentos por línea, '
+    'con validación del tope autorizado por el asesor.\n'
+    '- Reporte mensual de ventas por asesor, exportable a Excel y filtrable '
+    'por sucursal y rango de fechas.\n'
+    '\n'
+    'Se acompañó la puesta en producción y se dejó documentado el flujo en el '
+    'manual interno.'
+)
+
+
+def test_generate_prints_the_long_description_in_the_detail_block(
+    issuer, project, client_user,
+):
+    """The detalle carries what was actually done, over several lines, while
+    the concepto corto keeps heading the document. One field could not do both:
+    it printed the same short string as title and as description."""
+    doc = _billable_document(issuer, project, client_user)
+    doc.items.update(description=_LONG_DESCRIPTION)
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+    text = ''.join(page.extract_text() for page in reader.pages)
+
+    # Wrapping puts its own newlines in, so sentences are matched on the text
+    # flattened to single spaces; line structure is asserted separately below.
+    flat = ' '.join(text.split())
+
+    # The concepto still heads the document...
+    assert 'Hosting agosto 2026' in flat
+    # ...and the description reaches the page whole, to its last word.
+    assert 'Requerimientos atendidos en el ciclo:' in flat
+    assert 'aceptar descuentos por línea' in flat
+    assert 'exportable a Excel y filtrable por sucursal' in flat
+    assert 'se dejó documentado el flujo en el manual interno' in flat
+
+    # The authored line breaks survived: the second bullet opens a line of its
+    # own instead of flowing into the end of the first one.
+    lines = [line.strip() for line in text.split('\n')]
+    assert any(
+        line.startswith('- Reporte mensual de ventas por asesor')
+        for line in lines
+    )
+    # It grew the page instead of spilling onto a second sheet.
+    assert len(reader.pages) == 1
+
+
+def test_generate_grows_the_page_to_fit_the_long_description(
+    issuer, project, client_user,
+):
+    """The sheet is cut to its content, so a longer descripción has to make a
+    taller page — not a clipped one and not a second sheet."""
+    short = _billable_document(issuer, project, client_user)
+    long = _billable_document(issuer, project, client_user)
+    long.items.update(description=_LONG_DESCRIPTION)
+
+    short_page = PdfReader(
+        io.BytesIO(CollectionAccountPdfService.generate(short)),
+    ).pages[0]
+    long_page = PdfReader(
+        io.BytesIO(CollectionAccountPdfService.generate(long)),
+    ).pages[0]
+
+    assert float(long_page.mediabox.height) > float(short_page.mediabox.height)
+    assert float(long_page.mediabox.width) == pytest.approx(
+        float(short_page.mediabox.width),
+    )
+
+
+def test_wrap_breaks_on_authored_newlines_without_carrying_the_carriage_return():
+    """A textarea can hand the backend CRLF. Left alone the \\r rides along to
+    the end of the drawn line, where a font without that glyph paints a box."""
+    assert _wrap('Primera línea\r\nSegunda línea', 'regular', 8, 400) == [
+        'Primera línea', 'Segunda línea',
+    ]
+    # A blank line comes back as an empty chunk: that is the paragraph break,
+    # and reportlab's own splitter drops it.
+    assert _wrap('Uno\n\nDos', 'regular', 8, 400) == ['Uno', '', 'Dos']
+    # A missing value still consumes no vertical space.
+    assert _wrap('', 'regular', 8, 400) == []
+    assert _wrap(None, 'regular', 8, 400) == []

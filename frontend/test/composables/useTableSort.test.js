@@ -70,4 +70,21 @@ describe('useTableSort', () => {
       'Enero 2026',
     ]);
   });
+
+  it('sorts by a value the row does not carry as a field', () => {
+    // What the Cliente column needs: the linked name when there is one,
+    // the legacy snapshot while the link is still pending.
+    const rows = [
+      { id: 1, linked_name: null, snapshot: 'Zulema' },
+      { id: 2, linked_name: 'Ana', snapshot: 'ignored' },
+      { id: 3, linked_name: null, snapshot: 'Mario' },
+    ];
+    const sort = useTableSort(computed(() => rows), {
+      sortAccessors: { client: (row) => row.linked_name || row.snapshot },
+    });
+
+    sort.toggleSort('client');
+
+    expect(sort.sortedRecords.value.map((r) => r.id)).toEqual([2, 3, 1]);
+  });
 });

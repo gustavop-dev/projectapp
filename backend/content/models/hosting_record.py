@@ -91,7 +91,13 @@ class HostingRecord(AccountingRecordBase):
     billing_requested_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['client_name']
+        # Two keys now that the project left `client_name`: a client with
+        # more than one hosting used to be ordered by the project hiding
+        # inside the string, and on the client half alone the tie would be
+        # DB-arbitrary — the list and the export would shuffle per request.
+        # The second key traverses the relation (`project_name` is a property
+        # now, and Meta.ordering only takes real fields and lookups).
+        ordering = ['client_name', 'project__name']
         indexes = [
             models.Index(fields=['client']),
             models.Index(fields=['project']),
@@ -117,6 +123,26 @@ class HostingRecord(AccountingRecordBase):
         if email and not email.endswith(UserProfile.PLACEHOLDER_EMAIL_DOMAIN):
             return email
         return ''
+
+    @property
+    def project_name(self):
+        """The linked project's name, or '' — same convention the income
+        serializer follows (`source='project.name'`)."""
+        return self.project.name if self.project_id else ''
+
+    @property
+    def display_label(self):
+        """Client and project rejoined, for the screens that need to
+        recognise the row at a glance (expiry notices, origin labels).
+
+        The em dash is deliberate: `client_name` splits on ' - ', so
+        rejoining with the same separator would make the label look like a
+        value that still needs splitting.
+        """
+        project = self.project_name
+        if self.client_name and project:
+            return f'{self.client_name} — {project}'
+        return self.client_name or project or self.domain_url
 
     def __str__(self):
         return f'{self.client_name} — {self.domain_url or "(sin dominio)"}'

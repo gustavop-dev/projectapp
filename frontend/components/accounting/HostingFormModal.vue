@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue'
+import ClientFormFields from '~/components/clients/ClientFormFields.vue'
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
 import { suggestClient } from '~/utils/clientMatch'
 import { formatMoney } from '~/utils/formatMoney'
@@ -17,7 +19,7 @@ const emit = defineEmits(['close', 'submit'])
 const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
 const inlineClientOpen = ref(false)
-const inlineClient = ref({ name: '', email: '', company: '' })
+const inlineClient = ref(emptyClientForm())
 /** Proposed pairing for a record saved before the relation existed. */
 const suggestion = ref(null)
 
@@ -134,15 +136,14 @@ function onClientSelect(client) {
 function onCreateNewClient(typedName) {
   inlineClientOpen.value = true
   inlineClient.value = {
+    ...emptyClientForm(),
     name: typedName || form.value.client_name || '',
-    email: '',
-    company: '',
   }
 }
 
 async function createInlineClient() {
   creatingClient.value = true
-  const result = await clientsStore.createClient({ ...inlineClient.value })
+  const result = await clientsStore.createClient(clientFormPayload(inlineClient.value))
   creatingClient.value = false
   if (result.success && result.data?.id) {
     inlineClientOpen.value = false
@@ -241,17 +242,11 @@ function onSubmit() {
         data-testid="hosting-form-inline-client"
       >
         <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <BaseFormField label="Nombre">
-            <BaseInput v-model="inlineClient.name" data-testid="hosting-form-inline-client-name" />
-          </BaseFormField>
-          <BaseFormField label="Email">
-            <BaseInput v-model="inlineClient.email" type="email" />
-          </BaseFormField>
-          <BaseFormField label="Empresa">
-            <BaseInput v-model="inlineClient.company" />
-          </BaseFormField>
-        </div>
+        <ClientFormFields
+          v-model="inlineClient"
+          testid-prefix="hosting-form-inline-client"
+          dense
+        />
         <div class="flex justify-end gap-2">
           <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
             Cancelar

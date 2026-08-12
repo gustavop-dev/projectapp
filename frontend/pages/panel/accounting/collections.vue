@@ -190,6 +190,18 @@
               <EyeIcon class="w-5 h-5" />
             </BaseButton>
             <BaseButton
+              v-if="row.notes"
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Ver notas internas"
+              title="Notas internas"
+              :data-testid="`collection-notes-${row.id}`"
+              @click="notesRow = row"
+            >
+              <ChatBubbleBottomCenterTextIcon class="w-5 h-5" />
+            </BaseButton>
+            <BaseButton
               variant="ghost"
               icon-only
               size="sm"
@@ -244,6 +256,27 @@
       @cancel="pendingAction = null"
     />
 
+    <!-- Internal notes, read-only: written in the create form, never sent. -->
+    <BaseModal v-model="notesOpen" size="lg" @close="notesRow = null">
+      <div class="p-6 space-y-3">
+        <h3 class="text-lg font-bold text-text-default">
+          Notas internas · {{ notesRow?.public_number || `#${notesRow?.id}` }}
+        </h3>
+        <p class="text-xs text-text-subtle">
+          Sólo para ti: no se muestran al cliente ni viajan en el PDF o el correo.
+        </p>
+        <p
+          class="text-sm text-text-default whitespace-pre-line"
+          data-testid="collection-notes-body"
+        >
+          {{ notesRow?.notes }}
+        </p>
+        <div class="flex justify-end pt-2">
+          <BaseButton variant="secondary" @click="notesRow = null">Cerrar</BaseButton>
+        </div>
+      </div>
+    </BaseModal>
+
     <!-- Create modal: form → preview del correo/PDF → confirmar y enviar -->
     <CollectionAccountFormModal
       :open="createOpen"
@@ -276,6 +309,7 @@
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import {
+  ChatBubbleBottomCenterTextIcon,
   CheckCircleIcon,
   DocumentArrowDownIcon,
   EyeIcon,
@@ -292,6 +326,7 @@ import CollectionAccountFormModal from '~/components/accounting/CollectionAccoun
 import CollectionAccountDetailModal from '~/components/accounting/CollectionAccountDetailModal.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import BaseModal from '~/components/base/BaseModal.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -501,6 +536,19 @@ const { sortKey, sortDir, toggleSort, sortedRecords: sortedRows } = useTableSort
 async function loadRecords() {
   await store.fetchCollectionAccounts();
 }
+
+// ── Internal notes ──
+//
+// They never reach the client (not in the PDF, not in the email), so the panel
+// is the only place they can be read back — a note you write and can never
+// reopen is the same as no note. A modal and not a tooltip: the table wrapper
+// is `overflow-x-auto`, which clips anything positioned absolutely inside a row.
+
+const notesRow = ref(null);
+const notesOpen = computed({
+  get: () => notesRow.value !== null,
+  set: (open) => { if (!open) notesRow.value = null; },
+});
 
 // ── Row actions ──
 

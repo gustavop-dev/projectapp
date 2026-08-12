@@ -32,6 +32,7 @@ from content.services.collection_account_service import (
     mark_collection_account_paid,
     recalculate_document_totals,
 )
+from content.services.collection_account_numbering import client_number_allocator
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_collection_account_document_type
 
@@ -307,7 +308,14 @@ def collection_account_issue_view(request, account_id):
             status=status.HTTP_400_BAD_REQUEST,
         )
     try:
-        issue_collection_account(doc, issuer=issuer, acting_user=request.user)
+        # Same series as the panel and hosting flows: one client, one
+        # consecutivo, instead of a second numbering living in parallel.
+        issue_collection_account(
+            doc,
+            issuer=issuer,
+            acting_user=request.user,
+            number_allocator=client_number_allocator(doc, issuer),
+        )
     except CollectionAccountError as e:
         return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
     doc = _base_collection_qs().get(pk=doc.pk)
@@ -372,6 +380,7 @@ def collection_account_pdf_view(request, account_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
     from django.http import HttpResponse
+    from django.utils.http import content_disposition_header
 
     from content.utils import safe_slug
 
@@ -380,5 +389,9 @@ def collection_account_pdf_view(request, account_id):
     # did not match the name the panel and the email attachment produce.
     filename = doc.public_number or safe_slug(doc.title, 'collection-account')
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+    # Django's builder quotes and escapes; a manually typed consecutivo can
+    # carry a `"` that hand-rolled interpolation would let break the header.
+    response['Content-Disposition'] = content_disposition_header(
+        True, f'{filename}.pdf',
+    )
     return response

@@ -54,6 +54,11 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             'subtotal', 'tax_total', 'total', 'currency',
             'issue_date', 'due_date',
             'commercial_status', 'commercial_status_label', 'is_overdue',
+            # Internal-only: the operator's own note about the cuenta, never
+            # rendered in the PDF nor the client email. It travels in the list
+            # so the monitor can show it back without a detail round trip —
+            # a field you fill and can never read again is a dead end.
+            'notes',
             'created_at', 'updated_at',
         )
 
@@ -151,13 +156,16 @@ class CollectionAccountPanelDetailSerializer(CollectionAccountPanelListSerialize
 
     class Meta(CollectionAccountPanelListSerializer.Meta):
         fields = CollectionAccountPanelListSerializer.Meta.fields + (
-            'items', 'payment_methods', 'notes',
+            'items', 'payment_methods',
         )
 
 
 class _CreateItemSerializer(serializers.Serializer):
+    # Unbounded on purpose: this is the "Descripción del concepto" the operator
+    # writes in the form, several paragraphs long when the cuenta bills
+    # attended requirements. Blank falls back to the concepto in the service.
     description = serializers.CharField(
-        max_length=512, required=False, allow_blank=True, default='',
+        required=False, allow_blank=True, default='',
     )
     quantity = serializers.DecimalField(
         max_digits=12, decimal_places=2, min_value=Decimal('0.01'),

@@ -1,8 +1,8 @@
 import { computed, ref } from 'vue';
 
-function compareValues(a, b, field) {
-  const left = a?.[field];
-  const right = b?.[field];
+function compareValues(a, b, read) {
+  const left = read(a);
+  const right = read(b);
   const leftNumber = Number(left);
   const rightNumber = Number(right);
   if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
@@ -17,8 +17,10 @@ function compareValues(a, b, field) {
  *
  * Each click on a column cycles: first direction → opposite → off (back to
  * the list's own order). Options:
- * - sortAccessors  { colKey: recordField } — sort by a different field than
- *     the one displayed (e.g. period_label shown, period_date sorted).
+ * - sortAccessors  { colKey: recordField | (record) => value } — sort by a
+ *     different field than the one displayed (e.g. period_label shown,
+ *     period_date sorted), or by a value the row does not carry as a field
+ *     (e.g. Cliente shows the linked name and falls back to the snapshot).
  * - sortDefaults   { colKey: 'asc' | 'desc' } — first-click direction per
  *     column ('desc' for dates/money so newest/largest comes first).
  */
@@ -41,10 +43,13 @@ export function useTableSort(records, { sortAccessors = {}, sortDefaults = {} } 
 
   const sortedRecords = computed(() => {
     if (!sortKey.value) return records.value;
-    const field = sortAccessors[sortKey.value] || sortKey.value;
+    const accessor = sortAccessors[sortKey.value] || sortKey.value;
+    const read = typeof accessor === 'function'
+      ? accessor
+      : (row) => row?.[accessor];
     const direction = sortDir.value === 'desc' ? -1 : 1;
     return [...records.value].sort(
-      (a, b) => direction * compareValues(a, b, field),
+      (a, b) => direction * compareValues(a, b, read),
     );
   });
 

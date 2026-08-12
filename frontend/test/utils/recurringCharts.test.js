@@ -1,5 +1,6 @@
 import {
   OTHER_CATEGORIES_KEY,
+  OTHER_ITEMS_KEY,
   byBillingDay,
   categoryColorMap,
   foldChartBuckets,
@@ -105,6 +106,39 @@ describe('foldChartBuckets', () => {
   it('leaves the list untouched when every bucket fits', () => {
     const buckets = [{ key: 1, id: 1, name: 'Cat 1', total: 10, pct: 100 }];
     expect(foldChartBuckets(buckets, 4)).toEqual(buckets);
+  });
+
+  it('folds under the name the caller gives it, for the items of one category', () => {
+    // Drilled into a category, the buckets are payments — "Otras categorías"
+    // would be a lie about what got merged.
+    const buckets = [1, 2, 3, 4, 5, 6].map((id) => ({
+      key: id, id, name: `Pago ${id}`, total: 100, pct: 100 / 6,
+    }));
+
+    const folded = foldChartBuckets(buckets, 4, {
+      key: OTHER_ITEMS_KEY,
+      label: 'Otros ítems',
+    });
+
+    expect(folded).toHaveLength(5);
+    expect(folded[4]).toMatchObject({ key: OTHER_ITEMS_KEY, id: OTHER_ITEMS_KEY, total: 200 });
+    expect(folded[4].name).toBe('Otros ítems (2)');
+  });
+
+  it('names a lone leftover item after itself, whatever label the caller passed', () => {
+    const buckets = [1, 2].map((id) => ({ key: id, id, name: `Pago ${id}`, total: 10, pct: 50 }));
+
+    const folded = foldChartBuckets(buckets, 1, {
+      key: OTHER_ITEMS_KEY,
+      label: 'Otros ítems',
+    });
+
+    expect(folded[1].name).toBe('Pago 2');
+  });
+
+  it('still folds into the category bucket when no names are given', () => {
+    const buckets = [1, 2].map((id) => ({ key: id, id, name: `Cat ${id}`, total: 10, pct: 50 }));
+    expect(foldChartBuckets(buckets, 1)[1].key).toBe(OTHER_CATEGORIES_KEY);
   });
 });
 

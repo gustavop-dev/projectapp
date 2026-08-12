@@ -375,18 +375,62 @@ test.describe('Admin Clients — Create standalone client', () => {
     await page.getByTestId('clients-new-button').click();
     await expect(page.getByTestId('clients-new-name')).toBeVisible();
 
-    // Fill form
+    // Fill form — the billing pair included, which is what the create modal
+    // was missing: a client used to be filed incomplete and edited right after.
     await page.getByTestId('clients-new-name').fill('Nuevo Cliente Test');
     await page.getByTestId('clients-new-email').fill('nuevo@test.com');
+    await page.getByTestId('clients-new-phone').fill('3001234567');
     await page.getByTestId('clients-new-company').fill('Test Corp');
+    await page.getByTestId('clients-new-nit').fill('901234567-1');
+    await page.getByTestId('clients-new-billing-code').fill('G&M');
+
+    const createRequest = page.waitForRequest(
+      (req) => req.url().includes('client-profiles/create/') && req.method() === 'POST',
+    );
 
     // Submit and wait for modal to close (success)
     await page.getByTestId('clients-new-submit').click();
+    const sent = JSON.parse((await createRequest).postData() || '{}');
     await expect(page.getByTestId('clients-new-submit')).not.toBeVisible({ timeout: 5_000 });
+
+    // Every field the edit modal offers travels on creation too.
+    expect(sent.phone).toBe('3001234567');
+    expect(sent.nit).toBe('901234567-1');
+    expect(sent.billing_code).toBe('G&M');
 
     // New client should appear in the list (reloaded after creation)
     await expect(page.getByTestId('client-row-201')).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText('Nuevo Cliente Test')).toBeVisible();
+  });
+
+  test('a rejected billing code keeps the create modal open with the reason', {
+    tag: [...ADMIN_CLIENT_CREATE_STANDALONE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    // The charset allows & . - and spaces but not `/`, which would not fit in
+    // the PDF preview URL's path segment. The operator has to see why.
+    await setupMock(page, {
+      onCreate: async () => ({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          error: 'invalid_billing_code',
+          message: 'El código debe tener entre 2 y 12 caracteres, empezar y terminar en letra o número.',
+        }),
+      }),
+    });
+    await gotoClients(page);
+
+    await page.getByTestId('clients-new-button').click();
+    await page.getByTestId('clients-new-name').fill('Barra Inclinada');
+    await page.getByTestId('clients-new-billing-code').fill('G/M');
+    await page.getByTestId('clients-new-submit').click();
+
+    // The modal stays open, showing the backend's reason rather than closing
+    // or falling back to the generic message.
+    await expect(page.getByTestId('clients-new-name')).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.getByText(/El código debe tener entre 2 y 12 caracteres/),
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test('create client without email generates placeholder badge', {

@@ -292,6 +292,9 @@ _ENTITIES = {
             'client__company_name', 'client__user__first_name',
             'client__user__last_name', 'project__name',
         ),
+        # No `project` choice filter: the project is a relation, so the
+        # Proyecto multi-select narrows the loaded rows client-side and the
+        # 'sin proyecto' sentinel rides `null_filters` below.
         'choice_filters': ('payment_modality',),
         'bool_filters': ('is_active',),
         'null_filters': ('client', 'project'),

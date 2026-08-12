@@ -84,10 +84,18 @@ def _resolve_existing_user(normalized_email):
 
 
 @transaction.atomic
-def get_or_create_client_for_proposal(*, name='', email='', phone='', company=''):
+def get_or_create_client_for_proposal(*, name='', email='', phone='', company='',
+                                      nit='', billing_code=None):
     """
     Get-or-create a ``UserProfile`` (role=client) used as the FK target of a
     ``BusinessProposal``. Never sends invitation emails.
+
+    ``nit`` and ``billing_code`` are the billing identity the collection-account
+    flow needs; they are set on creation and, when the client already exists,
+    only used to fill blanks — a stored value is never overwritten here.
+    ``billing_code`` must arrive normalized (see
+    ``accounts.services.billing_code``) and is persisted as ``None`` when empty,
+    never ``''``: the column is unique, so ``''`` would collide across clients.
 
     Resolution order:
     1. If ``email`` is non-empty:
@@ -105,6 +113,8 @@ def get_or_create_client_for_proposal(*, name='', email='', phone='', company=''
     first_name, last_name = _split_name(name)
     company = (company or '').strip()
     phone = (phone or '').strip()[:30]
+    nit = (nit or '').strip()[:32]
+    billing_code = billing_code or None
 
     if normalized:
         existing_user = _resolve_existing_user(normalized)
@@ -118,12 +128,17 @@ def get_or_create_client_for_proposal(*, name='', email='', phone='', company=''
                     is_onboarded=False,
                     company_name=company,
                     phone=phone,
+                    nit=nit,
+                    billing_code=billing_code,
                 )
                 _maybe_fill_user_names(existing_user, first_name, last_name)
                 return profile
             if existing_profile.role == UserProfile.ROLE_CLIENT:
                 # Reuse — opportunistically fill missing fields.
-                _fill_missing_fields(existing_profile, company=company, phone=phone)
+                _fill_missing_fields(
+                    existing_profile, company=company, phone=phone,
+                    nit=nit, billing_code=billing_code,
+                )
                 _maybe_fill_user_names(existing_user, first_name, last_name)
                 return existing_profile
             logger.warning(
@@ -146,6 +161,8 @@ def get_or_create_client_for_proposal(*, name='', email='', phone='', company=''
                 is_onboarded=False,
                 company_name=company,
                 phone=phone,
+                nit=nit,
+                billing_code=billing_code,
             )
             return profile
 
@@ -155,10 +172,13 @@ def get_or_create_client_for_proposal(*, name='', email='', phone='', company=''
         last_name=last_name,
         company=company,
         phone=phone,
+        nit=nit,
+        billing_code=billing_code,
     )
 
 
-def _create_placeholder_profile(*, first_name, last_name, company, phone):
+def _create_placeholder_profile(*, first_name, last_name, company, phone,
+                                nit='', billing_code=None):
     """Two-step save to embed the new profile id in the placeholder email."""
     temp_token = secrets.token_hex(8)
     temp_username = f'pending_{temp_token}'
@@ -176,6 +196,8 @@ def _create_placeholder_profile(*, first_name, last_name, company, phone):
         is_onboarded=False,
         company_name=company,
         phone=phone,
+        nit=nit,
+        billing_code=billing_code,
     )
 
     final_username = f'cliente_{profile.pk}'
@@ -186,7 +208,7 @@ def _create_placeholder_profile(*, first_name, last_name, company, phone):
     return profile
 
 
-def _fill_missing_fields(profile, *, company, phone):
+def _fill_missing_fields(profile, *, company, phone, nit='', billing_code=None):
     """Fill empty profile fields without overwriting existing data."""
     dirty = []
     if company and not profile.company_name:
@@ -195,6 +217,12 @@ def _fill_missing_fields(profile, *, company, phone):
     if phone and not profile.phone:
         profile.phone = phone
         dirty.append('phone')
+    if nit and not profile.nit:
+        profile.nit = nit
+        dirty.append('nit')
+    if billing_code and not profile.billing_code:
+        profile.billing_code = billing_code
+        dirty.append('billing_code')
     if dirty:
         dirty.append('updated_at')
         profile.save(update_fields=dirty)

@@ -15,11 +15,11 @@ jest.mock('@vueuse/core', () => ({
 }));
 
 jest.mock('../../../utils/downloadFile', () => ({
-  downloadBlob: jest.fn(),
+  downloadUrl: jest.fn(),
   filenameFromDisposition: jest.fn(() => ''),
 }));
 
-const { downloadBlob } = require('../../../utils/downloadFile');
+const { downloadUrl } = require('../../../utils/downloadFile');
 
 const { get_request, create_request } = require('../../../stores/services/request_http');
 
@@ -68,10 +68,46 @@ const linkedIncomeFixture = {
   collection_account_number: 'PA-KORE-001',
 };
 
+const otherClientFixture = {
+  id: 7,
+  name: 'Luis Torres',
+  company: 'Torrios SAS',
+  email: 'luis@torrios.co',
+  nit: '900111222',
+  cedula: '',
+  is_email_placeholder: false,
+};
+
+/** Rows the incomes endpoint answers with; per-test via `mockIncomes`. */
+let incomeResults = [];
+
+function mockIncomes(rows) {
+  incomeResults = rows;
+}
+
+/** The last URL the incomes endpoint was asked for. */
+function lastIncomeUrl() {
+  return get_request.mock.calls
+    .map(([url]) => url)
+    .filter((url) => url.startsWith('accounting/incomes/'))
+    .at(-1);
+}
+
+function incomeUrls() {
+  return get_request.mock.calls
+    .map(([url]) => url)
+    .filter((url) => url.startsWith('accounting/incomes/'));
+}
+
 function mockRequests() {
+  incomeResults = [incomeFixture, linkedIncomeFixture];
   get_request.mockImplementation((url) => {
-    if (url.includes('client-profiles/5/')) {
-      return Promise.resolve({ data: clientFixture });
+    const profileMatch = /client-profiles\/(\d+)\//.exec(url);
+    if (profileMatch) {
+      const id = Number(profileMatch[1]);
+      return Promise.resolve({
+        data: id === otherClientFixture.id ? otherClientFixture : clientFixture,
+      });
     }
     if (url.includes('next-number')) {
       return Promise.resolve({
@@ -82,9 +118,7 @@ function mockRequests() {
         },
       });
     }
-    return Promise.resolve({
-      data: { results: [incomeFixture, linkedIncomeFixture] },
-    });
+    return Promise.resolve({ data: { results: incomeResults } });
   });
   create_request.mockImplementation((url) => {
     if (url.includes('preview')) {
@@ -96,7 +130,7 @@ function mockRequests() {
           total: '1490000.00',
           due_date: '2026-08-13',
           customer_email: 'ana@acme.co',
-          pdf_base64: 'JVBERi0=',
+          pdf_url: '/api/accounting/collection-accounts/preview/tok123/PA-ACME-003.pdf',
         },
       });
     }
@@ -124,7 +158,10 @@ function mountModal(props = {}) {
         },
         BaseFormField: {
           props: ['label', 'hint', 'error', 'required', 'for', 'size'],
-          template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
+          // The hint is rendered like the real component does: it is where a
+          // field says what happens to what you type in it.
+          template:
+            '<div><label v-if="label">{{ label }}</label><slot /><p v-if="hint">{{ hint }}</p></div>',
         },
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength'],
@@ -139,10 +176,10 @@ function mountModal(props = {}) {
             '<input type="text" inputmode="numeric" :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value === \'\' ? null : Number($event.target.value))" />',
         },
         BaseTextarea: {
-          props: ['modelValue', 'rows'],
+          props: ['modelValue', 'rows', 'placeholder'],
           emits: ['update:modelValue'],
           template:
-            '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseSegmented: {
           props: ['modelValue', 'options', 'fullWidth', 'size'],
@@ -251,6 +288,125 @@ describe('CollectionAccountFormModal', () => {
       .toBe('Desarrollo módulo de reportes');
   });
 
+  describe('income options scoped to the client', () => {
+    const ownIncome = {
+      ...incomeFixture,
+      id: 11,
+      client: 5,
+      client_name: 'Acme Soluciones',
+      concept: 'Acme - Fase 2',
+    };
+    const orphanIncome = {
+      ...incomeFixture,
+      id: 12,
+      concept: 'Kore v2 (Fase 4) - Diseño 30%',
+    };
+    const otherClientIncome = {
+      ...incomeFixture,
+      id: 13,
+      client: 7,
+      client_name: 'Torrios SAS',
+      concept: 'Torrios - Hosting anual',
+    };
+
+    async function openOptions(wrapper) {
+      await wrapper.find('[data-testid="collection-form-income"]').trigger('focus');
+      await flushPromises();
+    }
+
+    it('asks for every eligible income while no client is chosen', async () => {
+      mountModal();
+      await flushPromises();
+
+      expect(lastIncomeUrl()).toContain('kind=expected%2Cliquid');
+      expect(lastIncomeUrl()).not.toContain('client=');
+    });
+
+    it('narrows to the chosen client plus the unassigned incomes', async () => {
+      const wrapper = mountModal();
+      await flushPromises();
+
+      await selectClient(wrapper);
+
+      expect(lastIncomeUrl()).toContain('client=5%2Cnone');
+    });
+
+    it('reloads the options when the client changes', async () => {
+      const wrapper = mountModal();
+      await flushPromises();
+
+      await selectClient(wrapper);
+      await selectClient(wrapper, otherClientFixture);
+
+      const urls = incomeUrls();
+      expect(urls).toHaveLength(3);
+      expect(urls[1]).toContain('client=5%2Cnone');
+      expect(urls[2]).toContain('client=7%2Cnone');
+    });
+
+    it("splits the list into the client's own incomes and the unassigned ones", async () => {
+      mockIncomes([ownIncome, orphanIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-group-own"]').text())
+        .toContain('De Acme Soluciones (1)');
+      const orphanGroup = wrapper.find(
+        '[data-testid="collection-form-income-group-orphan"]',
+      );
+      expect(orphanGroup.text()).toContain('Sin cliente asignado (1)');
+      expect(orphanGroup.text()).toContain('Al elegirlo se asigna a Acme Soluciones');
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(true);
+    });
+
+    it('lists past the old eight-row cap and says how many are left out', async () => {
+      mockIncomes(
+        Array.from({ length: 30 }, (unused, index) => ({
+          ...incomeFixture,
+          id: 100 + index,
+          concept: `Ingreso ${index}`,
+        })),
+      );
+      const wrapper = mountModal();
+      await flushPromises();
+      await openOptions(wrapper);
+
+      expect(
+        wrapper.findAll('[data-testid^="collection-form-income-option-"]'),
+      ).toHaveLength(25);
+      expect(wrapper.find('[data-testid="collection-form-income-more-all"]').text())
+        .toContain('Mostrando 25 de 30');
+    });
+
+    it('warns and blocks the preview when the income belongs to another client', async () => {
+      mockIncomes([otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await openOptions(wrapper);
+
+      // Income first: it locks its own client, which this tab lets you undo.
+      await wrapper.find('[data-testid="collection-form-income-option-13"]').trigger('mousedown');
+      await flushPromises();
+      await wrapper.find('[data-testid="collection-form-change-client"]').trigger('click');
+      await selectClient(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-conflict"]').text())
+        .toContain('Este ingreso es de Torrios SAS, no de Acme Soluciones');
+      expect(
+        wrapper.find('[data-testid="collection-form-preview"]').attributes('disabled'),
+      ).toBeDefined();
+
+      await wrapper.find('[data-testid="collection-form-use-income-client"]').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="collection-form-income-conflict"]').exists())
+        .toBe(false);
+    });
+  });
+
   it('selecting a client prefills the snapshot and the suggested consecutivo', async () => {
     const wrapper = mountModal({ income: incomeFixture });
     await flushPromises();
@@ -288,6 +444,48 @@ describe('CollectionAccountFormModal', () => {
     expect(payload.client_profile_id).toBe(5);
     expect(payload.income_record_id).toBe(8);
     expect(payload.items[0].unit_price).toBe('1490000');
+  });
+
+  it('sends the long description as the detail line, not the short concept', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    const description = 'Requerimientos atendidos:\n\n- Formulario\n- Reporte';
+    await wrapper.find('[data-testid="collection-form-description"]').setValue(description);
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    const payload = create_request.mock.calls.at(-1)[1];
+    // Two fields doing two jobs: the concepto heads the document, the
+    // descripción fills the Descripción column of the detalle.
+    expect(payload.billing_concept).toBe('Desarrollo módulo de reportes');
+    expect(payload.items[0].description).toBe(description);
+  });
+
+  it('leaves the detail description empty so the backend falls back to the concept', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    // Not the concept copied client-side: the fallback lives in one place.
+    expect(create_request.mock.calls.at(-1)[1].items[0].description).toBe('');
+  });
+
+  it('tells the operator the notes stay internal', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    // A field you fill that reaches nobody is worse than no field: the form
+    // has to say which side of the client boundary it sits on.
+    const notesField = wrapper
+      .find('[data-testid="collection-form-notes"]')
+      .element.closest('div');
+    expect(notesField.textContent).toContain('Notas internas');
+    expect(notesField.textContent).toContain('no aparecen en el PDF ni en el correo');
   });
 
   it('sends an edited consecutivo in the payload', async () => {
@@ -416,6 +614,39 @@ describe('CollectionAccountFormModal', () => {
       'proposals/client-profiles/create/',
       expect.objectContaining({ name: 'Nuevo SAS' }),
     );
+  });
+
+  it('files the billing identity from the inline form, not just the name', async () => {
+    // A cuenta de cobro needs the NIT for the customer snapshot and the código
+    // for the consecutivo. The inline form used to ask for neither, so a client
+    // created here came out incomplete and the código got auto-derived.
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    wrapper.findComponent(ClientAutocompleteStub).vm.$emit('create-new', 'G&M');
+    await flushPromises();
+
+    await wrapper
+      .find('[data-testid="collection-form-inline-client-nit"]')
+      .setValue('901234567-1');
+    await wrapper
+      .find('[data-testid="collection-form-inline-client-billing-code"]')
+      .setValue('g&m');
+
+    create_request.mockResolvedValueOnce({
+      data: { ...clientFixture, id: 13, name: 'G&M', nit: '901234567-1' },
+    });
+    await wrapper.find('[data-testid="collection-form-inline-client-save"]').trigger('click');
+    await flushPromises();
+
+    expect(create_request).toHaveBeenCalledWith(
+      'proposals/client-profiles/create/',
+      expect.objectContaining({
+        name: 'G&M',
+        nit: '901234567-1',
+        billing_code: 'G&M',
+      }),
+    );
     expect(wrapper.find('[data-testid="collection-form-inline-client"]').exists()).toBe(false);
     expect(
       wrapper.find('[data-testid="collection-form-number"]').element.value,
@@ -435,6 +666,24 @@ describe('CollectionAccountFormModal', () => {
       expect(wrapper.find('[data-testid="collection-preview-split-handle"]').exists()).toBe(true);
       // No tabs while both panes fit.
       expect(wrapper.find('[data-testid="collection-preview-tab-pdf"]').exists()).toBe(false);
+    });
+
+    it('embeds and opens the served PDF URL instead of a blob', async () => {
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      const url = '/api/accounting/collection-accounts/preview/tok123/PA-ACME-003.pdf';
+      // A blob: URL carries no filename, so Chrome's viewer named its download
+      // (and its "Save to Drive") after the blob's UUID. A served URL ending in
+      // the consecutivo, with the filename in Content-Disposition, does not.
+      expect(wrapper.find('[data-testid="collection-preview-pdf"]').attributes('src'))
+        .toBe(url);
+      expect(global.URL.createObjectURL).not.toHaveBeenCalled();
+
+      window.open = jest.fn();
+      await wrapper.find('[data-testid="collection-preview-open-pdf"]').trigger('click');
+      expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noopener');
     });
 
     it('gives the PDF the wider column by default', async () => {
@@ -514,11 +763,12 @@ describe('CollectionAccountFormModal', () => {
 
       await wrapper.find('[data-testid="collection-preview-download-pdf"]').trigger('click');
 
-      // A blob: URL carries no filename, so the viewer tab would save
-      // "untitled"; the name has to be passed explicitly.
-      const [blob, filename] = downloadBlob.mock.calls.at(-1);
-      expect(filename).toBe('PA-ACME-003.pdf');
-      expect(blob.type).toBe('application/pdf');
+      // Downloaded from the served URL under an explicit name: the same bytes
+      // the embedded viewer shows, so both save PA-ACME-003.pdf.
+      expect(downloadUrl.mock.calls.at(-1)).toEqual([
+        '/api/accounting/collection-accounts/preview/tok123/PA-ACME-003.pdf',
+        'PA-ACME-003.pdf',
+      ]);
     });
   });
 });

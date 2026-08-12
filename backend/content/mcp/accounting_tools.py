@@ -301,6 +301,10 @@ _ENTITY_FIELDS = {
                 ),
             },
             'client_name': {'type': 'string'},
+            'project_name': {
+                'type': 'string',
+                'description': 'Proyecto o marca a la que sirve el hosting.',
+            },
             'monthly_value': {'type': ['number', 'string']},
             'domain_url': {'type': 'string'},
             'payment_modality': {'type': 'string', 'enum': ['monthly', 'quarterly', 'semiannual', 'annual']},

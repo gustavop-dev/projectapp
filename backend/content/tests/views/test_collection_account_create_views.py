@@ -1,5 +1,4 @@
 """Panel create/preview/next-number endpoints for cuentas de cobro."""
-import base64
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -91,6 +90,43 @@ class TestCreateEndpoint:
         assert len(mailoutbox) == 1
         assert 'PA-ACMESOLU-001' in mailoutbox[0].subject
         assert mailoutbox[0].attachments[0][0] == 'PA-ACMESOLU-001.pdf'
+
+    def test_an_ampersand_code_survives_the_whole_document_chain(
+        self, super_client, mailoutbox,
+    ):
+        """G&M is a real trade name; the code has to reach every consumer.
+
+        One test rather than four because the point is the chain: consecutivo,
+        PDF attachment name, email subject and the served URL all derive from
+        the same string and each escapes it differently.
+        """
+        client = make_client(
+            email='gym@example.co', company='G&M', nit='901234567',
+            billing_code='G&M',
+        )
+        income = make_income()
+
+        response = super_client.post(
+            '/api/accounting/collection-accounts/create/',
+            payload(client, income),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data['document']['public_number'] == 'PA-G&M-001'
+        # Subject and attachment keep the code verbatim...
+        assert 'PA-G&M-001' in mailoutbox[0].subject
+        assert mailoutbox[0].attachments[0][0] == 'PA-G&M-001.pdf'
+
+        doc_id = response.data['document']['id']
+        pdf = super_client.get(
+            f'/api/accounting/collection-accounts/{doc_id}/pdf/',
+        )
+        assert pdf.status_code == 200
+        # ...and so does the download name, via Django's header builder.
+        assert pdf['Content-Disposition'] == (
+            'attachment; filename="PA-G&M-001.pdf"'
+        )
 
     def test_email_failure_keeps_document_issued(self, super_client):
         client = make_client()
@@ -190,8 +226,9 @@ class TestPreviewEndpoint:
         assert response.data['public_number'] == 'PA-ACMESOLU-001'
         assert 'PA-ACMESOLU-001' in response.data['subject']
         assert 'Valor a pagar' in response.data['html_body']
-        pdf = base64.b64decode(response.data['pdf_base64'])
-        assert pdf[:4] == b'%PDF'
+        # A served URL, not base64 for a blob: the viewer names its download
+        # after the URL and the header, and a blob: URL carries neither.
+        assert response.data['pdf_url'].endswith('/PA-ACMESOLU-001.pdf')
         # Nothing persisted: no document, no email, no consecutivo consumed.
         assert Document.objects.count() == docs_before
         assert not EmailLog.objects.exists()
@@ -237,3 +274,78 @@ class TestPreviewEndpoint:
             preview.data['public_number']
             == created.data['document']['public_number']
         )
+
+
+class TestPreviewPdfEndpoint:
+    """The URL the preview modal embeds. It exists so Chrome's viewer has a
+    filename to propose: from a blob: URL it fell back to the blob's own UUID
+    in its download button and in 'Save to Drive'."""
+
+    def _preview_pdf_url(self, super_client):
+        response = super_client.post(
+            '/api/accounting/collection-accounts/preview/',
+            payload(make_client(nit='901234567'), make_income()),
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+        return response.data['pdf_url']
+
+    def test_serves_the_pdf_named_after_the_consecutivo(self, super_client):
+        response = super_client.get(self._preview_pdf_url(super_client))
+
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/pdf'
+        # `inline`, not `attachment`: this URL is what the modal embeds.
+        assert response['Content-Disposition'] == (
+            'inline; filename="PA-ACMESOLU-001.pdf"'
+        )
+        assert response.content[:4] == b'%PDF'
+
+    def test_url_ends_in_the_consecutivo(self, super_client):
+        """Belt and braces for a viewer that ignores the header and names the
+        download after the last path segment."""
+        assert self._preview_pdf_url(super_client).endswith(
+            '/PA-ACMESOLU-001.pdf',
+        )
+
+    def test_a_hand_typed_consecutivo_cannot_break_the_url_or_the_header(
+        self, super_client,
+    ):
+        """The consecutivo is a free-text field. A '/' fits in no path segment
+        and a '"' would end the header's quoted filename early."""
+        response = super_client.post(
+            '/api/accounting/collection-accounts/preview/',
+            payload(
+                make_client(nit='901234567'), make_income(),
+                public_number='PA/ACME "01"',
+            ),
+            format='json',
+        )
+        assert response.status_code == 200, response.data
+
+        pdf = super_client.get(response.data['pdf_url'])
+
+        assert pdf.status_code == 200
+        # The path segment carries a sanitised name...
+        assert response.data['pdf_url'].endswith('/PA-ACME-01-.pdf')
+        # ...while the header keeps the real one, escaped rather than truncated.
+        assert pdf['Content-Disposition'] == (
+            'inline; filename="PA/ACME \\"01\\".pdf"'
+        )
+
+    def test_expired_token_is_a_404_the_operator_can_act_on(self, super_client):
+        response = super_client.get(
+            '/api/accounting/collection-accounts/preview/'
+            'not-a-live-token/PA-ACMESOLU-001.pdf',
+        )
+
+        assert response.status_code == 404
+        assert 'expiró' in response.data['error']
+
+    def test_requires_superuser(self, admin_client):
+        response = admin_client.get(
+            '/api/accounting/collection-accounts/preview/'
+            'any-token/PA-ACMESOLU-001.pdf',
+        )
+
+        assert response.status_code == 403

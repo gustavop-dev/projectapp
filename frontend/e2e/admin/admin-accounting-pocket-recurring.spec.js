@@ -732,6 +732,13 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.getByTestId('recurring-charts-button').click();
 
     await page.getByTestId('recurring-chart-legend-item-2').click();
+
+    // The header names what the charts are scoped to, and the note names the
+    // lone payment so a donut of one color reads as the real breakdown.
+    await expect(page.getByTestId('recurring-charts-drill-header'))
+      .toContainText('Arquitectura e infraestructura');
+    await expect(page.getByTestId('recurring-charts-single-item')).toContainText('Hostinger');
+
     // Scoped to the modal: the page's breakdown card is a BaseSegmented, which
     // also renders role="tab" buttons.
     await page.getByTestId('stats-modal').getByRole('tab', { name: 'Ítems' }).click();
@@ -740,5 +747,35 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     const items = page.getByTestId('stats-bar-chart');
     await expect(items).toContainText('Hostinger');
     await expect(items).not.toContainText('Chat-GPT');
+  });
+
+  test('drilling into a category splits the donut by its payments, not into one slice', {
+    tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (subnav navigation into Recurrentes is covered
+    // by the display specs above; this one pins the donut's drilled state)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+    await page.getByTestId('recurring-charts-button').click();
+
+    await page.getByTestId('recurring-chart-legend-item-1').click();
+
+    // 800.000 and 80.000 over the category's 880.000 — the question the reader
+    // is asking once they picked a category, not "how much is this category".
+    const legend = page.getByTestId('recurring-chart-legend');
+    await expect(legend).toContainText('Claude Code 20x');
+    await expect(legend).toContainText('90,9%');
+    await expect(legend).toContainText('Chat-GPT');
+    await expect(legend).toContainText('9,1%');
+    // And the second base, over everything: 800.000 of 912.900.
+    await expect(legend).toContainText('87,6% del total general');
+    await expect(legend).not.toContainText('Arquitectura e infraestructura');
+
+    // Back to comparing categories without reopening the modal.
+    await page.getByTestId('recurring-charts-back').click();
+    await expect(legend).toContainText('Arquitectura e infraestructura');
   });
 });

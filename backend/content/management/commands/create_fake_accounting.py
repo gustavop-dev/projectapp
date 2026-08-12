@@ -47,11 +47,14 @@ EXPENSE_CONCEPTS = [
     ('Almuerzo equipo', 'personal'), ('Gasolina carro', 'personal'),
     ('Aporte casa EPM', 'personal'), ('Windsurf', 'business'),
 ]
+# (client, project, domain). One project is left blank on purpose, on a
+# different row than the unlinked one, so the tab shows "sin vincular" and
+# "revisar" as the two independent gaps they are.
 CLIENTS = [
-    ('Acme SAS', 'https://acme.example.com/'),
-    ('Globex', 'https://globex.example.com/'),
-    ('Initech', 'https://initech.example.com/'),
-    ('Umbrella', 'https://umbrella.example.com/'),
+    ('Acme SAS', 'Portal Acme', 'https://acme.example.com/'),
+    ('Globex', '', 'https://globex.example.com/'),
+    ('Initech', 'Intranet Initech', 'https://initech.example.com/'),
+    ('Umbrella', 'Umbrella Labs', 'https://umbrella.example.com/'),
 ]
 
 
@@ -201,7 +204,7 @@ class Command(BaseCommand):
             )
             created += 1
 
-        for index, (client_name, domain) in enumerate(
+        for index, (client_name, project_name, domain) in enumerate(
             CLIENTS[:max(1, min(count, len(CLIENTS)))],
         ):
             monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
@@ -216,6 +219,7 @@ class Command(BaseCommand):
                 client=hosting_client,
                 project=project_for(hosting_client, index),
                 client_name=client_name,
+                project_name=project_name,
                 client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,
                 monthly_value=monthly,

@@ -5,7 +5,7 @@ accounts/collection_account_views.py; these serve the accounting
 "Cuentas de cobro" monitor, its create/preview modal, and the hosting
 "Enviar cuenta de cobro" action (session + CSRF).
 """
-import base64
+import re
 from datetime import date
 from decimal import Decimal
 
@@ -13,6 +13,8 @@ from django.db import transaction
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.urls import reverse
+from django.utils.http import content_disposition_header
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -38,6 +40,10 @@ from content.services.collection_account_numbering import (
 from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
+from content.services.collection_account_preview_pdf import (
+    load_preview_pdf,
+    store_preview_pdf,
+)
 from content.services.collection_account_service import (
     CollectionAccountError,
     get_default_issuer,
@@ -45,6 +51,9 @@ from content.services.collection_account_service import (
     mark_collection_account_paid,
 )
 from content.services.document_type_codes import COLLECTION_ACCOUNT
+
+# What a single URL path segment can carry without needing escaping.
+_URL_UNSAFE_RE = re.compile(r'[^A-Za-z0-9._-]+')
 
 
 def _base_qs():
@@ -108,6 +117,24 @@ def create_collection_account_view(request):
     )
 
 
+def _preview_pdf_url(token, filename):
+    """URL whose last segment is the consecutivo, e.g. .../PA-ACME-001.pdf.
+
+    Belt and braces: the response's own Content-Disposition is what names the
+    download, but this is what a viewer falls back to when it ignores the
+    header. The segment is sanitised because the consecutivo can be typed by
+    hand and a '/' would fit in no single path segment (the header still gets
+    the exact name, straight from the cache).
+    """
+    return reverse(
+        'collection-account-preview-pdf',
+        kwargs={
+            'token': token,
+            'filename': _URL_UNSAFE_RE.sub('-', filename),
+        },
+    )
+
+
 @api_view(['POST'])
 @permission_classes([IsSuperUser])
 def preview_collection_account_view(request):
@@ -132,6 +159,7 @@ def preview_collection_account_view(request):
                 document,
             )
             pdf_bytes = CollectionAccountPdfService.generate(document)
+            pdf_name = f'{document.public_number or document.pk}.pdf'
             payload = {
                 'subject': email['subject'],
                 'html_body': email['html_body'],
@@ -141,15 +169,39 @@ def preview_collection_account_view(request):
                     document.due_date.isoformat() if document.due_date else None
                 ),
                 'customer_email': document.collection_account.customer_email,
-                'pdf_base64': (
-                    base64.b64encode(pdf_bytes).decode('ascii')
-                    if pdf_bytes else None
-                ),
             }
             transaction.set_rollback(True)
     except CollectionAccountError as exc:
         return error_response(str(exc))
+    # Outside the atomic block on purpose: the cache is not transactional, and
+    # stashing the bytes inside a transaction that is about to roll back reads
+    # as if the write were part of it.
+    payload['pdf_url'] = (
+        _preview_pdf_url(store_preview_pdf(pdf_bytes, pdf_name), pdf_name)
+        if pdf_bytes else None
+    )
     return Response(payload)
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def collection_account_preview_pdf_view(request, token, filename):
+    """Serve a previewed (never persisted) PDF so the viewer can name it.
+
+    `inline` rather than `attachment`: this URL is what the modal embeds, and
+    the operator downloads from the viewer's own button or the modal's.
+    """
+    entry = load_preview_pdf(token)
+    if entry is None:
+        return error_response(
+            'La previsualización expiró. Genérala de nuevo.', status=404,
+        )
+    response = HttpResponse(entry['pdf'], content_type='application/pdf')
+    # The cached name, not the URL segment: the segment is caller-supplied.
+    response['Content-Disposition'] = content_disposition_header(
+        False, entry['filename'],
+    )
+    return response
 
 
 @api_view(['GET'])
@@ -267,8 +319,13 @@ def collection_account_pdf(request, doc_id):
     # downloading it — previewing a cuenta should not litter the operator's
     # Downloads folder. Default stays `attachment` so the download action and
     # every existing caller keep behaving exactly as before.
-    disposition = 'inline' if request.query_params.get('inline') else 'attachment'
-    response['Content-Disposition'] = f'{disposition}; filename="{filename}"'
+    #
+    # Django's builder quotes and escapes: a manually typed consecutivo can
+    # carry a `"` and hand-rolled interpolation would break the header.
+    as_attachment = not request.query_params.get('inline')
+    response['Content-Disposition'] = content_disposition_header(
+        as_attachment, filename,
+    )
     return response
 
 

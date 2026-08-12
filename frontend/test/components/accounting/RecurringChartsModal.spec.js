@@ -1,4 +1,5 @@
 import { mount } from '@vue/test-utils';
+import { nextTick } from 'vue';
 
 jest.mock('../../../composables/useChartTheme', () => {
   const { ref } = require('vue');
@@ -72,6 +73,15 @@ function mountModal(props = {}) {
 
 function tabs(wrapper) {
   return wrapper.find('[role="tablist"]').findAll('[role="tab"]');
+}
+
+function donut(wrapper) {
+  return wrapper.findComponent('[data-testid="apexchart-stub"]');
+}
+
+/** Drill into a category the way the operator does: clicking its legend row. */
+async function drillInto(wrapper, categoryId) {
+  await wrapper.find(`[data-testid="recurring-chart-legend-item-${categoryId}"]`).trigger('click');
 }
 
 describe('RecurringChartsModal', () => {
@@ -160,5 +170,145 @@ describe('RecurringChartsModal', () => {
 
     expect(wrapper.text()).toContain('Nada que graficar con estos filtros');
     expect(wrapper.text()).toContain('Incluir inactivos');
+  });
+});
+
+describe('RecurringChartsModal — drilling into one category', () => {
+  it('splits the donut by the payments of the category, not into one 100% slice', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 1);
+
+    // The reported bug: the donut used to keep grouping by category, so the
+    // only category left became a single slice worth all of it.
+    expect(donut(wrapper).props('options').labels).toEqual(['Claude', 'Netflix']);
+    expect(donut(wrapper).props('series')).toEqual([800000, 39800]);
+  });
+
+  it('swaps the legend to the payments of that category', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 1);
+
+    const legend = wrapper.find('[data-testid="recurring-chart-legend"]');
+    expect(legend.text()).toContain('Claude');
+    expect(legend.text()).toContain('Netflix');
+    expect(legend.text()).not.toContain('Anuncios / publicidad');
+  });
+
+  it('weighs each payment inside its category and over the general total', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 1);
+
+    // Claude is 800.000 of the category's 839.800, and of everything's 2.039.800.
+    const legend = wrapper.find('[data-testid="recurring-chart-legend"]');
+    expect(legend.text()).toContain('95,3%');
+    expect(legend.text()).toContain('39,2%');
+    expect(legend.text()).toContain('del total general');
+  });
+
+  it('names the category and the base its percentages are read against', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 1);
+
+    const header = wrapper.find('[data-testid="recurring-charts-drill-header"]');
+    expect(header.text()).toContain('Suscripciones de IA');
+    expect(header.text()).toContain('$839.800 COP');
+    expect(header.text()).toContain('son sobre esta categoría');
+    expect(donut(wrapper).props('options').plotOptions.pie.donut.labels.total.label)
+      .toBe('Total categoría');
+  });
+
+  it('colors the payments by their rank, never by the category they share', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 1);
+
+    // Both are category 1: painted by category they would be the same blue,
+    // and the donut would be one flat color again.
+    expect(donut(wrapper).props('options').colors).toEqual(['#1D4ED8', '#B45309']);
+  });
+
+  it('starts the ramp at the drilled category own hue, so the drill reads as a zoom', async () => {
+    const wrapper = mountModal({
+      rows: [
+        payment({ id: 1, name: 'Google Ads', category: 2, monthly_cop_cost: '900000.00' }),
+        payment({ id: 2, name: 'Meta Ads', category: 2, monthly_cop_cost: '300000.00' }),
+      ],
+    });
+
+    await drillInto(wrapper, 2);
+
+    // Category 2 wears the second slot in the general view; its biggest payment
+    // inherits it instead of restarting the ramp at blue.
+    expect(donut(wrapper).props('options').colors).toEqual(['#B45309', '#059669']);
+  });
+
+  it('returns to the general view in one click, without reopening the modal', async () => {
+    const wrapper = mountModal();
+    await drillInto(wrapper, 1);
+
+    await wrapper.find('[data-testid="recurring-charts-back"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="recurring-charts-drill-header"]').exists()).toBe(false);
+    const legend = wrapper.find('[data-testid="recurring-chart-legend"]');
+    expect(legend.text()).toContain('Suscripciones de IA');
+    expect(legend.text()).toContain('Anuncios / publicidad');
+  });
+
+  it('names the lone payment when a category has only one, so 100% reads as real', async () => {
+    const wrapper = mountModal();
+
+    await drillInto(wrapper, 2);
+
+    expect(wrapper.find('[data-testid="recurring-charts-single-item"]').text())
+      .toContain('Google Ads');
+  });
+
+  it('does not let clicking a payment toggle the category that shares its id', async () => {
+    const wrapper = mountModal();
+    await drillInto(wrapper, 1);
+
+    // Claude is payment id 1 inside category id 1: the ids collide.
+    // quality: allow-implementation-coupling (the chart is stubbed, so a slice
+    // click only exists as ApexCharts' callback — there is no DOM to click)
+    donut(wrapper).vm.$emit('data-point-selection', {}, {}, { dataPointIndex: 0 });
+    await nextTick();
+
+    expect(wrapper.find('[data-testid="recurring-charts-drill-header"]').exists()).toBe(true);
+    expect(donut(wrapper).props('options').labels).toEqual(['Claude', 'Netflix']);
+  });
+
+  it('keeps the way back when the drilled category has nothing left to show', async () => {
+    const wrapper = mountModal({
+      rows: [
+        payment({ id: 1, category: 1, monthly_cop_cost: '800000.00' }),
+        payment({ id: 2, category: 2, monthly_cop_cost: '200000.00', is_active: false }),
+      ],
+    });
+
+    // Only reachable through the select: an all-inactive category has no
+    // legend row to click.
+    await wrapper.find('[data-testid="recurring-charts-category"]').setValue('2');
+
+    expect(wrapper.find('[data-testid="recurring-charts-back"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Los pagos de esta categoría están inactivos');
+  });
+
+  it('drills into the uncategorized bucket instead of emptying the modal', async () => {
+    const wrapper = mountModal({
+      rows: [
+        payment({ id: 1, name: 'Claude', category: 1, monthly_cop_cost: '800000.00' }),
+        payment({ id: 2, name: 'Dominio suelto', category: null, monthly_cop_cost: '4499.00' }),
+      ],
+    });
+
+    await drillInto(wrapper, 'uncategorized');
+
+    expect(donut(wrapper).props('options').labels).toEqual(['Dominio suelto']);
+    expect(wrapper.find('[data-testid="recurring-charts-drill-header"]').text())
+      .toContain('Sin categoría');
   });
 });

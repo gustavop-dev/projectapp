@@ -72,8 +72,23 @@ def _wrap(text, style, size, width):
 
     Replaces the old fixed character truncation, which silently dropped text
     and was calibrated for A4's wider column.
+
+    Authored line breaks survive, blank lines included: the descripción del
+    concepto is written in the panel as several paragraphs, and the blank line
+    between them is what makes an enumeration of requirements readable.
+    `simpleSplit` does split on '\\n', but it drops an empty line on the floor
+    — hence the per-paragraph loop and the ``or ['']``. Empty input still
+    yields no lines at all, so a missing value consumes no vertical space.
+    The CRLF normalisation is for text that reached us from a textarea.
     """
-    return simpleSplit(str(text or ''), _font(style), size, width)
+    normalised = str(text or '').replace('\r\n', '\n').replace('\r', '\n')
+    if not normalised:
+        return []
+    font = _font(style)
+    lines = []
+    for paragraph in normalised.split('\n'):
+        lines.extend(simpleSplit(paragraph, font, size, width) or [''])
+    return lines
 
 
 def _payment_blocks(methods):
@@ -379,10 +394,14 @@ class CollectionAccountPdfService:
 
         desc_w = CONTENT_W - _AMOUNT_COL_W - 10
         for item in document.items.all().order_by('position', 'id'):
+            # A descripción can run to several paragraphs, so the space is
+            # reserved line by line rather than for the whole item: reserving
+            # the block up front asks for more than a page fits and breaks
+            # ahead of text that would have flowed fine.
             chunks = _wrap(item.description, 'regular', 8, desc_w) or ['']
-            ensure_space(11 * len(chunks) + 6)
             amount = _format_cop(item.line_total)
             for index, chunk in enumerate(chunks):
+                ensure_space(11)
                 c.setFont(_font('regular'), 8)
                 c.setFillColor(GRAY_700)
                 c.drawString(MARGIN_X, y, chunk)
