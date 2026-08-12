@@ -22,6 +22,9 @@
 
       <ul class="py-2">
         <li v-for="action in actions" :key="action.id">
+          <!-- Menu rows, not standalone actions: a BaseButton variant per
+               row would paint eight competing buttons inside one list. -->
+          <!-- design-tokens: allow-raw-button -->
           <button
             type="button"
             class="flex w-full items-center gap-3 px-6 py-3 text-sm text-left transition-colors"
