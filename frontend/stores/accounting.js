@@ -70,6 +70,9 @@ export const useAccountingStore = defineStore('accounting', {
     creditCards: [],
     collectionAccounts: [],
     collectionAccountsMeta: {},
+    // Project options keyed by client profile id ('all' for the unscoped
+    // list). A client gains a project far less often than a form reopens.
+    projectsByClient: {},
     statements: [],
     merchantAliases: [],
     statementStatus: null,
@@ -773,6 +776,55 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: false, ...normalizeApiError(error) };
       } finally {
         this.isLoading = false;
+      }
+    },
+
+    /** One cuenta de cobro with its items, payment methods and notes. */
+    async fetchCollectionAccount(id) {
+      try {
+        const response = await get_request(
+          `accounting/collection-accounts/${id}/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching collection account ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * One income plus its settlement history and linked cuenta:
+     * {income, liquid, expenses, collection_account}.
+     */
+    async fetchIncomeDetail(id) {
+      try {
+        const response = await get_request(`accounting/incomes/${id}/detail/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching income detail ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * Projects to pick from, scoped to one client. Memoized per client:
+     * the form re-opens far more often than a client gains a project.
+     */
+    async fetchProjectsForClient(clientProfileId) {
+      const key = clientProfileId ?? 'all';
+      if (this.projectsByClient[key]) {
+        return { success: true, data: this.projectsByClient[key] };
+      }
+      try {
+        const response = await get_request(
+          `accounting/projects/${clientProfileId ? `?client=${clientProfileId}` : ''}`,
+        );
+        const results = response.data?.results ?? [];
+        this.projectsByClient = { ...this.projectsByClient, [key]: results };
+        return { success: true, data: results };
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        return { success: false, ...normalizeApiError(error) };
       }
     },
 

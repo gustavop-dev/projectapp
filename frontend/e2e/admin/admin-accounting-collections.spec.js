@@ -23,8 +23,14 @@ function makeRows() {
     {
       id: 1,
       public_number: 'PA-2026-0001',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'German - Kore',
+      client: 101,
+      client_display_name: 'Germán Franco',
+      project_name: 'Kore',
       total: '550002.00',
       issue_date: '2026-06-01',
       due_date: '2026-06-15',
@@ -35,8 +41,14 @@ function makeRows() {
     {
       id: 2,
       public_number: 'PA-2026-0002',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'Nestor - Xpandia',
+      client: 102,
+      client_display_name: 'Néstor Franco',
+      project_name: 'Xpandia',
       total: '550002.00',
       issue_date: '2026-07-10',
       due_date: '2026-07-30',
@@ -47,8 +59,14 @@ function makeRows() {
     {
       id: 3,
       public_number: 'PA-2026-0003',
+      origin: 'hosting',
       origin_label: 'Hosting',
+      // The snapshot the PDF printed: person and brand fused, which is the
+      // defect the two columns below exist to separate.
       customer_name: 'Laura - Mi Huella',
+      client: 103,
+      client_display_name: 'Laura Gómez',
+      project_name: 'Mi Huella',
       total: '550002.00',
       issue_date: '2026-05-01',
       due_date: '2026-05-15',
@@ -156,8 +174,12 @@ function buildHandler({ calls, incomeDetail = null }) {
       const created = {
         id: 9,
         public_number: 'PA-ACME-001',
-        origin_label: 'Ingreso · Desarrollo módulo de reportes',
+        origin: 'income',
+        origin_label: 'Ingreso',
         customer_name: 'Acme Soluciones',
+        client: 110,
+        client_display_name: 'Ana Pérez',
+        project_name: '',
         total: '1490000.00',
         issue_date: '2026-08-05',
         due_date: '2026-08-13',
@@ -299,7 +321,7 @@ test.describe('Admin Accounting Collections', () => {
     });
   });
 
-  test('resending a paid account notifies without a confirm step', {
+  test('resending a paid account asks for confirmation naming the recipient', {
     tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -307,6 +329,11 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+
+    // One click used to email a client outright. It now confirms first, and
+    // the message says who is about to receive it.
+    await expect(page.getByText('Reenviar cuenta de cobro')).toBeVisible();
+    await page.getByRole('button', { name: 'Reenviar', exact: true }).click();
 
     await expect(
       page.getByText('Cuenta de cobro reenviada al cliente'),
@@ -337,6 +364,7 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await page.getByTestId('accounting-row-3').getByLabel('Reenviar al cliente').click();
+    await page.getByRole('button', { name: 'Reenviar', exact: true }).click();
 
     await expect(page.getByText('No se pudo reenviar')).toBeVisible();
     // The row keeps its state — nothing was mutated by the failed send.
