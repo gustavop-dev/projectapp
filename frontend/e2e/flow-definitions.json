@@ -1,6 +1,6 @@
 {
-  "version": "2.66.0",
-  "lastUpdated": "2026-08-01",
+  "version": "2.67.0",
+  "lastUpdated": "2026-08-12",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -4236,6 +4236,34 @@
       "expectedSpecs": 0,
       "knownGaps": [
         "No spec yet (2026-07 audit): tab only appears for accepted proposals; refresh/copy/download untested."
+      ]
+    },
+    "admin-linktrees": {
+      "name": "Admin Linktrees",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin creates linktrees (internal name + unique handle, personal/company kind), edits identity, tiered buttons (1 primary, <=1 featured, pairs of 2, <=6 rows), PWA block and vCard data from /panel/linktrees, and assigns a linktree as QR card destination. Public URL is /lk/@handle; the backend rejects handle collisions, reserved handles and tier cardinality violations.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success",
+        "error"
+      ]
+    },
+    "public-linktree-view": {
+      "name": "Public Linktree View",
+      "module": "public",
+      "roles": [
+        "visitor"
+      ],
+      "priority": "P2",
+      "description": "Visitor opens /lk/@handle (via the QR short link redirect or directly) and sees the brand-fixed linktree page: identity block per kind, tiered buttons in order (pairs side by side, pending buttons dashed and inert), PWA install block and footer tagline. Unknown or inactive handles show the not-available state.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "failure"
       ]
     }
   }

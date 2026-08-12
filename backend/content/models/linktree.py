@@ -22,7 +22,7 @@ RESERVED_HANDLES = frozenset({
 # links.config.json `actions` block; `custom` lets the admin pick a free icon.
 LINKTREE_ACTIONS = {
     'linkedin': {'icon': 'linkedin', 'kind': 'url'},
-    'whatsapp': {'icon': 'message-circle', 'kind': 'url'},
+    'whatsapp': {'icon': 'whatsapp', 'kind': 'url'},
     'email': {'icon': 'mail', 'kind': 'mailto'},
     'web': {'icon': 'globe', 'kind': 'url'},
     'instagram': {'icon': 'instagram', 'kind': 'url'},
@@ -56,7 +56,9 @@ class Linktree(models.Model):
     display_name = models.CharField(max_length=120, blank=True, default='')
     role = models.CharField(max_length=120, blank=True, default='')
     bio = models.TextField(blank=True, default='')
-    monogram = models.CharField(max_length=3, blank=True, default='')
+    # Avatar photo; when absent the public page renders the display_name
+    # initials inside the circle instead.
+    avatar = models.ImageField(upload_to='linktrees/avatars/', null=True, blank=True)
     claim_line_1 = models.CharField(max_length=120, blank=True, default='')
     claim_line_2 = models.CharField(max_length=120, blank=True, default='')
     badge_text = models.CharField(max_length=40, blank=True, default='')

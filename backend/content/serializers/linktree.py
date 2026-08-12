@@ -62,7 +62,7 @@ class LinktreeDetailSerializer(serializers.ModelSerializer):
         model = Linktree
         fields = (
             'id', 'handle', 'name', 'kind',
-            'display_name', 'role', 'bio', 'monogram',
+            'display_name', 'role', 'bio', 'avatar',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
             'pwa_enabled', 'pwa_title', 'pwa_description',
@@ -82,7 +82,7 @@ class PublicLinktreeSerializer(serializers.ModelSerializer):
         model = Linktree
         fields = (
             'handle', 'kind',
-            'display_name', 'role', 'bio', 'monogram',
+            'display_name', 'role', 'bio', 'avatar',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
             'pwa_enabled', 'pwa_title', 'pwa_description',
@@ -110,9 +110,11 @@ class LinktreeCreateUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Linktree
+        # `avatar` is deliberately absent: the photo is managed only through
+        # the dedicated upload/delete endpoint, never via the JSON payload.
         fields = (
             'handle', 'name', 'kind',
-            'display_name', 'role', 'bio', 'monogram',
+            'display_name', 'role', 'bio',
             'claim_line_1', 'claim_line_2', 'badge_text',
             'footer_tagline', 'show_brand_header',
             'pwa_enabled', 'pwa_title', 'pwa_description',

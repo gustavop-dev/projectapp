@@ -3,6 +3,7 @@ import os
 from django.conf import settings
 from django.http import HttpResponseNotFound, JsonResponse
 from django.urls import path, include, re_path
+from django.views.generic import RedirectView
 from content.admin import admin_site
 from django.conf.urls.static import static
 
@@ -36,6 +37,10 @@ def oauth_discovery_not_found(request, *args, **kwargs):
 
 urlpatterns = [
     path('api/health/', health_check, name='health-check'),
+    # /admin without the trailing slash would fall through to the SPA
+    # catch-all and 404 — APPEND_SLASH never kicks in because the URL
+    # technically resolves. Redirect it explicitly.
+    path('admin', RedirectView.as_view(url='/admin/', permanent=False)),
     path('admin/', admin_site.urls),
     path('api/', include('content.urls')),
     path('api/accounts/', include('accounts.urls')),

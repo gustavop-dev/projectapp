@@ -54,7 +54,7 @@ from content.views.portfolio_works import (
 )
 from content.views.linktree import (
     list_admin_linktrees, retrieve_admin_linktree, create_linktree,
-    update_linktree, delete_linktree, public_linktree,
+    update_linktree, delete_linktree, public_linktree, upload_linktree_avatar,
 )
 from content.views.qr_cards import (
     list_admin_qr_cards, create_qr_card, update_qr_card, delete_qr_card,
@@ -485,6 +485,7 @@ urlpatterns = [
     path('linktrees/admin/<uuid:linktree_id>/', retrieve_admin_linktree, name='retrieve-admin-linktree'),
     path('linktrees/admin/<uuid:linktree_id>/update/', update_linktree, name='update-linktree'),
     path('linktrees/admin/<uuid:linktree_id>/delete/', delete_linktree, name='delete-linktree'),
+    path('linktrees/admin/<uuid:linktree_id>/avatar/', upload_linktree_avatar, name='upload-linktree-avatar'),
     path('linktrees/public/<str:handle>/', public_linktree, name='public-linktree'),
 
     # Hour packages — admin catalog CRUD (per-nationality pricing)

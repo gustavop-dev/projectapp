@@ -65,6 +65,49 @@ def update_linktree(request, linktree_id):
     return Response(detail.data, status=status.HTTP_200_OK)
 
 
+AVATAR_ALLOWED_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
+AVATAR_MAX_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+@api_view(['POST', 'DELETE'])
+@permission_classes([IsAdminUser])
+def upload_linktree_avatar(request, linktree_id):
+    """Upload (POST multipart) or remove (DELETE) a linktree's avatar photo."""
+    from pathlib import Path
+
+    linktree = get_object_or_404(Linktree, pk=linktree_id)
+
+    if request.method == 'DELETE':
+        if linktree.avatar:
+            linktree.avatar.delete(save=False)
+            linktree.avatar = None
+            linktree.save(update_fields=['avatar', 'updated_at'])
+        detail = LinktreeDetailSerializer(linktree)
+        return Response(detail.data, status=status.HTTP_200_OK)
+
+    avatar = request.FILES.get('avatar')
+    if not avatar:
+        return Response(
+            {'avatar': 'No se adjuntó ninguna imagen.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    ext = Path(avatar.name).suffix.lower()
+    if ext not in AVATAR_ALLOWED_EXTENSIONS:
+        return Response(
+            {'avatar': f'Formato {ext} no permitido (usa JPG, PNG o WebP).'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if avatar.size > AVATAR_MAX_SIZE:
+        return Response(
+            {'avatar': 'La imagen supera el máximo de 5MB.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    linktree.avatar = avatar
+    linktree.save(update_fields=['avatar', 'updated_at'])
+    detail = LinktreeDetailSerializer(linktree)
+    return Response(detail.data, status=status.HTTP_200_OK)
+
+
 @api_view(['DELETE'])
 @permission_classes([IsAdminUser])
 def delete_linktree(request, linktree_id):
