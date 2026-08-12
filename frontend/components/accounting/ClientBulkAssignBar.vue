@@ -39,11 +39,18 @@
       >
         Seleccionar los {{ filteredIds.length }} filtrados
       </BaseButton>
+      <!--
+        Sin el hint propio del picker: crecía DENTRO de esta celda del flex y,
+        con `sm:items-center`, re-centraba toda la fila contra la celda más
+        alta — el input subía y los botones quedaban desalineados. La barra lo
+        dice abajo, en su línea de estado, donde no mueve nada.
+      -->
       <div class="flex-1 min-w-[16rem]">
         <ClientAutocomplete
           v-model="clientId"
           :test-id="`${testidPrefix}-bulk-client`"
           placeholder="Buscar el cliente a asignar..."
+          :show-linked-hint="false"
           @select="onClientSelect"
         />
       </div>
@@ -58,7 +65,7 @@
         -->
         <BaseButton
           v-if="canUnlink"
-          variant="danger-ghost"
+          variant="danger"
           size="sm"
           :disabled="busy"
           :data-testid="`${testidPrefix}-bulk-unlink`"
@@ -79,17 +86,22 @@
     </div>
 
     <!--
-      La razón va inline y siempre visible, no en un tooltip: un botón
-      apagado sin explicación es el mismo callejón que el placeholder que
-      escondía el "vacío = desvincular".
+      Una sola línea, nunca vacía: o dice por qué Asignar está apagado, o
+      confirma a quién se va a enlazar. La razón va inline y siempre visible,
+      no en un tooltip: un botón apagado sin explicación es el mismo callejón
+      que el placeholder que escondía el "vacío = desvincular". Y que la línea
+      no pueda faltar es lo que mantiene fijo el alto de la barra.
+
+      `truncate` no es cosmético: un nombre largo partido en dos renglones
+      volvería a mover la barra. El texto completo queda en el title.
     -->
     <p
-      v-if="assignBlockedReason"
-      class="flex items-center gap-1.5 text-xs text-text-muted"
+      class="flex items-center gap-1.5 text-xs text-text-muted min-w-0"
       :data-testid="`${testidPrefix}-bulk-hint`"
+      :title="statusLine.text"
     >
-      <InformationCircleIcon class="w-4 h-4 flex-shrink-0" />
-      {{ assignBlockedReason }}
+      <component :is="statusLine.icon" class="w-4 h-4 flex-shrink-0" />
+      <span class="truncate">{{ statusLine.text }}</span>
     </p>
   </div>
 
@@ -114,7 +126,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { InformationCircleIcon } from '@heroicons/vue/24/outline';
+import { InformationCircleIcon, LinkIcon } from '@heroicons/vue/24/outline';
 
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
@@ -199,6 +211,22 @@ const assignBlockedReason = computed(() => {
     return `Todo lo seleccionado ya tiene a ${clientLabel.value}.`;
   }
   return '';
+});
+
+/**
+ * `assignBlockedReason` sólo queda vacío cuando ya hay cliente Y hay filas que
+ * cambiar, así que el else de este ternario es exactamente el caso en que
+ * corresponde confirmar el enlace. Por eso la línea nunca está vacía, y por eso
+ * la barra no cambia de alto entre estados.
+ */
+const statusLine = computed(() => {
+  if (assignBlockedReason.value) {
+    return { text: assignBlockedReason.value, icon: InformationCircleIcon };
+  }
+  return {
+    text: `Cliente enlazado: ${clientLabel.value} (#${clientId.value})`,
+    icon: LinkIcon,
+  };
 });
 
 function selectAllFiltered() {
