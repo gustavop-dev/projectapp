@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0186_linktree_and_qrcard_destination'),
+        ('content', '0187_linktree_and_qrcard_destination'),
     ]
 
     operations = [

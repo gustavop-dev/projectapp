@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0185_payment_calendar_reminders'),
+        ('content', '0186_accounting_project_relation'),
     ]
 
     operations = [
