@@ -80,6 +80,28 @@ class Command(BaseCommand):
         # standalone in tests. Without them every income stays unassigned,
         # which is a legitimate (and useful) seed state.
         client_profiles = list(UserProfile.objects.clients()[:8])
+        # Seed a small project catalog before resolving projects per client:
+        # the Projects module needs clients WITH projects (counts, scopes,
+        # the fly-create picker) and clients WITHOUT any (the indicator's
+        # bucket). The first two profiles get one — plus one archived row to
+        # exercise the Archivados scope — and the rest stay uncovered on
+        # purpose. delete_fake_data removes Project wholesale, so these need
+        # no source tag.
+        for offset, profile in enumerate(client_profiles[:2]):
+            if Project.objects.filter(client_id=profile.user_id).exists():
+                # Never widen an existing catalog: callers (and tests) that
+                # pre-created a project rely on every linked row using it.
+                continue
+            base = (profile.company_name or 'Proyecto demo').strip()
+            Project.objects.get_or_create(
+                client_id=profile.user_id, name=f'{base} Web',
+                defaults={'status': 'active'},
+            )
+            if offset == 0:
+                Project.objects.get_or_create(
+                    client_id=profile.user_id, name=f'{base} Legacy',
+                    defaults={'status': 'archived'},
+                )
         # A record's project must belong to its own client (the write
         # serializers enforce it), so the seed resolves projects per client
         # rather than picking from a global pool. Clients with no project
