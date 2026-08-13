@@ -308,13 +308,24 @@ describe('FolderSidebar', () => {
   });
 
   describe('Archivados entry', () => {
-    it('highlights only at the top of the archive, not inside a subfolder', () => {
+    it('stays lit at any depth and is the only highlight in the archive', () => {
+      // Decisión del 13-ago-2026 (regla de resaltado único): la entrada
+      // permanece encendida mientras el scope sea archivado — antes se apagaba
+      // al entrar a una subcarpeta y NADA en el sidebar decía dónde se estaba.
       const atRoot = mountSidebar({ archiveScope: 'archived', activeId: 'root' });
-      const inside = mountSidebar({ archiveScope: 'archived', activeId: 9 });
+      const inside = mountSidebar({
+        folders: [folderA], archiveScope: 'archived', activeId: folderA.id,
+      });
 
-      const entryOf = (w) => w.find('[data-testid="folder-archived-entry"]').classes().join(' ');
-      expect(entryOf(atRoot)).toContain('text-text-brand');
-      expect(entryOf(inside)).not.toContain('text-text-brand');
+      const entryOf = (w) => w.find('[data-testid="folder-archived-entry"]');
+      expect(entryOf(atRoot).classes().join(' ')).toContain('text-text-brand');
+      expect(entryOf(inside).classes().join(' ')).toContain('text-text-brand');
+      expect(entryOf(inside).attributes('aria-current')).toBe('location');
+      // …y es el ÚNICO resaltado: la fila de la carpeta activa no se enciende
+      // a la vez (dos resaltados señalarían dos lugares distintos).
+      const rowDiv = inside.find('[data-testid="folder-archive"]').element
+        .closest('.transition-all');
+      expect(rowDiv.className).not.toContain('text-text-brand');
     });
   });
 

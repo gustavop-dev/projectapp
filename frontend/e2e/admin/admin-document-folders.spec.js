@@ -145,9 +145,10 @@ test.describe('Admin Document Folders and Tags', () => {
     await page.goto('/panel/documents');
     await page.waitForLoadState('domcontentloaded');
 
-    // exact: the row kebabs now expose "Acciones de <título>" labels that
-    // would substring-match "Sin carpeta".
-    await page.getByRole('button', { name: 'Sin carpeta', exact: true }).click();
+    // Anclado al inicio: la fila ahora muestra el contador de huérfanos
+    // ("Sin carpeta 0"), así que el exact-match dejó de servir; el ancla ^
+    // sigue evitando el substring-match con los kebabs "Acciones de <título>".
+    await page.getByRole('button', { name: /^Sin carpeta/ }).click();
 
     await expect.poll(
       () => requestedUrls.some((u) => u.includes('folder=none')),
