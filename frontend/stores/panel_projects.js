@@ -1,6 +1,17 @@
 import { defineStore } from 'pinia';
 import { get_request, create_request, patch_request } from './services/request_http';
 import { normalizeApiError } from './services/normalize_api_error';
+import { useAccountingStore } from './accounting';
+
+/**
+ * The accounting pickers memoize projects per client forever; any module
+ * mutation must drop that cache or a rename/archive would keep serving the
+ * stale entry in every form. Total invalidation on purpose: mutations here
+ * are rare and the picker lists are tiny.
+ */
+function invalidatePickerCache() {
+  useAccountingStore().invalidateProjectsCache();
+}
 
 /**
  * Panel-side store for the Projects module (Plataforma space).
@@ -49,6 +60,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       try {
         const response = await create_request('projects/create/', payload);
         await this.fetchProjects();
+        invalidatePickerCache();
         return { success: true, data: response.data };
       } catch (error) {
         return {
@@ -65,6 +77,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       try {
         const response = await patch_request(`projects/${id}/update/`, payload);
         await this.fetchProjects();
+        invalidatePickerCache();
         return { success: true, data: response.data };
       } catch (error) {
         return {
@@ -81,6 +94,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       try {
         const response = await patch_request(`projects/${id}/archive/`, {});
         await this.fetchProjects();
+        invalidatePickerCache();
         return { success: true, data: response.data };
       } catch (error) {
         return {
@@ -97,6 +111,7 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       try {
         const response = await patch_request(`projects/${id}/unarchive/`, {});
         await this.fetchProjects();
+        invalidatePickerCache();
         return { success: true, data: response.data };
       } catch (error) {
         return {

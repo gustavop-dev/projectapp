@@ -881,6 +881,57 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * Create a project from a picker without leaving the form (crear al
+     * vuelo). On success the memoized per-client list is updated in place —
+     * and the 'all' key dropped — so every open picker sees the new project
+     * without waiting out the cache.
+     */
+    async createProjectForClient(clientProfileId, { name }) {
+      try {
+        const response = await create_request('projects/create/', {
+          name,
+          client_profile_id: clientProfileId,
+        });
+        const row = response.data;
+        const entry = {
+          id: row.id,
+          name: row.name,
+          status: row.status,
+          status_label: row.status_label,
+        };
+        const key = clientProfileId ?? 'all';
+        const next = [...(this.projectsByClient[key] ?? []), entry]
+          .sort((a, b) => a.name.localeCompare(b.name));
+        const cache = { ...this.projectsByClient, [key]: next };
+        if (key !== 'all') delete cache.all;
+        this.projectsByClient = cache;
+        return { success: true, data: entry };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudo crear el proyecto.'),
+        };
+      }
+    },
+
+    /**
+     * Drop memoized picker lists so the next open refetches. The projects
+     * module calls this after create/update/archive/restore — the memo is
+     * otherwise permanent and a renamed or archived project would keep its
+     * stale entry in every form.
+     */
+    invalidateProjectsCache(clientProfileId = null) {
+      if (clientProfileId === null) {
+        this.projectsByClient = {};
+        return;
+      }
+      const cache = { ...this.projectsByClient };
+      delete cache[clientProfileId];
+      delete cache.all;
+      this.projectsByClient = cache;
+    },
+
+    /**
      * sendHostingCollectionAccount: issue + email the cuenta de cobro of a
      * hosting. Returns {success, data: {document, email_sent}}.
      */
