@@ -13,7 +13,7 @@
       >
         <option value="all">Todas</option>
         <option v-for="tab in tabs" :key="tab.id" :value="tab.id">
-          {{ tab.name }}{{ isModified(tab) ? ' •' : '' }}
+          {{ tab.name }}{{ countFor(tab) != null ? ` (${countFor(tab)})` : '' }}{{ isModified(tab) ? ' •' : '' }}
         </option>
         <option v-if="showConfigTab" value="__config__">⚙ Configuraciones</option>
       </select>
@@ -49,6 +49,11 @@
           @click="$emit('select', tab.id)"
         >
           {{ tab.name }}<span
+            v-if="countFor(tab) != null"
+            :data-testid="`filter-tabs-count-${tab.id}`"
+            class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs tabular-nums bg-surface-raised text-text-muted"
+            title="Clientes que cumplen este filtro"
+          >{{ countFor(tab) }}</span><span
             v-if="isModified(tab)"
             :data-testid="`filter-tabs-modified-${tab.id}`"
             class="ml-1 text-warning-strong"
@@ -184,6 +189,10 @@ const props = defineProps({
   tabs: { type: Array, default: () => [] },
   activeTabId: { type: String, default: 'all' },
   isTabLimitReached: { type: Boolean, default: false },
+  // Optional per-tab match count, keyed by tab id, so a quick filter can show
+  // how many rows it would leave without being applied. Views that pass
+  // nothing render exactly as before.
+  counts: { type: Object, default: () => ({}) },
   // Opt-in fixed trailing "Configuraciones" tab (clients/proposals views).
   showConfigTab: { type: Boolean, default: false },
   configActive: { type: Boolean, default: false },
@@ -201,6 +210,16 @@ function isModified(tab) {
     && tab.base_filters != null
     && !sameFilters(tab.filters, tab.base_filters)
   );
+}
+
+/**
+ * Saved tabs carry numeric ids and builtins carry strings, so the lookup is
+ * keyed by the stringified id. Returns null (not 0) when there is no count,
+ * which is what keeps the badge off for the views that pass no `counts`.
+ */
+function countFor(tab) {
+  const value = props.counts[String(tab.id)];
+  return typeof value === 'number' ? value : null;
 }
 
 function handleMobileSelect(value) {

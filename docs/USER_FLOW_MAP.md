@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.35.0
+> **Version:** 2.36.0
 > **Last updated:** 2026-08-13
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -1288,6 +1288,23 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered — tab filtering, marking inactive and the reactivate branch (play icon from the Inactivos tab, PATCH `is_inactive:false` + toast) are asserted (2026-07-23).
 - **E2E Spec:** `e2e/admin/admin-clients-inactive-tab.spec.js`
 - **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestInactiveClients`, `accounts/tests/test_proposal_client_service.py::TestUpdateClientProfile::test_toggling_is_inactive_does_not_cascade_snapshots`
+
+### FLOW: `admin-clients-filter-presets`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`, `/panel/accounting/hostings/`
+- **Description:** Answer "¿a quiénes les cobro hosting?" in one click, without rebuilding the filter or leaving for the Hostings tab. The saved-filter-tab bar leads with four **predefined filters** — builtin tabs of `useAccountingFilters`, the same mechanism Ingresos/Hostings/Cuentas de cobro already use (this view was migrated off `useClientFilters`, its pre-generalization ancestor): **Con hosting cobrado** (≥1 hosting with `is_active`, the very flag the client card renders as "Vigente", so the number reconciles with the Hostings tab), **Con hosting (histórico)** (any hosting ever, including expired), **Sin datos de facturación** (no `nit`, `cedula` nor `billing_code` — `billing_code` is stored NULL, the other two `''`) and **Con proyecto activo** (`Project.status='active'`, not merely any project). Each tab carries its match count so the number is readable *without* applying it. Both hosting cuts ride the formal PA-25 client↔hosting FK via `active_hostings_count` / `active_projects_count`, annotated as `Subquery` aggregates on the clients list endpoint — never text or project names. Selecting a preset stamps `?clientTab=<id>` (shareable, survives reload); pressing it again returns to the full list. Presets compose with the server-side search box and the Todos/Activos/Huérfanos/Inactivos tabs without either cancelling the other, surface as a removable chip in the filter panel and clear with "Limpiar todo". Deactivated clients stay out by default even holding live hostings (the endpoint hides them; "Inactivos" remains an explicit opt-in). While a hosting preset is applied every row shows its hosting count, which for superusers doubles as the jump into `/panel/accounting/hostings?client=<id>` — landing there already filtered.
+- **Steps:**
+  1. Admin navigates to `/panel/clients/`; the full list renders (no preset applied by default) and each preset tab shows its count.
+  2. Admin clicks a preset (data-testid: `filter-tabs-tab-hosting-charged`) — the list narrows client-side and the URL gains `?clientTab=hosting-charged`.
+  3. Typing in the search box (data-testid: `clients-search-input`) refetches server-side and the preset keeps narrowing the result; neither annuls the other.
+  4. Clicking the applied preset again clears it: full list, `?clientTab` gone.
+  5. With a hosting preset applied, the row pill (data-testid: `client-hostings-<id>`) navigates to `/panel/accounting/hostings?client=<id>`, which seeds the client multi-select on arrival. Non-superusers see the count as plain text (accounting is superuser-only).
+- **Coverage:** ✅ Covered — counts before applying, narrowing + URL stamp, toggle-off, shared-link restore, search composition and the pre-filtered handoff into Hostings are all asserted (2026-08-13).
+- **E2E Spec:** `e2e/admin/admin-clients-filter-presets.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestPresetAnnotations`
 
 ### FLOW: `admin-client-drag-reassign`
 
@@ -2728,6 +2745,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-delete-orphan` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-inactive-tab` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-inactive-tab.spec.js` |
+| `admin-clients-filter-presets` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-filter-presets.spec.js` |
 | `admin-client-drag-reassign` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |

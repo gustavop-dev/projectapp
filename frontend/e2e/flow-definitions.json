@@ -1,5 +1,5 @@
 {
-  "version": "2.69.0",
+  "version": "2.70.0",
   "lastUpdated": "2026-08-13",
   "flows": {
     "layout-navbar-navigation": {
@@ -2766,6 +2766,20 @@
         "display",
         "success",
         "failure"
+      ]
+    },
+    "admin-clients-filter-presets": {
+      "name": "Admin Clients Filter Presets",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Admin answers \"a quienes les cobro hosting\" from /panel/clients without rebuilding the filter. The saved-tab bar now leads with four predefined one-click filters (builtin tabs of useAccountingFilters, the same mechanism Ingresos/Hostings/Cuentas de cobro use): 'Con hosting cobrado' (>=1 hosting with is_active, the same flag the row renders as 'Vigente'), 'Con hosting (historico)', 'Sin datos de facturacion' and 'Con proyecto activo'. Each tab shows its match count before being applied, and both hosting cuts read FK-backed aggregates from PA-25 (active_hostings_count / active_projects_count, annotated as Subqueries on the clients list endpoint) rather than text or project names. Selecting one stamps ?clientTab=<id> so the link survives a reload and can be shared; pressing it again returns to the full list. Presets compose with the server-side search box and the Todos/Activos/Huerfanos/Inactivos tabs without either cancelling the other, appear as a removable chip in the filter panel and clear with 'Limpiar todo'. Deactivated clients stay out by default (the endpoint hides them) even when they still hold live hostings. While a hosting preset is applied each row shows its hosting count, which for superusers doubles as the jump into /panel/accounting/hostings?client=<id>, landing there already filtered.",
+      "expectedSpecs": 6,
+      "outcomes": [
+        "display",
+        "success"
       ]
     },
     "admin-client-drag-reassign": {

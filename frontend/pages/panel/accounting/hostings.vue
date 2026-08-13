@@ -783,6 +783,22 @@ async function sendBilling() {
 
 const route = useRoute();
 
+/**
+ * Entry point for "ver los hostings de este cliente" from /panel/clients.
+ * Seeds the client multi-select so the deep link lands already filtered.
+ * The id must be a Number: `matchClients` compares against `record.client`,
+ * which the API serializes numerically. The landing tab here is 'all', so
+ * nothing filters the incoming rows back out.
+ */
+function applyClientFromQuery() {
+  const raw = route.query.client;
+  if (!raw) return;
+  const clientId = Number(raw);
+  if (!Number.isFinite(clientId)) return;
+  currentFilters.clients = [clientId];
+  isFilterPanelOpen.value = true;
+}
+
 onMounted(() => {
   // ?project=<id> — deep link from the /panel/projects counts. Seeded before
   // the load; the `projects` matcher above already speaks this key.
@@ -790,7 +806,8 @@ onMounted(() => {
   if (Number.isInteger(projectParam) && projectParam > 0) {
     currentFilters.projects = [projectParam];
   }
-  loadRecords();
+  applyClientFromQuery();
+  return loadRecords();
 });
 usePanelRefresh(loadRecords);
 </script>

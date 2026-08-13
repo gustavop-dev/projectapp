@@ -27,7 +27,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
 from accounts.services.billing_code import (
@@ -91,6 +91,39 @@ def _base_queryset():
                 Subquery(
                     HostingRecord.objects
                     .filter(client=OuterRef('pk'))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # Feeds the "Con hosting cobrado" preset. 'Cobrado' is the same
+            # `is_active` the hosting row already renders as "Vigente", so the
+            # count here reconciles with what the Hostings tab shows.
+            active_hostings_count=Coalesce(
+                Subquery(
+                    HostingRecord.objects
+                    .filter(client=OuterRef('pk'), is_active=True)
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # Feeds the "Con proyecto activo" preset. `projects_count` above
+            # counts every status, so an archived-only client would pass it;
+            # Project.client points at the User, not at this profile.
+            active_projects_count=Coalesce(
+                Subquery(
+                    Project.objects
+                    .filter(
+                        client=OuterRef('user_id'),
+                        status=Project.STATUS_ACTIVE,
+                    )
                     .order_by()
                     .values('client')
                     .annotate(total=Count('id'))

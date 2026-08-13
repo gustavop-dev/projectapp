@@ -55,4 +55,24 @@ describe('ClientFilterPanel', () => {
 
     expect(wrapper.text()).toContain('Estado:');
   });
+
+  it('names the applied predefined filter in the active chips', () => {
+    const wrapper = mountPanel({
+      modelValue: { ...emptyFilters, preset: 'hosting-charged' },
+      filterCount: 1,
+    });
+
+    expect(wrapper.text()).toContain('Predefinido: Con hosting cobrado');
+  });
+
+  it('clearing the preset chip emits the filters without it', async () => {
+    const wrapper = mountPanel({
+      modelValue: { ...emptyFilters, preset: 'hosting-charged' },
+      filterCount: 1,
+    });
+
+    await wrapper.get('[data-testid="client-filter-chip-preset"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')[0][0].preset).toBe('');
+  });
 });

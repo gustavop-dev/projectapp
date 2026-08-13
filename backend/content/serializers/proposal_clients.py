@@ -7,7 +7,7 @@ shape expected by ``/panel/clients`` and the proposal create/edit autocomplete.
 
 from rest_framework import serializers
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
 
 
@@ -48,6 +48,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     diagnostics_count = serializers.SerializerMethodField()
     incomes_count = serializers.SerializerMethodField()
     hostings_count = serializers.SerializerMethodField()
+    active_hostings_count = serializers.SerializerMethodField()
+    active_projects_count = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
     deactivated_at = serializers.DateTimeField(read_only=True)
@@ -76,6 +78,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'diagnostics_count',
             'incomes_count',
             'hostings_count',
+            'active_hostings_count',
+            'active_projects_count',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -97,6 +101,8 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'diagnostics_count',
             'incomes_count',
             'hostings_count',
+            'active_hostings_count',
+            'active_projects_count',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -147,6 +153,18 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if annotated is not None:
             return annotated
         return obj.hosting_records.count()
+
+    def get_active_hostings_count(self, obj):
+        annotated = getattr(obj, 'active_hostings_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.hosting_records.filter(is_active=True).count()
+
+    def get_active_projects_count(self, obj):
+        annotated = getattr(obj, 'active_projects_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.projects.filter(status=Project.STATUS_ACTIVE).count()
 
     def get_is_orphan(self, obj):
         if self.get_total_proposals(obj) > 0:
