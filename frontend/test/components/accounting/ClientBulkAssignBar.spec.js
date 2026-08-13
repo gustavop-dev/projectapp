@@ -3,7 +3,7 @@ import ClientBulkAssignBar from '../../../components/accounting/ClientBulkAssign
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder'],
+  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint'],
   emits: ['update:modelValue', 'select'],
   template: '<div data-testid="client-autocomplete-stub" />',
 };
@@ -67,7 +67,8 @@ describe('ClientBulkAssignBar — the two actions are separate', () => {
 
     expect(wrapper.find('[data-testid="hostings-bulk-assign"]').attributes('disabled'))
       .toBeUndefined();
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
+      .toContain('Cliente enlazado: Ana Pérez (#5)');
   });
 
   it('blocks Asignar and says why when every selected row already has that client', async () => {
@@ -91,6 +92,50 @@ describe('ClientBulkAssignBar — the two actions are separate', () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
     expect(wrapper.find('[data-testid="hostings-bulk-unlink"]').exists()).toBe(true);
+  });
+});
+
+describe('ClientBulkAssignBar — the row holds its line', () => {
+  // El hint del picker crecía DENTRO de la celda del flex y, con
+  // `sm:items-center`, re-centraba la fila entera: el input subía y los
+  // botones se quedaban abajo. La barra dibuja esa línea ella misma, fuera
+  // de la fila, y le pide al picker que no dibuje la suya.
+  it('confirms the linked client in its own line, not inside the picker', async () => {
+    const wrapper = mountBar({ selected: [1] });
+
+    await pickClient(wrapper);
+
+    expect(wrapper.findComponent(ClientAutocompleteStub).props('showLinkedHint'))
+      .toBe(false);
+    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
+      .toContain('Cliente enlazado: Ana Pérez (#5)');
+  });
+
+  // El salto reportado ocurría justo acá: al elegir y al limpiar. Si la línea
+  // pudiera quedar vacía en cualquiera de los dos extremos, la barra cambiaría
+  // de alto — así que el ciclo completo tiene que dejarla siempre con texto.
+  it('keeps the status line populated through picking and clearing a client', async () => {
+    const wrapper = mountBar({ selected: [1] });
+    const hint = () => wrapper.find('[data-testid="hostings-bulk-hint"]');
+
+    expect(hint().text()).toContain('Elige un cliente para poder asignar');
+
+    await pickClient(wrapper);
+    expect(hint().text()).toContain('Cliente enlazado: Ana Pérez (#5)');
+
+    // Escribir sobre el picker suelta el id sin re-emitir `select`.
+    await wrapper.findComponent(ClientAutocompleteStub).vm.$emit('update:modelValue', null);
+    await flushPromises();
+    expect(hint().text()).toContain('Elige un cliente para poder asignar');
+  });
+
+  // Sin fondo el botón se leía como texto plano y sólo aparecía al pasar el
+  // cursor: una acción destructiva no puede depender del hover para existir.
+  it('gives Desvincular a destructive background of its own', () => {
+    const wrapper = mountBar({ selected: [1, 3] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-unlink"]').classes())
+      .toContain('bg-danger-strong');
   });
 });
 
@@ -197,12 +242,28 @@ describe('ClientBulkAssignBar — selection plumbing', () => {
   it('forgets the picked client when the parent clears the selection', async () => {
     const wrapper = mountBar({ selected: [1] });
     await pickClient(wrapper);
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
+      .toContain('Cliente enlazado');
 
     await wrapper.setProps({ selected: [] });
     await wrapper.setProps({ selected: [1] });
 
     expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
       .toContain('Elige un cliente para poder asignar');
+  });
+
+  // The selection survives a filter change and the action still runs on all of
+  // it, so the count alone would disagree with what the table is showing.
+  it('flags the selected rows the active filter no longer shows', () => {
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
+      .toContain('1 fuera del filtro actual');
+  });
+
+  it('says nothing about the filter while the whole selection passes it', () => {
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1, 2, 3] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
   });
 });

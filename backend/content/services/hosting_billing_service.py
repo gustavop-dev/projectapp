@@ -77,7 +77,9 @@ def _default_issuer():
 def create_hosting_collection_account(hosting, *, acting_user=None):
     """Draft Document + extension + line item + default payment methods."""
     period_from, period_to = next_billing_period(hosting)
-    label = hosting.domain_url or hosting.client_name
+    # What is being hosted, not who pays for it: with no domain the project
+    # names the service ("hosting Kore"), the client half never did.
+    label = hosting.domain_url or hosting.project_name or hosting.client_name
     document = Document.objects.create(
         title=f'Cuenta de cobro — hosting {label}',
         document_type=get_collection_account_document_type(),

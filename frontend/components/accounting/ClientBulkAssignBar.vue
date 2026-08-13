@@ -1,13 +1,34 @@
 <template>
+  <!--
+    Sticky: the incomes grouped view renders the WHOLE filtered set with no
+    pagination, so a selection made at the bottom of a long list used to leave
+    the bar off screen. `pr-20` keeps the actions clear of the fixed refresh
+    FAB (bottom-6 right-6), which paints above this bar.
+  -->
   <div
     v-if="selected.length > 0"
-    class="flex flex-col gap-3 mb-4 p-3 rounded-xl border border-border-default bg-surface-raised"
+    class="sticky bottom-4 z-20 flex flex-col gap-3 mt-4 p-3 pr-20 rounded-xl border border-border-default bg-surface-raised shadow-lg"
     :data-testid="`${testidPrefix}-bulk-bar`"
   >
     <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-      <span class="text-sm text-text-default whitespace-nowrap">
-        <span class="font-semibold tabular-nums">{{ selected.length }}</span>
-        seleccionado{{ selected.length === 1 ? '' : 's' }}
+      <span class="text-sm text-text-default">
+        <span class="whitespace-nowrap">
+          <span class="font-semibold tabular-nums">{{ selected.length }}</span>
+          seleccionado{{ selected.length === 1 ? '' : 's' }}
+        </span>
+        <!--
+          Selecting survives a filter change, and the action runs on the whole
+          selection — so when part of it no longer passes the filter, the bar
+          says so instead of letting the count disagree with the table.
+        -->
+        <span
+          v-if="outsideCount > 0"
+          class="text-xs text-text-muted whitespace-nowrap"
+          title="Se marcaron con otro filtro activo. La acción los incluye igual; la confirmación los lista uno por uno."
+          :data-testid="`${testidPrefix}-bulk-outside`"
+        >
+          · {{ outsideCount }} fuera del filtro actual
+        </span>
       </span>
       <BaseButton
         v-if="!allFilteredSelected"
@@ -18,15 +39,22 @@
       >
         Seleccionar los {{ filteredIds.length }} filtrados
       </BaseButton>
+      <!--
+        Sin el hint propio del picker: crecía DENTRO de esta celda del flex y,
+        con `sm:items-center`, re-centraba toda la fila contra la celda más
+        alta — el input subía y los botones quedaban desalineados. La barra lo
+        dice abajo, en su línea de estado, donde no mueve nada.
+      -->
       <div class="flex-1 min-w-[16rem]">
         <ClientAutocomplete
           v-model="clientId"
           :test-id="`${testidPrefix}-bulk-client`"
           placeholder="Buscar el cliente a asignar..."
+          :show-linked-hint="false"
           @select="onClientSelect"
         />
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <BaseButton variant="secondary" size="sm" @click="clearSelection">
           Cancelar
         </BaseButton>
@@ -37,7 +65,7 @@
         -->
         <BaseButton
           v-if="canUnlink"
-          variant="danger-ghost"
+          variant="danger"
           size="sm"
           :disabled="busy"
           :data-testid="`${testidPrefix}-bulk-unlink`"
@@ -58,17 +86,22 @@
     </div>
 
     <!--
-      La razón va inline y siempre visible, no en un tooltip: un botón
-      apagado sin explicación es el mismo callejón que el placeholder que
-      escondía el "vacío = desvincular".
+      Una sola línea, nunca vacía: o dice por qué Asignar está apagado, o
+      confirma a quién se va a enlazar. La razón va inline y siempre visible,
+      no en un tooltip: un botón apagado sin explicación es el mismo callejón
+      que el placeholder que escondía el "vacío = desvincular". Y que la línea
+      no pueda faltar es lo que mantiene fijo el alto de la barra.
+
+      `truncate` no es cosmético: un nombre largo partido en dos renglones
+      volvería a mover la barra. El texto completo queda en el title.
     -->
     <p
-      v-if="assignBlockedReason"
-      class="flex items-center gap-1.5 text-xs text-text-muted"
+      class="flex items-center gap-1.5 text-xs text-text-muted min-w-0"
       :data-testid="`${testidPrefix}-bulk-hint`"
+      :title="statusLine.text"
     >
-      <InformationCircleIcon class="w-4 h-4 flex-shrink-0" />
-      {{ assignBlockedReason }}
+      <component :is="statusLine.icon" class="w-4 h-4 flex-shrink-0" />
+      <span class="truncate">{{ statusLine.text }}</span>
     </p>
   </div>
 
@@ -93,7 +126,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { InformationCircleIcon } from '@heroicons/vue/24/outline';
+import { InformationCircleIcon, LinkIcon } from '@heroicons/vue/24/outline';
 
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
@@ -149,6 +182,12 @@ const allFilteredSelected = computed(
     && props.filteredIds.every((id) => props.selected.includes(id)),
 );
 
+/** Selected rows the active filters no longer show — the action still runs on them. */
+const outsideCount = computed(() => {
+  const filtered = new Set(props.filteredIds);
+  return props.selected.filter((id) => !filtered.has(id)).length;
+});
+
 const assignPlan = computed(() => buildAssignmentPlan({
   rows: props.rows,
   selectedIds: props.selected,
@@ -172,6 +211,22 @@ const assignBlockedReason = computed(() => {
     return `Todo lo seleccionado ya tiene a ${clientLabel.value}.`;
   }
   return '';
+});
+
+/**
+ * `assignBlockedReason` sólo queda vacío cuando ya hay cliente Y hay filas que
+ * cambiar, así que el else de este ternario es exactamente el caso en que
+ * corresponde confirmar el enlace. Por eso la línea nunca está vacía, y por eso
+ * la barra no cambia de alto entre estados.
+ */
+const statusLine = computed(() => {
+  if (assignBlockedReason.value) {
+    return { text: assignBlockedReason.value, icon: InformationCircleIcon };
+  }
+  return {
+    text: `Cliente enlazado: ${clientLabel.value} (#${clientId.value})`,
+    icon: LinkIcon,
+  };
 });
 
 function selectAllFiltered() {

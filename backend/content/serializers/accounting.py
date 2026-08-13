@@ -700,12 +700,15 @@ class HostingRecordSerializer(serializers.ModelSerializer):
         source='project.name', read_only=True, default=None,
     )
     billing_email = serializers.CharField(read_only=True)
+    # Both halves rejoined, so the screens that need to name a whole hosting
+    # (confirmations, modal headers) do not re-join them in JS.
+    display_label = serializers.CharField(read_only=True)
 
     class Meta:
         model = HostingRecord
         fields = (
             'id', 'client', 'client_display_name', 'billing_email',
-            'project', 'project_name',
+            'project', 'project_name', 'display_label',
             'client_name', 'client_email', 'client_contact_name',
             'client_identification', 'domain_url', 'monthly_value',
             'payment_modality', 'payment_modality_label', 'benefit',

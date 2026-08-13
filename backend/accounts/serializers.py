@@ -1,4 +1,3 @@
-import re
 from copy import deepcopy
 from decimal import Decimal
 
@@ -7,6 +6,11 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from accounts.models import SavedFilterTab, UserProfile
+from accounts.services.billing_code import (
+    BILLING_CODE_MAX_LENGTH,
+    billing_code_error,
+    normalize_billing_code,
+)
 
 User = get_user_model()
 
@@ -175,24 +179,18 @@ class UpdateClientSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     nit = serializers.CharField(max_length=32, required=False, allow_blank=True)
     billing_code = serializers.CharField(
-        max_length=12, required=False, allow_blank=True,
+        max_length=BILLING_CODE_MAX_LENGTH, required=False, allow_blank=True,
     )
     is_active = serializers.BooleanField(required=False)
 
     def validate_billing_code(self, value):
-        value = (value or '').strip().upper()
-        if not value:
+        code = normalize_billing_code(value)
+        if code is None:
             return ''
-        if not re.fullmatch(r'[A-Z0-9]{2,12}', value):
-            raise serializers.ValidationError(
-                'El código debe tener entre 2 y 12 caracteres alfanuméricos.',
-            )
-        if value.isdigit():
-            raise serializers.ValidationError(
-                'El código no puede ser puramente numérico (colisionaría con '
-                'la numeración PA-{año}-{NNNN}).',
-            )
-        return value
+        error = billing_code_error(code)
+        if error:
+            raise serializers.ValidationError(error)
+        return code
 
 
 class ClientListSerializer(serializers.ModelSerializer):

@@ -123,8 +123,71 @@ describe('panel/clients index page', () => {
       email: 'laura@example.com',
       phone: '',
       company: 'LauraCo',
+      nit: '',
+      billing_code: '',
     });
     expect(mockStore.fetchClients).toHaveBeenCalledTimes(2);
+  });
+
+  it('creates a client with its billing identity in one step', async () => {
+    // The whole point of the parity fix: NIT and código are on the create form,
+    // so a client no longer has to be created and then edited to be complete.
+    const wrapper = mountPage();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="clients-new-button"]').trigger('click');
+    await wrapper.get('[data-testid="clients-new-name"]').setValue('G&M');
+    await wrapper.get('[data-testid="clients-new-nit"]').setValue('901234567-1');
+    await wrapper.get('[data-testid="clients-new-billing-code"]').setValue('  g&m  ');
+    await wrapper.get('[data-testid="clients-new-submit"]').trigger('submit');
+    await flushPromises();
+
+    expect(mockStore.createClient).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'G&M',
+        nit: '901234567-1',
+        // Normalized the same way the edit modal always did.
+        billing_code: 'G&M',
+      }),
+    );
+  });
+
+  it('creates a client from the name alone', async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="clients-new-button"]').trigger('click');
+    await wrapper.get('[data-testid="clients-new-name"]').setValue('Solo Nombre');
+    await wrapper.get('[data-testid="clients-new-submit"]').trigger('submit');
+    await flushPromises();
+
+    expect(mockStore.createClient).toHaveBeenCalledWith({
+      name: 'Solo Nombre',
+      email: '',
+      phone: '',
+      company: '',
+      nit: '',
+      billing_code: '',
+    });
+  });
+
+  it('surfaces the backend billing-code error on the create modal', async () => {
+    // It used to read only `message`, so an `invalid_billing_code` answer left
+    // the operator with the generic fallback and no idea what was wrong.
+    mockStore.createClient.mockResolvedValueOnce({
+      success: false,
+      errors: { error: 'invalid_billing_code', message: 'El código debe tener entre 2 y 12 caracteres.' },
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="clients-new-button"]').trigger('click');
+    await wrapper.get('[data-testid="clients-new-name"]').setValue('G&M');
+    await wrapper.get('[data-testid="clients-new-billing-code"]').setValue('G/M');
+    await wrapper.get('[data-testid="clients-new-submit"]').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('El código debe tener entre 2 y 12 caracteres.');
   });
 
   it('debounces search before refetching clients', async () => {

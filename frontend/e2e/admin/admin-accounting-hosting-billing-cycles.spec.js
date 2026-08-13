@@ -21,7 +21,9 @@ function hostingRows({ billingSent }) {
   return [
     {
       id: 1,
-      client_name: 'German - Kore',
+      client_name: 'German',
+    project_name: 'Kore',
+    display_label: 'German — Kore',
       client: 5,
       client_display_name: 'Germán Franco',
       billing_email: 'german@korehealths.com',
@@ -44,7 +46,9 @@ function hostingRows({ billingSent }) {
     },
     {
       id: 2,
-      client_name: 'Nestor - Xpandia',
+      client_name: 'Nestor',
+    project_name: 'Xpandia',
+    display_label: 'Nestor — Xpandia',
       client: null,
       client_display_name: null,
       billing_email: '',
@@ -269,7 +273,7 @@ test.describe('Admin Accounting Hosting Cycles', () => {
     await page.getByTestId('hosting-cycles-1').click();
 
     await expect(
-      page.getByRole('heading', { name: 'Ciclos de pago — German - Kore' }),
+      page.getByRole('heading', { name: 'Ciclos de pago — German — Kore' }),
     ).toBeVisible();
     await expect(page.getByText('histórico × 3')).toBeVisible();
     await expect(page.getByText('Extender vigencia')).toBeVisible();

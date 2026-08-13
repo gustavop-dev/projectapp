@@ -538,43 +538,11 @@
           </p>
         </div>
         <form @submit.prevent="submitCreate" class="px-6 py-4 space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Nombre</label>
-            <input
-              v-model="createForm.name"
-              type="text"
-              required
-              data-testid="clients-new-name"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Email (opcional)</label>
-            <input
-              v-model="createForm.email"
-              type="email"
-              data-testid="clients-new-email"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Teléfono</label>
-            <input
-              v-model="createForm.phone"
-              type="tel"
-              data-testid="clients-new-phone"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
-            <input
-              v-model="createForm.company"
-              type="text"
-              data-testid="clients-new-company"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
+          <ClientFormFields
+            :model-value="createForm"
+            testid-prefix="clients-new"
+            @update:model-value="Object.assign(createForm, $event)"
+          />
           <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <BaseButton variant="ghost" size="md" @click="closeCreateModal">
@@ -602,66 +570,11 @@
           </p>
         </div>
         <form @submit.prevent="submitEdit" class="px-6 py-4 space-y-4">
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Nombre</label>
-            <input
-              v-model="editForm.name"
-              type="text"
-              required
-              data-testid="clients-edit-name"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Email (opcional)</label>
-            <input
-              v-model="editForm.email"
-              type="email"
-              data-testid="clients-edit-email"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Teléfono</label>
-            <input
-              v-model="editForm.phone"
-              type="tel"
-              data-testid="clients-edit-phone"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div>
-            <label class="block text-xs font-medium text-text-muted mb-1">Empresa</label>
-            <input
-              v-model="editForm.company"
-              type="text"
-              data-testid="clients-edit-company"
-              class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-            />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-medium text-text-muted mb-1">NIT</label>
-              <input
-                v-model="editForm.nit"
-                type="text"
-                data-testid="clients-edit-nit"
-                placeholder="Para cuentas de cobro"
-                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-              />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-text-muted mb-1">Código de facturación</label>
-              <input
-                v-model="editForm.billing_code"
-                type="text"
-                maxlength="12"
-                data-testid="clients-edit-billing-code"
-                placeholder="Ej: ACME (numeración PA-ACME-001)"
-                class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm uppercase focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-              />
-            </div>
-          </div>
+          <ClientFormFields
+            :model-value="editForm"
+            testid-prefix="clients-edit"
+            @update:model-value="Object.assign(editForm, $event)"
+          />
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
           <div class="flex items-center justify-end gap-3 pt-2">
             <BaseButton variant="ghost" size="md" @click="closeEditModal">
@@ -696,9 +609,11 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
+import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -908,11 +823,11 @@ async function toggleClient(client) {
 // -------------------------------------------------------------------
 
 const showCreateModal = ref(false);
-const createForm = reactive({ name: '', email: '', phone: '', company: '' });
+const createForm = reactive(emptyClientForm());
 const createError = ref('');
 
 function openCreateModal() {
-  Object.assign(createForm, { name: '', email: '', phone: '', company: '' });
+  Object.assign(createForm, emptyClientForm());
   createError.value = '';
   showCreateModal.value = true;
 }
@@ -923,19 +838,15 @@ function closeCreateModal() {
 
 async function submitCreate() {
   createError.value = '';
-  const payload = {
-    name: createForm.name.trim(),
-    email: createForm.email.trim(),
-    phone: createForm.phone.trim(),
-    company: createForm.company.trim(),
-  };
-  const result = await clientsStore.createClient(payload);
+  const result = await clientsStore.createClient(clientFormPayload(createForm));
   if (result.success) {
     closeCreateModal();
     await loadClients();
   } else {
     createError.value =
-      result.errors?.message || 'No se pudo crear el cliente. Verifica los datos e intenta nuevamente.';
+      result.errors?.message ||
+      result.errors?.error ||
+      'No se pudo crear el cliente. Verifica los datos e intenta nuevamente.';
   }
 }
 
@@ -944,9 +855,7 @@ async function submitCreate() {
 // -------------------------------------------------------------------
 
 const editingClient = ref(null);
-const editForm = reactive({
-  name: '', email: '', phone: '', company: '', nit: '', billing_code: '',
-});
+const editForm = reactive(emptyClientForm());
 const editError = ref('');
 
 function openEditModal(client) {
@@ -967,15 +876,9 @@ function closeEditModal() {
 
 async function submitEdit() {
   editError.value = '';
-  const payload = {
-    name: editForm.name.trim(),
-    email: editForm.email.trim(),
-    phone: editForm.phone.trim(),
-    company: editForm.company.trim(),
-    nit: editForm.nit.trim(),
-    billing_code: editForm.billing_code.trim().toUpperCase(),
-  };
-  const result = await clientsStore.updateClient(editingClient.value.id, payload);
+  const result = await clientsStore.updateClient(
+    editingClient.value.id, clientFormPayload(editForm),
+  );
   if (result.success) {
     closeEditModal();
   } else {

@@ -99,7 +99,9 @@ def _item(record, today):
     return {
         'kind': 'hosting',
         'id': record.pk,
-        'title': record.client_name or record.domain_url,
+        # Client and project rejoined: the notice has to be recognisable at
+        # a glance, and the client half alone drops the brand it renews.
+        'title': record.display_label or record.domain_url,
         'subtitle': record.domain_url,
         'client_name': record.client_name,
         'due_date': record.valid_to,

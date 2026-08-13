@@ -2,7 +2,7 @@
   <BaseModal :model-value="open" size="xl" title-id="hosting-cycles-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="hosting-cycles-title" class="text-lg font-bold text-text-default">
-        Ciclos de pago — {{ record?.client_name }}
+        Ciclos de pago — {{ record?.display_label || record?.client_name }}
       </h3>
       <p class="text-sm text-text-muted mt-1">
         El total pagado del hosting es la suma de este histórico

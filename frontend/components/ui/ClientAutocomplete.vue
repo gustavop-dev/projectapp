@@ -40,7 +40,7 @@
 
     <!-- Linked client hint (id beside the name) -->
     <p
-      v-if="modelValue"
+      v-if="modelValue && showLinkedHint"
       class="text-xs text-text-subtle mt-1"
       data-testid="client-autocomplete-linked"
     >
@@ -158,6 +158,12 @@ const props = defineProps({
   initialLabel: { type: String, default: '' },
   placeholder: { type: String, default: 'Buscar cliente por nombre, email o empresa...' },
   testId: { type: String, default: 'client-autocomplete-input' },
+  /**
+   * Los layouts de barra pintan su propia línea de estado y necesitan que el
+   * alto del picker sea constante: el hint en flujo hace crecer la celda del
+   * flex y arrastra el input fuera de línea con los botones de al lado.
+   */
+  showLinkedHint: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['update:modelValue', 'select', 'create-new']);

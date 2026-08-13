@@ -183,6 +183,12 @@ The destructive split is the one that matters: a filled red button in every
 table row screams; a bare red word in a modal footer disappears. Confirmed
 destruction is `danger`, inline destruction is `danger-ghost`.
 
+What decides the split is the shape of the trigger, not whether a dialog
+follows: a destructive action that carries a **text label** and sits in a row
+of buttons next to a primary CTA — a bulk-action bar, a detail header — is
+`danger`, because `danger-ghost` next to a filled CTA reads as plain text
+until you hover it. `danger-ghost` is for the icon in a table row.
+
 Sizes: `sm` (dense — tables, chips) · `md` (default — modals, forms) · `lg`
 (prominent CTA). States come for free: hover, focus ring, `disabled`
 (60% opacity + `not-allowed`) and `loading` (spinner, implies disabled).

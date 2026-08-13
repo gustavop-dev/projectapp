@@ -351,6 +351,23 @@ describe('ClientAutocomplete', () => {
     expect(hint.text()).toContain('(#55)');
   });
 
+  // El hint suma alto al picker. Dentro de una fila flex eso arrastra al input
+  // fuera de línea con lo que tenga al lado, así que los layouts de barra lo
+  // apagan y dibujan esa confirmación en su propia línea de estado.
+  it('hides the linked-client hint when the parent draws its own', () => {
+    const wrapper = mountAutocomplete({
+      modelValue: 55,
+      initialLabel: 'Cliente Precargado',
+      showLinkedHint: false,
+    });
+
+    // El cliente sigue seleccionado y el input lo sigue mostrando: lo único
+    // que desaparece es el renglón que hacía crecer al picker.
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value)
+      .toBe('Cliente Precargado');
+    expect(wrapper.find('[data-testid="client-autocomplete-linked"]').exists()).toBe(false);
+  });
+
   it('closes the dropdown when the click-outside handler runs', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,

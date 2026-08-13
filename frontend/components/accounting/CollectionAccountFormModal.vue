@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { useDebounceFn } from '@vueuse/core';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE } from '~/components/base/inputClasses';
 import { useIsMobile } from '~/composables/useIsMobile';
@@ -9,7 +10,8 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePersistedRef } from '~/composables/usePersistedRef';
 import { useAccountingStore } from '~/stores/accounting';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
-import { downloadBlob } from '~/utils/downloadFile';
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
+import { downloadUrl } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 
 /**
@@ -35,8 +37,9 @@ const step = ref('form');
 const previewing = ref(false);
 const saving = ref(false);
 const preview = ref(null);
+// Served by the backend, not a blob: the viewer names its download after the
+// URL / Content-Disposition, and a blob: URL carries neither.
 const pdfUrl = ref('');
-const pdfBlob = ref(null);
 
 // ── Client ──
 const clientId = ref(null);
@@ -47,7 +50,7 @@ const creatingClient = ref(false);
 // Client resolved from the selected income (PA-24): shown locked.
 const clientFromIncome = ref(null);
 const loadingClient = ref(false);
-const inlineClient = ref({ name: '', email: '', company: '' });
+const inlineClient = ref(emptyClientForm());
 
 // ── Income ──
 const selectedIncome = ref(null);
@@ -57,10 +60,20 @@ const incomeOpen = ref(false);
 const searchingIncomes = ref(false);
 const showIncomeForm = ref(false);
 
+/** Rows rendered per group; the rest are announced, never dropped in silence. */
+const INCOME_GROUP_LIMIT = 25;
+// Monotonic token: switching client while a debounced search is in flight
+// would otherwise let the older response land last and win the list.
+let incomeRequestId = 0;
+// Client the current options were fetched for, so the watcher below can tell
+// a real client change from the reset that already reloaded them.
+let loadedForClient;
+
 function defaultForm() {
   return {
     public_number: '',
     billing_concept: '',
+    billing_description: '',
     unit_price: null,
     period_start: '',
     period_end: '',
@@ -91,13 +104,21 @@ const identTypeOptions = [
   { value: 'CC', label: 'C.C.' },
 ];
 
+/** Display name of the client currently chosen, whatever filled it in. */
+const selectedClientName = computed(() => (
+  clientFromIncome.value?.name
+  || form.value.customer.name
+  || form.value.customer.contact_name
+  || (clientId.value ? `Cliente #${clientId.value}` : '')
+));
+
 watch(
   () => props.open,
   (open) => {
     if (!open) return;
     step.value = 'form';
     preview.value = null;
-    revokePdf();
+    clearPdf();
     form.value = defaultForm();
     clientId.value = null;
     suggestedNumber.value = '';
@@ -153,13 +174,32 @@ async function applyClientById(profileId) {
 }
 
 async function loadIncomes(query) {
+  const requestId = ++incomeRequestId;
+  const client = clientId.value;
+  loadedForClient = client;
+  const params = {};
+  if (query) params.q = query;
+  // Their incomes plus the still-unassigned ones: issuing the cuenta adopts
+  // the client on an orphan income, so hiding those rows would cut off the
+  // very path that completes the linkage.
+  if (client) params.client = `${client},none`;
   searchingIncomes.value = true;
-  const result = await store.searchIncomesForCollection(
-    query ? { q: query } : {},
-  );
+  const result = await store.searchIncomesForCollection(params);
+  // A newer search (client switch, extra keystroke) already owns the list.
+  if (requestId !== incomeRequestId) return;
   searchingIncomes.value = false;
   if (result.success) incomeOptions.value = result.data;
 }
+
+// Reload whenever the client changes: the list is scoped to them, so keeping
+// the first load would keep offering another client's ledger. Skipped while
+// the income came preselected (the combobox is locked then) and when the
+// reset already loaded for this client.
+watch(clientId, (id) => {
+  if (!props.open || props.income) return;
+  if (id === loadedForClient) return;
+  loadIncomes(incomeQuery.value.trim());
+});
 
 const debouncedIncomeSearch = useDebounceFn(
   () => loadIncomes(incomeQuery.value.trim()),
@@ -179,7 +219,44 @@ function onIncomeFocus() {
   if (!incomeOptions.value.length) loadIncomes(incomeQuery.value.trim());
 }
 
-const incomeMatches = computed(() => incomeOptions.value.slice(0, 8));
+function buildIncomeGroup(key, label, rows, hint = '') {
+  return {
+    key,
+    label,
+    hint,
+    total: rows.length,
+    rows: rows.slice(0, INCOME_GROUP_LIMIT),
+    hidden: Math.max(0, rows.length - INCOME_GROUP_LIMIT),
+  };
+}
+
+/**
+ * Options split in two blocks once a client is chosen: theirs first, then the
+ * ones still unassigned — selectable on purpose, since issuing the cuenta
+ * assigns the client to them. Each block declares how many rows it is holding
+ * back, so a long ledger never loses records without saying so.
+ */
+const incomeGroups = computed(() => {
+  const rows = incomeOptions.value;
+  if (!clientId.value) return [buildIncomeGroup('all', '', rows)];
+  return [
+    buildIncomeGroup(
+      'own',
+      `De ${selectedClientName.value}`,
+      rows.filter((row) => row.client === clientId.value),
+    ),
+    buildIncomeGroup(
+      'orphan',
+      'Sin cliente asignado',
+      rows.filter((row) => row.client == null),
+      `Al elegirlo se asigna a ${selectedClientName.value}`,
+    ),
+  ].filter((group) => group.total > 0);
+});
+
+const hasIncomeMatches = computed(
+  () => incomeGroups.value.some((group) => group.rows.length),
+);
 
 function pickIncome(option) {
   if (option.has_collection_account) return;
@@ -190,6 +267,52 @@ function pickIncome(option) {
 function incomeAmountLabel(option) {
   const amount = Number(option.pending_amount ?? option.total_amount ?? 0);
   return formatMoney(amount, 'COP');
+}
+
+// ── Client ↔ income coherence ──
+//
+// Only reachable by picking the income first and switching client afterwards:
+// the backend rejects the pair with a 400, so the form says so up front
+// instead of spending a preview round-trip on it.
+
+const incomeClientConflict = computed(() => (
+  selectedIncome.value?.client != null
+  && clientId.value != null
+  && selectedIncome.value.client !== clientId.value
+));
+
+const incomeOwnerName = computed(() => (
+  selectedIncome.value?.client_name
+  || `Cliente #${selectedIncome.value?.client}`
+));
+
+/**
+ * Hand the client picker back to the operator.
+ *
+ * Picking an income locks its client (PA-24), which is right when the income
+ * IS the starting point — the Ingresos-tab origin. Starting from this tab the
+ * client is a choice, so the lock has to be undoable; otherwise a wrong income
+ * means closing the modal and beginning again.
+ */
+function releaseClientFromIncome() {
+  clientFromIncome.value = null;
+  clientId.value = null;
+}
+
+/** Resolve towards the income: adopt the client it already belongs to. */
+async function useIncomeClient() {
+  const income = selectedIncome.value;
+  if (!income?.client) return;
+  clientFromIncome.value = { id: income.client, name: incomeOwnerName.value };
+  clientId.value = income.client;
+  await applyClientById(income.client);
+}
+
+/** Resolve the other way: drop the income and keep the chosen client. */
+function clearSelectedIncome() {
+  selectedIncome.value = null;
+  incomeQuery.value = '';
+  loadIncomes('');
 }
 
 // ── Client selection + snapshot prefill ──
@@ -214,12 +337,12 @@ async function onClientSelect(client) {
 
 function onCreateNewClient(typedName) {
   showInlineClient.value = true;
-  inlineClient.value = { name: typedName || '', email: '', company: '' };
+  inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
 }
 
 async function createInlineClient() {
   creatingClient.value = true;
-  const result = await clientsStore.createClient({ ...inlineClient.value });
+  const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
   creatingClient.value = false;
   if (result.success && result.data?.id) {
     showInlineClient.value = false;
@@ -238,13 +361,7 @@ async function createInlineClient() {
  *  of offering a second picker that could contradict this one. */
 const lockedClientForIncome = computed(() => (
   clientId.value
-    ? {
-      id: clientId.value,
-      name: clientFromIncome.value?.name
-        || form.value.customer.name
-        || form.value.customer.contact_name
-        || `Cliente #${clientId.value}`,
-    }
+    ? { id: clientId.value, name: selectedClientName.value }
     : null
 ));
 
@@ -352,6 +469,7 @@ const canPreview = computed(() => (
   !!clientId.value
   && !loadingClient.value
   && !!selectedIncome.value?.id
+  && !incomeClientConflict.value
   && Number(form.value.unit_price) > 0
   && !!form.value.customer.email
 ));
@@ -362,7 +480,10 @@ function buildPayload() {
     income_record_id: selectedIncome.value.id,
     billing_concept: form.value.billing_concept,
     items: [{
-      description: form.value.billing_concept,
+      // The Descripción column of the detalle. Sent raw — the backend falls
+      // back to the concepto corto when it arrives empty, so a simple cuenta
+      // still reads the way it does today.
+      description: form.value.billing_description,
       quantity: '1',
       unit_price: String(form.value.unit_price),
       period_start: form.value.period_start || null,
@@ -395,17 +516,11 @@ async function goPreview() {
     return;
   }
   preview.value = result.data;
-  revokePdf();
-  if (result.data.pdf_base64) {
-    const bytes = Uint8Array.from(
-      atob(result.data.pdf_base64), (ch) => ch.charCodeAt(0),
-    );
-    // The Blob is kept as well as its object URL: a blob: URL carries no
-    // filename, so saving from the viewer tab yields "untitled". Downloading
-    // the Blob under an explicit name is what gives PA-XXXX-001.pdf.
-    pdfBlob.value = new Blob([bytes], { type: 'application/pdf' });
-    pdfUrl.value = URL.createObjectURL(pdfBlob.value);
-  }
+  // A real same-origin URL ending in the consecutivo and served with
+  // `Content-Disposition: inline; filename=...`. That header is what names the
+  // save in Chrome's own viewer button and in "Save to Drive" — the blob: URL
+  // this used to build had no name and the viewer fell back to its UUID.
+  pdfUrl.value = result.data.pdf_url || '';
   // On a phone two columns would leave ~180px each and the PDF unreadable, so
   // the tabs open on the document; from a tablet up the email leads.
   previewPane.value = isPhone.value ? 'pdf' : 'email';
@@ -441,16 +556,13 @@ async function confirmSend() {
   close();
 }
 
-function revokePdf() {
-  pdfBlob.value = null;
-  if (pdfUrl.value) {
-    URL.revokeObjectURL(pdfUrl.value);
-    pdfUrl.value = '';
-  }
+/** Nothing to revoke any more; the URL is the backend's, not an object URL. */
+function clearPdf() {
+  pdfUrl.value = '';
 }
 
 function close() {
-  revokePdf();
+  clearPdf();
   emit('close');
 }
 
@@ -459,9 +571,9 @@ function openPdfTab() {
 }
 
 function downloadPdf() {
-  if (!pdfBlob.value) return;
+  if (!pdfUrl.value) return;
   const number = preview.value?.public_number || 'cuenta-de-cobro';
-  downloadBlob(pdfBlob.value, `${number}.pdf`);
+  downloadUrl(pdfUrl.value, `${number}.pdf`);
 }
 </script>
 
@@ -491,11 +603,22 @@ function downloadPdf() {
       <BaseFormField label="Cliente" required>
         <div
           v-if="clientFromIncome"
-          class="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
+          class="flex items-center justify-between gap-2 rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
           data-testid="collection-form-client-locked"
         >
-          {{ clientFromIncome.name }}
-          <span class="text-text-subtle">· desde el ingreso</span>
+          <span>
+            {{ clientFromIncome.name }}
+            <span class="text-text-subtle">· desde el ingreso</span>
+          </span>
+          <button
+            v-if="!props.income"
+            type="button"
+            class="text-xs text-text-brand hover:underline whitespace-nowrap"
+            data-testid="collection-form-change-client"
+            @click="releaseClientFromIncome"
+          >
+            Cambiar
+          </button>
         </div>
         <ClientAutocomplete
           v-else
@@ -513,17 +636,11 @@ function downloadPdf() {
         data-testid="collection-form-inline-client"
       >
         <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <BaseFormField label="Nombre">
-            <BaseInput v-model="inlineClient.name" data-testid="collection-form-inline-client-name" />
-          </BaseFormField>
-          <BaseFormField label="Email">
-            <BaseInput v-model="inlineClient.email" type="email" />
-          </BaseFormField>
-          <BaseFormField label="Empresa">
-            <BaseInput v-model="inlineClient.company" />
-          </BaseFormField>
-        </div>
+        <ClientFormFields
+          v-model="inlineClient"
+          testid-prefix="collection-form-inline-client"
+          dense
+        />
         <div class="flex justify-end gap-2">
           <BaseButton type="button" variant="secondary" size="sm" @click="showInlineClient = false">
             Cancelar
@@ -542,7 +659,11 @@ function downloadPdf() {
       </div>
 
       <!-- Income combobox: mandatory link -->
-      <BaseFormField label="Ingreso vinculado" required>
+      <BaseFormField
+        label="Ingreso vinculado"
+        required
+        hint="Esperados y líquidos, nunca perdidos"
+      >
         <template v-if="props.income">
           <div
             class="rounded-xl border border-border-default bg-surface-raised px-3 py-2.5 text-sm text-text-default"
@@ -568,42 +689,85 @@ function downloadPdf() {
             @focus="onIncomeFocus"
           >
           <ul
-            v-if="incomeOpen && (incomeMatches.length || searchingIncomes)"
+            v-if="incomeOpen && (hasIncomeMatches || searchingIncomes)"
             class="absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border-default bg-surface shadow-lg"
             role="listbox"
           >
             <li v-if="searchingIncomes" class="px-3 py-2 text-sm text-text-subtle">
               Buscando...
             </li>
-            <li
-              v-for="option in incomeMatches"
-              :key="option.id"
-              role="option"
-              :aria-disabled="option.has_collection_account"
-              :data-testid="`collection-form-income-option-${option.id}`"
-              :class="[
-                'px-3 py-2 text-sm transition-colors',
-                option.has_collection_account
-                  ? 'opacity-50 cursor-not-allowed'
-                  : 'cursor-pointer hover:bg-surface-raised text-text-default',
-              ]"
-              @mousedown.prevent="pickIncome(option)"
-            >
-              <span class="flex items-center justify-between gap-2">
-                <span class="truncate">{{ option.concept }}</span>
-                <span class="text-xs text-text-subtle whitespace-nowrap">
-                  {{ option.kind_label }} · {{ incomeAmountLabel(option) }}
-                </span>
-              </span>
-              <span
-                v-if="option.has_collection_account"
-                class="block text-xs text-warning-strong"
+            <template v-for="group in incomeGroups" :key="group.key">
+              <li
+                v-if="group.label"
+                role="presentation"
+                :data-testid="`collection-form-income-group-${group.key}`"
+                class="sticky top-0 bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-subtle border-b border-border-default"
               >
-                Ya tiene cuenta de cobro ({{ option.collection_account_number }})
-              </span>
-            </li>
+                {{ group.label }} ({{ group.total }})
+                <span v-if="group.hint" class="block font-normal">{{ group.hint }}</span>
+              </li>
+              <li
+                v-for="option in group.rows"
+                :key="option.id"
+                role="option"
+                :aria-disabled="option.has_collection_account"
+                :data-testid="`collection-form-income-option-${option.id}`"
+                :class="[
+                  'px-3 py-2 text-sm transition-colors',
+                  option.has_collection_account
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'cursor-pointer hover:bg-surface-raised text-text-default',
+                ]"
+                @mousedown.prevent="pickIncome(option)"
+              >
+                <span class="flex items-center justify-between gap-2">
+                  <span class="truncate">{{ option.concept }}</span>
+                  <span class="text-xs text-text-subtle whitespace-nowrap">
+                    {{ option.kind_label }} · {{ incomeAmountLabel(option) }}
+                  </span>
+                </span>
+                <span
+                  v-if="option.has_collection_account"
+                  class="block text-xs text-warning-strong"
+                >
+                  Ya tiene cuenta de cobro ({{ option.collection_account_number }})
+                </span>
+              </li>
+              <li
+                v-if="group.hidden"
+                role="presentation"
+                :data-testid="`collection-form-income-more-${group.key}`"
+                class="px-3 py-2 text-xs text-text-subtle"
+              >
+                Mostrando {{ group.rows.length }} de {{ group.total }} · escribe para filtrar
+              </li>
+            </template>
           </ul>
-          <p v-if="selectedIncome" class="text-xs text-text-subtle mt-1">
+          <p
+            v-if="incomeClientConflict"
+            class="text-xs text-warning-strong mt-1"
+            data-testid="collection-form-income-conflict"
+          >
+            Este ingreso es de {{ incomeOwnerName }}, no de {{ selectedClientName }}.
+            <button
+              type="button"
+              class="underline"
+              data-testid="collection-form-use-income-client"
+              @click="useIncomeClient"
+            >
+              Usar el cliente del ingreso
+            </button>
+            ·
+            <button
+              type="button"
+              class="underline"
+              data-testid="collection-form-clear-income"
+              @click="clearSelectedIncome"
+            >
+              Quitar el ingreso
+            </button>
+          </p>
+          <p v-else-if="selectedIncome" class="text-xs text-text-subtle mt-1">
             Ingreso enlazado: {{ selectedIncome.concept }}
             <span class="tabular-nums">(#{{ selectedIncome.id }})</span>
           </p>
@@ -636,11 +800,27 @@ function downloadPdf() {
         </BaseFormField>
       </div>
 
-      <BaseFormField label="Concepto del servicio" required>
+      <BaseFormField
+        label="Concepto del servicio"
+        hint="Texto corto. Encabeza el documento y el asunto del correo."
+        required
+      >
         <BaseInput
           v-model="form.billing_concept"
           data-testid="collection-form-concept"
           required
+        />
+      </BaseFormField>
+
+      <BaseFormField
+        label="Descripción del concepto"
+        hint="Opcional. Va en la columna Descripción del PDF y admite varias líneas — úsala para enumerar los requerimientos atendidos. Si la dejas vacía, se muestra el concepto."
+      >
+        <BaseTextarea
+          v-model="form.billing_description"
+          :rows="5"
+          data-testid="collection-form-description"
+          placeholder="Ej.&#10;- Ajuste del formulario de cotización&#10;- Reporte mensual de ventas por asesor"
         />
       </BaseFormField>
 
@@ -718,8 +898,15 @@ function downloadPdf() {
         Se incluirán los datos de pago configurados del emisor; los verás en la previsualización.
       </p>
 
-      <BaseFormField label="Notas">
-        <BaseTextarea v-model="form.notes" :rows="2" />
+      <BaseFormField
+        label="Notas internas"
+        hint="Sólo para ti: no aparecen en el PDF ni en el correo. Las vuelves a ver en el listado de cuentas de cobro."
+      >
+        <BaseTextarea
+          v-model="form.notes"
+          :rows="2"
+          data-testid="collection-form-notes"
+        />
       </BaseFormField>
 
       <div class="flex items-center justify-end gap-3 pt-2">
@@ -815,8 +1002,8 @@ function downloadPdf() {
           <div class="shrink-0 flex items-center justify-between gap-2 mb-2">
             <p class="text-sm font-medium text-text-default">PDF adjunto</p>
             <div v-if="pdfUrl" class="flex items-center gap-2">
-              <!-- Saving from the viewer tab gives "untitled": a blob: URL has
-                   no filename. Downloading the Blob under an explicit name does. -->
+              <!-- Both buttons and the viewer's own download now resolve to the
+                   same served URL, so all three save PA-XXXX-001.pdf. -->
               <BaseButton
                 type="button"
                 variant="secondary"

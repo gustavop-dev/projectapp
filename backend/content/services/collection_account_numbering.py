@@ -14,7 +14,10 @@ from django.db.models import F
 
 from accounts.models import UserProfile
 from content.models import ClientDocumentNumberSequence, Document
-from content.services.collection_account_service import CollectionAccountError
+from content.services.collection_account_service import (
+    CollectionAccountError,
+    resolve_client_user,
+)
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 
 CODE_MAX_LENGTH = 8
@@ -80,6 +83,20 @@ def peek_next_client_number(profile, issuer):
     seq = getattr(profile, 'collection_number_sequence', None)
     next_value = (seq.last_value if seq else 0) + 1
     return code, f'{_issuer_prefix(issuer)}-{code}-{next_value:03d}'
+
+
+def client_number_allocator(document, issuer):
+    """`number_allocator` for issuing a document, or None for the legacy series.
+
+    With a client behind the document the cuenta joins that client's own
+    continuous series, the same rule the hosting and income flows already
+    follow; documents still pending assignment keep the per-issuer series.
+    """
+    client_user = resolve_client_user(document)
+    profile = getattr(client_user, 'profile', None) if client_user else None
+    if profile is None:
+        return None
+    return lambda: allocate_client_number(profile, issuer)
 
 
 @transaction.atomic

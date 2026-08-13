@@ -93,18 +93,6 @@
       @clear-search="searchInput = ''"
     />
 
-    <!-- Bulk client assignment: the completion path for unlinked hostings -->
-    <ClientBulkAssignBar
-      v-model:selected="selectedIds"
-      :rows="store.hostings"
-      :filtered-ids="filteredIds"
-      :entity="HOSTING_ENTITY"
-      testid-prefix="hostings"
-      :record-label="hostingLabel"
-      :busy="store.isUpdating"
-      @submit="applyClientToSelection"
-    />
-
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === 'fetch_failed'"
@@ -290,6 +278,23 @@
       />
     </template>
 
+    <!--
+      Bulk client assignment: the completion path for unlinked hostings.
+      Below the table and sticky (shared bar, same as incomes); outside the
+      error/empty/table chain, because a selection whose rows the filter just
+      hid still needs its actions.
+    -->
+    <ClientBulkAssignBar
+      v-model:selected="selectedIds"
+      :rows="store.hostings"
+      :filtered-ids="filteredIds"
+      :entity="HOSTING_ENTITY"
+      testid-prefix="hostings"
+      :record-label="hostingLabel"
+      :busy="store.isUpdating"
+      @submit="applyClientToSelection"
+    />
+
     <!-- Create/edit modal -->
     <HostingFormModal
       :open="isModalOpen"
@@ -377,6 +382,16 @@ const notify = usePanelNotify();
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
 const HOSTING_ENTITY = { singular: 'hosting', plural: 'hostings' };
+
+/**
+ * What the Cliente cell shows and sorts by.
+ *
+ * Not `clientLabelOf`: that one buckets every unlinked row under "Sin
+ * cliente" for the filter list, which is right for a bucket and wrong for a
+ * cell — the legacy snapshot has to stay readable until the link is
+ * resolved. The "sin vincular" badge beside it is what marks the gap.
+ */
+const clientNameOf = (row) => row?.client_display_name || row?.client_name || '';
 
 // -------------------------------------------------------------------
 // Filters
@@ -521,6 +536,8 @@ const filterFields = computed(() => [
 ]);
 
 // validTo range has no server-side equivalent (list filters valid_from)
+// No `projects` key: the project is a relation with no server-side choice
+// filter, so the Proyecto multi-select narrows the loaded rows client-side.
 const EXPORT_MAPPING = {
   clients: 'client',
   valueMin: 'amount_min',
@@ -592,14 +609,16 @@ const {
     deleteErrorTitle: 'No se pudo eliminar',
     deleteTitle: 'Eliminar hosting',
     deleteMessage: (record) =>
-      `Esto eliminará el hosting de "${record.client_name}" de forma permanente. Esta acción no se puede deshacer.`,
+      `Esto eliminará el hosting de "${record.display_label || record.client_name}" de forma permanente. Esta acción no se puede deshacer.`,
   },
   // Refresh meta (active_count / monthly_income) after changes.
   onAfterMutation: () => loadRecords(),
   // Sorting "Valor/mes" sorts by weight: identical order for active rows
   // (the % is monotonic on the value), and inactive rows (0%) sink to the
   // end — the composition reading this column is for.
-  sortAccessors: { monthly_value: 'weight_pct' },
+  // Cliente sorts by the label the cell actually shows: the linked client's
+  // name, falling back to the legacy snapshot for the rows still unlinked.
+  sortAccessors: { monthly_value: 'weight_pct', client_name: clientNameOf },
   sortDefaults: { monthly_value: 'desc', total_paid: 'desc' },
 });
 
@@ -618,7 +637,8 @@ const columns = [
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
 
 /** What identifies a hosting in the bulk confirmation list. */
-const hostingLabel = (row) => row.domain_url || row.client_name || `Hosting #${row.id}`;
+const hostingLabel = (row) =>
+  row.domain_url || row.display_label || `Hosting #${row.id}`;
 
 async function applyClientToSelection({ ids, client, mode, plan }) {
   const result = await runMutation(

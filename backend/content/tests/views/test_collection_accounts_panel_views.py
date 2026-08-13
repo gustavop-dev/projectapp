@@ -272,3 +272,20 @@ class TestIncomeLinkedAccounts:
 
         assert response.status_code == 200
         assert response.data['commercial_status'] == 'paid'
+
+    def test_mark_paid_direct_when_the_linked_income_is_liquid(self, super_client):
+        # A liquid income is money already received: it carries no collection
+        # state to settle, so the guard that protects expected incomes must
+        # not stand in the way here.
+        income = make_income(
+            concept='Kore - Inicio 40% (recibido)',
+            kind=IncomeRecord.Kind.LIQUID,
+        )
+        document = link_income(issue_for(make_hosting()), income)
+
+        response = super_client.post(
+            f'/api/accounting/collection-accounts/{document.pk}/mark-paid/',
+        )
+
+        assert response.status_code == 200
+        assert response.data['commercial_status'] == 'paid'

@@ -38,6 +38,8 @@ function makeRows() {
       commercial_status: 'issued',
       commercial_status_label: 'Emitida',
       is_overdue: true,
+      // Internal: written in the create form, never sent to the client.
+      notes: 'Acordado por WhatsApp\nPagan el 15, no antes.',
     },
     {
       id: 2,
@@ -99,6 +101,8 @@ const CLIENT_SEARCH_RESULT = [{
 
 const ELIGIBLE_INCOME = {
   id: 8,
+  client: null,
+  client_name: null,
   concept: 'Desarrollo módulo de reportes',
   kind: 'expected',
   kind_label: 'Esperado',
@@ -130,6 +134,47 @@ async function mockWithLinkedIncome(page, calls = []) {
   });
 }
 
+/** Already assigned to Acme (client 5): the "De {cliente}" group. */
+const OWN_INCOME = {
+  ...ELIGIBLE_INCOME,
+  id: 21,
+  client: 5,
+  client_name: 'Acme Soluciones',
+  concept: 'Acme - Soporte trimestral',
+  kind: 'liquid',
+  kind_label: 'Líquido',
+  payment_status: null,
+};
+
+/** Someone else's money: must never reach Acme's dropdown. */
+const OTHER_CLIENT_INCOME = {
+  ...ELIGIBLE_INCOME,
+  id: 22,
+  client: 7,
+  client_name: 'Torrios SAS',
+  concept: 'Torrios - Hosting anual',
+};
+
+const INCOME_POOL = [ELIGIBLE_INCOME, OWN_INCOME, OTHER_CLIENT_INCOME];
+
+/**
+ * The `client` filter the backend applies: comma-separated ids, with `none`
+ * isolating the rows that have no client yet.
+ */
+function filterIncomes(requestUrl) {
+  const value = new URL(requestUrl).searchParams.get('client');
+  if (!value) return INCOME_POOL;
+  const tokens = value.split(',');
+  return INCOME_POOL.filter((row) => (
+    row.client == null
+      ? tokens.includes('none')
+      : tokens.includes(String(row.client))
+  ));
+}
+
+const PREVIEW_PDF_URL =
+  '/api/accounting/collection-accounts/preview/tok-e2e/PA-ACME-001.pdf';
+
 function buildHandler({ calls, incomeDetail = null }) {
   const state = { rows: makeRows() };
   return async ({ route, apiPath, method }) => {
@@ -147,6 +192,21 @@ function buildHandler({ calls, incomeDetail = null }) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify(CLIENT_SEARCH_RESULT),
+      };
+    }
+    if (apiPath === 'proposals/client-profiles/7/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          id: 7,
+          name: 'Luis Torres',
+          company: 'Torrios SAS',
+          email: 'luis@torrios.co',
+          nit: '900111222',
+          cedula: '',
+          is_email_placeholder: false,
+        }),
       };
     }
     if (/^accounting\/collection-accounts\/\d+\/$/.test(apiPath) && method === 'GET') {
@@ -206,7 +266,10 @@ function buildHandler({ calls, incomeDetail = null }) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ results: [ELIGIBLE_INCOME], meta: {} }),
+        body: JSON.stringify({
+          results: filterIncomes(route.request().url()),
+          meta: {},
+        }),
       };
     }
     if (apiPath.startsWith('accounting/collection-accounts/next-number/')) {
@@ -232,8 +295,18 @@ function buildHandler({ calls, incomeDetail = null }) {
           total: '1490000.00',
           due_date: '2026-08-13',
           customer_email: 'ana@acme.co',
-          pdf_base64: 'JVBERi0xLjQK',
+          pdf_url: PREVIEW_PDF_URL,
         }),
+      };
+    }
+    // The preview PDF is served, not built from base64 in the browser: a
+    // blob: URL has no name and Chrome's viewer fell back to the blob UUID.
+    if (apiPath === PREVIEW_PDF_URL.replace(/^\/api\//, '') && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/pdf',
+        headers: { 'Content-Disposition': 'inline; filename="PA-ACME-001.pdf"' },
+        body: '%PDF-1.4\n%%EOF\n',
       };
     }
     if (apiPath === 'accounting/collection-accounts/create/' && method === 'POST') {
@@ -461,6 +534,13 @@ test.describe('Admin Accounting Collections', () => {
     await expect(page.getByTestId('collection-form-concept'))
       .toHaveValue('Desarrollo módulo de reportes');
 
+    // The concepto corto heads the document; what was actually done goes in
+    // its own field, several lines long, and only reaches the PDF.
+    await page.getByTestId('collection-form-description').fill(
+      'Requerimientos atendidos:\n\n- Formulario de cotización\n- Reporte por asesor',
+    );
+    await page.getByTestId('collection-form-notes').fill('Cobrar antes del 15');
+
     await page.getByTestId('collection-form-preview').click();
 
     // Step 2: the real email + PDF the client will receive.
@@ -468,8 +548,11 @@ test.describe('Admin Accounting Collections', () => {
       .toContainText('PA-ACME-001');
     await expect(page.getByTestId('collection-preview-email')).toBeVisible();
     await expect(page.getByTestId('collection-preview-open-pdf')).toBeVisible();
-    // The viewer tab cannot name a blob: URL, so saving needs its own action.
     await expect(page.getByTestId('collection-preview-download-pdf')).toBeVisible();
+    // Served, not a blob: the viewer's own download button and "Save to Drive"
+    // read the name off this URL and its Content-Disposition.
+    await expect(page.getByTestId('collection-preview-pdf'))
+      .toHaveAttribute('src', PREVIEW_PDF_URL);
 
     // Email and PDF reviewable at the same time, each scrolling on its own:
     // the modal panel must not add a scrollbar nesting inside theirs, and the
@@ -494,6 +577,104 @@ test.describe('Admin Accounting Collections', () => {
     expect(createCall.body.client_profile_id).toBe(5);
     // Untouched suggestion → the payload lets the backend allocate.
     expect(createCall.body.public_number).toBeUndefined();
+    // Concepto and descripción travel apart, and the note stays internal.
+    expect(createCall.body.billing_concept).toBe('Desarrollo módulo de reportes');
+    expect(createCall.body.items[0].description).toContain('- Reporte por asesor');
+    expect(createCall.body.notes).toBe('Cobrar antes del 15');
+  });
+
+  test('the income list follows the chosen client through to the send', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+
+    // Before choosing a client the whole eligible ledger is on offer.
+    await page.getByTestId('collection-form-income').click();
+    await expect(page.getByTestId('collection-form-income-option-22')).toBeVisible();
+
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await expect(page.getByTestId('collection-form-number')).toHaveValue('PA-ACME-001');
+
+    // Now it is Acme's ledger plus what is still unassigned — and Torrios'
+    // income is gone, so it cannot be billed to the wrong client by mistake.
+    await page.getByTestId('collection-form-income').click();
+    await expect(page.getByTestId('collection-form-income-group-own'))
+      .toContainText('De Acme Soluciones (1)');
+    await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-group-orphan'))
+      .toContainText('Sin cliente asignado (1)');
+    await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
+
+    // An unassigned income is selectable on purpose: issuing adopts the client.
+    await page.getByTestId('collection-form-income-option-8').click();
+    await expect(page.getByTestId('collection-form-concept'))
+      .toHaveValue('Desarrollo módulo de reportes');
+
+    await page.getByTestId('collection-form-preview').click();
+    await expect(page.getByTestId('collection-preview-subject'))
+      .toContainText('PA-ACME-001');
+    await page.getByTestId('collection-form-confirm').click();
+
+    await expect(page.getByText('Cuenta de cobro enviada')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-9')).toBeVisible();
+    const createCall = calls.find(
+      (call) => call.apiPath === 'accounting/collection-accounts/create/',
+    );
+    expect(createCall.body.client_profile_id).toBe(5);
+    expect(createCall.body.income_record_id).toBe(8);
+  });
+
+  test('an income of another client is refused before the preview is spent', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+
+    // Income first: it locks in its own client, Torrios.
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-option-22').click();
+    await expect(page.getByTestId('collection-form-client-locked'))
+      .toContainText('Torrios SAS');
+
+    // Released and pointed at another client, the pair stops adding up.
+    await page.getByTestId('collection-form-change-client').click();
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+
+    await expect(page.getByTestId('collection-form-income-conflict'))
+      .toContainText('Este ingreso es de Torrios SAS, no de Acme Soluciones');
+    await expect(page.getByTestId('collection-form-preview')).toBeDisabled();
+
+    // Adopting the income's client settles it and unblocks the step.
+    await page.getByTestId('collection-form-use-income-client').click();
+    await expect(page.getByTestId('collection-form-income-conflict')).toHaveCount(0);
+    await expect(page.getByTestId('collection-form-preview')).toBeEnabled();
+  });
+
+  test('internal notes are readable back from the list, never sent', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is the note the row hands back, reached by clicking its action)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    // Only the row that carries a note offers the action.
+    await expect(page.getByTestId('collection-notes-2')).toHaveCount(0);
+    await page.getByTestId('collection-notes-1').click();
+
+    const body = page.getByTestId('collection-notes-body');
+    await expect(body).toBeVisible();
+    await expect(body).toContainText('Acordado por WhatsApp');
+    // The line break the operator typed survives the round trip.
+    await expect(body).toContainText('Pagan el 15, no antes.');
   });
 
   test('the preview swaps email and PDF behind tabs when the window is too narrow', {

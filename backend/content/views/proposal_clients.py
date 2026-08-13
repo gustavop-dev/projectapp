@@ -17,7 +17,6 @@ Endpoints
 """
 
 import logging
-import re
 
 from django.db.models import (
     Count, IntegerField, Max, OuterRef, Q, Subquery, Sum, Value,
@@ -31,6 +30,10 @@ from rest_framework.response import Response
 from accounts.models import UserProfile
 from accounts.serializers import ProjectListSerializer
 from accounts.services import proposal_client_service
+from accounts.services.billing_code import (
+    billing_code_error,
+    normalize_billing_code,
+)
 from content.models import BusinessProposal, HostingRecord, IncomeRecord
 from content.serializers.accounting import (
     HostingRecordSerializer,
@@ -109,6 +112,40 @@ def _parse_bool(raw):
     if raw is None:
         return None
     return str(raw).strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _billing_code_taken(code, *, exclude_pk=None):
+    """Whether another profile already holds ``code`` (the column is unique)."""
+    taken = UserProfile.objects.filter(billing_code=code)
+    if exclude_pk is not None:
+        taken = taken.exclude(pk=exclude_pk)
+    return taken.exists()
+
+
+def _validated_billing_fields(request_data):
+    """(nit, billing_code, error_response) for a create payload.
+
+    Checked up front so a duplicate code answers with a 400 the panel can show
+    instead of the IntegrityError the unique column would otherwise raise.
+    """
+    nit = (request_data.get('nit') or '').strip()
+    code = normalize_billing_code(request_data.get('billing_code'))
+    if code:
+        error = billing_code_error(code)
+        if error:
+            return nit, code, Response(
+                {'error': 'invalid_billing_code', 'message': error},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if _billing_code_taken(code):
+            return nit, code, Response(
+                {
+                    'error': 'billing_code_taken',
+                    'message': 'Ese código de facturación ya está en uso.',
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+    return nit, code, None
 
 
 # ---------------------------------------------------------------------------
@@ -251,8 +288,10 @@ def create_proposal_client(request):
     """
     Standalone client creation (no proposal yet, no invitation email).
 
-    Body: ``{name, email?, phone?, company?}``. ``email`` is optional —
-    when omitted, a placeholder is generated.
+    Body: ``{name, email?, phone?, company?, nit?, billing_code?}``. ``email``
+    is optional — when omitted, a placeholder is generated. The billing pair
+    matches the edit form field for field, so a client can be filed complete in
+    one step instead of being created and immediately edited.
     """
     name = (request.data.get('name') or '').strip()
     email = (request.data.get('email') or '').strip()
@@ -266,9 +305,14 @@ def create_proposal_client(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
+    nit, billing_code, error_response = _validated_billing_fields(request.data)
+    if error_response is not None:
+        return error_response
+
     try:
         profile = proposal_client_service.get_or_create_client_for_proposal(
             name=name, email=email, phone=phone, company=company,
+            nit=nit, billing_code=billing_code,
         )
     except ValueError as exc:
         return Response(
@@ -299,21 +343,14 @@ def update_proposal_client(request, client_id):
         profile.nit = (request.data.get('nit') or '').strip()
         billing_updates.append('nit')
     if 'billing_code' in request.data:
-        code = (request.data.get('billing_code') or '').strip().upper() or None
-        if code and (not re.fullmatch(r'[A-Z0-9]{2,12}', code) or code.isdigit()):
+        code = normalize_billing_code(request.data.get('billing_code'))
+        error = billing_code_error(code) if code else None
+        if error:
             return Response(
-                {
-                    'error': 'invalid_billing_code',
-                    'message': 'El código debe tener entre 2 y 12 caracteres '
-                               'alfanuméricos y no puede ser puramente numérico.',
-                },
+                {'error': 'invalid_billing_code', 'message': error},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if code and (
-            UserProfile.objects.exclude(pk=profile.pk)
-            .filter(billing_code=code)
-            .exists()
-        ):
+        if code and _billing_code_taken(code, exclude_pk=profile.pk):
             return Response(
                 {
                     'error': 'billing_code_taken',
