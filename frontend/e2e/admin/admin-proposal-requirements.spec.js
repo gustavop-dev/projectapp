@@ -228,6 +228,46 @@ test.describe('Functional Requirements — Form Mode', () => {
     }
   });
 
+  test('blocks saving when an optional item (Obligatorio = No) has no price', {
+    // Bug this catches: the hard-validation guard regressing to a soft
+    // warning that still lets an unpriced optional item save.
+    tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const unpricedProposal = JSON.parse(JSON.stringify(mockProposal));
+    // "Página Principal" becomes optional (Obligatorio = No) with no price.
+    unpricedProposal.sections[0].content_json.groups[0].items[0].is_required = false;
+    unpricedProposal.sections[0].content_json.groups[0].items[0].price = null;
+
+    const captured = [];
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(unpricedProposal) };
+      }
+      const sectionMatch = apiPath.match(/^proposals\/sections\/(\d+)\/update\/$/);
+      if (sectionMatch) {
+        captured.push(route.request().postDataJSON());
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(unpricedProposal.sections[0]) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+    await page.getByTestId('section-header-functional_requirements').click();
+
+    const editor = page.getByTestId('section-editor');
+    await editor.waitFor({ state: 'visible' });
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+
+    await expect(editor.getByText(/no tienen precio asignado/)).toBeVisible({ timeout: 5000 });
+    // No save request was ever sent — the guard blocked it client-side.
+    expect(captured.length).toBe(0);
+  });
+
   test('is_wide_panel is true in payload for functional_requirements', {
     tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM, '@role:admin'],
   }, async ({ page }) => {
@@ -411,5 +451,51 @@ test.describe('Functional Requirements — Paste Content Mode', () => {
     expect(viewsPayload._editMode).toBe('form');
     expect(viewsPayload.items).toHaveLength(2);
     expect(viewsPayload.items[0].name).toBe('Página Principal');
+  });
+
+  test('the price guard still fires after toggling the group to paste mode', {
+    // Bug this catches: the paste-mode toggle wiping group.items client-side,
+    // which would make the guard silently pass (nothing left to flag)
+    // instead of firing.
+    tag: [...ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const unpricedProposal = JSON.parse(JSON.stringify(mockProposal));
+    unpricedProposal.sections[0].content_json.groups[0].items[0].is_required = false;
+    unpricedProposal.sections[0].content_json.groups[0].items[0].price = null;
+
+    const captured = [];
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(unpricedProposal) };
+      }
+      const sectionMatch = apiPath.match(/^proposals\/sections\/(\d+)\/update\/$/);
+      if (sectionMatch) {
+        captured.push(route.request().postDataJSON());
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(unpricedProposal.sections[0]) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+    await page.getByTestId('section-header-functional_requirements').click();
+
+    const editor = page.getByTestId('section-editor');
+    await editor.waitFor({ state: 'visible' });
+
+    // Toggle the Vistas group into paste mode — this must be a visual swap
+    // only; the item underneath (and its missing price) must survive.
+    const viewsGroup = editor.getByTestId('requirement-group-views');
+    await viewsGroup.getByText('Vistas', { exact: false }).click();
+    await viewsGroup.getByRole('button', { name: 'Pegar contenido' }).click();
+    await expect(viewsGroup.getByTestId('group-paste-textarea')).toBeVisible();
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+
+    await expect(editor.getByText(/no tienen precio asignado/)).toBeVisible({ timeout: 5000 });
+    expect(captured.length).toBe(0);
   });
 });

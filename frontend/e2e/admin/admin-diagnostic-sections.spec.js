@@ -115,6 +115,80 @@ test.describe('Admin Diagnostic — JSON sections flow', () => {
     await expect(page.getByText('Alcance y Consideraciones').first()).toBeVisible();
   });
 
+  test('editing a section title autosaves and shows the Guardado confirmation', {
+    // Bug this catches: the debounced autosave silently failing to fire, or
+    // the "Guardado" confirmation never rendering, leaving the admin unsure
+    // whether an edit persisted.
+    tag: [...ADMIN_DIAGNOSTIC_SECTIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let patchedBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === `diagnostics/${DIAG_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(buildDiagnostic()) };
+      }
+      if (apiPath === `diagnostics/${DIAG_ID}/sections/100/update/` && method === 'PATCH') {
+        patchedBody = route.request().postDataJSON();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...patchedBody }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+
+    // The accordion is collapsed by default — expand the Propósito section first.
+    await page.getByRole('button', { name: /Propósito/ }).first().click();
+
+    const sectionBody = page.locator('#diagnostic-section-body-100');
+    const titleInput = sectionBody.locator('input').first();
+    await expect(titleInput).toBeVisible({ timeout: 15000 });
+    await titleInput.fill('Propósito revisado');
+    await titleInput.blur();
+
+    await expect(() => expect(patchedBody?.title).toBe('Propósito revisado')).toPass({ timeout: 5000 });
+    await expect(sectionBody.getByText(/^Guardado /)).toBeVisible({ timeout: 5000 });
+  });
+
+  test('a failed section save surfaces the error with a Reintentar affordance', {
+    // Bug this catches: an autosave failure that fails silently (no error
+    // surfaced) or shows the error but leaves no way to retry, so an edit is
+    // lost with no admin awareness.
+    tag: [...ADMIN_DIAGNOSTIC_SECTIONS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === `diagnostics/${DIAG_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(buildDiagnostic()) };
+      }
+      if (apiPath === `diagnostics/${DIAG_ID}/sections/100/update/` && method === 'PATCH') {
+        return {
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'El título excede el límite de caracteres.' }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/diagnostics/${DIAG_ID}/edit`);
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+
+    await page.getByRole('button', { name: /Propósito/ }).first().click();
+
+    const sectionBody = page.locator('#diagnostic-section-body-100');
+    const titleInput = sectionBody.locator('input').first();
+    await expect(titleInput).toBeVisible({ timeout: 15000 });
+    await titleInput.fill('Propósito roto');
+    await titleInput.blur();
+
+    const errorAlert = sectionBody.getByRole('alert');
+    await expect(errorAlert).toHaveText('⚠ No se guardó: El título excede el límite de caracteres.', { timeout: 10000 });
+    await expect(sectionBody.getByRole('button', { name: 'Reintentar' })).toBeVisible();
+    // The success confirmation must NOT appear alongside a failed save.
+    await expect(sectionBody.getByText(/^Guardado /)).toHaveCount(0);
+  });
+
   test('Actividad tab logs a note via POST /activity/create/', {
     tag: [...ADMIN_DIAGNOSTIC_ACTIVITY, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

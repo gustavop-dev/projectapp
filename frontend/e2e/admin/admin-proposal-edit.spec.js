@@ -315,6 +315,41 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page.getByTestId('technical-json-textarea')).toHaveAttribute('rows', '18');
   });
 
+  test('shows an error toast and does not silently drop unsaved changes when the save fails', {
+    // Bug this catches: an update failure that silently redirects away or
+    // clears the form without telling the admin the save was lost.
+    tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      if (apiPath === 'proposals/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProposal]) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update/` && method === 'PATCH') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ client_email: ['Ingresa un correo válido.'] }),
+        };
+      }
+      return null;
+    });
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Propuesta E2E')).toBeVisible({ timeout: 20_000 });
+    await page.locator('[data-testid="proposal-edit-submit"]').click();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'Error al actualizar.' });
+    await expect(toast).toBeVisible({ timeout: 10_000 });
+    // The admin stays on the edit page — the save failure never redirected away.
+    await expect(page).toHaveURL(new RegExp(`/panel/proposals/${PROPOSAL_ID}/edit`));
+  });
+
   test('links a technical requirement to a commercial item and saves linked_item_ids', {
     tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin'],
   }, async ({ page }) => {

@@ -150,6 +150,52 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(page.getByTestId('diagnostic-scorecard-modal')).not.toBeVisible();
   });
 
+  test('a failed initial send keeps the scorecard modal open with a fallback error', {
+    // Bug this catches: a send failure that still dismisses the scorecard
+    // modal, hiding the fact the diagnostic was never actually sent.
+    tag: [...ADMIN_DIAGNOSTIC_SEND_INITIAL, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const diagnostic = buildMockDiagnostic({ status: 'draft' });
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === 'diagnostics/7/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
+      }
+      if (apiPath === 'diagnostics/7/scorecard/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            score: 9,
+            checks: [{ key: 'client_email', label: 'Email del cliente', passed: true, blocker: true }],
+            blockers: [],
+            can_send: true,
+            total_checks: 1,
+            passed_checks: 1,
+          }),
+        };
+      }
+      if (apiPath === 'diagnostics/7/send-initial/' && method === 'POST') {
+        return { status: 400, contentType: 'application/json', body: '{}' };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/diagnostics/7/edit');
+    await expect(page.getByRole('button', { name: /enviar envío inicial/i })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: /enviar envío inicial/i }).click();
+
+    const modal = page.getByTestId('diagnostic-scorecard-modal');
+    await expect(modal).toBeVisible();
+    await page.getByTestId('scorecard-send-btn').click();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'No se pudo enviar el diagnóstico.' });
+    await expect(toast).toBeVisible({ timeout: 10000 });
+    // The modal STAYS visible — a failed send must not look like a sent one.
+    await expect(modal).toBeVisible();
+  });
+
   test('"Marcar en análisis" button POSTs to mark-in-analysis/ when initial has been sent', {
     tag: [...ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -235,5 +281,50 @@ test.describe('Admin Diagnostic — Send Flows', () => {
     await expect(() => expect(called).toBe(true)).toPass({ timeout: 5000 });
     // the scorecard modal dismisses once the send resolves
     await expect(page.getByTestId('diagnostic-scorecard-modal')).not.toBeVisible();
+  });
+
+  test('a failed final send keeps the scorecard modal open with a fallback error', {
+    // Bug this catches: same class as the initial-send failure, on the
+    // NEGOTIATING → final transition specifically.
+    tag: [...ADMIN_DIAGNOSTIC_SEND_FINAL, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const diagnostic = buildMockDiagnostic({ status: 'negotiating' });
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === 'diagnostics/7/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
+      }
+      if (apiPath === 'diagnostics/7/scorecard/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            score: 9,
+            checks: [{ key: 'client_email', label: 'Email del cliente', passed: true, blocker: true }],
+            blockers: [],
+            can_send: true,
+            total_checks: 1,
+            passed_checks: 1,
+          }),
+        };
+      }
+      if (apiPath === 'diagnostics/7/send-final/' && method === 'POST') {
+        return { status: 400, contentType: 'application/json', body: '{}' };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/diagnostics/7/edit');
+    await expect(page.getByRole('button', { name: /enviar diagnóstico final/i })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: /enviar diagnóstico final/i }).click();
+
+    const modal = page.getByTestId('diagnostic-scorecard-modal');
+    await expect(modal).toBeVisible();
+    await page.getByTestId('scorecard-send-btn').click();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'No se pudo enviar el diagnóstico.' });
+    await expect(toast).toBeVisible({ timeout: 10000 });
+    await expect(modal).toBeVisible();
   });
 });

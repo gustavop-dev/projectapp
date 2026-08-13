@@ -5,7 +5,9 @@ from unittest.mock import patch
 
 import pytest
 
-from content.models import HostingRecord, PocketMovement, RecurringPayment
+from content.models import (
+    AccountingChangeLog, HostingRecord, PocketMovement, RecurringPayment,
+)
 from content.services import accounting_service
 
 
@@ -91,6 +93,123 @@ class TestHostingEndpoints:
             '/api/accounting/hostings/?payment_modality=annual',
         )
         assert [r['client_name'] for r in response.data['results']] == ['Anual']
+
+    def test_bulk_assign_client_refreshes_billing_snapshot(
+        self, super_client, make_client_profile,
+    ):
+        """Reassigning a hosting refreshes name/email/contact/identification.
+
+        test_hosting_client_endpoints.py::TestSnapshotFollowsTheClient::
+        test_bulk_assign_refreshes_and_audits_the_snapshot only checks
+        name/email, for a NIT-bearing client (the company-name branch of
+        legal_name_for). This exercises the no-NIT -> full_name branch and
+        also asserts client_contact_name/client_identification, which
+        nothing else checks — a narrowed refresh would leave them stale,
+        and the cuenta de cobro would print the wrong contact.
+        """
+        new_client = make_client_profile(
+            company='Nueva Cliente SAS', email='nueva@example.com',
+            first_name='Laura', last_name='Nueva',
+        )
+        hosting = HostingRecord.objects.create(
+            client_name='Vieja A', client_email='stale-a@old.com',
+            client_contact_name='Contacto Viejo A',
+            client_identification='CC 999999999',
+            monthly_value=Decimal('50000.00'),
+        )
+
+        response = super_client.post(
+            '/api/accounting/hostings/bulk-assign-client/',
+            {'hosting_ids': [hosting.id], 'client': new_client.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        hosting.refresh_from_db()
+        assert hosting.client_email == 'nueva@example.com'
+        assert hosting.client_name == 'Laura Nueva'
+        assert hosting.client_contact_name == 'Laura Nueva'
+        assert hosting.client_identification == ''
+
+    def test_bulk_assign_client_refreshes_every_row_not_just_the_first(
+        self, super_client, make_client_profile,
+    ):
+        """Bulk-reassigning N>1 hostings refreshes ALL of them, not just
+        the first record in the loop.
+
+        Catches an off-by-one/indexing bug (or a refactor that only
+        refreshes ``records[0]``) that would leave every row past the
+        first with a STALE client_email — nothing else bulk-asserts a
+        second row's snapshot after a multi-record reassignment.
+        """
+        new_client = make_client_profile(email='nueva@example.com')
+        hosting_a = HostingRecord.objects.create(
+            client_name='Vieja A', client_email='stale-a@old.com',
+            monthly_value=Decimal('50000.00'),
+        )
+        hosting_b = HostingRecord.objects.create(
+            client_name='Vieja B', client_email='stale-b@old.com',
+            monthly_value=Decimal('70000.00'),
+        )
+
+        response = super_client.post(
+            '/api/accounting/hostings/bulk-assign-client/',
+            {
+                'hosting_ids': [hosting_a.id, hosting_b.id],
+                'client': new_client.pk,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['updated'] == 2
+        hosting_a.refresh_from_db()
+        hosting_b.refresh_from_db()
+        assert hosting_a.client_email == 'nueva@example.com'
+        assert hosting_b.client_email == 'nueva@example.com'
+
+    def test_bulk_assign_client_repeat_call_is_a_no_op(
+        self, super_client, make_client_profile,
+    ):
+        """A same-client repeat must be a true no-op: updated == 0 AND no
+        new AccountingChangeLog row.
+
+        The sibling null-repeat test (test_hosting_client_endpoints.py::
+        test_null_unlinks_and_repeating_it_is_a_no_op) only checks
+        `updated`, never the log. A regression that keeps `updated` right
+        but still writes a row on repeat would double-log (and
+        double-notify) silently.
+        """
+        new_client = make_client_profile(email='nueva@example.com')
+        hosting_ids = [
+            HostingRecord.objects.create(
+                client_name=name, monthly_value=Decimal('50000.00'),
+            ).id
+            for name in ('Vieja A', 'Vieja B')
+        ]
+        payload = {'hosting_ids': hosting_ids, 'client': new_client.pk}
+
+        first = super_client.post(
+            '/api/accounting/hostings/bulk-assign-client/', payload,
+            format='json',
+        )
+        assert first.status_code == 200, first.data
+        assert first.data['updated'] == 2
+        log_count = AccountingChangeLog.objects.filter(
+            entity_type=AccountingChangeLog.EntityType.HOSTING,
+        ).count()
+        assert log_count == 2
+
+        repeat = super_client.post(
+            '/api/accounting/hostings/bulk-assign-client/', payload,
+            format='json',
+        )
+
+        assert repeat.status_code == 200, repeat.data
+        assert repeat.data['updated'] == 0
+        assert AccountingChangeLog.objects.filter(
+            entity_type=AccountingChangeLog.EntityType.HOSTING,
+        ).count() == log_count
 
 
 @pytest.mark.django_db

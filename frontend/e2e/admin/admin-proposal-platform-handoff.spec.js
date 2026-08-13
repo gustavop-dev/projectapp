@@ -148,4 +148,34 @@ test.describe('Admin Proposal — Platform Handoff (launch-to-platform)', () => 
 
     await expect(page.getByText(/Propuesta lanzada a la plataforma\./)).toBeVisible({ timeout: 10000 });
   });
+
+  test('a failed handoff falls back to a generic error and re-enables the launch button', {
+    // Bug this catches: an empty/malformed error body crashing the
+    // fallback-message logic, or isLaunching never resetting so the CTA
+    // stays disabled forever.
+    tag: [...ADMIN_PROPOSAL_PLATFORM_HANDOFF, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(makeAcceptedProposal()) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/launch-to-platform/` && method === 'POST') {
+        return { status: 400, contentType: 'application/json', body: '{}' };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('proposal-actions-menu').click();
+    await page.getByTestId('proposal-action-launch').click();
+
+    await expect(page.getByText('Error al lanzar a la plataforma.')).toBeVisible({ timeout: 10000 });
+
+    // The sticky next-action button is re-enabled, not stuck on "Lanzando...".
+    const stickyButton = page.getByTestId('proposal-next-action-launch');
+    await expect(stickyButton).toBeEnabled({ timeout: 10000 });
+    await expect(stickyButton).toHaveText('Lanzar a Plataforma');
+  });
 });

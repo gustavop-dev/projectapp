@@ -192,6 +192,97 @@ test.describe('Diagnostic Public View — JSON sections', () => {
     await expect(page.getByText('Sección 3 de', { exact: false })).toBeVisible();
   });
 
+  test('an unknown or expired UUID shows the dedicated not-found message', {
+    // Bug this catches: a 404 that falls through to the generic
+    // retry-error branch instead of the dedicated not-found copy, confusing
+    // a genuinely-expired link with a transient network failure.
+    tag: [...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === `diagnostics/public/${TEST_UUID}/`) {
+        return { status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'Not found.' }) };
+      }
+      return null;
+    });
+
+    // quality: allow-no-interaction (not-found is a terminal load-time state with no further UI affordance — visiting an unknown/expired link IS the flow under test)
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Diagnóstico no encontrado.')).toBeVisible({ timeout: 15000 });
+    // Must NOT fall through to the generic retry-error branch.
+    await expect(page.getByTestId('diagnostic-public-error')).toHaveCount(0);
+    await expect(page.getByTestId('diagnostic-cover')).toHaveCount(0);
+  });
+
+  test('a failed accept/reject response never falsely shows the accepted state', {
+    // Bug this catches: a respond failure that still flips the page to the
+    // acceptance-confirmed footer, when the backend never recorded the
+    // decision. VERIFIED against the live app (not the brief's assumed
+    // shape): respondPublic's catch branch writes the failure message into
+    // the SAME shared `error` state (frontend/stores/diagnostics.js:499-500)
+    // that fetchPublic uses for "failed to load" — so the page's top-level
+    // `v-else-if="store.error"` branch (frontend/pages/diagnostic/[uuid]/
+    // index.vue:27-39) swaps the WHOLE page to the generic retry screen
+    // instead of the scoped in-footer message the respond flow renders at
+    // index.vue:120. Real product bug, reported in brief_corrections — this
+    // test pins the guarantee that matters most regardless: the client is
+    // never shown a false "accepted" confirmation.
+    tag: [...DIAGNOSTIC_PUBLIC_RESPOND, '@role:guest', '@outcome:failure'],
+  }, async ({ page }) => {
+    const diagnostic = buildPublicDiagnostic({ phase: 'final' });
+    let respondCalled = false;
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === `diagnostics/public/${TEST_UUID}/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(diagnostic) };
+      }
+      if (apiPath === `diagnostics/public/${TEST_UUID}/track/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ view_count: 1 }) };
+      }
+      if (apiPath === `diagnostics/public/${TEST_UUID}/track-section/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ok: true }) };
+      }
+      if (apiPath === `diagnostics/public/${TEST_UUID}/respond/` && method === 'POST') {
+        respondCalled = true;
+        return { status: 400, contentType: 'application/json', body: JSON.stringify({ error: 'No se pudo procesar.' }) };
+      }
+      return null;
+    });
+
+    await page.goto(`/diagnostic/${TEST_UUID}/`, { waitUntil: 'domcontentloaded' });
+    await enterDiagnostic(page);
+
+    // The CTA appears at the end of the story: walk to the last section.
+    const nextBtn = page.locator('.section-nav').getByRole('button', { name: /siguiente/i });
+    while (await nextBtn.isEnabled().catch(() => false)) {
+      await nextBtn.click();
+    }
+
+    const acceptBtn = page.getByRole('button', { name: /aceptar propuesta/i });
+    await expect(acceptBtn).toBeVisible({ timeout: 15000 });
+    await acceptBtn.click();
+    await page.getByTestId('diagnostic-respond-confirm').click();
+
+    await expect(() => expect(respondCalled).toBe(true)).toPass({ timeout: 5000 });
+    // The failed decision must surface as SOME visible error state — never as
+    // a silent success — regardless of which branch renders it. Today the
+    // shared store.error (diagnostics.js:499-500) swaps the whole page to the
+    // generic `diagnostic-public-error` retry card (chrome.loadErrorTitle,
+    // "No pudimos cargar tu diagnóstico."); once that bug is fixed, the
+    // failure should instead surface as the footer's scoped message
+    // (chrome.respondError, "No pudimos registrar tu respuesta...",
+    // index.vue:120). Assert branch-agnostically so this test keeps passing
+    // after the fix, and only fails if BOTH surfaces go silent. .first()
+    // collapses the buggy branch's double match (the testid container AND
+    // its own text node both satisfy the `.or()`) to a single element.
+    await expect(
+      page.getByTestId('diagnostic-public-error')
+        .or(page.getByText(/No pudimos (cargar tu diagnóstico|registrar tu respuesta)/i))
+        .first()
+    ).toBeVisible({ timeout: 10000 });
+    // The accepted-confirmation footer must NOT have swapped in.
+    await expect(page.getByText(/Confirmamos tu aceptación/i)).toHaveCount(0);
+  });
+
   test('clicking "Aceptar propuesta" POSTs accept decision and shows acceptance footer', {
     tag: [...DIAGNOSTIC_PUBLIC_RESPOND, '@role:guest'],
   }, async ({ page }) => {

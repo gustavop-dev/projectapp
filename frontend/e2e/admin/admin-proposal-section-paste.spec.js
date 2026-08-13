@@ -220,6 +220,51 @@ test.describe('Proposal Section Edit — Paste Content Mode', () => {
     expect(last.body.content_json).toHaveProperty('paragraphs');
   });
 
+  test('a failed paste-mode save shows the first field error and keeps the editor open', {
+    // Bug this catches: a save failure that still collapses/discards the open
+    // editor, losing the unsaved paste content the admin just typed.
+    tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      }
+      if (apiPath === 'proposals/sections/202/update/' && method === 'PATCH') {
+        return {
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ rawText: ['El contenido pegado supera el límite permitido.'] }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+    await page.waitForLoadState('domcontentloaded');
+    await page.getByRole('tab', { name: 'Secciones' }).click();
+    await page.getByTestId('section-header-executive_summary').click();
+
+    const editor = page.getByTestId('section-editor');
+    await editor.waitFor({ state: 'visible' });
+
+    await editor.getByRole('button', { name: 'Pegar contenido' }).click();
+    const pasteTextarea = editor.getByTestId('paste-textarea');
+    await expect(pasteTextarea).toBeVisible();
+    await pasteTextarea.fill('Contenido pegado que fallará al guardar.');
+
+    await editor.getByRole('button', { name: 'Guardar Sección' }).click();
+
+    // Toast shows the FIRST field error, not a generic fallback string.
+    const toast = page.getByRole('alert').filter({ hasText: 'El contenido pegado supera el límite permitido.' });
+    await expect(toast).toBeVisible({ timeout: 10_000 });
+    // The editor stays mounted — the failed save did not auto-collapse it.
+    await expect(editor).toBeVisible();
+    await expect(pasteTextarea).toHaveValue('Contenido pegado que fallará al guardar.');
+  });
+
   test('toggle back to form mode: saves _editMode form without rawText', {
     tag: [...ADMIN_PROPOSAL_SECTION_EDIT_PASTE, '@role:admin'],
   }, async ({ page }) => {

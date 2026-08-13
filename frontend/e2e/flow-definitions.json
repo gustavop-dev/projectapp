@@ -1,6 +1,6 @@
 {
-  "version": "2.67.0",
-  "lastUpdated": "2026-08-12",
+  "version": "2.68.0",
+  "lastUpdated": "2026-08-13",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -200,6 +200,19 @@
       "expectedSpecs": 1,
       "outcomes": [
         "display"
+      ]
+    },
+    "admin-panel-session-expired": {
+      "name": "Admin Panel Session Expired",
+      "module": "auth",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Admin (or any browser with a stale/absent session) requests a /panel/* route other than /panel/login without a valid staff session. The admin-auth Nuxt middleware calls GET /api/auth/check/; on 401/403 it hard-redirects (window.location.href, a full page navigation, not navigateTo) to /admin/login/?next=<originally requested path> instead of rendering the panel, so signing in again returns the user to the page they requested.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "error"
       ]
     },
     "admin-impersonate-user": {

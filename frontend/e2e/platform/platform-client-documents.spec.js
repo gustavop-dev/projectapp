@@ -204,6 +204,42 @@ test.describe('Platform Client Document Sign', () => {
     await expect(page.getByRole('button', { name: 'Aceptar y firmar' })).not.toBeVisible();
   });
 
+  test('a failed sign shows the error inside the modal and keeps it open', {
+    // Bug this catches: a sign failure that still closes the modal or shows
+    // the signed state, when the backend never recorded the signature.
+    tag: [...PLATFORM_CLIENT_DOCUMENT_SIGN, '@role:platform-client', '@outcome:error'],
+  }, async ({ page }) => {
+    await setupMocks(page, { emailVerified: true, mainSigned: false });
+
+    // Dedicated route for the sign POST (registered after setupMocks() →
+    // LIFO priority wins). The shared setupMocks() helper has no override
+    // hook for this endpoint (unlike its `confirm` param for email
+    // validation), so register directly — same technique proven for the
+    // proposal multi-send POST override.
+    await page.route(`**/api/accounts/documents/${MAIN_UUID}/sign/`, (route) => {
+      if (route.request().method() !== 'POST') { route.continue(); return; }
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'La firma no pudo completarse. Intenta nuevamente.' }),
+      });
+    });
+
+    await page.goto('/platform/documents', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Contrato de Servicios' })).toBeVisible({ timeout: 30000 });
+
+    await page.getByRole('button', { name: 'Aceptar y firmar' }).click();
+    const modalHeading = page.getByRole('heading', { name: 'Firmar documento' });
+    await expect(modalHeading).toBeVisible();
+
+    await page.getByRole('checkbox').check();
+    await page.getByRole('button', { name: 'Confirmar firma' }).click();
+
+    await expect(page.getByText('La firma no pudo completarse. Intenta nuevamente.')).toBeVisible({ timeout: 10000 });
+    // The modal STAYS open — the failed sign never got treated as success.
+    await expect(modalHeading).toBeVisible();
+  });
+
   test('sign button is disabled until the email is verified', {
     tag: [...PLATFORM_CLIENT_DOCUMENT_SIGN, '@role:platform-client'],
   }, async ({ page }) => {

@@ -193,6 +193,117 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     expect(req.postDataJSON()).toMatchObject({ plan: 'annual' });
   });
 
+  test('activating a plan fails and re-enables the CTA with the fallback error', {
+    // Bug this catches: an activation failure that leaves the CTA
+    // permanently disabled, or fails to surface any error, leaving the
+    // client stuck with no visible plan and no way to retry.
+    tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformClient);
+      if (apiPath === 'accounts/projects/1/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProject) };
+      }
+      if (apiPath === 'accounts/projects/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockProject]) };
+      }
+      if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
+      }
+      if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') {
+        return { status: 404, contentType: 'application/json', body: JSON.stringify({ detail: 'No hay suscripción.' }) };
+      }
+      if (apiPath === 'accounts/projects/1/subscription/' && method === 'POST') {
+        // No `detail` body — exercises the fallback message branch.
+        return { status: 500, contentType: 'application/json', body: '{}' };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+      }
+      return null;
+    });
+
+    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Activa tu plan de hosting' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    await page.getByRole('button', { name: 'Trimestral' }).click();
+    const activateBtn = page.getByRole('button', { name: /activar plan/i });
+    await expect(activateBtn).toBeEnabled();
+    await activateBtn.click();
+
+    await expect(page.getByText('Error activando el plan de hosting.')).toBeVisible({ timeout: 10000 });
+    // The CTA re-enables — the client is not stuck with a permanently
+    // disabled button and no way to retry.
+    await expect(activateBtn).toBeEnabled();
+  });
+
+  test('a pending subscription keeps the frequency editable and re-persists on change', {
+    // Bug this catches: the frequencyEditable gate regressing so a PENDING
+    // subscription's frequency becomes locked (the client could never fix a
+    // wrong initial pick before the first payment settles).
+    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+  }, async ({ page }) => {
+    const mockPendingSubscription = {
+      ...mockSubscription,
+      status: 'pending',
+      status_display: 'Pendiente',
+      has_payment_source: false,
+    };
+    let patchBody = null;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      if (apiPath === 'accounts/me/' && method === 'GET') return meResponse(mockPlatformClient);
+      if (apiPath === 'accounts/projects/1/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockProject, has_subscription: true }) };
+      }
+      if (apiPath === 'accounts/projects/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([{ ...mockProject, has_subscription: true }]) };
+      }
+      if (apiPath === 'accounts/projects/1/phases/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPhases) };
+      }
+      if (apiPath === 'accounts/projects/1/subscription/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPendingSubscription) };
+      }
+      // The frequency pill click persists via PATCH while the subscription
+      // is pending — must be mocked or the click hits an unhandled route.
+      if (apiPath === 'accounts/projects/1/subscription/' && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockPendingSubscription, ...patchBody }) };
+      }
+      if (apiPath === 'accounts/subscriptions/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([{ ...mockPendingSubscription, pending_payments: 1 }]) };
+      }
+      if (apiPath === 'accounts/notifications/unread-count/' && method === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ unread_count: 0 }) };
+      }
+      return null;
+    });
+
+    // quality: allow-deep-link (arrives via projects list -> project row click -> Hosting tab click, mirroring platform-client-documents.spec.js's accepted entry pattern; not a deep link straight to /payments)
+    await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('row', { name: /E-commerce Platform/i }).click();
+    await page.waitForURL(/\/platform\/projects\/1$/, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('link', { name: 'Hosting' }).click();
+    await page.waitForURL(/\/platform\/projects\/1\/payments/, { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /hosting trimestral/i }).waitFor({ state: 'visible', timeout: 30000 });
+
+    // Unlike the active-subscription display test below, the frequency
+    // pills ARE visible while pending.
+    const annualPill = page.getByRole('button', { name: 'Anual', exact: true });
+    await expect(annualPill).toBeVisible();
+
+    await Promise.all([
+      page.waitForRequest((r) => r.url().includes('accounts/projects/1/subscription/') && r.method() === 'PATCH'),
+      annualPill.click(),
+    ]);
+
+    expect(patchBody).toMatchObject({ plan: 'annual' });
+    // The breakdown total recomputes to the annual billing amount from the
+    // mocked phase tiers (content-bearing, not just a visibility check).
+    await expect(page.getByRole('row').filter({ hasText: 'Total anual' })).toContainText('1.800.000');
+  });
+
   test('active subscription shows auto-renewal up-to-date card', {
     tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {

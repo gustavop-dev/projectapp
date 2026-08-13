@@ -156,4 +156,59 @@ test.describe('Admin Proposal Multi Send', () => {
     expect(capturedBody).toBeTruthy();
     expect(JSON.parse(capturedBody)).toEqual({ proposal_ids: [PRIMARY_ID, SECOND_ID] });
   });
+
+  test('a failed send keeps the modal open and shows the error toast', {
+    // Bug this catches: a send failure that still closes the modal, so the
+    // admin has no way to know the email never actually went out.
+    tag: [...ADMIN_PROPOSAL_MULTI_SEND, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PRIMARY_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockPrimaryProposal) };
+      }
+      if (apiPath === 'proposals/' && route.request().url().includes(`client_id=${CLIENT_ID}`)) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([
+          { ...mockPrimaryProposal, sections: undefined, requirement_groups: undefined },
+          mockSecondProposal,
+        ]) };
+      }
+      if (apiPath === `proposals/${PRIMARY_ID}/analytics/`) {
+        return { status: 200, contentType: 'application/json', body: 'null' };
+      }
+      return null;
+    });
+
+    // Dedicated route for the send-multi POST (registered after mockApi →
+    // LIFO priority wins). Synchronous non-async fulfill — an async handler
+    // here hangs the XHR in CI (see the success test's comment above).
+    await page.route(`**/api/proposals/${PRIMARY_ID}/send-multi/`, (route) => {
+      if (route.request().method() !== 'POST') { route.continue(); return; }
+      route.fulfill({
+        status: 400,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'El cliente ya tiene el máximo de propuestas activas.' }),
+      });
+    });
+
+    await page.goto(`/panel/proposals/${PRIMARY_ID}/edit`, { waitUntil: 'domcontentloaded' });
+
+    await page.getByTestId('proposal-actions-menu').click();
+    await page.getByTestId('proposal-action-send-multi').click();
+
+    const modal = page.getByTestId('proposal-multi-send-modal');
+    await expect(modal).toBeVisible();
+
+    await page.getByTestId(`proposal-multi-send-option-${SECOND_ID}`).check();
+    const confirm = page.getByTestId('proposal-multi-send-confirm');
+    await expect(confirm).toBeEnabled();
+    await confirm.click();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'No se pudo enviar el correo conjunto.' });
+    await expect(toast).toBeVisible({ timeout: 10_000 });
+    // The modal STAYS visible/attached — it does not close on failure.
+    await expect(modal).toBeVisible();
+  });
 });
