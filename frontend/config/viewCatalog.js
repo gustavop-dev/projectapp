@@ -517,6 +517,15 @@ export const viewCatalogSections = [
         audience: 'admin',
         viewType: 'list',
       },
+      {
+        label: 'Proyectos (Plataforma)',
+        url: '/panel/projects',
+        group: 'Plataforma',
+        file: 'frontend/pages/panel/projects/index.vue',
+        reference: 'modulo de proyectos del panel: listado, creacion, edicion y archivado',
+        audience: 'admin',
+        viewType: 'list',
+      },
     ],
   },
   {

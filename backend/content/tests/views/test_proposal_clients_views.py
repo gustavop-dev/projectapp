@@ -191,6 +191,54 @@ class TestListProposalClients:
         assert len(response.data) == 500
 
 
+class TestWithoutProjectsFilter:
+    """``without_projects`` feeds the Projects module indicator: clients the
+    operator still has to register a project for. Weaker than ``orphans`` —
+    a client with proposals but no project must appear here."""
+
+    def test_without_projects_true_returns_only_uncovered_clients(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        Project.objects.create(
+            name='Cubierto', client=real_client_with_proposal.user,
+        )
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'true'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert orphan_client.pk in ids
+        assert real_client_with_proposal.pk not in ids
+
+    def test_a_client_with_proposals_but_no_project_counts_as_uncovered(
+        self, admin_client, real_client_with_proposal,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'true'},
+        )
+
+        assert response.status_code == 200
+        assert [c['id'] for c in response.data] == [real_client_with_proposal.pk]
+
+    def test_without_projects_false_returns_the_covered_inverse(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        Project.objects.create(
+            name='Cubierto', client=real_client_with_proposal.user,
+        )
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'false'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert ids == [real_client_with_proposal.pk]
+        assert orphan_client.pk not in ids
+
+
 # ---------------------------------------------------------------------------
 # Search (autocomplete)
 # ---------------------------------------------------------------------------
