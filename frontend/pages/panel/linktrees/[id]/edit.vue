@@ -47,7 +47,7 @@
       <!-- Identity -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
         <h2 class="text-base font-semibold text-text-default mb-4">Identidad</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <BaseFormRow :cols="2" :gap="4" at="md">
           <BaseFormField label="Nombre interno" for="lt-name" required :error="fieldErrors.name">
             <BaseInput id="lt-name" v-model="form.name" data-testid="linktree-name-input" />
           </BaseFormField>
@@ -146,7 +146,7 @@
           <BaseFormField label="Mostrar marca ProjectApp" for="lt-brand">
             <BaseToggle id="lt-brand" v-model="form.show_brand_header" aria-label="Mostrar marca" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
       </section>
 
       <!-- Buttons -->
@@ -263,21 +263,21 @@
           <h2 class="text-base font-semibold text-text-default">Bloque "Guardar en el teléfono"</h2>
           <BaseToggle v-model="form.pwa_enabled" aria-label="Mostrar bloque de instalación" data-testid="linktree-pwa-toggle" />
         </div>
-        <div v-if="form.pwa_enabled" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <BaseFormRow v-if="form.pwa_enabled" :cols="2" :gap="4" at="md">
           <BaseFormField label="Título" for="lt-pwa-title">
             <BaseInput id="lt-pwa-title" v-model="form.pwa_title" />
           </BaseFormField>
           <BaseFormField label="Descripción" for="lt-pwa-description">
             <BaseInput id="lt-pwa-description" v-model="form.pwa_description" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
       </section>
 
       <!-- vCard -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
         <h2 class="text-base font-semibold text-text-default mb-1">Datos del contacto (vCard)</h2>
         <p class="text-xs text-text-subtle mb-4">Lo que descarga el botón "Guardar contacto".</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <BaseFormRow :cols="3" :gap="4" at="md">
           <BaseFormField label="Nombre" for="lt-vcard-first">
             <BaseInput id="lt-vcard-first" v-model="form.vcard_first_name" />
           </BaseFormField>
@@ -296,7 +296,7 @@
           <BaseFormField label="Sitio web" for="lt-vcard-url" :error="fieldErrors.vcard_url">
             <BaseInput id="lt-vcard-url" v-model="form.vcard_url" placeholder="https://..." />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
       </section>
       </div>
 
@@ -323,6 +323,7 @@ import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseTextarea from '~/components/base/BaseTextarea.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
+import BaseFormRow from '~/components/base/BaseFormRow.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';

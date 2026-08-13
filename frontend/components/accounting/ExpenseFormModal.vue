@@ -110,7 +110,7 @@ function onSubmit() {
         <BaseInput v-model="form.concept" required />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <PeriodDateField
           v-model="form.period_date"
           v-model:exact="exactDate"
@@ -123,7 +123,7 @@ function onSubmit() {
         <BaseFormField label="Categoría">
           <BaseSelect v-model="form.category" :options="categoryOptions" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Contabilidad">
         <BaseSegmented v-model="form.ledger" :options="ledgerOptions" full-width />

@@ -51,7 +51,7 @@
     <BaseCollapse :id="bodyId" :open="expanded">
       <div class="p-5 space-y-4">
         <!-- Meta bar -->
-        <div class="grid sm:grid-cols-3 gap-3 text-sm">
+        <BaseFormRow :cols="3" :gap="3" class="text-sm">
           <BaseFormField label="Título">
             <BaseInput
               v-model="localSection.title"
@@ -65,13 +65,15 @@
               @update:model-value="onMetaChange"
             />
           </BaseFormField>
-          <div class="flex items-center gap-3 sm:self-center">
+          <!-- Not a field: it has to claim the three bands itself to sit
+               alongside them instead of dropping into the label band. -->
+          <div class="flex items-center gap-3 sm:row-span-3 sm:self-center">
             <label class="inline-flex items-center gap-2 text-sm text-text-muted">
               <BaseCheckbox v-model="localSection.is_enabled" @update:model-value="onMetaChange" />
               Activa en la vista pública
             </label>
           </div>
-        </div>
+        </BaseFormRow>
 
         <!-- Per-type form -->
         <component

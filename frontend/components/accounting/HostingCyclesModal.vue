@@ -13,8 +13,11 @@
 
     <div class="px-6 py-4 space-y-5">
       <!-- Register form -->
-      <form
-        class="bg-surface-raised rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 gap-4"
+      <BaseFormRow
+        as="form"
+        :cols="2"
+        :gap="4"
+        class="bg-surface-raised rounded-xl p-4"
         @submit.prevent="submit"
       >
         <BaseFormField label="Monto pagado" required>
@@ -29,7 +32,9 @@
         <BaseFormField label="Notas">
           <BaseInput v-model="form.notes" placeholder="Opcional" />
         </BaseFormField>
-        <div class="sm:col-span-2 flex flex-wrap items-center justify-between gap-3">
+        <!-- Not a field: spans the full width and the three bands, so it sits
+             below the inputs instead of landing in a label cell. -->
+        <div class="sm:col-span-2 sm:row-span-3 flex flex-wrap items-center justify-between gap-3">
           <label class="flex items-center gap-2 text-sm text-text-default">
             <BaseToggle v-model="form.advance_validity" aria-label="Extender vigencia" />
             <span>
@@ -41,7 +46,7 @@
             {{ saving ? 'Registrando...' : 'Registrar pago de ciclo' }}
           </BaseButton>
         </div>
-      </form>
+      </BaseFormRow>
 
       <!-- History -->
       <div>

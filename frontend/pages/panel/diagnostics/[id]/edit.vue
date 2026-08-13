@@ -264,7 +264,7 @@
               </div>
 
               <!-- Snapshot fields -->
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <BaseFormRow :cols="2" :gap="4">
                 <BaseFormField label="Nombre snapshot" size="sm">
                   <BaseInput v-model="form.client_name" type="text" size="sm" data-testid="diagnostic-edit-client-name" />
                 </BaseFormField>
@@ -277,7 +277,7 @@
                 <BaseFormField label="Empresa" size="sm">
                   <BaseInput v-model="form.client_company" type="text" size="sm" placeholder="Acme Inc." data-testid="diagnostic-edit-client-company" />
                 </BaseFormField>
-              </div>
+              </BaseFormRow>
 
               <!-- Propagate-to-profile checkbox -->
               <BaseCheckbox v-model="form.propagate_client_updates" data-testid="diagnostic-edit-client-propagate">
@@ -292,7 +292,7 @@
               />
             </BaseFormField>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <BaseFormRow :cols="2" :gap="4">
               <BaseFormField label="Inversión total">
                 <BaseInput
                   v-model.number="form.investment_amount"
@@ -308,9 +308,9 @@
                   :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
                 />
               </BaseFormField>
-            </div>
+            </BaseFormRow>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <BaseFormRow :cols="2" :gap="4">
               <BaseFormField label="% pago inicial">
                 <div class="flex items-center gap-2">
                   <BaseInput v-model.number="form.payment_initial_pct" type="number" min="0" max="100" step="1" />
@@ -323,7 +323,7 @@
                   <span class="text-sm text-text-muted">%</span>
                 </div>
               </BaseFormField>
-            </div>
+            </BaseFormRow>
 
             <BaseFormField label="Duración (texto)">
               <BaseInput v-model="form.duration_label" type="text" placeholder="Ej: 1 semana" />

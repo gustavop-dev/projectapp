@@ -1016,7 +1016,7 @@ function downloadPdf() {
         </div>
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Consecutivo" hint="Sugerido; editable">
           <BaseInput
             v-model="form.public_number"
@@ -1032,7 +1032,7 @@ function downloadPdf() {
             required
           />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField
         label="Concepto del servicio"
@@ -1058,7 +1058,7 @@ function downloadPdf() {
         />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Período facturado (opcional)">
           <div class="flex items-center gap-2">
             <BaseInput v-model="form.period_start" type="date" />
@@ -1069,7 +1069,7 @@ function downloadPdf() {
         <BaseFormField label="Ciudad">
           <BaseInput v-model="form.city" placeholder="Ciudad de emisión" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <!-- The hint only holds for the days mode; the fixed-date mode shares
            this field and a 0 means nothing there. -->
@@ -1101,7 +1101,7 @@ function downloadPdf() {
       <!-- Editable customer snapshot -->
       <div class="rounded-xl border border-border-default p-4 space-y-3">
         <p class="text-sm font-medium text-text-default">Datos del cliente en el documento</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <BaseFormRow :cols="2" :gap="3">
           <BaseFormField label="Nombre / Razón social">
             <BaseInput v-model="form.customer.name" data-testid="collection-form-customer-name" />
           </BaseFormField>
@@ -1132,7 +1132,7 @@ function downloadPdf() {
           <BaseFormField label="Dirección">
             <BaseInput v-model="form.customer.address" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
       </div>
 
       <p class="text-xs text-text-subtle">

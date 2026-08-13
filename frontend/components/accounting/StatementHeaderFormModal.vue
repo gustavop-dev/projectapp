@@ -72,7 +72,7 @@ function onSubmit() {
       </p>
     </div>
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Total compras" required>
           <BaseCurrencyInput v-model="form.purchases_total" required data-testid="statement-header-purchases" />
         </BaseFormField>
@@ -94,7 +94,7 @@ function onSubmit() {
         <BaseFormField label="Fecha límite de pago">
           <BaseInput v-model="form.due_date" type="date" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="2" />

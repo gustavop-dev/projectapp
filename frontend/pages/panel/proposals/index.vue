@@ -103,7 +103,7 @@
 
       <!-- Create alert form -->
       <div v-if="showAlertForm" class="mb-4 bg-surface rounded-lg border border-warning-soft p-4 space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <BaseFormRow :cols="3" :gap="3">
           <BaseFormField label="Propuesta" size="sm">
             <BaseSelect v-model="newAlert.proposal" size="sm" placeholder="Seleccionar...">
               <option value="">Seleccionar...</option>
@@ -126,7 +126,7 @@
           <BaseFormField label="Fecha" size="sm">
             <BaseInput v-model="newAlert.alert_date" type="datetime-local" size="sm" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
         <div class="flex gap-3 items-end">
           <BaseFormField label="Mensaje" size="sm" class="flex-1">
             <BaseInput v-model="newAlert.message" type="text" size="sm" placeholder="Ej: Llamar al cliente para seguimiento..." />
