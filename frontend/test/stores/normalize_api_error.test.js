@@ -3,7 +3,7 @@
  * into a consistent { message, code, hint, fieldErrors, status }.
  */
 
-import { normalizeApiError } from '../../stores/services/normalize_api_error';
+import { normalizeApiError, numericIdsFromError } from '../../stores/services/normalize_api_error';
 
 function axiosError(status, data) {
   return { response: { status, data } };
@@ -68,5 +68,45 @@ describe('normalizeApiError', () => {
   it('uses the fallback for an empty object payload', () => {
     const r = normalizeApiError(axiosError(400, {}), 'Error genérico.');
     expect(r.message).toBe('Error genérico.');
+  });
+
+  // The machine payload must not leak into the human-facing field errors:
+  // fieldErrors feeds per-field messages for every store in the app.
+  it('keeps a numeric missing_ids array out of fieldErrors', () => {
+    const r = normalizeApiError(
+      axiosError(409, {
+        error: '1 de los ingresos seleccionados ya no existe.',
+        code: 'records_not_found',
+        missing_ids: [2],
+      }),
+    );
+
+    expect(r.message).toBe('1 de los ingresos seleccionados ya no existe.');
+    expect(r.code).toBe('records_not_found');
+    expect(r.fieldErrors).toBeNull();
+  });
+});
+
+describe('numericIdsFromError', () => {
+  it('reads the ids the server named', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: [2, 7] })))
+      .toEqual([2, 7]);
+  });
+
+  it('returns nothing when the key is absent', () => {
+    expect(numericIdsFromError(axiosError(400, { error: 'Nope' }))).toEqual([]);
+  });
+
+  it('returns nothing when the key is not a list', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: 'dos' }))).toEqual([]);
+  });
+
+  it('drops entries that are not numbers', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: [2, null, 'x'] })))
+      .toEqual([2]);
+  });
+
+  it('survives an error with no response at all', () => {
+    expect(numericIdsFromError(new Error('network down'))).toEqual([]);
   });
 });

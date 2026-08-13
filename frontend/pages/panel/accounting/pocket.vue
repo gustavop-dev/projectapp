@@ -329,6 +329,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'pocket',
+  resetPageOn: currentFilters,
   store,
   filteredRecords: filteredMovements,
   sortDefaults: { movement_date: 'desc', amount: 'desc' },

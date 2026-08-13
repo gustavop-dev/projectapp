@@ -814,6 +814,33 @@ def duplicate_income_draft(request, record_id):
     )
 
 
+def _missing_records_error(entity_type, record_ids, *, noun):
+    """409 naming every id that vanished, or ``None`` when they all exist.
+
+    A mass edit is confirmed against a named scope, so it runs on that scope
+    or not at all: writing the surviving half of a batch the operator never
+    agreed to is worse than asking them to look again. Runs BEFORE the
+    service, so its atomic block never opens.
+
+    The panel cannot close this window on its own — the confirmation dialog
+    freezes the plan when it opens, and the list can be refetched (or another
+    session can delete a row) while it sits there. `missing_ids` is what lets
+    the UI drop exactly those ids instead of guessing.
+    """
+    missing = accounting_service.missing_record_ids(entity_type, record_ids)
+    if not missing:
+        return None
+    count = len(missing)
+    verb = 'existe' if count == 1 else 'existen'
+    return error_response(
+        f'{count} de los {noun} seleccionados ya no {verb}.',
+        code='records_not_found',
+        hint='La lista se actualizó. Revisa la selección y vuelve a intentarlo.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'missing_ids': missing},
+    )
+
+
 @api_view(['POST'])
 @permission_classes([IsSuperUser])
 def bulk_assign_income_client(request):
@@ -825,9 +852,16 @@ def bulk_assign_income_client(request):
     serializer = IncomeClientBulkAssignSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = serializer.validated_data['income_ids']
+    # Before reading `client`, so unlinking is held to the same contract.
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
     updated = accounting_service.bulk_assign_client(
         EntityType.INCOME,
-        serializer.validated_data['income_ids'],
+        income_ids,
         serializer.validated_data.get('client'),
         request.user,
     )
@@ -848,9 +882,15 @@ def bulk_assign_hosting_client(request):
     serializer = HostingClientBulkAssignSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    hosting_ids = serializer.validated_data['hosting_ids']
+    vanished = _missing_records_error(
+        EntityType.HOSTING, hosting_ids, noun='hostings',
+    )
+    if vanished:
+        return vanished
     updated = accounting_service.bulk_assign_client(
         EntityType.HOSTING,
-        serializer.validated_data['hosting_ids'],
+        hosting_ids,
         serializer.validated_data.get('client'),
         request.user,
     )

@@ -240,6 +240,26 @@ class TestBulkAssignClient:
 
         assert response.status_code == 400
 
+    def test_unknown_ids_are_rejected_and_nothing_is_written(
+        self, super_client, make_client_profile,
+    ):
+        # Twin of the incomes contract: the two endpoints share one helper and
+        # must not drift.
+        profile = make_client_profile()
+        hosting = make_hosting(domain_url='kore.com.co')
+
+        response = super_client.post(
+            BULK_URL,
+            {'hosting_ids': [hosting.pk, 999999], 'client': profile.pk},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.data['code'] == 'records_not_found'
+        assert response.data['missing_ids'] == [999999]
+        hosting.refresh_from_db()
+        assert hosting.client_id is None
+
     def test_requires_superuser(self, admin_client, make_client_profile):
         response = admin_client.post(
             BULK_URL,

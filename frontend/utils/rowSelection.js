@@ -34,3 +34,21 @@ export function selectionSummary(keys = [], selectedSet = new Set()) {
   const count = keys.reduce((total, key) => total + (selectedSet.has(key) ? 1 : 0), 0);
   return { count, all: keys.length > 0 && count === keys.length, some: count > 0 };
 }
+
+/**
+ * The selection minus the keys that no longer exist.
+ *
+ * The parameter is `existingKeys`, never the filtered ones, and that word is
+ * load-bearing: a selection legitimately outlives filter and page changes, so
+ * resolving it against what the filters show would discard rows the operator
+ * picked on purpose. Only "this record is gone" may drop a key.
+ *
+ * Returns the SAME array when nothing was dropped. `ref.value = sameRef` is a
+ * no-op for Vue, so a refetch that rebuilds the list without losing any id
+ * writes nothing and wakes no downstream effect.
+ */
+export function reconcileSelection(selected = [], existingKeys = []) {
+  const existing = existingKeys instanceof Set ? existingKeys : new Set(existingKeys);
+  const next = selected.filter((key) => existing.has(key));
+  return next.length === selected.length ? selected : next;
+}

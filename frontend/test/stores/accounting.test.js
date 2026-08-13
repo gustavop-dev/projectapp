@@ -75,6 +75,18 @@ describe('useAccountingStore', () => {
       expect(store.error).toBe('fetch_failed')
     })
 
+    // The invariant useRowSelection rests on: the list is only ever replaced
+    // by a successful response. If a failed refetch blanked it, the selection
+    // prune would read "every record is gone" and wipe a live selection.
+    it('keeps the previous list when the refetch fails', async () => {
+      store.incomes = [{ id: 1, concept: 'Kore - Inicio' }]
+      get_request.mockRejectedValue(apiError(500, { error: 'Boom' }))
+
+      await store.fetchRecords('incomes')
+
+      expect(store.incomes).toEqual([{ id: 1, concept: 'Kore - Inicio' }])
+    })
+
     it('throws for unknown entities', async () => {
       await expect(store.fetchRecords('nope')).rejects.toThrow(
         'Unknown accounting entity',

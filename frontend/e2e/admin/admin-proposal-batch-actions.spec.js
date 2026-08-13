@@ -162,6 +162,55 @@ test.describe('Batch Actions on Proposals', () => {
     await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible({ timeout: 5000 });
   });
 
+  test('deleting one selected proposal drops it from the bar and keeps the rest', {
+    tag: ['@outcome:success', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
+  }, async ({ page }) => {
+    // The batch bar counted an id list nobody reconciled, so a deleted row
+    // stayed in the count. Same defect the accounting bar had.
+    const rows = mockProposals.map((p) => ({ ...p }));
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/' && route.request().method() === 'GET') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+      }
+      if (apiPath === 'proposals/dashboard/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ total: 3, by_status: {}, conversion_rate: 0, avg_close_days: 0 }) };
+      }
+      if (apiPath === 'proposals/alerts/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (/^proposals\/\d+\/delete\/$/.test(apiPath) && route.request().method() === 'DELETE') {
+        const id = Number(apiPath.split('/')[1]);
+        const index = rows.findIndex((row) => row.id === id);
+        if (index !== -1) rows.splice(index, 1);
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+      return null;
+    });
+    await page.goto('/panel/proposals');
+    await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
+
+    // nth(0) is the header select-all; the rows follow. Alpha and Gamma are
+    // picked so the row deleted below (Gamma, the last one) is one of them.
+    const checkboxes = page.locator('table input[type="checkbox"]');
+    await checkboxes.nth(1).check();
+    await checkboxes.nth(3).check();
+    const batchBar = page.getByTestId('batch-action-bar');
+    await expect(batchBar).toContainText('2 seleccionada(s)');
+
+    // Same trigger the actions-modal spec uses: the row kebab carries no
+    // label of its own. The bar has its own "Eliminar" too, so the modal item
+    // is matched by its description instead.
+    await page.locator('table button').filter({ has: page.locator('svg') }).last().click();
+    await page.getByRole('button', { name: /Elimina permanentemente/ }).click();
+    await page.getByTestId('confirm-type-input').fill('DELETE');
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(batchBar).toContainText('1 seleccionada(s)');
+  });
+
   test('select-all header checkbox selects all visible rows', {
     tag: ['@outcome:display', ...ADMIN_PROPOSAL_BATCH_ACTIONS, '@role:admin'],
   }, async ({ page }) => {

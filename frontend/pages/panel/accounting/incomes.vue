@@ -413,6 +413,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
+import { useRowSelection } from '~/composables/useRowSelection';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -734,6 +735,9 @@ const {
   runMutation,
 } = useAccountingCrudPage({
   entity: 'incomes',
+  // Narrowing the working set sends the reader back to page 1; deleting or
+  // editing a row must leave them where they were.
+  resetPageOn: currentFilters,
   // A liquidation creates a CHILD row, so the parent expected row's
   // payment state is computed server-side from data the response doesn't
   // carry. Without a refetch its badge and tint stay stale. A settlement can
@@ -954,7 +958,10 @@ const groupedColumns = columns
 
 // ── Selección múltiple + asignación masiva de cliente ──
 
-const selectedIds = ref([]);
+// Fed the FULL store list, not the filtered rows: the selection is meant to
+// survive a filter change, so only "this income no longer exists" may drop an
+// id from it.
+const { selectedIds, clearSelection, dropIds } = useRowSelection(() => store.incomes);
 const totalsModalOpen = ref(false);
 
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
@@ -979,7 +986,17 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
         : 'No se pudo asignar el cliente',
     },
   );
-  if (result.success) selectedIds.value = [];
+  if (result.success) {
+    clearSelection();
+    return;
+  }
+  // The server refused the batch because some of it no longer exists. Drop
+  // those ids first — that holds even if the reload below fails — then rebuild
+  // the list so the counters, the groups and the KPI meta agree with it.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
 }
 
 // ── Cuenta de cobro desde el ingreso ──

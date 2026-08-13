@@ -5,7 +5,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
-import { normalizeApiError } from './services/normalize_api_error';
+import { normalizeApiError, numericIdsFromError } from './services/normalize_api_error';
 
 /**
  * Accounting entities exposed by the backend (/api/accounting/...).
@@ -942,7 +942,14 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error assigning client to incomes:', error);
-        return { success: false, ...normalizeApiError(error) };
+        // `records_not_found` names the rows that vanished between the
+        // confirmation opening and the submit, so the page can drop exactly
+        // those instead of clearing the whole selection.
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: numericIdsFromError(error),
+        };
       } finally {
         this.isUpdating = false;
       }
@@ -970,7 +977,11 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error assigning client to hostings:', error);
-        return { success: false, ...normalizeApiError(error) };
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: numericIdsFromError(error),
+        };
       } finally {
         this.isUpdating = false;
       }

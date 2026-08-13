@@ -65,6 +65,10 @@ function buildHandler({
   // pagination) — without this branch mockApi's empty fallback would leave
   // the page grouped and break them all.
   incomeViewMode = 'classic',
+  // Non-empty makes the bulk endpoint answer 409 records_not_found, the way
+  // the server does when part of the batch was deleted while the
+  // confirmation was open.
+  bulkAssignMissingIds = [],
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -216,6 +220,18 @@ function buildHandler({
     if (apiPath === 'accounting/incomes/bulk-assign-client/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ method, apiPath, body });
+      if (bulkAssignMissingIds.length) {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: `${bulkAssignMissingIds.length} de los ingresos seleccionados ya no existe.`,
+            code: 'records_not_found',
+            hint: 'La lista se actualizó. Revisa la selección y vuelve a intentarlo.',
+            missing_ids: bulkAssignMissingIds,
+          }),
+        };
+      }
       const assigned = body.income_ids.map((id) => {
         const row = rows.find((item) => item.id === id) || incomeRow({ id });
         Object.assign(row, {
@@ -1171,6 +1187,120 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('income-client-row-none')).toContainText('Sin cliente');
     await expect(page.getByTestId('income-client-billed-sum')).toContainText('1.500.000');
   });
+
+  test('deleting one of the selected incomes drops it from the bar and keeps the rest', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%', total_amount: '1000000.00' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%', total_amount: '1000000.00' }),
+        incomeRow({ id: 3, concept: 'Kore - Cierre 30%', total_amount: '1000000.00' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('accounting-select-3').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-2').click();
+    await page.getByTestId('income-action-delete-2').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // The deleted id leaves the selection on its own — only that one.
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    // And it must not come back disguised as a filtered-out row.
+    await expect(page.getByTestId('incomes-bulk-outside')).toHaveCount(0);
+    // Header totals recompute with no reload: 3.000.000 minus the deleted row.
+    await expect(page.getByTestId('incomes-total-expected')).toContainText('2.000.000');
+  });
+
+  test('the bar leaves when the only selected income is deleted', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toBeVisible();
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-delete-1').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // No reload, no Cancelar: with nothing left to assign, the bar goes.
+    await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
+  });
+
+  test('a mass selection shrinks with the dataset instead of counting ghosts', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Cierre 30%' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('incomes-select-all-filtered').click();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-3').click();
+    await page.getByTestId('income-action-delete-3').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+    // The two survivors are still the whole filtered set, so the offer to
+    // select them all stays away.
+    await expect(page.getByTestId('incomes-select-all-filtered')).toHaveCount(0);
+  });
+
+  test('a bulk assign over a record deleted elsewhere reports it and reconciles', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    // The window the frontend cannot close on its own: the confirmation
+    // freezes the plan when it opens, and another session can delete a row
+    // while it is up. The server refuses the batch and names what vanished.
+    const listFetches = { count: 0 };
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls: [],
+      listFetches,
+      bulkAssignMissingIds: [2],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('incomes-bulk-client').fill('Ana');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('incomes-bulk-assign').click();
+    const fetchesBefore = listFetches.count;
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('1 de los ingresos seleccionados ya no existe.'))
+      .toBeVisible();
+    // Nothing was written, and the vanished id left the selection.
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('1 seleccionado');
+    expect(listFetches.count).toBeGreaterThan(fetchesBefore);
+  });
 });
 
 test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
@@ -1344,5 +1474,44 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await expect(page.getByTestId('accounting-select-1')).toBeChecked();
     await expect(page.getByTestId('accounting-select-2')).toBeChecked();
     await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+  });
+
+  test('deleting a grouped income leaves its group and the bar count with it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // The group badge already shed a deleted row while the bar went on
+    // counting it — two counters, one truth. Both are asserted here so a
+    // regression cannot fix one and leave the other.
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({
+          id: 2, client: 5, client_name: 'Ana Pérez', concept: 'Kore - Entrega 30%',
+        }),
+        incomeRow({
+          id: 3, client: 5, client_name: 'Ana Pérez', concept: 'Kore - Cierre 30%',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-group-select-5').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-2').click();
+    await page.getByTestId('income-action-delete-2').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // The row leaves its group, the group recounts, and the bar agrees.
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    await expect(page.getByTestId('income-group-5')).toContainText('(2)');
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+
+    await page.getByTestId('income-group-toggle-5').click();
+
+    await expect(page.getByTestId('income-group-selected-5'))
+      .toHaveText('2 seleccionados');
   });
 });

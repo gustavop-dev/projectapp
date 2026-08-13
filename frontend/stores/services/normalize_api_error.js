@@ -43,6 +43,29 @@ export function normalizeApiError(error, fallback = 'Ocurrió un error. Inténta
   return { message: fallback, code, hint, fieldErrors: null, status };
 }
 
+/**
+ * Numeric ids an error payload carries under `key` (default `missing_ids`).
+ *
+ * Read apart from `normalizeApiError` on purpose: `collectFieldErrors` keeps
+ * only strings, because it feeds human-facing per-field messages for every
+ * store in the app. Widening it to preserve numbers would change how errors
+ * render everywhere for the sake of one pair of endpoints, so the machine
+ * payload gets its own reader.
+ *
+ * @returns {number[]} Empty when the key is absent, not an array, or holds
+ *   nothing numeric.
+ */
+export function numericIdsFromError(error, key = 'missing_ids') {
+  const value = error?.response?.data?.[key];
+  if (!Array.isArray(value)) return [];
+  // Strings are coerced (a JSON id may arrive quoted) but nothing else is:
+  // a blanket Number() turns null into 0, which would drop a real row from
+  // the selection.
+  return value
+    .map((id) => (typeof id === 'string' ? Number(id) : id))
+    .filter((id) => typeof id === 'number' && Number.isFinite(id));
+}
+
 /** Return `value` as a trimmed string if it's a non-empty string, else null. */
 function firstString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
