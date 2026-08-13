@@ -265,12 +265,22 @@ describe('AccountingTable', () => {
     expect(wrapper.find('[data-testid="sortable-hint"]').exists()).toBe(false);
   });
 
-  it('renders skeleton rows and aria-busy while loading', () => {
-    const wrapper = mountTable({ loading: true, skeletonRows: 4 });
+  it('renders skeleton rows and aria-busy on the first load', () => {
+    const wrapper = mountTable({ rows: [], loading: true, skeletonRows: 4 });
 
     expect(wrapper.attributes('aria-busy')).toBe('true');
     expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(4);
     expect(wrapper.findAll('[data-testid^="accounting-row-"]')).toHaveLength(0);
+  });
+
+  it('keeps the rows on screen while refetching over them', () => {
+    // Every accounting mutation refetches, so swapping the table for
+    // placeholders made a delete or an edit read as a full reload.
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(0);
+    expect(wrapper.findAll('[data-testid^="accounting-row-"]')).toHaveLength(2);
+    expect(wrapper.attributes('aria-busy')).toBe('true');
   });
 
   it('announces the row count via an aria-live region when loaded', () => {

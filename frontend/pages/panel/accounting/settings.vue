@@ -27,10 +27,11 @@
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
         <h2 class="text-lg font-bold text-text-default mb-1">Notificaciones por correo</h2>
         <p class="text-sm text-text-muted mb-5">
-          Todo el correo automático del módulo — cambios contables, deuda de tarjetas, extractos,
-          calendario de cobros y pagos, cuentas de cobro y pagos de hosting — sale a los
-          destinatarios activos de esta lista, y solo a ellos. El interruptor de abajo apaga todos
-          los envíos de una vez sin desarmar la lista.
+          Los avisos internos del módulo — cambios contables, deuda de tarjetas, extractos,
+          calendario de cobros y pagos y pagos de hosting — salen a los destinatarios activos de
+          esta lista, y solo a ellos. Las cuentas de cobro no: esas van al correo del cliente que
+          figura en cada una. El interruptor de abajo apaga todos los envíos de una vez sin
+          desarmar la lista.
         </p>
 
         <!-- Master switch -->

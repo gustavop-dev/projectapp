@@ -78,7 +78,7 @@ function requestDelete(row) {
     message:
       `¿Quitar ${row.email} de la lista? Dejará de recibir los avisos de ` +
       'cambios contables, la deuda de tarjetas, los extractos, el calendario ' +
-      'de cobros y pagos, las cuentas de cobro y los pagos de hosting. ' +
+      'de cobros y pagos y los pagos de hosting. ' +
       'Si es una pausa temporal, usa el interruptor en vez de quitarlo.',
     variant: 'danger',
     confirmText: 'Quitar',

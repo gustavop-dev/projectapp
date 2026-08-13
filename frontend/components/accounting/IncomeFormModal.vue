@@ -97,6 +97,36 @@ const showsCycleHint = computed(
     && form.value.period_date === props.seed.period_date,
 )
 
+const CYCLE_LABELS = { 1: '+1 mes', 3: '+3 meses', 6: '+6 meses', 12: '+1 año' }
+
+/**
+ * Shortcuts to the next period, offered only while duplicating: a create has
+ * no original to count from and an edit is not opening a new period. The
+ * dates are computed by the server (`add_months` clamps the day, and this
+ * codebase keeps every date advance backend-side), so this only picks one.
+ */
+const cycleOptions = computed(
+  () => (isDuplicate.value ? props.seed?.cycle_options ?? [] : []),
+)
+
+function cycleLabel(months) {
+  return CYCLE_LABELS[months] ?? `+${months} meses`
+}
+
+// Match the field's current granularity: month mode stores 'YYYY-MM', so
+// handing it a full date would leave the month input showing nothing.
+function cycleValue(option) {
+  return exactDate.value ? option.date : option.date.slice(0, 7)
+}
+
+function isCycleActive(option) {
+  return !!form.value.period_date && form.value.period_date === cycleValue(option)
+}
+
+function applyCycle(option) {
+  form.value.period_date = cycleValue(option)
+}
+
 /**
  * Copy the fields the form owns out of an existing income — the record being
  * edited, or the draft a duplicate was seeded with. A duplicate may arrive
@@ -288,6 +318,23 @@ function onSubmit() {
           >
             Siguiente ciclo del hosting. Ajústala si no corresponde.
           </p>
+          <div v-if="cycleOptions.length" class="mt-2">
+            <p class="mb-1.5 text-xs text-text-subtle">Siguiente período:</p>
+            <div class="flex flex-wrap gap-1.5" data-testid="income-form-cycles">
+              <BaseButton
+                v-for="option in cycleOptions"
+                :key="option.months"
+                type="button"
+                size="sm"
+                :variant="isCycleActive(option) ? 'primary' : 'secondary'"
+                :aria-pressed="isCycleActive(option)"
+                :data-testid="`income-form-cycle-${option.months}`"
+                @click="applyCycle(option)"
+              >
+                {{ cycleLabel(option.months) }}
+              </BaseButton>
+            </div>
+          </div>
         </div>
       </div>
 

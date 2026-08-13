@@ -361,6 +361,7 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
+import { useRowSelection } from '~/composables/useRowSelection';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -398,8 +399,6 @@ const clientNameOf = (row) => row?.client_display_name || row?.client_name || ''
 // -------------------------------------------------------------------
 
 // Sentinel shared with the backend filter: 'none' = still unassigned.
-const selectedIds = ref([]);
-
 const NO_CLIENT_KEY = 'none';
 const NO_CLIENT_LABEL = 'Sin cliente';
 
@@ -595,6 +594,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'hostings',
+  resetPageOn: currentFilters,
   store,
   filteredRecords: weightedRecords,
   saveTab,
@@ -634,6 +634,11 @@ const columns = [
   { key: 'is_active', label: 'Estado' },
 ];
 
+// Fed the FULL store list, not the filtered rows: the selection is meant to
+// survive a filter change, so only "this hosting no longer exists" may drop an
+// id from it.
+const { selectedIds, clearSelection, dropIds } = useRowSelection(() => store.hostings);
+
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
 
 /** What identifies a hosting in the bulk confirmation list. */
@@ -657,7 +662,16 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
         : 'No se pudo asignar el cliente',
     },
   );
-  if (result.success) selectedIds.value = [];
+  if (result.success) {
+    clearSelection();
+    return;
+  }
+  // Same reconciliation as incomes: the ids the server says are gone leave the
+  // selection, and the reload puts the rest of the view back in agreement.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
 }
 
 async function loadRecords() {

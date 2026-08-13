@@ -491,6 +491,23 @@ def _cascade_client_to_liquid_children(income, user):
             )
 
 
+def missing_record_ids(entity_type, record_ids):
+    """Ids in ``record_ids`` with no row behind them, sorted.
+
+    Kept apart from :func:`bulk_assign_client`, which stays lenient: that one
+    is also called from ``collection_account_create_service`` with a pk it has
+    already fetched and locked, and has no business refusing it. Deciding what
+    to do about a vanished id belongs to the caller that has a user in front
+    of it.
+    """
+    existing = set(
+        ENTITY_MODELS[entity_type]
+        .objects.filter(pk__in=record_ids)
+        .values_list('pk', flat=True),
+    )
+    return sorted(set(record_ids) - existing)
+
+
 @transaction.atomic
 def bulk_assign_client(entity_type, record_ids, client, user):
     """Assign (or clear, with ``client=None``) the client of several records.

@@ -419,6 +419,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'expenses',
+  resetPageOn: currentFilters,
   // The month column shows the localized label but sorts by the ISO date.
   sortAccessors: { period_label: 'period_date' },
   sortDefaults: {

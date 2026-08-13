@@ -260,3 +260,44 @@ class TestObjectReprStatementEntities:
         )
 
         assert label == 'PAYU*NETFLIX'
+
+
+@pytest.mark.django_db
+class TestMissingRecordIds:
+    """The lookup behind the bulk endpoints' 409."""
+
+    def test_reports_only_the_ids_with_no_row(self, superuser):
+        income = accounting_service.create_record(
+            EntityType.INCOME, valid_serializer(income_payload()), superuser,
+        )
+
+        missing = accounting_service.missing_record_ids(
+            EntityType.INCOME, [income.pk, 999998, 999999],
+        )
+
+        assert missing == [999998, 999999]
+
+    def test_says_nothing_is_missing_when_every_id_resolves(self, superuser):
+        income = accounting_service.create_record(
+            EntityType.INCOME, valid_serializer(income_payload()), superuser,
+        )
+
+        assert accounting_service.missing_record_ids(
+            EntityType.INCOME, [income.pk],
+        ) == []
+
+    def test_bulk_assign_client_itself_stays_lenient(
+        self, superuser, make_client_profile,
+    ):
+        # The strictness lives in the view. This service is also called by
+        # collection_account_create_service with a pk it already fetched and
+        # locked, so raising here would break a caller that never asked for it.
+        income = accounting_service.create_record(
+            EntityType.INCOME, valid_serializer(income_payload()), superuser,
+        )
+
+        updated = accounting_service.bulk_assign_client(
+            EntityType.INCOME, [income.pk, 999999], make_client_profile(), superuser,
+        )
+
+        assert [record.pk for record in updated] == [income.pk]

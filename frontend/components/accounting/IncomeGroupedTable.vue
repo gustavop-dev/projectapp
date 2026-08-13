@@ -48,7 +48,7 @@
       </div>
 
       <!-- Skeleton -->
-      <div v-if="loading" class="accounting-grid-band divide-y divide-border-muted">
+      <div v-if="showSkeleton" class="accounting-grid-band divide-y divide-border-muted">
         <div
           v-for="n in skeletonRows"
           :key="`skeleton-${n}`"
@@ -312,6 +312,14 @@ const containerVars = computed(() => {
 const rowCount = computed(
   () => props.groups.reduce((total, group) => total + group.rows.length, 0),
 );
+
+/**
+ * Skeleton only when there is nothing to show yet. Every mutation refetches,
+ * so binding it to `loading` alone blanked the whole grid — groups, counters
+ * and the totals row — and brought it back after a delete. `aria-busy` still
+ * announces the fetch.
+ */
+const showSkeleton = computed(() => props.loading && props.groups.length === 0);
 
 const totals = computed(() => sumClientGroups(props.groups));
 

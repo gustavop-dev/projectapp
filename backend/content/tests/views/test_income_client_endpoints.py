@@ -216,9 +216,11 @@ class TestBulkAssignClient:
             action=AccountingChangeLog.Action.UPDATED,
         ).exists()
 
-    def test_unknown_ids_are_ignored(
+    def test_unknown_ids_are_rejected_and_nothing_is_written(
         self, super_client, make_income, make_client_profile,
     ):
+        # A mass edit is confirmed against a named scope, so a vanished row
+        # aborts the whole batch instead of quietly writing the rest.
         profile = make_client_profile()
         income = make_income(concept='Acme - Inicio')
 
@@ -228,7 +230,46 @@ class TestBulkAssignClient:
             format='json',
         )
 
-        assert response.data['updated'] == 1
+        assert response.status_code == 409
+        assert response.data['code'] == 'records_not_found'
+        assert response.data['missing_ids'] == [999999]
+        income.refresh_from_db()
+        assert income.client_id is None
+        assert not AccountingChangeLog.objects.filter(
+            action=AccountingChangeLog.Action.UPDATED,
+        ).exists()
+
+    def test_the_error_names_every_missing_id(
+        self, super_client, make_income, make_client_profile,
+    ):
+        profile = make_client_profile()
+        income = make_income(concept='Acme - Inicio')
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk, 999998, 999999], 'client': profile.pk},
+            format='json',
+        )
+
+        assert response.data['missing_ids'] == [999998, 999999]
+        assert '2 de los ingresos seleccionados ya no existen' in response.data['error']
+
+    def test_unlinking_is_held_to_the_same_contract(
+        self, super_client, make_income, make_client_profile,
+    ):
+        # The check runs before `client` is read, so clearing it is covered
+        # by the same guard as assigning.
+        income = make_income(concept='Acme - Inicio', client=make_client_profile())
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk, 999999], 'client': None},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        income.refresh_from_db()
+        assert income.client_id is not None
 
     def test_empty_id_list_is_rejected(self, super_client, make_client_profile):
         response = super_client.post(

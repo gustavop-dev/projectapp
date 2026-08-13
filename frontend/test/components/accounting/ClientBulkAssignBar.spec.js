@@ -267,3 +267,61 @@ describe('ClientBulkAssignBar — selection plumbing', () => {
     expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
   });
 });
+
+/**
+ * A record can leave the selection two ways, and the bar must not confuse
+ * them: the filters can stop showing it (kept, and announced) or it can stop
+ * existing (dropped by the page, and gone from every count). The page owns the
+ * pruning — these pin what the bar does with the result of it.
+ */
+describe('ClientBulkAssignBar — a deleted record is not a filtered one', () => {
+  it('counts only what the page still holds once the deleted id is pruned', () => {
+    // Row 2 was deleted: gone from `rows`, gone from `filteredIds`, and the
+    // page has already dropped it from the selection.
+    const wrapper = mountBar({
+      rows: [ROWS[0], ROWS[2]],
+      selected: [1],
+      filteredIds: [1, 3],
+    });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('1 seleccionado');
+    // The deleted row must not resurface as "fuera del filtro actual" — that
+    // notice is about records that still exist.
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+  });
+
+  it('leaves on its own when the pruning empties the selection', async () => {
+    const wrapper = mountBar({ selected: [1], filteredIds: [1] });
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(true);
+
+    await wrapper.setProps({ rows: [ROWS[2]], selected: [], filteredIds: [3] });
+
+    // No reload, no Cancelar.
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(false);
+  });
+
+  it('keeps a still-existing row that the filter hides, and says so', () => {
+    // Same shape as the case above, except row 2 was only filtered out. It
+    // stays selected and stays counted.
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
+      .toContain('1 fuera del filtro actual');
+  });
+
+  it('leaves a stale id out of the payload it submits', async () => {
+    // The safety net for the window the page cannot close: the confirmation
+    // freezes the plan when it opens, and a row can vanish while it is up.
+    const wrapper = mountBar({ selected: [1, 99] });
+    await pickClient(wrapper);
+
+    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
+    await flushPromises();
+    await confirm(wrapper);
+
+    expect(wrapper.emitted('submit')[0][0].ids).toEqual([1]);
+  });
+});

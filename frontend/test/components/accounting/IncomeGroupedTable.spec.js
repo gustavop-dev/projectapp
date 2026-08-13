@@ -173,11 +173,21 @@ describe('IncomeGroupedTable', () => {
       .toBe('Vastago - Abono inicial!');
   });
 
-  it('shows skeleton rows while loading', () => {
-    const wrapper = mountTable({ loading: true, skeletonRows: 3 });
+  it('shows skeleton rows on the first load', () => {
+    const wrapper = mountTable({ groups: [], loading: true, skeletonRows: 3 });
 
     expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(3);
     expect(wrapper.find('[data-testid="income-group-22"]').exists()).toBe(false);
+  });
+
+  it('keeps the groups and their counters on screen while refetching', () => {
+    // Blanking the grid on every mutation took the group counters and the
+    // totals row with it, so a delete looked like a reload instead of a
+    // recount.
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="income-group-22"]').text()).toContain('(2)');
   });
 
   it('flashes the highlighted row', () => {

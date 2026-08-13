@@ -52,7 +52,7 @@
       </div>
 
       <!-- Skeleton -->
-      <div v-if="loading" class="accounting-grid-band divide-y divide-border-muted">
+      <div v-if="showSkeleton" class="accounting-grid-band divide-y divide-border-muted">
         <div
           v-for="n in skeletonRows"
           :key="`skeleton-${n}`"
@@ -302,6 +302,13 @@ const containerVars = computed(() => {
 const rowCount = computed(
   () => props.groups.reduce((total, group) => total + group.rows.length, 0),
 );
+
+/**
+ * Skeleton only when there is nothing to show yet, like the other accounting
+ * tables: a refetch over rows already on screen updates them in place instead
+ * of blanking the grid. `aria-busy` still announces the fetch.
+ */
+const showSkeleton = computed(() => props.loading && props.groups.length === 0);
 
 const grandTotal = computed(
   () => props.groups.reduce((total, group) => total + (group.monthlyCopTotal || 0), 0),

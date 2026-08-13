@@ -422,6 +422,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import { getDiagnosticAttention, ATTENTION_TONE_CLASSES } from '~/utils/diagnosticAttention';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
+import { useRowSelection } from '~/composables/useRowSelection';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { formatDateTime } from '~/utils/formatDate';
@@ -455,7 +456,10 @@ const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
-const selectedIds = ref([]);
+// Fed the FULL store list, not the page or the filtered rows: the selection
+// spans pages on purpose, so only a diagnostic that stopped existing may drop
+// out of it.
+const { selectedIds, clearSelection } = useRowSelection(() => store.diagnostics);
 
 const actionsModalOpen = computed({
   get: () => actionsModalDiagnostic.value !== null,
@@ -576,10 +580,6 @@ function toggleSelectPage(checked) {
     const pageSet = new Set(pageIds);
     selectedIds.value = selectedIds.value.filter((id) => !pageSet.has(id));
   }
-}
-
-function clearSelection() {
-  selectedIds.value = [];
 }
 
 const BULK_CONFIRM = {

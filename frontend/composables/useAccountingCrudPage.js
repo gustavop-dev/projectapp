@@ -34,6 +34,9 @@ const HIGHLIGHT_MS = 2500;
  *     sort field overrides and first-click directions).
  * - saveTab / resetFilters / isFilterPanelOpen  from useAccountingFilters,
  *     used by handleCreateFilterTab / handleResetFilters.
+ * - resetPageOn  `currentFilters` from useAccountingFilters. Narrowing the
+ *     working set sends the reader back to page 1; mutating a row must not.
+ *     Pages that omit it fall back to the old rows-based trigger.
  */
 export function useAccountingCrudPage({
   entity,
@@ -48,6 +51,7 @@ export function useAccountingCrudPage({
   saveTab = null,
   resetFilters = null,
   isFilterPanelOpen = null,
+  resetPageOn = null,
 }) {
   const notify = usePanelNotify();
   const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
@@ -75,7 +79,16 @@ export function useAccountingCrudPage({
     reset: resetPage,
   } = usePagination(sortedRecords, { pageSize: PAGE_SIZE });
 
-  watch(filteredRecords, () => resetPage(), { deep: false });
+  // Back to page 1 when the FILTERS move, not when the data does. Watching the
+  // rows meant every mutation reset the position — deleting a row from page 3
+  // dropped the reader on page 1 — because a refetch reassigns the store array
+  // whether or not the working set actually changed. Shrinking past the last
+  // page is already handled: usePagination clamps currentPage to totalPages.
+  if (resetPageOn) {
+    watch(resetPageOn, () => resetPage(), { deep: true });
+  } else {
+    watch(filteredRecords, () => resetPage(), { deep: false });
+  }
 
   // -----------------------------------------------------------------
   // Saved filter tab helpers
@@ -191,14 +204,26 @@ export function useAccountingCrudPage({
     return result;
   }
 
+  /**
+   * Title for a successful save. A seeded create is a duplicate, and saying
+   * so is what tells it apart from a manual one in the notification history —
+   * pages that define no `duplicated` copy keep the plain created wording.
+   */
+  function saveSuccessTitle(editing, seeded) {
+    if (editing) return labels.updated;
+    return (seeded && labels.duplicated) || labels.created;
+  }
+
   async function handleSubmit(payload) {
     const editing = editingRecord.value;
+    // Read before the mutation: closeModal() clears the seed on success.
+    const seeded = !editing && !!seedRecord.value;
     const result = await runMutation(
       () => (editing
         ? store.updateRecord(entity, editing.id, payload)
         : store.createRecord(entity, payload)),
       {
-        successTitle: editing ? labels.updated : labels.created,
+        successTitle: saveSuccessTitle(editing, seeded),
         errorTitle: saveErrorTitle(editing),
         flashId: editing?.id,
       },

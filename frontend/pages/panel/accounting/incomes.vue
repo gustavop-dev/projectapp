@@ -188,19 +188,11 @@
         @toggle-group="toggleGroup"
       >
         <template #cell-row_actions="{ row }">
-          <div class="flex items-center justify-end">
-            <BaseButton
-              variant="ghost"
-              icon-only
-              size="sm"
-              aria-label="Acciones"
-              title="Acciones"
-              :data-testid="`income-actions-${row.id}`"
-              @click.stop="openActions(row)"
-            >
-              <EllipsisVerticalIcon class="w-5 h-5" />
-            </BaseButton>
-          </div>
+          <IncomeRowActionsButton
+            :row="row"
+            :busy="duplicatingId === row.id"
+            @open="openActions"
+          />
         </template>
         <template #cell-kind_label="{ row }">
           <span
@@ -236,19 +228,11 @@
           @sort="toggleSort"
         >
           <template #cell-row_actions="{ row }">
-            <div class="flex items-center justify-end">
-              <BaseButton
-                variant="ghost"
-                icon-only
-                size="sm"
-                aria-label="Acciones"
-                title="Acciones"
-                :data-testid="`income-actions-${row.id}`"
-                @click.stop="openActions(row)"
-              >
-                <EllipsisVerticalIcon class="w-5 h-5" />
-              </BaseButton>
-            </div>
+            <IncomeRowActionsButton
+              :row="row"
+              :busy="duplicatingId === row.id"
+              @open="openActions"
+            />
           </template>
           <template #cell-kind_label="{ row }">
             <span
@@ -401,11 +385,9 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, nextTick, onMounted, ref } from 'vue';
-import {
-  EllipsisVerticalIcon,
-  PlusIcon,
-} from '@heroicons/vue/24/outline';
+import { PlusIcon } from '@heroicons/vue/24/outline';
 import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
+import IncomeRowActionsButton from '~/components/accounting/IncomeRowActionsButton.vue';
 import IncomeDetailModal from '~/components/accounting/IncomeDetailModal.vue';
 import IncomeMuteModal from '~/components/accounting/IncomeMuteModal.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
@@ -431,6 +413,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
+import { useRowSelection } from '~/composables/useRowSelection';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -752,6 +735,9 @@ const {
   runMutation,
 } = useAccountingCrudPage({
   entity: 'incomes',
+  // Narrowing the working set sends the reader back to page 1; deleting or
+  // editing a row must leave them where they were.
+  resetPageOn: currentFilters,
   // A liquidation creates a CHILD row, so the parent expected row's
   // payment state is computed server-side from data the response doesn't
   // carry. Without a refetch its badge and tint stay stale. A settlement can
@@ -776,6 +762,7 @@ const {
   labels: {
     entityName: 'ingreso',
     created: 'Ingreso creado',
+    duplicated: 'Ingreso duplicado',
     updated: 'Ingreso actualizado',
     deleted: 'Ingreso eliminado',
     saveErrorTitle: 'No se pudo guardar',
@@ -971,7 +958,10 @@ const groupedColumns = columns
 
 // ── Selección múltiple + asignación masiva de cliente ──
 
-const selectedIds = ref([]);
+// Fed the FULL store list, not the filtered rows: the selection is meant to
+// survive a filter change, so only "this income no longer exists" may drop an
+// id from it.
+const { selectedIds, clearSelection, dropIds } = useRowSelection(() => store.incomes);
 const totalsModalOpen = ref(false);
 
 const filteredIds = computed(() => filteredRecords.value.map((row) => row.id));
@@ -996,7 +986,17 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
         : 'No se pudo asignar el cliente',
     },
   );
-  if (result.success) selectedIds.value = [];
+  if (result.success) {
+    clearSelection();
+    return;
+  }
+  // The server refused the batch because some of it no longer exists. Drop
+  // those ids first — that holds even if the reload below fails — then rebuild
+  // the list so the counters, the groups and the KPI meta agree with it.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
 }
 
 // ── Cuenta de cobro desde el ingreso ──
@@ -1052,6 +1052,9 @@ function openIncomeDetail(row) {
   detailOpen.value = true;
 }
 
+/** Row whose duplicate prefill is being fetched, so its kebab can say so. */
+const duplicatingId = ref(null);
+
 /**
  * Open the next period of a recurring income: the server builds the prefill
  * (always expected, with the hosting cycle's date when it can work it out)
@@ -1059,7 +1062,17 @@ function openIncomeDetail(row) {
  * point — the date almost always needs a look first.
  */
 async function duplicateIncome(row) {
-  const result = await store.fetchIncomeDuplicateDraft(row.id);
+  // One at a time. The action menu closes on click, so nothing on screen
+  // would otherwise say the first request is still running, and a second
+  // click would race a second draft into the same form.
+  if (duplicatingId.value) return;
+  duplicatingId.value = row.id;
+  let result;
+  try {
+    result = await store.fetchIncomeDuplicateDraft(row.id);
+  } finally {
+    duplicatingId.value = null;
+  }
   if (!result.success) {
     notify.error({
       title: 'No se pudo preparar el duplicado',

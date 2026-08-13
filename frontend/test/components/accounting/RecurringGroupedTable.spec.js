@@ -289,10 +289,17 @@ describe('RecurringGroupedTable', () => {
     expect(wrapper.find('[data-testid="slot-override"]').text()).toBe('reemplazo');
   });
 
-  it('renders skeleton rows while loading instead of groups', () => {
-    const wrapper = mountTable({ loading: true });
+  it('renders skeleton rows instead of groups on the first load', () => {
+    const wrapper = mountTable({ groups: [], loading: true });
 
     expect(wrapper.find('[data-testid="accounting-skeleton-row"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="recurring-group-1"]').exists()).toBe(false);
+  });
+
+  it('keeps the groups on screen while refetching over them', () => {
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.find('[data-testid="accounting-skeleton-row"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="recurring-group-1"]').exists()).toBe(true);
   });
 });
