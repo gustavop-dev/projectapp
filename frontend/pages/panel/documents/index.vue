@@ -73,6 +73,28 @@
           Buscando «{{ searchQuery.trim() }}» en todo el gestor, activos y archivados.
         </BaseAlert>
 
+        <!-- Parado DENTRO de una carpeta archivada: restaurar la carpeta
+             completa vive aquí — las filas del listado solo restauran hijas. -->
+        <BaseAlert
+          v-if="isArchived && currentFolder?.is_archived"
+          variant="info"
+          class="mb-4"
+          data-testid="current-folder-archived-alert"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <span>Estás dentro de una carpeta archivada.</span>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :loading="folderStore.isUpdating"
+              data-testid="doc-restore-current-folder"
+              @click="handleUnarchiveFolder(currentFolder, { follow: true })"
+            >
+              Restaurar esta carpeta
+            </BaseButton>
+          </div>
+        </BaseAlert>
+
         <!-- Tag filter chips -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
           <TagFilterChips
@@ -189,6 +211,7 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
@@ -212,6 +235,7 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
@@ -289,6 +313,7 @@
       :secondary-text="confirmState.secondaryText"
       :secondary-variant="confirmState.secondaryVariant"
       :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
       @confirm="handleConfirmed"
       @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
@@ -357,6 +382,12 @@ const showBreadcrumb = computed(
     && documentStore.activeFolderId !== 'all'
     && !(documentStore.activeFolderId === 'root' && !isArchived.value),
 );
+
+const currentFolder = computed(() => (
+  typeof documentStore.activeFolderId === 'number'
+    ? folderStore.folderById(documentStore.activeFolderId)
+    : null
+));
 
 const filteredDocuments = computed(() => {
   if (isSearching.value) return documentStore.searchResults;
@@ -639,7 +670,7 @@ function restoredChainDetail(result) {
   return `Se restauró también ${names} para que tenga dónde volver.`;
 }
 
-async function handleUnarchiveFolder(folder) {
+async function handleUnarchiveFolder(folder, { follow = false } = {}) {
   if (!folder) return;
   const result = await folderStore.unarchiveFolder(folder.id);
   if (result.success) {
@@ -655,6 +686,9 @@ async function handleUnarchiveFolder(folder) {
       title: 'Carpeta restaurada',
       detail: details.length ? details.join(' ') : undefined,
     });
+    // Seguir la restauración: la carpeta vuelve a los activos y la vista va
+    // con ella, en vez de quedarse mirando su hueco en Archivados.
+    if (follow) documentStore.archiveScope = 'active';
     await refreshView();
   } else {
     notify.error({
@@ -672,6 +706,7 @@ function handleArchiveFolder(folder) {
       + 'Sale de la vista y de los contadores, pero podrás restaurarla cuando quieras.',
     variant: 'warning',
     confirmText: 'Archivar',
+    waitForConfirm: true,
     onConfirm: async () => {
       const result = await folderStore.archiveFolder(folder.id);
       if (!result.success) {
@@ -933,6 +968,7 @@ function handleDelete(doc) {
       ? ''
       : 'Archivar lo saca de la lista y de los contadores, pero lo conserva: podrás consultarlo o restaurarlo desde Archivados.',
     onSecondary: () => handleArchiveDoc(doc),
+    waitForConfirm: true,
     onConfirm: async () => {
       const result = await documentStore.deleteDocument(doc.id);
       if (result.success) {

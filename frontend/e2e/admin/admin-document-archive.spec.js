@@ -561,6 +561,50 @@ test.describe('Admin Document Archive', () => {
     expect(restored).toBe(true);
   });
 
+  test('restoring the folder you are inside follows it back to the active view', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let restored = false;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'document-folders/9/unarchive/' && method === 'PATCH') {
+        restored = true;
+        return json({
+          folder: { ...archivedFolders[0], is_archived: false, archived_at: null },
+          restored_folders: 1,
+          restored_documents: 5,
+          restored_chain: [],
+        });
+      }
+      if (apiPath === 'document-folders/') {
+        const list = restored
+          ? [
+            ...activeFolders,
+            { ...archivedFolders[0], is_archived: false, archived_at: null },
+            { ...archivedFolders[1], is_archived: false, archived_at: null },
+          ]
+          : [...activeFolders, ...archivedFolders];
+        return json(list);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+
+    // Dentro de la carpeta archivada el aviso ofrece restaurarla COMPLETA —
+    // las filas del listado solo restauran a las hijas.
+    await expect(page.getByTestId('current-folder-archived-alert')).toBeVisible();
+    await page.getByTestId('doc-restore-current-folder').click();
+
+    await expect(page.getByText('Carpeta restaurada')).toBeVisible();
+    // La vista "sigue" a la carpeta restaurada: scope activo, misma carpeta.
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Todos');
+    await expect(page.getByTestId('current-folder-archived-alert')).toHaveCount(0);
+    expect(restored).toBe(true);
+  });
+
   test('shows the error toast when archiving a document fails', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
