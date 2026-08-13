@@ -111,7 +111,7 @@ class TestListPanelProjects:
         response = admin_client.get(LIST_URL, {'scope': 'trash'})
 
         assert response.status_code == 400
-        assert response.data['error'] == 'invalid_scope'
+        assert response.data['code'] == 'invalid_scope'
 
     def test_rows_carry_their_accounting_counts(self, admin_client):
         owner = make_client('deivis@example.com')
@@ -279,7 +279,7 @@ class TestUpdatePanelProject:
         )
 
         assert response.status_code == 400
-        assert response.data['error'] == 'client_immutable'
+        assert response.data['code'] == 'client_immutable'
         project.refresh_from_db()
         assert project.client_id == owner.user_id
 
@@ -294,7 +294,7 @@ class TestUpdatePanelProject:
         )
 
         assert response.status_code == 400
-        assert response.data['error'] == 'project_archived'
+        assert response.data['code'] == 'project_archived'
 
     def test_update_cannot_jump_to_archived(self, admin_client):
         # The dedicated archive endpoint owns that transition.
@@ -331,7 +331,7 @@ class TestArchivePanelProject:
         response = admin_client.patch(f'/api/projects/{project.pk}/archive/')
 
         assert response.status_code == 400
-        assert response.data['error'] == 'already_archived'
+        assert response.data['code'] == 'already_archived'
 
     def test_unarchiving_a_non_archived_project_answers_400(self, admin_client):
         owner = make_client('deivis@example.com')
@@ -340,4 +340,4 @@ class TestArchivePanelProject:
         response = admin_client.patch(f'/api/projects/{project.pk}/unarchive/')
 
         assert response.status_code == 400
-        assert response.data['error'] == 'not_archived'
+        assert response.data['code'] == 'not_archived'

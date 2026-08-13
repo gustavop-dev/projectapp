@@ -31,6 +31,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import Project, UserProfile
+from content.api_errors import error_response
 from content.models import HostingRecord, IncomeRecord
 from content.serializers.panel_projects import (
     CreatePanelProjectSerializer,
@@ -114,12 +115,9 @@ def list_panel_projects(request):
     """
     scope = _scope_or_none(request)
     if scope is None:
-        return Response(
-            {
-                'error': 'invalid_scope',
-                'message': "scope debe ser 'active', 'archived' o 'all'.",
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            "scope debe ser 'active', 'archived' o 'all'.",
+            code='invalid_scope',
         )
 
     qs = _annotated_queryset()
@@ -165,21 +163,16 @@ def create_panel_project(request):
 def update_panel_project(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
     if 'client_profile_id' in request.data or 'client' in request.data:
-        return Response(
-            {
-                'error': 'client_immutable',
-                'message': 'El cliente de un proyecto no se puede cambiar desde el panel.',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El cliente de un proyecto no se puede cambiar desde el panel.',
+            code='client_immutable',
         )
     if project.status == Project.STATUS_ARCHIVED:
         # Documents precedent: an archived row is out of circulation.
-        return Response(
-            {
-                'error': 'project_archived',
-                'message': 'Restaura el proyecto para editarlo.',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'Restaura el proyecto para editarlo.',
+            code='project_archived',
+            hint='Usa Restaurar en la pestaña Archivados.',
         )
     serializer = UpdatePanelProjectSerializer(
         project, data=request.data, partial=True,
@@ -197,12 +190,8 @@ def archive_panel_project(request, project_id):
     the row just leaves the active scope."""
     project = get_object_or_404(Project, pk=project_id)
     if project.status == Project.STATUS_ARCHIVED:
-        return Response(
-            {
-                'error': 'already_archived',
-                'message': 'El proyecto ya está archivado.',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El proyecto ya está archivado.', code='already_archived',
         )
     project.status = Project.STATUS_ARCHIVED
     project.save(update_fields=['status', 'updated_at'])
@@ -216,12 +205,8 @@ def unarchive_panel_project(request, project_id):
     not recorded (v1 trade-off, documented in the module plan)."""
     project = get_object_or_404(Project, pk=project_id)
     if project.status != Project.STATUS_ARCHIVED:
-        return Response(
-            {
-                'error': 'not_archived',
-                'message': 'El proyecto no está archivado.',
-            },
-            status=status.HTTP_400_BAD_REQUEST,
+        return error_response(
+            'El proyecto no está archivado.', code='not_archived',
         )
     project.status = Project.STATUS_ACTIVE
     project.save(update_fields=['status', 'updated_at'])
