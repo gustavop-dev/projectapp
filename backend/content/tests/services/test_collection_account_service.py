@@ -299,10 +299,50 @@ def test_issue_collection_account_sets_due_from_payment_term_days_after_issue(is
     assert doc.due_date.isoformat() == '2026-04-08'
 
 
-@freeze_time('2026-05-10')
-def test_issue_collection_account_sets_due_today_for_non_fixed_non_days_term_when_missing(
+@freeze_time('2026-04-01')
+def test_issue_collection_account_leaves_no_due_date_for_zero_day_term(
     issuer, project, client_user,
 ):
+    """Zero days is immediate payment, so there is no deadline to state."""
+    doc = _ca_document(project=project, client_user=client_user)
+    DocumentCollectionAccount.objects.create(
+        document=doc,
+        payment_term_type=DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE,
+        payment_term_days=0,
+    )
+
+    issue_collection_account(doc, issuer=issuer)
+    doc.refresh_from_db()
+
+    assert doc.issue_date.isoformat() == '2026-04-01'
+    assert doc.due_date is None
+
+
+@freeze_time('2026-04-01')
+def test_zero_day_collection_account_never_turns_overdue(
+    issuer, project, client_user,
+):
+    """The defect the omission removes: a due date equal to the issue date
+    made an immediate-payment cuenta overdue the day after it was sent."""
+    doc = _ca_document(project=project, client_user=client_user)
+    DocumentCollectionAccount.objects.create(
+        document=doc,
+        payment_term_type=DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE,
+        payment_term_days=0,
+    )
+    issue_collection_account(doc, issuer=issuer)
+    doc.refresh_from_db()
+
+    with freeze_time('2026-06-01'):
+        assert commercial_is_overdue(doc) is False
+
+
+@freeze_time('2026-05-10')
+def test_issue_collection_account_leaves_no_due_date_for_against_delivery_term(
+    issuer, project, client_user,
+):
+    """against_delivery is that same immediate payment reached through the
+    term type, so it stopped stamping the issue date as a fake deadline."""
     doc = _ca_document(project=project, client_user=client_user)
     DocumentCollectionAccount.objects.create(
         document=doc,
@@ -312,7 +352,7 @@ def test_issue_collection_account_sets_due_today_for_non_fixed_non_days_term_whe
     issue_collection_account(doc, issuer=issuer)
     doc.refresh_from_db()
 
-    assert doc.due_date.isoformat() == '2026-05-10'
+    assert doc.due_date is None
 
 
 def test_mark_collection_account_paid_returns_document_when_already_paid(issuer, project, client_user):

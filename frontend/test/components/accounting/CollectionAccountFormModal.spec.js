@@ -166,8 +166,10 @@ function mountModal(props = {}) {
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength'],
           emits: ['update:modelValue'],
+          // min/max are rendered, not just declared: they are the native guard
+          // that keeps a negative plazo out of the form.
           template:
-            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :min="min" :max="max" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled', 'suggestion'],
@@ -592,6 +594,51 @@ describe('CollectionAccountFormModal', () => {
     expect(payload.client_profile_id).toBe(5);
     expect(payload.income_record_id).toBe(8);
     expect(payload.items[0].unit_price).toBe('1490000');
+  });
+
+  it('sends a zero plazo as a real 0 rather than the default term', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('0');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    // `Number(...) || 8` used to read the deliberate 0 as "empty" and bill the
+    // cuenta at 8 days, so pago inmediato could not be expressed at all.
+    const payload = create_request.mock.calls.at(-1)[1];
+    expect(payload.payment_term_days).toBe(0);
+    expect(payload.due_date).toBeUndefined();
+  });
+
+  it('still falls back to the default term when the plazo is left empty', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(8);
+  });
+
+  it('explains what a zero plazo does, and only while days are being asked', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('0 días = pago inmediato');
+    expect(wrapper.find('[data-testid="collection-form-term-days"]').attributes('min'))
+      .toBe('0');
+
+    // Switching to a fixed date drops the hint: a 0 means nothing there.
+    await wrapper.findAll('button')
+      .find((b) => b.text() === 'Fecha fija')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('0 días = pago inmediato');
   });
 
   it('sends the long description as the detail line, not the short concept', async () => {

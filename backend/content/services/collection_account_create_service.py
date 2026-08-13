@@ -187,7 +187,12 @@ def create_income_collection_account(data, *, acting_user=None):
         document.save(update_fields=['due_date'])
     else:
         term_type = DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE
-        term_days = data.get('payment_term_days') or PAYMENT_TERM_DAYS
+        # `or` would read a deliberate 0 (immediate payment) as "unset" and
+        # silently bill it at the 8-day default, so the term has to be tested
+        # against None instead.
+        term_days = data.get('payment_term_days')
+        if term_days is None:
+            term_days = PAYMENT_TERM_DAYS
     DocumentCollectionAccount.objects.create(
         document=document,
         billing_concept=billing_concept,

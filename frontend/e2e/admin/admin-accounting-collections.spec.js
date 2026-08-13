@@ -421,6 +421,42 @@ test.describe('Admin Accounting Collections', () => {
     ).toBeVisible();
   });
 
+  test('a cuenta with no plazo shows no vencimiento and cannot read as vencida', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is how a cuenta with no vencimiento renders and filters, reached by
+    // clicking the Vencidas tab)
+    const handler = buildHandler({ calls: [] });
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+        const rows = makeRows();
+        // What the backend now returns for a pago-inmediato cuenta: no
+        // deadline at all, so there is nothing to fall overdue against.
+        rows[0].due_date = null;
+        rows[0].is_overdue = false;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ results: rows, meta: META }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    await expect(row).toBeVisible();
+    // The Vence cell is empty rather than repeating the emisión date.
+    await expect(row).not.toContainText('2026-06-15');
+    await expect(row.getByText('Vencida', { exact: true })).toHaveCount(0);
+    await expect(row.getByText('Emitida', { exact: true })).toBeVisible();
+
+    // And the tab that used to sweep it up no longer does.
+    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+  });
+
   test('marking an issued account as paid confirms and updates the badge', {
     tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

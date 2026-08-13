@@ -662,7 +662,14 @@ function buildPayload() {
   if (form.value.term === 'fixed' && form.value.due_date) {
     payload.due_date = form.value.due_date;
   } else {
-    payload.payment_term_days = Number(form.value.payment_term_days) || 8;
+    // `|| 8` read a deliberate 0 — pago inmediato — as "empty" and billed it
+    // at the default term instead, so the zero has to survive on its own.
+    // Blank is tested before Number(), which turns '' into 0 and would have
+    // made an emptied field mean immediate payment.
+    const raw = form.value.payment_term_days;
+    const days = Number(raw);
+    const unset = raw === '' || raw === null || raw === undefined;
+    payload.payment_term_days = unset || Number.isNaN(days) ? 8 : days;
   }
   return payload;
 }
@@ -1072,7 +1079,7 @@ function downloadPdf() {
       </BaseFormRow>
 
       <!-- The hint only holds for the days mode; the fixed-date mode shares
-           this field and a 0 means nothing there. -->
+           this field, where a 0 would mean nothing. -->
       <BaseFormField
         label="Plazo de pago"
         :hint="form.term === 'days'

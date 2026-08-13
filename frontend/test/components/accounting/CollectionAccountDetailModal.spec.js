@@ -166,6 +166,28 @@ describe('CollectionAccountDetailModal', () => {
       .toContain('diagnóstico');
   });
 
+  it('pairs emisión and vencimiento while the cuenta has a plazo', async () => {
+    const wrapper = mountModal(HOSTING_ROW);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Emisión / Vence');
+    expect(wrapper.get('[data-testid="collection-detail-dates"]').text())
+      .toContain('·');
+  });
+
+  it('drops the vencimiento entirely on an immediate-payment cuenta', async () => {
+    // Without a due date the old markup kept the "Vence" half of the label
+    // over formatDate's em-dash fallback, which reads as missing data.
+    const wrapper = mountModal({ ...HOSTING_ROW, due_date: null });
+    await flushPromises();
+
+    const dates = wrapper.get('[data-testid="collection-detail-dates"]');
+    expect(wrapper.text()).not.toContain('Emisión / Vence');
+    expect(wrapper.text()).toContain('Emisión');
+    expect(dates.text()).not.toContain('—');
+    expect(dates.text()).not.toContain('·');
+  });
+
   it('lists the settlement history: liquid children and linked deductions', async () => {
     const wrapper = mountModal(INCOME_ROW);
     await flushPromises();

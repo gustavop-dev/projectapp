@@ -65,9 +65,18 @@
             </p>
           </div>
           <div>
-            <p class="text-xs uppercase tracking-wider text-text-subtle">Emisión / Vence</p>
-            <p class="text-sm text-text-default mt-1">
-              {{ formatDate(record?.issue_date) }} · {{ formatDate(record?.due_date) }}
+            <!-- A cuenta with a zero-day term has no vencimiento, so the label
+                 itself shrinks. Keeping "Emisión / Vence" over formatDate's
+                 fallback printed the very dash the document avoids. -->
+            <p class="text-xs uppercase tracking-wider text-text-subtle">
+              {{ record?.due_date ? 'Emisión / Vence' : 'Emisión' }}
+            </p>
+            <p
+              class="text-sm text-text-default mt-1"
+              data-testid="collection-detail-dates"
+            >
+              {{ formatDate(record?.issue_date) }}
+              <span v-if="record?.due_date">· {{ formatDate(record.due_date) }}</span>
             </p>
           </div>
         </section>
