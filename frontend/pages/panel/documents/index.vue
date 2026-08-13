@@ -45,6 +45,7 @@
         :archive-scope="documentStore.archiveScope"
         :total-count="documentStore.counts.documents.active"
         :archived-count="documentStore.counts.documents.archived"
+        :unfiled-count="documentStore.counts.documents.unfiled_active"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
@@ -683,10 +684,39 @@ function handleArchiveFolder(folder) {
           ? `Se archivaron también ${result.archivedDocuments} documento(s).`
           : undefined,
       });
-      if (documentStore.activeFolderId === folder.id) handleSelectFolder('all');
+      exitFolderIfViewing(folder);
       await refreshView();
     },
   });
+}
+
+/**
+ * ¿La vista actual está parada en esta carpeta o en una descendiente?
+ *
+ * El check de identidad se quedaba corto: archivar un ancestro desde el
+ * sidebar dejaba al usuario dentro de una descendiente recién archivada,
+ * viendo un empty state falso en una carpeta fantasma.
+ */
+function isViewingFolderOrDescendant(folderId) {
+  const active = documentStore.activeFolderId;
+  if (typeof active !== 'number') return false;
+  return active === folderId || folderStore.descendantIdsOf(folderId).has(active);
+}
+
+/** Destino al retirarse de una carpeta que dejó de existir: su padre, o Todos. */
+function folderExitTarget(folder) {
+  return folder?.parent ?? 'all';
+}
+
+/**
+ * Retira la vista ANTES del refreshView del caller: la escritura directa no
+ * dispara fetch propio, así el refresco llega ya apuntando al destino y no
+ * parpadea un empty state falso de la carpeta que acaba de irse.
+ */
+function exitFolderIfViewing(folder) {
+  if (folder && isViewingFolderOrDescendant(folder.id)) {
+    documentStore.activeFolderId = folderExitTarget(folder);
+  }
 }
 
 function handleToggleTag(id) {
@@ -713,18 +743,14 @@ async function handleFolderArchived({ folder, documents } = {}) {
       ? `Se archivaron también ${documents} documento(s).`
       : undefined,
   });
-  if (documentStore.activeFolderId === folder?.id) {
-    handleSelectFolder('all');
-  }
+  exitFolderIfViewing(folder);
   await refreshView();
 }
 
 async function handleFolderDeleted(folder) {
   notify.success({ title: 'Carpeta eliminada' });
   // La carpeta borrada era el filtro activo: no queda vista que mostrar.
-  if (documentStore.activeFolderId === folder?.id) {
-    handleSelectFolder('all');
-  }
+  exitFolderIfViewing(folder);
   await refreshView();
 }
 

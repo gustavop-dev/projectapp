@@ -384,6 +384,86 @@ test.describe('Admin Document Archive', () => {
     await expect.poll(() => lastScopedRequest).toContain('scope=archived');
   });
 
+  test('the sidebar keeps Archivados lit while browsing inside the archive', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => (
+      baseRoutes({ apiPath, url: route.request().url() })
+    ));
+
+    await page.goto('/panel/documents');
+    const archivedEntry = page.getByTestId('folder-archived-entry');
+    await expect(archivedEntry).not.toHaveAttribute('aria-current', 'location');
+
+    await archivedEntry.click();
+    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+
+    // Entrar a una subcarpeta NO apaga la señal: el sidebar dice dónde se está
+    // a cualquier profundidad y el breadcrumb da la ruta exacta.
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+  });
+
+  test('archiving an ancestor folder while inside a child lands the view back at the top', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const childFolder = {
+      id: 6, name: 'Anexos activos', parent: 4, order: 0,
+      document_count: 0, children_count: 0,
+      active_document_count: 0, active_children_count: 0,
+      archived_document_count: 0, archived_children_count: 0,
+      is_archived: false,
+    };
+    let archived = false;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'document-folders/4/archive/' && method === 'PATCH') {
+        archived = true;
+        return json({
+          folder: { ...activeFolders[0], is_archived: true },
+          archived_folders: 1,
+          archived_documents: 3,
+        });
+      }
+      if (apiPath === 'document-folders/') {
+        const list = archived
+          ? [
+            { ...activeFolders[0], is_archived: true, archived_at: '2026-08-13T10:00:00Z', archived_cause: 'manual' },
+            { ...childFolder, is_archived: true, archived_at: '2026-08-13T10:00:00Z', archived_cause: 'folder' },
+            activeFolders[1],
+            ...archivedFolders,
+          ]
+          : [...activeFolders, childFolder, ...archivedFolders];
+        return json(list);
+      }
+      if (apiPath === 'documents/' && (url.includes('folder=4') || url.includes('folder=6'))) {
+        return json([]);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    // Meterse dos niveles: Contratos (sidebar) → Anexos activos (fila hija).
+    await page.getByRole('listitem').filter({ hasText: 'Contratos' })
+      .getByRole('button', { name: /^Contratos/ }).click();
+    await page.getByRole('row', { name: /Anexos activos/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Todos');
+
+    // Archivar el ANCESTRO desde el sidebar, parado en la descendiente.
+    await page.getByRole('listitem').filter({ hasText: 'Contratos' })
+      .getByTestId('folder-archive').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Carpeta archivada')).toBeVisible();
+    // Antes el check era de identidad y la vista quedaba parada en la
+    // descendiente fantasma, con un empty state falso bajo un breadcrumb vivo.
+    await expect(page.getByText('Esta carpeta está vacía')).toHaveCount(0);
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveCount(0);
+    await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
+    expect(archived).toBe(true);
+  });
+
   test('the sidebar counters recompute after archiving, with no reload', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
