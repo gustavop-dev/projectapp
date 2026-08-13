@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.34.0
+> **Version:** 2.35.0
 > **Last updated:** 2026-08-13
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -2850,6 +2850,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-kanban-card-comments` | platform | platform-admin/client | P3 | ✅ Covered | `e2e/platform/platform-kanban-comments.spec.js` |
 | `proposal-investment-calculator` | proposal | guest | P1 | ✅ Covered | `e2e/proposal/proposal-investment-calculator.spec.js` |
 | `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
+| `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
+| `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-schedule-followup-reminder` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
@@ -6426,3 +6428,40 @@ Also registered/updated in this audit and documented in their home sections:
 2. The batch bar shows the selection count and actions.
 3. Admin clicks "Eliminar" (or "Finalizar aceptados") and confirms in the modal.
 4. `POST /api/diagnostics/bulk-action/` fires; the list updates and a notification reports the affected count.
+
+---
+
+## Section 27 — Panel Projects Module / Plataforma (Aug 13, 2026)
+
+The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles the superuser-only Hostings entry and the breadcrumb resolver walks sections in order) opens `/panel/projects`, the commercial face of `accounts.Project` — the entity hostings, incomes and cuentas de cobro already reference. Projects archive, they never delete (PA-29), the create form asks the PA-38 minimum, and every project selector now creates on the fly (PA-24/PA-25 mirror).
+
+### FLOW: `admin-panel-projects`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects`
+- **API:** `GET /api/projects/` (`?scope=active|archived|all`, invalid → 400), `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `PATCH /api/projects/<id>/archive/`, `PATCH /api/projects/<id>/unarchive/`, `GET /api/proposals/client-profiles/?without_projects=true`
+- **Description:** Listing of every project with client (UserProfile terms), status badge, created date and per-project hosting/income counts, loaded once with `scope=all` and filtered client-side: accent/case-blind search over project and client, a BaseSegmented Activos/Archivados/Todos, sortable columns, PAGE_SIZE 15. Stat cards count active/archived plus **clients without any project**; that card opens a panel listing each uncovered client with a Crear proyecto CTA that seeds the modal. Create = name + required client (ClientAutocomplete with inline client creation); description/status optional; a same-name project for the same client raises a non-blocking warning strip. Edit keeps the client immutable (backend answers 400 `client_immutable`) and archived rows out of circulation (400 `project_archived`); archive asks confirmation explaining records stay linked; restore returns to Activos. For superusers the counts link into the accounting tabs pre-filtered (`?project=<id>`; incomes pins `accounting_incomeTab=all`).
+- **Steps:** open module → search/sort/switch scope → create from CTA or from the uncovered-clients panel → edit → archive/restore → jump into hostings/incomes by count.
+- **Branches:** duplicate name warns and still saves; backend 400 keeps the modal open with the message; zero counts render as plain text; non-superusers see plain counts (no links).
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-panel-projects.spec.js`
+
+### FLOW: `admin-project-fly-create`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`, `/panel/accounting/collections` (transitively, via the stacked income modal)
+- **API:** `GET /api/accounting/projects/?client=<profile>`, `POST /api/projects/create/`
+- **Description:** `ProjectSelect` is a combobox over the client's already-fetched projects (local filtering — a client has a handful, not a catalog) that mirrors the client selector so both are learned once. With no matches it offers "Crear proyecto «term»" (Enter included) opening an inline panel embedded in the component itself — ONE reusable selector, not a per-modal solution: hosting and income modals gained the flow without changes, and the cuenta de cobro inherits it through its stacked income modal. The panel pre-fills the typed name, shows the inherited client, warns without blocking on a same-name collision, stays open on a 400 with the backend message, and on success auto-selects the new project, appending it to the per-client picker cache (`projectsByClient`, `all` bucket dropped). Cancelling the outer form leaves the project standing — a record of its own, immediately visible in `/panel/projects`. The module store invalidates the whole picker cache after any create/update/archive/restore so renamed or archived projects never linger in forms.
+- **Steps:** open hosting/income modal → pick client → type a project that does not exist → create it inline → the id travels in the outer form's payload.
+- **Branches:** 400 keeps the inline panel open; cancelling the outer form afterwards preserves the project; re-opening the picker lists it without refetching.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-fly-create.spec.js`
+
+### Section 27 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
+| `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
