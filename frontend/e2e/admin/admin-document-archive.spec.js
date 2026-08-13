@@ -391,6 +391,9 @@ test.describe('Admin Document Archive', () => {
       baseRoutes({ apiPath, url: route.request().url() })
     ));
 
+    // quality: allow-deep-link (Archivados no es una ruta propia sino un
+    // scope de /panel/documents; el camino real —clicks en la entrada del
+    // sidebar y la fila de carpeta— se recorre justo debajo.)
     await page.goto('/panel/documents');
     const archivedEntry = page.getByTestId('folder-archived-entry');
     await expect(archivedEntry).not.toHaveAttribute('aria-current', 'location');

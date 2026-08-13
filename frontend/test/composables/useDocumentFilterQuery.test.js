@@ -79,6 +79,14 @@ describe('useDocumentFilterQuery', () => {
     await nextTick()
 
     expect(mockReplace).not.toHaveBeenCalled()
+
+    // Fuera de la búsqueda el mismo eje SÍ se escribe: la pausa era de la
+    // búsqueda, no una pérdida del watcher.
+    isSearching.value = false
+    store.archiveScope = 'archived'
+    await nextTick()
+
+    expect(mockReplace).toHaveBeenCalledWith({ query: { scope: 'archived' } })
   })
 
   it('validateFolder falls back to all when the folder no longer exists', () => {
