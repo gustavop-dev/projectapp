@@ -15,6 +15,8 @@
  * @property {boolean} [matchExact] - Only exact path match (e.g. dashboard)
  * @property {boolean} [external] - Use <a> instead of NuxtLink
  * @property {boolean} [openInNewTab]
+ * @property {boolean} [superuserOnly] - Hide this single item from non-superusers
+ *   (for a link into a superuser-gated page inside an otherwise open section)
  */
 
 export function getPanelNavSections(localePath, { includeSuperuserOnly = true } = {}) {
@@ -99,6 +101,25 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       ],
     },
     {
+      // After `accounting` on purpose: the Hostings entry below points at
+      // the accounting page, and the breadcrumb resolver walks sections in
+      // order — hostings must keep resolving under Contabilidad.
+      id: 'platform',
+      label: 'Plataforma',
+      items: [
+        { label: 'Proyectos', href: lp('/panel/projects'), icon: 'folder' },
+        // The same accounting view, doubled here deliberately: hostings are
+        // also part of the delivered product. Item-level gate because the
+        // target page is superuser-only while Proyectos is open to admins.
+        {
+          label: 'Hostings',
+          href: lp('/panel/accounting/hostings'),
+          icon: 'database',
+          superuserOnly: true,
+        },
+      ],
+    },
+    {
       id: 'integrations',
       label: 'Integraciones',
       superuserOnly: true,
@@ -137,5 +158,10 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
     },
   ]
   if (includeSuperuserOnly) return sections
-  return sections.filter((section) => !section.superuserOnly)
+  return sections
+    .filter((section) => !section.superuserOnly)
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.superuserOnly),
+    }))
 }
