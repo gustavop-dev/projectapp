@@ -1510,8 +1510,9 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   7. On success, selection is cleared and proposal list refreshes.
 - **Branches:**
   - [Branch A — Cancel] Admin clicks "Cancelar" → selection is cleared, action bar disappears.
+  - [Branch B — Selected proposal deleted] (Ago 2026) La selección la posee `useRowSelection` y se reconcilia contra las propuestas cargadas: eliminar desde el menú de una fila seleccionada la descuenta de la barra —y sólo a ella— y la barra se va sola al quedar vacía. Antes era un `Set` en memoria que nadie revalidaba, el mismo defecto que tenía la barra de contabilidad.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-proposal-list.spec.js`
+- **E2E Spec:** `e2e/admin/admin-proposal-batch-actions.spec.js`
 
 ### FLOW: `admin-proposal-actions-modal`
 
@@ -5880,7 +5881,9 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Selection already on the target] "Asignar cliente" is disabled with "Todo lo seleccionado ya tiene a {cliente}."
   - [Nothing linked] "Desvincular cliente" is not rendered at all.
   - [Cancelled confirmation] No request fires and the selection survives untouched.
-- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing)
+  - [Selected record deleted] (Ago 2026) La selección se reconcilia contra lo que existe de verdad: el id borrado se descarta solo —**sólo ése**, así que de tres seleccionados y uno eliminado quedan dos— el contador y el aviso "· N fuera del filtro actual" se recalculan sobre filas reales, y la barra se oculta sola cuando ya no queda nada que asignar, sin recargar ni pulsar Cancelar. Aplica a cualquier acción que cambie el conjunto, porque la reconciliación cuelga de los datos (`useRowSelection`) y no del handler que los cambió.
+  - [Record deleted while the confirmation was open] `POST /api/accounting/incomes/bulk-assign-client/` responde **409 `records_not_found`** nombrando `missing_ids` y **no escribe nada** — una edición masiva se confirma contra un alcance nombrado, así que corre entera o no corre. El panel descarta esos ids de la selección y recarga la lista.
+- **Coverage:** ✅ Covered (client column + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows, totals modal breakdown, grouped landing mode dictated by the backend setting, session-only toggle back to classic writing nothing, la selección depurándose tras un borrado —clásica, agrupada y tras "Seleccionar los N filtrados"— y el 409 reconciliando)
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-income-crud`
@@ -5913,7 +5916,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch G] Settlement allocation: whatever is moved out of the expected record (deductions + follow-up incomes) is subtracted from its total, so it closes with no orphan balance. Anything left unallocated simply stays pending, exactly as before — the modal says so instead of leaving it silent. Over-allocating past the shortfall disables the submit, and the backend rejects it too with a Spanish 400.
   - [Branch H] A settlement deduction is an `ExpenseRecord` flagged with `deduction_type` and linked to its origin via `source_income` (migration `content/0173` backfilled the link from the `income:<pk>:settlement` stamp and re-grossed the parents earlier settlements had netted): it books no pocket movement (the money never entered the pocket), keeps the expected income **gross** and counts as **payment credit** toward it — liquid children + linked deductions add up to the parent's total, so a fee-settled income still reads Pagado. Under the gross convention it **reduces expected utility** like any expense, while liquid utility subtracts only operational spending (the liquid total already arrives net of every fee — subtracting deductions there would double-count). It shows in the Gastos tab with a "Descuento de ingreso" pill whose tooltip names the origin income, filters by "Tipo de deducción" (shared catalog with the liquidation modal) or "Naturaleza", totalizes in the "Deducciones (año)" KPI with a per-type breakdown and in Operativo/Deducciones chips over the filtered rows, exports with "Tipo de deducción" + "Ingreso origen" columns, and is reported apart as `deductions_total` on the accounting dashboard. Deductions are created from Liquidar only: manual writes can neither set nor clear `deduction_type`, and editing one hides the pocket toggle behind a hint.
   - [Branch J] Duplicating (Aug 2026) always produces an **expected** record, whatever the original was — reopening the next period of an already collected hosting is the case it exists for — and never carries what belonged to the original occurrence: settlement links, cuenta de cobro, deductions, history and silenced reminders all stay behind, so the duplicate enters the payment calendar clean. The proposed date is the original's plus one hosting cycle, resolved server-side by matching the client (narrowed by project) among active hostings when the origin is Hosting; an ambiguous or absent match leaves the field empty and its `required` blocks the save until a date is chosen. A failing draft raises "No se pudo preparar el duplicado" and opens no form.
-- **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection.
+  - [Branch K] (Ago 2026) Una mutación **refresca en sitio**. Al eliminar, la fila deja su grupo de inmediato y el contador del grupo, el conteo de resultados y los totales de la cabecera (Total esperado / líquido / perdido) se recalculan solos, porque derivan del set filtrado. Dos cosas que hacían que eso *pareciera* una recarga se corrigieron con el mismo cambio, y valen para las seis vistas de contabilidad: las tablas pintan skeleton **sólo cuando todavía no hay nada en pantalla**, no encima de datos ya visibles, y la paginación vuelve a la página 1 cuando cambian los **filtros**, no cada vez que se reconstruyen las filas — borrar una fila desde la página 3 ya no deja al lector en la 1.
+- **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-filters`
@@ -6054,7 +6058,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Selection already on the target] "Asignar cliente" is disabled with "Todo lo seleccionado ya tiene a {cliente}."
   - [Nothing linked] "Desvincular cliente" is not rendered at all.
   - [Cancelled confirmation] No request fires and the selection survives untouched.
-- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows; the form picker and the suggestion are covered by unit tests)
+  - [Selected record deleted] (Ago 2026) Misma reconciliación que ingresos, desde el mismo composable: borrar un hosting seleccionado descarta ese id y sólo ése, la barra se va sola al quedar vacía la selección, y una asignación masiva que nombre un hosting inexistente se rechaza con **409 `records_not_found`** en vez de escribir la mitad sobreviviente del lote.
+- **Coverage:** ✅ Covered (pending pill + Sin cliente tab, bulk assignment confirming the scope before the payload, the disabled-assign guard, the unlink action sending only the linked rows, la selección depurándose tras un borrado; the form picker and the suggestion are covered by unit tests)
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
 ### FLOW: `admin-accounting-hosting-billing`
@@ -6416,11 +6421,11 @@ Also registered/updated in this audit and documented in their home sections:
 | **Module** | admin |
 | **Role** | admin |
 | **Priority** | P2 |
-| **Status** | ❌ Missing — no E2E spec yet |
+| **Status** | ✅ Covered — `e2e/admin/admin-diagnostic-bulk-actions.spec.js` |
 
 **Routes:** `/panel/diagnostics/`
 
-**Description:** Admin selects diagnostics with the row/header checkboxes; a batch bar appears with "Finalizar aceptados" and "Eliminar" (confirm modal) calling `POST /api/diagnostics/bulk-action/` with `{ids, action}`. Delete prunes the rows locally; finish reloads the list. Results are notified via usePanelNotify. Backend covered by `content/tests/views/test_diagnostic_views_gaps.py::TestBulkDiagnosticAction`.
+**Description:** Admin selects diagnostics with the row/header checkboxes; a batch bar appears with "Finalizar aceptados" and "Eliminar" (confirm modal) calling `POST /api/diagnostics/bulk-action/` with `{ids, action}`. Delete prunes the rows locally; finish reloads the list. Results are notified via usePanelNotify. Backend covered by `content/tests/views/test_diagnostic_views_gaps.py::TestBulkDiagnosticAction`. (Ago 2026) La selección la posee `useRowSelection` y se reconcilia contra los diagnósticos cargados, así que eliminar una fila seleccionada desde su menú la descuenta de la barra en vez de dejar dentro un registro que ya no existe — el mismo defecto que tenía la barra de contabilidad.
 
 **Steps:**
 1. Admin checks one or more rows (or the header checkbox for the page).
