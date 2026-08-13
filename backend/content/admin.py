@@ -257,7 +257,10 @@ class DocumentAdmin(admin.ModelAdmin):
     )
     list_filter = ('status', 'language', 'cover_type', 'include_portada', 'include_subportada', 'include_contraportada')
     search_fields = ('title', 'client_name')
-    readonly_fields = ('uuid', 'created_at', 'updated_at')
+    readonly_fields = (
+        'uuid', 'created_at', 'updated_at',
+        'is_archived', 'archived_at', 'archived_via_folder',
+    )
     fieldsets = (
         ('Identity', {
             'fields': ('uuid', 'title', 'slug', 'client_name'),
@@ -271,10 +274,31 @@ class DocumentAdmin(admin.ModelAdmin):
         ('Portadas', {
             'fields': ('include_portada', 'include_subportada', 'include_contraportada'),
         }),
+        ('Archivado', {
+            # Visible pero intocable: el estado de archivado solo se mueve por
+            # document_archive_service; editarlo suelto recrea el estado que
+            # perdió un documento en producción (ERR-016).
+            'fields': ('is_archived', 'archived_at', 'archived_via_folder'),
+        }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),
         }),
     )
+
+
+class DocumentFolderAdmin(admin.ModelAdmin):
+    """
+    Folder admin with the archive state sealed read-only.
+
+    El registro pelado dejaba `is_archived` editable campo a campo, saltándose
+    la cascada del servicio — el vector que recrea filas activas bajo carpetas
+    archivadas. `parent` sigue editable a propósito (mover carpetas desde el
+    admin es legítimo); el comando audit_archive_integrity detecta el drift.
+    """
+    list_display = ('name', 'parent', 'order', 'is_archived', 'archived_at')
+    list_filter = ('is_archived',)
+    search_fields = ('name',)
+    readonly_fields = ('is_archived', 'archived_at', 'archived_via_folder')
 
 
 class ProjectAppAdminSite(admin.AdminSite):
@@ -409,7 +433,7 @@ admin_site.register(ProposalDocument)
 admin_site.register(ContractTemplate)
 admin_site.register(ConfidentialityTemplate)
 
-admin_site.register(DocumentFolder)
+admin_site.register(DocumentFolder, DocumentFolderAdmin)
 admin_site.register(DocumentItem)
 admin_site.register(DocumentCollectionAccount)
 admin_site.register(DocumentTag)

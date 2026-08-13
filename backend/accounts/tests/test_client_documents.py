@@ -72,6 +72,24 @@ def test_list_excludes_unpublished(api_client, client_user, client_headers, proj
     assert resp.json()['documents'] == []
 
 
+def test_list_excludes_archived_documents(api_client, client_user, client_headers, project):
+    # Decisión del operador (13-ago-2026): archivar en el panel retira el
+    # documento del portal del cliente — también cuando lo arrastra la
+    # cascada de una carpeta. Restaurarlo lo devuelve.
+    doc = _make_document(client_user, project, title='Archivado')
+    Document.objects.filter(pk=doc.pk).update(is_archived=True)
+    resp = api_client.get('/api/accounts/documents/', **client_headers)
+    assert resp.status_code == 200
+    assert resp.json()['documents'] == []
+
+
+def test_detail_of_archived_document_is_404(api_client, client_user, client_headers, project):
+    doc = _make_document(client_user, project, title='Archivado')
+    Document.objects.filter(pk=doc.pk).update(is_archived=True)
+    resp = api_client.get(f'/api/accounts/documents/{doc.uuid}/', **client_headers)
+    assert resp.status_code == 404
+
+
 def test_list_orders_signable_document_first(api_client, client_user, client_headers, project):
     _make_document(client_user, project, title='Annex A')
     _make_document(client_user, project, title='Contract', requires_signature=True)
