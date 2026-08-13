@@ -162,3 +162,182 @@ class TestListPanelProjects:
         assert meta['total'] == 1
         assert meta['active'] == 1
         assert meta['archived'] == 0
+
+
+CREATE_URL = '/api/projects/create/'
+
+
+class TestCreatePanelProject:
+    def test_the_minimal_payload_creates_an_active_project(self, admin_client):
+        owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 201, response.data
+        assert response.data['name'] == 'Vastago'
+        assert response.data['status'] == Project.STATUS_ACTIVE
+        assert response.data['description'] == ''
+        assert response.data['hostings_count'] == 0
+        assert response.data['incomes_count'] == 0
+        assert response.data['client']['profile_id'] == owner.pk
+        project = Project.objects.get(pk=response.data['id'])
+        assert project.client_id == owner.user_id
+
+    def test_name_is_required(self, admin_client):
+        owner = make_client('deivis@example.com')
+
+        response = admin_client.post(CREATE_URL, {
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 400
+        assert 'name' in response.data
+
+    def test_the_client_is_required(self, admin_client):
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+        }, format='json')
+
+        assert response.status_code == 400
+        assert 'client_profile_id' in response.data
+
+    def test_a_non_client_profile_is_rejected(self, admin_client):
+        admin_profile = make_client('otroadmin@example.com')
+        admin_profile.role = 'admin'
+        admin_profile.save(update_fields=['role'])
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': admin_profile.pk,
+        }, format='json')
+
+        assert response.status_code == 400
+        assert 'client_profile_id' in response.data
+
+    def test_a_duplicate_name_for_the_same_client_still_creates(
+        self, admin_client,
+    ):
+        # The duplicate warning is client-side and never blocks: two rows
+        # with the same name are a signal, not an error.
+        owner = make_client('deivis@example.com')
+        make_project(owner, 'Vastago')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 201
+        assert Project.objects.filter(name='Vastago').count() == 2
+
+    def test_a_project_cannot_be_born_archived(self, admin_client):
+        owner = make_client('deivis@example.com')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+            'status': Project.STATUS_ARCHIVED,
+        }, format='json')
+
+        assert response.status_code == 400
+        assert 'status' in response.data
+
+
+class TestUpdatePanelProject:
+    def test_name_description_and_status_can_change(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {
+                'name': 'Vástago App',
+                'description': 'App de gestión',
+                'status': Project.STATUS_PAUSED,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        project.refresh_from_db()
+        assert project.name == 'Vástago App'
+        assert project.description == 'App de gestión'
+        assert project.status == Project.STATUS_PAUSED
+
+    def test_the_client_is_immutable_from_the_panel(self, admin_client):
+        owner = make_client('deivis@example.com')
+        other = make_client('wilson@example.com', first='Wilson')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'client_profile_id': other.pk},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'client_immutable'
+        project.refresh_from_db()
+        assert project.client_id == owner.user_id
+
+    def test_an_archived_project_is_out_of_circulation(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Viejo', status=Project.STATUS_ARCHIVED)
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'name': 'Renombrado'},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'project_archived'
+
+    def test_update_cannot_jump_to_archived(self, admin_client):
+        # The dedicated archive endpoint owns that transition.
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'status': Project.STATUS_ARCHIVED},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'status' in response.data
+
+
+class TestArchivePanelProject:
+    def test_archive_then_unarchive_roundtrip(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        archived = admin_client.patch(f'/api/projects/{project.pk}/archive/')
+        assert archived.status_code == 200
+        assert archived.data['status'] == Project.STATUS_ARCHIVED
+
+        restored = admin_client.patch(f'/api/projects/{project.pk}/unarchive/')
+        assert restored.status_code == 200
+        assert restored.data['status'] == Project.STATUS_ACTIVE
+
+    def test_archiving_twice_answers_400(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Viejo', status=Project.STATUS_ARCHIVED)
+
+        response = admin_client.patch(f'/api/projects/{project.pk}/archive/')
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'already_archived'
+
+    def test_unarchiving_a_non_archived_project_answers_400(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(f'/api/projects/{project.pk}/unarchive/')
+
+        assert response.status_code == 400
+        assert response.data['error'] == 'not_archived'
