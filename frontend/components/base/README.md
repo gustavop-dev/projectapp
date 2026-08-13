@@ -129,7 +129,8 @@ prefer the bare class without `/N`.
 | `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`/`full`), `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled` — label via default slot                             |
-| `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size` — wrap any control in the default slot |
+| `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
+| `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`sm`/`md`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
 | `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId? }` or strings), `size` (`sm`/`md`), `fullWidth` — segmented control / pill tabs |
 | `BaseTabs`      | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth` — desktop tab bar with mobile `<select>` fallback |
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
@@ -139,6 +140,41 @@ prefer the bare class without `/N`.
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
+
+### Form rows
+
+Two fields side by side go in a `BaseFormRow`, never in a hand-written
+`<div class="grid grid-cols-2 gap-3">`:
+
+```vue
+<BaseFormRow :cols="2" :gap="3">
+  <BaseFormField label="NIT (opcional)">…</BaseFormField>
+  <BaseFormField label="Código de facturación (opcional)">…</BaseFormField>
+</BaseFormRow>
+```
+
+In a plain grid each column stacks on its own, so the taller label decides where
+*its* control starts and the row comes out crooked — reliably, as soon as one
+label wraps and the other does not. The row instead owns three shared bands
+(label / control / hint) that every field inherits through a subgrid, so each
+band is as tall as the tallest cell and the controls line up. It also keeps the
+next row square when only one of the two fields carries a hint.
+
+Widening the container is not a fix: it only postpones the problem until the
+next long label, a different language, or a narrower screen.
+
+Notes:
+
+- Below the breakpoint the fields stack in a single column, with no bands and
+  no leftover reserved space.
+- More fields than columns is fine — they wrap and each line aligns on its own.
+- The fields must be **direct** children. A child that is not a field and should
+  sit alongside them needs the bands too: `class="sm:row-span-3"` (plus
+  `sm:col-span-2` to span the full width).
+- A `BaseFormField` nested inside another component still renders correctly, it
+  just does not align; pass `standalone` on it to say so explicitly.
+
+Live demo: `/panel/styleguide`, section 4.
 
 ### Modals that hold a workspace, not a form
 
