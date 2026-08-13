@@ -620,7 +620,7 @@ async function handleUnarchiveFolder(folder) {
   } else {
     notify.error({
       title: 'No se pudo restaurar la carpeta',
-      detail: result.errors?.detail,
+      detail: result.message,
     });
   }
 }
@@ -636,7 +636,7 @@ function handleArchiveFolder(folder) {
     onConfirm: async () => {
       const result = await folderStore.archiveFolder(folder.id);
       if (!result.success) {
-        notify.error({ title: 'No se pudo archivar la carpeta' });
+        notify.error({ title: 'No se pudo archivar la carpeta', detail: result.message });
         return;
       }
       notify.success({

@@ -160,6 +160,16 @@ describe('useDocumentStore', () => {
       expect(store.activeTagIds).toEqual([1, 3])
       expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=1%2C3')
     })
+
+    it('keeps the archived scope when toggling a tag', async () => {
+      // Togglear una etiqueta dentro de Archivados no debe devolver al usuario
+      // a la vista de activos: el scope viaja explícito en el refetch.
+      store.archiveScope = 'archived'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.toggleTagFilter(8)
+      expect(store.activeTagIds).toEqual([8])
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&tags=8')
+    })
   })
 
   describe('fetchDocument', () => {

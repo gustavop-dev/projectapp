@@ -37,7 +37,6 @@ export const useDocumentStore = defineStore('documents', {
     // Estado, eje independiente de la carpeta: 'active' | 'archived' | 'all'
     archiveScope: DEFAULT_SCOPE,
     archivedOrder: 'recent',
-    searchQuery: '',
     activeTagIds: [],
   }),
 
@@ -237,7 +236,9 @@ export const useDocumentStore = defineStore('documents', {
       const idx = this.activeTagIds.indexOf(tagId);
       if (idx === -1) this.activeTagIds.push(tagId);
       else this.activeTagIds.splice(idx, 1);
-      return this.fetchDocuments();
+      // El scope viaja explícito, como en setFilters: fetchDocuments no lo
+      // hereda del store, y omitirlo aquí sacaba al usuario de Archivados.
+      return this.fetchDocuments({ scope: this.archiveScope });
     },
 
     /**
