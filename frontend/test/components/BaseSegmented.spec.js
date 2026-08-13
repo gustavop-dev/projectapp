@@ -50,6 +50,36 @@ describe('BaseSegmented', () => {
     )
   })
 
+  it('locks a single option without touching the others', async () => {
+    const wrapper = mount(BaseSegmented, {
+      props: {
+        modelValue: 'json',
+        options: [{ ...opts[0], disabled: true }, opts[1]],
+      },
+    })
+    const [editor, json] = wrapper.findAll('button')
+
+    expect(editor.attributes('disabled')).toBeDefined()
+    expect(editor.classes()).toContain('cursor-not-allowed')
+    await editor.trigger('click')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+    expect(json.attributes('disabled')).toBeUndefined()
+    await json.trigger('click')
+    expect(wrapper.emitted('update:modelValue')[0]).toEqual(['json'])
+  })
+
+  it('still disables every option when the control itself is disabled', async () => {
+    const wrapper = mount(BaseSegmented, {
+      props: { modelValue: 'editor', options: opts, disabled: true },
+    })
+    const buttons = wrapper.findAll('button')
+    expect(buttons[0].attributes('disabled')).toBeDefined()
+    expect(buttons[1].attributes('disabled')).toBeDefined()
+    await buttons[1].trigger('click')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
   it('accepts string options too', () => {
     const wrapper = mount(BaseSegmented, { props: { modelValue: 'a', options: ['a', 'b', 'c'] } })
     const buttons = wrapper.findAll('button')

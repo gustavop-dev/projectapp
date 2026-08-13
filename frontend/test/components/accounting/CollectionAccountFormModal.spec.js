@@ -182,10 +182,16 @@ function mountModal(props = {}) {
             '<textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseSegmented: {
-          props: ['modelValue', 'options', 'fullWidth', 'size'],
+          props: ['modelValue', 'options', 'fullWidth', 'size', 'disabled'],
           emits: ['update:modelValue'],
+          // Mirrors the real control's per-option lock and selected state: the
+          // income filters rely on both.
           template:
-            '<div><button v-for="o in options" :key="o.value" type="button" :data-testid="o.testId" @click="$emit(\'update:modelValue\', o.value)">{{ o.label }}</button></div>',
+            '<div><button v-for="o in options" :key="o.value" type="button"'
+            + ' :data-testid="o.testId" :disabled="disabled || o.disabled"'
+            + ' :aria-selected="String(modelValue === o.value)"'
+            + ' @click="!(disabled || o.disabled) && $emit(\'update:modelValue\', o.value)">'
+            + '{{ o.label }}</button></div>',
         },
         BaseButton: {
           props: ['variant', 'size', 'disabled', 'type', 'iconOnly'],
@@ -322,44 +328,186 @@ describe('CollectionAccountFormModal', () => {
       expect(lastIncomeUrl()).not.toContain('client=');
     });
 
-    it('narrows to the chosen client plus the unassigned incomes', async () => {
+    it('scopes to the chosen client without asking the server again', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
       const wrapper = mountModal();
       await flushPromises();
 
       await selectClient(wrapper);
+      await openOptions(wrapper);
 
-      expect(lastIncomeUrl()).toContain('client=5%2Cnone');
+      // The request is the same whoever is billed: the alcance is decided here,
+      // which is what makes the chip counts exact and the switch instant.
+      expect(lastIncomeUrl()).not.toContain('client=');
+      expect(incomeUrls()).toHaveLength(1);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-13"]').exists())
+        .toBe(false);
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(false);
     });
 
-    it('reloads the options when the client changes', async () => {
+    it('re-aims the list at the new client without a second request', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
       const wrapper = mountModal();
       await flushPromises();
 
       await selectClient(wrapper);
       await selectClient(wrapper, otherClientFixture);
+      await openOptions(wrapper);
 
-      const urls = incomeUrls();
-      expect(urls).toHaveLength(3);
-      expect(urls[1]).toContain('client=5%2Cnone');
-      expect(urls[2]).toContain('client=7%2Cnone');
+      expect(incomeUrls()).toHaveLength(1);
+      expect(wrapper.find('[data-testid="collection-form-income-group-own"]').text())
+        .toContain('De Torrios SAS (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-option-13"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(false);
     });
 
-    it("splits the list into the client's own incomes and the unassigned ones", async () => {
+    it('counts each alcance option and widens to the unassigned ones', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').text())
+        .toContain('Del cliente (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-scope-all"]').text())
+        .toContain('Todos (3)');
+
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      const orphanGroup = wrapper.find(
+        '[data-testid="collection-form-income-group-orphan"]',
+      );
+      expect(orphanGroup.text()).toContain('Sin cliente (1)');
+      expect(orphanGroup.text()).toContain('Al elegirlo se asigna a Acme Soluciones');
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(true);
+      // The other client's row names its owner: that is the fact that decides
+      // whether it can be billed here at all.
+      expect(wrapper.find('[data-testid="collection-form-income-group-others"]').text())
+        .toContain('De otros clientes (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-client-13"]').text())
+        .toBe('Torrios SAS');
+    });
+
+    it('counts each estado option and filters without a request', async () => {
+      mockIncomes([ownIncome, { ...ownIncome, id: 14, kind: 'liquid', kind_label: 'Líquido' }]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]').text())
+        .toContain('Todos (2)');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-expected"]').text())
+        .toContain('Esperados (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-liquid"]').text())
+        .toContain('Líquidos (1)');
+
+      await wrapper.find('[data-testid="collection-form-income-kind-liquid"]').trigger('click');
+
+      expect(wrapper.find('[data-testid="collection-form-income-option-14"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(false);
+      expect(incomeUrls()).toHaveLength(1);
+    });
+
+    it('leaves the list open when a filter is applied', async () => {
       mockIncomes([ownIncome, orphanIncome]);
       const wrapper = mountModal();
       await flushPromises();
       await selectClient(wrapper);
       await openOptions(wrapper);
 
-      expect(wrapper.find('[data-testid="collection-form-income-group-own"]').text())
-        .toContain('De Acme Soluciones (1)');
-      const orphanGroup = wrapper.find(
-        '[data-testid="collection-form-income-group-orphan"]',
-      );
-      expect(orphanGroup.text()).toContain('Sin cliente asignado (1)');
-      expect(orphanGroup.text()).toContain('Al elegirlo se asigna a Acme Soluciones');
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income"]').attributes('aria-expanded'))
+        .toBe('true');
+    });
+
+    it('says which combination came back empty and offers to widen it', async () => {
+      mockIncomes([
+        { ...ownIncome, kind: 'liquid', kind_label: 'Líquido' },
+        orphanIncome,
+      ]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
+
+      const empty = wrapper.find('[data-testid="collection-form-income-empty"]');
+      expect(empty.text()).toContain('Acme Soluciones no tiene ingresos esperados.');
+      expect(wrapper.findAll('[data-testid^="collection-form-income-option-"]'))
+        .toHaveLength(0);
+
+      // The orphan expected income is one click away instead of unreachable.
+      const seeAll = wrapper.find('[data-testid="collection-form-income-see-all"]');
+      expect(seeAll.text()).toContain('Ver todos (1)');
+      await seeAll.trigger('mousedown');
+
       expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
         .toBe(true);
+    });
+
+    it('resets alcance and estado when the client changes', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
+
+      await selectClient(wrapper, otherClientFixture);
+      await openOptions(wrapper);
+
+      // Back to the defaults: no recorte of the previous client survives.
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').attributes('aria-selected'))
+        .toBe('true');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]').attributes('aria-selected'))
+        .toBe('true');
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(false);
+    });
+
+    it("locks 'Del cliente' until a client is chosen", async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').attributes('disabled'))
+        .toBeDefined();
+      expect(wrapper.find('[data-testid="collection-form-income-scope-all"]').attributes('aria-selected'))
+        .toBe('true');
+      // Nothing is scoped away yet, so the whole eligible ledger is on offer.
+      expect(wrapper.findAll('[data-testid^="collection-form-income-option-"]'))
+        .toHaveLength(3);
+    });
+
+    it('announces that an unassigned income will be adopted on issue', async () => {
+      mockIncomes([orphanIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      await wrapper.find('[data-testid="collection-form-income-option-12"]').trigger('mousedown');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="collection-form-income-orphan-notice"]').text())
+        .toContain('al emitir quedará asignado a Acme Soluciones');
     });
 
     it('lists past the old eight-row cap and says how many are left out', async () => {
@@ -377,7 +525,7 @@ describe('CollectionAccountFormModal', () => {
       expect(
         wrapper.findAll('[data-testid^="collection-form-income-option-"]'),
       ).toHaveLength(25);
-      expect(wrapper.find('[data-testid="collection-form-income-more-all"]').text())
+      expect(wrapper.find('[data-testid="collection-form-income-more-orphan"]').text())
         .toContain('Mostrando 25 de 30');
     });
 
