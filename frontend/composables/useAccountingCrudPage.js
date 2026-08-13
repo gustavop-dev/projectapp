@@ -191,14 +191,26 @@ export function useAccountingCrudPage({
     return result;
   }
 
+  /**
+   * Title for a successful save. A seeded create is a duplicate, and saying
+   * so is what tells it apart from a manual one in the notification history —
+   * pages that define no `duplicated` copy keep the plain created wording.
+   */
+  function saveSuccessTitle(editing, seeded) {
+    if (editing) return labels.updated;
+    return (seeded && labels.duplicated) || labels.created;
+  }
+
   async function handleSubmit(payload) {
     const editing = editingRecord.value;
+    // Read before the mutation: closeModal() clears the seed on success.
+    const seeded = !editing && !!seedRecord.value;
     const result = await runMutation(
       () => (editing
         ? store.updateRecord(entity, editing.id, payload)
         : store.createRecord(entity, payload)),
       {
-        successTitle: editing ? labels.updated : labels.created,
+        successTitle: saveSuccessTitle(editing, seeded),
         errorTitle: saveErrorTitle(editing),
         flashId: editing?.id,
       },

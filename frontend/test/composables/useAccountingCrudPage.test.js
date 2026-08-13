@@ -122,6 +122,65 @@ describe('useAccountingCrudPage — seeded (duplicate) form', () => {
     expect(page.seedRecord.value).toBeNull();
     expect(page.editingRecord.value).toMatchObject({ id: 4 });
   });
+
+  describe('success copy', () => {
+    const notify = usePanelNotify();
+
+    beforeEach(() => notify.clearAll());
+    afterEach(() => notify.clearAll());
+
+    function pageWithDuplicatedCopy(store) {
+      return useAccountingCrudPage({
+        entity: 'incomes',
+        store,
+        labels: { ...labels, duplicated: 'Ingreso duplicado' },
+        filteredRecords: computed(() => []),
+      });
+    }
+
+    it('announces a seeded create as a duplicate, not as a plain create', async () => {
+      const store = {
+        createRecord: jest.fn().mockResolvedValue({ success: true, data: { id: 11 } }),
+      };
+      const page = pageWithDuplicatedCopy(store);
+
+      page.openSeededModal({ concept: 'Kore - Hosting anual' });
+      await page.handleSubmit({ concept: 'Kore - Hosting anual' });
+
+      expect(notify.notifications.value[0]).toMatchObject({
+        type: 'success',
+        title: 'Ingreso duplicado',
+      });
+    });
+
+    it('keeps the created wording for a create that was not seeded', async () => {
+      const store = {
+        createRecord: jest.fn().mockResolvedValue({ success: true, data: { id: 12 } }),
+      };
+      const page = pageWithDuplicatedCopy(store);
+
+      page.openCreateModal();
+      await page.handleSubmit({ concept: 'Nuevo' });
+
+      expect(notify.notifications.value[0]).toMatchObject({
+        title: 'Registro creado',
+      });
+    });
+
+    it('falls back to the created wording when the page defines no duplicate copy', async () => {
+      const store = {
+        createRecord: jest.fn().mockResolvedValue({ success: true, data: { id: 13 } }),
+      };
+      const page = makePage(store);
+
+      page.openSeededModal({ concept: 'Kore - Hosting anual' });
+      await page.handleSubmit({ concept: 'Kore - Hosting anual' });
+
+      expect(notify.notifications.value[0]).toMatchObject({
+        title: 'Registro creado',
+      });
+    });
+  });
 });
 
 describe('useAccountingCrudPage — runMutation success copy', () => {

@@ -13,12 +13,25 @@ Two rules carry the intent of the action:
   its cuenta de cobro, its deductions, its silenced calendar and its history
   all stay behind. Most of that is free (they are reverse relations, or fields
   the write serializer cannot set), so the draft simply omits them.
+
+The date is the one field that cannot simply be copied, and it is the reason
+duplicating opens the form instead of writing the row. When the hosting cycle
+can be resolved the draft proposes it; otherwise the date comes back empty and
+``cycle_options`` gives the form the candidate dates to fill it with in one
+click. Neither path ever guesses silently — a wrong date already filled in is
+worse than an empty one the operator is forced to complete.
 """
 from content.models import HostingRecord, IncomeRecord
 from content.serializers.accounting import money_str
 from content.utils import add_months
 
 HOSTING_CYCLE = 'hosting_cycle'
+
+# Cadences the form offers so the next period is one click away when the
+# hosting lookup below cannot resolve one on its own — which is the normal
+# case, not the exception: the book is written as free-text concepts, so most
+# incomes carry no ``origin`` and no client for it to work from.
+CYCLE_OPTION_MONTHS = (1, 3, 6, 12)
 
 
 def resolve_hosting_cycle_months(income):
@@ -56,6 +69,27 @@ def next_period_date(income):
     return add_months(income.period_date, months)
 
 
+def build_cycle_options(income):
+    """One candidate next date per offered cadence, counted from the original.
+
+    The dates are computed here rather than in the panel for two reasons: the
+    frontend carries no date library — every date advance in this module is
+    server-side by design — and ``add_months`` clamps the day, so a charge on
+    the 31st lands on the last day of a shorter month instead of overflowing.
+
+    Offering the dates is deliberately not the same as proposing one. The
+    operator is who knows the cadence, so nothing is filled in behind their
+    back: this only spares them from computing the date by hand.
+    """
+    return [
+        {
+            'months': months,
+            'date': add_months(income.period_date, months).isoformat(),
+        }
+        for months in CYCLE_OPTION_MONTHS
+    ]
+
+
 def build_income_duplicate_draft(income):
     """Return the prefill for a new income copied from ``income``."""
     from accounts.services.proposal_client_service import (
@@ -71,6 +105,10 @@ def build_income_duplicate_draft(income):
         'destination': IncomeRecord.Destination.PARTNERS,
         'period_date': period_date.isoformat() if period_date else None,
         'period_date_source': HOSTING_CYCLE if period_date else None,
+        # Always offered, including when the hosting cycle already proposed a
+        # date: the operator may well disagree with it, and these count from
+        # the original's date, never from the proposal.
+        'cycle_options': build_cycle_options(income),
         'ledger': income.ledger,
         'client': income.client_id,
         # Same shape as the list rows: the form shows this as the label of the

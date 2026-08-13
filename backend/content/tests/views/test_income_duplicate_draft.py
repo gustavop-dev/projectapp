@@ -288,3 +288,65 @@ class TestProposedDate:
         response = super_client.get(url(income))
 
         assert response.data['period_date'] is None
+
+
+class TestCycleOptions:
+    """The candidate dates the form offers so the next period is one click.
+
+    They matter most exactly where the hosting lookup gives up, which is the
+    normal case: an income with no origin and no client resolves to nothing.
+    """
+
+    def test_offers_the_four_cadences_counted_from_the_original(
+        self, super_client, make_income,
+    ):
+        income = make_income(period_date=date(2026, 3, 15))
+
+        response = super_client.get(url(income))
+
+        assert response.data['cycle_options'] == [
+            {'months': 1, 'date': '2026-04-15'},
+            {'months': 3, 'date': '2026-06-15'},
+            {'months': 6, 'date': '2026-09-15'},
+            {'months': 12, 'date': '2027-03-15'},
+        ]
+
+    def test_the_options_are_offered_when_no_date_could_be_proposed(
+        self, super_client, make_income,
+    ):
+        """An income with no origin and no client: the everyday case."""
+        income = make_income(period_date=date(2026, 3, 1))
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_date'] is None
+        assert [o['date'] for o in response.data['cycle_options']] == [
+            '2026-04-01', '2026-06-01', '2026-09-01', '2027-03-01',
+        ]
+
+    def test_the_day_is_clamped_in_the_options_too(self, super_client, make_income):
+        """Jan 31 + one month is Feb 28 here as well, not March 3."""
+        income = make_income(period_date=date(2026, 1, 31))
+
+        response = super_client.get(url(income))
+
+        assert response.data['cycle_options'][0] == {
+            'months': 1, 'date': '2026-02-28',
+        }
+
+    def test_the_options_count_from_the_original_not_from_the_proposal(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """A quarterly hosting proposes June; +1 month is still April."""
+        profile = make_client_profile()
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.QUARTERLY)
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 3, 1),
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_date'] == '2026-06-01'
+        assert response.data['cycle_options'][0]['date'] == '2026-04-01'

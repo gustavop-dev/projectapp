@@ -188,19 +188,11 @@
         @toggle-group="toggleGroup"
       >
         <template #cell-row_actions="{ row }">
-          <div class="flex items-center justify-end">
-            <BaseButton
-              variant="ghost"
-              icon-only
-              size="sm"
-              aria-label="Acciones"
-              title="Acciones"
-              :data-testid="`income-actions-${row.id}`"
-              @click.stop="openActions(row)"
-            >
-              <EllipsisVerticalIcon class="w-5 h-5" />
-            </BaseButton>
-          </div>
+          <IncomeRowActionsButton
+            :row="row"
+            :busy="duplicatingId === row.id"
+            @open="openActions"
+          />
         </template>
         <template #cell-kind_label="{ row }">
           <span
@@ -236,19 +228,11 @@
           @sort="toggleSort"
         >
           <template #cell-row_actions="{ row }">
-            <div class="flex items-center justify-end">
-              <BaseButton
-                variant="ghost"
-                icon-only
-                size="sm"
-                aria-label="Acciones"
-                title="Acciones"
-                :data-testid="`income-actions-${row.id}`"
-                @click.stop="openActions(row)"
-              >
-                <EllipsisVerticalIcon class="w-5 h-5" />
-              </BaseButton>
-            </div>
+            <IncomeRowActionsButton
+              :row="row"
+              :busy="duplicatingId === row.id"
+              @open="openActions"
+            />
           </template>
           <template #cell-kind_label="{ row }">
             <span
@@ -401,11 +385,9 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, nextTick, onMounted, ref } from 'vue';
-import {
-  EllipsisVerticalIcon,
-  PlusIcon,
-} from '@heroicons/vue/24/outline';
+import { PlusIcon } from '@heroicons/vue/24/outline';
 import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
+import IncomeRowActionsButton from '~/components/accounting/IncomeRowActionsButton.vue';
 import IncomeDetailModal from '~/components/accounting/IncomeDetailModal.vue';
 import IncomeMuteModal from '~/components/accounting/IncomeMuteModal.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
@@ -776,6 +758,7 @@ const {
   labels: {
     entityName: 'ingreso',
     created: 'Ingreso creado',
+    duplicated: 'Ingreso duplicado',
     updated: 'Ingreso actualizado',
     deleted: 'Ingreso eliminado',
     saveErrorTitle: 'No se pudo guardar',
@@ -1052,6 +1035,9 @@ function openIncomeDetail(row) {
   detailOpen.value = true;
 }
 
+/** Row whose duplicate prefill is being fetched, so its kebab can say so. */
+const duplicatingId = ref(null);
+
 /**
  * Open the next period of a recurring income: the server builds the prefill
  * (always expected, with the hosting cycle's date when it can work it out)
@@ -1059,7 +1045,17 @@ function openIncomeDetail(row) {
  * point — the date almost always needs a look first.
  */
 async function duplicateIncome(row) {
-  const result = await store.fetchIncomeDuplicateDraft(row.id);
+  // One at a time. The action menu closes on click, so nothing on screen
+  // would otherwise say the first request is still running, and a second
+  // click would race a second draft into the same form.
+  if (duplicatingId.value) return;
+  duplicatingId.value = row.id;
+  let result;
+  try {
+    result = await store.fetchIncomeDuplicateDraft(row.id);
+  } finally {
+    duplicatingId.value = null;
+  }
   if (!result.success) {
     notify.error({
       title: 'No se pudo preparar el duplicado',

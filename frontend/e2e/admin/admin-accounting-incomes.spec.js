@@ -149,6 +149,14 @@ function buildHandler({
           kind: 'expected',
           period_date: '2027-02-01',
           period_date_source: 'hosting_cycle',
+          // Counted from the original's 2026-02-01, so the operator can
+          // override the proposal without working the date out by hand.
+          cycle_options: [
+            { months: 1, date: '2026-03-01' },
+            { months: 3, date: '2026-05-01' },
+            { months: 6, date: '2026-08-01' },
+            { months: 12, date: '2027-02-01' },
+          ],
           destination: 'partners',
           ledger: source.ledger,
           client: source.client,
@@ -407,13 +415,39 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await page.getByTestId('income-form-submit').click();
 
-    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    // Named as a duplicate, so it reads apart from a manual alta in the
+    // notification history.
+    await expect(page.getByText('Ingreso duplicado')).toBeVisible();
     const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
     expect(created.method).toBe('POST');
     expect(created.body.concept).toBe('Kore - Hosting anual');
     // Born pending whatever the original was — the point of the action.
     expect(created.body.kind).toBe('expected');
     expect(created.body.period_date).toBe('2027-02-01');
+  });
+
+  test('a cadence shortcut overrides the proposed date before saving', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+    await expect(page.getByTestId('income-form-period')).toHaveValue('2027-02-01');
+
+    // The proposal is annual; this charge is really quarterly.
+    await page.getByTestId('income-form-cycle-3').click();
+
+    await expect(page.getByTestId('income-form-period')).toHaveValue('2026-05-01');
+    // Picking a date the hosting cycle did not produce retires its hint.
+    await expect(page.getByTestId('income-form-period-hint')).toHaveCount(0);
+
+    await page.getByTestId('income-form-submit').click();
+
+    const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
+    expect(created.body.period_date).toBe('2026-05-01');
   });
 
   test('duplicating from the detail modal opens the same seeded form', {

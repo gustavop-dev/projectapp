@@ -262,6 +262,75 @@ describe('IncomeFormModal', () => {
       .toBe(false);
   });
 
+  // Counted from an original dated 2026-07-01. The server computes them so
+  // the day is clamped once, in one place.
+  const CYCLE_OPTIONS = [
+    { months: 1, date: '2026-08-01' },
+    { months: 3, date: '2026-10-01' },
+    { months: 6, date: '2027-01-01' },
+    { months: 12, date: '2027-07-01' },
+  ];
+
+  function seedWithCycles(overrides = {}) {
+    return {
+      ...DUPLICATE_SEED,
+      period_date: null,
+      period_date_source: null,
+      cycle_options: CYCLE_OPTIONS,
+      ...overrides,
+    };
+  }
+
+  it('offers the cadence shortcuts and fills the date from the chosen one', async () => {
+    const wrapper = mountModal({ seed: seedWithCycles() });
+
+    const shortcuts = wrapper.findAll('[data-testid^="income-form-cycle-"]');
+    expect(shortcuts.map((b) => b.text()))
+      .toEqual(['+1 mes', '+3 meses', '+6 meses', '+1 año']);
+
+    await wrapper.get('[data-testid="income-form-cycle-3"]').trigger('click');
+
+    expect(wrapper.find('[data-testid="income-form-period"]').element.value)
+      .toBe('2026-10-01');
+  });
+
+  it('marks the chosen cadence and moves the mark when another is picked', async () => {
+    const wrapper = mountModal({ seed: seedWithCycles() });
+    const pressed = () => wrapper
+      .findAll('[data-testid^="income-form-cycle-"]')
+      .map((b) => b.attributes('aria-pressed'));
+
+    expect(pressed()).toEqual(['false', 'false', 'false', 'false']);
+
+    await wrapper.get('[data-testid="income-form-cycle-1"]').trigger('click');
+    expect(pressed()).toEqual(['true', 'false', 'false', 'false']);
+
+    await wrapper.get('[data-testid="income-form-cycle-12"]').trigger('click');
+    expect(pressed()).toEqual(['false', 'false', 'false', 'true']);
+  });
+
+  it('writes the shortcut in month granularity when the day is not tracked', async () => {
+    const wrapper = mountModal({ seed: seedWithCycles() });
+
+    await wrapper.get('[data-testid="income-form-exact-date"]').trigger('click');
+    await wrapper.get('[data-testid="income-form-cycle-3"]').trigger('click');
+
+    const period = wrapper.find('[data-testid="income-form-period"]');
+    expect(period.attributes('type')).toBe('month');
+    expect(period.element.value).toBe('2026-10');
+  });
+
+  it('offers no shortcuts outside a duplicate', async () => {
+    const created = mountModal();
+    expect(created.find('[data-testid="income-form-cycles"]').exists()).toBe(false);
+
+    const edited = mountModal({
+      record: { ...EDIT_RECORD },
+      seed: seedWithCycles(),
+    });
+    expect(edited.find('[data-testid="income-form-cycles"]').exists()).toBe(false);
+  });
+
   it('says where a proposed date came from, and stops once it is changed', async () => {
     const wrapper = mountModal({ seed: { ...DUPLICATE_SEED } });
 
