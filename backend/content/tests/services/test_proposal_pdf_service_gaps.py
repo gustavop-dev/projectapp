@@ -14,12 +14,15 @@ from decimal import Decimal
 
 import pytest
 from django.utils import timezone
+from freezegun import freeze_time
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
 from content.models import BusinessProposal
 from content.services.proposal_pdf_service import (
     MARGIN_B,
+    MARGIN_T,
+    PAGE_H,
     _register_fonts,
     _render_context_diagnostic,
     _render_creative_support,
@@ -60,7 +63,13 @@ def proposal(db):
 
 class TestContextDiagnosticTier3:
     def test_tier3_linear_fallback_with_issues_and_opportunity(self, pdf_canvas, proposal):
-        """Very low y forces Tier 3 (no sidebar) with opp + issues."""
+        """Very low y forces Tier 3 (no sidebar) with opp + issues.
+
+        Catches a branch that no-ops on a populated opportunity/issues
+        payload and returns the untouched input y instead of drawing the
+        subtitle/paragraphs/badge panel — isinstance(y, (int, float)) would
+        pass either way, since y is a number regardless of whether it moved.
+        """
         data = {
             'index': '2', 'title': 'Contexto',
             'paragraphs': ['Análisis del cliente.'],
@@ -70,10 +79,14 @@ class TestContextDiagnosticTier3:
         # Very low y → avail (y - MARGIN_B) ≈ 60 < any partial_need
         y = _render_context_diagnostic(pdf_canvas, data, proposal, y=MARGIN_B + 60)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 60
 
     def test_tier3_linear_fallback_without_opportunity(self, pdf_canvas, proposal):
-        """Tier 3 path when opp is empty."""
+        """Tier 3 path when opp is empty.
+
+        Catches a branch that no-ops on the paragraphs/issues content and
+        returns the untouched input y instead of drawing them.
+        """
         data = {
             'index': '2', 'title': 'Contexto',
             'paragraphs': ['Analysis.'],
@@ -81,7 +94,7 @@ class TestContextDiagnosticTier3:
         }
         y = _render_context_diagnostic(pdf_canvas, data, proposal, y=MARGIN_B + 60)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 60
 
 
 # ===========================================================================
@@ -90,7 +103,11 @@ class TestContextDiagnosticTier3:
 
 class TestCreativeSupportTier3:
     def test_tier3_linear_fallback_with_includes_and_closing(self, pdf_canvas, proposal):
-        """Very low y forces Tier 3 (no sidebar) with includes + closing."""
+        """Very low y forces Tier 3 (no sidebar) with includes + closing.
+
+        Catches a branch that no-ops on the paragraphs/includes/closing
+        content and returns the untouched input y instead of drawing them.
+        """
         data = {
             'index': '5', 'title': 'Acompañamiento Creativo',
             'paragraphs': ['Guidance.'],
@@ -99,10 +116,14 @@ class TestCreativeSupportTier3:
         }
         y = _render_creative_support(pdf_canvas, data, proposal, y=MARGIN_B + 60)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 60
 
     def test_tier3_linear_fallback_without_closing(self, pdf_canvas, proposal):
-        """Tier 3 path when closing is empty."""
+        """Tier 3 path when closing is empty.
+
+        Catches a branch that no-ops on the paragraphs/includes content and
+        returns the untouched input y instead of drawing them.
+        """
         data = {
             'index': '5', 'title': 'Support',
             'paragraphs': ['Support text.'],
@@ -110,7 +131,7 @@ class TestCreativeSupportTier3:
         }
         y = _render_creative_support(pdf_canvas, data, proposal, y=MARGIN_B + 60)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 60
 
 
 # ===========================================================================
@@ -119,6 +140,12 @@ class TestCreativeSupportTier3:
 
 class TestTimelineTruncation:
     def test_very_long_total_duration_gets_truncated(self, pdf_canvas, proposal):
+        """A very long duration value forces the KPI badge to truncate it.
+
+        Catches a branch that no-ops on a non-empty totalDuration/introText
+        and returns the untouched default y instead of drawing the intro
+        paragraph and the KPI tile row.
+        """
         from content.services.proposal_pdf_service import _render_timeline
 
         # A very long string that exceeds the badge inner width (~176 pts)
@@ -132,10 +159,14 @@ class TestTimelineTruncation:
 
         y = _render_timeline(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
     def test_long_label_in_timeline_triggers_label_truncation(self, pdf_canvas, proposal):
-        """Label truncation is triggered when value_w <= inner_w but label_w > inner_w."""
+        """Label truncation is triggered when value_w <= inner_w but label_w > inner_w.
+
+        Catches a branch that no-ops on a non-empty totalDuration and returns
+        the untouched default y instead of drawing the KPI tile row.
+        """
         from content.services.proposal_pdf_service import _render_timeline
 
         # Regular short value, but override inner_w indirectly by using a tiny badge
@@ -152,7 +183,7 @@ class TestTimelineTruncation:
 
         y = _render_timeline(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
 
 # ===========================================================================
@@ -161,7 +192,11 @@ class TestTimelineTruncation:
 
 class TestInvestmentLinearLayout:
     def test_linear_layout_with_payment_options_and_items(self, pdf_canvas, proposal):
-        """Low y forces linear (no two-column) layout."""
+        """Low y forces linear (no two-column) layout.
+
+        Catches a branch that no-ops on the payment options/included items
+        and returns the untouched input y instead of drawing them.
+        """
         from content.services.proposal_pdf_service import _render_investment
 
         data = {
@@ -180,10 +215,14 @@ class TestInvestmentLinearLayout:
 
         y = _render_investment(pdf_canvas, data, proposal, y=MARGIN_B + 100)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 100
 
     def test_linear_layout_without_payment_options(self, pdf_canvas, proposal):
-        """Linear layout with no payment options and no includes."""
+        """Linear layout with no payment options and no includes.
+
+        Catches a branch that no-ops on the (empty-options) investment total
+        row and returns the untouched input y instead of drawing it.
+        """
         from content.services.proposal_pdf_service import _render_investment
 
         data = {
@@ -199,7 +238,7 @@ class TestInvestmentLinearLayout:
 
         y = _render_investment(pdf_canvas, data, proposal, y=MARGIN_B + 100)
 
-        assert isinstance(y, (int, float))
+        assert y < MARGIN_B + 100
 
 
 # ===========================================================================
@@ -208,6 +247,9 @@ class TestInvestmentLinearLayout:
 
 class TestInvestmentHostingRenewal:
     def test_hosting_with_renewal_text_renders(self, pdf_canvas, proposal):
+        """Catches a branch that no-ops on the hostingPlan renewal text and
+        returns the untouched default y instead of drawing the hosting tile.
+        """
         from content.services.proposal_pdf_service import _render_investment
 
         data = {
@@ -230,7 +272,7 @@ class TestInvestmentHostingRenewal:
 
         y = _render_investment(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
 
 # ===========================================================================
@@ -239,6 +281,9 @@ class TestInvestmentHostingRenewal:
 
 class TestFinalNoteCompleteBranches:
     def test_final_note_with_all_fields(self, pdf_canvas, proposal):
+        """Catches a branch that no-ops on the message/team/commitment-badge
+        content and returns the untouched default y instead of drawing it.
+        """
         from content.services.proposal_pdf_service import _render_final_note
 
         data = {
@@ -258,9 +303,12 @@ class TestFinalNoteCompleteBranches:
 
         y = _render_final_note(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
     def test_final_note_with_no_optional_fields(self, pdf_canvas, proposal):
+        """Even with every optional field absent, the section header alone
+        must still advance y — catches a header-less no-op regression.
+        """
         from content.services.proposal_pdf_service import _render_final_note
 
         data = {
@@ -269,7 +317,7 @@ class TestFinalNoteCompleteBranches:
 
         y = _render_final_note(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
 
 # ===========================================================================
@@ -278,6 +326,9 @@ class TestFinalNoteCompleteBranches:
 
 class TestNextStepsCompleteBranches:
     def test_next_steps_with_intro_and_descriptions(self, pdf_canvas, proposal):
+        """Catches a branch that no-ops on the intro/steps/contact-methods
+        content and returns the untouched default y instead of drawing it.
+        """
         from content.services.proposal_pdf_service import _render_next_steps
 
         data = {
@@ -296,9 +347,12 @@ class TestNextStepsCompleteBranches:
 
         y = _render_next_steps(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
     def test_next_steps_without_intro(self, pdf_canvas, proposal):
+        """Catches a branch that no-ops on the steps content and returns the
+        untouched default y instead of drawing the step list.
+        """
         from content.services.proposal_pdf_service import _render_next_steps
 
         data = {
@@ -308,7 +362,7 @@ class TestNextStepsCompleteBranches:
 
         y = _render_next_steps(pdf_canvas, data, proposal)
 
-        assert isinstance(y, (int, float))
+        assert y < PAGE_H - MARGIN_T
 
 
 # ===========================================================================
@@ -400,6 +454,7 @@ class TestInvestmentTaxLabels:
         # Both KPI tiles (total + hosting) carry the bare suffix as sub.
         assert sum(1 for r in recorded if r.strip() == '+ IVA') >= 2
 
+    @freeze_time('2026-03-01 12:00:00')
     def test_usd_labels_use_tax(self, pdf_canvas, monkeypatch, db):
         usd_proposal = BusinessProposal.objects.create(
             title='USD Proposal', client_name='USD Client',

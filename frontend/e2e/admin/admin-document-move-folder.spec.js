@@ -94,6 +94,37 @@ test.describe('Admin Document Move Folder', () => {
     expect(patchBody.folder_id).toBe(FOLDER_DEV.id);
   });
 
+  test('a failed move keeps the modal open and shows an error message', {
+    // Bug this catches: a move failure that still closes the modal, leaving
+    // the admin unaware the document was not actually relocated.
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/' && method === 'GET') return jsonOk([DOC]);
+      if (apiPath === 'document-folders/') return jsonOk([FOLDER_DISENO, FOLDER_DEV]);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath === `documents/${DOC.id}/update/` && method === 'PATCH') {
+        return { status: 500, contentType: 'application/json', body: JSON.stringify({ error: 'Internal error' }) };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
+
+    await page.getByRole('row', { name: /Brief de Proyecto/i }).locator('button[title="Acciones"]').click();
+    await page.getByRole('button', { name: 'Mover a carpeta' }).click();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await expect(modal).toBeVisible();
+
+    await modal.getByRole('button', { name: 'Dev' }).click();
+
+    await expect(modal.getByText('No se pudo mover el documento.')).toBeVisible({ timeout: 10000 });
+    // The modal STAYS visible — the failure never closed it.
+    await expect(modal).toBeVisible();
+  });
+
   test('"Sin carpeta" PATCHes documents/{id}/update/ with folder_id null', {
     tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

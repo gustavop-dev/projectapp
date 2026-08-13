@@ -126,6 +126,45 @@ test.describe('Admin Task — Alertas section', () => {
     await expect(page.getByText('Llamar al cliente')).toBeVisible();
   });
 
+  test('a failed add-alert keeps the typed values and does not optimistically add', {
+    // Bug this catches: an add-alert failure that still clears the form
+    // (making the admin think it was silently dropped) or optimistically
+    // shows the alert as added when the backend never persisted it.
+    tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const base = await baseHandler([])({ apiPath, method, route });
+      if (base) return base;
+
+      if (apiPath === `tasks/${TASK_ID}/alerts/create/` && method === 'POST') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ notify_at: ['La fecha debe ser futura.'] }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/tasks');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.getByText('Revisar propuesta cliente').click();
+    await expect(page.getByTestId('task-form-modal')).toBeVisible({ timeout: 10_000 });
+
+    await page.getByTestId('new-alert-date').fill('2026-06-01');
+    await page.locator('input[placeholder*="Revisar avance"]').fill('Llamar al cliente');
+    await page.getByRole('button', { name: '+ Agregar' }).first().click();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'No se pudo crear el recordatorio' });
+    await expect(toast).toBeVisible({ timeout: 10_000 });
+    // No optimistic add — the list still shows the empty state.
+    await expect(page.getByText('No hay alertas definidas.')).toBeVisible();
+    // The typed values remain in the form — nothing was silently cleared.
+    await expect(page.getByTestId('new-alert-date')).toHaveValue('2026-06-01');
+    await expect(page.locator('input[placeholder*="Revisar avance"]')).toHaveValue('Llamar al cliente');
+  });
+
   test('deleting an alert calls DELETE and removes it from the list', {
     tag: [...ADMIN_TASK_ALERT_MANAGEMENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

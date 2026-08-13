@@ -109,6 +109,58 @@ test.describe('Admin Proposal Reopen From Expired', () => {
     await expect(statusSelect).toHaveValue('viewed', { timeout: 10000 });
   });
 
+  test('a rejected JSON update fails without reopening the status client-side', {
+    // Bug this catches: an apply-JSON failure that still flips the status
+    // select to reopened client-side, even though nothing was persisted.
+    tag: [...ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/detail/`) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockExpiredProposal) };
+      }
+      if (apiPath === `proposals/${PROPOSAL_ID}/update-from-json/` && method === 'PUT') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ client_email: ['Correo inválido.'] }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto(`/panel/proposals/${PROPOSAL_ID}/edit`);
+
+    const statusSelect = page.getByLabel('Cambiar estado de la propuesta');
+    await expect(statusSelect).toHaveValue('expired', { timeout: 10000 });
+
+    await page.getByRole('tab', { name: 'JSON' }).click();
+
+    const textarea = page.getByTestId('proposal-import-json-textarea');
+    await textarea.fill(importJson);
+    await textarea.dispatchEvent('input');
+
+    const applyBtn = page.getByRole('button', { name: 'Aplicar JSON' });
+    await expect(applyBtn).toBeVisible({ timeout: 5000 });
+    await applyBtn.click();
+
+    await expect(page.getByRole('heading', { name: 'Aplicar JSON' })).toBeVisible({ timeout: 5000 });
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes(`proposals/${PROPOSAL_ID}/update-from-json/`)),
+      page.getByTestId('confirm-modal-confirm').click(),
+    ]);
+    await response.finished();
+
+    const toast = page.getByRole('alert').filter({ hasText: 'Error al aplicar el JSON.' });
+    await expect(toast).toBeVisible({ timeout: 5000 });
+
+    // The defining outcome: the status select stays 'expired' — no client-side reopen.
+    await expect(statusSelect).toHaveValue('expired');
+  });
+
   test('General tab date change PATCHes /update/ and reopens the status', {
     tag: [...ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED, '@role:admin'],
   }, async ({ page }) => {

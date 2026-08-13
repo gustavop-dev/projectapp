@@ -129,6 +129,30 @@ test.describe('Platform Hosting Card Setup (3DS)', () => {
     await expect(page.getByText('Cobro automático activado')).toBeVisible();
   });
 
+  test('DECLINED start response shows the bank-rejection message and allows retry', {
+    // Bug this catches: a DECLINED/ERROR response from the single-POST start
+    // call being mis-routed into the PENDING/3DS-polling branch, which would
+    // then hang on a fake 3DS iframe instead of showing the decline.
+    tag: [...PLATFORM_HOSTING_CARD_SETUP, '@role:platform-client', '@outcome:error'],
+  }, async ({ page }) => {
+    await setupCardMocks(page, {
+      startResponse: { status: 'DECLINED', payment_source_id: PAYMENT_SOURCE_ID },
+    });
+
+    await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: /hosting/i }).first().waitFor({ state: 'visible', timeout: 30000 });
+
+    await openCardFormAndFill(page);
+    await page.getByRole('button', { name: 'Guardar tarjeta' }).click();
+
+    await expect(page.getByText('No se pudo registrar la tarjeta')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText('Tu banco rechazó la tarjeta. Verifica los datos o usa otra tarjeta.')).toBeVisible();
+
+    // "Intentar de nuevo" returns to the form step, not a stuck 3DS iframe.
+    await page.getByRole('button', { name: 'Intentar de nuevo' }).click();
+    await expect(page.getByRole('heading', { name: 'Registrar tarjeta' })).toBeVisible();
+  });
+
   test('PENDING path shows the 3DS challenge iframe, then completes on AVAILABLE', {
     tag: [...PLATFORM_HOSTING_CARD_SETUP, '@role:platform-client'],
   }, async ({ page }) => {

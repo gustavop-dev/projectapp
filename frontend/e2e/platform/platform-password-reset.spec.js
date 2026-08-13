@@ -34,7 +34,7 @@ test.describe('Platform password recovery', () => {
 
   test(
     'happy path — login link to forgot, code accepted, new password accepted, redirect to platform',
-    { tag: [...PLATFORM_PASSWORD_RESET] },
+    { tag: [...PLATFORM_PASSWORD_RESET, '@outcome:success'] },
     async ({ page }) => {
       await mockApi(page, async ({ apiPath, method }) => {
         if (method === 'POST' && apiPath === 'accounts/password-reset/request/') {
@@ -95,6 +95,14 @@ test.describe('Platform password recovery', () => {
       await page.waitForURL(/\/platform(\?|$|\/(?!forgot|verify|reset))/, {
         waitUntil: 'domcontentloaded',
       });
+
+      // Bug this catches: a broken confirmPasswordReset that navigates to
+      // /platform WITHOUT actually applying the session (e.g.
+      // applyAuthenticatedSession never called) — the URL alone can't catch
+      // that, only the persisted session token can.
+      expect(
+        await page.evaluate(() => localStorage.getItem('platform_access_token')),
+      ).toBe('mock-access');
     },
   );
 

@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.33.0
-> **Last updated:** 2026-07-22
+> **Version:** 2.34.0
+> **Last updated:** 2026-08-13
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -520,6 +520,22 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered (hand-off only)
 - **E2E Spec:** `e2e/auth/auth-admin-login.spec.js`
 - **E2E scope / abstention:** The E2E asserts only the SPA hand-off (the page renders and links to `/admin/` with the correct href). Steps 3–5 (credential entry, session auth, redirect) are **Django-native** — there is no SPA credential form to drive — so they are a declared abstention, marked `quality: allow-no-interaction` in the spec.
+
+### FLOW: `admin-panel-session-expired`
+
+- **Module:** auth
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** Any `/panel/*` route except `/panel/login` (guarded by `middleware/admin-auth.js`, registered on all 45 panel pages, e.g. `/panel/`, `/panel/proposals`)
+- **Description:** A browser without a valid staff session requests a protected `/panel/*` route — either it never authenticated, or a previously valid session expired/was invalidated server-side.
+- **Steps:**
+  1. User (or a browser with a stale/expired cookie) navigates to a `/panel/*` route other than `/panel/login`.
+  2. The `admin-auth` Nuxt middleware calls `GET /api/auth/check/` (`checkAdminAuth` action in `stores/proposals.js`).
+  3. Backend `check_admin_auth` returns 401 (no authenticated user) or 403 (authenticated but not staff) instead of the user payload.
+  4. Middleware hard-redirects the browser (`window.location.href`, a full page navigation, not `navigateTo`/SPA routing) to `/admin/login/?next=<originally requested path>` and aborts the SPA navigation (`abortNavigation()`).
+  5. [Branch] Signing in again on the Django login form returns the user to the originally requested `/panel/*` page via `next`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/auth/auth-admin-login.spec.js` (describe "Admin Panel Session Guard": mocks `GET /api/auth/check/` → 401 and asserts the hard redirect to `/admin/login/?next=/en-us/panel/proposals`)
 
 ### FLOW: `admin-impersonate-user`
 
@@ -2677,6 +2693,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `proposal-share` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-share.spec.js` |
 | `proposal-engagement-tracking` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-engagement-tracking.spec.js` |
 | `admin-login` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
+| `admin-panel-session-expired` | auth | admin | P1 | ✅ Covered | `e2e/auth/auth-admin-login.spec.js` |
 | `admin-impersonate-user` | admin | admin | P2 | ⚠️ Pending | _suggested:_ `e2e/admin/admin-impersonate-user.spec.js` |
 | `admin-dashboard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
 | `admin-dashboard-finance-gate` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-dashboard.spec.js` |
@@ -5883,6 +5900,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   7. "Liquidar" on an expected row opens a modal prefilled with the pending amount; the destination defaults to Bolsillo ProjectApp (Socios is the explicit choice) and the payment period asks for the exact date by default, prefilled with today (the "Registrar el día exacto de pago" toggle downgrades the input to month-only when only the month is known). Submitting POSTs `/api/accounting/incomes/:id/settle/`, which registers a liquid record with `expected_income` set. The expected row is kept, so the projection and partial payments both survive.
   8. If the amount received is below the pending balance, the modal reveals "Saldo por resolver" with a live remaining counter and two collapsible, repeatable groups (a fixed hint under the pending block announces the mechanism at open, and the deductions group auto-expands once per open the moment the shortfall appears — an untouched auto-added row neither blocks the submit nor reaches the payload, so leaving the balance pending stays one click). "No es un cobro pendiente, es un gasto" books the shortfall as an expense with its concept (Comisión plataforma de pago / Comisión bancaria / Retención en la fuente / Otro, the last one requiring free text). "Sí lo voy a cobrar: crear ingreso esperado" reschedules it as one or more new expected incomes inheriting the parent's ledger, destination and partner ratio. Both can be combined in one settlement. Since Aug 2026 the amount received may be 0 as long as the shortfall is fully allocated: a residual-only settlement that creates no liquid record and sends no payment email — the rescue path for old partial collections whose fee-sized residual would otherwise stay "Parcial" forever (also scriptable via the `resolve_income_residual` management command).
   9. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
+  10. "Duplicar" — offered on every row whatever its state, and in the income detail modal — GETs `/api/accounting/incomes/:id/duplicate-draft/` and opens the form seeded with the original's concept, amounts, split, ledger, client, project, origin and notes. It writes nothing: confirming goes through the ordinary create POST, with the usual "Ingreso creado" toast and row flash.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
@@ -5893,6 +5911,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch I] Three builtin tabs ship with the view: "Solo esperados" (`kind=expected` + `paymentStatus=pending`, the landing tab), "Hosting esperados" (the same plus the search term `hosting`, which seeds the search box) and "Perdidos". Being builtin they never drift: editing a filter under them stays local instead of rewriting the tab, which is why the landing tab is not a seeded saved one (migration `accounts/0043` retired the saved "Solo esperados"). `?accounting_incomeTab=all` is the way to open the full list, and picking any non-default tab writes its id into that query param, so a reload keeps the chosen view.
   - [Branch G] Settlement allocation: whatever is moved out of the expected record (deductions + follow-up incomes) is subtracted from its total, so it closes with no orphan balance. Anything left unallocated simply stays pending, exactly as before — the modal says so instead of leaving it silent. Over-allocating past the shortfall disables the submit, and the backend rejects it too with a Spanish 400.
   - [Branch H] A settlement deduction is an `ExpenseRecord` flagged with `deduction_type` and linked to its origin via `source_income` (migration `content/0173` backfilled the link from the `income:<pk>:settlement` stamp and re-grossed the parents earlier settlements had netted): it books no pocket movement (the money never entered the pocket), keeps the expected income **gross** and counts as **payment credit** toward it — liquid children + linked deductions add up to the parent's total, so a fee-settled income still reads Pagado. Under the gross convention it **reduces expected utility** like any expense, while liquid utility subtracts only operational spending (the liquid total already arrives net of every fee — subtracting deductions there would double-count). It shows in the Gastos tab with a "Descuento de ingreso" pill whose tooltip names the origin income, filters by "Tipo de deducción" (shared catalog with the liquidation modal) or "Naturaleza", totalizes in the "Deducciones (año)" KPI with a per-type breakdown and in Operativo/Deducciones chips over the filtered rows, exports with "Tipo de deducción" + "Ingreso origen" columns, and is reported apart as `deductions_total` on the accounting dashboard. Deductions are created from Liquidar only: manual writes can neither set nor clear `deduction_type`, and editing one hides the pocket toggle behind a hint.
+  - [Branch J] Duplicating (Aug 2026) always produces an **expected** record, whatever the original was — reopening the next period of an already collected hosting is the case it exists for — and never carries what belonged to the original occurrence: settlement links, cuenta de cobro, deductions, history and silenced reminders all stay behind, so the duplicate enters the payment calendar clean. The proposed date is the original's plus one hosting cycle, resolved server-side by matching the client (narrowed by project) among active hostings when the origin is Hosting; an ambiguous or absent match leaves the field empty and its `required` blocks the save until a date is chosen. A failing draft raises "No se pudo preparar el duplicado" and opens no form.
 - **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
 

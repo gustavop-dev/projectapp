@@ -116,4 +116,39 @@ test.describe('Admin Diagnostic Create', () => {
     await expect(() => expect(createCalled).toBe(true)).toPass({ timeout: 5000 });
     await expect(page).toHaveURL(/\/panel\/diagnostics\/42\/edit/, { timeout: 15000 });
   });
+
+  test('creation failure shows the error and stays on the create page', {
+    // Bug this catches: a create failure that still navigates to a
+    // non-existent diagnostic's edit page.
+    tag: [...ADMIN_DIAGNOSTIC_CREATE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authOk;
+      if (apiPath.includes('client-profiles/search')) {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockClientResult]) };
+      }
+      if (apiPath === 'diagnostics/create/' && method === 'POST') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'El cliente ya tiene un diagnóstico activo.' }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/diagnostics/create');
+    await expect(page.getByRole('heading', { name: /nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
+
+    await page.getByPlaceholder(/buscar/i).fill('Acme');
+    await page.getByText('Acme Corp').first().click();
+
+    const submitBtn = page.getByRole('button', { name: /crear diagnóstico/i });
+    await expect(submitBtn).toBeEnabled();
+    await submitBtn.click();
+
+    await expect(page.getByText('El cliente ya tiene un diagnóstico activo.')).toBeVisible({ timeout: 10000 });
+    // Stays on create — no redirect to a diagnostic that was never created.
+    await expect(page).toHaveURL(/\/panel\/diagnostics\/create$/);
+  });
 });

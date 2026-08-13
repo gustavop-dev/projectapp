@@ -33,6 +33,7 @@ export const PROPOSAL_DOWNLOAD_PDF = ['@flow:proposal-download-pdf', '@module:pr
 
 // ── Auth ──
 export const ADMIN_LOGIN = ['@flow:admin-login', '@module:auth', '@priority:P1'];
+export const ADMIN_PANEL_SESSION_EXPIRED = ['@flow:admin-panel-session-expired', '@module:auth', '@priority:P1'];
 
 // ── Admin ──
 export const ADMIN_IMPERSONATE_USER = ['@flow:admin-impersonate-user', '@module:admin', '@priority:P2'];
@@ -279,6 +280,7 @@ export const PROPOSAL_ONBOARDING_MOBILE_SWIPE = ['@flow:proposal-onboarding-mobi
 
 // ── Documents — Move Folder ──
 export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];
+export const ADMIN_DOCUMENT_DRAG_ORGANIZE = ['@flow:admin-document-drag-organize', '@module:admin', '@priority:P3'];
 
 // ── v2.21.0 — Task Alerts + Diagnostic lifecycle gaps ──
 export const ADMIN_TASK_ALERT_MANAGEMENT = ['@flow:admin-task-alert-management', '@module:admin', '@priority:P1'];

@@ -90,6 +90,46 @@ test.describe('Admin Proposal Create', () => {
     expect(capturedPayload.client_email).toBe('carlos@test.com');
   });
 
+  test('a rejected submit shows the field error and keeps the admin on the create page', {
+    // Bug this catches: an invalid payload that still navigates the admin
+    // away from create, losing the entered form data.
+    tag: [...ADMIN_PROPOSAL_CREATE, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'proposals/create/') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ client_email: ['Ingresa un correo válido.'] }),
+        };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/proposals/create');
+    await expect(page.getByRole('heading', { name: 'Nueva Propuesta' })).toBeVisible({ timeout: 15000 });
+    await page.getByRole('button', { name: 'Manual' }).click();
+
+    // Fill required fields — deliberately NOT total_investment, so "Crear y
+    // Enviar" stays hidden and only the plain submit button is present.
+    await page.getByLabel('Título').fill('Propuesta Rechazada');
+    await page.getByLabel('Nombre').fill('Cliente Rechazado');
+    await page.getByLabel('Email').fill('cliente@test.com');
+
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url().includes('proposals/create/')),
+      page.getByRole('button', { name: /Crear Propuesta/i }).click(),
+    ]);
+    await response.finished();
+
+    await expect(page.getByText('client_email: Ingresa un correo válido.')).toBeVisible({ timeout: 10000 });
+    // Stays on create — no redirect to an edit page that doesn't exist.
+    await expect(page).toHaveURL(/\/panel\/proposals\/create$/);
+  });
+
   test('switching from Manual to JSON import tab hides manual form and shows textarea', {
     tag: [...ADMIN_PROPOSAL_CREATE, '@role:admin'],
   }, async ({ page }) => {
