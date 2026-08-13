@@ -486,8 +486,8 @@ describe('CollectionAccountFormModal', () => {
       await flushPromises();
       await openOptions(wrapper);
 
-      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').attributes('disabled'))
-        .toBeDefined();
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').element.disabled)
+        .toBe(true);
       expect(wrapper.find('[data-testid="collection-form-income-scope-all"]').attributes('aria-selected'))
         .toBe('true');
       // Nothing is scoped away yet, so the whole eligible ledger is on offer.

@@ -59,12 +59,13 @@ describe('BaseSegmented', () => {
     })
     const [editor, json] = wrapper.findAll('button')
 
-    expect(editor.attributes('disabled')).toBeDefined()
+    expect(editor.element.disabled).toBe(true)
     expect(editor.classes()).toContain('cursor-not-allowed')
     await editor.trigger('click')
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
 
-    expect(json.attributes('disabled')).toBeUndefined()
+    // The rest of the control stays live — that is the whole point of the flag.
+    expect(json.element.disabled).toBe(false)
     await json.trigger('click')
     expect(wrapper.emitted('update:modelValue')[0]).toEqual(['json'])
   })
@@ -74,8 +75,7 @@ describe('BaseSegmented', () => {
       props: { modelValue: 'editor', options: opts, disabled: true },
     })
     const buttons = wrapper.findAll('button')
-    expect(buttons[0].attributes('disabled')).toBeDefined()
-    expect(buttons[1].attributes('disabled')).toBeDefined()
+    expect(buttons.map((b) => b.element.disabled)).toEqual([true, true])
     await buttons[1].trigger('click')
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
