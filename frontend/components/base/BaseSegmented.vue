@@ -7,7 +7,7 @@ const props = defineProps({
   options: {
     type: Array,
     required: true,
-    // [{ value, label, testId? }] or strings
+    // [{ value, label, testId?, disabled? }] or strings
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
@@ -22,8 +22,15 @@ const emit = defineEmits(['update:modelValue'])
 const normalized = computed(() =>
   props.options.map((opt) =>
     typeof opt === 'object' && opt !== null
-      ? { value: opt.value, label: opt.label ?? String(opt.value), testId: opt.testId }
-      : { value: opt, label: String(opt) },
+      ? {
+          value: opt.value,
+          label: opt.label ?? String(opt.value),
+          testId: opt.testId,
+          // Per-option lock, on top of the control-wide `disabled`: a filter can
+          // have one choice that does not apply yet while the rest stay live.
+          disabled: opt.disabled === true,
+        }
+      : { value: opt, label: String(opt), disabled: false },
   ),
 )
 
@@ -45,7 +52,7 @@ const sizeClass = computed(() =>
       role="tab"
       :data-testid="opt.testId"
       :aria-selected="modelValue === opt.value"
-      :disabled="disabled"
+      :disabled="disabled || opt.disabled"
       :class="[
         'flex-1 rounded-lg transition-all outline-none focus:ring-2 focus:ring-focus-ring/40',
         sizeClass,
@@ -53,9 +60,9 @@ const sizeClass = computed(() =>
         modelValue === opt.value
           ? 'bg-surface shadow-sm font-medium text-text-default'
           : 'text-text-muted hover:text-text-default',
-        disabled ? 'opacity-60 cursor-not-allowed' : '',
+        disabled || opt.disabled ? 'opacity-60 cursor-not-allowed' : '',
       ]"
-      @click="!disabled && emit('update:modelValue', opt.value)"
+      @click="!(disabled || opt.disabled) && emit('update:modelValue', opt.value)"
     >
       {{ opt.label }}
     </button>
