@@ -54,6 +54,17 @@ test.describe('Admin Panel Session Guard', () => {
       return null;
     });
 
+    // Stub the destination, the same way this suite stubs /api/**: /admin/ is
+    // proxied to Django (nuxt.config dev proxy), which only runs on a dev box.
+    // Without a listener the proxy fails at the network level, Chromium cancels
+    // the navigation and the URL never leaves the panel route — so the guard
+    // under test would read as broken wherever Django is not up (CI included).
+    await page.route('**/admin/login/**', (route) => route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<html><body>Django admin login</body></html>',
+    }));
+
     // Direct navigation to a protected panel page, pre-localized so the locale
     // redirect doesn't add an extra hop before the auth guard runs.
     await page.goto('/en-us/panel/proposals', { waitUntil: 'domcontentloaded' }).catch(() => {});
