@@ -18,9 +18,9 @@ jest.mock('../../../composables/usePanelNotify', () => {
 // The real modal traps focus and teleports; the stub keeps the confirm
 // callback reachable so the delete path stays testable.
 const ConfirmModalStub = {
-  props: ['modelValue'],
+  props: ['modelValue', 'message'],
   emits: ['confirm', 'cancel'],
-  template: '<div v-if="modelValue" data-testid="confirm-stub" @click="$emit(\'confirm\')" />',
+  template: '<div v-if="modelValue" data-testid="confirm-stub" @click="$emit(\'confirm\')">{{ message }}</div>',
 }
 
 const recipient = (overrides = {}) => ({
@@ -170,10 +170,33 @@ describe('NotificationRecipients', () => {
       // Nothing is deleted until the modal is confirmed.
       expect(store.deleteRecord).not.toHaveBeenCalled()
       const modal = wrapper.get('[data-testid="confirm-stub"]')
+      expect(modal.text()).toContain('team@projectapp.co')
+      expect(modal.text()).toContain(
+        'cambios contables, la deuda de tarjetas, los extractos, el calendario ' +
+        'de cobros y pagos y los pagos de hosting',
+      )
+
       await modal.trigger('click')
       await flushPromises()
 
       expect(store.deleteRecord).toHaveBeenCalledWith('notificationRecipients', 1)
+    })
+
+    it('does not promise the cuentas de cobro, which go to the client', async () => {
+      // send_collection_account_email addresses extension.customer_email, not
+      // active_recipient_emails(), so removing a recipient changes nothing
+      // there. Listing it would send the operator hunting in the wrong place.
+      const { wrapper } = mountRecipients()
+      await flushPromises()
+
+      await wrapper.get('[data-testid="recipients-remove-1"]').trigger('click')
+      await flushPromises()
+
+      // The neighbouring item proves the enumeration rendered, so the absence
+      // below is a surgical removal and not an empty modal.
+      const message = wrapper.get('[data-testid="confirm-stub"]').text()
+      expect(message).toContain('los pagos de hosting')
+      expect(message).not.toContain('cuentas de cobro')
     })
   })
 
