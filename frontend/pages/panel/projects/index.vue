@@ -9,6 +9,15 @@
           cuentas de cobro referencian.
         </p>
       </div>
+      <BaseButton
+        variant="primary"
+        size="md"
+        data-testid="projects-new-button"
+        @click="openCreate"
+      >
+        <PlusIcon class="w-4 h-4" />
+        <span>Nuevo proyecto</span>
+      </BaseButton>
     </div>
 
     <!-- Meta cards -->
@@ -29,7 +38,9 @@
         :value="String(store.meta.clients_without_projects ?? 0)"
         :tone="(store.meta.clients_without_projects ?? 0) > 0 ? 'warning' : 'default'"
         sub="Por registrar de forma deliberada"
+        clickable
         data-testid="panel-projects-stat-orphans"
+        @click="openOrphansPanel"
       />
     </div>
 
@@ -64,7 +75,22 @@
       :description="hasActiveFilters
         ? 'Ajusta la búsqueda o cambia de pestaña para ver más registros.'
         : 'Registra el primer proyecto de un cliente.'"
-    />
+    >
+      <template #actions>
+        <BaseButton
+          v-if="hasActiveFilters"
+          variant="secondary"
+          size="sm"
+          @click="clearFilters"
+        >
+          Limpiar filtros
+        </BaseButton>
+        <BaseButton v-else variant="primary" size="sm" @click="openCreate">
+          <PlusIcon class="w-4 h-4" />
+          <span>Nuevo proyecto</span>
+        </BaseButton>
+      </template>
+    </BaseEmptyState>
 
     <!-- Table -->
     <template v-else>
@@ -92,6 +118,46 @@
             {{ formatDate(row.created_at) }}
           </span>
         </template>
+        <template #cell-row_actions="{ row }">
+          <BaseButton
+            variant="ghost"
+            size="sm"
+            icon-only
+            aria-label="Editar"
+            :data-testid="`project-edit-${row.id}`"
+            :disabled="row.status === 'archived'"
+            :title="row.status === 'archived'
+              ? 'Restaura el proyecto para editarlo'
+              : 'Editar proyecto'"
+            @click.stop="openEditModal(row)"
+          >
+            <PencilSquareIcon class="w-4 h-4" />
+          </BaseButton>
+          <BaseButton
+            v-if="row.status !== 'archived'"
+            variant="ghost"
+            size="sm"
+            icon-only
+            aria-label="Archivar"
+            title="Archivar proyecto (sale de la vista, nunca se elimina)"
+            :data-testid="`project-archive-${row.id}`"
+            @click.stop="askArchive(row)"
+          >
+            <ArchiveBoxArrowDownIcon class="w-4 h-4" />
+          </BaseButton>
+          <BaseButton
+            v-else
+            variant="ghost"
+            size="sm"
+            icon-only
+            aria-label="Restaurar"
+            title="Restaurar proyecto"
+            :data-testid="`project-unarchive-${row.id}`"
+            @click.stop="doRestore(row)"
+          >
+            <ArrowUturnLeftIcon class="w-4 h-4" />
+          </BaseButton>
+        </template>
       </AccountingTable>
 
       <BasePagination
@@ -107,18 +173,102 @@
         @go="goToPage"
       />
     </template>
+
+    <!-- Create/edit modal -->
+    <ProjectFormModal
+      :open="isModalOpen"
+      :record="editingRecord"
+      :saving="store.isUpdating"
+      :seed-client="seedClient"
+      :existing-projects="store.records"
+      @close="closeModal"
+      @submit="handleSubmit"
+    />
+
+    <!-- Clients without a project -->
+    <BaseModal
+      :model-value="orphansOpen"
+      size="md"
+      title-id="projects-orphans-title"
+      @close="orphansOpen = false"
+    >
+      <div class="px-6 pt-6 pb-2">
+        <h3 id="projects-orphans-title" class="text-lg font-bold text-text-default">
+          Clientes sin proyecto
+        </h3>
+        <p class="text-sm text-text-subtle mt-1">
+          Cada uno debería tener registrado el producto que se le entrega.
+        </p>
+      </div>
+      <div class="px-6 py-4" data-testid="panel-projects-orphans">
+        <p v-if="store.isLoadingClientsWithoutProjects" class="text-sm text-text-subtle">
+          Cargando clientes...
+        </p>
+        <p
+          v-else-if="store.clientsWithoutProjects.length === 0"
+          class="text-sm text-text-subtle"
+          data-testid="panel-projects-orphans-empty"
+        >
+          Todos los clientes visibles tienen al menos un proyecto.
+        </p>
+        <ul v-else class="divide-y divide-border-muted">
+          <li
+            v-for="client in store.clientsWithoutProjects"
+            :key="client.id"
+            class="flex items-center justify-between gap-3 py-2.5"
+          >
+            <div class="min-w-0">
+              <p class="text-sm text-text-default truncate">{{ client.name || client.email }}</p>
+              <p v-if="client.company" class="text-xs text-text-subtle truncate">
+                {{ client.company }}
+              </p>
+            </div>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :data-testid="`projects-orphan-create-${client.id}`"
+              @click="openCreateFromOrphan(client)"
+            >
+              Crear proyecto
+            </BaseButton>
+          </li>
+        </ul>
+      </div>
+    </BaseModal>
+
+    <!-- Confirm modal (archive) -->
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
+import {
+  ArchiveBoxArrowDownIcon,
+  ArrowUturnLeftIcon,
+  PencilSquareIcon,
+  PlusIcon,
+} from '@heroicons/vue/24/outline';
+import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { normalizeName } from '~/utils/clientMatch';
@@ -144,6 +294,11 @@ const hasActiveFilters = computed(
   () => Boolean(searchInput.value.trim()) || scope.value !== 'active',
 );
 
+function clearFilters() {
+  searchInput.value = '';
+  scope.value = 'active';
+}
+
 /** Rows flattened for the table: the client object becomes sortable columns. */
 const displayRecords = computed(() => store.records.map((record) => ({
   ...record,
@@ -162,10 +317,21 @@ const filteredRecords = computed(() => {
   });
 });
 
-// ── Table controller (sorting + pagination + the mutation flow F4 wires) ──
+// ── Table controller: modal, confirm, mutation flow, sorting, pagination ──
 
 const {
+  isModalOpen,
+  editingRecord,
+  openCreateModal,
+  openEditModal,
+  closeModal,
+  handleSubmit,
   lastMutatedId,
+  confirmState,
+  handleConfirmed,
+  handleCancelled,
+  requestConfirm,
+  runMutation,
   sortKey,
   sortDir,
   toggleSort,
@@ -214,7 +380,66 @@ const columns = computed(() => [
   { key: 'created_at', label: 'Creado', sortable: true, size: 'date' },
   { key: 'hostings_count', label: 'Hostings', sortable: true, size: 'text', align: 'right' },
   { key: 'incomes_count', label: 'Ingresos', sortable: true, size: 'text', align: 'right' },
+  { key: 'row_actions', label: 'Acciones', size: 'icons', align: 'center' },
 ]);
+
+// ── Archive / restore (PA-29: never delete) ──
+
+function askArchive(record) {
+  requestConfirm({
+    title: 'Archivar proyecto',
+    message: `"${record.name}" saldrá de la vista de activos. Sus hostings e ingresos siguen vinculados y podrás restaurarlo cuando quieras.`,
+    confirmText: 'Archivar',
+    cancelText: 'Cancelar',
+    onConfirm: () => runMutation(
+      () => store.archiveProject(record.id),
+      {
+        successTitle: 'Proyecto archivado',
+        errorTitle: 'No se pudo archivar el proyecto',
+        flashId: record.id,
+      },
+    ),
+  });
+}
+
+function doRestore(record) {
+  runMutation(
+    () => store.unarchiveProject(record.id),
+    {
+      successTitle: 'Proyecto restaurado',
+      successDetail: 'Vuelve a la pestaña Activos.',
+      errorTitle: 'No se pudo restaurar el proyecto',
+      flashId: record.id,
+    },
+  );
+}
+
+// ── Clients without a project (the deliberate-gap indicator) ──
+
+const orphansOpen = ref(false);
+const seedClient = ref(null);
+
+function openOrphansPanel() {
+  orphansOpen.value = true;
+  store.fetchClientsWithoutProjects();
+}
+
+function openCreate() {
+  seedClient.value = null;
+  openCreateModal();
+}
+
+function openCreateFromOrphan(client) {
+  orphansOpen.value = false;
+  seedClient.value = client;
+  openCreateModal();
+}
+
+// The seed belongs to one modal opening; a later plain "Nuevo proyecto"
+// must not inherit it.
+watch(isModalOpen, (open) => {
+  if (!open) seedClient.value = null;
+});
 
 function loadRecords() {
   store.fetchProjects();
