@@ -19,11 +19,13 @@ from content.models import (
     CardBalanceSnapshot,
     CreditCard,
     Document,
+    EmailLog,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
     IncomeRecord,
     Ledger,
+    NotificationRecipient,
     PocketMovement,
     RecurringCategory,
     RecurringPayment,
@@ -1276,6 +1278,67 @@ class CardBalanceSnapshotCreateUpdateSerializer(serializers.ModelSerializer):
         return attrs
 
 
+# ── Notification recipients ──
+
+class NotificationRecipientSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationRecipient
+        fields = (
+            'id', 'email', 'is_active', 'notes', 'created_at', 'updated_at',
+        )
+
+
+class NotificationRecipientCreateUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationRecipient
+        fields = ('email', 'is_active', 'notes')
+        # The model's unique=True would answer in English and only for an
+        # exact match; validate_email owns the check instead.
+        extra_kwargs = {'email': {'validators': []}}
+
+    def validate_email(self, value):
+        """Normalize the address and keep the list free of duplicates."""
+        normalized = (value or '').strip().lower()
+        queryset = NotificationRecipient.objects.filter(email__iexact=normalized)
+        if self.instance is not None:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        if queryset.exists():
+            raise serializers.ValidationError('Ese correo ya está en la lista.')
+        return normalized
+
+
+# ── Email send log ──
+
+# One label per automated email of the module, matching the section names
+# used in the settings panel. The keys are the TEMPLATE_KEY constants of the
+# services that emit them; a test pins them together so they cannot drift.
+EMAIL_TEMPLATE_LABELS = {
+    'accounting_change': 'Cambio contable',
+    'accounting_card_reminder': 'Recordatorio de deuda de tarjetas',
+    'accounting_statement_reminder': 'Recordatorio de extractos',
+    'accounting_payment_calendar': 'Calendario de cobros y pagos',
+    'collection_account_sent': 'Cuenta de cobro',
+    'payment_status_team': 'Pago de hosting',
+}
+
+
+class EmailLogSerializer(serializers.ModelSerializer):
+    template_label = serializers.SerializerMethodField()
+    status_label = serializers.CharField(
+        source='get_status_display', read_only=True,
+    )
+
+    class Meta:
+        model = EmailLog
+        fields = (
+            'id', 'template_key', 'template_label', 'recipient', 'subject',
+            'status', 'status_label', 'error_message', 'sent_at',
+        )
+
+    def get_template_label(self, obj):
+        return EMAIL_TEMPLATE_LABELS.get(obj.template_key, obj.template_key)
+
+
 # ── Change log & settings ──
 
 class AccountingChangeLogSerializer(serializers.ModelSerializer):
@@ -1296,11 +1359,6 @@ class AccountingChangeLogSerializer(serializers.ModelSerializer):
 
 
 class AccountingSettingsSerializer(serializers.ModelSerializer):
-    notification_recipients = serializers.ListField(
-        child=serializers.EmailField(),
-        allow_empty=True,
-        required=False,
-    )
     usd_exchange_rate = serializers.DecimalField(
         max_digits=10, decimal_places=2, min_value=Decimal('1'),
         required=False,
@@ -1309,7 +1367,7 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountingSettings
         fields = (
-            'notification_recipients', 'notifications_enabled',
+            'notifications_enabled',
             'card_reminder_enabled', 'statement_reminder_enabled',
             'hosting_expiry_reminder_enabled',
             'payment_calendar_enabled', 'overdue_reminder_frequency',

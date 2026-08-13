@@ -10,6 +10,7 @@ from content.models import (
     CreditCard,
     CreditCardStatement,
     EmailLog,
+    NotificationRecipient,
 )
 from content.services.accounting_statement_reminder_service import (
     pending_statements,
@@ -23,8 +24,10 @@ TARGET = date(2026, 6, 1)  # previous month of TODAY
 
 @pytest.fixture
 def reminder_settings(db):
+    # Migration 0191 seeds two production inboxes into every test database.
+    NotificationRecipient.objects.all().delete()
+    NotificationRecipient.objects.create(email='gustavo@test.com')
     config = AccountingSettings.load()
-    config.notification_recipients = ['gustavo@test.com']
     config.notifications_enabled = True
     config.statement_reminder_enabled = True
     config.statement_reminder_last_sent_at = None

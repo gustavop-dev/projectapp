@@ -54,7 +54,7 @@ describe('IncomeActionsModal', () => {
     const wrapper = mountModal(EXPECTED);
 
     expect(actionIds(wrapper)).toEqual([
-      'detail', 'edit', 'liquidate', 'generate-collection',
+      'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
       'toggle-mute', 'write-off', 'delete',
     ]);
   });
@@ -92,14 +92,24 @@ describe('IncomeActionsModal', () => {
     });
 
     expect(actionIds(wrapper)).toEqual([
-      'detail', 'edit', 'generate-collection', 'delete',
+      'detail', 'edit', 'duplicate', 'generate-collection', 'delete',
     ]);
   });
 
   it('offers no cuenta de cobro on a written-off income', () => {
     const wrapper = mountModal({ ...EXPECTED, kind: 'lost' });
 
-    expect(actionIds(wrapper)).toEqual(['detail', 'edit', 'delete']);
+    expect(actionIds(wrapper)).toEqual(['detail', 'edit', 'duplicate', 'delete']);
+  });
+
+  it('offers duplicar whatever the state, since the usual case is a collected one', async () => {
+    const liquid = { ...EXPECTED, kind: 'liquid', payment_status: null };
+    const wrapper = mountModal(liquid);
+
+    await wrapper.get('[data-testid="income-action-duplicate-42"]').trigger('click');
+
+    expect(wrapper.emitted('duplicate')[0]).toEqual([liquid]);
+    expect(wrapper.emitted('close')).toHaveLength(1);
   });
 
   it('hides marcar perdido once the income is partially collected', () => {
@@ -108,7 +118,7 @@ describe('IncomeActionsModal', () => {
     // Asserted as the full set rather than a bare absence: a menu that
     // failed to render would satisfy "does not contain write-off" too.
     expect(actionIds(wrapper)).toEqual([
-      'detail', 'edit', 'liquidate', 'generate-collection',
+      'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
       'toggle-mute', 'delete',
     ]);
   });

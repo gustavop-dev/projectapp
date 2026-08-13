@@ -16,6 +16,9 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from content.services.notification_recipient_service import (
+    active_recipient_emails,
+)
 from content.utils import today_bogota
 
 logger = logging.getLogger(__name__)
@@ -54,7 +57,7 @@ def run_card_reminder(today=None):
     ):
         return False
 
-    recipients = [r for r in (config.notification_recipients or []) if r]
+    recipients = active_recipient_emails()
     if not recipients:
         # Do not mark the cycle as notified: retry daily until there are
         # recipients to alert.

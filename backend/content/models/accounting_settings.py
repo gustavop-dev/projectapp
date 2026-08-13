@@ -9,11 +9,13 @@ class AccountingSettings(models.Model):
 
     Usage:
         settings = AccountingSettings.load()
-        settings.notification_recipients  # → ['gustavo@...', 'carlos@...']
+        settings.notifications_enabled  # → master switch
     """
 
-    # List of email strings that receive change notifications.
-    notification_recipients = models.JSONField(default=list, blank=True)
+    # Master switch for every automated email of the module. Who receives
+    # them lives in the NotificationRecipient table (one administrable row
+    # per address); read it through
+    # ``services.notification_recipient_service.active_recipient_emails``.
     notifications_enabled = models.BooleanField(default=True)
 
     # Weekly card-debt reminder (Fridays 9:00 Bogotá, re-alert every 2
@@ -77,8 +79,8 @@ class AccountingSettings(models.Model):
         verbose_name_plural = 'Accounting settings'
 
     def __str__(self):
-        recipients = ', '.join(self.notification_recipients) or '(sin destinatarios)'
-        return f'AccountingSettings — {recipients}'
+        state = 'activas' if self.notifications_enabled else 'pausadas'
+        return f'AccountingSettings — notificaciones {state}'
 
     def save(self, *args, **kwargs):
         self.pk = 1

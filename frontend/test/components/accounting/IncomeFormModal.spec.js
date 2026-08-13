@@ -217,6 +217,94 @@ describe('IncomeFormModal', () => {
     });
   });
 
+  const DUPLICATE_SEED = {
+    concept: 'Kore - Hosting anual',
+    kind: 'expected',
+    period_date: '2027-03-01',
+    period_date_source: 'hosting_cycle',
+    destination: 'partners',
+    ledger: 'company',
+    client: 7,
+    client_name: 'Ana Cliente',
+    project: 3,
+    project_name: 'Kore',
+    origin: 'hosting',
+    total_amount: '1200000.00',
+    gustavo_amount: '600000.00',
+    carlos_amount: '600000.00',
+    notes: 'Renovar antes del corte',
+  };
+
+  it('opens as a duplicate prefilled from the seed', () => {
+    const wrapper = mountModal({ seed: { ...DUPLICATE_SEED } });
+
+    expect(wrapper.text()).toContain('Duplicar Ingreso');
+    expect(wrapper.find('input[type="text"]').element.value)
+      .toBe('Kore - Hosting anual');
+    expect(wrapper.find('[data-testid="income-form-period"]').element.value)
+      .toBe('2027-03-01');
+    expect(wrapper.find('[data-testid="split-total"]').element.value)
+      .toBe('1200000.00');
+    expect(wrapper.find('textarea').element.value)
+      .toBe('Renovar antes del corte');
+  });
+
+  it('leaves the date empty when the seed has no cycle to propose', () => {
+    const wrapper = mountModal({
+      seed: { ...DUPLICATE_SEED, period_date: null, period_date_source: null },
+    });
+
+    const period = wrapper.find('[data-testid="income-form-period"]');
+    expect(period.element.value).toBe('');
+    // Required is what forces a date before the duplicate can be saved.
+    expect(period.attributes('required')).toBeDefined();
+    expect(wrapper.find('[data-testid="income-form-period-hint"]').exists())
+      .toBe(false);
+  });
+
+  it('says where a proposed date came from, and stops once it is changed', async () => {
+    const wrapper = mountModal({ seed: { ...DUPLICATE_SEED } });
+
+    expect(wrapper.get('[data-testid="income-form-period-hint"]').text())
+      .toContain('hosting');
+
+    await wrapper.find('[data-testid="income-form-period"]').setValue('2027-04-15');
+
+    expect(wrapper.find('[data-testid="income-form-period-hint"]').exists())
+      .toBe(false);
+  });
+
+  it('submits the duplicate as a plain create payload', async () => {
+    const wrapper = mountModal({ seed: { ...DUPLICATE_SEED } });
+
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')[0][0]).toEqual({
+      concept: 'Kore - Hosting anual',
+      kind: 'expected',
+      period_date: '2027-03-01',
+      destination: 'partners',
+      ledger: 'company',
+      total_amount: '1200000.00',
+      gustavo_amount: '600000.00',
+      carlos_amount: '600000.00',
+      client: 7,
+      project: 3,
+      origin: 'hosting',
+      notes: 'Renovar antes del corte',
+    });
+  });
+
+  it('prefers the record over the seed, so an edit is never seeded', () => {
+    const wrapper = mountModal({
+      record: { ...EDIT_RECORD },
+      seed: { ...DUPLICATE_SEED },
+    });
+
+    expect(wrapper.text()).toContain('Editar Ingreso');
+    expect(wrapper.find('input[type="text"]').element.value).toBe('Página web Acme');
+  });
+
   it('personal ledger hides the split and destination controls', async () => {
     const wrapper = mountModal();
 

@@ -212,13 +212,20 @@ function buildHandler({ calls }) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          notification_recipients: [],
           notifications_enabled: true,
           card_reminder_enabled: true,
           statement_reminder_enabled: true,
           hosting_expiry_enabled: true,
           usd_exchange_rate: '4000.00',
         }),
+      };
+    }
+    // The settings page also mounts the recipients catalog.
+    if (apiPath === 'accounting/notification-recipients/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ results: [], meta: {} }),
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {

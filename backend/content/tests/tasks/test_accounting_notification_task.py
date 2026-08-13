@@ -9,7 +9,12 @@ from unittest.mock import patch
 import pytest
 from django.core import mail
 
-from content.models import AccountingChangeLog, AccountingSettings, EmailLog
+from content.models import (
+    AccountingChangeLog,
+    AccountingSettings,
+    EmailLog,
+    NotificationRecipient,
+)
 from content.serializers.accounting import IncomeRecordCreateUpdateSerializer
 from content.services import accounting_service
 from content.services.accounting_email_service import (
@@ -83,9 +88,7 @@ class TestSendAccountingChangeEmail:
         assert mail.outbox == []
 
     def test_empty_recipients_skip_sending(self, db):
-        config = AccountingSettings.load()
-        config.notification_recipients = []
-        config.save()
+        NotificationRecipient.objects.all().delete()
         log = make_change_log()
         mail.outbox = []
         assert send_accounting_change_email(log.id) is False

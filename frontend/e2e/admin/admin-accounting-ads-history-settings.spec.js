@@ -70,9 +70,113 @@ const CHANGELOG = {
   num_pages: 2,
 };
 
-function buildHandler({ calls }) {
+const EMAIL_LOG = {
+  results: [
+    {
+      id: 1,
+      template_key: 'accounting_payment_calendar',
+      template_label: 'Calendario de cobros y pagos',
+      recipient: 'gustavo@projectapp.co',
+      subject: '[Contabilidad] Cobros y pagos de hoy',
+      status: 'sent',
+      status_label: 'Enviado',
+      error_message: '',
+      sent_at: '2026-07-02T13:30:00Z',
+    },
+    {
+      id: 2,
+      template_key: 'payment_status_team',
+      template_label: 'Pago de hosting',
+      recipient: 'carlos18bp@gmail.com',
+      subject: 'Pago aprobado · Mimitos · $900.000 COP',
+      status: 'failed',
+      status_label: 'Fallido',
+      error_message: 'SMTP timeout',
+      sent_at: '2026-07-02T14:00:00Z',
+    },
+  ],
+  count: 30,
+  page: 1,
+  num_pages: 2,
+};
+
+function recipientRow(overrides = {}) {
+  return {
+    id: 1,
+    email: 'gustavo@projectapp.co',
+    is_active: true,
+    notes: '',
+    created_at: '2026-07-01T10:00:00Z',
+    updated_at: '2026-07-01T10:00:00Z',
+    ...overrides,
+  };
+}
+
+/**
+ * @param {object} options
+ * @param {Array} options.calls        collected requests, for payload assertions
+ * @param {Array} [options.recipients] rows served by the recipients list
+ * @param {object} [options.createError] serializer error the create call returns
+ */
+function buildHandler({ calls, recipients, createError }) {
+  const recipientRows = recipients ?? [recipientRow()];
   return async ({ route, apiPath, method }) => {
     const url = new URL(route.request().url());
+    if (apiPath === 'accounting/notification-recipients/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ results: recipientRows, meta: {} }),
+      };
+    }
+    if (apiPath === 'accounting/notification-recipients/create/' && method === 'POST') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      if (createError) {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify(createError),
+        };
+      }
+      return {
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify(recipientRow({ id: 99, ...body })),
+      };
+    }
+    if (apiPath.startsWith('accounting/notification-recipients/') && method === 'PATCH') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...recipientRows[0], ...body }),
+      };
+    }
+    if (apiPath.startsWith('accounting/notification-recipients/') && method === 'DELETE') {
+      calls.push({ apiPath, method });
+      return { status: 204, contentType: 'application/json', body: '' };
+    }
+    if (apiPath === 'accounting/email-log/' && method === 'GET') {
+      const params = Object.fromEntries(url.searchParams.entries());
+      calls.push({ apiPath, method, params });
+      // Filtering server-side, like the real endpoint, so a test can tell a
+      // wired-up filter from one that only repaints the same rows.
+      const results = params.recipient
+        ? EMAIL_LOG.results.filter((row) => row.recipient.includes(params.recipient))
+        : EMAIL_LOG.results;
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          ...EMAIL_LOG,
+          results,
+          count: params.recipient ? results.length : EMAIL_LOG.count,
+          num_pages: params.recipient ? 1 : EMAIL_LOG.num_pages,
+        }),
+      };
+    }
     if (apiPath === 'auth/check/') {
       return {
         status: 200,
@@ -115,7 +219,6 @@ function buildHandler({ calls }) {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          notification_recipients: ['gustavo@projectapp.co'],
           notifications_enabled: true,
           card_reminder_enabled: true,
           hosting_expiry_reminder_enabled: true,
@@ -242,30 +345,142 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(page.getByTestId('history-page-info')).toContainText('25 cambios');
   });
 
-  test('settings adds a recipient and saves both emails', {
-    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:display', '@outcome:success'],
+  test('the recipients list shows each address with its state and signup date', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — the list is what the
+    // operator reads to know who is registered; state and fecha de alta are
+    // asserted by concrete content, and every action on it has its own test)
+    // quality: allow-deep-link (/panel/accounting/settings is a subnav tab of
+    // the accounting module, reached the same way from every other tab)
     const calls = [];
-    await mockApi(page, buildHandler({ calls }));
+    await mockApi(page, buildHandler({
+      calls,
+      recipients: [
+        recipientRow(),
+        recipientRow({ id: 2, email: 'carlos18bp@gmail.com', is_active: false }),
+      ],
+    }));
     await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
 
     await expect(
       page.getByRole('heading', { name: 'Configuración', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByTestId('settings-recipient-input-0')).toHaveValue(
-      'gustavo@projectapp.co',
+
+    await expect(page.getByTestId('recipients-email-1')).toHaveText('gustavo@projectapp.co');
+    await expect(page.getByTestId('recipients-state-1')).toHaveText('Activo');
+    await expect(page.getByTestId('recipients-email-2')).toHaveText('carlos18bp@gmail.com');
+    await expect(page.getByTestId('recipients-state-2')).toHaveText('Pausado');
+    await expect(page.getByTestId('recipients-row-1')).toContainText('Alta');
+  });
+
+  test('adding a recipient posts it and clears the field', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recipients-new-email')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('recipients-new-email').fill('carlos18bp@gmail.com');
+    await page.getByTestId('recipients-add').click();
+
+    await expect(page.getByText('Destinatario agregado.')).toBeVisible();
+    await expect(page.getByTestId('recipients-new-email')).toHaveValue('');
+    const post = calls.find((call) => call.method === 'POST');
+    expect(post.body).toEqual({ email: 'carlos18bp@gmail.com' });
+  });
+
+  test('a duplicate address is rejected inline and nothing is added', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      createError: { email: ['Ese correo ya está en la lista.'] },
+    }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recipients-new-email')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('recipients-new-email').fill('GUSTAVO@projectapp.co');
+    await page.getByTestId('recipients-add').click();
+
+    await expect(page.getByText('Ese correo ya está en la lista.')).toBeVisible();
+    // The typed value survives so it can be corrected.
+    await expect(page.getByTestId('recipients-new-email')).toHaveValue('GUSTAVO@projectapp.co');
+  });
+
+  test('pausing a recipient persists it without removing the row', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recipients-toggle-1')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('recipients-toggle-1').click();
+
+    await expect(page.getByText('no recibirá avisos')).toBeVisible();
+    await expect(page.getByTestId('recipients-row-1')).toBeVisible();
+    const patch = calls.find(
+      (call) => call.apiPath.startsWith('accounting/notification-recipients/')
+        && call.method === 'PATCH',
     );
+    expect(patch.body).toEqual({ is_active: false });
+  });
 
-    await page.getByTestId('settings-add-recipient').click();
-    await page.getByTestId('settings-recipient-input-1').fill('carlos@projectapp.co');
-    await page.getByTestId('settings-save-button').click();
+  test('removing a recipient asks for confirmation first', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recipients-remove-1')).toBeVisible({ timeout: 25_000 });
 
-    await expect(page.getByText('Configuración guardada')).toBeVisible();
-    const patch = calls.find((call) => call.method === 'PATCH');
-    expect(patch.body.notification_recipients).toEqual([
-      'gustavo@projectapp.co',
-      'carlos@projectapp.co',
-    ]);
+    await page.getByTestId('recipients-remove-1').click();
+
+    // The confirmation spells out what stops arriving before anything is lost.
+    await expect(page.getByText('Dejará de recibir los avisos')).toBeVisible();
+    expect(calls.some((call) => call.method === 'DELETE')).toBe(false);
+
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Destinatario eliminado.')).toBeVisible();
+    expect(calls.some((call) => call.method === 'DELETE')).toBe(true);
+  });
+
+  test('pausing the last active recipient warns nobody gets notified', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('recipients-toggle-1')).toBeVisible({ timeout: 25_000 });
+    // Nothing to warn about yet: this one is still active.
+    await expect(page.getByTestId('recipients-none-active-warning')).toHaveCount(0);
+
+    await page.getByTestId('recipients-toggle-1').click();
+
+    await expect(page.getByTestId('recipients-none-active-warning')).toContainText(
+      'la automatización está apagada de hecho',
+    );
+  });
+
+  test('turning the master switch off warns nothing goes out at all', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('settings-notifications-toggle')).toBeVisible({
+      timeout: 25_000,
+    });
+
+    await page.getByTestId('settings-notifications-toggle').click();
+
+    await expect(page.getByTestId('recipients-master-off-warning')).toBeVisible();
+    // The active recipient stops mattering: the master warning replaces it.
+    await expect(page.getByTestId('recipients-none-active-warning')).toHaveCount(0);
   });
 
   test('settings persists the card-debt reminder toggle', {
@@ -295,7 +510,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByText('Calendario de cobros y pagos'),
+      page.getByRole('heading', { name: 'Calendario de cobros y pagos' }),
     ).toBeVisible({ timeout: 25_000 });
     // The mock serves 'biweekly', so the segmented control lands there.
     await expect(
@@ -321,7 +536,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
 
     await expect(
-      page.getByText('Calendario de cobros y pagos'),
+      page.getByRole('heading', { name: 'Calendario de cobros y pagos' }),
     ).toBeVisible({ timeout: 25_000 });
 
     await page.getByTestId('settings-payment-calendar-toggle').click();
@@ -364,21 +579,59 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     expect(patch.body.income_default_view_mode).toBe('classic');
   });
 
-  test('settings blocks saving an invalid email', {
-    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:display'],
+  test('the sends tab lists who each notice reached, with its state', {
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/accounting/history is a subnav tab of
+    // the accounting module, reached the same way from every other tab)
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('history-tab-sends')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('history-tab-sends').click();
+
+    await expect(page.getByTestId('email-log-row-1')).toContainText('gustavo@projectapp.co');
+    await expect(page.getByTestId('email-log-row-1')).toContainText(
+      'Calendario de cobros y pagos',
+    );
+    await expect(page.getByTestId('email-log-row-2')).toContainText('carlos18bp@gmail.com');
+    await expect(page.getByTestId('email-log-row-2')).toContainText('Fallido');
+    await expect(page.getByTestId('history-page-info')).toContainText('30 envíos');
+  });
+
+  test('a failed send reveals the reason it did not arrive', {
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/accounting/history is a subnav tab of
+    // the accounting module, reached the same way from every other tab)
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('history-tab-sends')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('history-tab-sends').click();
+    await expect(page.getByTestId('email-log-row-2')).toBeVisible();
+    await page.getByTestId('email-log-row-2').click();
+
+    await expect(page.getByTestId('email-log-detail-2')).toContainText('SMTP timeout');
+  });
+
+  test('the sends tab filters by recipient', {
+    tag: [...ADMIN_ACCOUNTING_HISTORY, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
     await mockApi(page, buildHandler({ calls }));
-    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('settings-recipient-input-0')).toBeVisible({
-      timeout: 25_000,
-    });
+    await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('history-tab-sends')).toBeVisible({ timeout: 25_000 });
 
-    await page.getByTestId('settings-recipient-input-0').fill('no-es-un-email');
-    await page.getByTestId('settings-save-button').click();
+    await page.getByTestId('history-tab-sends').click();
+    await expect(page.getByTestId('email-log-row-1')).toBeVisible();
+    await page.getByTestId('email-log-filter-recipient').fill('carlos18bp');
 
-    // the invalid email is rejected client-side: the value stays put and no PATCH fires
-    await expect(page.getByTestId('settings-recipient-input-0')).toHaveValue('no-es-un-email');
-    expect(calls.some((call) => call.method === 'PATCH')).toBe(false);
+    // The filter goes to the server, so the other recipient's row is gone.
+    await expect(page.getByTestId('email-log-row-2')).toContainText('carlos18bp@gmail.com');
+    await expect(page.getByTestId('email-log-row-1')).toHaveCount(0);
+    await expect(page.getByTestId('history-page-info')).toContainText('1 envío');
   });
 });

@@ -11,6 +11,10 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from content.services.notification_recipient_service import (
+    active_recipient_emails,
+)
+
 logger = logging.getLogger(__name__)
 
 TEMPLATE_KEY = 'accounting_change'
@@ -72,7 +76,7 @@ def send_accounting_change_email(change_log_id):
         )
         return False
 
-    recipients = [r for r in (config.notification_recipients or []) if r]
+    recipients = active_recipient_emails()
     if not recipients:
         logger.warning(
             'No accounting notification recipients configured; '

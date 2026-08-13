@@ -4,10 +4,12 @@
  * FLOWS: admin-accounting-income-crud, admin-accounting-collection-create,
  *        admin-accounting-income-client
  * Covers: list rendering, create via modal with automatic 50/50 partner
- *         split, HTML5 validation, edit prefill, delete with confirmation
- *         (confirm and cancel), API-error surfacing, and the cuenta de
- *         cobro entry point (generate icon opens the preselected modal;
- *         linked rows swap to Ver cuenta de cobro navigation).
+ *         split, HTML5 validation, edit prefill, duplicate from both the row
+ *         menu and the detail modal (seeded form, always expected, failing
+ *         draft), delete with confirmation (confirm and cancel), API-error
+ *         surfacing, and the cuenta de cobro entry point (generate icon opens
+ *         the preselected modal; linked rows swap to Ver cuenta de cobro
+ *         navigation).
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -56,7 +58,7 @@ function incomeRow(overrides = {}) {
 
 function buildHandler({
   rows, calls, createStatus = 201, meta = {}, listFetches = { count: 0 },
-  savedTabs = [],
+  savedTabs = [], duplicateDraftStatus = 200,
   // Landing mode the mocked backend setting dictates. Production defaults to
   // 'grouped'; the mock pins 'classic' because almost every test in this file
   // exercises classic-only affordances (column sort, row checkboxes,
@@ -112,6 +114,52 @@ function buildHandler({
           expected_incomes: (body.expected_incomes || []).map((e, index) => (
             incomeRow({ id: 300 + index, concept: e.concept })
           )),
+        }),
+      };
+    }
+    const detailMatch = apiPath.match(/^accounting\/incomes\/(\d+)\/detail\/$/);
+    if (detailMatch && method === 'GET') {
+      const source = rows.find((row) => row.id === Number(detailMatch[1]));
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          income: source, liquid: [], expenses: [], collection_account: null,
+        }),
+      };
+    }
+    // The duplicate draft is server-built (it resolves the hosting cycle) and
+    // writes nothing: the panel only opens its form on the response.
+    const draftMatch = apiPath.match(/^accounting\/incomes\/(\d+)\/duplicate-draft\/$/);
+    if (draftMatch && method === 'GET') {
+      calls.push({ method, apiPath });
+      if (duplicateDraftStatus !== 200) {
+        return {
+          status: duplicateDraftStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'Fallo del servidor', code: 'server_error' }),
+        };
+      }
+      const source = rows.find((row) => row.id === Number(draftMatch[1]));
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          concept: source.concept,
+          kind: 'expected',
+          period_date: '2027-02-01',
+          period_date_source: 'hosting_cycle',
+          destination: 'partners',
+          ledger: source.ledger,
+          client: source.client,
+          client_name: source.client_name,
+          project: null,
+          project_name: null,
+          origin: source.origin,
+          total_amount: source.total_amount,
+          gustavo_amount: source.gustavo_amount,
+          carlos_amount: source.carlos_amount,
+          notes: source.notes,
         }),
       };
     }
@@ -333,6 +381,74 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('PATCH');
     expect(Number(calls[0].body.total_amount)).toBe(2000000);
+  });
+
+  test('duplicating a collected income opens the next period and POSTs it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    const rows = [incomeRow({
+      kind: 'liquid', kind_label: 'Líquido', origin: 'hosting',
+      concept: 'Kore - Hosting anual',
+    })];
+    await mockApi(page, buildHandler({ rows, calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+
+    await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
+    await expect(page.getByTestId('income-form-concept'))
+      .toHaveValue('Kore - Hosting anual');
+    // Seeded from the hosting cycle, and labelled as such.
+    await expect(page.getByTestId('income-form-period')).toHaveValue('2027-02-01');
+    await expect(page.getByTestId('income-form-period-hint'))
+      .toContainText('hosting');
+
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
+    expect(created.method).toBe('POST');
+    expect(created.body.concept).toBe('Kore - Hosting anual');
+    // Born pending whatever the original was — the point of the action.
+    expect(created.body.kind).toBe('expected');
+    expect(created.body.period_date).toBe('2027-02-01');
+  });
+
+  test('duplicating from the detail modal opens the same seeded form', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-detail-1').click();
+    await expect(page.getByTestId('income-detail-modal')).toBeVisible();
+
+    await page.getByTestId('income-detail-duplicate').click();
+
+    // The detail closes and the seeded form takes its place.
+    await expect(page.getByTestId('income-detail-modal')).toHaveCount(0);
+    await expect(page.getByTestId('income-form-concept'))
+      .toHaveValue('Kore - Inicio 40%');
+  });
+
+  test('a failing draft surfaces the error and opens no form', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [incomeRow()], calls, duplicateDraftStatus: 500,
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+
+    await expect(page.getByText('No se pudo preparar el duplicado')).toBeVisible();
+    await expect(page.getByTestId('income-form-concept')).toHaveCount(0);
   });
 
   test('delete asks for confirmation and removes the row', {

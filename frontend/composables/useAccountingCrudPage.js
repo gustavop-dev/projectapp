@@ -97,6 +97,9 @@ export function useAccountingCrudPage({
 
   const isModalOpen = ref(false);
   const editingRecord = ref(null);
+  // Prefill for a form that still creates (duplicating a record), kept apart
+  // from `editingRecord` precisely because that one decides POST vs PATCH.
+  const seedRecord = ref(null);
 
   // Row-flash feedback: id of the last created/edited record, cleared after
   // a short delay. If sorting/filters hide the row the highlight is a no-op.
@@ -121,18 +124,32 @@ export function useAccountingCrudPage({
 
   function openCreateModal() {
     editingRecord.value = null;
+    seedRecord.value = null;
     isModalOpen.value = true;
   }
 
   function openEditModal(record) {
     if (beforeEdit && beforeEdit(record) === false) return;
+    seedRecord.value = null;
     editingRecord.value = record;
+    isModalOpen.value = true;
+  }
+
+  /**
+   * Open the form prefilled with `seed` but still creating: `editingRecord`
+   * stays null, so `handleSubmit` POSTs instead of PATCHing the record the
+   * seed was copied from. This is what duplicating an income rides on.
+   */
+  function openSeededModal(seed) {
+    editingRecord.value = null;
+    seedRecord.value = seed;
     isModalOpen.value = true;
   }
 
   function closeModal() {
     isModalOpen.value = false;
     editingRecord.value = null;
+    seedRecord.value = null;
   }
 
   function saveErrorTitle(editing) {
@@ -212,8 +229,10 @@ export function useAccountingCrudPage({
     // modal
     isModalOpen,
     editingRecord,
+    seedRecord,
     openCreateModal,
     openEditModal,
+    openSeededModal,
     closeModal,
     handleSubmit,
     // row-flash feedback

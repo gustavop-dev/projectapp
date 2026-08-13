@@ -3790,10 +3790,11 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser audits every accounting change at /panel/accounting/history: server-paginated log (GET /api/accounting/change-logs/, 20 per page) with entity/action/actor/date filters and expandable field-level old→new diffs per entry.",
-      "expectedSpecs": 3,
+      "description": "Superuser audits the accounting module at /panel/accounting/history through two tabs. 'Cambios': server-paginated change log (GET /api/accounting/change-logs/, 20 per page) with entity/action/actor/date filters and expandable field-level old→new diffs per entry. 'Envíos': server-paginated send log (GET /api/accounting/email-log/, 20 per page) showing which recipients each automated email of the module actually reached — one row per address — with notice-type/status/recipient/date filters and, on a failed row, the delivery error expanded on click. This is how 'why didn't I get that notice' is diagnosed.",
+      "expectedSpecs": 6,
       "outcomes": [
-        "display"
+        "display",
+        "success"
       ]
     },
     "admin-accounting-settings": {
@@ -3803,8 +3804,8 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser configures accounting email notifications at /panel/accounting/settings: recipient list (add/remove emails with validation) and global enable toggle, saved via PATCH /api/accounting/settings/update/ (audited). Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent), the USD exchange rate used by the recurring USD KPI, and the 'Vista de ingresos' segmented control (income_default_view_mode: whether /panel/accounting/incomes lands grouped by client or as the classic table on every visit; the in-page toggle is session-only).",
-      "expectedSpecs": 4,
+      "description": "Superuser configures accounting email notifications at /panel/accounting/settings. The recipient list is its own catalog (GET/POST/PATCH/DELETE /api/accounting/notification-recipients/, audited): every row shows the address, whether it is Activo or Pausado and its fecha de alta; adding validates the format and rejects duplicates case-insensitively with the error inline; a per-row switch pauses a recipient without deleting it; removing asks for confirmation naming the automations that stop arriving. Each row saves on its own, not through the page's save button. Every automated email of the module — change notices, card-debt and statement reminders, the payment calendar, cuentas de cobro and hosting payment outcomes — goes to the active recipients and to nobody else. The master switch (notifications_enabled, PATCH /api/accounting/settings/update/) pauses all of it at once; with it off, or with zero active recipients, the panel warns explicitly that nobody is being notified. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá, re-alert every 2 days until the snapshot is registered), the statement reminder toggle (every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the 'Catálogo de tarjetas' section (see admin-accounting-card-catalog), the hosting expiry notices toggle (15/7 days before valid_to, then every 5 days until the cuenta de cobro is sent), the USD exchange rate used by the recurring USD KPI, and the 'Vista de ingresos' segmented control (income_default_view_mode: whether /panel/accounting/incomes lands grouped by client or as the classic table on every visit; the in-page toggle is session-only).",
+      "expectedSpecs": 11,
       "outcomes": [
         "display",
         "success",

@@ -27,11 +27,13 @@
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
         <h2 class="text-lg font-bold text-text-default mb-1">Notificaciones por correo</h2>
         <p class="text-sm text-text-muted mb-5">
-          Cada creación, edición o eliminación en el módulo contable enviará un correo a estos
-          destinatarios.
+          Todo el correo automático del módulo — cambios contables, deuda de tarjetas, extractos,
+          calendario de cobros y pagos, cuentas de cobro y pagos de hosting — sale a los
+          destinatarios activos de esta lista, y solo a ellos. El interruptor de abajo apaga todos
+          los envíos de una vez sin desarmar la lista.
         </p>
 
-        <!-- Toggle -->
+        <!-- Master switch -->
         <div class="flex items-center justify-between gap-3 mb-5">
           <span class="text-sm font-medium text-text-default">Notificaciones activas</span>
           <BaseToggle
@@ -41,41 +43,9 @@
           />
         </div>
 
-        <!-- Recipients -->
-        <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">
-          Destinatarios
-        </p>
-        <p v-if="recipients.length === 0" class="text-sm text-text-subtle mb-3">
-          Sin destinatarios configurados.
-        </p>
-        <div v-else class="space-y-2 mb-3">
-          <div
-            v-for="(row, index) in recipients"
-            :key="row.id"
-            class="flex items-center gap-2"
-          >
-            <BaseInput
-              v-model="row.value"
-              type="email"
-              placeholder="correo@dominio.com"
-              class="flex-1"
-              :data-testid="`settings-recipient-input-${index}`"
-            />
-            <BaseButton variant="danger-ghost" size="sm" :aria-label="`Quitar correo ${index + 1}`" :data-testid="`settings-recipient-remove-${index}`" @click="removeRecipient(index)">
-              <TrashIcon class="w-4 h-4" />
-            </BaseButton>
-          </div>
-        </div>
-
-        <BaseButton
-          variant="secondary"
-          size="sm"
-          data-testid="settings-add-recipient"
-          @click="addRecipient"
-        >
-          <PlusIcon class="w-4 h-4" />
-          <span>Agregar correo</span>
-        </BaseButton>
+        <!-- Recipients: own CRUD, saved per row (like the card catalog below),
+             so the page's "Guardar cambios" governs only the toggles. -->
+        <NotificationRecipients :notifications-enabled="notificationsEnabled" />
 
         <div class="flex items-center justify-end pt-5 mt-5 border-t border-border-muted">
           <BaseButton
@@ -301,12 +271,11 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
-import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import NotificationRecipients from '~/components/accounting/NotificationRecipients.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
-import BaseInput from '~/components/base/BaseInput.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -321,18 +290,14 @@ const localePath = useLocalePath();
 const store = useAccountingStore();
 const notify = usePanelNotify();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const notificationsEnabled = ref(true);
 const cardReminderEnabled = ref(true);
 const statementReminderEnabled = ref(true);
 const hostingExpiryReminderEnabled = ref(true);
 const paymentCalendarEnabled = ref(true);
 const overdueReminderFrequency = ref('biweekly');
-const recipients = ref([]);
 const usdExchangeRate = ref(null);
 const incomeDefaultViewMode = ref('grouped');
-let rowId = 0;
 
 const INCOME_VIEW_OPTIONS = [
   { value: 'grouped', label: 'Agrupado' },
@@ -360,10 +325,6 @@ function syncFromSettings(settings) {
     settings?.income_default_view_mode === 'classic' ? 'classic' : 'grouped';
   usdExchangeRate.value =
     settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
-  recipients.value = (settings?.notification_recipients || []).map((email) => ({
-    id: ++rowId,
-    value: email,
-  }));
 }
 
 async function loadSettings() {
@@ -375,30 +336,8 @@ async function loadSettings() {
   }
 }
 
-function addRecipient() {
-  recipients.value.push({ id: ++rowId, value: '' });
-}
-
-function removeRecipient(index) {
-  recipients.value.splice(index, 1);
-}
-
 async function save() {
-  const nonEmpty = recipients.value
-    .map((row) => row.value.trim())
-    .filter((value) => value !== '');
-
-  const invalid = nonEmpty.find((value) => !EMAIL_RE.test(value));
-  if (invalid) {
-    notify.error({
-      title: 'Correo inválido',
-      detail: `"${invalid}" no parece un correo válido. Corrígelo o elimínalo antes de guardar.`,
-    });
-    return;
-  }
-
   const payload = {
-    notification_recipients: nonEmpty,
     notifications_enabled: notificationsEnabled.value,
     card_reminder_enabled: cardReminderEnabled.value,
     statement_reminder_enabled: statementReminderEnabled.value,

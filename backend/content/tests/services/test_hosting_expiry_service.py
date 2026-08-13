@@ -11,7 +11,12 @@ from decimal import Decimal
 import pytest
 from django.core import mail
 
-from content.models import AccountingSettings, EmailLog, HostingRecord
+from content.models import (
+    AccountingSettings,
+    EmailLog,
+    HostingRecord,
+    NotificationRecipient,
+)
 from content.services.accounting_payment_calendar_service import (
     TEMPLATE_KEY,
     run_payment_calendar,
@@ -25,8 +30,10 @@ TODAY = date(2026, 7, 10)
 @pytest.fixture(autouse=True)
 def _recipients(settings):
     settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    # Migration 0191 seeds two production inboxes into every test database.
+    NotificationRecipient.objects.all().delete()
+    NotificationRecipient.objects.create(email='team@projectapp.co')
     config = AccountingSettings.load()
-    config.notification_recipients = ['team@projectapp.co']
     config.save()
     return config
 
@@ -142,9 +149,7 @@ class TestStopsAndRearm:
 
     def test_no_recipients_retries_without_state_update(self):
         record = make_hosting(days_left=5)
-        config = AccountingSettings.load()
-        config.notification_recipients = []
-        config.save()
+        NotificationRecipient.objects.all().delete()
         assert run_payment_calendar(TODAY) == 0
         record.refresh_from_db()
         assert record.expiry_notice_count == 0

@@ -37,6 +37,7 @@ from content.models import (
     IncomeRecord,
     Ledger,
     MerchantAlias,
+    NotificationRecipient,
     PocketMovement,
     RecurringPayment,
 )
@@ -60,6 +61,7 @@ ENTITY_MODELS = {
     EntityType.STATEMENT: CreditCardStatement,
     EntityType.STATEMENT_TX: CreditCardTransaction,
     EntityType.MERCHANT_ALIAS: MerchantAlias,
+    EntityType.NOTIFICATION_RECIPIENT: NotificationRecipient,
 }
 
 TRACKED_FIELDS = {
@@ -186,8 +188,12 @@ TRACKED_FIELDS = {
         ('default_category', 'Categoría por defecto'),
         ('notes', 'Notas'),
     ],
+    EntityType.NOTIFICATION_RECIPIENT: [
+        ('email', 'Correo'),
+        ('is_active', 'Activo'),
+        ('notes', 'Notas'),
+    ],
     EntityType.SETTINGS: [
-        ('notification_recipients', 'Destinatarios de notificación'),
         ('notifications_enabled', 'Notificaciones activas'),
         ('card_reminder_enabled', 'Recordatorio de deuda de tarjetas'),
         ('statement_reminder_enabled', 'Recordatorio de extractos'),
@@ -277,6 +283,8 @@ def object_repr(entity_type, instance):
         return instance.merchant_name or instance.raw_description
     if entity_type == EntityType.MERCHANT_ALIAS:
         return instance.match_text
+    if entity_type == EntityType.NOTIFICATION_RECIPIENT:
+        return instance.email
     return 'Configuración contable'
 
 

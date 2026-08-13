@@ -24,6 +24,9 @@ class AccountingChangeLog(models.Model):
         STATEMENT = 'statement', 'Extracto de tarjeta'
         STATEMENT_TX = 'statement_tx', 'Transacción de extracto'
         MERCHANT_ALIAS = 'merchant_alias', 'Alias de comercio'
+        NOTIFICATION_RECIPIENT = (
+            'notification_recipient', 'Destinatario de notificación',
+        )
         SETTINGS = 'settings', 'Configuración'
 
     class Action(models.TextChoices):
@@ -31,7 +34,7 @@ class AccountingChangeLog(models.Model):
         UPDATED = 'updated', 'Actualizado'
         DELETED = 'deleted', 'Eliminado'
 
-    entity_type = models.CharField(max_length=20, choices=EntityType.choices)
+    entity_type = models.CharField(max_length=30, choices=EntityType.choices)
     object_id = models.PositiveIntegerField()
     object_repr = models.CharField(max_length=255)
     action = models.CharField(max_length=10, choices=Action.choices)

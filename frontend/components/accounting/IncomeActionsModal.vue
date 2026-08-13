@@ -54,6 +54,7 @@ import {
   BanknotesIcon,
   BellAlertIcon,
   BellSlashIcon,
+  DocumentDuplicateIcon,
   DocumentPlusIcon,
   EyeIcon,
   PencilSquareIcon,
@@ -79,7 +80,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'close', 'detail', 'edit', 'liquidate', 'generate-collection',
+  'close', 'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
   'view-collection', 'toggle-mute', 'write-off', 'delete',
 ]);
 
@@ -93,6 +94,12 @@ const actions = computed(() => {
   const list = [
     { id: 'detail', label: 'Ver detalle', icon: EyeIcon, event: 'detail' },
     { id: 'edit', label: 'Editar', icon: PencilSquareIcon, event: 'edit' },
+    // Offered whatever the state is: the frequent case is duplicating an
+    // already collected income to open its next period.
+    {
+      id: 'duplicate', label: 'Duplicar', icon: DocumentDuplicateIcon,
+      event: 'duplicate',
+    },
   ];
   if (row.kind === 'expected') {
     list.push({

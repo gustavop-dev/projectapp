@@ -94,6 +94,20 @@ describe('useAccountingStore', () => {
       expect(store.incomes[0]).toEqual({ id: 2, concept: 'Nuevo' })
     })
 
+    it('fetchIncomeDuplicateDraft reads the draft without writing anything', async () => {
+      get_request.mockResolvedValue({
+        data: { concept: 'Kore - Hosting anual', kind: 'expected' },
+      })
+
+      const result = await store.fetchIncomeDuplicateDraft(7)
+
+      expect(get_request).toHaveBeenCalledWith(
+        'accounting/incomes/7/duplicate-draft/',
+      )
+      expect(create_request).not.toHaveBeenCalled()
+      expect(result.data.kind).toBe('expected')
+    })
+
     it('settleIncome posts the settlement to the income endpoint', async () => {
       create_request.mockResolvedValue({
         data: { income: { id: 7 }, liquid: { id: 8 }, expenses: [{ id: 9 }] },
@@ -186,28 +200,65 @@ describe('useAccountingStore', () => {
 
     it('fetchSettings and updateSettings hit the settings endpoints', async () => {
       get_request.mockResolvedValue({
-        data: { notification_recipients: [], notifications_enabled: true },
+        data: { notifications_enabled: true },
       })
       await store.fetchSettings()
       expect(get_request).toHaveBeenCalledWith('accounting/settings/')
 
       patch_request.mockResolvedValue({
-        data: {
-          notification_recipients: ['gustavo@test.com'],
-          notifications_enabled: true,
-        },
+        data: { notifications_enabled: false },
       })
-      const result = await store.updateSettings({
-        notification_recipients: ['gustavo@test.com'],
-      })
+      const result = await store.updateSettings({ notifications_enabled: false })
       expect(patch_request).toHaveBeenCalledWith(
         'accounting/settings/update/',
-        { notification_recipients: ['gustavo@test.com'] },
+        { notifications_enabled: false },
       )
       expect(result.success).toBe(true)
-      expect(store.settings.notification_recipients).toEqual([
-        'gustavo@test.com',
-      ])
+      expect(store.settings.notifications_enabled).toBe(false)
+    })
+
+    it('fetchEmailLog maps pagination fields', async () => {
+      get_request.mockResolvedValue({
+        data: { results: [{ id: 7 }], count: 40, page: 2, num_pages: 2 },
+      })
+
+      await store.fetchEmailLog({ page: 2, status: 'failed' })
+
+      expect(get_request).toHaveBeenCalledWith(
+        'accounting/email-log/?page=2&status=failed',
+      )
+      expect(store.emailLog).toEqual({
+        results: [{ id: 7 }], count: 40, page: 2, numPages: 2,
+      })
+    })
+
+    it('fetchEmailLog surfaces its own error code', async () => {
+      get_request.mockRejectedValue(apiError(500, { error: 'boom' }))
+
+      const result = await store.fetchEmailLog()
+
+      expect(result.success).toBe(false)
+      expect(store.error).toBe('email_log_failed')
+    })
+
+    it('routes the recipient CRUD to the notification-recipients endpoints', async () => {
+      create_request.mockResolvedValue({ data: { id: 3, email: 'ana@test.com' } })
+      patch_request.mockResolvedValue({
+        data: { id: 3, email: 'ana@test.com', is_active: false },
+      })
+
+      await store.createRecord('notificationRecipients', { email: 'ana@test.com' })
+      await store.updateRecord('notificationRecipients', 3, { is_active: false })
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/notification-recipients/create/',
+        { email: 'ana@test.com' },
+      )
+      expect(patch_request).toHaveBeenCalledWith(
+        'accounting/notification-recipients/3/update/',
+        { is_active: false },
+      )
+      expect(store.notificationRecipients[0].is_active).toBe(false)
     })
   })
 

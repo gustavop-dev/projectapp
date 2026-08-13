@@ -510,15 +510,49 @@ def super_client(api_client, superuser):
 
 
 @pytest.fixture
-def accounting_settings(db):
-    """Accounting settings singleton with two notification recipients."""
+def accounting_settings(db, notification_recipients):
+    """Settings singleton with notifications on and two active recipients.
+
+    The recipients live in their own table now, but every sender reads both
+    (master switch here, destinations there), so the fixture keeps handing
+    out a state where email actually goes out.
+    """
     from content.models import AccountingSettings
 
     obj = AccountingSettings.load()
-    obj.notification_recipients = ['gustavo@test.com', 'carlos@test.com']
     obj.notifications_enabled = True
     obj.save()
     return obj
+
+
+@pytest.fixture
+def notification_recipients(db):
+    """The two active recipients most accounting email tests assume.
+
+    Migration 0191 seeds the two production inboxes into every fresh test
+    database, so they are cleared first: a test that asserts who an email
+    reached has to own the whole list.
+    """
+    from content.models import NotificationRecipient
+
+    NotificationRecipient.objects.all().delete()
+    return [
+        NotificationRecipient.objects.create(email=email, is_active=True)
+        for email in ('carlos@test.com', 'gustavo@test.com')
+    ]
+
+
+@pytest.fixture
+def make_notification_recipient(db):
+    """Factory for NotificationRecipient rows."""
+    from content.models import NotificationRecipient
+
+    def _make(email, **kwargs):
+        defaults = {'is_active': True}
+        defaults.update(kwargs)
+        return NotificationRecipient.objects.create(email=email, **defaults)
+
+    return _make
 
 
 @pytest.fixture

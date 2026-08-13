@@ -6,6 +6,7 @@ from django.db.models import F
 
 from content.models import (
     AccountingSettings,
+    NotificationRecipient,
     AdsSpendRecord,
     ExpenseRecord,
     HostingRecord,
@@ -60,9 +61,16 @@ class TestCreateFakeAccounting:
             assert not lost.liquid_records.exists()
 
     def test_seeds_notification_recipients_when_empty(self):
+        NotificationRecipient.objects.all().delete()
+
         call_command('create_fake_accounting', '--count', '2')
-        settings_obj = AccountingSettings.load()
-        assert len(settings_obj.notification_recipients) == 2
+
+        rows = NotificationRecipient.objects.order_by('email')
+        assert [r.email for r in rows] == [
+            'carlos@example.com', 'gustavo@example.com',
+        ]
+        # One paused on purpose, so the panel's toggle has something to show.
+        assert [r.is_active for r in rows] == [False, True]
 
     def test_sends_no_emails(self, accounting_settings):
         mail.outbox = []

@@ -10,6 +10,7 @@ from content.models import (
     EmailLog,
     ExpenseRecord,
     IncomeRecord,
+    NotificationRecipient,
     RecurringPayment,
 )
 from content.services.accounting_payment_calendar_service import (
@@ -25,8 +26,11 @@ TODAY = date(2026, 7, 10)
 @pytest.fixture(autouse=True)
 def _recipients(settings):
     settings.EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+    # Migration 0191 seeds two production inboxes into every test database.
+    NotificationRecipient.objects.all().delete()
+    for email in ('team@projectapp.co', 'carlos@projectapp.co'):
+        NotificationRecipient.objects.create(email=email)
     config = AccountingSettings.load()
-    config.notification_recipients = ['team@projectapp.co', 'carlos@projectapp.co']
     config.save()
     return config
 
@@ -254,8 +258,7 @@ class TestDelivery:
         assert metadata['incomes'][0]['id'] == record.pk
 
     def test_without_recipients_nothing_is_sent_and_no_state_advances(self, _recipients):
-        _recipients.notification_recipients = []
-        _recipients.save()
+        NotificationRecipient.objects.all().delete()
         record = make_expected(days_left=7)
         assert run_payment_calendar(TODAY) == 0
         assert mail.outbox == []

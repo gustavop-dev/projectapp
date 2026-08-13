@@ -12,6 +12,7 @@ from content.models import (
     AdsSpendRecord,
     IncomeRecord,
     McpConnector,
+    NotificationRecipient,
 )
 from content.serializers.accounting import AccountingSettingsSerializer
 from content.services import accounting_service
@@ -59,19 +60,21 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 7 ledgers × 5 CRUD + 5 non-CRUD + 15 statement tools = 55
-        assert len(names) == 55
+        # 8 ledgers × 5 CRUD + 5 non-CRUD + 15 statement tools = 60
+        assert len(names) == 60
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
             'get_settings', 'update_settings', 'mute_income',
             'get_statement_instructions',
             'create_statement', 'resolve_merchants', 'finalize_statement',
+            'list_notification_recipient', 'create_notification_recipient',
+            'update_notification_recipient', 'delete_notification_recipient',
         ):
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 55
+        assert len(ACCOUNTING_TOOLS) == 60
 
 
 @pytest.mark.django_db
@@ -133,7 +136,7 @@ class TestAccountingMcpNonCrud:
         _, token = accounting_connector
         response = _call(api_client, token, 'get_settings', {})
         text = response.data['result']['content'][0]['text']
-        assert 'notification_recipients' in text
+        assert 'notifications_enabled' in text
 
 
 def _payload(response):
@@ -253,22 +256,37 @@ class TestAccountingMcpHandlerBranches:
         response = _call(api_client, token, 'list_change_logs', {'page': 'xx'})
         assert _payload(response)['page'] == 1
 
-    def test_update_settings_changes_recipients(
+    def test_create_notification_recipient(
         self, api_client, accounting_connector, mcp_superuser, accounting_settings,
     ):
         _, token = accounting_connector
-        response = _call(api_client, token, 'update_settings', {
-            'notification_recipients': ['socios@x.com'],
+        response = _call(api_client, token, 'create_notification_recipient', {
+            'email': 'socios@x.com',
         })
         assert response.data['result']['isError'] is False
-        assert AccountingSettings.load().notification_recipients == ['socios@x.com']
+        assert NotificationRecipient.objects.filter(
+            email='socios@x.com', is_active=True,
+        ).exists()
+
+    def test_create_notification_recipient_rejects_duplicate(
+        self, api_client, accounting_connector, mcp_superuser, accounting_settings,
+    ):
+        _, token = accounting_connector
+        _call(api_client, token, 'create_notification_recipient', {
+            'email': 'socios@x.com',
+        })
+        response = _call(api_client, token, 'create_notification_recipient', {
+            'email': 'SOCIOS@x.com',
+        })
+        assert response.data['result']['isError'] is True
+        assert NotificationRecipient.objects.filter(email='socios@x.com').count() == 1
 
     def test_update_settings_invalid_payload_errors(
         self, api_client, accounting_connector, mcp_superuser, accounting_settings,
     ):
         _, token = accounting_connector
         response = _call(api_client, token, 'update_settings', {
-            'notification_recipients': 'no-es-lista',
+            'overdue_reminder_frequency': 'cada-rato',
         })
         assert response.data['result']['isError'] is True
 

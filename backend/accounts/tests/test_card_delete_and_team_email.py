@@ -131,9 +131,22 @@ class TestCardDelete:
 # ---------------------------------------------------------------------------
 
 @pytest.fixture
-def team_email(settings):
-    settings.TEAM_PAYMENTS_EMAIL = 'team-test@proyegarts.co'
-    return settings.TEAM_PAYMENTS_EMAIL
+def team_email(db):
+    """Recipients of the payment email now come from the accounting catalog.
+
+    They used to be one inbox pinned in settings; migration 0191 seeds the
+    real ones into every test database, so they are cleared first and this
+    fixture owns the whole list.
+    """
+    from content.models import NotificationRecipient
+
+    NotificationRecipient.objects.all().delete()
+    NotificationRecipient.objects.create(email='team-test@proyegarts.co')
+    # Paused: it must not receive anything.
+    NotificationRecipient.objects.create(
+        email='pausado@proyegarts.co', is_active=False,
+    )
+    return 'team-test@proyegarts.co'
 
 
 class TestTeamPaymentEmailTrigger:
@@ -172,7 +185,7 @@ class TestTeamPaymentEmailTrigger:
 class TestTeamPaymentEmailSend:
     """The send function renders and delivers the team notification."""
 
-    def test_paid_email_goes_to_team_inbox(self, payment, team_email):
+    def test_paid_email_goes_to_the_active_recipients_only(self, payment, team_email):
         from accounts.services.payment_notifications import send_payment_status_team_email
 
         mail.outbox = []
@@ -183,6 +196,21 @@ class TestTeamPaymentEmailSend:
         assert msg.to == ['team-test@proyegarts.co']
         assert 'Pago aprobado' in msg.subject
         assert 'Mimitos' in msg.subject
+
+    def test_send_is_traced_one_row_per_recipient(self, payment, team_email):
+        from accounts.services.payment_notifications import send_payment_status_team_email
+        from content.models import EmailLog, NotificationRecipient
+
+        NotificationRecipient.objects.create(email='socia@proyegarts.co')
+        mail.outbox = []
+        send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+
+        logs = EmailLog.objects.filter(template_key='payment_status_team')
+        assert sorted(logs.values_list('recipient', flat=True)) == [
+            'socia@proyegarts.co', 'team-test@proyegarts.co',
+        ]
+        assert set(logs.values_list('status', flat=True)) == {EmailLog.Status.SENT}
+        assert logs.first().metadata['payment_id'] == payment.id
 
     def test_failed_email_subject(self, payment, team_email):
         from accounts.services.payment_notifications import send_payment_status_team_email
@@ -204,10 +232,23 @@ class TestTeamPaymentEmailSend:
 
 
 class TestTeamPaymentEmailBranches:
-    def test_skips_without_team_email_configured(self, payment, settings):
+    def test_skips_when_no_recipient_is_active(self, payment, db):
         from accounts.services.payment_notifications import send_payment_status_team_email
+        from content.models import NotificationRecipient
 
-        settings.TEAM_PAYMENTS_EMAIL = ''
+        NotificationRecipient.objects.all().update(is_active=False)
+        mail.outbox = []
+        ok = send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+        assert ok is False
+        assert len(mail.outbox) == 0
+
+    def test_skips_when_the_master_switch_is_off(self, payment, team_email):
+        from accounts.services.payment_notifications import send_payment_status_team_email
+        from content.models import AccountingSettings
+
+        config = AccountingSettings.load()
+        config.notifications_enabled = False
+        config.save()
         mail.outbox = []
         ok = send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
         assert ok is False
@@ -231,3 +272,19 @@ class TestTeamPaymentEmailBranches:
         ):
             ok = send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
         assert ok is False
+
+    def test_a_failed_send_is_traced_with_its_reason(self, payment, team_email):
+        from django.core.mail import EmailMultiAlternatives
+
+        from accounts.services.payment_notifications import send_payment_status_team_email
+        from content.models import EmailLog
+
+        with patch.object(
+            EmailMultiAlternatives, 'send', side_effect=Exception('SMTP down'),
+        ):
+            send_payment_status_team_email(payment.id, Payment.STATUS_PAID, 'webhook')
+
+        log = EmailLog.objects.get(template_key='payment_status_team')
+        assert log.recipient == 'team-test@proyegarts.co'
+        assert log.status == EmailLog.Status.FAILED
+        assert 'SMTP down' in log.error_message

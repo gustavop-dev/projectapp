@@ -4,6 +4,7 @@ from content.views.accounting import (
     list_income_records, create_income_record, retrieve_income_record,
     retrieve_income_detail, list_client_projects,
     settle_income_record, bulk_assign_income_client, mute_income_reminders,
+    duplicate_income_draft,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
     update_expense_record, delete_expense_record,
@@ -23,7 +24,10 @@ from content.views.accounting import (
     update_card_snapshot, delete_card_snapshot,
     list_credit_cards, create_credit_card, retrieve_credit_card,
     update_credit_card, delete_credit_card,
-    list_accounting_change_logs,
+    list_notification_recipients, create_notification_recipient,
+    retrieve_notification_recipient, update_notification_recipient,
+    delete_notification_recipient,
+    list_accounting_change_logs, list_accounting_email_logs,
     get_accounting_settings, update_accounting_settings,
 )
 from content.views.accounting_export import (
@@ -519,6 +523,7 @@ urlpatterns = [
     path('accounting/incomes/<int:record_id>/detail/', retrieve_income_detail, name='retrieve-income-detail'),
     path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
     path('accounting/incomes/<int:record_id>/mute/', mute_income_reminders, name='mute-income-reminders'),
+    path('accounting/incomes/<int:record_id>/duplicate-draft/', duplicate_income_draft, name='duplicate-income-draft'),
     path('accounting/incomes/bulk-assign-client/', bulk_assign_income_client, name='bulk-assign-income-client'),
     path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),
     path('accounting/incomes/<int:record_id>/update/', update_income_record, name='update-income-record'),
@@ -618,7 +623,14 @@ urlpatterns = [
     path('accounting/merchant-aliases/<int:record_id>/update/', update_merchant_alias, name='update-merchant-alias'),
     path('accounting/merchant-aliases/<int:record_id>/delete/', delete_merchant_alias, name='delete-merchant-alias'),
 
+    path('accounting/notification-recipients/', list_notification_recipients, name='list-notification-recipients'),
+    path('accounting/notification-recipients/create/', create_notification_recipient, name='create-notification-recipient'),
+    path('accounting/notification-recipients/<int:record_id>/', retrieve_notification_recipient, name='retrieve-notification-recipient'),
+    path('accounting/notification-recipients/<int:record_id>/update/', update_notification_recipient, name='update-notification-recipient'),
+    path('accounting/notification-recipients/<int:record_id>/delete/', delete_notification_recipient, name='delete-notification-recipient'),
+
     path('accounting/change-logs/', list_accounting_change_logs, name='list-accounting-change-logs'),
+    path('accounting/email-log/', list_accounting_email_logs, name='list-accounting-email-log'),
 
     path('accounting/settings/', get_accounting_settings, name='get-accounting-settings'),
     path('accounting/settings/update/', update_accounting_settings, name='update-accounting-settings'),
