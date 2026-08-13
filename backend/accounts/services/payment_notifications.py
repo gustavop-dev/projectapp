@@ -1,8 +1,12 @@
 """Team-facing email notifications for hosting payment outcomes.
 
-Whenever a Payment transitions to PAID or FAILED, the team inbox
-(``settings.TEAM_PAYMENTS_EMAIL``) receives a summary so payment status can be
-tracked outside the in-app notifications. Best-effort: never raises.
+Whenever a Payment transitions to PAID or FAILED, the active recipients of
+the accounting module receive a summary so payment status can be tracked
+outside the in-app notifications. The destinations come from the same
+administrable list as every other notification of the module — this used to
+be a single inbox hardcoded in settings — and each send leaves one EmailLog
+row per recipient so the panel can answer "why didn't I get this one".
+Best-effort: never raises.
 """
 
 import logging
@@ -12,6 +16,8 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 logger = logging.getLogger(__name__)
+
+TEMPLATE_KEY = 'payment_status_team'
 
 # Human-readable labels per payment status (keys are Payment.STATUS_* values).
 _STATUS_LABELS = {
@@ -64,10 +70,24 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
     Returns True if the email was sent, False otherwise. Never raises.
     """
     from accounts.models import Payment
+    from content.models import AccountingSettings, EmailLog
+    from content.services.notification_recipient_service import (
+        active_recipient_emails,
+    )
 
-    recipient = getattr(settings, 'TEAM_PAYMENTS_EMAIL', '') or ''
-    if not recipient:
-        logger.warning('TEAM_PAYMENTS_EMAIL not configured; skipping payment email')
+    if not AccountingSettings.load().notifications_enabled:
+        logger.info(
+            'Accounting notifications disabled; skipping payment email for %s',
+            payment_id,
+        )
+        return False
+
+    recipients = active_recipient_emails()
+    if not recipients:
+        logger.warning(
+            'No active notification recipients; skipping payment email for %s',
+            payment_id,
+        )
         return False
 
     try:
@@ -86,6 +106,11 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         f'${format_cop_email(context["amount"])} COP'
     )
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
+    metadata = {
+        'payment_id': payment_id,
+        'to_status': to_status,
+        'source': source or '',
+    }
 
     try:
         text_body = render_to_string('emails/payment_status_team.txt', context)
@@ -94,18 +119,36 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
             subject=subject,
             body=text_body,
             from_email=from_email,
-            to=[recipient],
+            to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
         email.send(fail_silently=False)
-        logger.info(
-            'Sent payment status email (%s) for payment %s to %s',
-            to_status, payment_id, recipient,
-        )
-        return True
     except Exception as exc:
         logger.warning(
             'Failed to send payment status email for payment %s: %s',
             payment_id, exc,
         )
+        for recipient in recipients:
+            EmailLog.objects.create(
+                template_key=TEMPLATE_KEY,
+                recipient=recipient,
+                subject=subject,
+                status=EmailLog.Status.FAILED,
+                error_message=str(exc),
+                metadata=metadata,
+            )
         return False
+
+    for recipient in recipients:
+        EmailLog.objects.create(
+            template_key=TEMPLATE_KEY,
+            recipient=recipient,
+            subject=subject,
+            status=EmailLog.Status.SENT,
+            metadata=metadata,
+        )
+    logger.info(
+        'Sent payment status email (%s) for payment %s to %s',
+        to_status, payment_id, ', '.join(recipients),
+    )
+    return True

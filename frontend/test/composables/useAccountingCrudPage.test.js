@@ -83,6 +83,47 @@ describe('useAccountingCrudPage — lastMutatedId', () => {
   });
 });
 
+describe('useAccountingCrudPage — seeded (duplicate) form', () => {
+  it('creates instead of editing the record the seed was copied from', async () => {
+    const store = {
+      createRecord: jest.fn().mockResolvedValue({ success: true, data: { id: 11 } }),
+      updateRecord: jest.fn(),
+    };
+    const page = makePage(store);
+
+    page.openSeededModal({ concept: 'Kore - Hosting anual', kind: 'expected' });
+    expect(page.editingRecord.value).toBeNull();
+    expect(page.seedRecord.value).toMatchObject({ concept: 'Kore - Hosting anual' });
+
+    await page.handleSubmit({ concept: 'Kore - Hosting anual' });
+
+    expect(store.createRecord).toHaveBeenCalledWith(
+      'incomes', { concept: 'Kore - Hosting anual' },
+    );
+    expect(store.updateRecord).not.toHaveBeenCalled();
+  });
+
+  it('drops the seed on close, so the next Nuevo opens empty', () => {
+    const page = makePage({});
+
+    page.openSeededModal({ concept: 'Kore - Hosting anual' });
+    page.closeModal();
+
+    expect(page.seedRecord.value).toBeNull();
+    expect(page.isModalOpen.value).toBe(false);
+  });
+
+  it('drops the seed when an edit opens, so the edit is never seeded', () => {
+    const page = makePage({});
+
+    page.openSeededModal({ concept: 'Kore - Hosting anual' });
+    page.openEditModal({ id: 4, concept: 'Otro' });
+
+    expect(page.seedRecord.value).toBeNull();
+    expect(page.editingRecord.value).toMatchObject({ id: 4 });
+  });
+});
+
 describe('useAccountingCrudPage — runMutation success copy', () => {
   const notify = usePanelNotify();
 

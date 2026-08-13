@@ -126,7 +126,15 @@
         </template>
       </div>
 
-      <div class="px-6 py-4 border-t border-border-muted flex justify-end">
+      <div class="px-6 py-4 border-t border-border-muted flex justify-end gap-3">
+        <BaseButton
+          v-if="income"
+          variant="secondary"
+          data-testid="income-detail-duplicate"
+          @click="emit('duplicate', income)"
+        >
+          Duplicar
+        </BaseButton>
         <BaseButton variant="primary" @click="emit('close')">Cerrar</BaseButton>
       </div>
     </div>
@@ -152,7 +160,7 @@ const props = defineProps({
   incomeId: { type: [Number, String], default: null },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'duplicate']);
 
 const store = useAccountingStore();
 const detail = ref(null);

@@ -401,6 +401,26 @@ _ENTITY_FIELDS = {
         },
         'required': ['snapshot_date', 'card_name', 'available_amount'],
     },
+    'notification_recipient': {
+        'props': {
+            'email': {
+                'type': 'string',
+                'description': (
+                    'Correo destinatario. Se normaliza a minúsculas y no '
+                    'admite duplicados.'
+                ),
+            },
+            'is_active': {
+                'type': 'boolean',
+                'description': (
+                    'Si está en false el correo queda pausado: sigue en la '
+                    'lista pero no recibe ningún envío del módulo.'
+                ),
+            },
+            'notes': {'type': 'string'},
+        },
+        'required': ['email'],
+    },
 }
 
 _ENTITY_LABELS = {
@@ -411,6 +431,7 @@ _ENTITY_LABELS = {
     'recurring': 'pagos recurrentes',
     'ads': 'gasto en ads',
     'card_snapshot': 'snapshots de tarjeta',
+    'notification_recipient': 'destinatarios de notificación',
 }
 
 
@@ -566,17 +587,18 @@ _NON_CRUD_TOOLS = [
     {
         'name': 'update_settings',
         'description': (
-            'Actualiza (parcial) la configuración contable: notification_recipients '
-            '(lista de emails), notifications_enabled, card_reminder_enabled, '
+            'Actualiza (parcial) la configuración contable: '
+            'notifications_enabled (interruptor maestro de TODO el correo '
+            'automático del módulo), card_reminder_enabled, '
             'statement_reminder_enabled, hosting_expiry_reminder_enabled, '
             'payment_calendar_enabled, overdue_reminder_frequency '
             '(weekly|biweekly), usd_exchange_rate e income_default_view_mode '
-            '(classic|grouped).'
+            '(classic|grouped). Los destinatarios ya no viven acá: se '
+            'administran con las herramientas de notification_recipient.'
         ),
         'input_schema': {
             'type': 'object',
             'properties': {
-                'notification_recipients': {'type': 'array', 'items': {'type': 'string'}},
                 'notifications_enabled': {'type': 'boolean'},
                 'card_reminder_enabled': {'type': 'boolean'},
                 'statement_reminder_enabled': {'type': 'boolean'},

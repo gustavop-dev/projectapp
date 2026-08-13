@@ -30,6 +30,9 @@ from content.services.hosting_expiry_service import (
     collect_hosting_notices,
     mark_hosting_notices_sent,
 )
+from content.services.notification_recipient_service import (
+    active_recipient_emails,
+)
 from content.services.recurring_schedule import next_charge_date
 from content.utils import today_bogota
 
@@ -65,7 +68,7 @@ def run_payment_calendar(today=None):
     if not (incomes or recurring or hostings):
         return 0
 
-    recipients = [r for r in (config.notification_recipients or []) if r]
+    recipients = active_recipient_emails()
     if not recipients:
         # Do not advance any state: retry daily until recipients exist.
         logger.warning(

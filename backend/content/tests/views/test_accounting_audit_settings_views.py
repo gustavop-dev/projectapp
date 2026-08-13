@@ -87,32 +87,31 @@ class TestSettingsEndpoints:
     def test_get_returns_singleton_defaults(self, super_client):
         response = super_client.get('/api/accounting/settings/')
         assert response.status_code == 200
-        assert response.data['notification_recipients'] == []
         assert response.data['notifications_enabled'] is True
 
-    def test_update_recipients_and_audit_it(self, super_client):
-        """PATCH persists the recipients and writes a settings audit row."""
+    def test_recipients_are_not_part_of_the_settings_payload(self, super_client):
+        """They live in their own catalog; two writable copies would drift."""
+        response = super_client.get('/api/accounting/settings/')
+
+        assert 'notification_recipients' not in response.data
+
+    def test_update_frequency_and_audit_it(self, super_client):
+        """PATCH persists the change and writes a settings audit row."""
         response = super_client.patch(
             '/api/accounting/settings/update/',
-            {
-                'notification_recipients': [
-                    'gustavo@projectapp.co', 'carlos@projectapp.co',
-                ],
-            },
+            {'overdue_reminder_frequency': 'weekly'},
             format='json',
         )
         assert response.status_code == 200, response.data
-        assert response.data['notification_recipients'] == [
-            'gustavo@projectapp.co', 'carlos@projectapp.co',
-        ]
+        assert response.data['overdue_reminder_frequency'] == 'weekly'
         log = AccountingChangeLog.objects.get(entity_type='settings')
         assert log.action == 'updated'
-        assert log.changes[0]['field'] == 'notification_recipients'
+        assert log.changes[0]['field'] == 'overdue_reminder_frequency'
 
-    def test_update_rejects_invalid_email(self, super_client):
+    def test_update_rejects_invalid_frequency(self, super_client):
         response = super_client.patch(
             '/api/accounting/settings/update/',
-            {'notification_recipients': ['no-es-email']},
+            {'overdue_reminder_frequency': 'cada-rato'},
             format='json',
         )
         assert response.status_code == 400

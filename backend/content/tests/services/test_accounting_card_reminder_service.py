@@ -5,7 +5,12 @@ from decimal import Decimal
 import pytest
 from django.core import mail
 
-from content.models import AccountingSettings, CardBalanceSnapshot, EmailLog
+from content.models import (
+    AccountingSettings,
+    CardBalanceSnapshot,
+    EmailLog,
+    NotificationRecipient,
+)
 from content.services.accounting_card_reminder_service import (
     cycle_friday,
     run_card_reminder,
@@ -16,8 +21,11 @@ FRIDAY = date(2026, 7, 3)
 
 @pytest.fixture
 def reminder_settings(db):
+    # Migration 0191 seeds two production inboxes into every test database.
+    NotificationRecipient.objects.all().delete()
+    for email in ('gustavo@test.com', 'carlos@test.com'):
+        NotificationRecipient.objects.create(email=email)
     config = AccountingSettings.load()
-    config.notification_recipients = ['gustavo@test.com', 'carlos@test.com']
     config.notifications_enabled = True
     config.card_reminder_enabled = True
     config.save()
@@ -113,8 +121,7 @@ class TestRunCardReminder:
         assert run_card_reminder(today=FRIDAY) is False
 
     def test_no_recipients_does_not_mark_cycle(self, reminder_settings):
-        reminder_settings.notification_recipients = []
-        reminder_settings.save()
+        NotificationRecipient.objects.all().delete()
         assert run_card_reminder(today=FRIDAY) is False
         config = AccountingSettings.load()
         assert config.card_reminder_cycle_start is None

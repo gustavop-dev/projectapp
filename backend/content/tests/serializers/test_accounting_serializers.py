@@ -7,6 +7,7 @@ import pytest
 from content.models import (
     HostingRecord,
     IncomeRecord,
+    NotificationRecipient,
     PocketMovement,
     RecurringPayment,
 )
@@ -18,6 +19,7 @@ from content.serializers.accounting import (
     HostingRecordCreateUpdateSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
+    NotificationRecipientCreateUpdateSerializer,
     PocketMovementCreateUpdateSerializer,
     RecurringPaymentCreateUpdateSerializer,
     month_label,
@@ -493,19 +495,69 @@ class TestEntityDefaults:
 
 @pytest.mark.django_db
 class TestSettingsSerializer:
-    def test_rejects_invalid_recipient_email(self):
-        serializer = AccountingSettingsSerializer(data={
-            'notification_recipients': ['not-an-email'],
-        })
+    def test_rejects_an_out_of_range_usd_rate(self):
+        serializer = AccountingSettingsSerializer(data={'usd_exchange_rate': '0'})
         assert not serializer.is_valid()
-        assert 'notification_recipients' in serializer.errors
+        assert 'usd_exchange_rate' in serializer.errors
 
-    def test_accepts_valid_recipient_list(self):
+    def test_accepts_the_master_switch(self):
         serializer = AccountingSettingsSerializer(data={
-            'notification_recipients': ['gustavo@test.com', 'carlos@test.com'],
             'notifications_enabled': True,
         })
         assert serializer.is_valid(), serializer.errors
+
+    def test_ignores_a_recipient_list_sent_by_an_old_client(self):
+        """Recipients moved to their own catalog; the key must not resurface."""
+        serializer = AccountingSettingsSerializer(data={
+            'notification_recipients': ['gustavo@test.com'],
+            'notifications_enabled': True,
+        })
+
+        assert serializer.is_valid(), serializer.errors
+        assert 'notification_recipients' not in serializer.validated_data
+
+
+@pytest.mark.django_db
+class TestNotificationRecipientSerializer:
+    @pytest.fixture(autouse=True)
+    def _drop_seeded_recipients(self, db):
+        """Migration 0191 seeds two inboxes into every fresh test database."""
+        NotificationRecipient.objects.all().delete()
+
+    def test_normalizes_case_and_whitespace(self):
+        serializer = NotificationRecipientCreateUpdateSerializer(
+            data={'email': '  Carlos18BP@Gmail.COM '},
+        )
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['email'] == 'carlos18bp@gmail.com'
+
+    def test_rejects_a_duplicate_ignoring_case(self):
+        NotificationRecipient.objects.create(email='team@projectapp.co')
+
+        serializer = NotificationRecipientCreateUpdateSerializer(
+            data={'email': 'TEAM@ProjectApp.co'},
+        )
+
+        assert not serializer.is_valid()
+        assert serializer.errors['email'] == ['Ese correo ya está en la lista.']
+
+    def test_a_row_does_not_collide_with_itself_on_update(self):
+        row = NotificationRecipient.objects.create(email='ana@test.com')
+
+        serializer = NotificationRecipientCreateUpdateSerializer(
+            row, data={'email': 'ana@test.com'}, partial=True,
+        )
+
+        assert serializer.is_valid(), serializer.errors
+
+    def test_rejects_a_malformed_address(self):
+        serializer = NotificationRecipientCreateUpdateSerializer(
+            data={'email': 'no-es-un-correo'},
+        )
+
+        assert not serializer.is_valid()
+        assert 'email' in serializer.errors
 
 
 @pytest.mark.django_db

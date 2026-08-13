@@ -19,6 +19,12 @@ const props = defineProps({
    * chosen: a second picker there would be redundant and could contradict it.
    */
   lockedClient: { type: Object, default: null },
+  /**
+   * Prefill for a form that still creates: duplicating an income opens here
+   * with the original's data but no `record`, so saving POSTs a new row
+   * instead of editing the one it was copied from.
+   */
+  seed: { type: Object, default: null },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -36,7 +42,11 @@ const originOptions = [
 ]
 
 const isEdit = computed(() => !!props.record)
-const title = computed(() => (isEdit.value ? 'Editar Ingreso' : 'Nuevo Ingreso'))
+const isDuplicate = computed(() => !props.record && !!props.seed)
+const title = computed(() => {
+  if (isEdit.value) return 'Editar Ingreso'
+  return isDuplicate.value ? 'Duplicar Ingreso' : 'Nuevo Ingreso'
+})
 
 const kindOptions = [
   { value: 'expected', label: 'Esperado' },
@@ -79,36 +89,51 @@ const exactDate = ref(true)
 
 const isPersonal = computed(() => form.value.ledger !== 'company')
 
+// Only while the proposed date is untouched: once it changes, the hint would
+// be describing a date that is no longer the one the hosting cycle produced.
+const showsCycleHint = computed(
+  () => isDuplicate.value
+    && props.seed?.period_date_source === 'hosting_cycle'
+    && form.value.period_date === props.seed.period_date,
+)
+
+/**
+ * Copy the fields the form owns out of an existing income — the record being
+ * edited, or the draft a duplicate was seeded with. A duplicate may arrive
+ * with no `period_date` (nothing to propose): it stays empty and the field's
+ * `required` forces a date before saving.
+ */
+function applyRecord(source) {
+  form.value = {
+    concept: source.concept ?? '',
+    kind: source.kind ?? 'expected',
+    period_date: source.period_date ?? '',
+    destination: source.destination ?? 'partners',
+    ledger: source.ledger ?? 'company',
+    client: source.client ?? null,
+    project: source.project ?? null,
+    client_name: source.client_name ?? '',
+    origin: source.origin ?? '',
+    total_amount: source.total_amount ?? '',
+    gustavo_amount: source.gustavo_amount ?? '',
+    carlos_amount: source.carlos_amount ?? '',
+    notes: source.notes ?? '',
+  }
+}
+
 watch(
-  () => [props.open, props.record],
+  () => [props.open, props.record, props.seed],
   () => {
     if (!props.open) return
-    if (props.record) {
-      // Prefill from the raw period_date — `period` is 'YYYY-MM' and would
-      // silently reset the day to the 1st on every edit. Edits always open
-      // in full-date mode showing the stored day (01 for month-only
-      // records, whose real day was never captured); the toggle still
-      // downgrades when only the month is known.
-      exactDate.value = true
-      form.value = {
-        concept: props.record.concept ?? '',
-        kind: props.record.kind ?? 'expected',
-        period_date: props.record.period_date ?? '',
-        destination: props.record.destination ?? 'partners',
-        ledger: props.record.ledger ?? 'company',
-        client: props.record.client ?? null,
-        project: props.record.project ?? null,
-        client_name: props.record.client_name ?? '',
-        origin: props.record.origin ?? '',
-        total_amount: props.record.total_amount ?? '',
-        gustavo_amount: props.record.gustavo_amount ?? '',
-        carlos_amount: props.record.carlos_amount ?? '',
-        notes: props.record.notes ?? '',
-      }
-    } else {
-      exactDate.value = true
-      form.value = defaultForm()
-    }
+    // Prefill from the raw period_date — `period` is 'YYYY-MM' and would
+    // silently reset the day to the 1st on every edit. Edits always open
+    // in full-date mode showing the stored day (01 for month-only
+    // records, whose real day was never captured); the toggle still
+    // downgrades when only the month is known.
+    exactDate.value = true
+    const source = props.record || props.seed
+    if (source) applyRecord(source)
+    else form.value = defaultForm()
     inlineClientOpen.value = false
     if (props.lockedClient) {
       form.value.client = props.lockedClient.id ?? null
@@ -245,15 +270,24 @@ function onSubmit() {
         <BaseFormField label="Tipo" required>
           <BaseSegmented v-model="form.kind" :options="kindOptions" full-width />
         </BaseFormField>
-        <PeriodDateField
-          v-model="form.period_date"
-          v-model:exact="exactDate"
-          label-exact="Fecha"
-          label-month="Mes"
-          required
-          input-testid="income-form-period"
-          toggle-testid="income-form-exact-date"
-        />
+        <div>
+          <PeriodDateField
+            v-model="form.period_date"
+            v-model:exact="exactDate"
+            label-exact="Fecha"
+            label-month="Mes"
+            required
+            input-testid="income-form-period"
+            toggle-testid="income-form-exact-date"
+          />
+          <p
+            v-if="showsCycleHint"
+            class="mt-1 text-xs text-text-subtle"
+            data-testid="income-form-period-hint"
+          >
+            Siguiente ciclo del hosting. Ajústala si no corresponde.
+          </p>
+        </div>
       </div>
 
       <BaseFormField label="Contabilidad">

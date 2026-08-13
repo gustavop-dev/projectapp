@@ -57,9 +57,7 @@ class TestPartnerSplit:
 @pytest.mark.django_db
 class TestAccountingSettings:
     def test_save_forces_pk_1(self):
-        settings_obj = AccountingSettings(
-            notification_recipients=['a@test.com'],
-        )
+        settings_obj = AccountingSettings(notifications_enabled=False)
         settings_obj.pk = 99
         settings_obj.save()
         assert settings_obj.pk == 1

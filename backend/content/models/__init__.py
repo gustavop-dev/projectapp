@@ -82,6 +82,7 @@ from .credit_card_statement import (
     normalize_descriptor,
 )
 from .accounting_settings import AccountingSettings
+from .notification_recipient import NotificationRecipient
 from .view_map import ViewMapSettings
 from .mcp_connector import McpConnector
 from .mcp_request_log import McpRequestLog

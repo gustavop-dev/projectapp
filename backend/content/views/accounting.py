@@ -26,10 +26,12 @@ from content.models import (
     CreditCard,
     CreditCardStatement,
     Document,
+    EmailLog,
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
     MerchantAlias,
+    NotificationRecipient,
     PocketMovement,
     RecurringCategory,
     RecurringPayment,
@@ -46,6 +48,8 @@ from content.serializers.accounting import (
     CardBalanceSnapshotSerializer,
     CreditCardCreateUpdateSerializer,
     CreditCardSerializer,
+    EMAIL_TEMPLATE_LABELS,
+    EmailLogSerializer,
     ExpenseRecordCreateUpdateSerializer,
     ExpenseRecordSerializer,
     HostingCycleCreateSerializer,
@@ -58,6 +62,8 @@ from content.serializers.accounting import (
     IncomeClientBulkAssignSerializer,
     IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
+    NotificationRecipientCreateUpdateSerializer,
+    NotificationRecipientSerializer,
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
@@ -70,6 +76,7 @@ from content.serializers.accounting_statement import (
     MerchantAliasWriteSerializer,
 )
 from content.services import (
+    accounting_income_duplicate_service,
     accounting_income_mute_service,
     accounting_service,
     accounting_settlement_service,
@@ -378,6 +385,16 @@ _ENTITIES = {
         'amount_field': None,
         'search_fields': ('match_text', 'merchant_name', 'notes'),
         'choice_filters': ('default_category',),
+    },
+    'notification_recipient': {
+        'entity_type': EntityType.NOTIFICATION_RECIPIENT,
+        'model': NotificationRecipient,
+        'read': NotificationRecipientSerializer,
+        'write': NotificationRecipientCreateUpdateSerializer,
+        'date_field': None,
+        'amount_field': None,
+        'search_fields': ('email', 'notes'),
+        'bool_filters': ('is_active',),
     },
 }
 
@@ -780,6 +797,21 @@ def mute_income_reminders(request, record_id):
         user=request.user,
     )
     return Response(IncomeRecordSerializer(income).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def duplicate_income_draft(request, record_id):
+    """Prefill for duplicating an income, so the next period is one click.
+
+    Persists nothing: the panel opens its form with this payload and the
+    record is created through the ordinary create endpoint after the date and
+    the amount are confirmed.
+    """
+    income = get_object_or_404(IncomeRecord, pk=record_id)
+    return Response(
+        accounting_income_duplicate_service.build_income_duplicate_draft(income),
+    )
 
 
 @api_view(['POST'])
@@ -1238,6 +1270,89 @@ def list_accounting_change_logs(request):
     serializer = AccountingChangeLogSerializer(
         logs[offset:offset + page_size], many=True,
     )
+    return Response({
+        'results': serializer.data,
+        'count': total,
+        'page': page,
+        'num_pages': num_pages,
+    })
+
+
+# ── Notification recipients ──
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_notification_recipients(request):
+    return _list_records(request, 'notification_recipient')
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def create_notification_recipient(request):
+    return _create_record(request, 'notification_recipient')
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def retrieve_notification_recipient(request, record_id):
+    return _retrieve_record(request, 'notification_recipient', record_id)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsSuperUser])
+def update_notification_recipient(request, record_id):
+    return _update_record(request, 'notification_recipient', record_id)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_notification_recipient(request, record_id):
+    return _delete_record(request, 'notification_recipient', record_id)
+
+
+# ── Email send log (paginated) ──
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def list_accounting_email_logs(request):
+    """Which addresses each automated email of the module went out to.
+
+    Scoped to the module's own template keys so the proposal traffic that
+    shares the EmailLog table stays out. Paginated 20 per page like the
+    change log — it grows unbounded.
+    """
+    logs = EmailLog.objects.filter(template_key__in=EMAIL_TEMPLATE_LABELS)
+    params = request.query_params
+    try:
+        if params.get('template_key'):
+            logs = logs.filter(template_key=params['template_key'])
+        if params.get('status'):
+            logs = logs.filter(status=params['status'])
+        if params.get('recipient'):
+            logs = logs.filter(recipient__icontains=params['recipient'])
+        if params.get('date_from'):
+            logs = logs.filter(
+                sent_at__date__gte=_parse_date(
+                    params['date_from'], 'date_from',
+                ),
+            )
+        if params.get('date_to'):
+            logs = logs.filter(
+                sent_at__date__lte=_parse_date(params['date_to'], 'date_to'),
+            )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+
+    total = logs.count()
+    try:
+        page = max(1, int(params.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    page_size = 20
+    offset = (page - 1) * page_size
+    num_pages = max(1, -(-total // page_size))
+
+    serializer = EmailLogSerializer(logs[offset:offset + page_size], many=True)
     return Response({
         'results': serializer.data,
         'count': total,

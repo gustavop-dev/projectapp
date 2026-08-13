@@ -315,10 +315,11 @@
       @submit="applyClientToSelection"
     />
 
-    <!-- Create/edit modal -->
+    <!-- Create/edit modal (also the duplicate form, seeded and creating) -->
     <IncomeFormModal
       :open="isModalOpen"
       :record="editingRecord"
+      :seed="seedRecord"
       :saving="store.isUpdating"
       @close="closeModal"
       @submit="handleSubmit"
@@ -331,6 +332,7 @@
       @close="actionsOpen = false"
       @detail="openIncomeDetail"
       @edit="openEditModal"
+      @duplicate="duplicateIncome"
       @liquidate="openLiquidateModal"
       @generate-collection="openCollectionModal"
       @view-collection="goToCollectionAccount"
@@ -344,6 +346,7 @@
       :open="detailOpen"
       :income-id="detailIncomeId"
       @close="detailOpen = false"
+      @duplicate="duplicateIncome"
     />
 
     <!-- Liquidate modal: settles an expected income into a linked liquid one -->
@@ -424,6 +427,7 @@ import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.v
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
@@ -448,6 +452,7 @@ import {
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const notify = usePanelNotify();
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
 const INCOME_ENTITY = { singular: 'ingreso', plural: 'ingresos' };
@@ -716,9 +721,11 @@ const filteredRecords = computed(() => applyFilters(store.incomes));
 const {
   isModalOpen,
   editingRecord,
+  seedRecord,
   openCreateModal,
   lastMutatedId,
   openEditModal,
+  openSeededModal,
   closeModal,
   handleSubmit,
   confirmDeleteRecord,
@@ -1043,6 +1050,25 @@ const detailIncomeId = ref(null);
 function openIncomeDetail(row) {
   detailIncomeId.value = row.id;
   detailOpen.value = true;
+}
+
+/**
+ * Open the next period of a recurring income: the server builds the prefill
+ * (always expected, with the hosting cycle's date when it can work it out)
+ * and the form opens on it. Nothing is written until Guardar, which is the
+ * point — the date almost always needs a look first.
+ */
+async function duplicateIncome(row) {
+  const result = await store.fetchIncomeDuplicateDraft(row.id);
+  if (!result.success) {
+    notify.error({
+      title: 'No se pudo preparar el duplicado',
+      detail: result.message || '',
+    });
+    return;
+  }
+  detailOpen.value = false;
+  openSeededModal(result.data);
 }
 
 function toggleMute(row) {

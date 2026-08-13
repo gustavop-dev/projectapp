@@ -16,7 +16,6 @@ from django.core.management.base import BaseCommand
 from accounts.models import Project, UserProfile
 
 from content.models import (
-    AccountingSettings,
     CreditCardStatement,
     CreditCardTransaction,
     MerchantAlias,
@@ -28,6 +27,7 @@ from content.models import (
     HostingRecord,
     IncomeRecord,
     Ledger,
+    NotificationRecipient,
     PocketMovement,
     RecurringCategory,
     RecurringPayment,
@@ -478,12 +478,22 @@ class Command(BaseCommand):
                 )
                 created += 1 + len(transactions)
 
-        settings_obj = AccountingSettings.load()
-        if not settings_obj.notification_recipients:
-            settings_obj.notification_recipients = [
-                'gustavo@example.com', 'carlos@example.com',
-            ]
-            settings_obj.save()
+        # One paused recipient on purpose: the panel's per-recipient toggle
+        # is only exercised when the seeded list has both states.
+        if not NotificationRecipient.objects.exists():
+            NotificationRecipient.objects.bulk_create([
+                NotificationRecipient(
+                    email='gustavo@example.com',
+                    is_active=True,
+                    source_ref=FAKE_REF,
+                ),
+                NotificationRecipient(
+                    email='carlos@example.com',
+                    is_active=False,
+                    source_ref=FAKE_REF,
+                ),
+            ])
+            created += 2
 
         self.stdout.write(self.style.SUCCESS(
             f'Created {created} fake accounting rows (source_ref={FAKE_REF}).',

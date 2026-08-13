@@ -27,6 +27,10 @@ const ACCOUNTING_ENTITIES = {
   creditCards: { stateKey: 'creditCards', path: 'accounting/credit-cards/' },
   statements: { stateKey: 'statements', path: 'accounting/statements/' },
   merchantAliases: { stateKey: 'merchantAliases', path: 'accounting/merchant-aliases/' },
+  notificationRecipients: {
+    stateKey: 'notificationRecipients',
+    path: 'accounting/notification-recipients/',
+  },
 };
 
 function entityConfig(entity) {
@@ -56,6 +60,7 @@ export const useAccountingStore = defineStore('accounting', {
    * - metas (Object): list meta per entity key (balance, totals...).
    * - summary (Object|null): dashboard payload for selectedYear.
    * - changelog (Object): paginated audit log {results, count, page, numPages}.
+   * - emailLog (Object): paginated send log, same shape as changelog.
    * - settings (Object|null): notification settings singleton.
    */
   state: () => ({
@@ -75,6 +80,7 @@ export const useAccountingStore = defineStore('accounting', {
     projectsByClient: {},
     statements: [],
     merchantAliases: [],
+    notificationRecipients: [],
     statementStatus: null,
     statementDetail: null,
     metas: {},
@@ -82,6 +88,7 @@ export const useAccountingStore = defineStore('accounting', {
     stats: null,
     statsYear: null,
     changelog: { results: [], count: 0, page: 1, numPages: 1 },
+    emailLog: { results: [], count: 0, page: 1, numPages: 1 },
     settings: null,
     selectedYear: new Date().getFullYear(),
     isLoading: false,
@@ -716,6 +723,34 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * fetchEmailLog: Paginated send log of the module's automated email
+     * with optional filters ({page, template_key, status, recipient,
+     * date_from, date_to}). Answers "who did this notice actually go to".
+     */
+    async fetchEmailLog(params = {}) {
+      this.isLoading = true;
+      this.error = null;
+      try {
+        const response = await get_request(
+          `accounting/email-log/${buildQuery(params)}`,
+        );
+        this.emailLog = {
+          results: response.data.results,
+          count: response.data.count,
+          page: response.data.page,
+          numPages: response.data.num_pages,
+        };
+        return { success: true, data: this.emailLog };
+      } catch (error) {
+        this.error = 'email_log_failed';
+        console.error('Error fetching accounting email log:', error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
+    /**
      * fetchSettings: Notification settings singleton.
      */
     async fetchSettings() {
@@ -802,6 +837,23 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error(`Error fetching income detail ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * Prefill for duplicating an income — the next period of a recurring
+     * charge. Persists nothing: the form opens with this and the record is
+     * created through the ordinary create endpoint once it is confirmed.
+     */
+    async fetchIncomeDuplicateDraft(id) {
+      try {
+        const response = await get_request(
+          `accounting/incomes/${id}/duplicate-draft/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching income duplicate draft ${id}:`, error);
         return { success: false, ...normalizeApiError(error) };
       }
     },
