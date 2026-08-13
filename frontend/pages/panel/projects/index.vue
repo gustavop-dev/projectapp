@@ -118,6 +118,35 @@
             {{ formatDate(row.created_at) }}
           </span>
         </template>
+        <!-- Counts jump into the accounting tabs pre-filtered by this project.
+             Superuser-gated links: the target pages are superuser-only. -->
+        <template #cell-hostings_count="{ row }">
+          <NuxtLink
+            v-if="isSuperuser && row.hostings_count > 0"
+            :to="{ path: '/panel/accounting/hostings', query: { project: row.id } }"
+            class="text-text-brand hover:underline tabular-nums"
+            :data-testid="`project-hostings-link-${row.id}`"
+            @click.stop
+          >
+            {{ row.hostings_count }}
+          </NuxtLink>
+          <span v-else class="tabular-nums text-text-muted">{{ row.hostings_count }}</span>
+        </template>
+        <template #cell-incomes_count="{ row }">
+          <NuxtLink
+            v-if="isSuperuser && row.incomes_count > 0"
+            :to="{
+              path: '/panel/accounting/incomes',
+              query: { accounting_incomeTab: 'all', project: row.id },
+            }"
+            class="text-text-brand hover:underline tabular-nums"
+            :data-testid="`project-incomes-link-${row.id}`"
+            @click.stop
+          >
+            {{ row.incomes_count }}
+          </NuxtLink>
+          <span v-else class="tabular-nums text-text-muted">{{ row.incomes_count }}</span>
+        </template>
         <template #cell-row_actions="{ row }">
           <BaseButton
             variant="ghost"
@@ -271,12 +300,17 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
+import { useProposalsStore } from '~/stores/proposals';
 import { normalizeName } from '~/utils/clientMatch';
 import { formatDate } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = usePanelProjectsStore();
+// The count links point at superuser-only accounting pages; hide them from
+// plain admins (same flag the sidebar uses).
+const proposalStore = useProposalsStore();
+const isSuperuser = computed(() => proposalStore.isSuperuser);
 
 // ── Scope + search (client-side over the full list, like the accounting tabs;
 //    no saved tabs here on purpose — a BaseSegmented covers the module) ──
