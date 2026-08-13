@@ -41,6 +41,12 @@ export function useConfirmModal() {
     secondaryText: '',
     secondaryVariant: 'secondary',
     secondaryHint: '',
+    // Sólo con `waitForConfirm: true`: el modal queda abierto y `busy` mientras
+    // corre onConfirm (spinner en el botón, sin doble-submit). El camino
+    // default —cerrar primero, correr después— queda intacto para los ~25
+    // call sites existentes.
+    waitForConfirm: false,
+    busy: false,
     onConfirm: null,
     onSecondary: null,
     _resolve: null,
@@ -54,6 +60,7 @@ export function useConfirmModal() {
   function requestConfirm({
     title, message, confirmText, cancelText, variant, requireTypeText, hideCancel,
     onConfirm, secondaryText, secondaryVariant, secondaryHint, onSecondary,
+    waitForConfirm,
   }) {
     return new Promise((resolve) => {
       confirmState.value = {
@@ -68,6 +75,8 @@ export function useConfirmModal() {
         secondaryText: secondaryText || '',
         secondaryVariant: secondaryVariant || 'secondary',
         secondaryHint: secondaryHint || '',
+        waitForConfirm: Boolean(waitForConfirm),
+        busy: false,
         onConfirm: onConfirm || null,
         onSecondary: onSecondary || null,
         _resolve: resolve,
@@ -78,6 +87,17 @@ export function useConfirmModal() {
   async function handleConfirmed() {
     const fn = confirmState.value.onConfirm
     const resolve = confirmState.value._resolve
+    if (fn && confirmState.value.waitForConfirm) {
+      confirmState.value.busy = true
+      try {
+        await fn()
+      } finally {
+        confirmState.value.busy = false
+        confirmState.value.open = false
+      }
+      if (resolve) resolve(true)
+      return
+    }
     confirmState.value.open = false
     if (fn) await fn()
     if (resolve) resolve(true)
@@ -94,6 +114,8 @@ export function useConfirmModal() {
   }
 
   function handleCancelled() {
+    // Con la acción en vuelo no hay cancelación: el modal ya la despachó.
+    if (confirmState.value.busy) return
     const resolve = confirmState.value._resolve
     confirmState.value.open = false
     confirmState.value.onConfirm = null

@@ -200,6 +200,27 @@ describe('useDocumentFolderStore', () => {
       expect(result.archivedDocuments).toBe(7)
     })
 
+    it('archiveFolder failure returns a normalized message for the toast', async () => {
+      patch_request.mockRejectedValueOnce({
+        response: { status: 500, data: { detail: 'boom' } },
+      })
+
+      const result = await store.archiveFolder(4)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('boom')
+      expect(result.errors).toEqual({ detail: 'boom' })
+    })
+
+    it('unarchiveFolder failure falls back to a Spanish message', async () => {
+      patch_request.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.unarchiveFolder(4)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo restaurar la carpeta.')
+    })
+
     it('unarchiveFolder reports the ancestor chain it reopened', async () => {
       patch_request.mockResolvedValueOnce({
         data: {

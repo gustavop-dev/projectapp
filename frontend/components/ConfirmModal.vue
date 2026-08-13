@@ -2,8 +2,8 @@
   <BaseModal
     :model-value="modelValue"
     :size="size"
-    :close-on-backdrop="!hideCancel"
-    :close-on-esc="!hideCancel"
+    :close-on-backdrop="!hideCancel && !loading"
+    :close-on-esc="!hideCancel && !loading"
     @update:model-value="(v) => !v && handleCancel()"
   >
     <!-- Header -->
@@ -65,6 +65,7 @@
         v-if="!hideCancel"
         variant="ghost"
         size="md"
+        :disabled="loading"
         @click="handleCancel"
       >
         {{ cancelText }}
@@ -77,6 +78,7 @@
         v-if="secondaryText"
         :variant="secondaryVariant"
         size="md"
+        :disabled="loading"
         data-testid="confirm-modal-secondary"
         @click="handleSecondary"
       >
@@ -86,7 +88,8 @@
         :variant="variant === 'danger' ? 'danger' : 'primary'"
         size="md"
         data-testid="confirm-modal-confirm"
-        :disabled="!canConfirm"
+        :disabled="!canConfirm || loading"
+        :loading="loading"
         @click="handleConfirm"
       >
         {{ confirmText }}
@@ -133,6 +136,9 @@ const props = defineProps({
     validator: oneOf(['secondary', 'ghost', 'primary']),
   },
   secondaryHint: { type: String, default: '' },
+  // Acción de confirmación en vuelo (opt-in del composable): el botón gira,
+  // el resto se bloquea y el modal no se puede cerrar hasta que termine.
+  loading: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:modelValue', 'confirm', 'cancel', 'secondary'])
@@ -166,6 +172,7 @@ function handleSecondary() {
 }
 
 function handleCancel() {
+  if (props.loading) return
   emit('cancel')
   emit('update:modelValue', false)
 }

@@ -160,6 +160,16 @@ describe('useDocumentStore', () => {
       expect(store.activeTagIds).toEqual([1, 3])
       expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=1%2C3')
     })
+
+    it('keeps the archived scope when toggling a tag', async () => {
+      // Togglear una etiqueta dentro de Archivados no debe devolver al usuario
+      // a la vista de activos: el scope viaja explícito en el refetch.
+      store.archiveScope = 'archived'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.toggleTagFilter(8)
+      expect(store.activeTagIds).toEqual([8])
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&tags=8')
+    })
   })
 
   describe('fetchDocument', () => {
@@ -460,6 +470,41 @@ describe('useDocumentStore', () => {
       resolveFirst({ data: [{ id: 1 }] })
       await first
 
+      expect(store.searchResults).toEqual([{ id: 2 }])
+    })
+
+    it('turns the search loading flag on while searching and off when done', async () => {
+      let resolve
+      get_request.mockReturnValueOnce(new Promise((r) => { resolve = r }))
+
+      const pending = store.searchDocuments('mapeo')
+      expect(store.isSearchLoading).toBe(true)
+
+      resolve({ data: [] })
+      await pending
+
+      expect(store.isSearchLoading).toBe(false)
+    })
+
+    it('a stale search response neither clears the flag nor writes results', async () => {
+      let resolveFirst
+      let resolveSecond
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveSecond = r }))
+
+      const first = store.searchDocuments('ma')
+      const second = store.searchDocuments('mapeo')
+      resolveFirst({ data: [{ id: 1 }] })
+      await first
+
+      // La búsqueda vieja terminó, pero la vigente sigue en vuelo.
+      expect(store.isSearchLoading).toBe(true)
+      expect(store.searchResults).toEqual([])
+
+      resolveSecond({ data: [{ id: 2 }] })
+      await second
+
+      expect(store.isSearchLoading).toBe(false)
       expect(store.searchResults).toEqual([{ id: 2 }])
     })
   })

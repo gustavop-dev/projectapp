@@ -501,6 +501,23 @@ async function refreshDashboard() {
   refreshing.value = false;
 }
 
+/**
+ * Invalidación desde afuera (el refreshData de la página tras una mutación):
+ * abierto refetchea ya; cerrado pero ya cargado, marca la caché como vieja
+ * para que la próxima apertura refetchee en vez de servir KPIs de antes de
+ * la mutación. Nunca cargado: no-op, el watch de apertura se encarga.
+ */
+function refreshIfLoaded() {
+  if (!fetched) return;
+  if (isOpen.value) {
+    refreshDashboard();
+  } else {
+    fetched = false;
+  }
+}
+
+defineExpose({ refreshIfLoaded });
+
 function startAutoRefresh() {
   stopAutoRefresh();
   autoRefreshTimer = setInterval(() => {

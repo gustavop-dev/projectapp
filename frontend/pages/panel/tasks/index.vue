@@ -320,7 +320,15 @@ async function handleArchive(task, reason) {
   const result = await taskStore.archiveTask(task.id, reason);
   if (result.success) {
     showModal.value = false;
-    taskStore.archivedTasks = [];
+    // Con el acordeón abierto se refetchea de una: vaciar la lista dejaba
+    // "No hay tareas archivadas" en pantalla con la tarea recién archivada
+    // existiendo en el servidor. Cerrado, vaciar conserva la lazy-load de
+    // toggleArchive (al abrir con lista vacía, refetchea).
+    if (archiveOpen.value) {
+      await taskStore.fetchArchivedTasks();
+    } else {
+      taskStore.archivedTasks = [];
+    }
     notify.success({ title: 'Tarea archivada' });
   } else {
     notifyTaskFailure(result, 'No se pudo archivar la tarea');

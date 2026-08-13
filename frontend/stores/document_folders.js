@@ -3,6 +3,7 @@ import { isRootInScope, matchesScope } from '~/utils/archiveScope';
 import {
   get_request, create_request, patch_request, delete_request,
 } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 export const useDocumentFolderStore = defineStore('documentFolders', {
   state: () => ({
@@ -157,7 +158,11 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       } catch (error) {
         this.error = 'archive_folder_failed';
         console.error('Error archiving folder:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo archivar la carpeta.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -185,7 +190,11 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       } catch (error) {
         this.error = 'unarchive_folder_failed';
         console.error('Error unarchiving folder:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo restaurar la carpeta.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;

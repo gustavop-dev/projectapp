@@ -19,6 +19,8 @@ const props = defineProps({
   // fecha, arrastre) lo decide `is_archived` de cada fila: con `scope='all'` y
   // con la búsqueda global la lista es mixta.
   scope: { type: String, default: 'active' },
+  // Mutación en vuelo: los botones de restaurar giran y quedan inertes.
+  updating: { type: Boolean, default: false },
 })
 
 const emit = defineEmits([
@@ -88,6 +90,8 @@ function archivedContentCount(folder) {
               v-if="sub.is_archived"
               variant="secondary"
               size="sm"
+              :loading="updating"
+              :disabled="updating"
               data-testid="folder-unarchive"
               @click="emit('unarchive-folder', sub)"
             >

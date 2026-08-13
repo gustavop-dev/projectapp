@@ -41,6 +41,7 @@
           <svg v-if="isDragging" class="w-3 h-3 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
+          <span v-else class="text-xs text-text-subtle">{{ unfiledCount }}</span>
         </button>
       </li>
 
@@ -172,6 +173,7 @@
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
           :class="archivedEntryActive ? ACTIVE_CLASS : INACTIVE_CLASS"
+          :aria-current="archivedEntryActive ? 'location' : undefined"
           data-testid="folder-archived-entry"
           @click="$emit('select', 'archived')"
         >
@@ -209,6 +211,7 @@ const props = defineProps({
   archiveScope: { type: String, default: 'active' },
   totalCount: { type: Number, default: 0 },
   archivedCount: { type: Number, default: 0 },
+  unfiledCount: { type: Number, default: 0 },
   isDragging: { type: Boolean, default: false },
   draggingFolderId: { type: [String, Number], default: null },
 });
@@ -230,6 +233,9 @@ const ACTIVE_CLASS = 'bg-primary-soft text-text-brand font-medium';
 const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted';
 
 function entryClass(id) {
+  // Regla de resaltado único: en scope archivado manda la entrada «Archivados»
+  // — una carpeta activa encendida a la vez señalaría dos lugares distintos.
+  if (props.archiveScope === 'archived') return INACTIVE_CLASS;
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
 }
 
@@ -243,11 +249,11 @@ function deleteTooltip(folder) {
     + 'Archívala en su lugar.';
 }
 
-// «Archivados» es un atajo sobre los dos ejes, no una carpeta: se apaga en
-// cuanto se entra a una subcarpeta y el breadcrumb toma el relevo.
-const archivedEntryActive = computed(
-  () => props.archiveScope === 'archived' && props.activeId === 'root',
-);
+// «Archivados» permanece encendida mientras el scope sea archivado, a
+// CUALQUIER profundidad: el sidebar dice siempre dónde se está y el
+// breadcrumb da la ruta exacta. (Antes se apagaba al entrar a una subcarpeta
+// y ninguna fila quedaba señalada — la vista no decía dónde estaba parada.)
+const archivedEntryActive = computed(() => props.archiveScope === 'archived');
 
 function dropZoneClass(id) {
   // Acepta documentos (props.isDragging) o carpetas en arrastre para anidar.

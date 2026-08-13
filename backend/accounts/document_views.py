@@ -40,12 +40,14 @@ def _visible_docs_qs(request):
     Excludes commercial collection accounts (those have their own portal).
     Admins see every published portal document; clients only their own.
 
-    No filtra por `is_archived` a propósito: archivar es una herramienta de
-    orden del panel admin y no cambia lo que el cliente ve en su portal.
+    Excluye lo archivado (decisión del operador, 13-ago-2026): archivar en el
+    panel retira el documento del portal — también cuando lo arrastra la
+    cascada de una carpeta. Restaurarlo lo devuelve tal cual. Este helper es
+    el único queryset del portal (lista/detalle/PDF/firma pasan por acá).
     """
     qs = (
         Document.objects
-        .filter(status=Document.Status.PUBLISHED)
+        .filter(status=Document.Status.PUBLISHED, is_archived=False)
         .exclude(document_type__code=COLLECTION_ACCOUNT)
         .select_related('document_type', 'project', 'client_user', 'signed_by')
     )

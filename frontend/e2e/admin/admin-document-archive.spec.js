@@ -355,6 +355,118 @@ test.describe('Admin Document Archive', () => {
     await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
   });
 
+  test('clicking an archived badge mid-search exits the search into the archived folder', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let lastScopedRequest = null;
+    await mockApi(page, async ({ apiPath, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'documents/' && url.includes('search=')) return json(archivedDocuments);
+      if (apiPath === 'documents/' && url.includes('folder=5')) {
+        lastScopedRequest = url;
+        return json(archivedDocuments);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByRole('searchbox').fill('acta');
+    await expect(page.getByText(/Buscando «acta» en todo el gestor/)).toBeVisible();
+
+    // La insignia navega a la carpeta en scope archivado; antes el watcher de
+    // la búsqueda restauraba el scope previo y aterrizaba en los activos.
+    await page.getByRole('listitem').filter({ hasText: 'temp' })
+      .getByTestId('folder-archived-badge').click();
+
+    await expect(page.getByText(/Buscando «acta»/)).toHaveCount(0);
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
+    await expect.poll(() => lastScopedRequest).toContain('scope=archived');
+  });
+
+  test('the sidebar keeps Archivados lit while browsing inside the archive', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => (
+      baseRoutes({ apiPath, url: route.request().url() })
+    ));
+
+    // quality: allow-deep-link (Archivados no es una ruta propia sino un
+    // scope de /panel/documents; el camino real —clicks en la entrada del
+    // sidebar y la fila de carpeta— se recorre justo debajo.)
+    await page.goto('/panel/documents');
+    const archivedEntry = page.getByTestId('folder-archived-entry');
+    await expect(archivedEntry).not.toHaveAttribute('aria-current', 'location');
+
+    await archivedEntry.click();
+    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+
+    // Entrar a una subcarpeta NO apaga la señal: el sidebar dice dónde se está
+    // a cualquier profundidad y el breadcrumb da la ruta exacta.
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+  });
+
+  test('archiving an ancestor folder while inside a child lands the view back at the top', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const childFolder = {
+      id: 6, name: 'Anexos activos', parent: 4, order: 0,
+      document_count: 0, children_count: 0,
+      active_document_count: 0, active_children_count: 0,
+      archived_document_count: 0, archived_children_count: 0,
+      is_archived: false,
+    };
+    let archived = false;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'document-folders/4/archive/' && method === 'PATCH') {
+        archived = true;
+        return json({
+          folder: { ...activeFolders[0], is_archived: true },
+          archived_folders: 1,
+          archived_documents: 3,
+        });
+      }
+      if (apiPath === 'document-folders/') {
+        const list = archived
+          ? [
+            { ...activeFolders[0], is_archived: true, archived_at: '2026-08-13T10:00:00Z', archived_cause: 'manual' },
+            { ...childFolder, is_archived: true, archived_at: '2026-08-13T10:00:00Z', archived_cause: 'folder' },
+            activeFolders[1],
+            ...archivedFolders,
+          ]
+          : [...activeFolders, childFolder, ...archivedFolders];
+        return json(list);
+      }
+      if (apiPath === 'documents/' && (url.includes('folder=4') || url.includes('folder=6'))) {
+        return json([]);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    // Meterse dos niveles: Contratos (sidebar) → Anexos activos (fila hija).
+    await page.getByRole('listitem').filter({ hasText: 'Contratos' })
+      .getByRole('button', { name: /^Contratos/ }).click();
+    await page.getByRole('row', { name: /Anexos activos/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Todos');
+
+    // Archivar el ANCESTRO desde el sidebar, parado en la descendiente.
+    await page.getByRole('listitem').filter({ hasText: 'Contratos' })
+      .getByTestId('folder-archive').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Carpeta archivada')).toBeVisible();
+    // Antes el check era de identidad y la vista quedaba parada en la
+    // descendiente fantasma, con un empty state falso bajo un breadcrumb vivo.
+    await expect(page.getByText('Esta carpeta está vacía')).toHaveCount(0);
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveCount(0);
+    await expect(page.getByRole('table').getByText('Contrato de Servicios')).toBeVisible();
+    expect(archived).toBe(true);
+  });
+
   test('the sidebar counters recompute after archiving, with no reload', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -449,6 +561,73 @@ test.describe('Admin Document Archive', () => {
     await sheetAction(page, /^Restaurar/).click();
 
     await expect(page.getByText('Documento restaurado')).toBeVisible();
+    expect(restored).toBe(true);
+  });
+
+  test('the folder and scope survive a reload through the url', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => (
+      baseRoutes({ apiPath, url: route.request().url() })
+    ));
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    // Navegar escribe los dos ejes en la URL (router.replace, sin historial).
+    await expect.poll(() => page.url()).toContain('folder=9');
+    await expect.poll(() => page.url()).toContain('scope=archived');
+
+    // quality: allow-deep-link (recargar con el query ES la conducta bajo
+    // prueba: la URL debe reconstruir carpeta y scope sin volver a Todos.)
+    await page.reload();
+
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(page.getByRole('table').getByText('Anexos')).toBeVisible();
+  });
+
+  test('restoring the folder you are inside follows it back to the active view', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let restored = false;
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'document-folders/9/unarchive/' && method === 'PATCH') {
+        restored = true;
+        return json({
+          folder: { ...archivedFolders[0], is_archived: false, archived_at: null },
+          restored_folders: 1,
+          restored_documents: 5,
+          restored_chain: [],
+        });
+      }
+      if (apiPath === 'document-folders/') {
+        const list = restored
+          ? [
+            ...activeFolders,
+            { ...archivedFolders[0], is_archived: false, archived_at: null },
+            { ...archivedFolders[1], is_archived: false, archived_at: null },
+          ]
+          : [...activeFolders, ...archivedFolders];
+        return json(list);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+
+    // Dentro de la carpeta archivada el aviso ofrece restaurarla COMPLETA —
+    // las filas del listado solo restauran a las hijas.
+    await expect(page.getByTestId('current-folder-archived-alert')).toBeVisible();
+    await page.getByTestId('doc-restore-current-folder').click();
+
+    await expect(page.getByText('Carpeta restaurada')).toBeVisible();
+    // La vista "sigue" a la carpeta restaurada: scope activo, misma carpeta.
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Todos');
+    await expect(page.getByTestId('current-folder-archived-alert')).toHaveCount(0);
     expect(restored).toBe(true);
   });
 

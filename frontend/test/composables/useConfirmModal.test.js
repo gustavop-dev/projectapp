@@ -193,6 +193,53 @@ describe('useConfirmModal', () => {
     })
   })
 
+  describe('waitForConfirm', () => {
+    it('keeps the modal open and busy until onConfirm resolves', async () => {
+      let release
+      const onConfirm = jest.fn(() => new Promise((resolve) => { release = resolve }))
+      requestConfirm({ title: 'Test', onConfirm, waitForConfirm: true })
+
+      const pending = handleConfirmed()
+
+      expect(confirmState.value.busy).toBe(true)
+      expect(confirmState.value.open).toBe(true)
+
+      release()
+      await pending
+
+      expect(confirmState.value.busy).toBe(false)
+      expect(confirmState.value.open).toBe(false)
+    })
+
+    it('the default path still closes before running onConfirm', async () => {
+      // Byte-idéntico para los ~25 call sites existentes: sin opt-in el modal
+      // se cierra ANTES de correr la acción.
+      const openWhenRan = []
+      const onConfirm = jest.fn(() => { openWhenRan.push(confirmState.value.open) })
+      requestConfirm({ title: 'Test', onConfirm })
+
+      await handleConfirmed()
+
+      expect(openWhenRan).toEqual([false])
+      expect(confirmState.value.busy).toBe(false)
+    })
+
+    it('ignores a cancel while the action is in flight', async () => {
+      let release
+      const onConfirm = jest.fn(() => new Promise((resolve) => { release = resolve }))
+      const promise = requestConfirm({ title: 'Test', onConfirm, waitForConfirm: true })
+      const pending = handleConfirmed()
+
+      handleCancelled()
+
+      expect(confirmState.value.open).toBe(true)
+
+      release()
+      await pending
+      await expect(promise).resolves.toBe(true)
+    })
+  })
+
   describe('secondary action', () => {
     it('carries the secondary fields into confirmState', () => {
       requestConfirm({
