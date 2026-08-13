@@ -1083,6 +1083,12 @@ async function loadRecords() {
 const route = useRoute();
 
 onMounted(async () => {
+  // ?project=<id> — deep link from the /panel/projects counts; the URL pins
+  // accounting_incomeTab=all because the landing tab hides settled rows.
+  const projectParam = Number(route.query.project);
+  if (Number.isInteger(projectParam) && projectParam > 0) {
+    currentFilters.projects = [projectParam];
+  }
   // Sequential on purpose: the landing mode must be known before rows render
   // (no mode flash), and fetchSettings shares store.isLoading with the rows
   // fetch — in parallel, whichever finishes first would flash the empty state.

@@ -48,6 +48,13 @@ from content.views.collection_accounts_panel import (
 )
 from content.views.contact import contact_list, new_contact
 from content.views.panel_dashboard import panel_dashboard
+from content.views.panel_projects import (
+    archive_panel_project,
+    create_panel_project,
+    list_panel_projects,
+    unarchive_panel_project,
+    update_panel_project,
+)
 from content.views.portfolio_works import (
     list_portfolio_works, retrieve_portfolio_work,
     portfolio_sitemap_data,
@@ -227,6 +234,13 @@ urlpatterns = [
 
     # Panel — global dashboard
     path('panel/dashboard/', panel_dashboard, name='panel-dashboard'),
+
+    # Panel — Projects module (Plataforma space)
+    path('projects/', list_panel_projects, name='panel-projects-list'),
+    path('projects/create/', create_panel_project, name='panel-projects-create'),
+    path('projects/<int:project_id>/update/', update_panel_project, name='panel-projects-update'),
+    path('projects/<int:project_id>/archive/', archive_panel_project, name='panel-projects-archive'),
+    path('projects/<int:project_id>/unarchive/', unarchive_panel_project, name='panel-projects-unarchive'),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),

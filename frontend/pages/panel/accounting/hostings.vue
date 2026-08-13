@@ -767,6 +767,16 @@ async function sendBilling() {
   }
 }
 
-onMounted(loadRecords);
+const route = useRoute();
+
+onMounted(() => {
+  // ?project=<id> — deep link from the /panel/projects counts. Seeded before
+  // the load; the `projects` matcher above already speaks this key.
+  const projectParam = Number(route.query.project);
+  if (Number.isInteger(projectParam) && projectParam > 0) {
+    currentFilters.projects = [projectParam];
+  }
+  loadRecords();
+});
 usePanelRefresh(loadRecords);
 </script>

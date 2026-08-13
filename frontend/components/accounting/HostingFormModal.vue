@@ -232,6 +232,7 @@ function onSubmit() {
       <ProjectSelect
         v-model="form.project"
         :client-profile-id="form.client"
+        :client-label="form.client_display_name"
         testid="hosting-form-project"
       />
 

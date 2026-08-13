@@ -225,6 +225,7 @@ function onSubmit() {
       <ProjectSelect
         v-model="form.project"
         :client-profile-id="form.client"
+        :client-label="form.client_name || lockedClient?.name || ''"
         testid="income-form-project"
       />
 

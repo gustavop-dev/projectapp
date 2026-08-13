@@ -164,6 +164,9 @@ def list_proposal_clients(request):
           0 projects AND 0 diagnostics AND 0 incomes AND 0 hostings
           (matches ``is_orphan`` and the delete guard). ``false`` returns
           the inverse. Omit to include all.
+        - ``without_projects``: ``true`` returns only clients with zero
+          platform projects (a strictly weaker predicate than ``orphans``);
+          ``false`` returns the inverse. Feeds the Projects module indicator.
         - ``inactive``: ``true`` returns only manually deactivated clients.
           Omitted/``false`` excludes them (panel default).
         - ``limit``: max rows to return (default 100, hard cap 500).
@@ -190,6 +193,12 @@ def list_proposal_clients(request):
             proposals_count=0, projects_count=0, diagnostics_count=0,
             incomes_count=0, hostings_count=0,
         )
+
+    without_projects = _parse_bool(request.query_params.get('without_projects'))
+    if without_projects is True:
+        qs = qs.filter(projects_count=0)
+    elif without_projects is False:
+        qs = qs.filter(projects_count__gt=0)
 
     inactive = _parse_bool(request.query_params.get('inactive'))
     if inactive is True:

@@ -32,4 +32,36 @@ describe('getPanelNavSections', () => {
 
     expect(sections.map((s) => s.label)).not.toContain('Website content');
   });
+
+  describe('Plataforma section', () => {
+    it('lives after Contabilidad so the hostings breadcrumb keeps resolving there', () => {
+      const sections = getPanelNavSections(identityLocalePath);
+      const ids = sections.map((s) => s.id);
+
+      expect(ids.indexOf('platform')).toBeGreaterThan(ids.indexOf('accounting'));
+    });
+
+    it('offers Proyectos to every admin', () => {
+      const sections = getPanelNavSections(
+        identityLocalePath, { includeSuperuserOnly: false },
+      );
+      const platform = sections.find((s) => s.id === 'platform');
+      const projects = platform.items.find((i) => i.label === 'Proyectos');
+
+      expect(projects).toBeDefined();
+      expect(projects.href).toBe('/panel/projects');
+      expect(projects.icon).toBe('folder');
+    });
+
+    it('shows the doubled Hostings entry only to superusers', () => {
+      const withSuperuser = getPanelNavSections(identityLocalePath)
+        .find((s) => s.id === 'platform');
+      const withoutSuperuser = getPanelNavSections(
+        identityLocalePath, { includeSuperuserOnly: false },
+      ).find((s) => s.id === 'platform');
+
+      expect(withSuperuser.items.map((i) => i.label)).toContain('Hostings');
+      expect(withoutSuperuser.items.map((i) => i.label)).not.toContain('Hostings');
+    });
+  });
 });
