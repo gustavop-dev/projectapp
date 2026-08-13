@@ -1,5 +1,6 @@
 import { config } from '@vue/test-utils';
 import BaseButton from '../components/base/BaseButton.vue';
+import BaseFormRow from '../components/base/BaseFormRow.vue';
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
@@ -11,7 +12,11 @@ if (typeof globalThis.structuredClone === 'undefined') {
 // findAll('button') in a spec comes back empty. Registering it globally keeps
 // specs honest as buttons migrate to the design system. Specs that register it
 // locally still win — local components take precedence over global ones.
+// BaseFormRow is here for the same reason, and because it provides the bands
+// its BaseFormFields inject: unresolved, the fields would silently fall back to
+// stacking and a spec could not tell an aligned row from a crooked one.
 config.global.components = {
   ...config.global.components,
   BaseButton,
+  BaseFormRow,
 };
