@@ -432,6 +432,7 @@ watch(searchQuery, (value) => {
   clearTimeout(searchTimer);
   if (!term) {
     searchFolders.value = [];
+    documentStore.isSearchLoading = false;
     // Al limpiar se devuelve el control a donde estaba, salvo que el usuario lo
     // haya movido él mismo mientras buscaba: ahí manda su elección.
     if (scopeBeforeSearch.value && !scopeTouchedDuringSearch.value) {
@@ -448,8 +449,35 @@ watch(searchQuery, (value) => {
     // «Solo activos» mientras devuelve archivados sería una interfaz mentirosa.
     if (documentStore.archiveScope !== 'all') documentStore.archiveScope = 'all';
   }
+  // Los resultados de la búsqueda anterior no sobreviven al debounce: verlos
+  // mientras se escribe otro término los hace pasar por resultados nuevos.
+  documentStore.searchResults = [];
+  searchFolders.value = [];
+  documentStore.isSearchLoading = true;
   searchTimer = setTimeout(() => runSearch(term), 300);
 });
+
+/**
+ * Sale de la búsqueda y navega en un solo gesto.
+ *
+ * El watcher de `searchQuery` restaura el scope previo al limpiar (flush pre,
+ * corre DESPUÉS de este handler): anular `scopeBeforeSearch` antes de vaciar el
+ * término convierte esa rama en no-op y el destino de la navegación sobrevive.
+ * Nunca "reordenar" las líneas como fix — es exactamente lo que fallaba.
+ */
+function exitSearchAndNavigate({ folder, scope } = {}) {
+  clearTimeout(searchTimer);
+  const targetScope = scope
+    ?? ((scopeTouchedDuringSearch.value || !scopeBeforeSearch.value)
+      ? documentStore.archiveScope
+      : scopeBeforeSearch.value);
+  scopeBeforeSearch.value = null;
+  scopeTouchedDuringSearch.value = false;
+  searchFolders.value = [];
+  documentStore.isSearchLoading = false;
+  searchQuery.value = '';
+  return documentStore.setFilters({ folder, scope: targetScope });
+}
 
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
@@ -495,7 +523,11 @@ const createLink = computed(() => {
   return localePath('/panel/documents/create');
 });
 
-const isListLoading = computed(() => documentStore.isLoading);
+// La búsqueda comparte el skeleton de la lista: sin esto no tenía ningún
+// indicador de carga y los 300 ms de debounce parecían un buscador roto.
+const isListLoading = computed(
+  () => documentStore.isLoading || documentStore.isSearchLoading,
+);
 
 const loadError = ref(null);
 
@@ -530,7 +562,14 @@ usePanelRefresh(loadDocuments);
 function handleSelectFolder(id) {
   // «Archivados» es un atajo sobre los dos ejes, no una carpeta.
   if (id === 'archived') {
-    documentStore.setFilters({ folder: 'root', scope: 'archived' });
+    exitSearchAndNavigate({ folder: 'root', scope: 'archived' });
+    return;
+  }
+  if (isSearching.value) {
+    // Elegir una carpeta en plena búsqueda es navegación: se sale de la
+    // búsqueda hacia esa carpeta. Antes el filtro cambiaba por debajo y la
+    // vista seguía mostrando los resultados, como si el clic no hiciera nada.
+    exitSearchAndNavigate({ folder: id });
     return;
   }
   // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
@@ -546,8 +585,7 @@ function handleBackToActive() {
 /** Entra a la carpeta en su scope archivado — el destino de la insignia. */
 function handleViewArchivedFolder(folder) {
   if (!folder) return;
-  searchQuery.value = '';
-  documentStore.setFilters({ folder: folder.id, scope: 'archived' });
+  exitSearchAndNavigate({ folder: folder.id, scope: 'archived' });
 }
 
 function handleScopeChange(scope) {

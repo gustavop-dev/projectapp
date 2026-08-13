@@ -355,6 +355,35 @@ test.describe('Admin Document Archive', () => {
     await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
   });
 
+  test('clicking an archived badge mid-search exits the search into the archived folder', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let lastScopedRequest = null;
+    await mockApi(page, async ({ apiPath, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'documents/' && url.includes('search=')) return json(archivedDocuments);
+      if (apiPath === 'documents/' && url.includes('folder=5')) {
+        lastScopedRequest = url;
+        return json(archivedDocuments);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByRole('searchbox').fill('acta');
+    await expect(page.getByText(/Buscando «acta» en todo el gestor/)).toBeVisible();
+
+    // La insignia navega a la carpeta en scope archivado; antes el watcher de
+    // la búsqueda restauraba el scope previo y aterrizaba en los activos.
+    await page.getByRole('listitem').filter({ hasText: 'temp' })
+      .getByTestId('folder-archived-badge').click();
+
+    await expect(page.getByText(/Buscando «acta»/)).toHaveCount(0);
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(page.getByRole('table').getByText('Acta de cierre')).toBeVisible();
+    await expect.poll(() => lastScopedRequest).toContain('scope=archived');
+  });
+
   test('the sidebar counters recompute after archiving, with no reload', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
