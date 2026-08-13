@@ -300,7 +300,7 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
-import { useProposalsStore } from '~/stores/proposals';
+import { useProposalStore } from '~/stores/proposals';
 import { normalizeName } from '~/utils/clientMatch';
 import { formatDate } from '~/utils/formatDate';
 
@@ -309,7 +309,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const store = usePanelProjectsStore();
 // The count links point at superuser-only accounting pages; hide them from
 // plain admins (same flag the sidebar uses).
-const proposalStore = useProposalsStore();
+const proposalStore = useProposalStore();
 const isSuperuser = computed(() => proposalStore.isSuperuser);
 
 // ── Scope + search (client-side over the full list, like the accounting tabs;
