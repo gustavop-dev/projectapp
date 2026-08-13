@@ -49,7 +49,7 @@
     </div>
 
     <!-- KPI Dashboard -->
-    <ProposalDashboard />
+    <ProposalDashboard ref="proposalDashboardRef" />
 
     <!-- Floating metrics manual -->
     <MetricsManual />
@@ -1045,6 +1045,7 @@ async function handleContractConfirmFromList(params) {
 }
 
 const alerts = ref([]);
+const proposalDashboardRef = ref(null);
 
 // Notify a load failure once, not on every refresh/poll cycle.
 let alertsErrorNotified = false;
@@ -1064,6 +1065,10 @@ async function refreshData() {
   try {
     await proposalStore.fetchProposals();
     await loadAlerts();
+    // Los KPI del dashboard salen del servidor: sin esto quedaban viejos tras
+    // eliminar/mutar (la guarda `fetched` no refetchea sola). Sin await — el
+    // spinner de la lista no debe esperar al panel colapsable.
+    proposalDashboardRef.value?.refreshIfLoaded();
   } finally {
     isRefreshing.value = false;
   }
