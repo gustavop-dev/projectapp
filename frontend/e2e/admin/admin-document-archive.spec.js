@@ -561,6 +561,29 @@ test.describe('Admin Document Archive', () => {
     expect(restored).toBe(true);
   });
 
+  test('the folder and scope survive a reload through the url', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => (
+      baseRoutes({ apiPath, url: route.request().url() })
+    ));
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+    await page.getByRole('row', { name: /Contratos 2024/i }).click();
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    // Navegar escribe los dos ejes en la URL (router.replace, sin historial).
+    await expect.poll(() => page.url()).toContain('folder=9');
+    await expect.poll(() => page.url()).toContain('scope=archived');
+
+    // quality: allow-deep-link (recargar con el query ES la conducta bajo
+    // prueba: la URL debe reconstruir carpeta y scope sin volver a Todos.)
+    await page.reload();
+
+    await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
+    await expect(page.getByRole('table').getByText('Anexos')).toBeVisible();
+  });
+
   test('restoring the folder you are inside follows it back to the active view', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {

@@ -346,6 +346,7 @@ import { folderRowSummary } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
+import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 
 const localePath = useLocalePath();
@@ -588,7 +589,18 @@ function loadDocuments() {
   return refreshView({ tags: true });
 }
 
-onMounted(loadDocuments);
+// Carpeta y scope viven en la URL (?folder=&scope=): F5 y los deep links
+// reconstruyen la vista. El query se aplica ANTES del primer fetch.
+const filterQuery = useDocumentFilterQuery(documentStore, { isSearching });
+
+onMounted(async () => {
+  filterQuery.applyQueryToStore();
+  await loadDocuments();
+  // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
+  if (filterQuery.validateFolder(folderStore)) {
+    await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
+  }
+});
 usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
