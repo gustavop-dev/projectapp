@@ -122,6 +122,9 @@
                 <template v-else-if="col.format === 'percent'">
                   {{ formatPercent(row[col.key]) }}
                 </template>
+                <template v-else-if="col.format === 'date'">
+                  {{ formatDate(row[col.key]) }}
+                </template>
                 <span
                   v-else-if="col.format === 'badge'"
                   class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -174,6 +177,7 @@ import {
   TrashIcon,
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
+import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
 import { selectionSummary, toggleKeys } from '~/utils/rowSelection';

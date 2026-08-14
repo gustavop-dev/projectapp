@@ -669,7 +669,11 @@ function buildPayload() {
     const raw = form.value.payment_term_days;
     const days = Number(raw);
     const unset = raw === '' || raw === null || raw === undefined;
-    payload.payment_term_days = unset || Number.isNaN(days) ? 8 : days;
+    // The input declares min=0/max=120 but typed values bypass those bounds;
+    // clamping here keeps a stray "-5" from bouncing off the serializer as a 400.
+    payload.payment_term_days = unset || Number.isNaN(days)
+      ? 8
+      : Math.min(120, Math.max(0, Math.trunc(days)));
   }
   return payload;
 }

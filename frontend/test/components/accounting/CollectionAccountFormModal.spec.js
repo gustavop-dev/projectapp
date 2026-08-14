@@ -624,6 +624,20 @@ describe('CollectionAccountFormModal', () => {
     expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(8);
   });
 
+  it('clamps a typed negative plazo to 0 instead of sending it to the API', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    // min="0" stops the spinner but not the keyboard; the serializer would
+    // reject -5 with a 400, so the payload builder keeps it inside the bounds.
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('-5');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(0);
+  });
+
   it('explains what a zero plazo does, and only while days are being asked', async () => {
     const wrapper = mountModal({ income: incomeFixture });
     await flushPromises();
