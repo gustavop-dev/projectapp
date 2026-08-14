@@ -88,7 +88,14 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
+        <BaseButton
+          variant="danger-ghost"
+          icon-only
+          size="sm"
+          aria-label="Quitar"
+          :data-testid="`client-filter-chip-${chip.key}`"
+          @click="clearChip(chip.key)"
+        >&times;</BaseButton>
       </span>
     </div>
   </div>
@@ -107,6 +114,7 @@ import {
   marketTypeLabelMap,
 } from '~/constants/filterOptions.js';
 import { formatDate } from '~/utils/formatDate';
+import { findClientPreset } from '~/constants/clientFilters';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -153,6 +161,12 @@ const activeChips = computed(() => {
   const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
   if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
 
+  // The predefined filters live in the tab bar, but they narrow the list like
+  // any other filter — without a chip here an applied preset would be counted
+  // by the "Filtros" badge yet invisible in the active-filters strip.
+  const preset = findClientPreset(mv.preset);
+  if (preset) chips.push({ key: 'preset', label: `Predefinido: ${preset.name}` });
+
   return chips;
 });
 
@@ -163,6 +177,7 @@ const CHIP_RESET = {
   totalProposals: (mv) => { mv.totalProposalsMin = null; mv.totalProposalsMax = null; },
   accepted:       (mv) => { mv.acceptedMin = null; mv.acceptedMax = null; },
   activityRange:  (mv) => { mv.lastActivityAfter = null; mv.lastActivityBefore = null; },
+  preset:         (mv) => { mv.preset = ''; },
 };
 
 function clearChip(key) {

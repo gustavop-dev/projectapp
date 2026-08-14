@@ -5,6 +5,7 @@ update, delete) plus the integration with proposal create/update via
 ``client_id``.
 """
 
+from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -14,8 +15,11 @@ from accounts.models import Project, UserProfile
 from accounts.services import proposal_client_service
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 
+from content.models import HostingRecord
 from content.models.business_proposal import BusinessProposal
+from content.serializers.proposal_clients import ProposalClientSerializer
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -237,6 +241,113 @@ class TestWithoutProjectsFilter:
         ids = [c['id'] for c in response.data]
         assert ids == [real_client_with_proposal.pk]
         assert orphan_client.pk not in ids
+
+
+# ---------------------------------------------------------------------------
+# Preset annotations (hosting vigente / proyecto activo)
+# ---------------------------------------------------------------------------
+
+def _row_for(response, profile):
+    return next(row for row in response.data if row['id'] == profile.pk)
+
+
+class TestPresetAnnotations:
+    """The two aggregates behind the 'Con hosting cobrado' / 'Con proyecto
+    activo' predefined filters in /panel/clients."""
+
+    def test_active_hostings_count_ignores_the_inactive_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Hosting SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Hosting SAS - Vigente',
+            monthly_value=Decimal('90000.00'), is_active=True,
+        )
+        HostingRecord.objects.create(
+            client=profile, client_name='Hosting SAS - Caido',
+            monthly_value=Decimal('50000.00'), is_active=False,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['hostings_count'] == 2
+        assert row['active_hostings_count'] == 1
+
+    def test_client_without_hostings_reports_zero(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Sin Hosting SAS')
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, profile)['active_hostings_count'] == 0
+
+    def test_active_projects_count_ignores_the_archived_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Proyectos SAS')
+        Project.objects.create(
+            name='En curso', client=profile.user, status=Project.STATUS_ACTIVE,
+        )
+        Project.objects.create(
+            name='Guardado', client=profile.user, status=Project.STATUS_ARCHIVED,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['projects_count'] == 2
+        assert row['active_projects_count'] == 1
+
+    def test_hosting_of_one_client_does_not_leak_into_another(
+        self, admin_client, make_client_profile,
+    ):
+        owner = make_client_profile(company='Dueno SAS')
+        stranger = make_client_profile(company='Ajeno SAS')
+        HostingRecord.objects.create(
+            client=owner, client_name='Dueno SAS - Web',
+            monthly_value=Decimal('70000.00'), is_active=True,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['active_hostings_count'] == 1
+        assert _row_for(response, stranger)['active_hostings_count'] == 0
+
+    @freeze_time('2026-08-13 12:00:00')
+    def test_deactivated_client_stays_out_even_holding_a_live_hosting(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Pausado SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Pausado SAS - Web',
+            monthly_value=Decimal('60000.00'), is_active=True,
+        )
+        profile.deactivated_at = timezone.now()
+        profile.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert profile.pk not in {row['id'] for row in response.data}
+
+    def test_serializer_falls_back_when_the_queryset_is_not_annotated(
+        self, make_client_profile,
+    ):
+        profile = make_client_profile(company='Sin Anotar SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Sin Anotar SAS - Web',
+            monthly_value=Decimal('80000.00'), is_active=True,
+        )
+        Project.objects.create(
+            name='Vivo', client=profile.user, status=Project.STATUS_ACTIVE,
+        )
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['active_hostings_count'] == 1
+        assert data['active_projects_count'] == 1
 
 
 # ---------------------------------------------------------------------------

@@ -202,4 +202,33 @@ describe('ProposalFilterTabs restorable base', () => {
     expect(wrapper.find('[data-testid="filter-tabs-restore"]').exists()).toBe(false);
     expect(wrapper.find('[data-testid="filter-tabs-rebase"]').exists()).toBe(false);
   });
+
+  it('shows the match count on the tabs that were given one', () => {
+    const wrapper = mountTabs({ counts: { 'tab-1': 7 } });
+
+    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('7');
+    expect(wrapper.find('[data-testid="filter-tabs-count-tab-2"]').exists()).toBe(false);
+  });
+
+  it('shows a zero count instead of hiding it', () => {
+    const wrapper = mountTabs({ counts: { 'tab-1': 0 } });
+
+    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('0');
+  });
+
+  it('stays badge-free for the views that pass no counts', () => {
+    const wrapper = mountTabs();
+
+    expect(wrapper.find('[data-testid="filter-tabs-count-tab-1"]').exists()).toBe(false);
+    expect(wrapper.get('select').text()).not.toContain('(');
+  });
+
+  it('keys the count by the id so numeric saved-tab ids resolve', () => {
+    const wrapper = mountTabs({
+      tabs: [{ id: 12, name: 'Guardado' }],
+      counts: { 12: 3 },
+    });
+
+    expect(wrapper.get('[data-testid="filter-tabs-count-12"]').text()).toBe('3');
+  });
 });

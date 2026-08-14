@@ -70,10 +70,11 @@
     <template v-if="activeTab !== 'config'">
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
-      :tabs="savedTabs"
+      :tabs="displayTabs"
       :active-tab-id="filterTabId"
+      :counts="presetCounts"
       :is-tab-limit-reached="isTabLimitReached"
-      @select="selectFilterTab"
+      @select="onSelectFilterTab"
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
       @delete="deleteFilterTab"
@@ -103,7 +104,7 @@
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
       :filter-count="activeFilterCount"
-      @update:model-value="Object.assign(currentFilters, $event)"
+      @update:model-value="onFiltersUpdate"
       @reset="handleResetFilters"
     />
 
@@ -184,6 +185,27 @@
               class="text-xs px-2.5 py-1 rounded-full bg-surface-raised text-text-muted font-medium"
             >
               {{ client.total_proposals }} propuesta{{ client.total_proposals !== 1 ? 's' : '' }}
+            </span>
+
+            <!-- Hosting count, only while a hosting preset is applied. Doubles
+                 as the jump into Hostings already filtered by this client. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsHostingCount(client) && canOpenHostings"
+              type="button"
+              :data-testid="`client-hostings-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los hostings de ${client.name} en Contabilidad`"
+              @click.stop="goToClientHostings(client)"
+            >
+              {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
+            </button>
+            <span
+              v-else-if="showsHostingCount(client)"
+              :data-testid="`client-hostings-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium"
+            >
+              {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
             </span>
 
             <button
@@ -620,7 +642,13 @@ import BasePagination from '~/components/base/BasePagination.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
-import { useClientFilters } from '~/composables/useClientFilters';
+import { useAccountingFilters } from '~/composables/useAccountingFilters';
+import {
+  CLIENT_FILTERS_CONFIG,
+  CLIENT_PRESETS,
+  HOSTING_PRESET_IDS,
+  findClientPreset,
+} from '~/constants/clientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
@@ -657,9 +685,13 @@ async function onProposalStatusSelect(client, proposal, newStatus) {
   if (result) await refreshClientDetail(client.id);
 }
 
+// Migrated off the old useClientFilters (its pre-generalization ancestor) so
+// the predefined filters ride the same `builtinTabs` mechanism the accounting
+// subviews already use. The configuration itself lives in ~/constants/
+// clientFilters so this page and its tests never drift apart.
 const {
   currentFilters,
-  savedTabs,
+  displayTabs,
   activeTabId: filterTabId,
   isFilterPanelOpen,
   hasActiveFilters,
@@ -674,9 +706,77 @@ const {
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
   reloadTabs: reloadFilterTabs,
-} = useClientFilters();
+} = useAccountingFilters(CLIENT_FILTERS_CONFIG);
 
 const filteredClients = computed(() => applyFilters(clientsStore.clients));
+
+/**
+ * The per-row hosting count only earns its space while a hosting preset is
+ * applied — that is the moment the question "cuántos" is being asked.
+ */
+function showsHostingCount(client) {
+  return (
+    HOSTING_PRESET_IDS.includes(String(currentFilters.preset))
+    && Number(client.hostings_count || 0) > 0
+  );
+}
+
+/**
+ * /panel/clients only requires admin, but /panel/accounting/* is behind the
+ * superuser-only middleware. Without this guard a staff non-superuser would
+ * click the pill straight into a redirect.
+ */
+const canOpenHostings = computed(() => proposalStore.isSuperuser);
+
+function goToClientHostings(client) {
+  navigateTo({
+    path: '/panel/accounting/hostings',
+    query: { client: String(client.id) },
+  });
+}
+
+/**
+ * Matches per preset, read straight off the loaded rows so the number is
+ * visible without applying the filter. Counted before the panel's advanced
+ * filters — a preset badge should not move as you tweak unrelated controls —
+ * but after the server tab and search, which is what "lo que obtendrías si lo
+ * presionas ahora" means here.
+ */
+const presetCounts = computed(() => {
+  const counts = {};
+  for (const preset of CLIENT_PRESETS) {
+    counts[preset.id] = clientsStore.clients.filter(preset.match).length;
+  }
+  return counts;
+});
+
+/**
+ * Presses on the active preset turn it off (requisito: "al presionarlo de
+ * nuevo, la lista vuelve a todos los clientes"). Gated to preset ids on
+ * purpose: re-clicking a saved tab has always been an idempotent reload of
+ * its filters, and toggling those off would be a silent behavior change.
+ */
+function onSelectFilterTab(tabId) {
+  const key = String(tabId);
+  if (findClientPreset(key) && key === String(filterTabId.value)) {
+    selectFilterTab('all');
+    return;
+  }
+  selectFilterTab(tabId);
+}
+
+/**
+ * The panel owns the whole filter object, so clearing the preset chip arrives
+ * here as a plain value change. Drop the tab highlight with it, otherwise the
+ * bar keeps a preset marked active while its filter is already off.
+ */
+function onFiltersUpdate(next) {
+  const clearedPreset = currentFilters.preset && !next.preset;
+  Object.assign(currentFilters, next);
+  if (clearedPreset && findClientPreset(filterTabId.value)) {
+    selectFilterTab('all');
+  }
+}
 
 const {
   currentPage: clientsPage,
@@ -718,6 +818,11 @@ async function loadClients({ silent = false } = {}) {
   await clientsStore.fetchClients({
     search: search.value.trim(),
     orphans,
+    // The endpoint does not paginate and every filter on this page — the
+    // presets and their counts included — runs over whatever was loaded, so
+    // ask for the endpoint's hard cap instead of the default 100. Past 500
+    // clients this needs real server-side pagination.
+    limit: 500,
     inactive: activeTab.value === 'inactive',
     silent,
   });

@@ -161,7 +161,7 @@ export function useAccountingFilters({
   const isFilterPanelOpen = ref(false);
 
   const tabs = useSavedFilterTabs(viewName);
-  const { savedTabs, isTabLimitReached } = tabs;
+  const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
 
   const displayTabs = computed(() => [
     ...builtinTabs.map((t) => ({ id: t.id, name: t.name, builtin: true })),
@@ -359,6 +359,9 @@ export function useAccountingFilters({
     displayTabs,
     activeTabId,
     isFilterPanelOpen,
+    isLoading,
+    isReady,
+    lastError,
     hasActiveFilters,
     activeFilterCount,
     isTabLimitReached,
@@ -371,5 +374,6 @@ export function useAccountingFilters({
     renameTab,
     restoreTab,
     rebaseTab,
+    reloadTabs: tabs.loadTabs,
   };
 }
