@@ -204,7 +204,7 @@ function onSubmit() {
       </div>
 
       <!-- PA-38: everything below is optional and can be completed later -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Estado (opcional)">
           <BaseSelect
             v-model="form.status"
@@ -212,7 +212,7 @@ function onSubmit() {
             data-testid="project-form-status"
           />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Descripción (opcional)">
         <BaseTextarea
