@@ -67,23 +67,23 @@ function onSubmit() {
       <h3 id="ad-spend-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Fecha" required>
           <BaseInput v-model="form.spend_date" type="date" required />
         </BaseFormField>
         <BaseFormField label="Plataforma">
           <BaseSelect v-model="form.platform" :options="platformOptions" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Tarjeta origen">
           <BaseInput v-model="form.origin_card" placeholder="T.C 0655" />
         </BaseFormField>
         <BaseFormField label="Valor" required>
           <BaseCurrencyInput v-model="form.amount" required />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Notas">
         <BaseTextarea v-model="form.notes" :rows="3" />

@@ -20,7 +20,7 @@
 
     <!-- Filters — changes -->
     <div v-if="tab === 'changes'" class="bg-surface border border-border-muted rounded-xl shadow-sm p-4 mb-5">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <BaseFormRow :cols="2" :lg="5" :gap="3">
         <BaseFormField label="Entidad" size="sm">
           <BaseSelect
             v-model="filters.entity_type"
@@ -51,12 +51,12 @@
         <BaseFormField label="Hasta" size="sm">
           <BaseInput v-model="filters.date_to" size="sm" type="date" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
     </div>
 
     <!-- Filters — sends -->
     <div v-else class="bg-surface border border-border-muted rounded-xl shadow-sm p-4 mb-5">
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <BaseFormRow :cols="2" :lg="5" :gap="3">
         <BaseFormField label="Aviso" size="sm">
           <BaseSelect
             v-model="emailFilters.template_key"
@@ -87,7 +87,7 @@
         <BaseFormField label="Hasta" size="sm">
           <BaseInput v-model="emailFilters.date_to" size="sm" type="date" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
     </div>
 
     <!-- Error -->
@@ -136,6 +136,7 @@ import AccountingErrorState from '~/components/accounting/AccountingErrorState.v
 import ChangelogTable from '~/components/accounting/ChangelogTable.vue';
 import EmailLogTable from '~/components/accounting/EmailLogTable.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
+import BaseFormRow from '~/components/base/BaseFormRow.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';

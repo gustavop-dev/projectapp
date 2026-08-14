@@ -138,6 +138,58 @@ test.describe('Admin Client Edit Modal', () => {
     expect(capturedPayload.billing_code).toBe('G&M');
   });
 
+  test('starts NIT and billing code at the same height though one label wraps', {
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // The two share a row. "Código de facturación (opcional)" does not fit on
+    // one line at the modal's width while "NIT (opcional)" does, and each column
+    // used to stack on its own — so the taller label pushed its own input down
+    // and the row rendered visibly crooked.
+    await setupMock(page);
+    // quality: allow-deep-link (the clients list is this flow's entry point, as
+    // in every spec here; the modal itself is opened by clicking)
+    await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId('client-edit-301').click();
+    await expect(page.getByTestId('clients-edit-nit')).toBeVisible({ timeout: 5_000 });
+
+    const nitLabel = await page.getByText('NIT (opcional)', { exact: true }).boundingBox();
+    const codeLabel = await page.getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
+    // Precondition: without an actually taller label this would prove nothing.
+    expect(codeLabel.height).toBeGreaterThan(nitLabel.height);
+
+    const nit = await page.getByTestId('clients-edit-nit').boundingBox();
+    const code = await page.getByTestId('clients-edit-billing-code').boundingBox();
+    expect(Math.abs(nit.y - code.y)).toBeLessThanOrEqual(1);
+    // Still side by side, i.e. aligned by the shared bands and not by stacking.
+    expect(Math.abs(nit.height - code.height)).toBeLessThanOrEqual(1);
+    expect(code.x).toBeGreaterThan(nit.x);
+  });
+
+  test('stacks the billing fields in reading order on a narrow screen', {
+    tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await setupMock(page);
+    // quality: allow-deep-link (the clients list is this flow's entry point, as
+    // in every spec here; the modal itself is opened by clicking)
+    await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 20_000 });
+
+    await page.getByTestId('client-edit-301').click();
+    await expect(page.getByTestId('clients-edit-nit')).toBeVisible({ timeout: 5_000 });
+
+    const nit = await page.getByTestId('clients-edit-nit').boundingBox();
+    const code = await page.getByTestId('clients-edit-billing-code').boundingBox();
+
+    // One column: same left edge, billing code below NIT, and no band of empty
+    // space left reserved between them beyond the row gap plus its label.
+    expect(Math.abs(nit.x - code.x)).toBeLessThanOrEqual(1);
+    expect(code.y).toBeGreaterThan(nit.y + nit.height);
+    expect(code.y - (nit.y + nit.height)).toBeLessThan(60);
+  });
+
   test('surfaces server error when update returns 400', {
     tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {

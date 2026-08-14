@@ -143,3 +143,60 @@ test.describe('design system styleguide visual regression', () => {
     await expect(page).toHaveScreenshot('styleguide-dark.png', { fullPage: true, maxDiffPixelRatio: 0.02 });
   });
 });
+
+/**
+ * Geometry, not pixels. The styleguide carries the only `BaseFormRow` fixture
+ * narrow enough to force the labels to wrap on demand, which is what lets us
+ * check the two cases a real form cannot produce side by side: one label
+ * wrapping, and both wrapping. A pixel snapshot would catch the regression too,
+ * but it could not say *why* it changed.
+ */
+test.describe('styleguide form rows', () => {
+  test.setTimeout(60_000);
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 8401, role: 'admin', is_staff: true },
+    });
+    await stubPanelApi(page);
+    await seedTheme(page, 'light');
+  });
+
+  test('keeps the controls level whether one label wraps or both do', {
+    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (display flow — the styleguide is a static
+    // reference page; what is asserted is the laid-out geometry of the row)
+    // quality: allow-deep-link (the styleguide has no in-app entry point)
+    await page.goto(STYLEGUIDE_URL);
+    await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId('styleguide-form-rows')).toBeVisible();
+
+    const oneRow = page.getByTestId('sg-row-one-wrapped');
+    const bothRow = page.getByTestId('sg-row-both-wrapped');
+
+    // Row 1 — one label on a single line, the other wrapped, and only the first
+    // field carrying a hint. The short label sets the single-line reference.
+    const short = await oneRow.getByText('NIT (opcional)', { exact: true }).boundingBox();
+    const wrapped = await oneRow
+      .getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
+    expect(wrapped.height).toBeGreaterThan(short.height);
+
+    const oneA = await page.getByTestId('sg-row-one-a').boundingBox();
+    const oneB = await page.getByTestId('sg-row-one-b').boundingBox();
+    expect(Math.abs(oneA.y - oneB.y)).toBeLessThanOrEqual(1);
+
+    // Row 2 — both labels wrapped: the band is as tall as the taller of the two
+    // and neither control drifts.
+    const bothA = await bothRow.getByText('Nombre en la cuenta de cobro', { exact: true }).boundingBox();
+    const bothB = await bothRow
+      .getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
+    expect(bothA.height).toBeGreaterThan(short.height);
+    expect(bothB.height).toBeGreaterThan(short.height);
+
+    const rowA = await page.getByTestId('sg-row-both-a').boundingBox();
+    const rowB = await page.getByTestId('sg-row-both-b').boundingBox();
+    expect(Math.abs(rowA.y - rowB.y)).toBeLessThanOrEqual(1);
+  });
+});

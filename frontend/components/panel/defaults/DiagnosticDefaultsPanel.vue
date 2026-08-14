@@ -26,7 +26,7 @@
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-4 sm:p-8 space-y-6"
         @submit.prevent="handleSaveGeneral"
       >
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BaseFormRow :cols="2" :gap="4">
           <BaseFormField label="Idioma" for="defaults-language">
             <BaseSelect
               id="defaults-language"
@@ -44,9 +44,9 @@
               :options="[{ value: 'COP', label: 'COP' }, { value: 'USD', label: 'USD' }]"
             />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BaseFormRow :cols="2" :gap="4">
           <BaseFormField label="Inversión por defecto">
             <BaseCurrencyInput
               v-model="generalForm.default_investment_amount"
@@ -63,11 +63,11 @@
               data-testid="defaults-duration-label"
             />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
 
         <fieldset class="border border-border-muted rounded-xl p-4">
           <legend class="px-2 text-sm font-medium text-text-default">Distribución de pagos</legend>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BaseFormRow :cols="2" :gap="4">
             <BaseFormField label="% Pago inicial">
               <div class="flex items-center gap-3">
                 <BaseInput
@@ -96,7 +96,7 @@
                 <span class="text-sm text-text-muted">%</span>
               </div>
             </BaseFormField>
-          </div>
+          </BaseFormRow>
           <p
             v-if="!isPaymentValid"
             class="text-xs text-danger-strong mt-2"
@@ -105,7 +105,7 @@
           <p v-else class="text-xs text-text-subtle mt-2">Suma: {{ paymentSum }}%.</p>
         </fieldset>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <BaseFormRow :cols="3" :gap="4">
           <BaseFormField label="Días de recordatorio">
             <BaseInput
               v-model.number="generalForm.reminder_days"
@@ -133,7 +133,7 @@
               data-testid="defaults-expiration-days"
             />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
 
         <div>
           <label class="flex items-center gap-2 text-sm font-medium text-text-default mb-1">

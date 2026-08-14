@@ -134,7 +134,7 @@ function requestDelete(row) {
         class="rounded-lg border border-border-muted p-3 space-y-3"
         :data-testid="`card-catalog-row-${row.key}`"
       >
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <BaseFormRow :cols="3" :gap="3">
           <BaseFormField label="Nombre" required>
             <BaseInput
               v-model="row.name"
@@ -155,7 +155,7 @@ function requestDelete(row) {
               :data-testid="`card-catalog-since-${row.key}`"
             />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
         <div class="flex items-center justify-between gap-3">
           <label class="flex items-center gap-2 text-sm text-text-default">
             <BaseToggle
