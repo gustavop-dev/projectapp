@@ -259,11 +259,35 @@
         data-testid="collection-detail-tab-document"
       >
         <embed
+          v-if="pdfState === 'ready'"
           :src="pdfSrc"
           type="application/pdf"
           class="flex-1 min-h-0 w-full rounded-xl border border-border-default bg-surface-raised"
           data-testid="collection-detail-pdf"
         >
+        <div
+          v-else-if="pdfState === 'loading'"
+          class="flex-1 min-h-0 flex items-center justify-center gap-2 rounded-xl border border-border-default text-sm text-text-subtle"
+          data-testid="collection-detail-pdf-loading"
+        >
+          <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          Cargando el documento…
+        </div>
+        <div
+          v-else
+          class="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 rounded-xl border border-border-default px-6 text-center"
+          data-testid="collection-detail-pdf-error"
+        >
+          <p class="text-sm font-medium text-text-default">
+            No pudimos mostrar el documento.
+          </p>
+          <p class="text-sm text-text-subtle">
+            Revísalo con «Descargar PDF», abajo a la derecha.
+          </p>
+        </div>
       </div>
 
       <!-- Footer -->
@@ -349,6 +373,28 @@ const pdfSrc = computed(() =>
     : '',
 );
 
+// <embed> gives no load/error events, so the viewer's state comes from
+// probing the URL with fetch; probed lazily on entering the Documento tab.
+const pdfState = ref('idle');
+
+async function probePdf() {
+  if (!pdfSrc.value) {
+    pdfState.value = 'error';
+    return;
+  }
+  pdfState.value = 'loading';
+  try {
+    const response = await fetch(pdfSrc.value, { credentials: 'same-origin' });
+    pdfState.value = response.ok ? 'ready' : 'error';
+  } catch {
+    pdfState.value = 'error';
+  }
+}
+
+watch(tab, (value) => {
+  if (value === 'document' && pdfState.value === 'idle') probePdf();
+});
+
 /** Liquid children and linked deductions, oldest first, as one list. */
 const settlements = computed(() => {
   const liquid = (income.value?.liquid ?? []).map((row) => ({
@@ -377,6 +423,7 @@ async function load() {
   income.value = null;
   incomeError.value = false;
   tab.value = 'summary';
+  pdfState.value = 'idle';
   if (!props.record) return;
 
   const documentResult = await store.fetchCollectionAccount(props.record.id);

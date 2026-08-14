@@ -257,6 +257,8 @@ describe('CollectionAccountFormModal', () => {
     window.localStorage.clear();
     global.URL.createObjectURL = jest.fn(() => 'blob:preview-pdf');
     global.URL.revokeObjectURL = jest.fn();
+    // The viewer probes the PDF URL before mounting the <embed>.
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true }));
   });
 
   afterEach(() => {
@@ -893,6 +895,21 @@ describe('CollectionAccountFormModal', () => {
       window.open = jest.fn();
       await wrapper.find('[data-testid="collection-preview-open-pdf"]').trigger('click');
       expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+    });
+
+    it('falls back to its own message, keeping the download exits, when the viewer fails', async () => {
+      // The browser's connection-refused page inside the frame explains
+      // nothing; the panel says what happened and where to review instead.
+      global.fetch = jest.fn(() => Promise.reject(new Error('refused')));
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-preview-pdf"]').exists()).toBe(false);
+      expect(wrapper.get('[data-testid="collection-preview-pdf-error"]').text())
+        .toContain('No pudimos mostrar la previsualización');
+      expect(wrapper.find('[data-testid="collection-preview-download-pdf"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="collection-preview-open-pdf"]').exists()).toBe(true);
     });
 
     it('gives the PDF the wider column by default', async () => {

@@ -327,6 +327,14 @@ class TestPreviewPdfEndpoint:
         )
         assert response.content[:4] == b'%PDF'
 
+    def test_allows_same_origin_embedding(self, super_client):
+        """The middleware default is DENY, which browsers honour for <embed>
+        too — the modal's viewer rendered a connection-refused page instead of
+        the document until the view opted into SAMEORIGIN."""
+        response = super_client.get(self._preview_pdf_url(super_client))
+
+        assert response['X-Frame-Options'] == 'SAMEORIGIN'
+
     def test_url_ends_in_the_consecutivo(self, super_client):
         """Belt and braces for a viewer that ignores the header and names the
         download after the last path segment."""
