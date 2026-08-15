@@ -323,7 +323,7 @@
       bottom of the grouped view; outside the error/empty/table chain, because
       a selection whose rows the filter just hid still needs its actions.
     -->
-    <ClientBulkAssignBar
+    <BulkAssignBar
       v-model:selected="selectedIds"
       :rows="store.incomes"
       :filtered-ids="filteredIds"
@@ -331,7 +331,9 @@
       testid-prefix="incomes"
       :record-label="incomeLabel"
       :busy="store.isUpdating"
+      project-enabled
       @submit="applyClientToSelection"
+      @submit-project="applyProjectToSelection"
     />
 
     <!-- Create/edit modal (also the duplicate form, seeded and creating) -->
@@ -450,7 +452,7 @@ import AccountingExportButton from '~/components/accounting/AccountingExportButt
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsModal.vue';
 import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
-import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
+import BulkAssignBar from '~/components/accounting/BulkAssignBar.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
@@ -473,6 +475,7 @@ import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
+import { describeProjectAssignmentResult } from '~/utils/projectAssignment';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
@@ -1071,6 +1074,36 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
   // The server refused the batch because some of it no longer exists. Drop
   // those ids first — that holds even if the reload below fails — then rebuild
   // the list so the counters, the groups and the KPI meta agree with it.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
+}
+
+async function applyProjectToSelection({ ids, project, mode, plan }) {
+  const result = await runMutation(
+    () => store.bulkAssignIncomeProject(ids, project),
+    {
+      successTitle: mode === 'unlink'
+        ? 'Proyecto quitado de los ingresos'
+        : 'Proyecto asignado a los ingresos',
+      successDetail: (r) => describeProjectAssignmentResult(
+        plan, r.data?.updated ?? 0, { entity: INCOME_ENTITY },
+      ),
+      errorTitle: mode === 'unlink'
+        ? 'No se pudo quitar el proyecto'
+        : 'No se pudo asignar el proyecto',
+    },
+  );
+  if (result.success) {
+    clearSelection();
+    // Cross-module courtesy: the projects page reads per-project counts; if
+    // its store already holds data, refresh it so a later visit agrees.
+    if (projectsStore.records.length) projectsStore.fetchProjects();
+    return;
+  }
+  // `records_not_found` and `client_mismatch` both name exact ids: drop
+  // them, keep the rest of the selection, and rebuild the view.
   if (result.missingIds?.length) {
     dropIds(result.missingIds);
     await loadRecords();

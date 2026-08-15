@@ -113,4 +113,67 @@ describe('accounting store — bulk client assignment', () => {
       expect(result.missingIds).toEqual([7, 8]);
     });
   });
+
+  describe('bulkAssignIncomeProject', () => {
+    it('posts the ids and rebuilds rows from results, cascaded children included', async () => {
+      store.incomes = [
+        { id: 1, concept: 'Esperado', project: null },
+        { id: 2, concept: 'Abono', project: null },
+        { id: 9, concept: 'Ajeno', project: null },
+      ];
+      create_request.mockResolvedValue({
+        data: {
+          updated: 1,
+          results: [
+            { id: 1, concept: 'Esperado', project: 40 },
+            { id: 2, concept: 'Abono', project: 40 },
+          ],
+        },
+      });
+
+      const result = await store.bulkAssignIncomeProject([1], 40);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/incomes/bulk-assign-project/',
+        { income_ids: [1], project: 40 },
+      );
+      expect(result.success).toBe(true);
+      expect(store.incomes.map((row) => row.project)).toEqual([40, 40, null]);
+    });
+
+    it('carries the mismatched ids back so the page can drop exactly those', async () => {
+      create_request.mockRejectedValue(apiError(409, {
+        error: '1 de los ingresos seleccionados no pertenece al cliente del proyecto.',
+        code: 'client_mismatch',
+        mismatched_ids: [9],
+      }));
+
+      const result = await store.bulkAssignIncomeProject([1, 9], 40);
+
+      expect(result.success).toBe(false);
+      expect(result.code).toBe('client_mismatch');
+      expect(result.missingIds).toEqual([9]);
+    });
+  });
+
+  describe('bulkAssignHostingProject', () => {
+    it('posts hosting_ids and supports clearing with null', async () => {
+      store.hostings = [{ id: 3, domain_url: 'kore.com.co', project: 40 }];
+      create_request.mockResolvedValue({
+        data: {
+          updated: 1,
+          results: [{ id: 3, domain_url: 'kore.com.co', project: null }],
+        },
+      });
+
+      const result = await store.bulkAssignHostingProject([3], null);
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/hostings/bulk-assign-project/',
+        { hosting_ids: [3], project: null },
+      );
+      expect(result.success).toBe(true);
+      expect(store.hostings[0].project).toBeNull();
+    });
+  });
 });

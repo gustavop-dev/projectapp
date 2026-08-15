@@ -311,7 +311,7 @@
       error/empty/table chain, because a selection whose rows the filter just
       hid still needs its actions.
     -->
-    <ClientBulkAssignBar
+    <BulkAssignBar
       v-model:selected="selectedIds"
       :rows="store.hostings"
       :filtered-ids="filteredIds"
@@ -319,7 +319,9 @@
       testid-prefix="hostings"
       :record-label="hostingLabel"
       :busy="store.isUpdating"
+      project-enabled
       @submit="applyClientToSelection"
+      @submit-project="applyProjectToSelection"
     />
 
     <!-- Create/edit modal -->
@@ -394,7 +396,7 @@ import AccountingStatusSelect from '~/components/accounting/AccountingStatusSele
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
-import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
+import BulkAssignBar from '~/components/accounting/BulkAssignBar.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
@@ -414,6 +416,7 @@ import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
+import { describeProjectAssignmentResult } from '~/utils/projectAssignment';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
 import { clientLabelOf } from '~/utils/incomeClients';
@@ -742,6 +745,36 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
   }
   // Same reconciliation as incomes: the ids the server says are gone leave the
   // selection, and the reload puts the rest of the view back in agreement.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
+}
+
+async function applyProjectToSelection({ ids, project, mode, plan }) {
+  const result = await runMutation(
+    () => store.bulkAssignHostingProject(ids, project),
+    {
+      successTitle: mode === 'unlink'
+        ? 'Proyecto quitado de los hostings'
+        : 'Proyecto asignado a los hostings',
+      successDetail: (r) => describeProjectAssignmentResult(
+        plan, r.data?.updated ?? 0, { entity: HOSTING_ENTITY },
+      ),
+      errorTitle: mode === 'unlink'
+        ? 'No se pudo quitar el proyecto'
+        : 'No se pudo asignar el proyecto',
+    },
+  );
+  if (result.success) {
+    clearSelection();
+    // Cross-module courtesy: the projects page reads per-project counts; if
+    // its store already holds data, refresh it so a later visit agrees.
+    if (projectsStore.records.length) projectsStore.fetchProjects();
+    return;
+  }
+  // `records_not_found` and `client_mismatch` both name exact ids: drop
+  // them, keep the rest of the selection, and rebuild the view.
   if (result.missingIds?.length) {
     dropIds(result.missingIds);
     await loadRecords();

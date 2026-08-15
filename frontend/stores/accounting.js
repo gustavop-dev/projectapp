@@ -1101,6 +1101,79 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * bulkAssignIncomeProject: link (or unlink, with project=null) several
+     * incomes to one project. `results` also carries the liquid children
+     * the cascade rewrote, so the in-place replacement misses nothing.
+     */
+    async bulkAssignIncomeProject(incomeIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-assign-project/',
+          { income_ids: incomeIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to incomes:', error);
+        // `records_not_found` / `client_mismatch` name the rows that fell
+        // out of the plan; the page drops exactly those from the selection.
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignHostingProject: link (or unlink) several hostings to one
+     * project. Replaces the affected rows in place, like the incomes one.
+     */
+    async bulkAssignHostingProject(hostingIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/hostings/bulk-assign-project/',
+          { hosting_ids: hostingIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.hostings = this.hostings.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to hostings:', error);
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * createCollectionAccount: create + issue + email a cuenta linked to an
      * income (panel modal). Prepends the created document to the list.
      */

@@ -436,3 +436,62 @@ class TestClientCascadeToLiquids:
         assert response.status_code == 200, response.data
         liquid.refresh_from_db()
         assert liquid.client_id == acme.pk
+
+
+class TestBulkClientAssignClearsForeignProject:
+    def test_the_previous_clients_project_is_cleared_and_cascaded(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """The bulk mirror of the single-record serializer rule: a record
+        must never point at someone else's project. The liquid child follows
+        both the client and the cleared project, and the rewritten rows
+        travel in ``results`` so the panel can rebuild them."""
+        from accounts.models import Project
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        project = Project.objects.create(name='Kore Web', client=kore.user)
+        expected = make_income(
+            concept='Kore - Inicio', kind='expected',
+            client=kore, project=project,
+        )
+        liquid = make_income(
+            concept='Kore - Inicio', kind='liquid',
+            expected_income=expected, client=kore, project=project,
+        )
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [expected.pk], 'client': acme.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        expected.refresh_from_db()
+        liquid.refresh_from_db()
+        assert expected.client_id == acme.pk
+        assert expected.project_id is None
+        assert liquid.project_id is None
+        assert liquid.pk in {row['id'] for row in response.data['results']}
+
+    def test_a_project_already_owned_by_the_new_client_is_kept(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Legacy rows can carry a project without a client; adopting the
+        project's own client must not throw that link away."""
+        from accounts.models import Project
+
+        acme = make_client_profile(company='Acme SAS')
+        project = Project.objects.create(name='Acme Web', client=acme.user)
+        income = make_income(concept='Legacy sin cliente', project=project)
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+        assert income.project_id == project.pk
