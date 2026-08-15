@@ -487,3 +487,95 @@ class TestDropOnlyExpectedTabMigration:
         )
         assert restored.filters == {'kind': 'expected', 'paymentStatus': 'pending'}
         assert restored.base_filters == restored.filters
+
+
+class TestDropClientStatusTabsMigration:
+    """Migration 0047 retires the seven seeded proposal-status tabs of ``client``.
+
+    They became code-level subfilters of the Propuestas module. Left in place
+    they would show up twice for every account created before the change, and
+    keep eating seven of the twelve saved-tab slots.
+    """
+
+    STATUS_NAMES = [
+        'Draft', 'Sent/Viewed', 'Negociación', 'Accepted',
+        'Expired', 'Rejected', 'Finished',
+    ]
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module('accounts.migrations.0047_drop_client_status_tabs')
+
+    def _seeded_tabs(self, user, extra=()):
+        names = [*self.STATUS_NAMES, *extra]
+        for order, name in enumerate(names):
+            SavedFilterTab.objects.create(
+                user=user, view='client', name=name,
+                filters={'lastStatuses': ['draft']},
+                base_filters={'lastStatuses': ['draft']}, order=order,
+            )
+
+    def _tabs_in_order(self, user):
+        return list(
+            SavedFilterTab.objects.filter(user=user, view='client')
+            .order_by('order', 'created_at').values_list('name', 'order')
+        )
+
+    def test_forward_removes_every_status_tab(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a)
+
+        self._migration().drop_status_tabs(apps, None)
+
+        assert self._tabs_in_order(admin_a) == []
+
+    def test_forward_keeps_the_users_own_tabs_and_closes_the_gaps(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a, extra=('Mía', 'Otra'))
+
+        self._migration().drop_status_tabs(apps, None)
+
+        # Contiguous from zero: `Meta.ordering` sorts by `order`, and a gap
+        # would let the next created tab tie with a sibling.
+        assert self._tabs_in_order(admin_a) == [('Mía', 0), ('Otra', 1)]
+
+    def test_forward_is_idempotent(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a, extra=('Mía',))
+        migration = self._migration()
+
+        migration.drop_status_tabs(apps, None)
+        migration.drop_status_tabs(apps, None)
+
+        assert self._tabs_in_order(admin_a) == [('Mía', 0)]
+
+    def test_forward_leaves_the_proposal_view_alone(self, admin_a):
+        from django.apps import apps
+
+        kept = SavedFilterTab.objects.create(
+            user=admin_a, view='proposal', name='Draft',
+            filters={'statuses': ['draft']}, order=0,
+        )
+
+        self._migration().drop_status_tabs(apps, None)
+
+        assert SavedFilterTab.objects.filter(pk=kept.pk).exists()
+
+    def test_reverse_restores_them_with_their_filters(self, admin_a):
+        from django.apps import apps
+
+        self._seeded_tabs(admin_a)
+        migration = self._migration()
+
+        migration.drop_status_tabs(apps, None)
+        migration.restore_status_tabs(apps, None)
+
+        assert [name for name, _ in self._tabs_in_order(admin_a)] == self.STATUS_NAMES
+        restored = SavedFilterTab.objects.get(user=admin_a, view='client', name='Accepted')
+        assert restored.filters == {'lastStatuses': ['accepted']}
+        assert restored.base_filters == restored.filters

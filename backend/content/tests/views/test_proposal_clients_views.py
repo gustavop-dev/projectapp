@@ -951,3 +951,58 @@ class TestOrphanFlagTransitionsAfterProposalDelete:
             reverse('delete-proposal-client', args=[real_client_with_proposal.pk]),
         )
         assert response.status_code == 204
+
+
+@pytest.mark.django_db
+class TestClientStatusCounts:
+    """
+    The status cut runs server-side, so the selector cannot count the options it
+    is not showing. These pin the counts against the lists they describe: a
+    number that disagrees with what pressing it returns is worse than none.
+    """
+
+    def test_counts_match_the_list_each_status_returns(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        response = admin_client.get(reverse('proposal-client-status-counts'))
+
+        assert response.status_code == 200
+        for status, params in (
+            ('all', {}),
+            ('active', {'orphans': 'false'}),
+            ('orphans', {'orphans': 'true'}),
+            ('inactive', {'inactive': 'true'}),
+        ):
+            listed = admin_client.get(reverse('list-proposal-clients'), params)
+            assert response.data[status] == len(listed.data), status
+
+    @freeze_time('2026-01-15 12:00:00')
+    def test_deactivated_client_only_counts_under_inactive(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        from django.utils import timezone
+        orphan_client.deactivated_at = timezone.now()
+        orphan_client.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(reverse('proposal-client-status-counts'))
+
+        assert response.data['inactive'] == 1
+        assert response.data['all'] == 1
+        assert response.data['orphans'] == 0
+
+    def test_counts_honour_the_search_term(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        response = admin_client.get(
+            reverse('proposal-client-status-counts'),
+            {'search': real_client_with_proposal.user.email},
+        )
+
+        assert response.data['all'] == 1
+        assert response.data['active'] == 1
+        assert response.data['orphans'] == 0
+
+    def test_requires_admin(self, client):
+        response = client.get(reverse('proposal-client-status-counts'))
+
+        assert response.status_code in (401, 403)

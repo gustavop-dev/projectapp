@@ -19,39 +19,32 @@
       </BaseButton>
     </div>
 
-    <!-- Filter tabs (Todos / Activos / Huérfanos) -->
-    <div class="flex flex-wrap items-center gap-2 mb-5">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        :data-testid="`clients-tab-${tab.id}`"
-        :class="[
-          'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-          activeTab === tab.id
-            ? 'bg-primary text-white'
-            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
-        ]"
-        @click="setActiveTab(tab.id)"
-      >
-        {{ tab.label }}
-      </button>
-      <button
-        data-testid="clients-tab-config"
-        :class="[
-          'ml-auto px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-          activeTab === 'config'
-            ? 'bg-primary text-white'
-            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
-        ]"
-        @click="setActiveTab('config')"
-      >
-        Configuraciones
-      </button>
-    </div>
+    <!-- Level 1: business module. It groups the subfilters below; the cut
+         itself happens at level 2. -->
+    <ClientModuleTabs
+      :model-value="activeModule"
+      @update:model-value="selectModule"
+    >
+      <template #trailing>
+        <!-- design-tokens: allow-raw-button -->
+        <button
+          data-testid="clients-tab-config"
+          :class="[
+            'ml-auto px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+            isConfigOpen
+              ? 'bg-primary text-white'
+              : 'bg-surface-raised text-text-muted hover:bg-border-muted',
+          ]"
+          @click="isConfigOpen = !isConfigOpen"
+        >
+          Configuraciones
+        </button>
+      </template>
+    </ClientModuleTabs>
 
     <!-- Settings tab replaces the list area -->
     <ViewSettingsPanel
-      v-if="activeTab === 'config'"
+      v-if="isConfigOpen"
       :filter-views="[{ value: 'client', label: 'Clientes' }]"
       @reset="reloadFilterTabs"
     >
@@ -67,13 +60,15 @@
       </section>
     </ViewSettingsPanel>
 
-    <template v-if="activeTab !== 'config'">
-    <!-- Saved filter tabs -->
+    <template v-if="!isConfigOpen">
+    <!-- Level 2: the subfilters of the selected module, plus its saved tabs -->
     <ProposalFilterTabs
       :tabs="displayTabs"
       :active-tab-id="filterTabId"
-      :counts="presetCounts"
+      :counts="subfilterCounts"
       :is-tab-limit-reached="isTabLimitReached"
+      count-title="Clientes que cumplen este filtro"
+      :max-visible="7"
       @select="onSelectFilterTab"
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
@@ -82,8 +77,10 @@
       @rebase="rebaseFilterTab"
     />
 
-    <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <!-- Search + client status + Filter toggle. Status sits here, next to the
+         search box, because it qualifies the register itself and combines with
+         any module rather than competing with them for the row above. -->
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="search"
         type="text"
@@ -92,9 +89,17 @@
         class="w-full sm:max-w-xs"
         @input="onSearchInput"
       />
+      <BaseSegmented
+        :model-value="clientStatus"
+        :options="clientStatusOptions"
+        size="sm"
+        data-testid="clients-status-selector"
+        @update:model-value="setClientStatus"
+      />
       <UiFilterToggleButton
         :open="isFilterPanelOpen"
         :count="activeFilterCount"
+        data-testid="clients-filter-toggle"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
     </div>
@@ -628,6 +633,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
@@ -636,18 +642,20 @@ import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { useAccountingFilters } from '~/composables/useAccountingFilters';
 import {
   CLIENT_FILTERS_CONFIG,
-  CLIENT_PRESETS,
-  HOSTING_PRESET_IDS,
-  findClientPreset,
+  clientSubfiltersFor,
+  findClientSubfilter,
+  matchesSubfilter,
 } from '~/constants/clientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -693,6 +701,8 @@ const {
   currentFilters,
   displayTabs,
   activeTabId: filterTabId,
+  activeModule,
+  selectModule,
   isFilterPanelOpen,
   hasActiveFilters,
   activeFilterCount,
@@ -711,14 +721,12 @@ const {
 const filteredClients = computed(() => applyFilters(clientsStore.clients));
 
 /**
- * The per-row hosting count only earns its space while a hosting preset is
- * applied — that is the moment the question "cuántos" is being asked.
+ * The per-row hosting count only earns its space while the Hosting module is
+ * the one being read — that is the moment the question "cuántos" is being
+ * asked, whichever of its subfilters is applied.
  */
 function showsHostingCount(client) {
-  return (
-    HOSTING_PRESET_IDS.includes(String(currentFilters.preset))
-    && Number(client.hostings_count || 0) > 0
-  );
+  return activeModule.value === 'hosting' && Number(client.hostings_count || 0) > 0;
 }
 
 /**
@@ -736,29 +744,32 @@ function goToClientHostings(client) {
 }
 
 /**
- * Matches per preset, read straight off the loaded rows so the number is
- * visible without applying the filter. Counted before the panel's advanced
- * filters — a preset badge should not move as you tweak unrelated controls —
- * but after the server tab and search, which is what "lo que obtendrías si lo
- * presionas ahora" means here.
+ * Matches per subfilter of the active module, read straight off the loaded
+ * rows so the number is visible without applying the filter. Counted before
+ * the panel's advanced filters — a badge should not move as you tweak
+ * unrelated controls — but after the status selector and search, which is what
+ * "lo que obtendrías si lo presionas ahora" means here.
+ *
+ * Always a number, never absent: an empty set is information, and hiding the
+ * zero would force the user to press the filter to find out.
  */
-const presetCounts = computed(() => {
+const subfilterCounts = computed(() => {
   const counts = {};
-  for (const preset of CLIENT_PRESETS) {
-    counts[preset.id] = clientsStore.clients.filter(preset.match).length;
+  for (const sub of clientSubfiltersFor(activeModule.value)) {
+    counts[sub.id] = clientsStore.clients.filter((c) => matchesSubfilter(sub, c)).length;
   }
   return counts;
 });
 
 /**
- * Presses on the active preset turn it off (requisito: "al presionarlo de
- * nuevo, la lista vuelve a todos los clientes"). Gated to preset ids on
+ * Presses on the active subfilter turn it off (requisito: "al presionarlo de
+ * nuevo, la lista vuelve a todos los clientes"). Gated to subfilter ids on
  * purpose: re-clicking a saved tab has always been an idempotent reload of
  * its filters, and toggling those off would be a silent behavior change.
  */
 function onSelectFilterTab(tabId) {
   const key = String(tabId);
-  if (findClientPreset(key) && key === String(filterTabId.value)) {
+  if (findClientSubfilter(key) && key === String(filterTabId.value)) {
     selectFilterTab('all');
     return;
   }
@@ -766,16 +777,36 @@ function onSelectFilterTab(tabId) {
 }
 
 /**
- * The panel owns the whole filter object, so clearing the preset chip arrives
- * here as a plain value change. Drop the tab highlight with it, otherwise the
- * bar keeps a preset marked active while its filter is already off.
+ * Tab, chip and panel are three views of one state, so they have to move
+ * together: the panel owns the whole filter object, and once an edit from it
+ * (typically removing a chip) leaves the highlighted subfilter's own values no
+ * longer set, that highlight is a lie and has to go.
+ *
+ * Only the highlight is dropped, not the filters: the user may well have other
+ * cuts applied, and clearing one chip must not take them down with it. Saved
+ * tabs are left alone — editing one is how you modify it, and the composable
+ * already tracks that as "modificada" with its own restore.
  */
 function onFiltersUpdate(next) {
-  const clearedPreset = currentFilters.preset && !next.preset;
   Object.assign(currentFilters, next);
-  if (clearedPreset && findClientPreset(filterTabId.value)) {
-    selectFilterTab('all');
+
+  const active = findClientSubfilter(filterTabId.value);
+  if (active && !subfilterStillApplied(active)) {
+    filterTabId.value = 'all';
   }
+}
+
+/** Whether every value the subfilter stands for is still set in the panel. */
+function subfilterStillApplied(subfilter) {
+  return Object.entries(subfilter.filters).every(([key, value]) => {
+    const current = currentFilters[key];
+    if (Array.isArray(value)) {
+      return Array.isArray(current)
+        && current.length === value.length
+        && value.every((v) => current.includes(v));
+    }
+    return current === value;
+  });
 }
 
 const {
@@ -793,13 +824,37 @@ const {
 
 watch(filteredClients, () => clientsResetPage(), { deep: false });
 
-const tabs = [
+/**
+ * Client status: the state of the register itself, orthogonal to every module,
+ * so it lives next to the search box and combines with any of them. Applied
+ * server-side, which is why its counts come from their own endpoint.
+ */
+const CLIENT_STATUSES = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
   { id: 'inactive', label: 'Inactivos' },
 ];
-const activeTab = ref('all');
+const route = useRoute();
+const router = useRouter();
+const VALID_STATUSES = CLIENT_STATUSES.map((s) => s.id);
+const initialStatus = String(route.query.status || 'all');
+const clientStatus = ref(VALID_STATUSES.includes(initialStatus) ? initialStatus : 'all');
+const isConfigOpen = ref(false);
+
+const clientStatusOptions = computed(() =>
+  CLIENT_STATUSES.map(({ id, label }) => {
+    const count = clientsStore.statusCounts?.[id];
+    return {
+      value: id,
+      // Same treatment as the subfilter counts: in parentheses, always shown,
+      // zero included.
+      label: count == null ? label : `${label} (${count})`,
+      testId: `clients-status-${id}`,
+    };
+  }),
+);
+
 const search = ref('');
 const expandedClients = ref(new Set());
 const loadingDetails = ref(new Set());
@@ -813,19 +868,25 @@ let searchTimer = null;
 
 async function loadClients({ silent = false } = {}) {
   let orphans = null;
-  if (activeTab.value === 'orphans') orphans = true;
-  else if (activeTab.value === 'active') orphans = false;
-  await clientsStore.fetchClients({
-    search: search.value.trim(),
-    orphans,
-    // The endpoint does not paginate and every filter on this page — the
-    // presets and their counts included — runs over whatever was loaded, so
-    // ask for the endpoint's hard cap instead of the default 100. Past 500
-    // clients this needs real server-side pagination.
-    limit: 500,
-    inactive: activeTab.value === 'inactive',
-    silent,
-  });
+  if (clientStatus.value === 'orphans') orphans = true;
+  else if (clientStatus.value === 'active') orphans = false;
+  const search_ = search.value.trim();
+  await Promise.all([
+    clientsStore.fetchClients({
+      search: search_,
+      orphans,
+      // The endpoint does not paginate and every filter on this page — the
+      // subfilters and their counts included — runs over whatever was loaded,
+      // so ask for the endpoint's hard cap instead of the default 100. Past 500
+      // clients this needs real server-side pagination.
+      limit: 500,
+      inactive: clientStatus.value === 'inactive',
+      silent,
+    }),
+    // Same search, so the numbers in the selector describe the same table the
+    // list is showing.
+    clientsStore.fetchStatusCounts({ search: search_ }),
+  ]);
 }
 
 /**
@@ -849,8 +910,19 @@ async function refreshAll() {
   );
 }
 
-function setActiveTab(tabId) {
-  activeTab.value = tabId;
+/**
+ * The applied status travels in the URL so the link can be saved and survives
+ * a reload, and is dropped again when it goes back to the default instead of
+ * staying glued there.
+ */
+function setClientStatus(status) {
+  if (status === clientStatus.value) return;
+  clientStatus.value = status;
+  const query = { ...route.query };
+  if (status === 'all') delete query.status;
+  else query.status = status;
+  router.replace({ query });
+  clientsResetPage();
   loadClients();
 }
 

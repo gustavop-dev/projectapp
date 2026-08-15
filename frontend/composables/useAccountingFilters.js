@@ -146,6 +146,18 @@ export function useAccountingFilters({
   // with several instances passes the union so switching between them cannot
   // leave the previous one's filters behind.
   urlFilterKeys = null,
+  // Opt-in second level. When set, it names the filter key holding the active
+  // module and `displayTabs` only lists the tabs belonging to it, so a view can
+  // group its quick filters instead of laying them out flat. Views that leave
+  // it null behave exactly as before.
+  moduleKey = null,
+  defaultModule = 'all',
+  // Query param carrying the active module, same shortening rationale as
+  // `tabQueryParam`.
+  moduleQueryParam = `${viewName}Module`,
+  // Optional migration hook applied to a stored tab's filters before they are
+  // loaded, for keys whose shape changed after the tab was saved.
+  normalizeFilters = null,
 } = {}) {
   const route = useRoute();
   const router = useRouter();
@@ -188,12 +200,25 @@ export function useAccountingFilters({
     return structuredClone(DEFAULT_FILTERS);
   }
 
+  /**
+   * Defaults for "clear everything" and for stepping off a tab. The module is
+   * carried over: it selects an angle, it is not one of the cuts being
+   * cleared, so dropping the filters must not also walk the user back to the
+   * first module.
+   */
+  function freshFiltersKeepingModule(from) {
+    const fresh = freshFilters();
+    if (moduleKey) fresh[moduleKey] = from[moduleKey];
+    return fresh;
+  }
+
   function cloneFilters(filters) {
     return structuredClone(toRaw(filters));
   }
 
   function loadTabFilters(target, tab) {
-    Object.assign(target, freshFilters(), cloneFilters(tab.filters));
+    const stored = cloneFilters(tab.filters);
+    Object.assign(target, freshFilters(), normalizeFilters ? normalizeFilters(stored) : stored);
   }
 
   /** Read this instance's filters out of the query string. */
@@ -236,6 +261,11 @@ export function useAccountingFilters({
   if (syncFiltersToUrl && isUrlOwner()) {
     Object.assign(currentFilters, filtersFromQuery(route?.query));
   }
+  // Read after the landing tab, which stamps its own module: an explicit
+  // ?<view>Module in the URL is the more specific instruction and wins.
+  if (moduleKey && route?.query?.[moduleQueryParam]) {
+    currentFilters[moduleKey] = String(route.query[moduleQueryParam]);
+  }
   const isFilterPanelOpen = ref(false);
 
   // Un param que dispara una acción de una sola vez (destacar una fila) agota
@@ -261,15 +291,41 @@ export function useAccountingFilters({
   const tabs = useSavedFilterTabs(viewName);
   const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
 
+  // Tabs carry their module inside their filters, so a saved one is grouped by
+  // whatever module was active when it was saved. Anything without a module —
+  // every tab of every other view — belongs to the default one.
+  function moduleOf(tab) {
+    return String(tab.module ?? tab.filters?.[moduleKey] ?? defaultModule);
+  }
+
+  const activeModule = computed(() =>
+    (moduleKey ? String(currentFilters[moduleKey] ?? defaultModule) : defaultModule),
+  );
+
   // `filters` travels with the builtins too: a view that badges its tabs has
   // to be able to ask the server what each one is worth, and a builtin with
   // no definition attached would be counted as if it filtered nothing.
-  const displayTabs = computed(() => [
-    ...builtinTabs.map((t) => ({
-      id: t.id, name: t.name, filters: t.filters || {}, builtin: true,
-    })),
-    ...savedTabs.value,
-  ]);
+  const displayTabs = computed(() => {
+    const all = [
+      ...builtinTabs.map((t) => ({
+        id: t.id, name: t.name, filters: t.filters || {}, module: t.module, builtin: true,
+      })),
+      ...savedTabs.value,
+    ];
+    if (!moduleKey) return all;
+    return all.filter((tab) => moduleOf(tab) === activeModule.value);
+  });
+
+  /**
+   * Switching module never clears what is already applied: the panel and the
+   * active-filter chips keep showing it, so nothing goes invisible, and cuts
+   * from different modules stay combinable. A tab selected in another module
+   * simply drops out of `displayTabs` and lights up again on the way back.
+   */
+  function selectModule(moduleId) {
+    if (!moduleKey) return;
+    currentFilters[moduleKey] = String(moduleId);
+  }
 
   // Debounced free-text search: pages bind their search box to
   // `searchInput`; the actual `currentFilters.search` value (which drives
@@ -304,14 +360,15 @@ export function useAccountingFilters({
   }
 
   /**
-   * Write tab and filters in one `router.replace`.
+   * Write tab, module and filters in one `router.replace`.
    *
    * One writer on purpose: two watchers each replacing the query would race,
-   * and whichever landed second would drop the other's keys.
+   * and whichever landed second would drop the other's keys. Selecting a
+   * subfilter moves the tab AND the module at once, so they have to share it.
    *
    * The tab param is written for every tab that is NOT the landing one —
    * including 'all'. Omitting it there would make a reload of the cleared
-   * view snap back to the default tab.
+   * view snap back to the default tab. The module param follows the same rule.
    */
   function syncUrl() {
     if (!route || !router) return;
@@ -325,10 +382,18 @@ export function useAccountingFilters({
       for (const key of queryKeys) delete query[key];
       Object.assign(query, filtersToQuery());
     }
+    if (moduleKey) {
+      if (String(activeModule.value) === String(defaultModule)) {
+        delete query[moduleQueryParam];
+      } else {
+        query[moduleQueryParam] = String(activeModule.value);
+      }
+    }
     router.replace({ query });
   }
 
   watch(activeTabId, syncUrl);
+  watch(activeModule, syncUrl);
 
   watch(
     currentFilters,
@@ -410,7 +475,7 @@ export function useAccountingFilters({
   }
 
   function resetFilters() {
-    Object.assign(currentFilters, freshFilters());
+    Object.assign(currentFilters, freshFiltersKeepingModule(currentFilters));
     activeTabId.value = 'all';
   }
 
@@ -431,7 +496,7 @@ export function useAccountingFilters({
     }
     activeTabId.value = tabId;
     if (tabId === 'all') {
-      Object.assign(currentFilters, freshFilters());
+      Object.assign(currentFilters, freshFiltersKeepingModule(currentFilters));
       return;
     }
     const tab = savedTabs.value.find((t) => String(t.id) === String(tabId));
@@ -475,6 +540,8 @@ export function useAccountingFilters({
     savedTabs,
     displayTabs,
     activeTabId,
+    activeModule,
+    selectModule,
     isFilterPanelOpen,
     isLoading,
     isReady,

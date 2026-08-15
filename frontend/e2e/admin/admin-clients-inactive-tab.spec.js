@@ -47,6 +47,14 @@ function setupMock(page, { onUpdate = null } = {}) {
   return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
 
+    if (apiPath === 'proposals/client-profiles/status-counts/') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ all: 1, active: 1, orphans: 0, inactive: 1 }),
+      };
+    }
+
     if (apiPath === 'proposals/client-profiles/') {
       const requestUrl = new URL(route.request().url());
       const inactiveParam = requestUrl.searchParams.get('inactive');
@@ -87,23 +95,28 @@ test.describe('Admin Clients Inactive Tab', () => {
     });
   });
 
-  test('Inactivos tab requests inactive=true and lists only deactivated clients', {
+  test('Inactivos requests inactive=true and lists only deactivated clients', {
     tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (reaching /panel/clients through the sidebar is
+    // its own flow; the status selector is the subject here)
     await setupMock(page);
     await gotoClients(page);
 
-    // Default tab hides the inactive client.
+    // Default status hides the inactive client.
     await expect(page.getByText('Carlos López')).toBeVisible();
     await expect(page.getByText('Dora Dormida')).not.toBeVisible();
 
+    // Status is a transversal selector next to the search box now, labelled
+    // with its own match count.
     const inactiveRequest = page.waitForRequest((req) => req.url().includes('inactive=true'));
-    await page.getByTestId('clients-tab-inactive').click();
+    await page.getByTestId('clients-status-inactive').click();
     await inactiveRequest;
 
     await expect(page.getByText('Dora Dormida')).toBeVisible();
     await expect(page.getByText('Carlos López')).not.toBeVisible();
     await expect(page.getByText('Inactivo', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/status=inactive/);
   });
 
   test('pause toggle PATCHes is_inactive=true and notifies', {
@@ -120,7 +133,7 @@ test.describe('Admin Clients Inactive Tab', () => {
     expect(updates).toEqual([{ clientId: 101, body: { is_inactive: true } }]);
   });
 
-  test('play toggle from the Inactivos tab reactivates the client', {
+  test('play toggle from the Inactivos list reactivates the client', {
     tag: [...ADMIN_CLIENT_INACTIVE_TAB, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const updates = [];
@@ -128,7 +141,7 @@ test.describe('Admin Clients Inactive Tab', () => {
     await gotoClients(page);
 
     const inactiveRequest = page.waitForRequest((req) => req.url().includes('inactive=true'));
-    await page.getByTestId('clients-tab-inactive').click();
+    await page.getByTestId('clients-status-inactive').click();
     await inactiveRequest;
     await expect(page.getByText('Dora Dormida')).toBeVisible();
 

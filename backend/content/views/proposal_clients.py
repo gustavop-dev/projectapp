@@ -10,6 +10,7 @@ Endpoints
 ---------
 - ``GET    /api/proposals/client-profiles/``               list (search, orphans, limit)
 - ``GET    /api/proposals/client-profiles/search/?q=``     autocomplete (max 20)
+- ``GET    /api/proposals/client-profiles/status-counts/`` per-status counts
 - ``GET    /api/proposals/client-profiles/<id>/``          detail with nested proposals
 - ``POST   /api/proposals/client-profiles/create/``        standalone create
 - ``PATCH  /api/proposals/client-profiles/<id>/update/``   update + cascade snapshots
@@ -185,6 +186,42 @@ def _validated_billing_fields(request_data):
 # List + search
 # ---------------------------------------------------------------------------
 
+# The orphan predicate: no proposals, projects, diagnostics, incomes or
+# hostings. Matches ``is_orphan`` and the delete guard.
+_ORPHAN_PREDICATE = {
+    'proposals_count': 0, 'projects_count': 0, 'diagnostics_count': 0,
+    'incomes_count': 0, 'hostings_count': 0,
+}
+
+
+def _apply_search(qs, search):
+    """Case-insensitive match on email, first/last name and company."""
+    if not search:
+        return qs
+    return qs.filter(
+        Q(user__email__icontains=search)
+        | Q(user__first_name__icontains=search)
+        | Q(user__last_name__icontains=search)
+        | Q(company_name__icontains=search)
+    )
+
+
+def _apply_status(qs, *, orphans, inactive):
+    """
+    Client-status cut, shared by the list and its counts so the number in the
+    selector can never disagree with the rows the same selection returns.
+
+    ``orphans`` is tri-state (None = no cut). ``inactive`` is exclusive:
+    manually deactivated clients are hidden everywhere except their own tab,
+    which is what makes the four options add up to the whole table.
+    """
+    if orphans is True:
+        qs = qs.filter(**_ORPHAN_PREDICATE)
+    elif orphans is False:
+        qs = qs.exclude(**_ORPHAN_PREDICATE)
+    return qs.filter(deactivated_at__isnull=not inactive)
+
+
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_proposal_clients(request):
@@ -204,42 +241,19 @@ def list_proposal_clients(request):
           Omitted/``false`` excludes them (panel default).
         - ``limit``: max rows to return (default 100, hard cap 500).
     """
-    qs = _base_queryset()
+    qs = _apply_search(_base_queryset(), (request.query_params.get('search') or '').strip())
 
-    search = (request.query_params.get('search') or '').strip()
-    if search:
-        qs = qs.filter(
-            Q(user__email__icontains=search)
-            | Q(user__first_name__icontains=search)
-            | Q(user__last_name__icontains=search)
-            | Q(company_name__icontains=search)
-        )
-
-    orphans = _parse_bool(request.query_params.get('orphans'))
-    if orphans is True:
-        qs = qs.filter(
-            proposals_count=0, projects_count=0, diagnostics_count=0,
-            incomes_count=0, hostings_count=0,
-        )
-    elif orphans is False:
-        qs = qs.exclude(
-            proposals_count=0, projects_count=0, diagnostics_count=0,
-            incomes_count=0, hostings_count=0,
-        )
+    qs = _apply_status(
+        qs,
+        orphans=_parse_bool(request.query_params.get('orphans')),
+        inactive=_parse_bool(request.query_params.get('inactive')) is True,
+    )
 
     without_projects = _parse_bool(request.query_params.get('without_projects'))
     if without_projects is True:
         qs = qs.filter(projects_count=0)
     elif without_projects is False:
         qs = qs.filter(projects_count__gt=0)
-
-    inactive = _parse_bool(request.query_params.get('inactive'))
-    if inactive is True:
-        qs = qs.filter(deactivated_at__isnull=False)
-    else:
-        # Panel default: manually deactivated clients are hidden from the
-        # Todos/Activos/Huérfanos tabs and only listed under Inactivos.
-        qs = qs.filter(deactivated_at__isnull=True)
 
     try:
         limit = min(int(request.query_params.get('limit', 100)), 500)
@@ -248,6 +262,31 @@ def list_proposal_clients(request):
 
     qs = qs.prefetch_related('proposals').order_by('-last_proposal_at', '-updated_at')[:limit]
     return Response(ProposalClientSerializer(qs, many=True).data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def proposal_client_status_counts(request):
+    """
+    Match count per client-status option, honouring the same ``search``.
+
+    /panel/clients cuts by status on the server, so it only ever holds the rows
+    of the selected one; without this the selector could not label the options
+    it is not showing. Counting here (instead of over the loaded rows, like the
+    module subfilters do) also keeps the numbers honest past the list's 500-row
+    cap.
+    """
+    qs = _apply_search(_base_queryset(), (request.query_params.get('search') or '').strip())
+
+    def count(**kwargs):
+        return _apply_status(qs, **kwargs).count()
+
+    return Response({
+        'all': count(orphans=None, inactive=False),
+        'active': count(orphans=False, inactive=False),
+        'orphans': count(orphans=True, inactive=False),
+        'inactive': count(orphans=None, inactive=True),
+    })
 
 
 @api_view(['GET'])

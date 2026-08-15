@@ -6,14 +6,20 @@ const emptyFilters = {
   totalProposalsMin: null, totalProposalsMax: null,
   acceptedMin: null, acceptedMax: null,
   lastActivityAfter: null, lastActivityBefore: null,
+  hostingStatus: '', projectStatus: '', billingData: '',
 };
 
-function mountPanel(props = {}) {
+function mountPanel(props = {}, { stubChoice = true } = {}) {
+  const stubs = { ProposalFilterDropdown: true, ProposalFilterRangeDropdown: true };
+  if (stubChoice) stubs.ProposalFilterChoiceDropdown = true;
   return mount(ClientFilterPanel, {
     props: { modelValue: emptyFilters, isOpen: true, filterCount: 0, ...props },
-    global: { stubs: { ProposalFilterDropdown: true, ProposalFilterRangeDropdown: true } },
+    global: { stubs },
   });
 }
+
+const resetButton = (wrapper) =>
+  wrapper.findAll('button').find((b) => b.text().includes('Limpiar todo'));
 
 describe('ClientFilterPanel', () => {
   it('shows the filter panel content when isOpen is true', () => {
@@ -37,42 +43,66 @@ describe('ClientFilterPanel', () => {
   it('hides "Limpiar todo" button when filterCount is zero', () => {
     const wrapper = mountPanel({ filterCount: 0 });
 
+    // The panel itself must still be there, or an empty render would pass.
+    expect(wrapper.text()).toContain('Propuestas');
     expect(wrapper.text()).not.toContain('Limpiar todo');
   });
 
   it('emits reset when the "Limpiar todo" button is clicked', async () => {
     const wrapper = mountPanel({ filterCount: 1 });
 
-    await wrapper.find('button').trigger('click');
+    await resetButton(wrapper).trigger('click');
 
     expect(wrapper.emitted('reset')).toHaveLength(1);
   });
 
-  it('shows active filter chips when filters are applied', () => {
-    const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, lastStatuses: ['draft'] },
-    });
+  it('labels the proposal-status control by what it filters', () => {
+    // It reads the last proposal's status, not the client's own state — the
+    // ambiguous "Estado" is what made the two look like the same filter.
+    const wrapper = mountPanel();
 
-    expect(wrapper.text()).toContain('Estado:');
+    expect(wrapper.html()).toContain('Estado de propuesta');
   });
 
-  it('names the applied predefined filter in the active chips', () => {
+  it('offers a composable control for every predefined filter', () => {
+    const wrapper = mountPanel({}, { stubChoice: false });
+
+    expect(wrapper.find('[data-testid="client-filter-hosting-status"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="client-filter-project-status"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="client-filter-billing-data"]').exists()).toBe(true);
+  });
+
+  it('names the module each active chip comes from', () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, preset: 'hosting-charged' },
+      modelValue: { ...emptyFilters, lastStatuses: ['draft'], hostingStatus: 'charged' },
+      filterCount: 2,
+    });
+
+    expect(wrapper.text()).toContain('Propuestas:');
+    expect(wrapper.text()).toContain('Hosting: Con hosting cobrado');
+  });
+
+  it('clearing a subfilter chip emits the filters without it', async () => {
+    const wrapper = mountPanel({
+      modelValue: { ...emptyFilters, hostingStatus: 'charged' },
       filterCount: 1,
     });
 
-    expect(wrapper.text()).toContain('Predefinido: Con hosting cobrado');
+    await wrapper.get('[data-testid="client-filter-chip-hostingStatus"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')[0][0].hostingStatus).toBe('');
   });
 
-  it('clearing the preset chip emits the filters without it', async () => {
+  it('clearing one chip leaves the other cuts alone', async () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, preset: 'hosting-charged' },
-      filterCount: 1,
+      modelValue: { ...emptyFilters, hostingStatus: 'charged', billingData: 'missing' },
+      filterCount: 2,
     });
 
-    await wrapper.get('[data-testid="client-filter-chip-preset"]').trigger('click');
+    await wrapper.get('[data-testid="client-filter-chip-hostingStatus"]').trigger('click');
 
-    expect(wrapper.emitted('update:modelValue')[0][0].preset).toBe('');
+    const emitted = wrapper.emitted('update:modelValue')[0][0];
+    expect(emitted.hostingStatus).toBe('');
+    expect(emitted.billingData).toBe('missing');
   });
 });

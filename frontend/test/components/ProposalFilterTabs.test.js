@@ -206,14 +206,14 @@ describe('ProposalFilterTabs restorable base', () => {
   it('shows the match count on the tabs that were given one', () => {
     const wrapper = mountTabs({ counts: { 'tab-1': 7 } });
 
-    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('7');
+    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('(7)');
     expect(wrapper.find('[data-testid="filter-tabs-count-tab-2"]').exists()).toBe(false);
   });
 
   it('shows a zero count instead of hiding it', () => {
     const wrapper = mountTabs({ counts: { 'tab-1': 0 } });
 
-    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('0');
+    expect(wrapper.get('[data-testid="filter-tabs-count-tab-1"]').text()).toBe('(0)');
   });
 
   it('stays badge-free for the views that pass no counts', () => {
@@ -229,7 +229,7 @@ describe('ProposalFilterTabs restorable base', () => {
       counts: { 12: 3 },
     });
 
-    expect(wrapper.get('[data-testid="filter-tabs-count-12"]').text()).toBe('3');
+    expect(wrapper.get('[data-testid="filter-tabs-count-12"]').text()).toBe('(3)');
   });
 
   it('badges "Todas" with the unfiltered total when the view sends one', () => {

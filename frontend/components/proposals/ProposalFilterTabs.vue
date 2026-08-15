@@ -33,9 +33,9 @@
         Todas<span
           v-if="allCount != null"
           data-testid="filter-tabs-count-all"
-          class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs tabular-nums bg-surface-raised text-text-muted"
+          class="ml-1 text-xs tabular-nums text-text-subtle"
           :title="countTitle"
-        >{{ allCount }}</span>
+        >({{ allCount }})</span>
       </button>
 
       <!-- Saved tabs -->
@@ -56,9 +56,9 @@
           {{ tab.name }}<span
             v-if="countFor(tab) != null"
             :data-testid="`filter-tabs-count-${tab.id}`"
-            class="ml-1.5 px-1.5 py-0.5 rounded-full text-xs tabular-nums bg-surface-raised text-text-muted"
+            class="ml-1 text-xs tabular-nums text-text-subtle"
             :title="countTitle"
-          >{{ countFor(tab) }}</span><span
+          >({{ countFor(tab) }})</span><span
             v-if="isModified(tab)"
             :data-testid="`filter-tabs-modified-${tab.id}`"
             class="ml-1 text-warning-strong"
