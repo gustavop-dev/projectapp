@@ -1378,6 +1378,10 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
 
     await expect(page.getByTestId('income-group-5')).toContainText('Ana Pérez');
     await expect(page.getByTestId('income-group-billed-5')).toContainText('1.160.000');
+    // Both amounts and the labelled share sit next to the client name, so the
+    // header reads as one sentence instead of two ends of the row.
+    await expect(page.getByTestId('income-group-pending-5')).toContainText('1.160.000');
+    await expect(page.getByTestId('income-group-weight-5')).toContainText('de lo facturado');
     // The unassigned bucket closes the list, flagged as completion work.
     await expect(page.getByTestId('income-group-none')).toContainText('por completar');
     await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');

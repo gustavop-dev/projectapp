@@ -66,9 +66,10 @@
       <template v-else>
         <div v-for="group in localGroups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
+          <!-- Name and total read as one sentence; see IncomeGroupedTable. -->
           <div
             role="row"
-            class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
+            class="accounting-grid-band flex flex-col items-start gap-y-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`recurring-group-${group.id}`"
           >
             <button
@@ -87,18 +88,18 @@
               <span>{{ group.name }}</span>
               <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
             </button>
-            <span class="text-sm tabular-nums text-text-muted whitespace-nowrap">
-              <span :data-testid="`recurring-group-total-${group.id}`">
+            <span class="text-xs tabular-nums text-text-muted whitespace-nowrap">
+              <span class="hidden sm:inline text-text-subtle"> · </span>
+              <span class="font-medium" :data-testid="`recurring-group-total-${group.id}`">
                 {{ formatMonthlyCop(group.monthlyCopTotal) }}
               </span>
-              <span class="text-xs text-text-subtle"> /mes</span>
+              <span class="text-text-subtle"> /mes</span>
               <span
                 v-if="group.groupWeightPct != null"
-                class="text-xs text-text-subtle tabular-nums"
+                class="text-text-subtle tabular-nums"
                 :data-testid="`recurring-group-weight-${group.id}`"
-                title="Peso del grupo sobre el total mensual COP de pagos activos"
               >
-                · {{ formatPercent(group.groupWeightPct) }}
+                · {{ formatPercent(group.groupWeightPct) }} de los pagos activos
               </span>
             </span>
           </div>
