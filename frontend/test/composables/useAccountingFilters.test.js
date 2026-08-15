@@ -440,7 +440,7 @@ describe('restorable base delegation', () => {
 // arrastraba, así que limpiar los filtros dejaba la URL diciendo `?project=5`
 // con el filtro apagado y el F5 siguiente lo resucitaba.
 
-describe('deep-link params', () => {
+describe('seeded query params', () => {
   function seeded(query, ephemeralParams = ['project', 'focus']) {
     mockRoute.query = query;
     return useAccountingFilters({ viewName: 'accounting_income', ephemeralParams });
@@ -485,10 +485,12 @@ describe('deep-link params', () => {
     expect(mockReplace).toHaveBeenCalledWith({ query: { accounting_incomeTab: 'all' } });
   });
 
-  it('leaves the url alone when no deep link came in', () => {
+  it('leaves the url alone when the view was not seeded', () => {
     mountSeeded({ accounting_incomeTab: 'all' });
 
     expect(mockReplace).not.toHaveBeenCalled();
+    // Y el param que sí describe la vista sigue en pie.
+    expect(mockRoute.query).toEqual({ accounting_incomeTab: 'all' });
   });
 
   it('keeps a filter-seeding param while its filter is still on', async () => {

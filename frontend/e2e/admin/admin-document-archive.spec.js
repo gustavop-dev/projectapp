@@ -384,28 +384,33 @@ test.describe('Admin Document Archive', () => {
     await expect.poll(() => lastScopedRequest).toContain('scope=archived');
   });
 
-  test('the sidebar keeps Archivados lit while browsing inside the archive', {
+  test('the switch stays on at any depth, and the panel still says where you are', {
     tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // Antes regía la «regla de resaltado único»: en ámbito archivado se apagaba
+    // toda fila para que sólo brillara la entrada «Archivados». Con el modo
+    // declarado por el interruptor eso sobra, y apagar la fila activa dejaba al
+    // panel sin decir en qué carpeta estaba parado el usuario.
     await mockApi(page, async ({ apiPath, route }) => (
       baseRoutes({ apiPath, url: route.request().url() })
     ));
 
-    // quality: allow-deep-link (Archivados no es una ruta propia sino un
-    // scope de /panel/documents; el camino real —clicks en la entrada del
-    // sidebar y la fila de carpeta— se recorre justo debajo.)
+    // quality: allow-deep-link (el ámbito archivado no es una ruta propia sino
+    // un modo de /panel/documents; el interruptor SÍ se pulsa aquí abajo.)
     await page.goto('/panel/documents');
-    const archivedEntry = page.getByTestId('folder-archived-entry');
-    await expect(archivedEntry).not.toHaveAttribute('aria-current', 'location');
+    const archivedSwitch = page.getByTestId('folder-archived-entry');
+    await expect(archivedSwitch).toHaveAttribute('aria-checked', 'false');
 
-    await archivedEntry.click();
-    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+    await archivedSwitch.click();
+    await expect(archivedSwitch).toHaveAttribute('aria-checked', 'true');
 
-    // Entrar a una subcarpeta NO apaga la señal: el sidebar dice dónde se está
-    // a cualquier profundidad y el breadcrumb da la ruta exacta.
+    // Entrar a una carpeta no apaga el modo, y ahora la carpeta SÍ se resalta.
     await page.getByRole('row', { name: /Contratos 2024/i }).click();
     await expect(page.getByTestId('folder-breadcrumb-root')).toHaveText('Archivados');
-    await expect(archivedEntry).toHaveAttribute('aria-current', 'location');
+    await expect(archivedSwitch).toHaveAttribute('aria-checked', 'true');
+    await expect(page.getByTestId('folder-list')
+      .getByRole('button', { name: /^Contratos 2024/ }))
+      .toHaveAttribute('aria-current', 'page');
   });
 
   test('archiving an ancestor folder while inside a child lands the view back at the top', {
@@ -488,7 +493,9 @@ test.describe('Admin Document Archive', () => {
     });
 
     await page.goto('/panel/documents');
-    const sidebar = page.getByRole('list').filter({ hasText: 'Archivados' });
+    // El interruptor de modo vive en la cabecera, fuera de la lista: ésta se
+    // ancla por testid y no por el texto «Archivados», que ya no está dentro.
+    const sidebar = page.getByTestId('folder-list');
     await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('1');
 
     await page.getByRole('row', { name: /Contrato de Servicios/i })
@@ -496,7 +503,8 @@ test.describe('Admin Document Archive', () => {
     await sheetAction(page, /^Archivar/).click();
 
     await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('0');
-    await expect(page.getByTestId('folder-archived-entry')).toContainText('2');
+    // El total de archivados acompaña al interruptor, en la cabecera.
+    await expect(page.getByTestId('folder-archived-count')).toHaveText('2');
   });
 
   test('the Archivados view lists archived items with their archive date', {
@@ -648,5 +656,180 @@ test.describe('Admin Document Archive', () => {
 
     // exact: el toast repite casi el mismo texto en título y detalle.
     await expect(page.getByText('No se pudo archivar el documento', { exact: true })).toBeVisible();
+  });
+
+  test('restoring one document of an archived folder puts it back in the folder, mode off', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // El caso exacto de la ficha: se archiva una carpeta con dos documentos, se
+    // restaura UNO, y el documento se daba por perdido porque la vista seguía
+    // en el ámbito archivado sin decirlo. Sólo reaparecía al editar la URL.
+    const tempArchived = {
+      id: 5, name: 'temp', parent: null, order: 0,
+      document_count: 2, children_count: 0,
+      active_document_count: 0, active_children_count: 0,
+      archived_document_count: 2, archived_children_count: 0,
+      is_archived: true, archived_at: '2026-08-01T10:00:00Z', archived_cause: 'manual',
+    };
+    const tempMixed = {
+      ...tempArchived, is_archived: false, archived_at: null, archived_cause: null,
+      document_count: 1, active_document_count: 1, archived_document_count: 1,
+    };
+    const doc = (id, title) => ({
+      id, title, status: 'draft', client_name: 'Kore', folder: 5,
+      created_at: '2026-07-01T10:00:00Z', is_archived: true,
+      archived_at: '2026-08-01T10:00:00Z', archived_cause: 'folder', tag_details: [],
+    });
+    const [first, second] = [doc(20, 'Corrida_Calculadora_Fase_1.5'), doc(21, 'Otro anexo')];
+    let restored = false;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'documents/20/unarchive/' && method === 'PATCH') {
+        restored = true;
+        return json({
+          ...first, is_archived: false, archived_at: null,
+          restored_chain: [{ id: 5, name: 'temp' }], moved_to_root: false,
+        });
+      }
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/counts/') return json(counts);
+      if (apiPath === 'document-tags/') return json([]);
+      if (apiPath === 'document-folders/') return json([restored ? tempMixed : tempArchived]);
+      if (apiPath === 'documents/') {
+        if (!url.includes('folder=5')) return json([]);
+        const archivedScope = url.includes('scope=archived');
+        if (!restored) return json(archivedScope ? [first, second] : []);
+        // Restaurado uno: el otro sigue archivado, a propósito.
+        return json(archivedScope ? [second] : [{ ...first, is_archived: false, archived_at: null }]);
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-archived-entry').click();
+    await page.getByRole('row', { name: /temp/i }).click();
+
+    await page.getByRole('row', { name: /Corrida_Calculadora_Fase_1\.5/i })
+      .locator('button[title="Acciones"]').click();
+    await sheetAction(page, /^Restaurar/).click();
+    await expect(page.getByText('Documento restaurado')).toBeVisible();
+
+    // Apagar el modo: se permanece en la MISMA carpeta y el documento está ahí,
+    // sin recargar y sin tocar la URL — que además suelta el parámetro.
+    await page.getByTestId('folder-archived-entry').click();
+
+    await expect(page.getByRole('table').getByText('Corrida_Calculadora_Fase_1.5')).toBeVisible();
+    await expect(page.getByRole('table').getByText('Otro anexo')).toHaveCount(0);
+    await expect.poll(() => new URL(page.url()).searchParams.get('scope')).toBeNull();
+    await expect.poll(() => new URL(page.url()).searchParams.get('folder')).toBe('5');
+  });
+
+  test('the archived mode labels the listing and moves every counter with it', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => (
+      baseRoutes({ apiPath, url: route.request().url() })
+    ));
+
+    // quality: allow-deep-link (el modo archivado se enciende con el
+    // interruptor del panel, que SÍ se pulsa en este mismo test.)
+    await page.goto('/panel/documents');
+    const sidebar = page.getByTestId('folder-list');
+    const unfiled = sidebar.getByRole('button', { name: /^Sin carpeta/ });
+    // Nombre + contador y nada más: en modo archivado aparece también
+    // «Contratos 2024», y un prefijo suelto casaría con las dos.
+    const contratos = sidebar.getByRole('button', { name: /^Contratos \d+$/ });
+
+    await expect(page.getByTestId('doc-scope-banner')).toHaveCount(0);
+    await expect(unfiled).toContainText('1');
+    await expect(contratos).toContainText('3');
+    // Una carpeta archivada entera no está en el árbol activo.
+    await expect(sidebar.getByText('Contratos 2024')).toHaveCount(0);
+
+    await page.getByTestId('folder-archived-entry').click();
+
+    // El ámbito se declara en la cabecera del listado, no sólo en el control.
+    await expect(page.getByTestId('doc-scope-banner')).toContainText('Modo archivado');
+    // Y los contadores pasan a contar lo archivado, que es lo que se lista.
+    await expect(unfiled).toContainText('0');
+    await expect(contratos).toContainText('0');
+    // La carpeta archivada deja de aparentar que no existe.
+    await expect(sidebar.getByText('Contratos 2024')).toBeVisible();
+  });
+
+  test('deleting a document leaves the view in the folder it was in', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Req 31: el mismo chequeo de navegación que se hizo para archivar, ahora
+    // para eliminar — la vista decía estar en Todos y listaba otra cosa.
+    const inFolder = [{
+      id: 30, title: 'Acta parcial', status: 'draft', client_name: 'ACME Corp',
+      folder: 4, created_at: '2026-03-01T10:00:00Z', is_archived: false, tag_details: [],
+    }];
+    let deleted = false;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'documents/30/delete/' && method === 'DELETE') {
+        deleted = true;
+        return json({});
+      }
+      if (apiPath === 'documents/' && url.includes('folder=4')) {
+        return json(deleted ? [] : inFolder);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-list').getByRole('button', { name: /^Contratos/ }).click();
+    await expect(page.getByRole('table').getByText('Acta parcial')).toBeVisible();
+
+    await page.getByRole('row', { name: /Acta parcial/i })
+      .locator('button[title="Acciones"]').click();
+    await sheetAction(page, /^Eliminar/).click();
+    await page.getByTestId('confirm-type-input').fill('DELETE');
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('Documento eliminado')).toBeVisible();
+    // Sigue parado en la carpeta: eliminar no es pedir salir de ella.
+    await expect.poll(() => new URL(page.url()).searchParams.get('folder')).toBe('4');
+    await expect(page.getByTestId('folder-list')
+      .getByRole('button', { name: /^Contratos/ })).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('moving a document leaves the view in the folder it was in', {
+    tag: [...ADMIN_DOCUMENT_ARCHIVE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const inFolder = [{
+      id: 31, title: 'Brief inicial', status: 'draft', client_name: 'ACME Corp',
+      folder: 4, created_at: '2026-03-01T10:00:00Z', is_archived: false, tag_details: [],
+    }];
+    let moved = false;
+
+    await mockApi(page, async ({ apiPath, method, route }) => {
+      const url = route.request().url();
+      if (apiPath === 'documents/31/update/' && method === 'PATCH') {
+        moved = true;
+        return json({ ...inFolder[0], folder: 5 });
+      }
+      if (apiPath === 'documents/' && url.includes('folder=4')) {
+        return json(moved ? [] : inFolder);
+      }
+      return baseRoutes({ apiPath, url });
+    });
+
+    await page.goto('/panel/documents');
+    await page.getByTestId('folder-list').getByRole('button', { name: /^Contratos/ }).click();
+    await page.getByRole('row', { name: /Brief inicial/i })
+      .locator('button[title="Acciones"]').click();
+    await page.getByRole('button', { name: 'Mover a carpeta' }).click();
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await modal.getByRole('button', { name: /^temp/ }).click();
+
+    await expect(page.getByRole('table').getByText('Brief inicial')).toHaveCount(0);
+    await expect.poll(() => new URL(page.url()).searchParams.get('folder')).toBe('4');
+    await expect(page.getByTestId('folder-list')
+      .getByRole('button', { name: /^Contratos/ })).toHaveAttribute('aria-current', 'page');
   });
 });

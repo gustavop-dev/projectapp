@@ -356,7 +356,7 @@ describe('FolderSidebar', () => {
 
       await switchOf(wrapper).trigger('click');
 
-      expect(switchOf(wrapper).attributes('disabled')).toBeDefined();
+      expect(switchOf(wrapper).attributes('aria-checked')).toBe('false');
       expect(wrapper.emitted('toggle-archived')).toBeUndefined();
     });
 

@@ -42,13 +42,14 @@
       />
     </div>
 
-    <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list">
+    <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list" data-testid="folder-list">
       <li>
         <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
         <button
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
           :class="entryClass('all')"
+          :aria-current="ariaCurrent('all')"
           @click="$emit('select', 'all')"
         >
           <span>Todos</span>
@@ -63,6 +64,7 @@
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
           :class="[entryClass('none'), dropZoneClass('none')]"
+          :aria-current="ariaCurrent('none')"
           @click="$emit('select', 'none')"
           @dragover.prevent="dragOverId = 'none'"
           @dragleave="dragOverId = null"
@@ -105,6 +107,7 @@
               <button
                 type="button"
                 class="flex-1 min-w-0 flex items-center gap-1 px-3 py-2 text-sm text-left"
+                :aria-current="ariaCurrent(folder.id)"
                 @click="$emit('select', folder.id)"
               >
                 <span class="truncate flex-1 min-w-0">{{ folder.name }}</span>
@@ -245,6 +248,13 @@ const INACTIVE_CLASS = 'text-text-default hover:bg-surface-muted';
 
 function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
+}
+
+// El resaltado de la fila de carpeta vive en el div contenedor (comparte la
+// caja con los íconos de acción), así que la marca semántica va en el botón:
+// es el único gancho estable para «dónde dice el panel que estoy».
+function ariaCurrent(id) {
+  return props.activeId === id ? 'page' : undefined;
 }
 
 function hasContent(folder) {
