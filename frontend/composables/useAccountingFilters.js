@@ -128,12 +128,46 @@ export function useAccountingFilters({
   // Tab the view lands on with no `?<viewName>Tab` in the URL. Only 'all' or a
   // builtin id make sense here: saved-tab ids are per-user database rows.
   defaultTabId = 'all',
+  // Deep-link params this view is seeded with once (`project`, `client`,
+  // `focus`). See `consumeParam`.
+  ephemeralParams = [],
 } = {}) {
   const route = useRoute();
   const router = useRouter();
 
   const DEFAULT_FILTERS = Object.freeze({ search: '', ...structuredClone(defaults) });
   const tabQueryParam = `${viewName}Tab`;
+
+  // ── Params de deep link ────────────────────────────────────────────────────
+  // Se leían sueltos con `route.query.x` en el `onMounted` de cada página y no
+  // los borraba nadie. Como el watcher del tab clona el query entero, cada
+  // `replace` posterior los volvía a arrastrar: limpiar los filtros dejaba la
+  // URL diciendo `?project=5` con el filtro ya apagado, y el F5 siguiente lo
+  // resucitaba. Un param que sobrevive a su contexto es estado oculto.
+  //
+  // El valor se captura AQUÍ, en el setup, antes de que nada pueda retirarlo,
+  // así el orden en que la página lo consuma deja de importar.
+  const ephemeral = ephemeralParams.map(
+    (param) => (typeof param === 'string' ? { name: param } : param),
+  );
+
+  const seededQuery = Object.freeze(Object.fromEntries(
+    ephemeral.map(({ name }) => [name, route?.query?.[name]]),
+  ));
+
+  /** Valor con el que se sembró la vista, o undefined si no venía en la URL. */
+  function consumeParam(name) {
+    return seededQuery[name];
+  }
+
+  function dropParams(names) {
+    if (!route || !router || !names.length) return;
+    const present = names.filter((name) => route.query?.[name] !== undefined);
+    if (!present.length) return;
+    const query = { ...route.query };
+    present.forEach((name) => delete query[name]);
+    router.replace({ query });
+  }
 
   function freshFilters() {
     return structuredClone(DEFAULT_FILTERS);
@@ -159,6 +193,26 @@ export function useAccountingFilters({
     loadTabFilters(currentFilters, builtinById.get(String(initialTab)));
   }
   const isFilterPanelOpen = ref(false);
+
+  // Un param que dispara una acción de una sola vez (destacar una fila) agota
+  // su contexto al montar: dejarlo puesto re-enciende el destello en cada F5.
+  onMounted(() => {
+    dropParams(ephemeral.filter((p) => !p.boundTo).map((p) => p.name));
+  });
+
+  // El que siembra un FILTRO se queda mientras ese filtro siga puesto — ahí el
+  // param sí describe la vista y sostiene el deep link a través de un F5. Se va
+  // en cuanto el filtro cambia o se limpia, que es lo que antes no pasaba
+  // nunca: la URL seguía prometiendo un filtro ya apagado.
+  ephemeral.filter((p) => p.boundTo).forEach(({ name, boundTo }) => {
+    if (seededQuery[name] === undefined) return;
+    watch(() => currentFilters[boundTo], (value) => {
+      const stillSeeded = Array.isArray(value)
+        && value.length === 1
+        && String(value[0]) === String(seededQuery[name]);
+      if (!stillSeeded) dropParams([name]);
+    }, { deep: true });
+  });
 
   const tabs = useSavedFilterTabs(viewName);
   const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
@@ -375,5 +429,6 @@ export function useAccountingFilters({
     restoreTab,
     rebaseTab,
     reloadTabs: tabs.loadTabs,
+    consumeParam,
   };
 }

@@ -507,8 +507,12 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_income',
+  // `project` siembra un filtro y acompaña a la vista mientras siga puesto;
+  // `focus` sólo destaca una fila una vez y sale de la URL al montar.
+  ephemeralParams: [{ name: 'project', boundTo: 'projects' }, 'focus'],
   // Fixed presets: unlike the seeded saved tabs, editing a filter here never
   // rewrites the tab, which is what the landing tab needs.
   builtinTabs: [
@@ -1093,12 +1097,10 @@ async function loadRecords() {
   await store.fetchRecords('incomes');
 }
 
-const route = useRoute();
-
 onMounted(async () => {
   // ?project=<id> — deep link from the /panel/projects counts; the URL pins
   // accounting_incomeTab=all because the landing tab hides settled rows.
-  const projectParam = Number(route.query.project);
+  const projectParam = Number(consumeParam('project'));
   if (Number.isInteger(projectParam) && projectParam > 0) {
     currentFilters.projects = [projectParam];
   }
@@ -1111,7 +1113,7 @@ onMounted(async () => {
   // Flashing alone was not enough: with PAGE_SIZE rows per page the target
   // is often not rendered at all, and even when it is the operator has no
   // idea where on the page it landed.
-  await revealFocusedRow(Number(route.query.focus));
+  await revealFocusedRow(Number(consumeParam('focus')));
 });
 
 /**
