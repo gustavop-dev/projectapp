@@ -63,6 +63,29 @@ def _income_client(record):
     return build_client_display_name(record.client)
 
 
+def _email_template_label(record):
+    from content.serializers.accounting import EMAIL_TEMPLATE_LABELS
+
+    return EMAIL_TEMPLATE_LABELS.get(record.template_key, record.template_key)
+
+
+def _email_targets_label(record):
+    """The records the email named, so a row stands on its own in a sheet."""
+    return ' · '.join(
+        target.object_repr or f'{target.entity_type} #{target.object_id}'
+        for target in record.targets.all()
+    )
+
+
+def _change_fields_label(record):
+    """Field-level diff flattened to one cell: `Campo: antes → después`."""
+    return ' · '.join(
+        f"{change.get('label') or change.get('field')}: "
+        f"{change.get('old', '')} → {change.get('new', '')}"
+        for change in (record.changes or [])
+    )
+
+
 EXPORT_SECTIONS = {
     'statement': {
         'title': 'Extractos TC',
@@ -213,6 +236,31 @@ EXPORT_SECTIONS = {
             ('Disponible', 'available_amount'),
             ('Deuda', 'debt_amount'),
             ('Notas', 'notes'),
+        ],
+    },
+    # The two Historial subtabs. Exported so an aviso that did go out can be
+    # attached as evidence, which is the whole reason the tab is consulted.
+    'email_log': {
+        'title': 'Envíos',
+        'columns': [
+            ('Fecha', 'sent_at'),
+            ('Aviso', _email_template_label),
+            ('Destinatario', 'recipient'),
+            ('Asunto', 'subject'),
+            ('Estado', lambda r: r.get_status_display()),
+            ('Error', 'error_message'),
+            ('Registros', _email_targets_label),
+        ],
+    },
+    'change_log': {
+        'title': 'Cambios',
+        'columns': [
+            ('Fecha', 'created_at'),
+            ('Usuario', 'actor_username'),
+            ('Entidad', lambda r: r.get_entity_type_display()),
+            ('Registro', 'object_repr'),
+            ('Acción', lambda r: r.get_action_display()),
+            ('Campos', _change_fields_label),
         ],
     },
 }

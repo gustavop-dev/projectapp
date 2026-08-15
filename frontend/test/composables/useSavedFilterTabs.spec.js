@@ -367,3 +367,79 @@ describe('rebaseTab', () => {
     expect(tabs.savedTabs.value[0].base_filters).toEqual({ statuses: ['sent'] });
   });
 });
+
+describe('administración de la tira', () => {
+  it('updateTab esconde una pestaña sin borrarla', async () => {
+    get_request.mockResolvedValueOnce({
+      data: [{ id: 3, name: 'De temporada', filters: {}, is_hidden: false }],
+    });
+    patch_request.mockResolvedValueOnce({
+      data: { id: 3, name: 'De temporada', filters: {}, is_hidden: true },
+    });
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    await tabs.updateTab(3, { is_hidden: true });
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/3/', { is_hidden: true },
+    );
+    expect(tabs.savedTabs.value[0].is_hidden).toBe(true);
+    expect(tabs.savedTabs.value[0].name).toBe('De temporada');
+  });
+
+  it('updateTab revierte la fila si el PATCH falla', async () => {
+    get_request.mockResolvedValueOnce({
+      data: [{ id: 3, name: 'De temporada', filters: {}, is_hidden: false }],
+    });
+    patch_request.mockRejectedValueOnce(new Error('500'));
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    await tabs.updateTab(3, { is_hidden: true });
+
+    expect(tabs.savedTabs.value[0].is_hidden).toBe(false);
+  });
+
+  it('reorderTabs manda el orden y adopta la lista que vuelve', async () => {
+    get_request.mockResolvedValueOnce({ data: [] });
+    create_request.mockResolvedValueOnce({
+      data: [
+        { id: 2, name: 'Dos', order: 0 },
+        { id: 1, name: 'Uno', order: 1 },
+      ],
+    });
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    const ok = await tabs.reorderTabs([2, 1]);
+
+    expect(ok).toBe(true);
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reorder/',
+      { view: 'proposal', ids: [2, 1] },
+    );
+    expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Dos', 'Uno']);
+  });
+
+  it('resetTabs adopta lo que el servidor deja, propias incluidas', async () => {
+    get_request.mockResolvedValueOnce({ data: [] });
+    create_request.mockResolvedValueOnce({
+      data: [
+        { id: 7, name: 'Fallidos', is_seeded: true },
+        { id: 9, name: 'La mía', is_seeded: false },
+      ],
+    });
+    const tabs = useSavedFilterTabs('accounting_history_sends');
+    await tabs.loadTabs();
+
+    const ok = await tabs.resetTabs();
+
+    expect(ok).toBe(true);
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reset/',
+      { view: 'accounting_history_sends' },
+    );
+    expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Fallidos', 'La mía']);
+  });
+});

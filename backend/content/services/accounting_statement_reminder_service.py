@@ -12,6 +12,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from content.services import email_log_service
 from content.services.notification_recipient_service import (
     active_recipient_emails,
 )
@@ -36,8 +37,10 @@ def previous_month(today):
 def pending_statements(today):
     """Cards whose previous-month statement is missing, draft or PDF-less.
 
-    Returns [{'card_name', 'period', 'reason'}] limited to active catalog
-    cards with statements available since before the target month.
+    Returns [{'card_name', 'card_id', 'statement_id', 'period', 'reason'}]
+    limited to active catalog cards with statements available since before
+    the target month. The ids are what the send log links the reminder to;
+    `statement_id` is None when the statement was never registered.
     """
     from content.models import CreditCard, CreditCardStatement
 
@@ -64,6 +67,8 @@ def pending_statements(today):
             continue
         pending.append({
             'card_name': card.name,
+            'card_id': card.pk,
+            'statement_id': statement.pk if statement else None,
             'period': target,
             'reason': reason,
         })
@@ -122,6 +127,14 @@ def run_statement_reminder(today=None):
             for item in pending
         ],
     }
+    targets = [
+        ('credit_card', item['card_id'], item['card_name'])
+        for item in pending
+    ] + [
+        ('statement', item['statement_id'], item['card_name'])
+        for item in pending if item['statement_id']
+    ]
+    text_body = html_body = ''
 
     try:
         text_body = render_to_string(
@@ -140,25 +153,29 @@ def run_statement_reminder(today=None):
         email.send(fail_silently=False)
     except Exception as exc:
         logger.warning('Failed to send statement reminder: %s', exc)
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            html_body=html_body,
+            text_body=text_body,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        html_body=html_body,
+        text_body=text_body,
+    )
 
     # System state, not a user change: update directly (no audit trail).
     AccountingSettings.objects.filter(pk=1).update(

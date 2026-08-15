@@ -326,7 +326,9 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await page.goto('/panel/accounting/history', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('changelog-row-1')).toBeVisible({ timeout: 25_000 });
 
-    await page.getByTestId('history-filter-entity').selectOption('expense');
+    await page.getByTestId('history-filter-toggle').click();
+    await page.getByRole('button', { name: 'Entidad' }).click();
+    await page.getByRole('checkbox', { name: 'Gasto' }).check();
 
     await expect
       .poll(() => calls.some((call) => call.params?.entity_type === 'expense'))
@@ -627,7 +629,8 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
 
     await page.getByTestId('history-tab-sends').click();
     await expect(page.getByTestId('email-log-row-1')).toBeVisible();
-    await page.getByTestId('email-log-filter-recipient').fill('carlos18bp');
+    await page.getByTestId('history-filter-toggle').click();
+    await page.getByTestId('accounting-filter-text-recipient').fill('carlos18bp');
 
     // The filter goes to the server, so the other recipient's row is gone.
     await expect(page.getByTestId('email-log-row-2')).toContainText('carlos18bp@gmail.com');

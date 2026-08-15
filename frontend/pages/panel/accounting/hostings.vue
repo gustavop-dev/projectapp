@@ -238,29 +238,42 @@
           </div>
         </template>
         <template #row-actions="{ row }">
-          <button
-            type="button"
+          <BaseButton
+            variant="ghost"
+            icon-only
+            size="sm"
             aria-label="Ciclos de pago"
             title="Registrar pago de ciclo / ver histórico"
             :data-testid="`hosting-cycles-${row.id}`"
-            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
             @click.stop="openCyclesModal(row)"
           >
             <ClockIcon class="w-5 h-5" />
-          </button>
-          <button
-            type="button"
+          </BaseButton>
+          <BaseButton
+            variant="ghost"
+            icon-only
+            size="sm"
             aria-label="Enviar cuenta de cobro"
             :title="row.billing_email
               ? `Enviar cuenta de cobro a ${row.billing_email}`
               : 'Vincula un cliente con correo o escribe un email de facturación'"
             :disabled="!row.billing_email || billingId === row.id"
             :data-testid="`hosting-send-billing-${row.id}`"
-            class="p-2 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
             @click.stop="askSendBilling(row)"
           >
             <PaperAirplaneIcon class="w-5 h-5" />
-          </button>
+          </BaseButton>
+          <BaseButton
+            variant="ghost"
+            icon-only
+            size="sm"
+            aria-label="Ver correos de este hosting"
+            title="Ver qué correos salieron por este hosting"
+            :data-testid="`hosting-emails-${row.id}`"
+            @click.stop="goToHostingEmails(row)"
+          >
+            <EnvelopeIcon class="w-5 h-5" />
+          </BaseButton>
         </template>
       </AccountingTable>
 
@@ -341,7 +354,9 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
-import { ClockIcon, PaperAirplaneIcon, PlusIcon } from '@heroicons/vue/24/outline';
+import {
+  ClockIcon, EnvelopeIcon, PaperAirplaneIcon, PlusIcon,
+} from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -373,6 +388,7 @@ import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
 import { formatMoney } from '~/utils/formatMoney';
+import { historySendsLink } from '~/utils/historyDeepLink';
 import { clientLabelOf } from '~/utils/incomeClients';
 import { addWeightPct, formatPercent } from '~/utils/percent';
 
@@ -727,6 +743,10 @@ const cyclesRecord = ref(null);
 function openCyclesModal(row) {
   cyclesRecord.value = row;
   cyclesModalOpen.value = true;
+}
+
+function goToHostingEmails(row) {
+  navigateTo(historySendsLink('hosting', row.id));
 }
 
 async function onCyclesChanged() {

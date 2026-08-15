@@ -76,6 +76,8 @@ from content.serializers.accounting_statement import (
     MerchantAliasWriteSerializer,
 )
 from content.services import (
+    accounting_email_retry_service,
+    accounting_history_service,
     accounting_income_duplicate_service,
     accounting_income_mute_service,
     accounting_service,
@@ -86,11 +88,34 @@ from content.utils import today_bogota
 EntityType = AccountingChangeLog.EntityType
 
 
-def _parse_date(value, param):
+# The history service owns the parsing so its querysets and these views
+# reject a malformed date with the same message.
+_parse_date = accounting_history_service.parse_date_param
+
+# Builtin presets plus the per-user ceiling of saved tabs, with room to spare.
+MAX_TAB_COUNT_SPECS = 24
+HISTORY_PAGE_SIZE = 20
+
+
+def _paginated_history_response(queryset, params, serializer_class):
+    """Serialize one 20-row page of a history queryset."""
+    total = queryset.count()
     try:
-        return date.fromisoformat(value)
-    except (TypeError, ValueError):
-        raise ValueError(f"El parámetro '{param}' debe ser una fecha AAAA-MM-DD.")
+        page = max(1, int(params.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    offset = (page - 1) * HISTORY_PAGE_SIZE
+    num_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
+
+    serializer = serializer_class(
+        queryset[offset:offset + HISTORY_PAGE_SIZE], many=True,
+    )
+    return Response({
+        'results': serializer.data,
+        'count': total,
+        'page': page,
+        'num_pages': num_pages,
+    })
 
 
 def _parse_decimal(value, param):
@@ -1272,50 +1297,15 @@ def delete_card_snapshot(request, record_id):
 @permission_classes([IsSuperUser])
 def list_accounting_change_logs(request):
     """Audit trail, paginated 20 per page (it grows unbounded)."""
-    logs = AccountingChangeLog.objects.select_related('actor').all()
     params = request.query_params
     try:
-        if params.get('entity_type'):
-            logs = logs.filter(entity_type=params['entity_type'])
-        if params.get('object_id'):
-            logs = logs.filter(object_id=params['object_id'])
-        if params.get('action'):
-            logs = logs.filter(action=params['action'])
-        if params.get('actor'):
-            logs = logs.filter(actor_username__icontains=params['actor'])
-        if params.get('date_from'):
-            logs = logs.filter(
-                created_at__date__gte=_parse_date(
-                    params['date_from'], 'date_from',
-                ),
-            )
-        if params.get('date_to'):
-            logs = logs.filter(
-                created_at__date__lte=_parse_date(
-                    params['date_to'], 'date_to',
-                ),
-            )
+        logs = accounting_history_service.change_log_queryset(params)
     except ValueError as exc:
         return error_response_from_exc(exc)
 
-    total = logs.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    page_size = 20
-    offset = (page - 1) * page_size
-    num_pages = max(1, -(-total // page_size))
-
-    serializer = AccountingChangeLogSerializer(
-        logs[offset:offset + page_size], many=True,
+    return _paginated_history_response(
+        logs, params, AccountingChangeLogSerializer,
     )
-    return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
-    })
 
 
 # ── Notification recipients ──
@@ -1361,44 +1351,98 @@ def list_accounting_email_logs(request):
     shares the EmailLog table stays out. Paginated 20 per page like the
     change log — it grows unbounded.
     """
-    logs = EmailLog.objects.filter(template_key__in=EMAIL_TEMPLATE_LABELS)
     params = request.query_params
     try:
-        if params.get('template_key'):
-            logs = logs.filter(template_key=params['template_key'])
-        if params.get('status'):
-            logs = logs.filter(status=params['status'])
-        if params.get('recipient'):
-            logs = logs.filter(recipient__icontains=params['recipient'])
-        if params.get('date_from'):
-            logs = logs.filter(
-                sent_at__date__gte=_parse_date(
-                    params['date_from'], 'date_from',
-                ),
-            )
-        if params.get('date_to'):
-            logs = logs.filter(
-                sent_at__date__lte=_parse_date(params['date_to'], 'date_to'),
-            )
+        logs = accounting_history_service.email_log_queryset(params)
     except ValueError as exc:
         return error_response_from_exc(exc)
 
-    total = logs.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    page_size = 20
-    offset = (page - 1) * page_size
-    num_pages = max(1, -(-total // page_size))
+    return _paginated_history_response(
+        logs.prefetch_related('targets'), params, EmailLogSerializer,
+    )
 
-    serializer = EmailLogSerializer(logs[offset:offset + page_size], many=True)
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def accounting_email_log_body(request, log_id):
+    """The message as it went out.
+
+    The history exists to diagnose, and without the body it can only confirm
+    that something was sent, not what. Scoped to the module's own notices so
+    this never becomes a reader for the proposal traffic sharing the table.
+    """
+    log = get_object_or_404(
+        EmailLog.objects.select_related('body'),
+        id=log_id,
+        template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    if log.body is None:
+        return error_response(
+            'Este envío es anterior a que se guardara el cuerpo de los '
+            'correos, así que no hay nada que mostrar.',
+            code='body_not_stored',
+            status=status.HTTP_404_NOT_FOUND,
+        )
     return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
+        'id': log.id,
+        'subject': log.subject,
+        'recipient': log.recipient,
+        'sent_at': log.sent_at,
+        'html': log.body.html,
+        'text': log.body.text,
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def retry_accounting_email_log(request, log_id):
+    """Re-send a failed notice to the address on the row, and only to it."""
+    log = get_object_or_404(
+        EmailLog, id=log_id, template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    try:
+        attempt = accounting_email_retry_service.retry_send(log)
+    except accounting_email_retry_service.RetryError as exc:
+        return error_response(str(exc))
+    return Response(EmailLogSerializer(attempt).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def accounting_history_tab_counts(request):
+    """How many rows each tab of the strip would show.
+
+    The other accounting views count their tabs in the browser over the rows
+    they already loaded; Historial is the one that paginates server-side, so
+    an honest badge — including the (0) — has to be asked for.
+
+    One COUNT per tab rather than a single conditional aggregate: the send
+    log joins its targets, so a digest naming fifty records would fan the
+    joined rowset out fifty times under a shared aggregate. Each count is an
+    indexed lookup, and the specs are capped.
+    """
+    scope = request.data.get('scope')
+    tabs = request.data.get('tabs')
+    if not isinstance(tabs, list):
+        return error_response("El parámetro 'tabs' debe ser una lista.")
+    if len(tabs) > MAX_TAB_COUNT_SPECS:
+        return error_response(
+            f'Máximo {MAX_TAB_COUNT_SPECS} pestañas por consulta.',
+        )
+
+    counts = {}
+    for spec in tabs:
+        if not isinstance(spec, dict) or spec.get('id') in (None, ''):
+            continue
+        try:
+            queryset = accounting_history_service.queryset_for(
+                scope, spec.get('filters') or {},
+            )
+        except ValueError as exc:
+            return error_response_from_exc(exc)
+        counts[str(spec['id'])] = queryset.count()
+
+    return Response({'counts': counts})
 
 
 # ── Settings ──

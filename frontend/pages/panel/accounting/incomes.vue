@@ -320,6 +320,7 @@
       @liquidate="openLiquidateModal"
       @generate-collection="openCollectionModal"
       @view-collection="goToCollectionAccount"
+      @view-emails="goToIncomeEmails"
       @toggle-mute="toggleMute"
       @write-off="confirmWriteOff"
       @delete="confirmDeleteRecord"
@@ -426,6 +427,7 @@ import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
+import { historySendsLink } from '~/utils/historyDeepLink';
 import {
   clientLabelOf,
   groupByClient,
@@ -1032,6 +1034,10 @@ function goToCollectionAccount(row) {
     path: '/panel/accounting/collections',
     query: { focus: row.collection_account_id },
   });
+}
+
+function goToIncomeEmails(row) {
+  navigateTo(historySendsLink('income', row.id));
 }
 
 // ── Acciones de fila: un solo menú para las dos vistas ──

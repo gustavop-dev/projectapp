@@ -1445,6 +1445,12 @@ class SavedFilterTab(models.Model):
     VIEW_ACCOUNTING_RECURRING = 'accounting_recurring'
     VIEW_ACCOUNTING_ADS = 'accounting_ads'
     VIEW_ACCOUNTING_HISTORY = 'accounting_history'
+    # Historial keeps one view per subtab: "Envíos" and "Cambios" filter
+    # different columns, so a tab saved in one would be meaningless in the
+    # other. The pre-existing `accounting_history` above was never written by
+    # anything and stays only so its slot is not recycled under old rows.
+    VIEW_ACCOUNTING_HISTORY_SENDS = 'accounting_history_sends'
+    VIEW_ACCOUNTING_HISTORY_CHANGES = 'accounting_history_changes'
     # Cards has no seeded tabs (nothing to "reset" in Configuración), but the
     # page saves custom tabs like every other accounting view; without the
     # choice the serializer 400s each attempt.
@@ -1462,6 +1468,8 @@ class SavedFilterTab(models.Model):
         (VIEW_ACCOUNTING_RECURRING, 'Accounting Recurring'),
         (VIEW_ACCOUNTING_ADS, 'Accounting Ads'),
         (VIEW_ACCOUNTING_HISTORY, 'Accounting History'),
+        (VIEW_ACCOUNTING_HISTORY_SENDS, 'Accounting History — Sends'),
+        (VIEW_ACCOUNTING_HISTORY_CHANGES, 'Accounting History — Changes'),
         (VIEW_ACCOUNTING_CARDS, 'Accounting Cards'),
         (VIEW_ACCOUNTING_COLLECTIONS, 'Accounting Collections'),
     ]
@@ -1484,6 +1492,13 @@ class SavedFilterTab(models.Model):
     # tab like "Solo esperados" could lose its meaning irreversibly.
     base_filters = models.JSONField(default=dict, blank=True)
     order = models.PositiveIntegerField(default=0)
+    # Written by the seeding, never by the panel. It is what lets
+    # "Restablecer" put the factory tabs back without taking the user's own
+    # ones with them, and it survives a rename — matching by name would not.
+    is_seeded = models.BooleanField(default=False)
+    # Kept out of the strip without being deleted, so a tab that is only
+    # useful now and then does not have to be rebuilt from scratch.
+    is_hidden = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

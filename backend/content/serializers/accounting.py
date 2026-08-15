@@ -20,6 +20,7 @@ from content.models import (
     CreditCard,
     Document,
     EmailLog,
+    EmailLogTarget,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -1322,21 +1323,68 @@ EMAIL_TEMPLATE_LABELS = {
 }
 
 
+# Notices tied to one record, which is what makes a retry reproducible: the
+# rest are digests assembled from whatever was due that morning, so resending
+# one would rebuild today's summary, not the one that failed.
+RETRYABLE_TEMPLATE_KEYS = frozenset({
+    'accounting_change',
+    'collection_account_sent',
+    'payment_status_team',
+})
+RETRY_BLOCKED_REASON = (
+    'Este aviso resume varios registros del día en que salió: reenviarlo '
+    'armaría el resumen de hoy, no el que falló.'
+)
+
+
+class EmailLogTargetSerializer(serializers.ModelSerializer):
+    entity_type_label = serializers.CharField(
+        source='get_entity_type_display', read_only=True,
+    )
+
+    class Meta:
+        model = EmailLogTarget
+        fields = ('entity_type', 'entity_type_label', 'object_id', 'object_repr')
+
+
 class EmailLogSerializer(serializers.ModelSerializer):
     template_label = serializers.SerializerMethodField()
     status_label = serializers.CharField(
         source='get_status_display', read_only=True,
     )
+    origin_action_label = serializers.CharField(
+        source='get_origin_action_display', read_only=True, default='',
+    )
+    targets = EmailLogTargetSerializer(many=True, read_only=True)
+    has_body = serializers.SerializerMethodField()
+    is_retryable = serializers.SerializerMethodField()
+    retry_blocked_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailLog
         fields = (
             'id', 'template_key', 'template_label', 'recipient', 'subject',
             'status', 'status_label', 'error_message', 'sent_at',
+            'origin_action', 'origin_action_label', 'targets', 'has_body',
+            'is_retryable', 'retry_blocked_reason', 'retry_of',
         )
 
     def get_template_label(self, obj):
         return EMAIL_TEMPLATE_LABELS.get(obj.template_key, obj.template_key)
+
+    def get_has_body(self, obj):
+        return obj.body_id is not None
+
+    def get_is_retryable(self, obj):
+        return (
+            obj.status == EmailLog.Status.FAILED
+            and obj.template_key in RETRYABLE_TEMPLATE_KEYS
+        )
+
+    def get_retry_blocked_reason(self, obj):
+        if obj.template_key in RETRYABLE_TEMPLATE_KEYS:
+            return ''
+        return RETRY_BLOCKED_REASON
 
 
 # ── Change log & settings ──
