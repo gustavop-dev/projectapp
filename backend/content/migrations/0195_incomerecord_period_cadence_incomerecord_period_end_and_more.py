@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0192_link_hosting_projects_from_client_name'),
+        ('content', '0194_backfill_email_log_targets'),
     ]
 
     operations = [
