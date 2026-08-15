@@ -278,6 +278,7 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :folder-summary="subfolderSummary"
             :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
@@ -302,6 +303,7 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :folder-summary="subfolderSummary"
             :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
@@ -408,8 +410,8 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { isRootInScope } from '~/utils/archiveScope';
-import { folderRowSummary } from '~/utils/documentStatus';
+import { isRootInScope, treeScopeFor } from '~/utils/archiveScope';
+import { folderSummaryFrom, scopedCounts } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
@@ -460,23 +462,32 @@ const currentFolder = computed(() => (
 // ── El panel lateral sigue al modo ───────────────────────────────────────────
 // Antes listaba siempre el árbol activo con contadores de activos, incluso con
 // el archivo encendido: una carpeta archivada entera no aparecía por ningún
-// lado y «Todos» decía un número mientras el listado mostraba otro. Los seis
-// contadores absolutos ya vienen del backend, así que es sólo elegir cuál.
-const sidebarFolders = computed(() => (
-  isArchived.value ? folderStore.scopedRootFolders('all') : folderStore.rootFolders
-));
+// lado y «Todos» decía un número mientras el listado mostraba otro.
+//
+// `treeScopeFor` es la MISMA regla con que el rollup decide por qué carpetas
+// puede bajar. Importarla en los dos sitios es lo que garantiza que la suma de
+// las filas más «Sin carpeta» dé exactamente «Todos»: las raíces que se listan
+// y los subárboles que se suman son la misma partición del árbol.
+const treeScope = computed(() => treeScopeFor(documentStore.archiveScope));
 
-const sidebarTotalCount = computed(() => (
-  isArchived.value
-    ? documentStore.counts.documents.archived
-    : documentStore.counts.documents.active
-));
+const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.value));
 
-const sidebarUnfiledCount = computed(() => (
-  isArchived.value
-    ? documentStore.counts.documents.unfiled_archived
-    : documentStore.counts.documents.unfiled_active
-));
+// Los tres modos, no dos: con 'all' el listado mezcla los dos estados y las
+// filas de carpeta ya sumaban ambos, así que un total de sólo activos decía
+// menos que la suma de sus propias carpetas.
+const sidebarTotalCount = computed(() => {
+  const { active, archived } = documentStore.counts.documents;
+  if (documentStore.archiveScope === 'archived') return archived;
+  if (documentStore.archiveScope === 'all') return active + archived;
+  return active;
+});
+
+const sidebarUnfiledCount = computed(() => {
+  const { unfiled_active: unfiledActive, unfiled_archived: unfiledArchived } = documentStore.counts.documents;
+  if (documentStore.archiveScope === 'archived') return unfiledArchived;
+  if (documentStore.archiveScope === 'all') return unfiledActive + unfiledArchived;
+  return unfiledActive;
+});
 
 // El ámbito en palabras. 'active' es el estado de reposo y no lleva rótulo:
 // anunciar lo normal entrena a ignorar el aviso que sí importa.
@@ -519,6 +530,19 @@ const currentSubfolders = computed(() => {
 const hasContent = computed(
   () => filteredDocuments.value.length > 0 || currentSubfolders.value.length > 0,
 );
+
+/**
+ * Inventario de una fila de subcarpeta del listado.
+ *
+ * Es el mismo defecto del panel lateral un clic más adentro: entrar a «Familia»
+ * y ver sus tres subcarpetas diciendo «Vacía» cuando entre las tres guardan 12.
+ * Los documentos se cuentan del subárbol; las subcarpetas siguen siendo las
+ * directas, que es lo que la fila promete si se hace clic.
+ */
+function subfolderSummary(folder, scope) {
+  const { docs } = folderStore.rollupOf(folder, scope);
+  return folderSummaryFrom({ docs, subs: scopedCounts(folder, scope).subs });
+}
 
 const {
   currentPage: docPage,
@@ -838,7 +862,10 @@ function handleArchiveFolder(folder) {
   if (!folder) return;
   requestConfirm({
     title: `Archivar "${folder.name}"`,
-    message: `Se archivará junto con su contenido (${folderRowSummary(folder, 'all')}). `
+    // El aviso tiene que nombrar lo que la cascada se va a llevar, que es todo
+    // el subárbol y no sólo lo que cuelga directo: archivar Vastago avisaba
+    // «1 documento» antes de arrastrar 36.
+    message: `Se archivará junto con su contenido (${folderSummaryFrom(folderStore.cascadeContentOf(folder))}). `
       + 'Sale de la vista y de los contadores, pero podrás restaurarla cuando quieras.',
     variant: 'warning',
     confirmText: 'Archivar',

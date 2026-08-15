@@ -12,9 +12,23 @@
 const archivedContentCount = (f) => (f?.archived_document_count || 0)
   + (f?.archived_children_count || 0);
 
+/**
+ * Conteo DIRECTO por ámbito — el stand-in del rollup en este spec.
+ *
+ * El algoritmo del subárbol NO se reimplementa acá a propósito: un mock que lo
+ * calculara haría que el spec asertara su propia copia. Vive testeado en
+ * `test/utils/folderRollup.test.js` y en el store; lo que este archivo fija es
+ * que la fila lee el getter recursivo y no `document_count`, y para eso alcanza
+ * con que el mock pueda devolver un número distinto del directo.
+ */
+const directDocs = (f, scope = 'active') => (scope === 'archived'
+  ? (f?.archived_document_count ?? (f?.is_archived ? f?.document_count : 0) ?? 0)
+  : (f?.active_document_count ?? (f?.is_archived ? 0 : f?.document_count) ?? 0));
+
 const mockFolderStore = {
   reorderFolders: jest.fn(),
   fetchFolders: jest.fn(),
+  recursiveDocumentCount: jest.fn(directDocs),
   // Espejo de los getters reales: el ícono de eliminar depende de ellos.
   archivedContentCount,
   totalContentCount: (f) => (f?.active_document_count ?? f?.document_count ?? 0)
@@ -111,6 +125,7 @@ describe('FolderSidebar', () => {
   beforeEach(() => {
     mockFolderStore.reorderFolders.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.fetchFolders.mockReset().mockResolvedValue({ success: true });
+    mockFolderStore.recursiveDocumentCount.mockReset().mockImplementation(directDocs);
   });
 
   // ── Static entries ────────────────────────────────────────────────────────
@@ -138,6 +153,60 @@ describe('FolderSidebar', () => {
 
       expect(wrapper.text()).toContain('Propuestas');
       expect(wrapper.text()).toContain('Contratos');
+    });
+  });
+
+  // ── Los dos contadores de la fila ─────────────────────────────────────────
+
+  describe('row counters', () => {
+    it('reports what the branch holds, not what hangs directly off the folder', () => {
+      // El bug: «Xpandia Project» decía 0 teniendo 6 documentos en subcarpetas,
+      // y ese cero era la única señal de dónde había algo.
+      mockFolderStore.recursiveDocumentCount.mockReturnValue(6);
+      const wrapper = mountSidebar({ folders: [{ ...emptyFolder, children_count: 3 }] });
+
+      expect(wrapper.find('[data-testid="folder-document-count"]').text()).toBe('6');
+      expect(emptyFolder.document_count).toBe(0);
+    });
+
+    it('counts the subfolders you will actually see when you enter', () => {
+      // Directas a propósito: entrar lista los hijos de la carpeta, así que un
+      // total del subárbol prometería filas que ese clic no muestra.
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(wrapper.find('[data-testid="folder-subfolder-count"]').text()).toBe('2');
+    });
+
+    it('drops the subfolder counter when the folder has none', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      expect(wrapper.find('[data-testid="folder-subfolder-count"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-document-count"]').text()).toBe('5');
+    });
+
+    it('asks for the branch of the mode being viewed', () => {
+      mountSidebar({ folders: [scopedFolder], archiveScope: 'archived' });
+
+      expect(mockFolderStore.recursiveDocumentCount)
+        .toHaveBeenCalledWith(scopedFolder, 'archived');
+    });
+
+    it('names both counters for a screen reader instead of two bare numbers', () => {
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(folderNameButton(wrapper, 'Clientes').attributes('aria-label'))
+        .toBe('Clientes — 2 subcarpetas, 0 documentos');
+    });
+
+    it('keeps the delete guard on the direct inventory the server rejects with', () => {
+      // Aunque la rama guarde 12 documentos, el 409 habla de la subcarpeta que
+      // cuelga directo: el tooltip tiene que citar ESO, no el total.
+      mockFolderStore.recursiveDocumentCount.mockReturnValue(12);
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
+      expect(wrapper.text()).toContain('contiene 2 subcarpetas');
+      expect(wrapper.text()).not.toContain('contiene 12 documentos');
     });
   });
 

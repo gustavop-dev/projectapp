@@ -156,6 +156,16 @@ describe('DocumentsTable — archived mode', () => {
     expect(wrapper.emitted('select-folder')).toBeUndefined();
   });
 
+  it('lets the page supply the summary so the row can count the whole branch', () => {
+    // La página inyecta el conteo del subárbol: entrar a una carpeta y ver sus
+    // subcarpetas diciendo «Vacía» es el mismo defecto un clic más adentro.
+    const folderSummary = jest.fn(() => '12 documentos · 2 subcarpetas');
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderSummary });
+
+    expect(folderSummary).toHaveBeenCalledWith(activeFolder, 'active');
+    expect(wrapper.text()).toContain('12 documentos · 2 subcarpetas');
+  });
+
   it('keeps folder rows navigable in the active scope', async () => {
     const wrapper = mountTable({ documents: [], subfolders: [activeFolder] });
 
