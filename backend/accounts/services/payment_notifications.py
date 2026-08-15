@@ -64,10 +64,15 @@ def build_payment_status_context(payment, to_status, source=''):
     }
 
 
-def send_payment_status_team_email(payment_id, to_status, source=''):
+def send_payment_status_team_email(
+    payment_id, to_status, source='', *, recipients=None, retry_of=None,
+):
     """
     Render and send the team notification for a payment outcome.
     Returns True if the email was sent, False otherwise. Never raises.
+
+    `recipients` overrides the configured list — a manual retry re-sends to
+    the one address that failed, not to everybody who already got it.
     """
     from accounts.models import Payment
     from content.models import AccountingSettings, EmailLog
@@ -83,7 +88,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         )
         return False
 
-    recipients = active_recipient_emails()
+    recipients = recipients or active_recipient_emails()
     if not recipients:
         logger.warning(
             'No active notification recipients; skipping payment email for %s',
@@ -141,6 +146,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
             targets=targets,
             html_body=html_body,
             text_body=text_body,
+            retry_of=retry_of,
         )
         return False
 
@@ -153,6 +159,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         targets=targets,
         html_body=html_body,
         text_body=text_body,
+        retry_of=retry_of,
     )
     logger.info(
         'Sent payment status email (%s) for payment %s to %s',

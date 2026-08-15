@@ -278,6 +278,53 @@ describe('useAccountingStore', () => {
       })
     })
 
+    it('fetchEmailBody returns the stored message', async () => {
+      get_request.mockResolvedValue({
+        data: { id: 7, html: '<p>Hola</p>', text: 'Hola' },
+      })
+
+      const result = await store.fetchEmailBody(7)
+
+      expect(get_request).toHaveBeenCalledWith('accounting/email-log/7/body/')
+      expect(result.success).toBe(true)
+      expect(result.data.html).toBe('<p>Hola</p>')
+    })
+
+    it('a missing body is an answer, not a blank table', async () => {
+      store.error = null
+      get_request.mockRejectedValue(
+        apiError(404, { error: 'Sin cuerpo guardado.', code: 'body_not_stored' }),
+      )
+
+      const result = await store.fetchEmailBody(7)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('Sin cuerpo guardado')
+      expect(store.error).toBeNull()
+    })
+
+    it('retryEmailLog posts to the row and returns the new entry', async () => {
+      create_request.mockResolvedValue({ data: { id: 12, retry_of: 7 } })
+
+      const result = await store.retryEmailLog(7)
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/email-log/7/retry/', {},
+      )
+      expect(result).toEqual({ success: true, data: { id: 12, retry_of: 7 } })
+    })
+
+    it('a refused retry surfaces the reason it was refused', async () => {
+      create_request.mockRejectedValue(
+        apiError(400, { error: 'Este aviso resume varios registros del día.' }),
+      )
+
+      const result = await store.retryEmailLog(7)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('resume varios registros')
+    })
+
     it('a failed count query never blanks the table', async () => {
       store.error = null
       store.isLoading = false

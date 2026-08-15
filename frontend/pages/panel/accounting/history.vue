@@ -83,7 +83,13 @@
 
     <template v-else>
       <ChangelogTable v-if="isChanges" :entries="store.changelog.results" />
-      <EmailLogTable v-else :entries="store.emailLog.results" />
+      <EmailLogTable
+        v-else
+        :entries="store.emailLog.results"
+        :retrying-id="retryingId"
+        @view-body="openBody"
+        @retry="retrySend"
+      />
 
       <!-- Server-side pagination -->
       <div
@@ -103,6 +109,12 @@
         />
       </div>
     </template>
+
+    <EmailBodyModal
+      :open="bodyModalOpen"
+      :entry="bodyEntry"
+      @close="bodyModalOpen = false"
+    />
   </div>
 </template>
 
@@ -115,6 +127,7 @@ import AccountingErrorState from '~/components/accounting/AccountingErrorState.v
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import ChangelogTable from '~/components/accounting/ChangelogTable.vue';
+import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import EmailLogTable from '~/components/accounting/EmailLogTable.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
@@ -373,6 +386,40 @@ async function onRestoreTab(tabId) {
 
 async function onRebaseTab(tabId) {
   await active.value.rebaseTab(tabId);
+}
+
+// ---------------------------------------------------------------------------
+// Diagnosis: what was sent, and sending it again
+// ---------------------------------------------------------------------------
+
+const bodyModalOpen = ref(false);
+const bodyEntry = ref(null);
+const retryingId = ref(null);
+
+function openBody(entry) {
+  bodyEntry.value = entry;
+  bodyModalOpen.value = true;
+}
+
+async function retrySend(entry) {
+  retryingId.value = entry.id;
+  const result = await store.retryEmailLog(entry.id);
+  retryingId.value = null;
+  if (!result.success) {
+    notify.error({
+      title: 'No se pudo reintentar el envío',
+      detail: result.message,
+    });
+    return;
+  }
+  notify.success({
+    title: 'Reenviado',
+    detail: `Salió de nuevo a ${entry.recipient}.`,
+  });
+  // The retry is a new row, and it lands first: reload rather than patch, so
+  // the list and its counts tell the same story.
+  load(1);
+  refreshCounts();
 }
 
 // ---------------------------------------------------------------------------

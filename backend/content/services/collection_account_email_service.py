@@ -144,7 +144,9 @@ def build_collection_account_email(document, *, resend=False):
     }
 
 
-def send_collection_account_email(document, *, hosting=None, resend=False):
+def send_collection_account_email(
+    document, *, hosting=None, resend=False, retry_of=None,
+):
     """Build + send the client email with the PDF attached. True on success."""
     extension = document.collection_account
     recipient = extension.customer_email
@@ -200,6 +202,7 @@ def send_collection_account_email(document, *, hosting=None, resend=False):
             targets=targets,
             html_body=email_parts['html_body'],
             text_body=email_parts['text_body'],
+            retry_of=retry_of,
         )
         return False
 
@@ -212,6 +215,7 @@ def send_collection_account_email(document, *, hosting=None, resend=False):
         targets=targets,
         html_body=email_parts['html_body'],
         text_body=email_parts['text_body'],
+        retry_of=retry_of,
     )
     logger.info(
         'Sent collection account %s to %s', document.public_number, recipient,

@@ -76,6 +76,7 @@ from content.serializers.accounting_statement import (
     MerchantAliasWriteSerializer,
 )
 from content.services import (
+    accounting_email_retry_service,
     accounting_history_service,
     accounting_income_duplicate_service,
     accounting_income_mute_service,
@@ -1359,6 +1360,51 @@ def list_accounting_email_logs(request):
     return _paginated_history_response(
         logs.prefetch_related('targets'), params, EmailLogSerializer,
     )
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def accounting_email_log_body(request, log_id):
+    """The message as it went out.
+
+    The history exists to diagnose, and without the body it can only confirm
+    that something was sent, not what. Scoped to the module's own notices so
+    this never becomes a reader for the proposal traffic sharing the table.
+    """
+    log = get_object_or_404(
+        EmailLog.objects.select_related('body'),
+        id=log_id,
+        template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    if log.body is None:
+        return error_response(
+            'Este envío es anterior a que se guardara el cuerpo de los '
+            'correos, así que no hay nada que mostrar.',
+            code='body_not_stored',
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    return Response({
+        'id': log.id,
+        'subject': log.subject,
+        'recipient': log.recipient,
+        'sent_at': log.sent_at,
+        'html': log.body.html,
+        'text': log.body.text,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def retry_accounting_email_log(request, log_id):
+    """Re-send a failed notice to the address on the row, and only to it."""
+    log = get_object_or_404(
+        EmailLog, id=log_id, template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    try:
+        attempt = accounting_email_retry_service.retry_send(log)
+    except accounting_email_retry_service.RetryError as exc:
+        return error_response(str(exc))
+    return Response(EmailLogSerializer(attempt).data, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

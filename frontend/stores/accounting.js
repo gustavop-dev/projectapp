@@ -774,6 +774,42 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * fetchEmailBody: the message a send log row actually delivered.
+     *
+     * Kept out of `isLoading` and `error` like the tab counts: opening one
+     * row's body must not blank the table behind the modal.
+     */
+    async fetchEmailBody(logId) {
+      try {
+        const response = await get_request(
+          `accounting/email-log/${logId}/body/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching email body:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * retryEmailLog: re-send a failed notice to the address on that row.
+     *
+     * Returns the new log entry, which points back at the original through
+     * `retry_of` so the history shows both.
+     */
+    async retryEmailLog(logId) {
+      try {
+        const response = await create_request(
+          `accounting/email-log/${logId}/retry/`, {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error retrying email log:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
      * fetchSettings: Notification settings singleton.
      */
     async fetchSettings() {

@@ -53,10 +53,13 @@ def build_accounting_change_context(change_log):
     }
 
 
-def send_accounting_change_email(change_log_id):
+def send_accounting_change_email(change_log_id, *, recipients=None, retry_of=None):
     """
     Render and send the change notification to the configured recipients.
     Returns True if the email was sent, False otherwise. Never raises.
+
+    `recipients` overrides the configured list — a manual retry re-sends to
+    the one address that failed, not to everybody who already got it.
     """
     from content.models import AccountingChangeLog, AccountingSettings, EmailLog
 
@@ -77,7 +80,7 @@ def send_accounting_change_email(change_log_id):
         )
         return False
 
-    recipients = active_recipient_emails()
+    recipients = recipients or active_recipient_emails()
     if not recipients:
         logger.warning(
             'No accounting notification recipients configured; '
@@ -130,6 +133,7 @@ def send_accounting_change_email(change_log_id):
             origin_action=change_log.action,
             html_body=html_body,
             text_body=text_body,
+            retry_of=retry_of,
         )
         return False
 
@@ -143,6 +147,7 @@ def send_accounting_change_email(change_log_id):
         origin_action=change_log.action,
         html_body=html_body,
         text_body=text_body,
+        retry_of=retry_of,
     )
     logger.info(
         'Sent accounting change email (change_log %s) to %s',
