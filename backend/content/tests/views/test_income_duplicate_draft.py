@@ -350,3 +350,121 @@ class TestCycleOptions:
 
         assert response.data['period_date'] == '2026-06-01'
         assert response.data['cycle_options'][0]['date'] == '2026-04-01'
+
+
+class TestRecordedPeriod:
+    """A hosting income with a recorded window proposes the following one.
+
+    First-hand data beats the hosting lookup: the window says what this very
+    charge covered, while the lookup infers a modality from the catalog.
+    `period_end` is inclusive, so the next window starts the day after it.
+    """
+
+    def test_proposes_the_window_right_after_the_recorded_one(
+        self, super_client, make_income,
+    ):
+        income = make_income(
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 8, 15),
+            period_start=date(2026, 8, 15),
+            period_end=date(2027, 8, 14),
+            period_cadence='annual',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] == '2027-08-15'
+        assert response.data['period_end'] == '2028-08-14'
+        assert response.data['period_cadence'] == 'annual'
+        assert response.data['period_date'] == '2027-08-15'
+        assert response.data['period_date_source'] == 'income_period'
+
+    def test_the_recorded_window_beats_the_hosting_lookup(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """The catalog says quarterly, the record says monthly: record wins."""
+        profile = make_client_profile()
+        make_hosting(
+            client=profile, payment_modality=HostingRecord.Modality.QUARTERLY,
+        )
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 3, 1),
+            period_start=date(2026, 3, 1),
+            period_end=date(2026, 3, 31),
+            period_cadence='monthly',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] == '2026-04-01'
+        assert response.data['period_end'] == '2026-04-30'
+        assert response.data['period_date_source'] == 'income_period'
+
+    def test_the_day_is_clamped_across_the_inclusive_arithmetic(
+        self, super_client, make_income,
+    ):
+        """A window ending Jan 31: the next one is Feb 1 through Feb 28."""
+        income = make_income(
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 1, 1),
+            period_start=date(2026, 1, 1),
+            period_end=date(2026, 1, 31),
+            period_cadence='monthly',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] == '2026-02-01'
+        assert response.data['period_end'] == '2026-02-28'
+
+    def test_a_custom_cadence_repeats_the_recorded_duration(
+        self, super_client, make_income,
+    ):
+        income = make_income(
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 3, 1),
+            period_start=date(2026, 3, 1),
+            period_end=date(2026, 3, 15),
+            period_cadence='custom',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] == '2026-03-16'
+        assert response.data['period_end'] == '2026-03-30'
+
+    def test_a_legacy_hosting_without_a_window_falls_back_to_the_lookup(
+        self, super_client, make_income, make_client_profile,
+    ):
+        profile = make_client_profile()
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 3, 1),
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] is None
+        assert response.data['period_end'] is None
+        assert response.data['period_date'] == '2027-03-01'
+        assert response.data['period_date_source'] == 'hosting_cycle'
+
+    def test_a_non_hosting_income_never_proposes_a_window(
+        self, super_client, make_income,
+    ):
+        """A stray recorded window on another origin must not leak through."""
+        income = make_income(
+            origin=IncomeRecord.Origin.DEVELOPMENT,
+            period_start=date(2026, 3, 1),
+            period_end=date(2026, 3, 31),
+            period_cadence='monthly',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_start'] is None
+        assert response.data['period_date_source'] is None

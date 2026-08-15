@@ -266,7 +266,35 @@ _ENTITY_FIELDS = {
             'origin': {
                 'type': 'string',
                 'enum': ['development', 'hosting', 'diagnostic', 'other'],
-                'description': 'Línea de negocio que origina el ingreso.',
+                'description': (
+                    'Línea de negocio que origina el ingreso. Con hosting son '
+                    'obligatorios period_start, period_end y period_cadence.'
+                ),
+            },
+            'period_start': {
+                'type': 'string',
+                'description': (
+                    'Inicio del período cubierto (YYYY-MM-DD o YYYY-MM). Solo '
+                    'origin=hosting; define además period_date.'
+                ),
+            },
+            'period_end': {
+                'type': 'string',
+                'description': (
+                    'Fin INCLUSIVO del período cubierto (YYYY-MM-DD). Solo '
+                    'origin=hosting.'
+                ),
+            },
+            'period_cadence': {
+                'type': 'string',
+                'enum': [
+                    'monthly', 'bimonthly', 'quarterly', 'four_monthly',
+                    'semiannual', 'annual', 'biennial', 'triennial', 'custom',
+                ],
+                'description': (
+                    'Periodicidad del período cubierto (catálogo de gastos '
+                    'recurrentes). Solo origin=hosting.'
+                ),
             },
             'gustavo_amount': {'type': ['number', 'string']},
             'carlos_amount': {'type': ['number', 'string']},

@@ -149,6 +149,11 @@ EXPORT_SECTIONS = {
             ('Cliente', _income_client),
             ('Origen', lambda r: r.get_origin_display()),
             ('Proyecto', _record_project),
+            ('Período inicio', 'period_start'),
+            ('Período fin', 'period_end'),
+            ('Periodicidad', lambda r: (
+                r.get_period_cadence_display() if r.period_cadence else ''
+            )),
         ],
     },
     'expense': {

@@ -280,6 +280,35 @@ describe('CollectionAccountFormModal', () => {
     ).toBe(1490000);
   });
 
+  it('prefills the período facturado from a hosting income window', async () => {
+    // The income already says what window this cuenta bills — re-typing it
+    // was the gap that motivated recording the period at all.
+    const wrapper = mountModal({
+      income: {
+        ...incomeFixture,
+        period_start: '2026-08-15',
+        period_end: '2027-08-14',
+      },
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('2026-08-15');
+    expect(
+      wrapper.find('[data-testid="collection-form-period-end"]').element.value,
+    ).toBe('2027-08-14');
+  });
+
+  it('leaves the período facturado empty when the income records none', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('');
+  });
+
   it('lists incomes and blocks the ones that already have a cuenta', async () => {
     const wrapper = mountModal();
     await flushPromises();

@@ -172,6 +172,12 @@ function applyIncome(income) {
     const amount = Number(income.pending_amount ?? income.total_amount ?? 0);
     form.value.unit_price = amount > 0 ? amount : null;
   }
+  // A hosting income records the window it covers; the cuenta bills that
+  // same window, so it arrives pre-filled instead of re-typed.
+  if (income.period_start && !form.value.period_start) {
+    form.value.period_start = income.period_start;
+    form.value.period_end = income.period_end || '';
+  }
   // The income already knows whose money this is: resolve the client from
   // it instead of asking for it again.
   if (income.client && !clientId.value) {
@@ -1097,9 +1103,9 @@ function downloadPdf() {
       <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Período facturado (opcional)">
           <div class="flex items-center gap-2">
-            <BaseInput v-model="form.period_start" type="date" />
+            <BaseInput v-model="form.period_start" type="date" data-testid="collection-form-period-start" />
             <span class="text-text-subtle text-sm">a</span>
-            <BaseInput v-model="form.period_end" type="date" />
+            <BaseInput v-model="form.period_end" type="date" data-testid="collection-form-period-end" />
           </div>
         </BaseFormField>
         <BaseFormField label="Ciudad">

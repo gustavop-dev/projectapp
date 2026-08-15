@@ -21,11 +21,14 @@ can be resolved the draft proposes it; otherwise the date comes back empty and
 click. Neither path ever guesses silently — a wrong date already filled in is
 worse than an empty one the operator is forced to complete.
 """
-from content.models import HostingRecord, IncomeRecord
+from datetime import timedelta
+
+from content.models import HostingRecord, IncomeRecord, RecurringPayment
 from content.serializers.accounting import money_str
 from content.utils import add_months
 
 HOSTING_CYCLE = 'hosting_cycle'
+INCOME_PERIOD = 'income_period'
 
 # Cadences the form offers so the next period is one click away when the
 # hosting lookup below cannot resolve one on its own — which is the normal
@@ -90,13 +93,45 @@ def build_cycle_options(income):
     ]
 
 
+def next_period_range(income):
+    """(start, end) of the following covered window, or None.
+
+    Only a hosting income with a recorded window can propose one. The next
+    window starts the day after the recorded end (``period_end`` is
+    inclusive) and lasts one cadence — ``custom`` or a missing cadence falls
+    back to the original window's own length, which is the only cadence the
+    record actually attests.
+    """
+    if income.origin != IncomeRecord.Origin.HOSTING:
+        return None
+    if not (income.period_start and income.period_end):
+        return None
+    start = income.period_end + timedelta(days=1)
+    months = RecurringPayment.FREQUENCY_MONTHS.get(income.period_cadence)
+    if months:
+        end = add_months(start, months) - timedelta(days=1)
+    else:
+        end = start + (income.period_end - income.period_start)
+    return start, end
+
+
 def build_income_duplicate_draft(income):
     """Return the prefill for a new income copied from ``income``."""
     from accounts.services.proposal_client_service import (
         build_client_display_name,
     )
 
-    period_date = next_period_date(income)
+    period_range = next_period_range(income)
+    if period_range:
+        # The recorded window beats the hosting lookup: it is first-hand data
+        # on this very charge, while the lookup infers from the catalog.
+        period_start, period_end = period_range
+        period_date = period_start
+        period_date_source = INCOME_PERIOD
+    else:
+        period_start = period_end = None
+        period_date = next_period_date(income)
+        period_date_source = HOSTING_CYCLE if period_date else None
     return {
         'concept': income.concept,
         # Always pending, whatever the original was. Pocket is a liquid-only
@@ -104,7 +139,10 @@ def build_income_duplicate_draft(income):
         'kind': IncomeRecord.Kind.EXPECTED,
         'destination': IncomeRecord.Destination.PARTNERS,
         'period_date': period_date.isoformat() if period_date else None,
-        'period_date_source': HOSTING_CYCLE if period_date else None,
+        'period_date_source': period_date_source,
+        'period_start': period_start.isoformat() if period_start else None,
+        'period_end': period_end.isoformat() if period_end else None,
+        'period_cadence': income.period_cadence,
         # Always offered, including when the hosting cycle already proposed a
         # date: the operator may well disagree with it, and these count from
         # the original's date, never from the proposal.
