@@ -173,6 +173,11 @@ def send_collection_account_email(
         ('hosting', hosting_id, ''),
         ('income', document.income_record_id, ''),
     ]
+    # The one accounting notice addressed to the client rather than to the
+    # team. `client_user` is nullable, so a cuenta de cobro for someone with
+    # no platform account files as "al cliente" with nobody attached — it did
+    # go to a client address, we just cannot name whose profile.
+    client = getattr(document.client_user, 'profile', None)
 
     try:
         pdf_bytes = CollectionAccountPdfService.generate(document)
@@ -203,6 +208,8 @@ def send_collection_account_email(
             html_body=email_parts['html_body'],
             text_body=email_parts['text_body'],
             retry_of=retry_of,
+            client=client,
+            audience=EmailLog.Audience.CLIENT,
         )
         return False
 
@@ -216,6 +223,8 @@ def send_collection_account_email(
         html_body=email_parts['html_body'],
         text_body=email_parts['text_body'],
         retry_of=retry_of,
+        client=client,
+        audience=EmailLog.Audience.CLIENT,
     )
     logger.info(
         'Sent collection account %s to %s', document.public_number, recipient,

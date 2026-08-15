@@ -1446,9 +1446,12 @@ class EmailLogSerializer(serializers.ModelSerializer):
         )
 
     def get_retry_blocked_reason(self, obj):
-        if obj.template_key in RETRYABLE_TEMPLATE_KEYS:
-            return ''
-        return RETRY_BLOCKED_REASON
+        # Delegated so the tooltip and the endpoint's 400 cannot disagree,
+        # and so a proposal row gets its own sentence instead of the digest's.
+        from content.services.accounting_email_retry_service import (
+            retry_blocked_reason,
+        )
+        return retry_blocked_reason(obj.template_key)
 
 
 # ── Change log & settings ──
