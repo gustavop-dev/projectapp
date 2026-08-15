@@ -209,4 +209,18 @@ describe('HostingFormModal', () => {
     await wrapper.find('form').trigger('submit');
     expect(wrapper.emitted('submit')[0][0].client).toBe(12);
   });
+
+  it('pre-fills the only project on create but never on edit (PA-51)', async () => {
+    const creating = mountModal();
+    await flushPromises();
+    expect(
+      creating.findComponent({ name: 'ProjectSelect' }).props('autoSelectSingle'),
+    ).toBe(true);
+
+    const editing = mountModal({ record: LEGACY_RECORD });
+    await flushPromises();
+    expect(
+      editing.findComponent({ name: 'ProjectSelect' }).props('autoSelectSingle'),
+    ).toBe(false);
+  });
 });

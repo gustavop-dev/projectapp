@@ -26,12 +26,17 @@ class PanelProjectSerializer(serializers.ModelSerializer):
     client = serializers.SerializerMethodField()
     hostings_count = serializers.IntegerField(read_only=True)
     incomes_count = serializers.IntegerField(read_only=True)
+    # The client's completion backlog (their records with no project yet) —
+    # repeated on every project row of the same client on purpose.
+    unlinked_hostings_count = serializers.IntegerField(read_only=True, default=0)
+    unlinked_incomes_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Project
         fields = [
             'id', 'name', 'description', 'status', 'status_label',
             'created_at', 'client', 'hostings_count', 'incomes_count',
+            'unlinked_hostings_count', 'unlinked_incomes_count',
         ]
         read_only_fields = fields
 
@@ -88,6 +93,30 @@ class CreatePanelProjectSerializer(serializers.Serializer):
             status=validated_data.get('status', Project.STATUS_ACTIVE),
             client=self.client_profile.user,
         )
+
+
+class ProjectAssignUnlinkedSerializer(serializers.Serializer):
+    """Apply payload for ``projects/<id>/assign-unlinked/``.
+
+    Explicit ids on purpose: what the operator confirmed is what runs, not
+    "whatever is unlinked by the time the request lands". The view checks the
+    ids against the project's unlinked set; this serializer only guards the
+    shape and refuses an empty plan.
+    """
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+
+    def validate(self, attrs):
+        if not attrs.get('hosting_ids') and not attrs.get('income_ids'):
+            raise serializers.ValidationError(
+                'Selecciona al menos un registro para asignar.'
+            )
+        return attrs
 
 
 class UpdatePanelProjectSerializer(serializers.ModelSerializer):

@@ -558,6 +558,78 @@ def bulk_assign_income_client(income_ids, client, user):
     return bulk_assign_client(EntityType.INCOME, income_ids, client, user)
 
 
+def _cascade_project_to_liquid_children(income, user):
+    """Carry an expected income's project to the liquids that settle it.
+
+    Same rationale as :func:`_cascade_client_to_liquid_children`: settlement
+    inherits at creation time only, so a project assigned later would leave
+    the collected money under "Sin proyecto" and split one deal across two
+    per-project buckets. One audit row per child.
+    """
+    for child in income.liquid_records.select_related('project'):
+        if child.project_id == income.project_id:
+            continue
+        old_values = snapshot_values(child, EntityType.INCOME)
+        child.project = income.project
+        child.save(update_fields=['project', 'updated_at'])
+        changes = compute_changes(
+            EntityType.INCOME, old_values,
+            snapshot_values(child, EntityType.INCOME),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=EntityType.INCOME,
+                object_id=child.pk,
+                object_repr=object_repr(EntityType.INCOME, child),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+
+
+@transaction.atomic
+def bulk_assign_project(entity_type, record_ids, project, user):
+    """Assign one project to several records — the completion tool for rows
+    created before their project existed.
+
+    Mirror of :func:`bulk_assign_client`: one audit row per record, rows
+    already pointing at the target project are skipped so a re-run writes
+    nothing. Unlike the client flavour there is no clearing path (the caller
+    always has a concrete project in hand) and no hosting snapshot refresh —
+    the project never touches the billing snapshot.
+    """
+    model = ENTITY_MODELS[entity_type]
+    records = list(
+        model.objects.select_related('project').filter(pk__in=record_ids),
+    )
+    updated = []
+    for record in records:
+        if record.project_id == project.pk:
+            continue
+        old_values = snapshot_values(record, entity_type)
+        record.project = project
+        record.save(update_fields=['project', 'updated_at'])
+        changes = compute_changes(
+            entity_type, old_values, snapshot_values(record, entity_type),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=entity_type,
+                object_id=record.pk,
+                object_repr=object_repr(entity_type, record),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+        if (
+            entity_type == EntityType.INCOME
+            and record.kind == IncomeRecord.Kind.EXPECTED
+        ):
+            _cascade_project_to_liquid_children(record, user)
+        updated.append(record)
+    return updated
+
+
 def _deletion_changes(entity_type, old_values):
     """Diff payload for a deletion: every non-empty field as old -> ''."""
     return [

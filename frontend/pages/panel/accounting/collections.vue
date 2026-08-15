@@ -156,8 +156,14 @@
           </span>
         </template>
         <template #cell-project_name="{ row }">
-          <span v-if="row.project_name" class="text-text-default">
+          <span v-if="row.project_name" class="inline-flex items-center gap-1 text-text-default">
             {{ row.project_name }}
+            <!-- Only documents whose live FK survives get the jump; older
+                 rows keep the frozen snapshot text with no link (by design). -->
+            <ProjectSpaceLink
+              :project-id="row.project_id"
+              :data-testid="`collection-project-space-${row.id}`"
+            />
           </span>
           <!-- Empty is a legitimate state here (a cobro por diagnóstico has
                no project yet), so it gets no debt pill — unlike the client. -->
@@ -341,6 +347,7 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import {

@@ -52,8 +52,10 @@ from content.views.contact import contact_list, new_contact
 from content.views.panel_dashboard import panel_dashboard
 from content.views.panel_projects import (
     archive_panel_project,
+    assign_project_unlinked_records,
     create_panel_project,
     list_panel_projects,
+    list_project_unlinked_records,
     unarchive_panel_project,
     update_panel_project,
 )
@@ -244,6 +246,8 @@ urlpatterns = [
     path('projects/<int:project_id>/update/', update_panel_project, name='panel-projects-update'),
     path('projects/<int:project_id>/archive/', archive_panel_project, name='panel-projects-archive'),
     path('projects/<int:project_id>/unarchive/', unarchive_panel_project, name='panel-projects-unarchive'),
+    path('projects/<int:project_id>/unlinked-records/', list_project_unlinked_records, name='panel-projects-unlinked-records'),
+    path('projects/<int:project_id>/assign-unlinked/', assign_project_unlinked_records, name='panel-projects-assign-unlinked'),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),

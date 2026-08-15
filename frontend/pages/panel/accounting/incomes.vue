@@ -205,6 +205,19 @@
         <template #cell-payment_status="{ row }">
           <IncomePaymentStateCell :row="row" />
         </template>
+        <template #cell-project_name="{ row }">
+          <span v-if="row.project_name" class="inline-flex items-center gap-1">
+            <HighlightText
+              :text="row.project_name"
+              :query="currentFilters.search"
+            />
+            <ProjectSpaceLink
+              :project-id="row.project"
+              :data-testid="`income-project-space-${row.id}`"
+            />
+          </span>
+          <span v-else class="text-text-subtle">—</span>
+        </template>
       </IncomeGroupedTable>
 
       <!-- Column sort and pagination stay classic-only affordances; the
@@ -264,6 +277,19 @@
                the kind badge wrapped the pills and doubled the row height. -->
           <template #cell-payment_status="{ row }">
             <IncomePaymentStateCell :row="row" />
+          </template>
+          <template #cell-project_name="{ row }">
+            <span v-if="row.project_name" class="inline-flex items-center gap-1">
+              <HighlightText
+                :text="row.project_name"
+                :query="currentFilters.search"
+              />
+              <ProjectSpaceLink
+                :project-id="row.project"
+                :data-testid="`income-project-space-${row.id}`"
+              />
+            </span>
+            <span v-else class="text-text-subtle">—</span>
           </template>
         </AccountingTable>
 
@@ -407,6 +433,7 @@ import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsM
 import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
 import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
+import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';

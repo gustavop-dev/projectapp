@@ -24,7 +24,13 @@ function invalidatePickerCache() {
 export const usePanelProjectsStore = defineStore('panel_projects', {
   state: () => ({
     records: [],
-    meta: { total: 0, active: 0, archived: 0, clients_without_projects: 0 },
+    meta: {
+      total: 0,
+      active: 0,
+      archived: 0,
+      clients_without_projects: 0,
+      records_without_project: 0,
+    },
     isLoading: false,
     isUpdating: false,
     error: null,
@@ -117,6 +123,37 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
         return {
           success: false,
           ...normalizeApiError(error, 'No se pudo restaurar el proyecto.'),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /** Preview of the assign flow: the client's records without a project. */
+    async fetchUnlinkedRecords(id) {
+      try {
+        const response = await get_request(`projects/${id}/unlinked-records/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudieron cargar los registros sin proyecto.'),
+        };
+      }
+    },
+
+    /** Assign the project to the confirmed ids; refetch so counts move. */
+    async assignUnlinkedRecords(id, payload) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(`projects/${id}/assign-unlinked/`, payload);
+        await this.fetchProjects();
+        invalidatePickerCache();
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudieron asignar los registros.'),
         };
       } finally {
         this.isUpdating = false;

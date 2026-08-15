@@ -166,11 +166,16 @@
           </span>
         </template>
         <template #cell-project_name="{ row }">
-          <HighlightText
-            v-if="row.project_name"
-            :text="row.project_name"
-            :query="currentFilters.search"
-          />
+          <span v-if="row.project_name" class="inline-flex items-center gap-1">
+            <HighlightText
+              :text="row.project_name"
+              :query="currentFilters.search"
+            />
+            <ProjectSpaceLink
+              :project-id="row.project"
+              :data-testid="`hosting-project-space-${row.id}`"
+            />
+          </span>
           <span
             v-else
             class="text-text-subtle"
@@ -371,6 +376,7 @@ import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.v
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
+import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';

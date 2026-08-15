@@ -337,6 +337,7 @@ function onSubmit() {
         v-model="form.project"
         :client-profile-id="form.client"
         :client-label="form.client_name || lockedClient?.name || ''"
+        :auto-select-single="!isEdit"
         testid="income-form-project"
       />
 

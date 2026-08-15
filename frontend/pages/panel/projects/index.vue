@@ -21,7 +21,7 @@
     </div>
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
       <AccountingStatCard
         label="Proyectos activos"
         :value="String(store.meta.active ?? 0)"
@@ -41,6 +41,13 @@
         clickable
         data-testid="panel-projects-stat-orphans"
         @click="openOrphansPanel"
+      />
+      <AccountingStatCard
+        label="Registros sin proyecto"
+        :value="String(store.meta.records_without_project ?? 0)"
+        :tone="(store.meta.records_without_project ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Hostings e ingresos por asignar"
+        data-testid="panel-projects-stat-unlinked"
       />
     </div>
 
@@ -97,7 +104,7 @@
       <AccountingTable
         :show-actions="false"
         :loading="store.isLoading"
-        :highlight-id="lastMutatedId"
+        :highlight-id="lastMutatedId ?? queryHighlightId"
         :columns="columns"
         :rows="pagedRecords"
         :highlight-query="searchInput"
@@ -106,11 +113,25 @@
         @sort="toggleSort"
       >
         <template #cell-client_name="{ row }">
-          <span class="inline-flex flex-col">
+          <span class="inline-flex flex-col items-start">
             <HighlightText :text="row.client_name" :query="searchInput" />
             <span v-if="row.client_company" class="text-xs text-text-subtle">
               <HighlightText :text="row.client_company" :query="searchInput" />
             </span>
+            <!-- The client's completion backlog: opens the confirm-first
+                 assign modal. Hidden on archived rows (the backend refuses
+                 assigning to an archived project anyway). -->
+            <BaseButton
+              v-if="unlinkedTotal(row) > 0 && row.status !== 'archived'"
+              variant="ghost"
+              size="sm"
+              class="!px-1.5 !py-0.5 text-xs text-warning-strong"
+              :title="`${unlinkedTotal(row)} registros de este cliente sin proyecto — asignar`"
+              :data-testid="`project-assign-unlinked-${row.id}`"
+              @click.stop="openAssign(row)"
+            >
+              {{ unlinkedTotal(row) }} sin proyecto
+            </BaseButton>
           </span>
         </template>
         <template #cell-created_at="{ row }">
@@ -148,6 +169,12 @@
           <span v-else class="tabular-nums text-text-muted">{{ row.incomes_count }}</span>
         </template>
         <template #cell-row_actions="{ row }">
+          <!-- PA-50: the space exists for every row (same record), archived
+               included — platform shows its own Archivado chip. -->
+          <ProjectSpaceLink
+            :project-id="row.id"
+            :data-testid="`project-space-${row.id}`"
+          />
           <BaseButton
             variant="ghost"
             size="sm"
@@ -211,7 +238,15 @@
       :seed-client="seedClient"
       :existing-projects="store.records"
       @close="closeModal"
-      @submit="handleSubmit"
+      @submit="onFormSubmit"
+    />
+
+    <!-- Assign the client's unlinked records to a project (PA-51) -->
+    <ProjectAssignUnlinkedModal
+      :open="assignOpen"
+      :project="assignProject"
+      @close="closeAssign"
+      @assigned="closeAssign"
     />
 
     <!-- Clients without a project -->
@@ -297,7 +332,9 @@ import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
+import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { useProposalStore } from '~/stores/proposals';
@@ -448,6 +485,38 @@ function doRestore(record) {
   );
 }
 
+// ── Assign the client's unlinked records (PA-51) ──
+
+const assignOpen = ref(false);
+const assignProject = ref(null);
+
+function unlinkedTotal(row) {
+  return (row.unlinked_hostings_count ?? 0) + (row.unlinked_incomes_count ?? 0);
+}
+
+function openAssign(row) {
+  assignProject.value = row;
+  assignOpen.value = true;
+}
+
+function closeAssign() {
+  assignOpen.value = false;
+  assignProject.value = null;
+}
+
+/**
+ * Create/update passthrough that, after a CREATE, offers the assign modal
+ * when the new project's client has records without a project. Offering,
+ * never doing: the modal is itself the confirmation step.
+ */
+async function onFormSubmit(payload) {
+  const wasEditing = Boolean(editingRecord.value);
+  const result = await handleSubmit(payload);
+  if (!wasEditing && result?.success && unlinkedTotal(result.data) > 0) {
+    openAssign(result.data);
+  }
+}
+
 // ── Clients without a project (the deliberate-gap indicator) ──
 
 const orphansOpen = ref(false);
@@ -475,9 +544,30 @@ watch(isModalOpen, (open) => {
   if (!open) seedClient.value = null;
 });
 
-function loadRecords() {
-  store.fetchProjects();
+async function loadRecords() {
+  await store.fetchProjects();
 }
 
-onMounted(loadRecords);
+// ── Deep link from the platform space (PA-50 return path) ──
+
+const route = useRoute();
+const queryHighlightId = Number.parseInt(route.query.highlight, 10) || null;
+
+/**
+ * Make the linked row visible no matter the scope or page: widen to "Todos"
+ * and seed the search with the project's name. Degrades harmlessly when the
+ * id is gone (full listing) — the point is never landing on an empty view.
+ */
+function applyHighlightDeepLink() {
+  if (!queryHighlightId) return;
+  const row = store.records.find((record) => record.id === queryHighlightId);
+  if (!row) return;
+  scope.value = 'all';
+  searchInput.value = row.name;
+}
+
+onMounted(async () => {
+  await loadRecords();
+  applyHighlightDeepLink();
+});
 </script>
