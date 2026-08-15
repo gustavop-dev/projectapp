@@ -97,7 +97,7 @@ def list_documents(request):
     documents = (
         apply_archive_scope(Document.objects.all(), scope)
         .prefetch_related('tags')
-        .select_related('folder')
+        .select_related('folder', 'project', 'client_user__profile')
     )
 
     folder_param = request.query_params.get('folder')
@@ -111,6 +111,35 @@ def list_documents(request):
                 {'folder': 'El identificador de carpeta no es válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    client_param = request.query_params.get('client')
+    if client_param == 'none':
+        documents = documents.filter(client_user__isnull=True)
+    elif client_param not in (None, '', 'all'):
+        try:
+            client_ids = [int(c) for c in client_param.split(',') if c.strip()]
+        except ValueError:
+            return Response(
+                {'client': 'El identificador de cliente no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if client_ids:
+            # El panel habla en pk de UserProfile; el modelo persiste auth.User.
+            documents = documents.filter(client_user__profile__id__in=client_ids)
+
+    project_param = request.query_params.get('project')
+    if project_param == 'none':
+        documents = documents.filter(project__isnull=True)
+    elif project_param not in (None, '', 'all'):
+        try:
+            project_ids = [int(p) for p in project_param.split(',') if p.strip()]
+        except ValueError:
+            return Response(
+                {'project': 'El identificador de proyecto no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if project_ids:
+            documents = documents.filter(project_id__in=project_ids)
 
     tags_param = request.query_params.get('tags')
     if tags_param:
@@ -179,6 +208,8 @@ def create_document_from_markdown(request):
         document_type=get_markdown_document_type(),
         folder=data.get('folder_id'),
         client_name=data.get('client_name', ''),
+        client_user=data.get('client_user'),
+        project=data.get('project'),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
         template_style=data.get('template_style', 'professional'),
@@ -388,6 +419,8 @@ def duplicate_document(request, document_id):
         title=f'{document.title} (copia)',
         document_type=doc_type,
         client_name=document.client_name,
+        client_user=document.client_user,
+        project=document.project,
         language=document.language,
         cover_type=document.cover_type,
         include_portada=document.include_portada,
