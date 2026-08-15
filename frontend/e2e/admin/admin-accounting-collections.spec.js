@@ -173,7 +173,7 @@ function filterIncomes(requestUrl) {
 const PREVIEW_PDF_URL =
   '/api/accounting/collection-accounts/preview/tok-e2e/PA-ACME-001.pdf';
 
-function buildHandler({ calls, incomeDetail = null }) {
+function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
   const state = { rows: makeRows() };
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -300,6 +300,13 @@ function buildHandler({ calls, incomeDetail = null }) {
     // The preview PDF is served, not built from base64 in the browser: a
     // blob: URL has no name and Chrome's viewer fell back to the blob UUID.
     if (apiPath === PREVIEW_PDF_URL.replace(/^\/api\//, '') && method === 'GET') {
+      if (previewPdfStatus !== 200) {
+        return {
+          status: previewPdfStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'La previsualización expiró.' }),
+        };
+      }
       return {
         status: 200,
         contentType: 'application/pdf',
@@ -419,6 +426,42 @@ test.describe('Admin Accounting Collections', () => {
     await expect(
       page.getByTestId('accounting-row-1').getByText('Vencida', { exact: true }),
     ).toBeVisible();
+  });
+
+  test('a cuenta with no plazo shows no vencimiento and cannot read as vencida', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is how a cuenta with no vencimiento renders and filters, reached by
+    // clicking the Vencidas tab)
+    const handler = buildHandler({ calls: [] });
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+        const rows = makeRows();
+        // What the backend now returns for a pago-inmediato cuenta: no
+        // deadline at all, so there is nothing to fall overdue against.
+        rows[0].due_date = null;
+        rows[0].is_overdue = false;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ results: rows, meta: META }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    await expect(row).toBeVisible();
+    // The Vence cell is empty rather than repeating the emisión date.
+    await expect(row).not.toContainText('2026-06-15');
+    await expect(row.getByText('Vencida', { exact: true })).toHaveCount(0);
+    await expect(row.getByText('Emitida', { exact: true })).toBeVisible();
+
+    // And the tab that used to sweep it up no longer does.
+    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 
   test('marking an issued account as paid confirms and updates the badge', {
@@ -692,6 +735,34 @@ test.describe('Admin Accounting Collections', () => {
     // dropdown itself.
     await page.locator('#collection-form-title').click();
     await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
+  });
+
+  test('a broken PDF viewer explains itself and keeps the download exits', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    // The step exists to review the document before it reaches the client.
+    // When the served PDF cannot render, the panel must say so in the app's
+    // own words — not the browser's connection-refused page — and leave
+    // Descargar / Abrir PDF as the way to review; the send is not blocked.
+    await mockApi(page, buildHandler({ calls: [], previewPdfStatus: 500 }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-scope-all').click();
+    await page.getByTestId('collection-form-income-option-8').click();
+    await page.getByTestId('collection-form-preview').click();
+
+    await expect(page.getByTestId('collection-preview-subject'))
+      .toContainText('PA-ACME-001');
+    await expect(page.getByTestId('collection-preview-pdf-error'))
+      .toContainText('No pudimos mostrar la previsualización');
+    await expect(page.getByTestId('collection-preview-pdf')).toHaveCount(0);
+    await expect(page.getByTestId('collection-preview-download-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-open-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-form-confirm')).toBeEnabled();
   });
 
   test('an income of another client is refused before the preview is spent', {

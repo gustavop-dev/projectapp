@@ -174,6 +174,32 @@ class TestCreateEndpoint:
         )
         assert response.status_code == 400
 
+    def test_a_zero_day_term_survives_the_round_trip(self, super_client):
+        """Immediate payment has to reach the document as a real 0: the
+        serializer used to reject it and the service then read it as "unset"
+        and quietly billed the 8-day default instead."""
+        response = super_client.post(
+            '/api/accounting/collection-accounts/create/',
+            payload(make_client(), make_income(), payment_term_days=0),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        doc = Document.objects.get(pk=response.data['document']['id'])
+        assert doc.collection_account.payment_term_days == 0
+        assert doc.due_date is None
+        assert response.data['document']['due_date'] is None
+        assert response.data['document']['is_overdue'] is False
+
+    def test_a_negative_term_is_rejected(self, super_client):
+        response = super_client.post(
+            '/api/accounting/collection-accounts/create/',
+            payload(make_client(), make_income(), payment_term_days=-5),
+            format='json',
+        )
+
+        assert response.status_code == 400
+
     def test_requires_superuser(self, admin_client):
         response = admin_client.post(
             '/api/accounting/collection-accounts/create/',
@@ -300,6 +326,14 @@ class TestPreviewPdfEndpoint:
             'inline; filename="PA-ACMESOLU-001.pdf"'
         )
         assert response.content[:4] == b'%PDF'
+
+    def test_allows_same_origin_embedding(self, super_client):
+        """The middleware default is DENY, which browsers honour for <embed>
+        too — the modal's viewer rendered a connection-refused page instead of
+        the document until the view opted into SAMEORIGIN."""
+        response = super_client.get(self._preview_pdf_url(super_client))
+
+        assert response['X-Frame-Options'] == 'SAMEORIGIN'
 
     def test_url_ends_in_the_consecutivo(self, super_client):
         """Belt and braces for a viewer that ignores the header and names the

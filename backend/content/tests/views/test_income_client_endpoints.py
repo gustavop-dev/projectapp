@@ -83,8 +83,13 @@ class TestClientFilter:
         assert 'Acme - Inicio' in body
         assert 'Reembolso banco' not in body
         # Appended columns: the header keeps its first five in place and the
-        # client rides along in the same row, under its display name.
-        assert body.splitlines()[0].endswith('Cliente,Origen,Proyecto')
+        # client rides along in the same row, under its display name. The
+        # period trio was appended after it (same append-only rule), so the
+        # client block sits mid-header now — assert the order, not the tail.
+        assert (
+            'Cliente,Origen,Proyecto,Período inicio,Período fin,Periodicidad'
+            in body.splitlines()[0]
+        )
         assert build_client_display_name(acme) in body
 
 

@@ -15,6 +15,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.http import content_disposition_header
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -183,6 +184,7 @@ def preview_collection_account_view(request):
     return Response(payload)
 
 
+@xframe_options_sameorigin
 @api_view(['GET'])
 @permission_classes([IsSuperUser])
 def collection_account_preview_pdf_view(request, token, filename):
@@ -190,6 +192,10 @@ def collection_account_preview_pdf_view(request, token, filename):
 
     `inline` rather than `attachment`: this URL is what the modal embeds, and
     the operator downloads from the viewer's own button or the modal's.
+
+    Without the sameorigin exemption the site-wide X-Frame-Options: DENY
+    (middleware default, no setting overrides it) reaches this response and
+    the browser refuses to render the PDF inside the modal's <embed>.
     """
     entry = load_preview_pdf(token)
     if entry is None:
@@ -306,6 +312,9 @@ def retrieve_collection_account(request, doc_id):
     return Response(CollectionAccountPanelDetailSerializer(document).data)
 
 
+# sameorigin for the same reason as the preview view: the detail modal embeds
+# `?inline=1` and the middleware's DENY default blanks the viewer otherwise.
+@xframe_options_sameorigin
 @api_view(['GET'])
 @permission_classes([IsSuperUser])
 def collection_account_pdf(request, doc_id):

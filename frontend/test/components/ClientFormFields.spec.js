@@ -46,7 +46,9 @@ describe('ClientFormFields', () => {
     });
 
     const text = wrapper.text();
-    ['Email', 'Teléfono', 'Empresa', 'NIT', 'Código de facturación'].forEach((label) => {
+    // "C.C. / NIT": the field takes cédulas as much as NITs, and the label
+    // has to say so — most clients are personas naturales.
+    ['Email', 'Teléfono', 'Empresa', 'C.C. / NIT', 'Código de facturación'].forEach((label) => {
       expect(text).toContain(`${label} (opcional)`);
     });
   });

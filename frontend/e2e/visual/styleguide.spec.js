@@ -178,7 +178,7 @@ test.describe('styleguide form rows', () => {
 
     // Row 1 — one label on a single line, the other wrapped, and only the first
     // field carrying a hint. The short label sets the single-line reference.
-    const short = await oneRow.getByText('NIT (opcional)', { exact: true }).boundingBox();
+    const short = await oneRow.getByText('C.C. / NIT (opcional)', { exact: true }).boundingBox();
     const wrapped = await oneRow
       .getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
     expect(wrapped.height).toBeGreaterThan(short.height);

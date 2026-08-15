@@ -212,8 +212,10 @@ class CollectionAccountCreateSerializer(serializers.Serializer):
         max_length=512, required=False, allow_blank=True, default='',
     )
     items = _CreateItemSerializer(many=True, allow_empty=False)
+    # 0 is a legitimate term: immediate payment against presentation, which
+    # issues the cuenta with no due date at all. Negative days stay rejected.
     payment_term_days = serializers.IntegerField(
-        min_value=1, max_value=120, required=False, allow_null=True,
+        min_value=0, max_value=120, required=False, allow_null=True,
     )
     due_date = serializers.DateField(required=False, allow_null=True)
     currency = serializers.CharField(

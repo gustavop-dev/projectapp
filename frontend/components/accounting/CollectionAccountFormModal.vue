@@ -40,6 +40,9 @@ const preview = ref(null);
 // Served by the backend, not a blob: the viewer names its download after the
 // URL / Content-Disposition, and a blob: URL carries neither.
 const pdfUrl = ref('');
+// <embed> gives no load/error events, so the viewer's state comes from
+// probing the URL with fetch: 'loading' | 'ready' | 'error' | 'idle'.
+const pdfState = ref('idle');
 
 // ── Client ──
 const clientId = ref(null);
@@ -168,6 +171,12 @@ function applyIncome(income) {
   if (!form.value.unit_price) {
     const amount = Number(income.pending_amount ?? income.total_amount ?? 0);
     form.value.unit_price = amount > 0 ? amount : null;
+  }
+  // A hosting income records the window it covers; the cuenta bills that
+  // same window, so it arrives pre-filled instead of re-typed.
+  if (income.period_start && !form.value.period_start) {
+    form.value.period_start = income.period_start;
+    form.value.period_end = income.period_end || '';
   }
   // The income already knows whose money this is: resolve the client from
   // it instead of asking for it again.
@@ -662,7 +671,18 @@ function buildPayload() {
   if (form.value.term === 'fixed' && form.value.due_date) {
     payload.due_date = form.value.due_date;
   } else {
-    payload.payment_term_days = Number(form.value.payment_term_days) || 8;
+    // `|| 8` read a deliberate 0 — pago inmediato — as "empty" and billed it
+    // at the default term instead, so the zero has to survive on its own.
+    // Blank is tested before Number(), which turns '' into 0 and would have
+    // made an emptied field mean immediate payment.
+    const raw = form.value.payment_term_days;
+    const days = Number(raw);
+    const unset = raw === '' || raw === null || raw === undefined;
+    // The input declares min=0/max=120 but typed values bypass those bounds;
+    // clamping here keeps a stray "-5" from bouncing off the serializer as a 400.
+    payload.payment_term_days = unset || Number.isNaN(days)
+      ? 8
+      : Math.min(120, Math.max(0, Math.trunc(days)));
   }
   return payload;
 }
@@ -684,10 +704,31 @@ async function goPreview() {
   // save in Chrome's own viewer button and in "Save to Drive" — the blob: URL
   // this used to build had no name and the viewer fell back to its UUID.
   pdfUrl.value = result.data.pdf_url || '';
+  probePdf();
   // On a phone two columns would leave ~180px each and the PDF unreadable, so
   // the tabs open on the document; from a tablet up the email leads.
   previewPane.value = isPhone.value ? 'pdf' : 'email';
   step.value = 'preview';
+}
+
+/**
+ * The embed only mounts once the URL is known to answer: a blocked or broken
+ * URL would otherwise leave the browser's own connection-refused page inside
+ * the frame, which says nothing about what to do next. On failure the panel
+ * keeps Descargar / Abrir PDF as the way to review before sending.
+ */
+async function probePdf() {
+  if (!pdfUrl.value) {
+    pdfState.value = 'error';
+    return;
+  }
+  pdfState.value = 'loading';
+  try {
+    const response = await fetch(pdfUrl.value, { credentials: 'same-origin' });
+    pdfState.value = response.ok ? 'ready' : 'error';
+  } catch {
+    pdfState.value = 'error';
+  }
 }
 
 async function confirmSend() {
@@ -722,6 +763,7 @@ async function confirmSend() {
 /** Nothing to revoke any more; the URL is the backend's, not an object URL. */
 function clearPdf() {
   pdfUrl.value = '';
+  pdfState.value = 'idle';
 }
 
 function close() {
@@ -1061,9 +1103,9 @@ function downloadPdf() {
       <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Período facturado (opcional)">
           <div class="flex items-center gap-2">
-            <BaseInput v-model="form.period_start" type="date" />
+            <BaseInput v-model="form.period_start" type="date" data-testid="collection-form-period-start" />
             <span class="text-text-subtle text-sm">a</span>
-            <BaseInput v-model="form.period_end" type="date" />
+            <BaseInput v-model="form.period_end" type="date" data-testid="collection-form-period-end" />
           </div>
         </BaseFormField>
         <BaseFormField label="Ciudad">
@@ -1072,7 +1114,7 @@ function downloadPdf() {
       </BaseFormRow>
 
       <!-- The hint only holds for the days mode; the fixed-date mode shares
-           this field and a 0 means nothing there. -->
+           this field, where a 0 would mean nothing. -->
       <BaseFormField
         label="Plazo de pago"
         :hint="form.term === 'days'
@@ -1266,16 +1308,41 @@ function downloadPdf() {
             </div>
           </div>
           <embed
-            v-if="pdfUrl"
+            v-if="pdfState === 'ready'"
             :src="pdfUrl"
             type="application/pdf"
             class="flex-1 min-h-0 w-full rounded-xl border border-border-default"
             :class="dragging ? 'pointer-events-none' : ''"
             data-testid="collection-preview-pdf"
           >
-          <p v-else class="text-sm text-danger-strong">
-            No se pudo generar el PDF de previsualización.
-          </p>
+          <div
+            v-else-if="pdfState === 'loading'"
+            class="flex-1 min-h-0 flex items-center justify-center gap-2 rounded-xl border border-border-default text-sm text-text-subtle"
+            data-testid="collection-preview-pdf-loading"
+          >
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Cargando el documento…
+          </div>
+          <div
+            v-else
+            class="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 rounded-xl border border-border-default px-6 text-center"
+            data-testid="collection-preview-pdf-error"
+          >
+            <template v-if="pdfUrl">
+              <p class="text-sm font-medium text-text-default">
+                No pudimos mostrar la previsualización del PDF.
+              </p>
+              <p class="text-sm text-text-subtle">
+                El documento existe: revísalo con «Descargar» o «Abrir PDF» antes de enviarlo.
+              </p>
+            </template>
+            <p v-else class="text-sm text-danger-strong">
+              No se pudo generar el PDF de previsualización.
+            </p>
+          </div>
         </section>
       </div>
 

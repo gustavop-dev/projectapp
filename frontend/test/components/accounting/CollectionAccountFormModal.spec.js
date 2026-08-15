@@ -166,8 +166,10 @@ function mountModal(props = {}) {
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength'],
           emits: ['update:modelValue'],
+          // min/max are rendered, not just declared: they are the native guard
+          // that keeps a negative plazo out of the form.
           template:
-            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :min="min" :max="max" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled', 'suggestion'],
@@ -255,6 +257,8 @@ describe('CollectionAccountFormModal', () => {
     window.localStorage.clear();
     global.URL.createObjectURL = jest.fn(() => 'blob:preview-pdf');
     global.URL.revokeObjectURL = jest.fn();
+    // The viewer probes the PDF URL before mounting the <embed>.
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true }));
   });
 
   afterEach(() => {
@@ -274,6 +278,35 @@ describe('CollectionAccountFormModal', () => {
     expect(
       Number(wrapper.find('[data-testid="collection-form-amount"]').element.value),
     ).toBe(1490000);
+  });
+
+  it('prefills the período facturado from a hosting income window', async () => {
+    // The income already says what window this cuenta bills — re-typing it
+    // was the gap that motivated recording the period at all.
+    const wrapper = mountModal({
+      income: {
+        ...incomeFixture,
+        period_start: '2026-08-15',
+        period_end: '2027-08-14',
+      },
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('2026-08-15');
+    expect(
+      wrapper.find('[data-testid="collection-form-period-end"]').element.value,
+    ).toBe('2027-08-14');
+  });
+
+  it('leaves the período facturado empty when the income records none', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('');
   });
 
   it('lists incomes and blocks the ones that already have a cuenta', async () => {
@@ -594,6 +627,65 @@ describe('CollectionAccountFormModal', () => {
     expect(payload.items[0].unit_price).toBe('1490000');
   });
 
+  it('sends a zero plazo as a real 0 rather than the default term', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('0');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    // `Number(...) || 8` used to read the deliberate 0 as "empty" and bill the
+    // cuenta at 8 days, so pago inmediato could not be expressed at all.
+    const payload = create_request.mock.calls.at(-1)[1];
+    expect(payload.payment_term_days).toBe(0);
+    expect(payload.due_date).toBeUndefined();
+  });
+
+  it('still falls back to the default term when the plazo is left empty', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(8);
+  });
+
+  it('clamps a typed negative plazo to 0 instead of sending it to the API', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    // min="0" stops the spinner but not the keyboard; the serializer would
+    // reject -5 with a 400, so the payload builder keeps it inside the bounds.
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('-5');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(0);
+  });
+
+  it('explains what a zero plazo does, and only while days are being asked', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('0 días = pago inmediato');
+    expect(wrapper.find('[data-testid="collection-form-term-days"]').attributes('min'))
+      .toBe('0');
+
+    // Switching to a fixed date drops the hint: a 0 means nothing there.
+    await wrapper.findAll('button')
+      .find((b) => b.text() === 'Fecha fija')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('0 días = pago inmediato');
+  });
+
   it('sends the long description as the detail line, not the short concept', async () => {
     const wrapper = mountModal({ income: incomeFixture });
     await flushPromises();
@@ -832,6 +924,21 @@ describe('CollectionAccountFormModal', () => {
       window.open = jest.fn();
       await wrapper.find('[data-testid="collection-preview-open-pdf"]').trigger('click');
       expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+    });
+
+    it('falls back to its own message, keeping the download exits, when the viewer fails', async () => {
+      // The browser's connection-refused page inside the frame explains
+      // nothing; the panel says what happened and where to review instead.
+      global.fetch = jest.fn(() => Promise.reject(new Error('refused')));
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-preview-pdf"]').exists()).toBe(false);
+      expect(wrapper.get('[data-testid="collection-preview-pdf-error"]').text())
+        .toContain('No pudimos mostrar la previsualización');
+      expect(wrapper.find('[data-testid="collection-preview-download-pdf"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="collection-preview-open-pdf"]').exists()).toBe(true);
     });
 
     it('gives the PDF the wider column by default', async () => {

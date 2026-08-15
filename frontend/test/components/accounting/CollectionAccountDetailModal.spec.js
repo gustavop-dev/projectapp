@@ -128,6 +128,8 @@ function mockRequests() {
 beforeEach(() => {
   jest.clearAllMocks();
   mockRequests();
+  // The viewer probes the PDF URL before mounting the <embed>.
+  global.fetch = jest.fn(() => Promise.resolve({ ok: true }));
 });
 
 describe('CollectionAccountDetailModal', () => {
@@ -164,6 +166,28 @@ describe('CollectionAccountDetailModal', () => {
 
     expect(wrapper.get('[data-testid="collection-detail-project"]').text())
       .toContain('diagnóstico');
+  });
+
+  it('pairs emisión and vencimiento while the cuenta has a plazo', async () => {
+    const wrapper = mountModal(HOSTING_ROW);
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Emisión / Vence');
+    expect(wrapper.get('[data-testid="collection-detail-dates"]').text())
+      .toContain('·');
+  });
+
+  it('drops the vencimiento entirely on an immediate-payment cuenta', async () => {
+    // Without a due date the old markup kept the "Vence" half of the label
+    // over formatDate's em-dash fallback, which reads as missing data.
+    const wrapper = mountModal({ ...HOSTING_ROW, due_date: null });
+    await flushPromises();
+
+    const dates = wrapper.get('[data-testid="collection-detail-dates"]');
+    expect(wrapper.text()).not.toContain('Emisión / Vence');
+    expect(wrapper.text()).toContain('Emisión');
+    expect(dates.text()).not.toContain('—');
+    expect(dates.text()).not.toContain('·');
   });
 
   it('lists the settlement history: liquid children and linked deductions', async () => {
@@ -209,10 +233,27 @@ describe('CollectionAccountDetailModal', () => {
     await flushPromises();
 
     await wrapper.get('[data-testid="seg-document"]').trigger('click');
+    await flushPromises();
 
     const embed = wrapper.get('[data-testid="collection-detail-pdf"]');
     expect(embed.attributes('src'))
       .toBe('/api/accounting/collection-accounts/9/pdf/?inline=1');
+  });
+
+  it('shows its own error with the download exit when the document cannot render', async () => {
+    // The browser's connection-refused page inside the frame explains nothing;
+    // the panel has to say what happened and point at the working exit.
+    global.fetch = jest.fn(() => Promise.resolve({ ok: false }));
+    const wrapper = mountModal(INCOME_ROW);
+    await flushPromises();
+
+    await wrapper.get('[data-testid="seg-document"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="collection-detail-pdf"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="collection-detail-pdf-error"]').text())
+      .toContain('No pudimos mostrar el documento');
+    expect(wrapper.find('[data-testid="collection-detail-pdf-download"]').exists()).toBe(true);
   });
 
   it('does not fetch the document until the Documento tab is opened', async () => {

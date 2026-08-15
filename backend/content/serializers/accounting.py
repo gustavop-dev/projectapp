@@ -215,12 +215,19 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     origin_label = serializers.CharField(
         source='get_origin_display', read_only=True,
     )
+    # '' → None: "sin periodicidad" should read as an absence, not a blank.
+    period_cadence_label = serializers.SerializerMethodField()
+
+    def get_period_cadence_label(self, obj):
+        return obj.get_period_cadence_display() if obj.period_cadence else None
 
     class Meta:
         model = IncomeRecord
         fields = (
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
+            'period_start', 'period_end',
+            'period_cadence', 'period_cadence_label',
             'destination', 'destination_label', 'ledger', 'ledger_label',
             'client', 'client_name', 'project', 'project_name',
             'origin', 'origin_label',
@@ -358,7 +365,13 @@ def validate_project_client_match(project, client):
 class IncomeRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
-    period_date = FlexiblePeriodField()
+    # required=False because hosting incomes derive it from `period_start` in
+    # validate(); every other origin still has to send it (checked there too).
+    period_date = FlexiblePeriodField(required=False)
+    # Same month-shorthand as period_date: the form's exact-day toggle applies
+    # to the start of the covered window.
+    period_start = FlexiblePeriodField(required=False, allow_null=True)
+    period_end = serializers.DateField(required=False, allow_null=True)
     expected_income = serializers.PrimaryKeyRelatedField(
         queryset=IncomeRecord.objects.filter(kind=IncomeRecord.Kind.EXPECTED),
         required=False,
@@ -382,6 +395,7 @@ class IncomeRecordCreateUpdateSerializer(
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
             'client', 'project', 'origin',
+            'period_start', 'period_end', 'period_cadence',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
@@ -461,6 +475,56 @@ class IncomeRecordCreateUpdateSerializer(
         ):
             data['project'] = None
         validate_project_client_match(effective('project'), effective('client'))
+
+        # --- Covered period (hosting only) -------------------------------
+        # A hosting income is a service window, not a point payment, so it
+        # must say what window it covers; every other origin keeps the single
+        # date. Legacy hosting rows predate the fields: a partial PATCH that
+        # touches neither origin nor the period stays valid, while the panel
+        # form always sends `origin`, so editing one from there completes its
+        # period (deliberate gradual backfill).
+        origin = effective('origin', '')
+        period_fields = ('origin', 'period_start', 'period_end', 'period_cadence')
+        touches_period = any(field in data for field in period_fields)
+        if origin == IncomeRecord.Origin.HOSTING:
+            if self.instance is None or touches_period:
+                if not effective('period_start'):
+                    raise serializers.ValidationError({
+                        'period_start': (
+                            'Indica el período que cubre el ingreso de hosting.'
+                        ),
+                    })
+                if not effective('period_end'):
+                    raise serializers.ValidationError({
+                        'period_end': (
+                            'Indica el fin del período que cubre el ingreso.'
+                        ),
+                    })
+                if not effective('period_cadence'):
+                    raise serializers.ValidationError({
+                        'period_cadence': 'Elige la periodicidad del período.',
+                    })
+                # One axis for ordering, KPIs and filters: the hosting row's
+                # period_date IS the start of the window it covers.
+                data['period_date'] = effective('period_start')
+        else:
+            # Switching a record away from hosting would otherwise leave an
+            # orphaned window attached to a point payment.
+            data['period_start'] = None
+            data['period_end'] = None
+            data['period_cadence'] = ''
+        start = effective('period_start')
+        end = effective('period_end')
+        if start and end and end <= start:
+            raise serializers.ValidationError({
+                'period_end': (
+                    'La fecha fin debe ser posterior a la fecha de inicio.'
+                ),
+            })
+        if effective('period_date') is None:
+            raise serializers.ValidationError({
+                'period_date': 'Indica la fecha del ingreso.',
+            })
         return data
 
 

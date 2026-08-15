@@ -77,9 +77,12 @@ function update(field, value) {
     <!-- Billing identity: what the cuenta de cobro needs to name and number
          the document. Paired because they are filled together or not at all.
          The row is what keeps both inputs starting at the same height, since
-         "Código de facturación (opcional)" wraps to two lines and "NIT" does not. -->
+         "Código de facturación (opcional)" wraps to two lines and "C.C. / NIT"
+         does not. The label names both documents the field accepts: most
+         clients are personas naturales whose cédula goes here, and "NIT"
+         alone made them second-guess it. -->
     <BaseFormRow>
-      <BaseFormField label="NIT (opcional)" :size="dense ? 'sm' : 'md'">
+      <BaseFormField label="C.C. / NIT (opcional)" :size="dense ? 'sm' : 'md'">
         <BaseInput
           :model-value="modelValue.nit"
           type="text"
