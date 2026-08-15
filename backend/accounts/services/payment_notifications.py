@@ -71,6 +71,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
     """
     from accounts.models import Payment
     from content.models import AccountingSettings, EmailLog
+    from content.services import email_log_service
     from content.services.notification_recipient_service import (
         active_recipient_emails,
     )
@@ -111,6 +112,8 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         'to_status': to_status,
         'source': source or '',
     }
+    targets = [('payment', payment_id, context['project_name'])]
+    text_body = html_body = ''
 
     try:
         text_body = render_to_string('emails/payment_status_team.txt', context)
@@ -128,25 +131,29 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
             'Failed to send payment status email for payment %s: %s',
             payment_id, exc,
         )
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            html_body=html_body,
+            text_body=text_body,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        html_body=html_body,
+        text_body=text_body,
+    )
     logger.info(
         'Sent payment status email (%s) for payment %s to %s',
         to_status, payment_id, ', '.join(recipients),

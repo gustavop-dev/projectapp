@@ -1574,9 +1574,12 @@ class SavedFilterTabSerializer(serializers.ModelSerializer):
         model = SavedFilterTab
         fields = [
             'id', 'view', 'name', 'filters', 'base_filters', 'order',
-            'created_at', 'updated_at',
+            'is_seeded', 'is_hidden', 'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        # `is_seeded` is the seeding's own bookkeeping: letting the panel set
+        # it would let a user's tab claim to be a factory one and be wiped by
+        # the next "Restablecer".
+        read_only_fields = ['id', 'is_seeded', 'created_at', 'updated_at']
 
     def create(self, validated_data):
         # A new tab's definition is whatever it was created with; writable

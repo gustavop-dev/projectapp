@@ -29,6 +29,34 @@ class EmailLog(models.Model):
     )
     error_message = models.TextField(blank=True, default='')
     metadata = models.JSONField(default=dict, blank=True)
+    # The rendered message, shared by every recipient of the same send.
+    body = models.ForeignKey(
+        'EmailBody',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='logs',
+    )
+    # What happened to the record that triggered the email, when the notice
+    # is about a change ('' for the ones that are not).
+    origin_action = models.CharField(
+        max_length=10,
+        blank=True,
+        default='',
+        choices=[
+            ('created', 'Creado'),
+            ('updated', 'Actualizado'),
+            ('deleted', 'Eliminado'),
+        ],
+    )
+    # Set when this row is a manual retry of an earlier failed send.
+    retry_of = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='retries',
+    )
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -38,6 +66,7 @@ class EmailLog(models.Model):
         indexes = [
             models.Index(fields=['template_key', 'sent_at']),
             models.Index(fields=['status', 'sent_at']),
+            models.Index(fields=['recipient']),
         ]
 
     def __str__(self):

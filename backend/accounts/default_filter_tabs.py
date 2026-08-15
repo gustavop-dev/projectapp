@@ -92,4 +92,29 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Google', 'filters': {'platform': ['google']}},
         {'name': 'Otros', 'filters': {'platform': ['other']}},
     ],
+    # Historial. The date cuts ("Hoy", "Últimos 7 días") are builtin tabs in
+    # history.vue instead: a stored `date_from` would freeze on the day it was
+    # seeded, and a tab called "Hoy" that means last Tuesday is a lie.
+    'accounting_history_sends': [
+        # Second on purpose: it is the first place anyone lands when someone
+        # says a notice never arrived.
+        {'name': 'Fallidos', 'filters': {'status': ['failed']}},
+        {
+            'name': 'Recordatorios de cobro',
+            'filters': {'template_key': [
+                'accounting_payment_calendar', 'collection_account_sent',
+            ]},
+        },
+        {
+            'name': 'Cambios contables',
+            'filters': {'template_key': ['accounting_change']},
+        },
+        {'name': 'Eliminaciones', 'filters': {'origin_action': ['deleted']}},
+    ],
+    'accounting_history_changes': [
+        {'name': 'Eliminaciones', 'filters': {'action': ['deleted']}},
+        {'name': 'Ingresos', 'filters': {'entity_type': ['income']}},
+        {'name': 'Gastos', 'filters': {'entity_type': ['expense']}},
+        {'name': 'Hostings', 'filters': {'entity_type': ['hosting']}},
+    ],
 }

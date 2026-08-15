@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from content.services import email_log_service
 from content.services.notification_recipient_service import (
     active_recipient_emails,
 )
@@ -97,6 +98,11 @@ def send_accounting_change_email(change_log_id):
         'action': change_log.action,
     }
 
+    targets = [(
+        change_log.entity_type, change_log.object_id, change_log.object_repr,
+    )]
+    text_body = html_body = ''
+
     try:
         text_body = render_to_string('emails/accounting_change.txt', context)
         html_body = render_to_string('emails/accounting_change.html', context)
@@ -113,25 +119,31 @@ def send_accounting_change_email(change_log_id):
             'Failed to send accounting change email for change_log %s: %s',
             change_log_id, exc,
         )
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            origin_action=change_log.action,
+            html_body=html_body,
+            text_body=text_body,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        origin_action=change_log.action,
+        html_body=html_body,
+        text_body=text_body,
+    )
     logger.info(
         'Sent accounting change email (change_log %s) to %s',
         change_log_id, ', '.join(recipients),

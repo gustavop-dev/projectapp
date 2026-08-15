@@ -28,6 +28,7 @@ from content.views.accounting import (
     retrieve_notification_recipient, update_notification_recipient,
     delete_notification_recipient,
     list_accounting_change_logs, list_accounting_email_logs,
+    accounting_history_tab_counts,
     get_accounting_settings, update_accounting_settings,
 )
 from content.views.accounting_export import (
@@ -645,6 +646,7 @@ urlpatterns = [
 
     path('accounting/change-logs/', list_accounting_change_logs, name='list-accounting-change-logs'),
     path('accounting/email-log/', list_accounting_email_logs, name='list-accounting-email-log'),
+    path('accounting/history/tab-counts/', accounting_history_tab_counts, name='accounting-history-tab-counts'),
 
     path('accounting/settings/', get_accounting_settings, name='get-accounting-settings'),
     path('accounting/settings/update/', update_accounting_settings, name='update-accounting-settings'),

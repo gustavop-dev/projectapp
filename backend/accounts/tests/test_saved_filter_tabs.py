@@ -285,22 +285,62 @@ def _accounting_registry(monkeypatch):
     return registry
 
 
-def test_reset_deletes_custom_tabs_and_reseeds(
+def test_reset_restores_factory_tabs_and_keeps_the_custom_ones(
     api_client, admin_a, admin_a_headers, _accounting_registry,
 ):
-    SavedFilterTab.objects.create(
+    custom = SavedFilterTab.objects.create(
         user=admin_a, view='accounting_income', name='Custom',
         filters={'kind': 'liquid'},
     )
+    seeded = SavedFilterTab.objects.create(
+        user=admin_a, view='accounting_income', name='Esperados',
+        filters={'kind': 'tampered'}, is_seeded=True,
+    )
+
     resp = api_client.post(
         RESET_URL, {'view': 'accounting_income'}, format='json',
         **admin_a_headers,
     )
+
     assert resp.status_code == 200
-    assert [tab['name'] for tab in resp.json()] == ['Esperados', 'Líquidos']
-    assert not SavedFilterTab.objects.filter(
-        user=admin_a, name='Custom',
-    ).exists()
+    names = [tab['name'] for tab in resp.json()]
+    assert 'Custom' in names
+    assert {'Esperados', 'Líquidos'} <= set(names)
+    custom.refresh_from_db()
+    assert custom.filters == {'kind': 'liquid'}
+    # The seeded row is rebuilt from the registry, so the edited filters go.
+    assert not SavedFilterTab.objects.filter(pk=seeded.pk).exists()
+    assert SavedFilterTab.objects.get(
+        user=admin_a, view='accounting_income', name='Esperados',
+    ).filters == {'kind': 'expected'}
+
+
+def test_reset_leaves_a_user_tab_named_like_a_factory_one_alone(
+    api_client, admin_a, admin_a_headers, _accounting_registry,
+):
+    """A name collision must not cost the user their filters.
+
+    Reset restores the factory tab beside theirs rather than overwriting it;
+    two rows share the name until the operator renames one, which is visible
+    and undoable, unlike silently losing a saved cut.
+    """
+    mine = SavedFilterTab.objects.create(
+        user=admin_a, view='accounting_income', name='Esperados',
+        filters={'partner': 'carlos'},
+    )
+
+    resp = api_client.post(
+        RESET_URL, {'view': 'accounting_income'}, format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    mine.refresh_from_db()
+    assert mine.filters == {'partner': 'carlos'}
+    assert mine.is_seeded is False
+    assert SavedFilterTab.objects.filter(
+        user=admin_a, view='accounting_income', name='Esperados',
+    ).count() == 2
 
 
 def test_reset_invalid_view_returns_400(api_client, admin_a_headers):
@@ -323,9 +363,10 @@ def test_reset_only_affects_the_caller(
     assert SavedFilterTab.objects.filter(pk=other_tab.pk).exists()
 
 
-def test_reset_view_without_defaults_returns_empty(
+def test_reset_view_without_defaults_keeps_the_user_tab(
     api_client, admin_a, admin_a_headers, _accounting_registry,
 ):
+    """Nothing to restore is not a licence to wipe what the user saved."""
     SavedFilterTab.objects.create(
         user=admin_a, view='accounting_history', name='Vieja', filters={},
     )
@@ -334,7 +375,7 @@ def test_reset_view_without_defaults_returns_empty(
         **admin_a_headers,
     )
     assert resp.status_code == 200
-    assert resp.json() == []
+    assert [tab['name'] for tab in resp.json()] == ['Vieja']
 
 
 def test_real_registry_covers_accounting_views():
@@ -398,3 +439,120 @@ def test_patch_base_filters_rebases_without_touching_filters(
     tab.refresh_from_db()
     assert tab.base_filters == {'statuses': ['sent']}
     assert tab.filters == {'statuses': ['sent']}
+
+
+# ---------------------------------------------------------------------------
+# Strip administration: order and visibility
+# ---------------------------------------------------------------------------
+
+REORDER_URL = '/api/accounts/saved-filter-tabs/reorder/'
+
+
+def test_reorder_applies_the_given_sequence(
+    api_client, admin_a, admin_a_headers,
+):
+    first, second, third = [
+        SavedFilterTab.objects.create(
+            user=admin_a, view='proposal', name=name, filters={}, order=idx,
+        )
+        for idx, name in enumerate(['Uno', 'Dos', 'Tres'])
+    ]
+
+    resp = api_client.post(
+        REORDER_URL,
+        {'view': 'proposal', 'ids': [third.id, first.id, second.id]},
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    assert [tab['name'] for tab in resp.json()] == ['Tres', 'Uno', 'Dos']
+
+
+def test_reorder_ignores_tabs_of_another_user(
+    api_client, admin_a, admin_b, admin_a_headers,
+):
+    mine = SavedFilterTab.objects.create(
+        user=admin_a, view='proposal', name='Mía', filters={}, order=5,
+    )
+    theirs = SavedFilterTab.objects.create(
+        user=admin_b, view='proposal', name='Suya', filters={}, order=9,
+    )
+
+    resp = api_client.post(
+        REORDER_URL,
+        {'view': 'proposal', 'ids': [theirs.id, mine.id]},
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    theirs.refresh_from_db()
+    assert theirs.order == 9
+    mine.refresh_from_db()
+    assert mine.order == 1
+
+
+def test_reorder_rejects_a_non_list_of_ids(
+    api_client, admin_a, admin_a_headers,
+):
+    resp = api_client.post(
+        REORDER_URL, {'view': 'proposal', 'ids': 'nope'}, format='json',
+        **admin_a_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_hiding_a_tab_keeps_it_stored(api_client, admin_a, admin_a_headers):
+    tab = SavedFilterTab.objects.create(
+        user=admin_a, view='proposal', name='De temporada',
+        filters={'statuses': ['sent']},
+    )
+
+    resp = api_client.patch(
+        f'/api/accounts/saved-filter-tabs/{tab.id}/',
+        {'is_hidden': True}, format='json', **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    tab.refresh_from_db()
+    assert tab.is_hidden is True
+    assert tab.filters == {'statuses': ['sent']}
+
+
+def test_is_seeded_cannot_be_claimed_from_the_panel(
+    api_client, admin_a, admin_a_headers,
+):
+    """Otherwise a user's tab could pass as a factory one and be wiped by
+    the next reset."""
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/',
+        {
+            'view': 'proposal', 'name': 'Impostora', 'filters': {},
+            'is_seeded': True,
+        },
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 201
+    assert SavedFilterTab.objects.get(id=resp.json()['id']).is_seeded is False
+
+
+def test_history_subtabs_are_separate_views(
+    api_client, admin_a, admin_a_headers,
+):
+    """A cut saved over the send log must not surface in the change log."""
+    SavedFilterTab.objects.create(
+        user=admin_a, view=SavedFilterTab.VIEW_ACCOUNTING_HISTORY_SENDS,
+        name='Fallidos de hoy', filters={'status': ['failed']},
+    )
+
+    resp = api_client.get(
+        '/api/accounts/saved-filter-tabs/'
+        f'?view={SavedFilterTab.VIEW_ACCOUNTING_HISTORY_CHANGES}',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    assert [tab['name'] for tab in resp.json()] == []
