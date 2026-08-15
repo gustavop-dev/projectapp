@@ -23,7 +23,7 @@ status). Re-seed with ``python manage.py seed_filter_tabs``.
 
 ``client`` has no entry on purpose: its proposal-status cuts are code-level
 subfilters of the Propuestas module (``frontend/constants/clientFilters.js``),
-not seeded rows. Migration ``0047`` dropped the ones already in the database.
+not seeded rows. Migration ``0049`` dropped the ones already in the database.
 """
 
 DEFAULT_FILTER_TABS = {

@@ -490,7 +490,7 @@ class TestDropOnlyExpectedTabMigration:
 
 
 class TestDropClientStatusTabsMigration:
-    """Migration 0047 retires the seven seeded proposal-status tabs of ``client``.
+    """Migration 0049 retires the seven seeded proposal-status tabs of ``client``.
 
     They became code-level subfilters of the Propuestas module. Left in place
     they would show up twice for every account created before the change, and
@@ -506,7 +506,7 @@ class TestDropClientStatusTabsMigration:
     def _migration():
         from importlib import import_module
 
-        return import_module('accounts.migrations.0047_drop_client_status_tabs')
+        return import_module('accounts.migrations.0049_drop_client_status_tabs')
 
     def _seeded_tabs(self, user, extra=()):
         names = [*self.STATUS_NAMES, *extra]

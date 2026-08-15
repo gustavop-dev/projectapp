@@ -76,6 +76,9 @@ def restore_status_tabs(apps, schema_editor):
             SavedFilterTab.objects.create(
                 user_id=user_id, view=VIEW, name=name,
                 filters=filters, base_filters=filters, order=next_order,
+                # Factory tabs, not the user's: `is_seeded` is what tells the
+                # two apart since 0048, and "Restablecer" reads it.
+                is_seeded=True,
             )
             next_order += 1
 
@@ -83,7 +86,7 @@ def restore_status_tabs(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0046_savedfiltertab_collections_view'),
+        ('accounts', '0048_backfill_saved_filter_tab_is_seeded'),
     ]
 
     operations = [

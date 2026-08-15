@@ -79,7 +79,7 @@ export function clientModuleName(id) {
  */
 export const CLIENT_SUBFILTERS = [
   // Propuestas — the commercial cycle. These were seeded saved tabs until
-  // migration 0047; as code-level entries they count uniformly, cannot be
+  // migration 0049; as code-level entries they count uniformly, cannot be
   // deleted by accident and no longer eat 7 of the 12 saved-tab slots.
   { id: 'status-draft', name: 'Draft', module: 'proposals', filters: { lastStatuses: ['draft'] } },
   { id: 'status-sent-viewed', name: 'Sent/Viewed', module: 'proposals', filters: { lastStatuses: ['sent', 'viewed'] } },
