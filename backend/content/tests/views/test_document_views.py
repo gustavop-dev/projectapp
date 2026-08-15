@@ -170,6 +170,91 @@ class TestDuplicateDocumentAssociation:
         assert duplicated.project == association_setup['project']
 
 
+class TestFolderClientSuggestion:
+    def test_suggests_the_strict_majority_client(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        nestor = make_client('nestor@example.com', first='Néstor')
+        folder = DocumentFolder.objects.create(name='Carpeta Ana')
+        for index in range(2):
+            Document.objects.create(
+                title=f'Doc Ana {index}', document_type=markdown_doc_type,
+                folder=folder, client_user=ana.user,
+            )
+        Document.objects.create(
+            title='Doc Néstor', document_type=markdown_doc_type,
+            folder=folder, client_user=nestor.user,
+        )
+        Document.objects.create(
+            title='Doc suelto', document_type=markdown_doc_type, folder=folder,
+        )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['client'] == ana.pk
+        assert 'Ana' in data['client_display_name']
+        assert data['linked_documents'] == 3
+        assert data['folder_documents'] == 4
+
+    def test_a_tie_suggests_nothing(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        nestor = make_client('nestor@example.com', first='Néstor')
+        folder = DocumentFolder.objects.create(name='Compartida')
+        for owner in (ana, nestor):
+            for index in range(2):
+                Document.objects.create(
+                    title=f'Doc {owner.pk} {index}',
+                    document_type=markdown_doc_type,
+                    folder=folder, client_user=owner.user,
+                )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['client'] is None
+
+    def test_a_single_linked_document_is_not_enough(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(name='Casi vacía')
+        Document.objects.create(
+            title='Doc único', document_type=markdown_doc_type,
+            folder=folder, client_user=ana.user,
+        )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['client'] is None
+
+    def test_invalid_folder_returns_400(self, admin_client):
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'), {'folder': 'abc'},
+        )
+
+        assert response.status_code == 400
+        assert 'folder' in response.json()
+
+    def test_unknown_folder_returns_a_null_suggestion(self, admin_client):
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'), {'folder': '999999'},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['client'] is None
+        assert data['folder_documents'] == 0
+
+
 # ── create_document ──
 
 class TestCreateDocument:

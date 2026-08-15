@@ -1,7 +1,8 @@
 import copy
 import logging
 
-from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -467,3 +468,52 @@ def download_document_pdf(request, document_id):
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def suggest_folder_client(request):
+    """Cliente mayoritario de una carpeta, para prellenar el form de crear.
+
+    La carpeta ya está diciendo de quién es: si la mayoría estricta de sus
+    documentos activos vinculados pertenece a un cliente (y son al menos dos),
+    ése es el default propuesto. Una carpeta inexistente o sin señal devuelve
+    sugerencia nula — la sugerencia nunca es un error, sólo un prellenado.
+    """
+    try:
+        folder_id = int(request.query_params.get('folder'))
+    except (TypeError, ValueError):
+        return Response(
+            {'folder': 'El identificador de carpeta no es válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    docs = Document.objects.filter(folder_id=folder_id, is_archived=False)
+    ranking = list(
+        docs.filter(client_user__isnull=False)
+        .values('client_user')
+        .annotate(total=Count('id'))
+        .order_by('-total'),
+    )
+    linked_total = sum(row['total'] for row in ranking)
+
+    client_id = None
+    client_display_name = None
+    if ranking:
+        top = ranking[0]
+        if top['total'] >= 2 and top['total'] * 2 > linked_total:
+            user = get_user_model().objects.filter(pk=top['client_user']).first()
+            profile = getattr(user, 'profile', None) if user else None
+            if profile is not None:
+                from accounts.services.proposal_client_service import (
+                    build_client_display_name,
+                )
+                client_id = profile.id
+                client_display_name = build_client_display_name(profile)
+
+    return Response({
+        'client': client_id,
+        'client_display_name': client_display_name,
+        'linked_documents': linked_total,
+        'folder_documents': docs.count(),
+    })

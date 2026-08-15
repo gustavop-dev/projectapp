@@ -192,6 +192,25 @@ class TestProjectPickerEndpoint:
             'MIMITTOS', 'Xpandia',
         ]
 
+    def test_rows_carry_their_owner_for_the_unscoped_picker(self, super_client):
+        owner = make_client('daniel@example.com', first='Daniel', last='Ríos')
+        Project.objects.create(name='MIMITTOS', client=owner.user)
+
+        response = super_client.get('/api/accounting/projects/')
+
+        row = response.data['results'][0]
+        assert row['client_profile_id'] == owner.pk
+        assert 'Daniel' in row['client_display_name']
+
+    def test_a_staff_admin_can_use_the_picker(self, admin_client):
+        owner = make_client('daniel@example.com')
+        Project.objects.create(name='MIMITTOS', client=owner.user)
+
+        response = admin_client.get('/api/accounting/projects/')
+
+        assert response.status_code == 200
+        assert response.data['results'][0]['name'] == 'MIMITTOS'
+
 
 class TestExpectedIncomeFilter:
     def test_liquid_children_are_finally_queryable_from_the_list(
