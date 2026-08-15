@@ -41,6 +41,10 @@ export const useDocumentStore = defineStore('documents', {
     archiveScope: DEFAULT_SCOPE,
     archivedOrder: 'recent',
     activeTagIds: [],
+    // Asociación, dos ejes más: null (sin filtro) | 'none' (sin asociar) | id.
+    // `client` habla en pk de UserProfile, igual que el resto del panel.
+    activeClientId: null,
+    activeProjectId: null,
   }),
 
   getters: {
@@ -70,6 +74,8 @@ export const useDocumentStore = defineStore('documents', {
         const tags = overrides.tags !== undefined ? overrides.tags : this.activeTagIds;
         const scope = normalizeScope(overrides.scope);
         const order = overrides.order !== undefined ? overrides.order : this.archivedOrder;
+        const client = overrides.client !== undefined ? overrides.client : this.activeClientId;
+        const project = overrides.project !== undefined ? overrides.project : this.activeProjectId;
 
         const params = new URLSearchParams();
         // 'root' se resuelve en el cliente: la partición necesita el árbol de
@@ -80,6 +86,12 @@ export const useDocumentStore = defineStore('documents', {
         params.set('scope', scope);
         if (Array.isArray(tags) && tags.length > 0) {
           params.set('tags', tags.join(','));
+        }
+        if (client != null) {
+          params.set('client', client === 'none' ? 'none' : String(client));
+        }
+        if (project != null) {
+          params.set('project', project === 'none' ? 'none' : String(project));
         }
         if (scope === 'archived' && order === 'oldest') params.set('order', 'oldest');
 
@@ -244,13 +256,15 @@ export const useDocumentStore = defineStore('documents', {
 
     /**
      * setFilters: Update active filters and refetch the list.
-     * @param {object} filters - { folder?, scope?, tags?, order? }
+     * @param {object} filters - { folder?, scope?, tags?, order?, client?, project? }
      */
-    async setFilters({ folder, scope, tags, order } = {}) {
+    async setFilters({ folder, scope, tags, order, client, project } = {}) {
       if (folder !== undefined) this.activeFolderId = folder;
       if (scope !== undefined) this.archiveScope = normalizeScope(scope);
       if (order !== undefined) this.archivedOrder = order;
       if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
+      if (client !== undefined) this.activeClientId = client;
+      if (project !== undefined) this.activeProjectId = project;
       return this.fetchDocuments({ scope: this.archiveScope });
     },
 
