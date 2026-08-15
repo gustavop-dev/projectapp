@@ -10,20 +10,20 @@ Construir el módulo **Inventario Detallado** de Vástago: conteo mensual refere
 
 | Funcionalidad | Nivel | Señal aplicada (cita literal) | Modificadores | Horas | Precio COP |
 |---|---|---|---|---|---|
-| ID-01 Código alterno único y obligatorio en Ítem (constraint + limpieza de catálogo + reporte de duplicados) | M | «Validaciones de negocio complejas — cross-field, contra el backend, con reglas» | Carga inicial / backfill (limpieza del catálogo) +20% · Tests exigidos +15% | 24–35 | $450K–$650K |
-| ID-02 Prerrequisito "último Conteo Diario válido" (guard + bloqueo + banner) | M | «Validaciones de negocio complejas — … contra el backend, con reglas» | Tests +15% | 21–28 | $400K–$550K |
-| ID-03 Cargar Inventario / "foto" (snapshot + tablero de Captura en Asignado) | M | «Versionado ligero / snapshots» (la "foto" es una captura del estado como base de comparación) | Pantalla nueva +20% · Modelo de datos +15% · Tests +15% | 39–54 | $750K–$1,0M |
-| ID-04 Formulario de captura (código alterno manual/lector, pertenencia al Grupo, agrupar repetidas, Total Contados) | M | «Generación / lectura de códigos QR o de barras — … escanear … sube dentro de `M` o a `L` según el flujo» | Pantalla nueva +20% · Modelo de datos +10% · Tests +15% | 41–55 | $750K–$1,0M |
-| ID-05 Guardar manual + autoguardado silencioso cada 3 min | M | «Autoguardado / borradores (drafts).» | Tests +15% | 21–30 | $400K–$550K |
-| ID-06 Finalizar y comparar → resultado (Referencia OK / con Diferencia / Conteo 0) | M | «Validaciones de negocio complejas — cross-field, contra el backend, con reglas» | Pantalla nueva (resultado) +15% · Tests +15% | 34–47 | $650K–$900K |
-| ID-07 Segundo conteo (solo diferencias en 0, rechazos, desenlace OK/con Diferencia) | M | «Máquina de estados / cambios de estado — transiciones y reglas sobre un registro» | Tests +15% | 25–37 | $450K–$700K |
-| ID-08 Acciones del tablero (Papelera, Rehacer, Borrar Finalizados solo OK, desaparición automática) | M | «Acciones masivas / bulk — seleccionar N registros y aplicar (eliminar, cambiar estado…)» | Tests +15% | 23–32 | $450K–$600K |
-| ID-09 Ver Estado del Inventario (tablero de seguimiento del mes, 4 estados propios) | M | «Mostrar historial ya registrado — si los logs ya se guardan y solo hay que exponerlos» | Pantalla nueva +15% · Tests +10% | 20–30 | $400K–$550K |
-| ID-10 Vista Finalizado (Periodo mensual + filtros Estado/Periodo + Detalle Lupa) | M | «Combo de listado server-side — paginación + ordenamiento + búsqueda … manteniendo los filtros» | Pantalla nueva +15% · Modelo de datos (Period) +10% · Tests +15% | 28–42 | $550K–$800K |
-| ID-11 Bloqueo de concurrencia por Grupo+Bodega (reserva + mensaje al segundo usuario) | M | *sin señal — por analogía* (bloqueo/reserva exclusiva de un registro por usuario) | Concurrencia / atomicidad +30% · Tests +15% | 26–38 | $500K–$700K |
-| ID-12 Vigencia 5 días: autoborrado + liberación del bloqueo | M | «Vencimientos / renovaciones con alertas — fechas de expiración … (suma *Tarea programada*)» | Tarea programada (Huey) +8–16 h · Tests +15% | 24–39 | $450K–$750K |
-| ID-13 Correo mensual consolidado (día 29, 23:00) + reporte en módulo Reportes | M | «Notificaciones por evento … Periódica o resumen (digest) → suma *Tarea programada*» + «Generación de reportes / archivos … parametrizables» | Pantalla nueva (reporte) +15% · Tarea programada +8–16 h · Tests +15% · *Motor de correo anulado* (FA-MAIL, reporte 3) | 39–60 | $750K–$1,1M |
-| ID-14 Manual/Ayuda: sección de Inventario Detallado | S | «Página estática — términos, ayuda, política, información (sin CMS)» | Tests +10% (indexación en buscador del manual) | 12–18 | $250K–$350K |
+| ID-01 Código alterno único y obligatorio en Ítem (constraint + limpieza de catálogo + reporte de duplicados) | M | «Validaciones de negocio complejas — cross-field, contra el backend, con reglas» | Carga inicial / backfill (limpieza del catálogo) +20% · Tests exigidos +15% | 24–35 | $360K–$520K |
+| ID-02 Prerrequisito "último Conteo Diario válido" (guard + bloqueo + banner) | M | «Validaciones de negocio complejas — … contra el backend, con reglas» | Tests +15% | 21–28 | $320K–$440K |
+| ID-03 Cargar Inventario / "foto" (snapshot + tablero de Captura en Asignado) | M | «Versionado ligero / snapshots» (la "foto" es una captura del estado como base de comparación) | Pantalla nueva +20% · Modelo de datos +15% · Tests +15% | 39–54 | $600K–$800K |
+| ID-04 Formulario de captura (código alterno manual/lector, pertenencia al Grupo, agrupar repetidas, Total Contados) | M | «Generación / lectura de códigos QR o de barras — … escanear … sube dentro de `M` o a `L` según el flujo» | Pantalla nueva +20% · Modelo de datos +10% · Tests +15% | 41–55 | $600K–$800K |
+| ID-05 Guardar manual + autoguardado silencioso cada 3 min | M | «Autoguardado / borradores (drafts).» | Tests +15% | 21–30 | $320K–$440K |
+| ID-06 Finalizar y comparar → resultado (Referencia OK / con Diferencia / Conteo 0) | M | «Validaciones de negocio complejas — cross-field, contra el backend, con reglas» | Pantalla nueva (resultado) +15% · Tests +15% | 34–47 | $520K–$720K |
+| ID-07 Segundo conteo (solo diferencias en 0, rechazos, desenlace OK/con Diferencia) | M | «Máquina de estados / cambios de estado — transiciones y reglas sobre un registro» | Tests +15% | 25–37 | $360K–$560K |
+| ID-08 Acciones del tablero (Papelera, Rehacer, Borrar Finalizados solo OK, desaparición automática) | M | «Acciones masivas / bulk — seleccionar N registros y aplicar (eliminar, cambiar estado…)» | Tests +15% | 23–32 | $360K–$480K |
+| ID-09 Ver Estado del Inventario (tablero de seguimiento del mes, 4 estados propios) | M | «Mostrar historial ya registrado — si los logs ya se guardan y solo hay que exponerlos» | Pantalla nueva +15% · Tests +10% | 20–30 | $320K–$440K |
+| ID-10 Vista Finalizado (Periodo mensual + filtros Estado/Periodo + Detalle Lupa) | M | «Combo de listado server-side — paginación + ordenamiento + búsqueda … manteniendo los filtros» | Pantalla nueva +15% · Modelo de datos (Period) +10% · Tests +15% | 28–42 | $440K–$640K |
+| ID-11 Bloqueo de concurrencia por Grupo+Bodega (reserva + mensaje al segundo usuario) | M | *sin señal — por analogía* (bloqueo/reserva exclusiva de un registro por usuario) | Concurrencia / atomicidad +30% · Tests +15% | 26–38 | $400K–$560K |
+| ID-12 Vigencia 5 días: autoborrado + liberación del bloqueo | M | «Vencimientos / renovaciones con alertas — fechas de expiración … (suma *Tarea programada*)» | Tarea programada (Huey) +8–16 h · Tests +15% | 24–39 | $360K–$600K |
+| ID-13 Correo mensual consolidado (día 29, 23:00) + reporte en módulo Reportes | M | «Notificaciones por evento … Periódica o resumen (digest) → suma *Tarea programada*» + «Generación de reportes / archivos … parametrizables» | Pantalla nueva (reporte) +15% · Tarea programada +8–16 h · Tests +15% · *Motor de correo anulado* (FA-MAIL, reporte 3) | 39–60 | $600K–$880K |
+| ID-14 Manual/Ayuda: sección de Inventario Detallado | S | «Página estática — términos, ayuda, política, información (sin CMS)» | Tests +10% (indexación en buscador del manual) | 12–18 | $200K–$280K |
 
 **Implicaciones técnicas por funcionalidad:**
 
@@ -45,7 +45,7 @@ Construir el módulo **Inventario Detallado** de Vástago: conteo mensual refere
 ## 3. Totales
 
 - **Horas:** 377–545 h
-- **Precio total:** $7,2M–$10,2M
+- **Precio total:** $5,8M–$8,2M
 - **Semáforo:** ✅ Sweet spot (menos de $12M)
 
 > [!TIP]
@@ -58,7 +58,7 @@ Construir el módulo **Inventario Detallado** de Vástago: conteo mensual refere
 - **Bloqueo externo (cronograma, no precio):** la limpieza del catálogo de ID-01 requiere que **el cliente resuelva los códigos alternos duplicados/vacíos**; la migración no puede correr hasta entonces.
 - **Exigencia de calidad explícita:** igual que en la épica CD, el reporte enumera cobertura pytest + Jest + Playwright ticket por ticket → modificador *Tests exigidos* en todas las filas (+10–15%).
 - **Adyacencias que se abren:** **ajustes desde el Inventario Detallado** (fase posterior ya pactada — la pantalla de resultados se diseña previéndolo) · **RFID** (Fase III, ya anunciada) · exportar/imprimir la vista Finalizado (hoy excluida explícitamente) · timeout corto de liberación del lock (§12-I) · parametrizar los valores hoy fijos (vigencia, intervalo de autoguardado).
-- **Consistencia con estimaciones previas:** la épica hermana Conteo Diario (#23, recalibrada el mismo día) quedó en $6,1M–$8,8M con 12 tickets adaptando una pantalla existente; esta épica da $7,2M–$10,2M con 14 tickets y un módulo enteramente nuevo — la diferencia (+15–18%) es proporcional al alcance.
+- **Consistencia con estimaciones previas:** la épica hermana Conteo Diario (#23, recalibrada el mismo día) quedó en $4,9M–$7,0M con 12 tickets adaptando una pantalla existente; esta épica da $5,8M–$8,2M con 14 tickets y un módulo enteramente nuevo — la diferencia (+15–18%) es proporcional al alcance.
 
 ## 5. Estrategia comercial
 
@@ -66,8 +66,9 @@ Construir el módulo **Inventario Detallado** de Vástago: conteo mensual refere
 
 ## 6. Supuestos y exclusiones
 
-- Precios en COP sin IVA · tarifa blended ≈ $18.750/h (recalibración colombiana 02/07/2026) · implementación **web** (sin PWA ni app nativa declaradas; PWA sumaría +30%).
+- Precios en COP sin IVA · tarifa blended ≈ $15.000/h (recalibración 04/08/2026) · implementación **web** (sin PWA ni app nativa declaradas; PWA sumaría +30%).
 - **Reemplaza la estimación #24 del 02/07/2026; cambio respecto a la versión previa:** recalibración de precios al mercado colombiano (**÷4**, ajusta el ÷3,5 provisional). Horas, niveles, señales y modificadores sin cambios.
+- **Recalibración 04/08/2026 (−20%, market-pricing v1.6):** columnas de precio y totales reescalados ×0,8 por directriz del dueño; horas, niveles, señales y modificadores sin cambios.
 - **Plataforma existente (Fase 1.5):** se reutilizan Huey, auth/roles, filtrado por sucursal, tabla genérica/ReportTable y el exportador existente. El módulo Inventario Detallado en sí es nuevo (de ahí los modificadores de pantalla nueva en 6 filas).
 - **Excluidos (se cotizan en el reporte 3):** FA-MAIL (motor de correo con marca y destinatarios híbridos), FA-PERM (matriz de permisos + renombre del menú), FA-USER (sucursal única por rol), FA-LBL-04 (Code128 sobre el código alterno). La épica **Conteo Diario** se cotizó aparte (#23).
 - **§12-I Liberación del bloqueo:** se asume que el lock se libera con el **autoborrado a los 5 días** (y con terminar/recargar/papelera). Si el negocio decide un timeout más corto (p. ej. liberar tras N horas de inactividad), es un ajuste menor dentro de ID-12 (≤ +8 h).
