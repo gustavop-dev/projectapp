@@ -84,6 +84,10 @@ from content.services import (
     accounting_settlement_service,
 )
 from content.utils import today_bogota
+from content.views.history_pagination import (
+    email_body_response,
+    paginated_history_response,
+)
 
 EntityType = AccountingChangeLog.EntityType
 
@@ -94,28 +98,11 @@ _parse_date = accounting_history_service.parse_date_param
 
 # Builtin presets plus the per-user ceiling of saved tabs, with room to spare.
 MAX_TAB_COUNT_SPECS = 24
-HISTORY_PAGE_SIZE = 20
 
-
-def _paginated_history_response(queryset, params, serializer_class):
-    """Serialize one 20-row page of a history queryset."""
-    total = queryset.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    offset = (page - 1) * HISTORY_PAGE_SIZE
-    num_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
-
-    serializer = serializer_class(
-        queryset[offset:offset + HISTORY_PAGE_SIZE], many=True,
-    )
-    return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
-    })
+# Shared with the per-client email modal, which pages the same rows through a
+# different scope. Re-exported under the old private names so the call sites
+# in this module read as they always did.
+_paginated_history_response = paginated_history_response
 
 
 def _parse_decimal(value, param):
@@ -1376,21 +1363,7 @@ def accounting_email_log_body(request, log_id):
         id=log_id,
         template_key__in=EMAIL_TEMPLATE_LABELS,
     )
-    if log.body is None:
-        return error_response(
-            'Este envío es anterior a que se guardara el cuerpo de los '
-            'correos, así que no hay nada que mostrar.',
-            code='body_not_stored',
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    return Response({
-        'id': log.id,
-        'subject': log.subject,
-        'recipient': log.recipient,
-        'sent_at': log.sent_at,
-        'html': log.body.html,
-        'text': log.body.text,
-    })
+    return email_body_response(log)
 
 
 @api_view(['POST'])
