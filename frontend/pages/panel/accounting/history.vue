@@ -428,6 +428,16 @@ async function retrySend(entry) {
 
 watch(() => [sends.currentFilters, changes.currentFilters], scheduleLoad, { deep: true });
 
+// The saved tabs arrive after mount, and a tab's definition can change under
+// the auto-save, so the badges follow the tab set rather than being asked for
+// once — otherwise every saved tab would sit there without a count.
+watch(
+  () => displayTabs.value.map(
+    (entry) => `${entry.id}:${JSON.stringify(entry.filters || {})}`,
+  ).join('|'),
+  refreshCounts,
+);
+
 watch(tab, async (value) => {
   const query = { ...route.query, tab: value };
   // Hand the query string over: the outgoing subtab's filters go, then the

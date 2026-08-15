@@ -207,8 +207,13 @@ export function useAccountingFilters({
   const tabs = useSavedFilterTabs(viewName);
   const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
 
+  // `filters` travels with the builtins too: a view that badges its tabs has
+  // to be able to ask the server what each one is worth, and a builtin with
+  // no definition attached would be counted as if it filtered nothing.
   const displayTabs = computed(() => [
-    ...builtinTabs.map((t) => ({ id: t.id, name: t.name, builtin: true })),
+    ...builtinTabs.map((t) => ({
+      id: t.id, name: t.name, filters: t.filters || {}, builtin: true,
+    })),
     ...savedTabs.value,
   ]);
 

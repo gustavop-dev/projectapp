@@ -78,7 +78,7 @@ describe('EmailLogTable', () => {
 
     // Disabled and explained, rather than absent: a missing button reads as
     // "this failure cannot be acted on" without saying why.
-    expect(button.attributes('disabled')).toBeDefined();
+    expect(button.attributes('disabled')).toBe('');
     expect(button.attributes('title')).toContain('resume varios registros');
   });
 
@@ -87,7 +87,7 @@ describe('EmailLogTable', () => {
 
     expect(
       wrapper.get('[data-testid="email-log-retry-2"]').attributes('disabled'),
-    ).toBeDefined();
+    ).toBe('');
   });
 
   it('names the records the email was about when the row is expanded', async () => {

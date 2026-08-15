@@ -384,6 +384,7 @@ def test_real_registry_covers_accounting_views():
     expected_views = [
         'accounting_income', 'accounting_expense', 'accounting_hosting',
         'accounting_pocket', 'accounting_recurring', 'accounting_ads',
+        'accounting_history_sends', 'accounting_history_changes',
     ]
     for view in expected_views:
         tabs = DEFAULT_FILTER_TABS.get(view)

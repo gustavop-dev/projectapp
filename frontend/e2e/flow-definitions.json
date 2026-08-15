@@ -1,6 +1,6 @@
 {
-  "version": "2.70.0",
-  "lastUpdated": "2026-08-13",
+  "version": "2.71.0",
+  "lastUpdated": "2026-08-15",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -3818,7 +3818,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Superuser audits the accounting module at /panel/accounting/history through two tabs. 'Cambios': server-paginated change log (GET /api/accounting/change-logs/, 20 per page) with entity/action/actor/date filters and expandable field-level old→new diffs per entry. 'Envíos': server-paginated send log (GET /api/accounting/email-log/, 20 per page) showing which recipients each automated email of the module actually reached — one row per address — with notice-type/status/recipient/date filters and, on a failed row, the delivery error expanded on click. This is how 'why didn't I get that notice' is diagnosed.",
+      "description": "Superuser audits the accounting module at /panel/accounting/history through two subtabs, both server-paginated 20 per page. 'Cambios': change log (GET /api/accounting/change-logs/) with entity/action/actor/record/date filters and expandable field-level old→new diffs per entry. 'Envíos': send log (GET /api/accounting/email-log/) showing which recipients each automated email of the module actually reached — one row per address — with aviso/estado/destinatario/date filters plus the record, client, project and subject cuts. Both subtabs carry a predefined tab strip, own saved tabs and URL-persisted filters (admin-accounting-history-filters), and a send row can be read and retried (admin-accounting-history-diagnosis). Exporting either subtab as CSV/XLSX goes through the same filters as the list (admin-accounting-export).",
       "expectedSpecs": 6,
       "outcomes": [
         "display",
@@ -4321,6 +4321,35 @@
       "description": "Every project selector creates on the fly (mirror of the client selector, PA-24/PA-25): ProjectSelect is now a combobox over the client's already-fetched projects (local filtering, no server search) and when nothing matches it offers Crear proyecto with the typed term (Enter included). The inline panel lives inside the component itself — one reusable selector, not a per-modal solution, so the hosting and income modals gain the flow without changes and the cuenta de cobro inherits it through its stacked income modal. The panel pre-fills the name, shows the inherited client read-only, warns without blocking on a same-name collision, keeps itself open on a 400 with the backend message, and on success the new project is auto-selected and appended to the per-client picker cache (the all bucket dropped). Cancelling the outer form leaves the project standing: it is a record of its own, visible immediately in /panel/projects.",
       "expectedSpecs": 4,
       "outcomes": [
+        "success",
+        "error"
+      ]
+    },
+    "admin-accounting-history-filters": {
+      "name": "Admin Accounting History — Filters and Predefined Tabs",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser narrows the send log at /panel/accounting/history without rebuilding the filter by hand. Each subtab runs its own useAccountingFilters instance (views accounting_history_sends / accounting_history_changes) over the server-paginated endpoints, so the filter row translates into query params through buildExportParams instead of filtering loaded rows. Envíos filters by aviso, estado, tipo de registro, cliente, proyecto, acción de origen, destinatario, rango de fechas and free text over the subject; Cambios by entidad, acción, usuario, fecha and free text over the record name. Under the filter row sits the predefined strip (ProposalFilterTabs, the PA-44 standard): \"Fallidos\", \"Hoy\" and \"Últimos 7 días\" are builtin — a stored date would freeze on the day it was seeded, and Fallidos has to sit second — while \"Recordatorios de cobro\", \"Cambios contables\" and \"Eliminaciones\" are seeded rows that Configuración can restore. Every tab carries its count, \"Todas\" included and the (0) included, fetched from POST accounting/history/tab-counts/ because there are no loaded rows to count; what does not fit collapses into a \"+N\" menu that always hoists the selected tab back into view. Tab, filter row and chips move together: selecting a tab lights the controls, editing the controls un-lights a builtin, and \"Limpiar filtros\" deselects. The applied filters ride in the URL (only the visible subtab owns it), so a query can be bookmarked, shared, and reached directly from a hosting, an income or a cuenta de cobro through their \"Ver correos de este registro\" action. The active combination can be saved as an own tab, and Configuración administers the strip (visibility, order, and a Restablecer that keeps the own tabs).",
+      "expectedSpecs": 7,
+      "outcomes": [
+        "display",
+        "success"
+      ]
+    },
+    "admin-accounting-history-diagnosis": {
+      "name": "Admin Accounting History — Read and Retry a Send",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Superuser diagnoses a send from its own row in the Envíos subtab. The row opens the message as it was delivered (GET accounting/email-log/<id>/body/, rendered in a sandboxed iframe via srcdoc like the branded-email composer); sends predating the feature say so instead of opening an empty modal. A failed send is retried from the row (POST accounting/email-log/<id>/retry/), reaching only the address on that row — the other recipients already got their copy. Only the notices tied to a single record (cambio contable, cuenta de cobro, pago de hosting) are retryable; the three digests show the button disabled carrying the reason, because re-running one would build today's summary rather than the message that failed. The retry lands as a new log row linked to the original through retry_of, so both attempts stay visible, and a retry that fails again reports its cause. The expanded row also names the records the email was about (EmailLogTarget).",
+      "expectedSpecs": 4,
+      "outcomes": [
+        "display",
         "success",
         "error"
       ]

@@ -447,12 +447,17 @@ describe('filters in the URL', () => {
   }
 
   it('stays off by default, so the other views only carry their tab', async () => {
-    const { currentFilters } = makeFilters();
-
+    const { currentFilters, saveTab } = makeFilters();
     currentFilters.statuses = ['paid'];
+
+    await saveTab('Cobrados');
     await nextTick();
 
-    expect(mockReplace).not.toHaveBeenCalled();
+    // The tab still reaches the URL — the machinery runs — but the filters
+    // do not, which is what keeps the other eleven views byte-identical.
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: { accounting_incomeTab: '1' },
+    });
   });
 
   it('writes the active filters, leaving the untouched ones out', async () => {

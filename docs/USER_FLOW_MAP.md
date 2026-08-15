@@ -6002,9 +6002,40 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/history`
-- **Description:** Read-only audit of the module through two tabs (BaseSegmented). **Cambios:** audit trail (server-paginated 20/page) of every accounting change with entity/action/actor/date filters and expandable field-level old→new diffs. **Envíos** (Ago 2026): send log (`GET /api/accounting/email-log/`, 20/page) with one row per destination address — fecha, tipo de aviso, destinatario, asunto y estado — filterable by notice type, status, recipient substring and date range; clicking a failed row expands the delivery error. This is the surface that answers "¿por qué no me llegó ese aviso?" and is scoped to the module's own `template_key`s, so proposal traffic sharing the `EmailLog` table stays out.
+- **Description:** Read-only audit of the module through two tabs (BaseSegmented). **Cambios:** audit trail (server-paginated 20/page) of every accounting change with entity/action/actor/record/date filters and expandable field-level old→new diffs. **Envíos** (Ago 2026): send log (`GET /api/accounting/email-log/`, 20/page) with one row per destination address — fecha, tipo de aviso, destinatario, asunto y estado — filterable by notice type, status, recipient, subject text, source record, client, project and date range; clicking a failed row expands the delivery error, the records the email was about and any retry link. This is the surface that answers "¿por qué no me llegó ese aviso?" and is scoped to the module's own `template_key`s, so proposal traffic sharing the `EmailLog` table stays out. Both subtabs carry the predefined tab strip and URL-persisted filters (`admin-accounting-history-filters`) and a send row can be read and retried (`admin-accounting-history-diagnosis`).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
+
+### FLOW: `admin-accounting-history-filters`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/history`
+- **Description:** Finding a send or a change takes one click on a predefined tab or a few filters, instead of scanning the list by eye. Each subtab runs its own `useAccountingFilters` instance (saved-tab views `accounting_history_sends` / `accounting_history_changes`) and, because Historial is the one accounting view that paginates server-side, the filter state is translated into query params by `buildExportParams` rather than filtering loaded rows. Under the filter row sits the strip (`ProposalFilterTabs`, the PA-44 standard): **Fallidos**, **Hoy** and **Últimos 7 días** are builtin — a stored date would freeze on the day it was seeded, and Fallidos has to sit second because it is where anyone goes when a notice did not arrive — while **Recordatorios de cobro**, **Cambios contables** and **Eliminaciones** are seeded rows that Configuración restores. Every tab carries its count, "Todas" and the honest (0) included, from `POST /api/accounting/history/tab-counts/`; the overflow collapses into a "+N" menu that hoists the selected tab back into view.
+- **Steps:**
+  1. Superuser opens `/panel/accounting/history`; the strip renders with a count per tab and the filter row collapsed behind its toggle.
+  2. Clicking a predefined tab narrows the list and stamps both `?<subtab>Tab=` and the filter keys in the URL, so the query can be bookmarked and shared.
+  3. Editing the controls under a builtin un-lights the tab; "Limpiar filtros" deselects it and clears the URL.
+  4. "+" saves the active combination as an own tab (max 12 per view), which then behaves like any other tab and can be renamed, reordered, hidden or deleted.
+  5. Arriving from a hosting, an income or a cuenta de cobro lands with `?tab=sends&entity_type=…&object_id=…` already applied.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-history-filters.spec.js`
+
+### FLOW: `admin-accounting-history-diagnosis`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/history`
+- **Description:** The history exists to diagnose, so a row shows what was sent and can send it again. **Ver el correo:** `GET /api/accounting/email-log/<id>/body/` returns the message as delivered (stored once per send in `EmailBody`, shared by the sibling recipient rows) and the panel renders it in a sandboxed `srcdoc` iframe, the same way the composer previews a branded email; sends predating the feature say so instead of opening an empty modal. **Reintentar:** `POST /api/accounting/email-log/<id>/retry/` re-sends to the address on that row and to no one else, only for the notices tied to a single record (`accounting_change`, `collection_account_sent`, `payment_status_team`). The three digests show the button disabled carrying its reason — re-running one would assemble today's summary, not the message that failed. The retry lands as a new row linked through `retry_of`, and a retry that fails again reports its cause.
+- **Steps:**
+  1. Superuser opens the Envíos subtab and clicks the eye on a row → the delivered message opens in a modal.
+  2. On a failed row, the retry icon re-sends to that recipient; the list and its counts reload so the new attempt is visible.
+  3. A failed digest shows the retry disabled with the reason in its tooltip; a send that worked offers no retry at all.
+  4. Expanding a row names the records the email was about and, when applicable, the send it was a retry of.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-history-filters.spec.js`
 
 ### FLOW: `admin-accounting-cards`
 
@@ -6203,6 +6234,8 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 | `admin-accounting-pocket` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-recurring` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-pocket-recurring.spec.js` |
 | `admin-accounting-history` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
+| `admin-accounting-history-filters` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-history-filters.spec.js` |
+| `admin-accounting-history-diagnosis` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-history-filters.spec.js` |
 | `admin-accounting-cards` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-cards.spec.js` |
 | `admin-accounting-export` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-export.spec.js` |
 | `admin-accounting-settings` | admin | superuser | P2 | ✅ Covered | `e2e/admin/admin-accounting-ads-history-settings.spec.js` |
