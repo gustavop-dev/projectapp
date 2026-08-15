@@ -231,4 +231,70 @@ describe('ProposalFilterTabs restorable base', () => {
 
     expect(wrapper.get('[data-testid="filter-tabs-count-12"]').text()).toBe('3');
   });
+
+  it('badges "Todas" with the unfiltered total when the view sends one', () => {
+    const wrapper = mountTabs({ counts: { all: 42 } });
+
+    expect(wrapper.get('[data-testid="filter-tabs-count-all"]').text()).toBe('42');
+  });
+
+  it('says what the count means in the view that is showing it', () => {
+    const wrapper = mountTabs({
+      counts: { 'tab-1': 1 },
+      countTitle: 'Envíos que cumplen este filtro',
+    });
+
+    expect(
+      wrapper.get('[data-testid="filter-tabs-count-tab-1"]').attributes('title'),
+    ).toBe('Envíos que cumplen este filtro');
+  });
+
+  it('leaves a hidden tab out of the strip without deleting it', () => {
+    const wrapper = mountTabs({
+      tabs: [
+        { id: 'tab-1', name: 'Tab Uno' },
+        { id: 'tab-2', name: 'Tab Dos', is_hidden: true },
+      ],
+    });
+
+    expect(wrapper.find('[data-testid="filter-tabs-tab-tab-1"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="filter-tabs-tab-tab-2"]').exists()).toBe(false);
+  });
+
+  describe('overflow', () => {
+    const manyTabs = Array.from({ length: 5 }, (_, i) => ({
+      id: `tab-${i + 1}`, name: `Tab ${i + 1}`,
+    }));
+
+    it('renders every tab inline while no limit is set', () => {
+      const wrapper = mountTabs({ tabs: manyTabs });
+
+      expect(wrapper.find('[data-testid="filter-tabs-overflow"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-5"]').exists()).toBe(true);
+    });
+
+    it('moves what does not fit into a "+N" menu', () => {
+      const wrapper = mountTabs({ tabs: manyTabs, maxVisible: 3 });
+
+      expect(wrapper.get('[data-testid="filter-tabs-overflow"]').text()).toBe('+2');
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-3"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-4"]').exists()).toBe(false);
+    });
+
+    it('keeps the selected tab visible even when it belongs to the overflow', () => {
+      const wrapper = mountTabs({
+        tabs: manyTabs, maxVisible: 3, activeTabId: 'tab-5',
+      });
+
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-5"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-3"]').exists()).toBe(false);
+      expect(wrapper.get('[data-testid="filter-tabs-overflow"]').text()).toBe('+2');
+    });
+
+    it('still lists every tab in the mobile dropdown', () => {
+      const wrapper = mountTabs({ tabs: manyTabs, maxVisible: 3 });
+
+      expect(wrapper.get('select').findAll('option')).toHaveLength(6);
+    });
+  });
 });

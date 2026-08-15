@@ -751,6 +751,29 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * fetchHistoryTabCounts: how many rows each predefined tab is worth.
+     *
+     * The other accounting views count their tabs in the browser over the
+     * rows already loaded; Historial paginates server-side, so an honest
+     * badge — the (0) included — has to be asked for. Deliberately does not
+     * touch `isLoading`: a stale badge must never blank the table.
+     *
+     * @param {'sends'|'changes'} scope
+     * @param {Array<{id: string|number, filters: object}>} tabs
+     */
+    async fetchHistoryTabCounts(scope, tabs) {
+      try {
+        const response = await create_request(
+          'accounting/history/tab-counts/', { scope, tabs },
+        );
+        return { success: true, counts: response.data.counts || {} };
+      } catch (error) {
+        console.error('Error fetching history tab counts:', error);
+        return { success: false, counts: {}, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
      * fetchSettings: Notification settings singleton.
      */
     async fetchSettings() {

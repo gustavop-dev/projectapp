@@ -253,6 +253,44 @@ describe('useAccountingStore', () => {
       expect(store.error).toBe('email_log_failed')
     })
 
+    it('fetchHistoryTabCounts posts the tab specs and returns the counts', async () => {
+      create_request.mockResolvedValue({
+        data: { counts: { all: 12, failed: 2, bounced: 0 } },
+      })
+
+      const result = await store.fetchHistoryTabCounts('sends', [
+        { id: 'all', filters: {} },
+        { id: 'failed', filters: { status: ['failed'] } },
+      ])
+
+      expect(create_request).toHaveBeenCalledWith(
+        'accounting/history/tab-counts/',
+        {
+          scope: 'sends',
+          tabs: [
+            { id: 'all', filters: {} },
+            { id: 'failed', filters: { status: ['failed'] } },
+          ],
+        },
+      )
+      expect(result).toEqual({
+        success: true, counts: { all: 12, failed: 2, bounced: 0 },
+      })
+    })
+
+    it('a failed count query never blanks the table', async () => {
+      store.error = null
+      store.isLoading = false
+      create_request.mockRejectedValue(apiError(500, { error: 'boom' }))
+
+      const result = await store.fetchHistoryTabCounts('sends', [])
+
+      expect(result.success).toBe(false)
+      expect(result.counts).toEqual({})
+      expect(store.error).toBeNull()
+      expect(store.isLoading).toBe(false)
+    })
+
     it('routes the recipient CRUD to the notification-recipients endpoints', async () => {
       create_request.mockResolvedValue({ data: { id: 3, email: 'ana@test.com' } })
       patch_request.mockResolvedValue({

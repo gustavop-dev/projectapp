@@ -18,93 +18,66 @@
       data-testid="history-tab"
     />
 
-    <!-- Filters — changes -->
-    <div v-if="tab === 'changes'" class="bg-surface border border-border-muted rounded-xl shadow-sm p-4 mb-5">
-      <BaseFormRow :cols="2" :lg="5" :gap="3">
-        <BaseFormField label="Entidad" size="sm">
-          <BaseSelect
-            v-model="filters.entity_type"
-            size="sm"
-            :options="entityTypeOptions"
-            data-testid="history-filter-entity"
-          />
-        </BaseFormField>
-        <BaseFormField label="Acción" size="sm">
-          <BaseSelect
-            v-model="filters.action"
-            size="sm"
-            :options="actionOptions"
-            data-testid="history-filter-action"
-          />
-        </BaseFormField>
-        <BaseFormField label="Usuario" size="sm">
-          <BaseInput
-            v-model="filters.actor"
-            size="sm"
-            placeholder="Buscar por usuario..."
-            data-testid="history-filter-actor"
-          />
-        </BaseFormField>
-        <BaseFormField label="Desde" size="sm">
-          <BaseInput v-model="filters.date_from" size="sm" type="date" />
-        </BaseFormField>
-        <BaseFormField label="Hasta" size="sm">
-          <BaseInput v-model="filters.date_to" size="sm" type="date" />
-        </BaseFormField>
-      </BaseFormRow>
+    <!-- Search + filter toggle -->
+    <div class="flex items-center gap-2 mb-3">
+      <BaseInput
+        v-model="searchInput"
+        type="text"
+        :placeholder="isChanges ? 'Buscar por registro...' : 'Buscar por asunto...'"
+        data-testid="history-search"
+        class="w-full sm:max-w-xs"
+      />
+      <UiFilterToggleButton
+        :open="isFilterPanelOpen"
+        :count="activeFilterCount"
+        data-testid="history-filter-toggle"
+        @click="isFilterPanelOpen = !isFilterPanelOpen"
+      />
     </div>
 
-    <!-- Filters — sends -->
-    <div v-else class="bg-surface border border-border-muted rounded-xl shadow-sm p-4 mb-5">
-      <BaseFormRow :cols="2" :lg="5" :gap="3">
-        <BaseFormField label="Aviso" size="sm">
-          <BaseSelect
-            v-model="emailFilters.template_key"
-            size="sm"
-            :options="templateKeyOptions"
-            data-testid="email-log-filter-template"
-          />
-        </BaseFormField>
-        <BaseFormField label="Estado" size="sm">
-          <BaseSelect
-            v-model="emailFilters.status"
-            size="sm"
-            :options="statusOptions"
-            data-testid="email-log-filter-status"
-          />
-        </BaseFormField>
-        <BaseFormField label="Destinatario" size="sm">
-          <BaseInput
-            v-model="emailFilters.recipient"
-            size="sm"
-            placeholder="Buscar por correo..."
-            data-testid="email-log-filter-recipient"
-          />
-        </BaseFormField>
-        <BaseFormField label="Desde" size="sm">
-          <BaseInput v-model="emailFilters.date_from" size="sm" type="date" />
-        </BaseFormField>
-        <BaseFormField label="Hasta" size="sm">
-          <BaseInput v-model="emailFilters.date_to" size="sm" type="date" />
-        </BaseFormField>
-      </BaseFormRow>
-    </div>
+    <!-- Filter row -->
+    <AccountingFilterPanel
+      :fields="filterFields"
+      :model-value="currentFilters"
+      :is-open="isFilterPanelOpen"
+      :results-count="totalCount"
+      :search-value="currentFilters.search"
+      @update:model-value="onFiltersUpdate"
+      @reset="onResetFilters"
+      @clear-search="onClearSearch"
+    />
+
+    <!-- Predefined tabs, under the filter row -->
+    <ProposalFilterTabs
+      :tabs="displayTabs"
+      :active-tab-id="activeTabId"
+      :counts="activeCounts"
+      :count-title="isChanges ? 'Cambios que cumplen este filtro' : 'Envíos que cumplen este filtro'"
+      :max-visible="MAX_VISIBLE_TABS"
+      :is-tab-limit-reached="isTabLimitReached"
+      @select="onSelectTab"
+      @create="onCreateTab"
+      @rename="onRenameTab"
+      @delete="onDeleteTab"
+      @restore="onRestoreTab"
+      @rebase="onRebaseTab"
+    />
 
     <!-- Error -->
     <AccountingErrorState
       v-if="store.error === errorKey"
-      :title="tab === 'changes' ? 'No se pudo cargar el historial' : 'No se pudo cargar el registro de envíos'"
+      :title="isChanges ? 'No se pudo cargar el historial' : 'No se pudo cargar el registro de envíos'"
       :retrying="store.isLoading"
       @retry="load(currentPage)"
     />
 
     <!-- Loading -->
     <div v-else-if="store.isLoading" class="text-center py-16 text-text-subtle text-sm">
-      {{ tab === 'changes' ? 'Cargando historial...' : 'Cargando envíos...' }}
+      {{ isChanges ? 'Cargando historial...' : 'Cargando envíos...' }}
     </div>
 
     <template v-else>
-      <ChangelogTable v-if="tab === 'changes'" :entries="store.changelog.results" />
+      <ChangelogTable v-if="isChanges" :entries="store.changelog.results" />
       <EmailLogTable v-else :entries="store.emailLog.results" />
 
       <!-- Server-side pagination -->
@@ -130,92 +103,119 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import ChangelogTable from '~/components/accounting/ChangelogTable.vue';
 import EmailLogTable from '~/components/accounting/EmailLogTable.vue';
-import BaseFormField from '~/components/base/BaseFormField.vue';
-import BaseFormRow from '~/components/base/BaseFormRow.vue';
+import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
-import BaseSelect from '~/components/base/BaseSelect.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import UiFilterToggleButton from '~/components/ui/FilterToggleButton.vue';
+import { useAccountingFilters } from '~/composables/useAccountingFilters';
+import { sameFilters } from '~/composables/useSavedFilterTabs';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingStore } from '~/stores/accounting';
+import { usePanelProjectsStore } from '~/stores/panel_projects';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
+import { buildExportParams } from '~/utils/accountingExportParams';
+import {
+  CHANGES_DEFAULTS,
+  CHANGES_FILTERS_CONFIG,
+  CHANGES_PARAM_MAPPING,
+  SENDS_DEFAULTS,
+  SENDS_FILTERS_CONFIG,
+  SENDS_PARAM_MAPPING,
+  changesFilterFields,
+  sendsFilterFields,
+} from '~/constants/historyFilters';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const clientsStore = useProposalClientsStore();
+const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
+const route = useRoute();
+const router = useRouter();
 
 const TAB_OPTIONS = [
   { value: 'changes', label: 'Cambios', testId: 'history-tab-changes' },
   { value: 'sends', label: 'Envíos', testId: 'history-tab-sends' },
 ];
 
-const tab = ref('changes');
+// Enough for "Todas" plus the seeded cuts without the strip wrapping on a
+// laptop; the rest go into the "+N" menu.
+const MAX_VISIBLE_TABS = 6;
 
-const entityTypeOptions = [
-  { value: '', label: 'Todas' },
-  { value: 'income', label: 'Ingreso' },
-  { value: 'expense', label: 'Gasto' },
-  { value: 'hosting', label: 'Hosting' },
-  { value: 'pocket', label: 'Bolsillo' },
-  { value: 'recurring', label: 'Pago recurrente' },
-  { value: 'ads', label: 'Ads' },
-  { value: 'card_snapshot', label: 'Saldo tarjeta' },
-  { value: 'credit_card', label: 'Tarjeta de crédito' },
-  { value: 'statement', label: 'Extracto de tarjeta' },
-  { value: 'statement_tx', label: 'Transacción de extracto' },
-  { value: 'merchant_alias', label: 'Alias de comercio' },
-  { value: 'settings', label: 'Configuración' },
-];
+// Both subtabs write the same query string, so whichever is on screen clears
+// the whole union before writing its own — otherwise switching would leave
+// the other's filters stranded in the URL.
+const URL_FILTER_KEYS = [...new Set([
+  'search',
+  ...Object.keys(SENDS_DEFAULTS),
+  ...Object.keys(CHANGES_DEFAULTS),
+])];
 
-const actionOptions = [
-  { value: '', label: 'Todas' },
-  { value: 'created', label: 'Creado' },
-  { value: 'updated', label: 'Actualizado' },
-  { value: 'deleted', label: 'Eliminado' },
-];
-
-// Mirrors EMAIL_TEMPLATE_LABELS in content/serializers/accounting.py.
-const templateKeyOptions = [
-  { value: '', label: 'Todos' },
-  { value: 'accounting_change', label: 'Cambio contable' },
-  { value: 'accounting_card_reminder', label: 'Recordatorio de deuda de tarjetas' },
-  { value: 'accounting_statement_reminder', label: 'Recordatorio de extractos' },
-  { value: 'accounting_payment_calendar', label: 'Calendario de cobros y pagos' },
-  { value: 'collection_account_sent', label: 'Cuenta de cobro' },
-  { value: 'payment_status_team', label: 'Pago de hosting' },
-];
-
-const statusOptions = [
-  { value: '', label: 'Todos' },
-  { value: 'sent', label: 'Enviado' },
-  { value: 'delivered', label: 'Entregado' },
-  { value: 'bounced', label: 'Rebotado' },
-  { value: 'failed', label: 'Fallido' },
-];
-
-const filters = reactive({
-  entity_type: '',
-  action: '',
-  actor: '',
-  date_from: '',
-  date_to: '',
-});
-
-const emailFilters = reactive({
-  template_key: '',
-  status: '',
-  recipient: '',
-  date_from: '',
-  date_to: '',
-});
-
+// Read before the filter factories are built: each one seeds itself from the
+// URL only while it is the visible subtab.
+const tab = ref(route.query.tab === 'sends' ? 'sends' : 'changes');
 const isChanges = computed(() => tab.value === 'changes');
+
+const sends = useAccountingFilters({
+  ...SENDS_FILTERS_CONFIG,
+  isUrlOwner: () => tab.value === 'sends',
+  urlFilterKeys: URL_FILTER_KEYS,
+});
+const changes = useAccountingFilters({
+  ...CHANGES_FILTERS_CONFIG,
+  isUrlOwner: () => tab.value === 'changes',
+  urlFilterKeys: URL_FILTER_KEYS,
+});
+
+const active = computed(() => (isChanges.value ? changes : sends));
+
+// The factory hands back refs inside a plain object, which the template will
+// not unwrap on its own; each one is surfaced explicitly.
+const currentFilters = computed(() => active.value.currentFilters);
+const displayTabs = computed(() => active.value.displayTabs.value);
+const activeTabId = computed(() => String(active.value.activeTabId.value));
+const activeFilterCount = computed(() => active.value.activeFilterCount.value);
+const isTabLimitReached = computed(() => active.value.isTabLimitReached.value);
+
+const searchInput = computed({
+  get: () => active.value.searchInput.value,
+  set: (value) => { active.value.searchInput.value = value; },
+});
+const isFilterPanelOpen = computed({
+  get: () => active.value.isFilterPanelOpen.value,
+  set: (value) => { active.value.isFilterPanelOpen.value = value; },
+});
+
+const clientOptions = computed(() =>
+  (clientsStore.clients || [])
+    .map((client) => ({ value: String(client.id), label: client.name }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+);
+const projectOptions = computed(() =>
+  (projectsStore.records || [])
+    .map((project) => ({ value: String(project.id), label: project.name }))
+    .sort((a, b) => a.label.localeCompare(b.label)),
+);
+
+const filterFields = computed(() => (
+  isChanges.value
+    ? changesFilterFields()
+    : sendsFilterFields({
+      clients: clientOptions.value,
+      projects: projectOptions.value,
+    })
+));
+
 const currentPage = computed(() =>
   isChanges.value ? store.changelog.page : store.emailLog.page,
 );
@@ -231,14 +231,13 @@ const countLabel = computed(() => {
   return isChanges.value ? `cambio${plural}` : `envío${plural}`;
 });
 
+// ---------------------------------------------------------------------------
+// Loading
+// ---------------------------------------------------------------------------
+
 function activeParams() {
-  const source = isChanges.value ? filters : emailFilters;
-  const params = {};
-  Object.entries(source).forEach(([key, value]) => {
-    const trimmed = String(value || '').trim();
-    if (trimmed) params[key] = trimmed;
-  });
-  return params;
+  const mapping = isChanges.value ? CHANGES_PARAM_MAPPING : SENDS_PARAM_MAPPING;
+  return buildExportParams(currentFilters.value, mapping);
 }
 
 async function load(page = 1) {
@@ -256,38 +255,155 @@ async function load(page = 1) {
   }
 }
 
+// One debounce for every filter change, not just the free-text ones: the
+// panel's text fields emit per keystroke, and a select landing 250ms later
+// is imperceptible next to the round-trip it saves.
+let loadTimer = null;
+function scheduleLoad() {
+  if (loadTimer) clearTimeout(loadTimer);
+  loadTimer = setTimeout(() => load(1), 250);
+}
+
 function goToPage(page) {
   const target = Math.min(Math.max(1, page), totalPages.value || 1);
   if (target === currentPage.value) return;
   load(target);
 }
 
-// Selects and dates refetch immediately; the free-text inputs are debounced.
-watch(
-  () => [
-    filters.entity_type, filters.action, filters.date_from, filters.date_to,
-    emailFilters.template_key, emailFilters.status,
-    emailFilters.date_from, emailFilters.date_to,
-  ],
-  () => load(1),
-);
+// ---------------------------------------------------------------------------
+// Tab counts
+// ---------------------------------------------------------------------------
 
-// Switching tabs loads the other list from page 1; the store keeps each
-// side's results so coming back does not blank the table.
-watch(tab, () => load(1));
+const counts = ref({ sends: {}, changes: {} });
+const activeCounts = computed(() => counts.value[tab.value] || {});
 
-let textTimer = null;
-watch(
-  () => [filters.actor, emailFilters.recipient],
-  () => {
-    if (textTimer) clearTimeout(textTimer);
-    textTimer = setTimeout(() => load(1), 300);
-  },
-);
+/**
+ * Ask the server what each tab is worth.
+ *
+ * Deliberately not tied to the filter watcher: a tab's count is a property of
+ * its own definition, so it only moves when the tabs or the data do — not
+ * every time somebody types into the search box.
+ */
+async function refreshCounts() {
+  const scope = tab.value;
+  const specs = [
+    { id: 'all', filters: {} },
+    ...displayTabs.value.map((entry) => ({
+      id: entry.id,
+      filters: entry.filters || {},
+    })),
+  ];
+  const result = await store.fetchHistoryTabCounts(scope, specs);
+  if (result.success) {
+    counts.value = { ...counts.value, [scope]: result.counts };
+  }
+}
 
-onMounted(() => load(1));
-usePanelRefresh(() => load(currentPage.value));
+// ---------------------------------------------------------------------------
+// Tab ↔ filters ↔ chips
+// ---------------------------------------------------------------------------
+
+const builtinById = computed(() => new Map(
+  displayTabs.value.filter((entry) => entry.builtin).map((entry) => [String(entry.id), entry]),
+));
+
+/** True while every key the tab pins still holds the tab's value. */
+function stillMatches(entry) {
+  return Object.entries(entry.filters || {}).every(([key, value]) =>
+    sameFilters({ [key]: currentFilters.value[key] }, { [key]: value }),
+  );
+}
+
+function onSelectTab(tabId) {
+  // Re-clicking the tab that is already on clears it, the way a toggle reads.
+  if (builtinById.value.has(String(tabId)) && String(tabId) === activeTabId.value) {
+    active.value.selectTab('all');
+    return;
+  }
+  active.value.selectTab(tabId);
+}
+
+function onFiltersUpdate(next) {
+  Object.assign(currentFilters.value, next);
+  // Editing a builtin's filters out from under it must un-light the tab; the
+  // saved ones instead absorb the edit (that is what the • marker reports).
+  const entry = builtinById.value.get(activeTabId.value);
+  if (entry && !stillMatches(entry)) {
+    active.value.activeTabId.value = 'all';
+  }
+}
+
+function onClearSearch() {
+  active.value.searchInput.value = '';
+  currentFilters.value.search = '';
+}
+
+function onResetFilters() {
+  active.value.resetFilters();
+}
+
+async function onCreateTab(name) {
+  const created = await active.value.saveTab(name);
+  if (!created) {
+    notify.error({ title: 'No se pudo guardar la pestaña' });
+    return;
+  }
+  refreshCounts();
+}
+
+async function onRenameTab(tabId, name) {
+  await active.value.renameTab(tabId, name);
+}
+
+async function onDeleteTab(tabId) {
+  await active.value.deleteTab(tabId);
+  refreshCounts();
+}
+
+async function onRestoreTab(tabId) {
+  await active.value.restoreTab(tabId);
+  refreshCounts();
+}
+
+async function onRebaseTab(tabId) {
+  await active.value.rebaseTab(tabId);
+}
+
+// ---------------------------------------------------------------------------
+// Wiring
+// ---------------------------------------------------------------------------
+
+watch(() => [sends.currentFilters, changes.currentFilters], scheduleLoad, { deep: true });
+
+watch(tab, async (value) => {
+  const query = { ...route.query, tab: value };
+  // Hand the query string over: the outgoing subtab's filters go, then the
+  // incoming one writes its own. Awaiting the replace keeps the second write
+  // from reading a stale route.
+  for (const key of URL_FILTER_KEYS) delete query[key];
+  await router.replace({ query });
+  active.value.syncUrl();
+  load(1);
+  refreshCounts();
+});
+
+onMounted(async () => {
+  load(1);
+  // Options for the client and project filters. Failures are silent on
+  // purpose: an empty dropdown is a smaller problem than a blocked page.
+  Promise.all([
+    clientsStore.fetchClients({ limit: 500, silent: true }),
+    projectsStore.fetchProjects(),
+  ]).catch(() => {});
+  refreshCounts();
+});
+
+usePanelRefresh(() => {
+  load(currentPage.value);
+  refreshCounts();
+});
+
 onBeforeUnmount(() => {
-  if (textTimer) clearTimeout(textTimer);
+  if (loadTimer) clearTimeout(loadTimer);
 });
 </script>

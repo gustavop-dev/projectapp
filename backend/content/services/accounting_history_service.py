@@ -49,8 +49,12 @@ def _as_list(value):
     return [str(item).strip() for item in items if str(item).strip()]
 
 
-def _client_target_q(client_id):
-    """Targets belonging to a client, keyed by ``UserProfile`` id.
+def _parse_id_list(value, param):
+    return [_parse_int(item, param) for item in _as_list(value)]
+
+
+def _client_target_q(client_ids):
+    """Targets belonging to one of these clients, keyed by ``UserProfile`` id.
 
     The three entities that carry a client key it differently — incomes and
     hostings point at the ``UserProfile``, a cuenta de cobro at the ``User``
@@ -63,25 +67,25 @@ def _client_target_q(client_id):
         Q(
             targets__entity_type='income',
             targets__object_id__in=IncomeRecord.objects.filter(
-                client_id=client_id,
+                client_id__in=client_ids,
             ).values('id'),
         )
         | Q(
             targets__entity_type='hosting',
             targets__object_id__in=HostingRecord.objects.filter(
-                client_id=client_id,
+                client_id__in=client_ids,
             ).values('id'),
         )
         | Q(
             targets__entity_type='collection_account',
             targets__object_id__in=Document.objects.filter(
-                client_user__profile__id=client_id,
+                client_user__profile__id__in=client_ids,
             ).values('id'),
         )
     )
 
 
-def _project_target_q(project_id):
+def _project_target_q(project_ids):
     """Targets belonging to a project. All three entities key it the same."""
     from content.models import Document, HostingRecord, IncomeRecord
 
@@ -89,19 +93,19 @@ def _project_target_q(project_id):
         Q(
             targets__entity_type='income',
             targets__object_id__in=IncomeRecord.objects.filter(
-                project_id=project_id,
+                project_id__in=project_ids,
             ).values('id'),
         )
         | Q(
             targets__entity_type='hosting',
             targets__object_id__in=HostingRecord.objects.filter(
-                project_id=project_id,
+                project_id__in=project_ids,
             ).values('id'),
         )
         | Q(
             targets__entity_type='collection_account',
             targets__object_id__in=Document.objects.filter(
-                project_id=project_id,
+                project_id__in=project_ids,
             ).values('id'),
         )
     )
@@ -149,10 +153,12 @@ def email_log_queryset(params):
         )
         joined = True
     if params.get('client'):
-        target_q &= _client_target_q(_parse_int(params['client'], 'client'))
+        target_q &= _client_target_q(_parse_id_list(params['client'], 'client'))
         joined = True
     if params.get('project'):
-        target_q &= _project_target_q(_parse_int(params['project'], 'project'))
+        target_q &= _project_target_q(
+            _parse_id_list(params['project'], 'project'),
+        )
         joined = True
 
     if joined:
