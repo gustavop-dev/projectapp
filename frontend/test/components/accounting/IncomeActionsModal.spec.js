@@ -55,7 +55,7 @@ describe('IncomeActionsModal', () => {
 
     expect(actionIds(wrapper)).toEqual([
       'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
-      'toggle-mute', 'write-off', 'delete',
+      'toggle-mute', 'write-off', 'view-emails', 'delete',
     ]);
   });
 
@@ -92,14 +92,29 @@ describe('IncomeActionsModal', () => {
     });
 
     expect(actionIds(wrapper)).toEqual([
-      'detail', 'edit', 'duplicate', 'generate-collection', 'delete',
+      'detail', 'edit', 'duplicate', 'generate-collection',
+      'view-emails', 'delete',
     ]);
   });
 
   it('offers no cuenta de cobro on a written-off income', () => {
     const wrapper = mountModal({ ...EXPECTED, kind: 'lost' });
 
-    expect(actionIds(wrapper)).toEqual(['detail', 'edit', 'duplicate', 'delete']);
+    expect(actionIds(wrapper)).toEqual([
+      'detail', 'edit', 'duplicate', 'view-emails', 'delete',
+    ]);
+  });
+
+  it('offers the send log whatever the state, including a written-off one', async () => {
+    // "What went out about this?" is asked most about the ones that went
+    // wrong, so the entry cannot be gated on the income still being alive.
+    const lost = { ...EXPECTED, kind: 'lost' };
+    const wrapper = mountModal(lost);
+
+    await wrapper.get('[data-testid="income-action-view-emails-42"]').trigger('click');
+
+    expect(wrapper.emitted('view-emails')[0]).toEqual([lost]);
+    expect(wrapper.emitted('close')).toHaveLength(1);
   });
 
   it('offers duplicar whatever the state, since the usual case is a collected one', async () => {
@@ -119,7 +134,7 @@ describe('IncomeActionsModal', () => {
     // failed to render would satisfy "does not contain write-off" too.
     expect(actionIds(wrapper)).toEqual([
       'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
-      'toggle-mute', 'delete',
+      'toggle-mute', 'view-emails', 'delete',
     ]);
   });
 

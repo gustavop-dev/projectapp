@@ -33,6 +33,11 @@
         data-testid="history-filter-toggle"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
+      <AccountingExportButton
+        class="ml-auto"
+        :section="isChanges ? 'change_log' : 'email_log'"
+        :params="activeParams()"
+      />
     </div>
 
     <!-- Filter row -->
@@ -107,6 +112,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import ChangelogTable from '~/components/accounting/ChangelogTable.vue';
 import EmailLogTable from '~/components/accounting/EmailLogTable.vue';

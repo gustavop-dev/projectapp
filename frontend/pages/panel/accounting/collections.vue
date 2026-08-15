@@ -214,6 +214,17 @@
               <DocumentArrowDownIcon class="w-5 h-5" />
             </BaseButton>
             <BaseButton
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Ver correos de esta cuenta"
+              title="Ver qué correos salieron por esta cuenta de cobro"
+              :data-testid="`collection-emails-${row.id}`"
+              @click="goToCollectionEmails(row)"
+            >
+              <EnvelopeIcon class="w-5 h-5" />
+            </BaseButton>
+            <BaseButton
               v-if="row.commercial_status === 'issued' || row.commercial_status === 'paid'"
               variant="ghost"
               icon-only
@@ -312,6 +323,7 @@ import {
   ChatBubbleBottomCenterTextIcon,
   CheckCircleIcon,
   DocumentArrowDownIcon,
+  EnvelopeIcon,
   EyeIcon,
   NoSymbolIcon,
   PaperAirplaneIcon,
@@ -341,6 +353,7 @@ import { useAccountingStore } from '~/stores/accounting';
 import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
+import { historySendsLink } from '~/utils/historyDeepLink';
 import { originLabel, originTone, statusBadgeClass } from '~/utils/collectionStatus';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
@@ -656,6 +669,10 @@ function goToIncome(incomeId) {
     path: '/panel/accounting/incomes',
     query: { focus: incomeId, accounting_incomeTab: 'all' },
   });
+}
+
+function goToCollectionEmails(row) {
+  navigateTo(historySendsLink('collection_account', row.id));
 }
 
 // ── Mark paid: expected-linked cuentas route through Liquidar ──

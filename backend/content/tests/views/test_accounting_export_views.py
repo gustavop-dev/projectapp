@@ -331,3 +331,78 @@ class TestExpenseDeductionExport:
         lines = csv_lines(response)
         assert len(lines) == 2
         assert lines[1].startswith('Retención DIAN')
+
+
+@pytest.mark.django_db
+class TestExportHistory:
+    """Exporting the Historial subtabs, which are not `_ENTITIES` rows.
+
+    The point of exporting a send is to be able to attach it as evidence
+    that an aviso did go out, so the row has to carry the record it was
+    about and the state it ended in.
+    """
+
+    def _make_log(self, **kwargs):
+        from content.models import EmailLog, EmailLogTarget
+
+        fields = {
+            'template_key': 'accounting_change',
+            'recipient': 'ana@test.com',
+            'subject': '[Contabilidad] Hosting creado: Kore',
+            'status': EmailLog.Status.SENT,
+        }
+        fields.update(kwargs)
+        targets = fields.pop('targets', ())
+        log = EmailLog.objects.create(**fields)
+        for entity_type, object_id, repr_ in targets:
+            EmailLogTarget.objects.create(
+                email_log=log, entity_type=entity_type,
+                object_id=object_id, object_repr=repr_,
+            )
+        return log
+
+    def test_send_rows_name_the_records_the_email_was_about(self, super_client):
+        self._make_log(targets=[('hosting', 4, 'Kore'), ('income', 9, 'Anual')])
+
+        response = super_client.get('/api/accounting/export/?section=email_log')
+
+        lines = csv_lines(response)
+        assert lines[0].startswith('Fecha,Aviso,Destinatario,Asunto,Estado,Error,Registros')
+        assert 'Kore · Anual' in lines[1]
+        assert 'Cambio contable' in lines[1]
+
+    def test_send_export_obeys_the_filter_on_screen(self, super_client):
+        from content.models import EmailLog
+
+        self._make_log(recipient='falla@test.com', status=EmailLog.Status.FAILED)
+        self._make_log(recipient='ok@test.com')
+
+        response = super_client.get(
+            '/api/accounting/export/?section=email_log&status=failed',
+        )
+
+        lines = csv_lines(response)
+        assert len(lines) == 2
+        assert 'falla@test.com' in lines[1]
+
+    def test_change_rows_flatten_the_field_diff(self, super_client):
+        from content.models import AccountingChangeLog
+
+        AccountingChangeLog.objects.create(
+            entity_type='hosting', object_id=1, object_repr='Kore',
+            action='updated', actor_username='gustavo',
+            changes=[{'label': 'Valor mensual', 'old': '10', 'new': '20'}],
+        )
+
+        response = super_client.get('/api/accounting/export/?section=change_log')
+
+        lines = csv_lines(response)
+        assert lines[0].startswith('Fecha,Usuario,Entidad,Registro,Acción,Campos')
+        assert 'Valor mensual: 10 → 20' in lines[1]
+
+    def test_a_malformed_date_is_rejected_not_ignored(self, super_client):
+        response = super_client.get(
+            '/api/accounting/export/?section=email_log&date_from=ayer',
+        )
+
+        assert response.status_code == 400
