@@ -190,6 +190,65 @@ describe('ProjectSelect', () => {
     ).toBeUndefined();
   });
 
+  describe('autoSelectSingle (PA-51: proposing is pre-filling)', () => {
+    it('pre-selects the only ACTIVE project of the client', async () => {
+      // PROJECTS has one active (Kore) and one paused — exactly one candidate.
+      const wrapper = mountSelect({ autoSelectSingle: true });
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([11]);
+      expect(input(wrapper).element.value).toBe('Kore');
+    });
+
+    it('leaves the field empty when two projects are active', async () => {
+      get_request.mockResolvedValue({
+        data: {
+          results: [
+            { id: 11, name: 'Kore', status: 'active', status_label: 'Activo' },
+            { id: 13, name: 'Crushme', status: 'active', status_label: 'Activo' },
+          ],
+        },
+      });
+      const wrapper = mountSelect({ autoSelectSingle: true });
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    });
+
+    it('leaves the field empty when the only project is not active', async () => {
+      get_request.mockResolvedValue({
+        data: {
+          results: [
+            { id: 12, name: 'Vástago', status: 'paused', status_label: 'Pausado' },
+          ],
+        },
+      });
+      const wrapper = mountSelect({ autoSelectSingle: true });
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    });
+
+    it('never overwrites a committed value (edits stay untouched)', async () => {
+      const wrapper = mountSelect({ autoSelectSingle: true, modelValue: 12 });
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    });
+
+    it('a deliberate clear stays cleared instead of refilling itself', async () => {
+      const wrapper = mountSelect({ autoSelectSingle: true });
+      await flushPromises();
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([11]);
+
+      await wrapper.find('[data-testid="project-select-clear"]').trigger('click');
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([null]);
+      expect(input(wrapper).element.value).toBe('');
+    });
+  });
+
   it('changing the client clears a selection the backend would reject', async () => {
     const wrapper = mountSelect({ modelValue: 11 });
     await flushPromises();

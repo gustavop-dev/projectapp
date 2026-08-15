@@ -137,6 +137,59 @@ describe('panel_projects store', () => {
     expect(result.code).toBe('already_archived');
   });
 
+  it('fetchUnlinkedRecords returns the preview without touching the listing', async () => {
+    const preview = {
+      client: { profile_id: 7, name: 'Deivis Ríos' },
+      hostings: [{ id: 4, label: 'Deivis — Vastago' }],
+      incomes: [],
+      total: 1,
+    };
+    get_request.mockResolvedValueOnce({ data: preview });
+    const store = usePanelProjectsStore();
+
+    const result = await store.fetchUnlinkedRecords(1);
+
+    expect(get_request).toHaveBeenCalledWith('projects/1/unlinked-records/');
+    expect(result).toEqual({ success: true, data: preview });
+    expect(store.records).toEqual([]);
+  });
+
+  it('assignUnlinkedRecords posts the confirmed ids and refetches', async () => {
+    create_request.mockResolvedValueOnce({
+      data: { assigned_hostings: 1, assigned_incomes: 2, project: { id: 1 } },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+    const store = usePanelProjectsStore();
+
+    const result = await store.assignUnlinkedRecords(1, {
+      hosting_ids: [4],
+      income_ids: [8, 9],
+    });
+
+    expect(create_request).toHaveBeenCalledWith('projects/1/assign-unlinked/', {
+      hosting_ids: [4],
+      income_ids: [8, 9],
+    });
+    expect(get_request).toHaveBeenCalledWith('projects/?scope=all');
+    expect(result.success).toBe(true);
+    expect(result.data.assigned_incomes).toBe(2);
+  });
+
+  it('a 409 on assign keeps the code so the modal can reload its preview', async () => {
+    create_request.mockRejectedValueOnce(apiError(409, {
+      error: '1 registro de la lista ya no se puede asignar (ganaron proyecto o cambiaron de cliente).',
+      code: 'records_changed',
+      changed_ids: [8],
+    }));
+    const store = usePanelProjectsStore();
+
+    const result = await store.assignUnlinkedRecords(1, { income_ids: [8] });
+
+    expect(result.success).toBe(false);
+    expect(result.code).toBe('records_changed');
+    expect(get_request).not.toHaveBeenCalled();
+  });
+
   it('fetchClientsWithoutProjects loads the uncovered-clients panel', async () => {
     get_request.mockResolvedValueOnce({ data: [{ id: 7, name: 'Wilson García' }] });
     const store = usePanelProjectsStore();

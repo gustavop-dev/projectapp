@@ -233,6 +233,7 @@ function onSubmit() {
         v-model="form.project"
         :client-profile-id="form.client"
         :client-label="form.client_display_name"
+        :auto-select-single="!isEdit"
         testid="hosting-form-project"
       />
 

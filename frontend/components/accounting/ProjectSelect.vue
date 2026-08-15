@@ -177,6 +177,13 @@ const props = defineProps({
   testid: { type: String, default: 'project-select' },
   /** Turn off the create affordance where only picking makes sense. */
   allowCreate: { type: Boolean, default: true },
+  /**
+   * Pre-select the client's only ACTIVE project when the field is empty
+   * (PA-51: proposing IS pre-filling — the value arrives visible and
+   * editable before saving). Off by default; forms turn it on for creates
+   * only, so an edit never rewrites what was stored.
+   */
+  autoSelectSingle: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue', 'created']);
@@ -195,6 +202,9 @@ const inlineOpen = ref(false);
 const inlineName = ref('');
 const inlineError = ref('');
 const creating = ref(false);
+// A deliberate clear must stay cleared: without this flag the auto-select
+// would refill the field the moment the list reloads.
+const userCleared = ref(false);
 
 const term = computed(() => inputText.value.trim());
 
@@ -238,6 +248,14 @@ async function load() {
   const result = await store.fetchProjectsForClient(props.clientProfileId);
   projects.value = result.success ? result.data : [];
   loading.value = false;
+  maybeAutoSelect();
+}
+
+function maybeAutoSelect() {
+  if (!props.autoSelectSingle || userCleared.value) return;
+  if (props.modelValue != null) return;
+  const actives = projects.value.filter((p) => p.status === 'active');
+  if (actives.length === 1) selectProject(actives[0]);
 }
 
 function syncInputToSelection() {
@@ -248,6 +266,8 @@ function syncInputToSelection() {
 watch(
   () => props.clientProfileId,
   (next, previous) => {
+    // A new client is a new question; the previous clear no longer applies.
+    userCleared.value = false;
     load();
     // The previous project belonged to the previous client; keeping it would
     // send the backend a pair it is going to reject anyway.
@@ -278,7 +298,10 @@ function onInput() {
   isOpen.value = true;
   inlineOpen.value = false;
   // Typing clears any committed selection so the parent knows to re-pick.
-  if (props.modelValue !== null) emit('update:modelValue', null);
+  if (props.modelValue !== null) {
+    userCleared.value = true;
+    emit('update:modelValue', null);
+  }
   highlightIndex.value = filteredProjects.value.length > 0 ? 0 : -1;
 }
 
@@ -291,6 +314,7 @@ function selectProject(project) {
 }
 
 function clearSelection() {
+  userCleared.value = true;
   emit('update:modelValue', null);
   inputText.value = '';
   inlineOpen.value = false;

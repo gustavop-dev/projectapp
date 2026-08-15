@@ -229,6 +229,9 @@ export function useAccountingCrudPage({
       },
     );
     if (result.success) closeModal();
+    // Pages that react to what came back (e.g. offering a follow-up on the
+    // created row) need the result; existing callers ignore it.
+    return result;
   }
 
   // -----------------------------------------------------------------

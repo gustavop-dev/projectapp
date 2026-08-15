@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import IncomeFormModal from '../../../components/accounting/IncomeFormModal.vue';
 
@@ -614,5 +614,19 @@ describe('IncomeFormModal', () => {
     const submit = wrapper.find('[data-testid="income-form-submit"]');
     expect(submit.attributes('disabled')).toBeDefined();
     expect(submit.text()).toContain('Guardando...');
+  });
+
+  it('pre-fills the only project on create but never on edit (PA-51)', async () => {
+    const creating = mountModal();
+    await flushPromises();
+    expect(
+      creating.findComponent({ name: 'ProjectSelect' }).props('autoSelectSingle'),
+    ).toBe(true);
+
+    const editing = mountModal({ record: { ...EDIT_RECORD } });
+    await flushPromises();
+    expect(
+      editing.findComponent({ name: 'ProjectSelect' }).props('autoSelectSingle'),
+    ).toBe(false);
   });
 });
