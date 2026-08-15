@@ -918,6 +918,27 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * Where a client's next hosting window starts. Creating an income has no
+     * original to count from, so the antecedent — the last window already on
+     * the book — is resolved server-side. Persists nothing.
+     */
+    async fetchIncomePeriodSuggestion({ client, project } = {}) {
+      const params = new URLSearchParams();
+      if (client) params.set('client', String(client));
+      if (project) params.set('project', String(project));
+      const query = params.toString();
+      try {
+        const response = await get_request(
+          `accounting/incomes/period-suggestion/${query ? `?${query}` : ''}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching income period suggestion:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
      * Projects to pick from, scoped to one client. Memoized per client:
      * the form re-opens far more often than a client gains a project.
      */

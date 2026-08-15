@@ -5,6 +5,9 @@ import { FIELD_ALIGNED, FIELD_CELL, FORM_ROW_ALIGN } from './formRowClasses'
 const props = defineProps({
   label: { type: String, default: '' },
   hint: { type: String, default: '' },
+  /** Only when the hint is itself the assertion — it lives in the row's
+   *  shared band, so it cannot be reached through the control. */
+  hintTestid: { type: String, default: '' },
   error: { type: String, default: '' },
   required: { type: Boolean, default: false },
   for: { type: String, default: '' },
@@ -55,6 +58,7 @@ const cellClass = computed(() => (alignAt.value ? FIELD_CELL[alignAt.value] : 'c
       <p
         v-else-if="hint"
         class="text-xs text-text-muted mt-1"
+        :data-testid="hintTestid || undefined"
       >
         {{ hint }}
       </p>

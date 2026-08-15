@@ -69,6 +69,10 @@ function buildHandler({
   // the server does when part of the batch was deleted while the
   // confirmation was open.
   bulkAssignMissingIds = [],
+  // The window a create proposes when the origin turns to Hosting: the day
+  // after the client's last recorded period. Pinned so the dates under test
+  // do not move with the calendar.
+  periodSuggestion = { previous_period_end: '2026-08-31', suggested_start: '2026-09-01' },
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -85,6 +89,13 @@ function buildHandler({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ income_default_view_mode: incomeViewMode }),
+      };
+    }
+    if (apiPath === 'accounting/incomes/period-suggestion/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(periodSuggestion),
       };
     }
     if (apiPath === 'accounting/incomes/' && method === 'GET') {
@@ -477,6 +488,64 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(calls[0].body.period_start).toBe('2026-08-15');
     expect(calls[0].body.period_end).toBe('2027-02-14');
     expect(calls[0].body.period_cadence).toBe('semiannual');
+  });
+
+  test('picking a periodicity opens the window on the period after the last one', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Hosting Acme');
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+
+    // Nothing typed: the periodicity is chosen first and the dates follow it.
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('');
+    await page.getByTestId('income-form-period-cadence').selectOption('quarterly');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-11-30');
+    await expect(page.getByTestId('income-form-period-hint'))
+      .toContainText('El período anterior terminó');
+
+    // Moving the start carries the end with it, cadence intact.
+    await page.getByTestId('income-form-period-start').fill('2026-10-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-12-31');
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('quarterly');
+
+    // Writing the end by hand is what makes the window custom: the selector
+    // must never claim a periodicity the dates no longer describe.
+    await page.getByTestId('income-form-period-end').fill('2027-01-20');
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('custom');
+
+    await page.getByTestId('partner-split-total').fill('300000');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls[0].body.period_start).toBe('2026-10-01');
+    expect(calls[0].body.period_end).toBe('2027-01-20');
+    expect(calls[0].body.period_cadence).toBe('custom');
+  });
+
+  test('a shortcut re-lengthens the proposed window instead of walking past it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ rows: [], calls: [] }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+
+    await page.getByTestId('income-form-cycle-12').click();
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('annual');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2027-08-31');
+
+    // Same window, different length — the start stays on the antecedent.
+    await page.getByTestId('income-form-cycle-3').click();
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-11-30');
   });
 
   test('a cadence shortcut overrides the proposed date before saving', {

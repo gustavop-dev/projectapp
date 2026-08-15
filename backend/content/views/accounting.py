@@ -839,6 +839,41 @@ def duplicate_income_draft(request, record_id):
     )
 
 
+def _optional_id(request, name):
+    """Query param as an id, or None — an unreadable one counts as absent.
+
+    The form asks while it is being filled, so a half-written value is an
+    ordinary state, not an error: it just means there is nothing to look the
+    antecedent up from yet.
+    """
+    raw = request.query_params.get(name)
+    try:
+        return int(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def suggest_income_period(request):
+    """Where a client's next hosting window starts, so the form can propose it.
+
+    Persists nothing. Unlike the duplicate draft there is no record yet to
+    count from, so the client (and the project, when the form already has one)
+    arrive as query params.
+    """
+    previous_end, suggested_start = (
+        accounting_income_duplicate_service.suggest_next_period_start(
+            _optional_id(request, 'client'),
+            _optional_id(request, 'project'),
+        )
+    )
+    return Response({
+        'previous_period_end': previous_end.isoformat() if previous_end else None,
+        'suggested_start': suggested_start.isoformat(),
+    })
+
+
 def _missing_records_error(entity_type, record_ids, *, noun):
     """409 naming every id that vanished, or ``None`` when they all exist.
 
