@@ -1033,8 +1033,10 @@ test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => 
     await page.getByTestId('income-actions-1').click();
     await page.getByTestId('income-action-view-collection-1').click();
 
+    // `focus` viaja en el salto y la vista de destino lo suelta al montar: es
+    // una acción de una sola vez, no un estado de la vista.
     await page.waitForURL('**/panel/accounting/collections?focus=33');
-    expect(page.url()).toContain('/panel/accounting/collections?focus=33');
+    await expect(page).toHaveURL(/\/panel\/accounting\/collections/);
   });
 });
 

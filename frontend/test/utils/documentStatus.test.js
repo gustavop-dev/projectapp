@@ -5,7 +5,9 @@
  * tiene que poder sumar los dos estados sin duplicar nada.
  */
 
-import { archivedAgeLabel, folderRowSummary } from '../../utils/documentStatus';
+import {
+  archivedAgeLabel, folderRowSummary, scopedDocumentCount,
+} from '../../utils/documentStatus';
 
 const mixedFolder = {
   document_count: 2,
@@ -15,6 +17,40 @@ const mixedFolder = {
   archived_document_count: 3,
   archived_children_count: 2,
 };
+
+describe('scopedDocumentCount', () => {
+  it('counts the active documents by default', () => {
+    expect(scopedDocumentCount(mixedFolder)).toBe(2);
+  });
+
+  it('counts the archived documents in the archived scope', () => {
+    // Es el número de la fila del panel lateral: con el modo encendido tiene
+    // que contar archivados, o el contador contradice al listado.
+    expect(scopedDocumentCount(mixedFolder, 'archived')).toBe(3);
+  });
+
+  it('adds both states in the mixed scope', () => {
+    expect(scopedDocumentCount(mixedFolder, 'all')).toBe(5);
+  });
+
+  it('ignores subfolders — the row counts documents', () => {
+    expect(scopedDocumentCount({ ...mixedFolder, archived_children_count: 9 }, 'archived'))
+      .toBe(3);
+  });
+
+  it('survives a missing folder', () => {
+    expect(scopedDocumentCount(null, 'archived')).toBe(0);
+  });
+
+  it('falls back to the legacy counter on either side', () => {
+    // Payloads viejos (respuestas cacheadas, fixtures) sólo traen el relativo,
+    // que en una carpeta archivada YA es el conteo archivado.
+    const legacyArchived = { document_count: 4, is_archived: true };
+    expect(scopedDocumentCount(legacyArchived, 'archived')).toBe(4);
+    expect(scopedDocumentCount(legacyArchived)).toBe(0);
+    expect(scopedDocumentCount({ document_count: 4, is_archived: false })).toBe(4);
+  });
+});
 
 describe('folderRowSummary', () => {
   it('counts the active content by default', () => {

@@ -43,6 +43,8 @@ jest.mock('~/composables/useSavedFilterTabs', () => {
   return { useSavedFilterTabs: () => stub, __stub: stub };
 });
 
+import { mount } from '@vue/test-utils';
+import { defineComponent, nextTick } from 'vue';
 import * as savedFilterTabsModule from '~/composables/useSavedFilterTabs';
 import {
   useAccountingFilters,
@@ -429,6 +431,94 @@ describe('restorable base delegation', () => {
     rebaseTab('7');
 
     expect(tabsStub.rebaseTab).toHaveBeenCalledWith(7);
+  });
+});
+
+// ── Params de deep link ──────────────────────────────────────────────────────
+// Se leían sueltos en el `onMounted` de cada página y no los borraba nadie:
+// como el watcher del tab clona el query entero, cada `replace` posterior los
+// arrastraba, así que limpiar los filtros dejaba la URL diciendo `?project=5`
+// con el filtro apagado y el F5 siguiente lo resucitaba.
+
+describe('seeded query params', () => {
+  function seeded(query, ephemeralParams = ['project', 'focus']) {
+    mockRoute.query = query;
+    return useAccountingFilters({ viewName: 'accounting_income', ephemeralParams });
+  }
+
+  function mountSeeded(query, ephemeralParams = ['project', 'focus']) {
+    mockRoute.query = query;
+    return mount(defineComponent({
+      setup() {
+        useAccountingFilters({ viewName: 'accounting_income', ephemeralParams });
+        return () => null;
+      },
+    }));
+  }
+
+  it('hands the page the value the view was seeded with', () => {
+    const { consumeParam } = seeded({ project: '5' });
+
+    expect(consumeParam('project')).toBe('5');
+    expect(consumeParam('focus')).toBeUndefined();
+  });
+
+  it('survives the param leaving the url', () => {
+    // El valor se captura en el setup, así el orden en que la página lo consuma
+    // (a veces detrás de varios await) deja de importar.
+    const { consumeParam } = seeded({ project: '5' });
+
+    mockRoute.query = {};
+
+    expect(consumeParam('project')).toBe('5');
+  });
+
+  it('ignores a param the view did not declare', () => {
+    const { consumeParam } = seeded({ client: '7' }, ['project']);
+
+    expect(consumeParam('client')).toBeUndefined();
+  });
+
+  it('takes the param out of the url once the view is mounted', () => {
+    mountSeeded({ project: '5', focus: '9', accounting_incomeTab: 'all' });
+
+    expect(mockReplace).toHaveBeenCalledWith({ query: { accounting_incomeTab: 'all' } });
+  });
+
+  it('leaves the url alone when the view was not seeded', () => {
+    mountSeeded({ accounting_incomeTab: 'all' });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+    // Y el param que sí describe la vista sigue en pie.
+    expect(mockRoute.query).toEqual({ accounting_incomeTab: 'all' });
+  });
+
+  it('keeps a filter-seeding param while its filter is still on', async () => {
+    // Mientras el filtro esté puesto el param SÍ describe la vista, y es lo que
+    // sostiene el deep link a través de un F5: retirarlo ahí sería el defecto
+    // contrario, una URL que se calla un filtro activo.
+    let filters;
+    mockRoute.query = { project: '5' };
+    mount(defineComponent({
+      setup() {
+        filters = useAccountingFilters({
+          viewName: 'accounting_income',
+          defaults: { projects: [] },
+          ephemeralParams: [{ name: 'project', boundTo: 'projects' }],
+        });
+        filters.currentFilters.projects = [5];
+        return () => null;
+      },
+    }));
+    await nextTick();
+
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    // Y se va en cuanto el filtro se limpia — que es lo que nunca pasaba.
+    filters.currentFilters.projects = [];
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
   });
 });
 

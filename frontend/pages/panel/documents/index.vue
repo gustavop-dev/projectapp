@@ -40,12 +40,13 @@
       <FolderSidebar
         data-enter
         style="--enter-delay: 120ms"
-        :folders="folderStore.rootFolders"
+        :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
         :archive-scope="documentStore.archiveScope"
-        :total-count="documentStore.counts.documents.active"
+        :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
-        :unfiled-count="documentStore.counts.documents.unfiled_active"
+        :unfiled-count="sidebarUnfiledCount"
+        :scope-locked="isSearching"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
@@ -54,9 +55,34 @@
         @delete="handleDeleteFolder"
         @archive="handleArchiveFolder"
         @view-archived="handleViewArchivedFolder"
+        @toggle-archived="handleToggleArchivedMode"
       />
 
-      <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
+      <section
+        class="min-w-0 flex flex-col transition-colors"
+        :class="isArchived ? 'rounded-xl bg-warning-soft p-3' : ''"
+        data-enter
+        style="--enter-delay: 180ms"
+      >
+        <!--
+          Rótulo del ámbito, siempre visible mientras no sea el de reposo.
+          Sin él, «Todos» con el modo encendido listaba archivados sin que nada
+          en la vista lo dijera: se leían como documentos perdidos, y la única
+          forma de recuperar la vista normal era editar la URL a mano.
+        -->
+        <div
+          v-if="scopeNotice"
+          class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 text-sm"
+          :class="scopeNotice.tone"
+          data-testid="doc-scope-banner"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+          <span class="font-medium">{{ scopeNotice.label }}</span>
+          <span class="text-text-muted">{{ scopeNotice.detail }}</span>
+        </div>
+
         <FolderBreadcrumb
           v-if="showBreadcrumb"
           :active-id="documentStore.activeFolderId"
@@ -74,9 +100,11 @@
         </BaseAlert>
 
         <!-- Parado DENTRO de una carpeta archivada: restaurar la carpeta
-             completa vive aquí — las filas del listado solo restauran hijas. -->
+             completa vive aquí — las filas del listado solo restauran hijas.
+             No depende del modo: apagarlo estando dentro deja al usuario en la
+             misma carpeta (req 19), y ahí la salida tiene que seguir a la vista. -->
         <BaseAlert
-          v-if="isArchived && currentFolder?.is_archived"
+          v-if="currentFolder?.is_archived"
           variant="info"
           class="mb-4"
           data-testid="current-folder-archived-alert"
@@ -150,6 +178,25 @@
             <BaseButton variant="secondary" size="sm" @click="handleClearTagFilters">Quitar filtros</BaseButton>
           </template>
         </BaseEmptyState>
+        <!-- Una carpeta sin nada archivado tiene que decirlo por su nombre: el
+             vacío genérico se leía como que la carpeta no existía en este modo. -->
+        <BaseEmptyState
+          v-else-if="!hasContent && isArchived && currentFolder"
+          :title="`«${currentFolder.name}» no tiene nada archivado`"
+          description="La carpeta sigue ahí y puede tener documentos activos. Apaga el modo archivado para verlos."
+          data-testid="folder-archived-empty"
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleToggleArchivedMode(false)">
+              Ver su contenido activo
+            </BaseButton>
+          </template>
+        </BaseEmptyState>
         <BaseEmptyState
           v-else-if="!hasContent && isArchived"
           title="No hay nada archivado"
@@ -163,6 +210,26 @@
           <template #actions>
             <BaseButton variant="secondary" size="sm" @click="handleBackToActive">
               Volver a los activos
+            </BaseButton>
+          </template>
+        </BaseEmptyState>
+        <!-- Con el modo apagado dentro de una carpeta archivada: ofrecer «crea un
+             documento aquí» sería mandar al usuario a un 400, porque el backend
+             no admite contenido activo bajo una carpeta archivada. -->
+        <BaseEmptyState
+          v-else-if="!hasContent && currentFolder?.is_archived"
+          title="Esta carpeta está archivada"
+          description="Su contenido salió de la vista principal. Restáurala para volver a trabajar aquí, o enciende el modo archivado para ver lo que guarda."
+          data-testid="folder-archived-inactive-empty"
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleToggleArchivedMode(true)">
+              Ver lo que guarda
             </BaseButton>
           </template>
         </BaseEmptyState>
@@ -390,6 +457,45 @@ const currentFolder = computed(() => (
     : null
 ));
 
+// ── El panel lateral sigue al modo ───────────────────────────────────────────
+// Antes listaba siempre el árbol activo con contadores de activos, incluso con
+// el archivo encendido: una carpeta archivada entera no aparecía por ningún
+// lado y «Todos» decía un número mientras el listado mostraba otro. Los seis
+// contadores absolutos ya vienen del backend, así que es sólo elegir cuál.
+const sidebarFolders = computed(() => (
+  isArchived.value ? folderStore.scopedRootFolders('all') : folderStore.rootFolders
+));
+
+const sidebarTotalCount = computed(() => (
+  isArchived.value
+    ? documentStore.counts.documents.archived
+    : documentStore.counts.documents.active
+));
+
+const sidebarUnfiledCount = computed(() => (
+  isArchived.value
+    ? documentStore.counts.documents.unfiled_archived
+    : documentStore.counts.documents.unfiled_active
+));
+
+// El ámbito en palabras. 'active' es el estado de reposo y no lleva rótulo:
+// anunciar lo normal entrena a ignorar el aviso que sí importa.
+const SCOPE_NOTICES = {
+  archived: {
+    label: 'Modo archivado',
+    detail: 'Estás viendo lo archivado; los contadores del panel cuentan archivados.',
+    // Sólido sobre el panel teñido: repetir el tinte lo volvería invisible.
+    tone: 'bg-surface text-text-default',
+  },
+  all: {
+    label: 'Activos y archivados',
+    detail: 'La lista mezcla los dos estados; cada fila declara el suyo.',
+    tone: 'bg-info-soft text-text-default',
+  },
+};
+
+const scopeNotice = computed(() => SCOPE_NOTICES[documentStore.archiveScope] || null);
+
 const filteredDocuments = computed(() => {
   if (isSearching.value) return documentStore.searchResults;
   if (documentStore.activeFolderId !== 'root') return documentStore.documents;
@@ -591,7 +697,12 @@ function loadDocuments() {
 
 // Carpeta y scope viven en la URL (?folder=&scope=): F5 y los deep links
 // reconstruyen la vista. El query se aplica ANTES del primer fetch.
-const filterQuery = useDocumentFilterQuery(documentStore, { isSearching });
+const filterQuery = useDocumentFilterQuery(documentStore, {
+  isSearching,
+  // Atrás/adelante cambian carpeta y estado, no el árbol ni los contadores:
+  // basta con volver a pedir la lista, igual que al navegar por el panel.
+  onNavigate: () => documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
+});
 
 onMounted(async () => {
   filterQuery.applyQueryToStore();
@@ -604,11 +715,6 @@ onMounted(async () => {
 usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
-  // «Archivados» es un atajo sobre los dos ejes, no una carpeta.
-  if (id === 'archived') {
-    exitSearchAndNavigate({ folder: 'root', scope: 'archived' });
-    return;
-  }
   if (isSearching.value) {
     // Elegir una carpeta en plena búsqueda es navegación: se sale de la
     // búsqueda hacia esa carpeta. Antes el filtro cambiaba por debajo y la
@@ -624,6 +730,24 @@ function handleSelectFolder(id) {
 /** Devuelve los dos ejes a su posición de reposo. */
 function handleBackToActive() {
   documentStore.setFilters({ folder: 'all', scope: 'active' });
+}
+
+/**
+ * Enciende y apaga el modo archivado.
+ *
+ * Cambiar de ámbito no mueve al usuario de sitio: dentro de una carpeta se
+ * queda en ella y sólo cambia lo que se lista. Las dos vistas de cima sí se
+ * traducen una en otra, porque no son la misma en cada ámbito: «Todos» es la
+ * lista plana de activos y el archivo se recorre como árbol desde su raíz, que
+ * es lo que conserva las carpetas como contenedores en vez de aplanarlas junto
+ * a sus documentos.
+ */
+function handleToggleArchivedMode(on) {
+  const folderId = documentStore.activeFolderId;
+  let folder;
+  if (on && folderId === 'all') folder = 'root';
+  if (!on && folderId === 'root') folder = 'all';
+  documentStore.setFilters({ folder, scope: on ? 'archived' : 'active' });
 }
 
 /** Entra a la carpeta en su scope archivado — el destino de la insignia. */

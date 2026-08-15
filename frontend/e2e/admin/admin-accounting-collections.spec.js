@@ -889,9 +889,12 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-view-detail-2').click();
     await page.getByTestId('collection-detail-go-to-income').click();
 
-    // Without the tab param Ingresos lands on its "Solo esperados" builtin,
-    // which filters the focused row straight out of its own list.
+    // El salto entrega los dos params. `focus` sólo destaca la fila una vez y
+    // la vista lo suelta al montar, así que se comprueba en el hand-off.
+    await page.waitForURL(/focus=8/);
+    // El tab sí describe lo que se está viendo y se queda: sin él Ingresos
+    // aterriza en su builtin "Solo esperados", que filtra la fila destacada
+    // fuera de su propia lista.
     await expect(page).toHaveURL(/accounting_incomeTab=all/);
-    await expect(page).toHaveURL(/focus=8/);
   });
 });

@@ -3,7 +3,9 @@
  */
 import { reactive, ref, nextTick } from 'vue'
 
-const mockRoute = { query: {} }
+// Reactiva a propósito: el composable observa la ruta en los dos sentidos, y
+// con un objeto plano el watcher de atrás/adelante no llegaría a dispararse.
+const mockRoute = reactive({ query: {} })
 const mockReplace = jest.fn()
 
 jest.mock('vue-router', () => ({
@@ -43,7 +45,7 @@ describe('useDocumentFilterQuery', () => {
     expect(store.activeFolderId).toBe('none')
   })
 
-  it('ignores garbage values in the query', () => {
+  it('ignores garbage values in the query, and scrubs them from the url', () => {
     mockRoute.query = { folder: 'DROP TABLE', scope: 'bogus' }
 
     const { applyQueryToStore } = useDocumentFilterQuery(store)
@@ -51,6 +53,68 @@ describe('useDocumentFilterQuery', () => {
 
     expect(store.activeFolderId).toBe('all')
     expect(store.archiveScope).toBe('active')
+    // La URL reproduce la vista: si el valor no se aplicó, no puede quedarse.
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} })
+  })
+
+  it('resets a stale store when the url is clean', () => {
+    // El store sobrevive a salir del módulo: volver por el menú (URL sin query)
+    // dejaba la carpeta de la visita anterior seleccionada bajo un «Todos».
+    store.activeFolderId = 7
+    store.archiveScope = 'archived'
+    mockRoute.query = {}
+
+    const { applyQueryToStore } = useDocumentFilterQuery(store)
+    const changed = applyQueryToStore()
+
+    expect(changed).toBe(true)
+    expect(store.activeFolderId).toBe('all')
+    expect(store.archiveScope).toBe('active')
+  })
+
+  it('drops a hand-typed default out of the url', () => {
+    mockRoute.query = { scope: 'active' }
+
+    const { applyQueryToStore } = useDocumentFilterQuery(store)
+    applyQueryToStore()
+
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} })
+  })
+
+  it('follows the browser back and forward buttons', async () => {
+    const onNavigate = jest.fn()
+    useDocumentFilterQuery(store, { onNavigate })
+
+    // Lo que hace un popstate: cambia la URL sin pasar por el store.
+    mockRoute.query = { folder: '9', scope: 'archived' }
+    await nextTick()
+
+    expect(store.activeFolderId).toBe(9)
+    expect(store.archiveScope).toBe('archived')
+    expect(onNavigate).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not refetch when the url change came from the store itself', async () => {
+    const onNavigate = jest.fn()
+    useDocumentFilterQuery(store, { onNavigate })
+
+    store.activeFolderId = 3
+    await nextTick()
+    await nextTick()
+
+    expect(mockRoute.query).toEqual({ folder: '3' })
+    expect(onNavigate).not.toHaveBeenCalled()
+  })
+
+  it('leaves the view alone while a search is running', async () => {
+    const onNavigate = jest.fn()
+    useDocumentFilterQuery(store, { isSearching: ref(true), onNavigate })
+
+    mockRoute.query = { folder: '9' }
+    await nextTick()
+
+    expect(store.activeFolderId).toBe('all')
+    expect(onNavigate).not.toHaveBeenCalled()
   })
 
   it('writes state changes to the url with replace, omitting the defaults', async () => {

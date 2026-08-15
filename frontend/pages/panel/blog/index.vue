@@ -242,7 +242,13 @@ function handleDuplicate(post) {
     message: `¿Duplicar "${post.title_es}"?`,
     variant: 'info',
     confirmText: 'Duplicar',
-    onConfirm: () => blogStore.duplicatePost(post.id),
+    // Refetch igual que al eliminar: la lista viene paginada del servidor, y
+    // encajar la copia en el array local dejaba la página con una fila de más
+    // y el total sin actualizar.
+    onConfirm: async () => {
+      await blogStore.duplicatePost(post.id);
+      await blogStore.fetchAdminPosts(blogStore.adminPagination.page);
+    },
   });
 }
 

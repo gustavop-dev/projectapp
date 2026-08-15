@@ -451,8 +451,15 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_hosting',
+  // Ambos siembran un filtro: la URL los conserva mientras ese filtro esté
+  // puesto y los suelta en cuanto se limpia.
+  ephemeralParams: [
+    { name: 'project', boundTo: 'projects' },
+    { name: 'client', boundTo: 'clients' },
+  ],
   builtinTabs: [
     {
       id: 'no-client',
@@ -801,7 +808,6 @@ async function sendBilling() {
   }
 }
 
-const route = useRoute();
 
 /**
  * Entry point for "ver los hostings de este cliente" from /panel/clients.
@@ -811,7 +817,7 @@ const route = useRoute();
  * nothing filters the incoming rows back out.
  */
 function applyClientFromQuery() {
-  const raw = route.query.client;
+  const raw = consumeParam('client');
   if (!raw) return;
   const clientId = Number(raw);
   if (!Number.isFinite(clientId)) return;
@@ -822,7 +828,7 @@ function applyClientFromQuery() {
 onMounted(() => {
   // ?project=<id> — deep link from the /panel/projects counts. Seeded before
   // the load; the `projects` matcher above already speaks this key.
-  const projectParam = Number(route.query.project);
+  const projectParam = Number(consumeParam('project'));
   if (Number.isInteger(projectParam) && projectParam > 0) {
     currentFilters.projects = [projectParam];
   }

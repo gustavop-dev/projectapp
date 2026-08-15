@@ -360,10 +360,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
-const route = useRoute();
-
-// ?focus=<id> flashes a row (bidirectional navigation from Ingresos).
-const highlightId = ref(route.query.focus ? Number(route.query.focus) : null);
 
 const meta = computed(() => store.collectionAccountsMeta || {});
 
@@ -422,8 +418,10 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_collections',
+  ephemeralParams: ['focus'],
   builtinTabs: [
     { id: 'open', name: 'Por cobrar', filters: { status: 'issued' } },
     { id: 'overdue', name: 'Vencidas', filters: { status: 'overdue' } },
@@ -454,6 +452,12 @@ const {
     'billing_concept', 'customer_name',
   ],
 });
+
+// ?focus=<id> flashes a row (bidirectional navigation from Ingresos). Se lee
+// por `consumeParam` y no por `route.query`: el param siembra la vista una vez
+// y sale de la URL, en vez de quedarse re-encendiendo el destello en cada F5.
+const focusParam = consumeParam('focus');
+const highlightId = ref(focusParam ? Number(focusParam) : null);
 
 const filteredRows = computed(() => applyFilters(store.collectionAccounts));
 

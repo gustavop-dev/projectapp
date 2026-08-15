@@ -323,7 +323,12 @@ const PAGE_TABS = [
 const TAB_IDS = PAGE_TABS.map(t => t.id);
 const activeTab = ref(TAB_IDS.includes(route.query.tab) ? route.query.tab : 'compose');
 watch(activeTab, (tab) => {
-  router.replace({ query: { ...route.query, tab } });
+  // El default no se escribe: la URL limpia es la vista de reposo, y un
+  // `?tab=compose` colgado es estado que el usuario no puede ver ni corregir.
+  const query = { ...route.query };
+  if (tab === 'compose') delete query.tab;
+  else query.tab = tab;
+  router.replace({ query });
 });
 
 let sectionIdSeq = 0;

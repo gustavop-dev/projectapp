@@ -691,9 +691,12 @@ const initialQueryTab = route.query.tab;
 const activeTab = ref(LEGACY_TAB_REDIRECTS[initialQueryTab] || initialQueryTab || 'general');
 
 watch(activeTab, (tab) => {
-  if (route.query.tab !== tab) {
-    router.replace({ query: { ...route.query, tab } });
-  }
+  // `general` es el aterrizaje por defecto y no se escribe.
+  const query = { ...route.query };
+  if (tab === 'general') delete query.tab;
+  else query.tab = tab;
+  if (query.tab === route.query.tab) return;
+  router.replace({ query });
 });
 
 // Once the diagnostic is loaded, drop the active tab back to General if it isn't allowed
