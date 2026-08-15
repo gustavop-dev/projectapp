@@ -660,6 +660,30 @@ describe('IncomeFormModal', () => {
         .toBe('2026-06-15');
     });
 
+    it('still opens a window when the antecedent cannot be fetched', async () => {
+      // The lookup is a convenience, not a precondition: a failing request
+      // must leave the operator with a usable block, not an inert one.
+      get_request.mockImplementation(() => Promise.reject(new Error('boom')));
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-15T09:00:00'));
+      try {
+        const wrapper = mountModal();
+        await segmentedButton(wrapper, 'Hosting').trigger('click');
+        await flushPromises();
+
+        await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('monthly');
+
+        expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+          .toBe('2026-08-15');
+        expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+          .toBe('2026-09-14');
+        // Nothing to say about a period that was never resolved.
+        expect(wrapper.find('[data-testid="income-form-period-hint"]').exists())
+          .toBe(false);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
     it('refuses an end that does not come after the start, and says why', async () => {
       const wrapper = await mountHostingCreate();
 
