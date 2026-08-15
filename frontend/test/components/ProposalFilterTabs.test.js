@@ -235,7 +235,7 @@ describe('ProposalFilterTabs restorable base', () => {
   it('badges "Todas" with the unfiltered total when the view sends one', () => {
     const wrapper = mountTabs({ counts: { all: 42 } });
 
-    expect(wrapper.get('[data-testid="filter-tabs-count-all"]').text()).toBe('42');
+    expect(wrapper.get('[data-testid="filter-tabs-count-all"]').text()).toBe('(42)');
   });
 
   it('says what the count means in the view that is showing it', () => {
