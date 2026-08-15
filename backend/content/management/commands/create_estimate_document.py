@@ -11,6 +11,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
 from content.models import Document, DocumentFolder, DocumentType
+from content.services.document_content import build_content_json
 from content.services.document_type_codes import MARKDOWN
 
 User = get_user_model()
@@ -76,6 +77,9 @@ class Command(BaseCommand):
             if options['on_conflict'] == 'replace':
                 document = existing.latest('created_at')
                 document.content_markdown = content
+                # `content_json` viaja siempre con el markdown: si sólo se pisa
+                # el texto, el PDF sigue saliendo con los bloques anteriores.
+                document.content_json = build_content_json(document, content)
                 document.status = options['status']
                 document.updated_by = admin
                 document.save()
@@ -87,7 +91,7 @@ class Command(BaseCommand):
             if options['on_conflict'] == 'version':
                 title = f'{title} — v{existing.count() + 1}'
 
-        document = Document.objects.create(
+        document = Document(
             document_type=doc_type,
             folder=folder,
             title=title,
@@ -97,6 +101,10 @@ class Command(BaseCommand):
             created_by=admin,
             updated_by=admin,
         )
+        # Sin `content_json` el documento nace sin bloques y la descarga de PDF
+        # responde 400 aunque el markdown esté completo.
+        document.content_json = build_content_json(document, content)
+        document.save()
 
         suffix = ' (folder created)' if folder_created else ''
         self.stdout.write(self.style.SUCCESS(

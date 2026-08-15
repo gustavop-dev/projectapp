@@ -318,6 +318,35 @@ describe('useDocumentStore', () => {
       const result = await store.downloadPdf(1)
       expect(result.success).toBe(false)
     })
+
+    it('surfaces the backend detail carried inside the error blob', async () => {
+      // Con responseType: 'blob' el 400 llega como Blob, no como JSON: sin
+      // leerlo el usuario sólo ve el mensaje genérico.
+      get_request.mockRejectedValue({
+        response: {
+          status: 400,
+          data: new Blob(
+            [JSON.stringify({ detail: 'El documento no tiene contenido para generar el PDF.' })],
+            { type: 'application/json' },
+          ),
+        },
+      })
+
+      const result = await store.downloadPdf(122, 'Estimate')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('El documento no tiene contenido para generar el PDF.')
+    })
+
+    it('falls back to the generic message when the error blob is not json', async () => {
+      get_request.mockRejectedValue({
+        response: { status: 500, data: new Blob(['<html>oops</html>'], { type: 'text/html' }) },
+      })
+
+      const result = await store.downloadPdf(1)
+
+      expect(result.message).toBe('No se pudo descargar el PDF.')
+    })
   })
 
   describe('archive scope', () => {

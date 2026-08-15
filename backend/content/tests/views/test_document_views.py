@@ -688,6 +688,25 @@ class TestDownloadDocumentPdf:
         assert 'attachment' in response['Content-Disposition']
         assert '.pdf' in response['Content-Disposition']
 
+    def test_returns_pdf_when_only_markdown_is_stored(
+        self, admin_client, markdown_doc_type,
+    ):
+        """Un writer que no parseó el markdown no debe dejar el PDF inaccesible."""
+        doc = Document.objects.create(
+            title='Sólo markdown', document_type=markdown_doc_type,
+            content_markdown='# Estimate\n\nContenido real.\n',
+            content_json={},
+        )
+        url = reverse('download-document-pdf', kwargs={'document_id': doc.id})
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 mock content',
+        ):
+            response = admin_client.get(url)
+
+        assert response.status_code == 200
+        assert response['Content-Type'] == 'application/pdf'
+
     def test_returns_400_when_no_blocks(self, admin_client, markdown_doc_type):
         doc = Document.objects.create(
             title='Empty', document_type=markdown_doc_type,

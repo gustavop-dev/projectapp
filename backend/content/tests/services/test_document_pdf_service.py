@@ -88,6 +88,20 @@ class TestDocumentPdfServiceGenerate:
 
         assert result is None
 
+    def test_generate_falls_back_to_markdown_when_blocks_are_missing(self):
+        """El markdown es la fuente de verdad: un content_json sin parsear no
+        debe dejar el documento sin PDF."""
+        from content.services.document_pdf_service import DocumentPdfService
+
+        doc = _document(
+            content_json={},
+            content_markdown='# Título\n\nHello world.\n',
+        )
+        result = DocumentPdfService.generate(doc)
+
+        assert isinstance(result, bytes)
+        assert result[:4] == b'%PDF'
+
 
     def test_generate_renders_heading_block(self):
         """generate() handles heading blocks of all levels without error."""

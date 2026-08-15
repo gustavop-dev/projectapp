@@ -17,9 +17,9 @@ from content.serializers.document import (
     DocumentFromMarkdownSerializer,
 )
 from content.services import document_archive_service
+from content.services.document_content import build_content_json, resolve_blocks
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
-from content.services.markdown_parser import markdown_to_blocks
 from content.utils import safe_slug
 
 logger = logging.getLogger(__name__)
@@ -156,18 +156,7 @@ def create_document(request):
 
     # If markdown was provided but no JSON, parse it
     if document.content_markdown and not document.content_json:
-        blocks = markdown_to_blocks(document.content_markdown)
-        document.content_json = {
-            'meta': {
-                'title': document.title,
-                'client_name': document.client_name,
-                'cover_type': document.cover_type,
-                'include_portada': document.include_portada,
-                'include_subportada': document.include_subportada,
-                'include_contraportada': document.include_contraportada,
-            },
-            'blocks': blocks,
-        }
+        document.content_json = build_content_json(document)
         document.save(update_fields=['content_json'])
 
     detail = DocumentDetailSerializer(document)
@@ -184,9 +173,8 @@ def create_document_from_markdown(request):
 
     data = serializer.validated_data
     markdown_text = data['markdown']
-    blocks = markdown_to_blocks(markdown_text)
 
-    document = Document.objects.create(
+    document = Document(
         title=data['title'],
         document_type=get_markdown_document_type(),
         folder=data.get('folder_id'),
@@ -198,19 +186,10 @@ def create_document_from_markdown(request):
         include_subportada=data.get('include_subportada', True),
         include_contraportada=data.get('include_contraportada', True),
         content_markdown=markdown_text,
-        content_json={
-            'meta': {
-                'title': data['title'],
-                'client_name': data.get('client_name', ''),
-                'cover_type': data.get('cover_type', 'generic'),
-                'template_style': data.get('template_style', 'professional'),
-                'include_portada': data.get('include_portada', True),
-                'include_subportada': data.get('include_subportada', True),
-                'include_contraportada': data.get('include_contraportada', True),
-            },
-            'blocks': blocks,
-        },
     )
+    document.content_json = build_content_json(document, markdown_text)
+    document.save()
+
     tag_ids = data.get('tag_ids')
     if tag_ids:
         document.tags.set(tag_ids)
@@ -245,8 +224,6 @@ def upload_document_markdown(request):
     cover_type = request.data.get('cover_type', 'generic')
     template_style = request.data.get('template_style', 'professional')
 
-    blocks = markdown_to_blocks(markdown_text)
-
     def _to_bool(value, default=True):
         if isinstance(value, bool):
             return value
@@ -271,7 +248,7 @@ def upload_document_markdown(request):
     except document_archive_service.DocumentArchiveError as exc:
         return Response({'folder_id': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    document = Document.objects.create(
+    document = Document(
         title=title,
         document_type=get_markdown_document_type(),
         folder=folder,
@@ -283,19 +260,9 @@ def upload_document_markdown(request):
         include_subportada=include_subportada,
         include_contraportada=include_contraportada,
         content_markdown=markdown_text,
-        content_json={
-            'meta': {
-                'title': title,
-                'client_name': client_name,
-                'cover_type': cover_type,
-                'template_style': template_style,
-                'include_portada': include_portada,
-                'include_subportada': include_subportada,
-                'include_contraportada': include_contraportada,
-            },
-            'blocks': blocks,
-        },
     )
+    document.content_json = build_content_json(document, markdown_text)
+    document.save()
 
     tag_ids_raw = request.data.get('tag_ids')
     if tag_ids_raw:
@@ -339,18 +306,7 @@ def update_document(request, document_id):
 
     # Re-parse markdown if it changed
     if 'content_markdown' in request.data and document.content_markdown:
-        blocks = markdown_to_blocks(document.content_markdown)
-        document.content_json = {
-            'meta': {
-                'title': document.title,
-                'client_name': document.client_name,
-                'cover_type': document.cover_type,
-                'include_portada': document.include_portada,
-                'include_subportada': document.include_subportada,
-                'include_contraportada': document.include_contraportada,
-            },
-            'blocks': blocks,
-        }
+        document.content_json = build_content_json(document)
         document.save(update_fields=['content_json'])
 
     detail = DocumentDetailSerializer(document)
@@ -453,7 +409,9 @@ def download_document_pdf(request, document_id):
     """Generate and download document as PDF."""
     document = get_object_or_404(Document, pk=document_id)
 
-    if not document.content_json or not document.content_json.get('blocks'):
+    # `resolve_blocks` y no `content_json['blocks']`: un documento cuyo writer
+    # se saltó el parseo sigue teniendo el markdown, y ése es el contenido real.
+    if not resolve_blocks(document):
         return Response(
             {'detail': 'El documento no tiene contenido para generar el PDF.'},
             status=status.HTTP_400_BAD_REQUEST,

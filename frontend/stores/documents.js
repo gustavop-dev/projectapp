@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { DEFAULT_SCOPE, matchesScope, normalizeScope } from '~/utils/archiveScope';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
-import { normalizeApiError } from './services/normalize_api_error';
+import { normalizeApiError, normalizeBlobApiError } from './services/normalize_api_error';
 
 // Fuera del store para que no sean reactivos: descartan respuestas viejas
 // cuando dos peticiones se pisan (búsqueda con debounce, refrescos encadenados).
@@ -466,7 +466,7 @@ export const useDocumentStore = defineStore('documents', {
         return {
           success: false,
           errors: error.response?.data,
-          ...normalizeApiError(error, 'No se pudo descargar el PDF.'),
+          ...(await normalizeBlobApiError(error, 'No se pudo descargar el PDF.')),
         };
       }
     },

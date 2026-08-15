@@ -17,6 +17,7 @@ from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
+from content.services.document_content import resolve_blocks
 from content.services.pdf_theme import get_theme
 from content.services.pdf_utils import (
     _register_fonts, _font,
@@ -107,9 +108,8 @@ class DocumentPdfService:
             )
             theme = get_theme(style)
 
-            content_json = document.content_json or {}
-            meta = content_json.get('meta', {})
-            blocks = content_json.get('blocks', [])
+            meta = (document.content_json or {}).get('meta', {})
+            blocks = resolve_blocks(document)
 
             if not blocks:
                 logger.warning('Document %s has no blocks to render', document.id)
@@ -450,9 +450,10 @@ class DocumentPdfService:
             toc_insert_page: page number where the [TOC] block appears
         """
         _register_fonts()
-        content_json = document.content_json or {}
-        meta = content_json.get('meta', {})
-        blocks = content_json.get('blocks', [])
+        # Misma resolución de bloques que el pase real: si las dos pasadas no
+        # ven exactamente el mismo contenido, los números del TOC se desfasan.
+        meta = (document.content_json or {}).get('meta', {})
+        blocks = resolve_blocks(document)
 
         buf = io.BytesIO()
         c = canvas.Canvas(buf, pagesize=A4)
