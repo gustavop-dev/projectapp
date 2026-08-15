@@ -35,6 +35,7 @@ from content.models import (
     DocumentType,
 )
 from content.services import collection_account_service as ca_service
+from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 
 User = get_user_model()
@@ -215,7 +216,7 @@ class Command(BaseCommand):
                 [Document.Status.PUBLISHED, Document.Status.DRAFT, Document.Status.ARCHIVED],
                 weights=[6, 3, 1],
             )[0]
-            doc = Document.objects.create(
+            doc = Document(
                 document_type=md_type,
                 folder=rng.choice(md_folders),
                 title=title,
@@ -225,6 +226,10 @@ class Command(BaseCommand):
                 created_by=admin,
                 updated_by=admin,
             )
+            # Los documentos fake deben ser descargables como PDF igual que los
+            # reales: sin `content_json` el bug queda invisible al probar.
+            doc.content_json = build_content_json(doc, body)
+            doc.save()
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
             created_md += 1
 
@@ -484,7 +489,7 @@ class Command(BaseCommand):
         if not Document.objects.filter(
             title=unsigned_title, project=project, requires_signature=True,
         ).exists():
-            Document.objects.create(
+            unsigned = Document(
                 document_type=md_type,
                 folder=contract_folder,
                 title=unsigned_title,
@@ -502,6 +507,8 @@ class Command(BaseCommand):
                 created_by=admin,
                 updated_by=admin,
             )
+            unsigned.content_json = build_content_json(unsigned)
+            unsigned.save()
             created += 1
 
         # Already-signed contract (acceptance stamp filled in).
@@ -509,7 +516,7 @@ class Command(BaseCommand):
         if not Document.objects.filter(
             title=signed_title, project=project, requires_signature=True,
         ).exists():
-            Document.objects.create(
+            signed = Document(
                 document_type=md_type,
                 folder=contract_folder,
                 title=signed_title,
@@ -532,6 +539,8 @@ class Command(BaseCommand):
                 created_by=admin,
                 updated_by=admin,
             )
+            signed.content_json = build_content_json(signed)
+            signed.save()
             created += 1
 
         if created:

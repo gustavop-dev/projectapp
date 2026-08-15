@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { usePlatformApi } from '~/composables/usePlatformApi'
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile'
+import { normalizeBlobApiError } from '~/stores/services/normalize_api_error'
 
 export const usePlatformCollectionAccountsStore = defineStore('platformCollectionAccounts', {
   state: () => ({
@@ -179,7 +180,10 @@ export const usePlatformCollectionAccountsStore = defineStore('platformCollectio
         )
         return { success: true }
       } catch (error) {
-        return { success: false, message: error.response?.data?.detail || 'PDF download failed.' }
+        // `responseType: 'blob'` also applies to the error body, so the
+        // backend's `detail` is unreadable until the blob is parsed.
+        const { message } = await normalizeBlobApiError(error, 'PDF download failed.')
+        return { success: false, message }
       }
     },
   },

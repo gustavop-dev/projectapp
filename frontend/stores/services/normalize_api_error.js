@@ -44,6 +44,53 @@ export function normalizeApiError(error, fallback = 'Ocurrió un error. Inténta
 }
 
 /**
+ * Same as `normalizeApiError`, but for calls made with `responseType: 'blob'`.
+ *
+ * Axios honours the requested response type even when the request fails, so a
+ * JSON error body arrives as a `Blob` and every key lookup on it returns
+ * undefined — the caller ends up showing the generic fallback while the
+ * backend's explanation sits unread inside the blob. This reads it first.
+ *
+ * @param {*} error - The value thrown by an awaited HTTP call.
+ * @param {string} [fallback] - Message to use when nothing usable is found.
+ * @returns {Promise<ReturnType<typeof normalizeApiError>>}
+ */
+export async function normalizeBlobApiError(error, fallback) {
+  const data = error?.response?.data;
+  if (typeof Blob === 'undefined' || !(data instanceof Blob)) {
+    return normalizeApiError(error, fallback);
+  }
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(await readBlobText(data));
+  } catch {
+    // Not JSON (an HTML error page, a truncated PDF): the fallback is the
+    // best we can say, and it beats throwing while handling an error.
+    return normalizeApiError({ ...error, response: { ...error.response, data: null } }, fallback);
+  }
+
+  return normalizeApiError({ ...error, response: { ...error.response, data: parsed } }, fallback);
+}
+
+/**
+ * Read a Blob as text. Browsers have `Blob.text()`; jsdom does not, so the
+ * FileReader path keeps this readable under unit tests too.
+ *
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function readBlobText(blob) {
+  if (typeof blob.text === 'function') return blob.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
+/**
  * Numeric ids an error payload carries under `key` (default `missing_ids`).
  *
  * Read apart from `normalizeApiError` on purpose: `collectFieldErrors` keeps

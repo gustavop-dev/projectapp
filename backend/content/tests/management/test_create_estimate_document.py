@@ -7,6 +7,8 @@ Business rules asserted:
 - A missing or empty markdown file aborts with CommandError
 - Title collisions version (" — vN") by default, or update in place with
   --on-conflict replace
+- content_json is parsed from the markdown on both paths, so the PDF download
+  works instead of answering 400
 - Output always includes the direct panel URL
 """
 from io import StringIO
@@ -97,6 +99,28 @@ class TestCreateEstimateDocument:
 
         document = Document.objects.get()
         assert document.content_markdown == '# Corrected\n'
+
+    def test_created_document_carries_parsed_blocks(self, tmp_path):
+        """Sin bloques la descarga de PDF responde 400 pese al markdown intacto."""
+        _run(_write_markdown(tmp_path, body='# Título\n\nUn párrafo.\n'))
+
+        blocks = Document.objects.get().content_json['blocks']
+        assert [b['type'] for b in blocks] == ['heading', 'paragraph']
+        assert blocks[0]['text'] == 'Título'
+
+    def test_on_conflict_replace_reparses_blocks(self, tmp_path):
+        """El markdown nuevo manda: dejar los bloques viejos saca un PDF obsoleto."""
+        _run(_write_markdown(tmp_path, body='# Original\n'))
+        md_file = _write_markdown(tmp_path, body='# Corrected\n')
+        call_command(
+            'create_estimate_document',
+            '--title', 'Estimate: demo — 01072026',
+            '--file', str(md_file),
+            '--on-conflict', 'replace',
+        )
+
+        blocks = Document.objects.get().content_json['blocks']
+        assert [b['text'] for b in blocks] == ['Corrected']
 
     def test_output_includes_panel_url(self, tmp_path):
         out = StringIO()
