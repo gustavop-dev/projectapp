@@ -1,6 +1,6 @@
 ---
 name: requirement-calculator
-description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento (implementación web por defecto) y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento con branding ProjectApp en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
+description: "Calculadora de requerimientos: recibe la descripción en lenguaje natural de un requerimiento (implementación web por defecto) y devuelve nivel de esfuerzo (XS–XL), horas, rango de precio COP, proyección de precio año a año, implicaciones técnicas, adyacencias y estrategia comercial. Persiste el resultado como documento con branding ProjectApp en /panel/documents (carpeta Requirement Estimates) con postfijo de fecha DDMMYYYY."
 argument-hint: "[descripción del requerimiento en lenguaje natural]"
 allowed-tools: Bash, Read, Write, AskUserQuestion
 ---
@@ -64,23 +64,29 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 5. Si el total ≥ $12M: propone **Estrategia A (fases)** o **B (V1/V2/V3)** con alcance y precio de cada parte.
 6. Recorre el **mapa de adyacencias** y anticipa qué se abrirá después (candidatas a V2/V3); identifica qué conviene **separar** (motores, transversales, features empaquetados).
 7. **Formato de moneda (obligatorio):** COP en millones con sufijo `M`, coma decimal y **máximo un decimal**, redondeando cada extremo al múltiplo de $0,1M más cercano (`$1,8M`, no `$1,83M` ni `$1.830.000`). Montos < $1M en miles: `$850K`. Rangos con guion sin espacios: `$1,8M–$2,4M`. El total se redondea **después** de sumar los extremos sin redondear. Un solo formato en todo el documento.
+8. **Proyección de precio año a año (informativa):** calcula la proyección del **precio total** (y de los subtotales por bloque, si el documento consolida varios requerimientos del mismo proyecto) para el año de emisión y los **2 años siguientes**, con la regla de `market-pricing.md`: `precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`, compuesta. Usa el **último incremento decretado del SMLMV** (dato verificado, nunca de memoria) y declara ese supuesto en la sección de proyección y en Supuestos. La proyección no altera el semáforo ni la vigencia de 30 días.
 
 ## 4-bis. Consistencia con estimaciones previas (barato, condicional)
 
 Lista los títulos existentes de la carpeta. El bloque resuelve solo el entorno — `manage.py` defaultea a `settings_dev` (sqlite) y sin esto la consulta vería una base vacía:
 
 ```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
-[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+# El panel de documentos vive SOLO en projectapp: la persistencia se ancla ahí,
+# corra la skill desde el repo que corra (p. ej. el repo del cliente que se estima).
+PANEL_ROOT=""
+for c in "$HOME/webapps/projectapp" /home/dev-env/webapps/projectapp /home/dev_env/webapps/projectapp; do
+  [ -f "$c/backend/manage.py" ] && { PANEL_ROOT="$c"; break; }
+done
+[ -n "$PANEL_ROOT" ] || { echo "❌ No encuentro el clon de projectapp (backend/manage.py): ahí vive el panel donde se persisten las estimaciones."; exit 1; }
+PY="$PANEL_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$PANEL_ROOT/.venv/bin/python"
 # DJANGO_SETTINGS_MODULE: exportado → unit systemd → backend/.env → abortar.
 if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
   DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
 fi
-[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$PANEL_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
 [ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE (ni exportado, ni unit systemd 'projectapp', ni backend/.env): manage.py caería en settings_dev (sqlite) y la consulta NO vería el panel real. Exportalo explícito si querés otro entorno."; exit 1; }
 export DJANGO_SETTINGS_MODULE
-"$PY" "$REPO_ROOT/backend/manage.py" shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
+"$PY" "$PANEL_ROOT/backend/manage.py" shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
 ```
 
 Si **ningún** título es temáticamente similar, sigue de largo (no leas nada). Si 1–2 lo son, lee solo sus totales (`print(d.content_markdown)` del pk elegido). Si para alcance equivalente el precio nuevo difiere más de ±30%, no lo "corrijas" en silencio: decláralo en Observaciones (*"La estimación #N de <fecha> cotizó algo equivalente en $X; la diferencia se debe a <motivo>"*).
@@ -181,13 +187,21 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 > [!TIP] / [!WARNING] / [!CAUTION]
 > <Una línea con la lectura comercial del semáforo: TIP si sweet spot, WARNING si fricción, CAUTION si killer.>
 
-## 4. Observaciones
+## 4. Proyección de precio año a año
+
+| Año | Δ%SMLMV supuesto | % reajuste total | Precio proyectado (piso–techo) |
+|---|---|---|---|
+<primera fila = año de emisión con el rango total sin reajuste ("—" en las columnas de %); luego 2 filas más, compuestas, con la regla de market-pricing.md (Δ%SMLMV + 12%). Si el documento consolida bloques del mismo proyecto, repetí la tabla o agregá columnas por bloque.>
+
+<Una línea declarando el supuesto y el alcance: "Proyección informativa calculada con el último incremento decretado del SMLMV (<año>: <X%>) + 12% fijo de ProjectApp, compuesta año a año; no constituye oferta en firme — la vigencia de esta estimación es de 30 días.">
+
+## 5. Observaciones
 <Qué separar y por qué · qué es transversal · qué adyacencias se abren.>
 
-## 5. Estrategia comercial
+## 6. Estrategia comercial
 <Solo si total ≥ $12M o killer: fases o V1/V2/V3 con alcance y precio. Si no aplica: "Cabe en una sola propuesta (sweet spot).">
 
-## 6. Supuestos y exclusiones
+## 7. Supuestos y exclusiones
 <Supuestos de market-pricing.md ajustados al caso + los asumidos en el gate, cada uno con su impacto si cambiara.>
 
 > [!IMPORTANT]
@@ -205,16 +219,21 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command; el PDF con portadas ProjectApp sale automático con los defaults del modelo). El bloque resuelve el entorno igual que §4-bis — sin `DJANGO_SETTINGS_MODULE` el documento caería en la sqlite de dev, invisible para el panel:
 
 ```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
-[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+# El panel de documentos vive SOLO en projectapp: la persistencia se ancla ahí,
+# corra la skill desde el repo que corra (p. ej. el repo del cliente que se estima).
+PANEL_ROOT=""
+for c in "$HOME/webapps/projectapp" /home/dev-env/webapps/projectapp /home/dev_env/webapps/projectapp; do
+  [ -f "$c/backend/manage.py" ] && { PANEL_ROOT="$c"; break; }
+done
+[ -n "$PANEL_ROOT" ] || { echo "❌ No encuentro el clon de projectapp (backend/manage.py): ahí vive el panel donde se persisten las estimaciones."; exit 1; }
+PY="$PANEL_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$PANEL_ROOT/.venv/bin/python"
 if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
   DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
 fi
-[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$PANEL_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
 [ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE: manage.py caería en settings_dev (sqlite) y el documento NO llegaría al panel real."; exit 1; }
 export DJANGO_SETTINGS_MODULE
-"$PY" "$REPO_ROOT/backend/manage.py" create_estimate_document \
+"$PY" "$PANEL_ROOT/backend/manage.py" create_estimate_document \
   --title 'Estimate: <nombre corto> — <DDMMYYYY>' \
   --file '<ruta absoluta del .md temporal>'
 ```
@@ -262,6 +281,7 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
 - **Vigencia declarada:** todo documento fija "precios válidos por 30 días"; después se re-emite (documento versionado nuevo), nunca se honra ni se negocia por chat sin documento.
+- **Proyección año a año siempre presente e informativa:** todo documento incluye la sección de proyección (regla `Δ%SMLMV + 12%` de `market-pricing.md`, Δ%SMLMV declarado como supuesto verificado); nunca constituye oferta en firme ni extiende la vigencia de 30 días.
 - **El gate aritmético (§4-ter) es obligatorio**: nunca persistir con `GATE_FAIL`.
 - **Re-estimación del mismo requerimiento ⇒ mini-tabla Δ** vs el estimate anterior (filas nuevas / retiradas / cambiadas, con motivo).
 
@@ -271,7 +291,7 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 
 En `validation/` vive el **baseline de calibración** de la skill, producido en la prueba con los tres reportes de Vástago (02072026, calibración ÷4 definitiva):
 
-- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $6,1M–$8,8M ✅ · #24 $7,2M–$10,2M ✅ · #25 $13,3M–$18,9M ⚠️), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
+- `validation/test-results.md` — artefacto de consolidación: tabla resumen de las 3 estimaciones (#23 $4,9M–$7,0M ✅ · #24 $5,8M–$8,2M ✅ · #25 $10,6M–$15,1M ⚠️ — recalibración −20% del 04/08/2026), detalle por requerimiento y QA de la skill (detección de múltiples, anti-doble-cobro, persistencia, señales promovidas, recalibraciones).
 - `validation/estimates/*.md` — los 3 markdown fuente de esas estimaciones (documentos #23, #24 y #25 de `/panel/documents`), con filas, señales citadas, modificadores, horas y precios.
 
 > **Nota de entorno:** los IDs #23–#25 y sus URLs `/panel/documents/<id>/edit` pertenecen al panel del **entorno donde corrió la prueba** (la dev machine del operador, 02/07/2026). En el panel de producción esos IDs corresponden a otros documentos; la carpeta "Requirement Estimates" se crea en prod con el primer uso real (§6 resuelve el entorno explícitamente desde el fix del 01/08/2026).

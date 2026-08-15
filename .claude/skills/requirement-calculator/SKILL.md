@@ -71,17 +71,22 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 Lista los títulos existentes de la carpeta. El bloque resuelve solo el entorno — `manage.py` defaultea a `settings_dev` (sqlite) y sin esto la consulta vería una base vacía:
 
 ```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
-[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+# El panel de documentos vive SOLO en projectapp: la persistencia se ancla ahí,
+# corra la skill desde el repo que corra (p. ej. el repo del cliente que se estima).
+PANEL_ROOT=""
+for c in "$HOME/webapps/projectapp" /home/dev-env/webapps/projectapp /home/dev_env/webapps/projectapp; do
+  [ -f "$c/backend/manage.py" ] && { PANEL_ROOT="$c"; break; }
+done
+[ -n "$PANEL_ROOT" ] || { echo "❌ No encuentro el clon de projectapp (backend/manage.py): ahí vive el panel donde se persisten las estimaciones."; exit 1; }
+PY="$PANEL_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$PANEL_ROOT/.venv/bin/python"
 # DJANGO_SETTINGS_MODULE: exportado → unit systemd → backend/.env → abortar.
 if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
   DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
 fi
-[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$PANEL_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
 [ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE (ni exportado, ni unit systemd 'projectapp', ni backend/.env): manage.py caería en settings_dev (sqlite) y la consulta NO vería el panel real. Exportalo explícito si querés otro entorno."; exit 1; }
 export DJANGO_SETTINGS_MODULE
-"$PY" "$REPO_ROOT/backend/manage.py" shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
+"$PY" "$PANEL_ROOT/backend/manage.py" shell -c "from content.models import Document; [print(d.pk, '|', d.title) for d in Document.objects.filter(folder__name='Requirement Estimates').order_by('-created_at')[:20]]"
 ```
 
 Si **ningún** título es temáticamente similar, sigue de largo (no leas nada). Si 1–2 lo son, lee solo sus totales (`print(d.content_markdown)` del pk elegido). Si para alcance equivalente el precio nuevo difiere más de ±30%, no lo "corrijas" en silencio: decláralo en Observaciones (*"La estimación #N de <fecha> cotizó algo equivalente en $X; la diferencia se debe a <motivo>"*).
@@ -214,16 +219,21 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 Persiste el markdown como documento real en `/panel/documents` (carpeta **Requirement Estimates**, creada una sola vez por el command; el PDF con portadas ProjectApp sale automático con los defaults del modelo). El bloque resuelve el entorno igual que §4-bis — sin `DJANGO_SETTINGS_MODULE` el documento caería en la sqlite de dev, invisible para el panel:
 
 ```bash
-REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-PY="$REPO_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$REPO_ROOT/.venv/bin/python"
-[ -f "$REPO_ROOT/backend/manage.py" ] || { echo "❌ No encuentro backend/manage.py — corré la skill desde el repo projectapp"; exit 1; }
+# El panel de documentos vive SOLO en projectapp: la persistencia se ancla ahí,
+# corra la skill desde el repo que corra (p. ej. el repo del cliente que se estima).
+PANEL_ROOT=""
+for c in "$HOME/webapps/projectapp" /home/dev-env/webapps/projectapp /home/dev_env/webapps/projectapp; do
+  [ -f "$c/backend/manage.py" ] && { PANEL_ROOT="$c"; break; }
+done
+[ -n "$PANEL_ROOT" ] || { echo "❌ No encuentro el clon de projectapp (backend/manage.py): ahí vive el panel donde se persisten las estimaciones."; exit 1; }
+PY="$PANEL_ROOT/backend/venv/bin/python"; [ -x "$PY" ] || PY="$PANEL_ROOT/.venv/bin/python"
 if [ -z "${DJANGO_SETTINGS_MODULE:-}" ]; then
   DJANGO_SETTINGS_MODULE=$(systemctl show projectapp -p Environment --value 2>/dev/null | tr ' ' '\n' | grep '^DJANGO_SETTINGS_MODULE=' | head -1 | cut -d= -f2-)
 fi
-[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$REPO_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
+[ -z "$DJANGO_SETTINGS_MODULE" ] && DJANGO_SETTINGS_MODULE=$(grep -m1 '^DJANGO_SETTINGS_MODULE=' "$PANEL_ROOT/backend/.env" 2>/dev/null | cut -d= -f2-)
 [ -z "$DJANGO_SETTINGS_MODULE" ] && { echo "❌ Sin DJANGO_SETTINGS_MODULE: manage.py caería en settings_dev (sqlite) y el documento NO llegaría al panel real."; exit 1; }
 export DJANGO_SETTINGS_MODULE
-"$PY" "$REPO_ROOT/backend/manage.py" create_estimate_document \
+"$PY" "$PANEL_ROOT/backend/manage.py" create_estimate_document \
   --title 'Estimate: <nombre corto> — <DDMMYYYY>' \
   --file '<ruta absoluta del .md temporal>'
 ```
