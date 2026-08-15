@@ -93,9 +93,12 @@ class TestSeedDefaultTabs:
         assert tabs.count() == 1
         assert tabs.first().filters == {'acceptedMin': 5}
 
-    def test_force_upserts_by_name_and_preserves_extra_tabs(self, admin_a):
-        SavedFilterTab.objects.create(
+    def test_force_upserts_the_seeded_tabs_and_preserves_extra_ones(
+        self, admin_a,
+    ):
+        stale = SavedFilterTab.objects.create(
             user=admin_a, view='client', name='VIP', filters={'stale': True},
+            is_seeded=True,
         )
         SavedFilterTab.objects.create(
             user=admin_a, view='client', name='Extra', filters={'acceptedMax': 9},
@@ -113,6 +116,27 @@ class TestSeedDefaultTabs:
             'Fríos': {'lastStatuses': ['sent']},
             'Extra': {'acceptedMax': 9},
         }
+        stale.refresh_from_db()
+        assert stale.is_seeded is True
+
+    def test_force_does_not_rewrite_a_user_tab_sharing_a_factory_name(
+        self, admin_a,
+    ):
+        """Only the seeded rows are upserted.
+
+        Matching by name alone would let re-seeding silently replace the cut
+        a user saved just because they picked the same word for it.
+        """
+        mine = SavedFilterTab.objects.create(
+            user=admin_a, view='client', name='VIP', filters={'acceptedMax': 3},
+        )
+
+        created, updated = seed_default_tabs(admin_a, 'client', force=True)
+
+        assert (created, updated) == (2, 0)
+        mine.refresh_from_db()
+        assert mine.filters == {'acceptedMax': 3}
+        assert mine.is_seeded is False
 
     def test_seed_populates_base_filters_as_restore_point(self, admin_a):
         seed_default_tabs(admin_a, 'client')

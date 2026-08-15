@@ -92,4 +92,30 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Google', 'filters': {'platform': ['google']}},
         {'name': 'Otros', 'filters': {'platform': ['other']}},
     ],
+    # Historial. Three of its presets are builtin tabs in history.vue instead
+    # of rows here: "Hoy" and "Últimos 7 días" because a stored `date_from`
+    # would freeze on the day it was seeded — a tab called "Hoy" that means
+    # last Tuesday is a lie — and "Fallidos" because it has to sit second in
+    # the strip (it is where anyone lands when a notice did not arrive) and
+    # builtins render before the saved ones. The three seeded here are the
+    # opinionated groupings, which is what "Restablecer" exists to put back.
+    'accounting_history_sends': [
+        {
+            'name': 'Recordatorios de cobro',
+            'filters': {'template_key': [
+                'accounting_payment_calendar', 'collection_account_sent',
+            ]},
+        },
+        {
+            'name': 'Cambios contables',
+            'filters': {'template_key': ['accounting_change']},
+        },
+        {'name': 'Eliminaciones', 'filters': {'origin_action': ['deleted']}},
+    ],
+    'accounting_history_changes': [
+        {'name': 'Eliminaciones', 'filters': {'action': ['deleted']}},
+        {'name': 'Ingresos', 'filters': {'entity_type': ['income']}},
+        {'name': 'Gastos', 'filters': {'entity_type': ['expense']}},
+        {'name': 'Hostings', 'filters': {'entity_type': ['hosting']}},
+    ],
 }

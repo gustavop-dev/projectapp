@@ -19,6 +19,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from content.models import EmailLog
+from content.services import email_log_service
 from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
@@ -143,7 +144,9 @@ def build_collection_account_email(document, *, resend=False):
     }
 
 
-def send_collection_account_email(document, *, hosting=None, resend=False):
+def send_collection_account_email(
+    document, *, hosting=None, resend=False, retry_of=None,
+):
     """Build + send the client email with the PDF attached. True on success."""
     extension = document.collection_account
     recipient = extension.customer_email
@@ -157,13 +160,19 @@ def send_collection_account_email(document, *, hosting=None, resend=False):
     email_parts = build_collection_account_email(document, resend=resend)
     subject = email_parts['subject']
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
+    hosting_id = hosting.pk if hosting else document.hosting_record_id
     metadata = {
         'document_id': document.pk,
         'public_number': document.public_number,
-        'hosting_id': hosting.pk if hosting else document.hosting_record_id,
+        'hosting_id': hosting_id,
         'income_record_id': document.income_record_id,
         'resend': resend,
     }
+    targets = [
+        ('collection_account', document.pk, document.public_number or ''),
+        ('hosting', hosting_id, ''),
+        ('income', document.income_record_id, ''),
+    ]
 
     try:
         pdf_bytes = CollectionAccountPdfService.generate(document)
@@ -183,22 +192,30 @@ def send_collection_account_email(document, *, hosting=None, resend=False):
             'Failed to send collection account %s to %s: %s',
             document.pk, recipient, exc,
         )
-        EmailLog.objects.create(
+        email_log_service.record_send(
             template_key=TEMPLATE_KEY,
-            recipient=recipient,
+            recipients=[recipient],
             subject=subject,
             status=EmailLog.Status.FAILED,
             error_message=str(exc),
             metadata=metadata,
+            targets=targets,
+            html_body=email_parts['html_body'],
+            text_body=email_parts['text_body'],
+            retry_of=retry_of,
         )
         return False
 
-    EmailLog.objects.create(
+    email_log_service.record_send(
         template_key=TEMPLATE_KEY,
-        recipient=recipient,
+        recipients=[recipient],
         subject=subject,
         status=EmailLog.Status.SENT,
         metadata=metadata,
+        targets=targets,
+        html_body=email_parts['html_body'],
+        text_body=email_parts['text_body'],
+        retry_of=retry_of,
     )
     logger.info(
         'Sent collection account %s to %s', document.public_number, recipient,

@@ -431,3 +431,100 @@ describe('restorable base delegation', () => {
     expect(tabsStub.rebaseTab).toHaveBeenCalledWith(7);
   });
 });
+
+describe('filters in the URL', () => {
+  const { nextTick } = require('vue');
+
+  function makeSyncedFilters(overrides = {}) {
+    return useAccountingFilters({
+      viewName: 'accounting_history_sends',
+      tabQueryParam: 'sendsTab',
+      defaults: { status: [], recipient: '' },
+      matchers: {},
+      syncFiltersToUrl: true,
+      ...overrides,
+    });
+  }
+
+  it('stays off by default, so the other views only carry their tab', async () => {
+    const { currentFilters, saveTab } = makeFilters();
+    currentFilters.statuses = ['paid'];
+
+    await saveTab('Cobrados');
+    await nextTick();
+
+    // The tab still reaches the URL — the machinery runs — but the filters
+    // do not, which is what keeps the other eleven views byte-identical.
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: { accounting_incomeTab: '1' },
+    });
+  });
+
+  it('writes the active filters, leaving the untouched ones out', async () => {
+    const { currentFilters } = makeSyncedFilters();
+
+    currentFilters.status = ['failed', 'bounced'];
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenCalledWith({
+      query: { status: 'failed,bounced' },
+    });
+  });
+
+  it('drops a filter from the URL once it goes back to its default', async () => {
+    const { currentFilters } = makeSyncedFilters();
+    currentFilters.recipient = 'ana@test.com';
+    await nextTick();
+
+    currentFilters.recipient = '';
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenLastCalledWith({ query: {} });
+  });
+
+  it('seeds itself from a shared link before the first fetch', () => {
+    mockRoute.query = { status: 'failed,bounced', recipient: 'ana@test.com' };
+
+    const { currentFilters } = makeSyncedFilters();
+
+    expect(currentFilters.status).toEqual(['failed', 'bounced']);
+    expect(currentFilters.recipient).toBe('ana@test.com');
+  });
+
+  it('ignores the query while another instance owns it', () => {
+    mockRoute.query = { status: 'failed' };
+
+    const { currentFilters } = makeSyncedFilters({ isUrlOwner: () => false });
+
+    expect(currentFilters.status).toEqual([]);
+  });
+
+  it('clears the keys the other subtab left behind before writing', async () => {
+    mockRoute.query = { actor: 'gustavo', tab: 'sends' };
+    const { currentFilters } = makeSyncedFilters({
+      urlFilterKeys: ['status', 'recipient', 'actor'],
+    });
+
+    currentFilters.status = ['failed'];
+    await nextTick();
+
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: { tab: 'sends', status: 'failed' },
+    });
+  });
+
+  it('writes tab and filters in a single replace', async () => {
+    const { currentFilters, selectTab } = makeSyncedFilters();
+
+    currentFilters.status = ['failed'];
+    await nextTick();
+    mockReplace.mockClear();
+
+    selectTab('all');
+    await nextTick();
+
+    // selectTab resets the filters, so both watchers fire in the same tick.
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+  });
+});

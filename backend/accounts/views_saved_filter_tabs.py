@@ -45,20 +45,46 @@ def saved_filter_tabs_collection(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+def _validated_view(request):
+    """The ``view`` in the body, or None when it is not a real one."""
+    view = request.data.get('view')
+    valid_views = {choice for choice, _label in SavedFilterTab.VIEW_CHOICES}
+    return view if view in valid_views else None
+
+
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def saved_filter_tabs_reset(request):
-    """Restaurar los defaults de una vista: borra las pestañas del usuario
-    para ``view`` y vuelve a sembrar el registry. Devuelve la lista fresca
-    (vacía si la vista no tiene defaults en el registry)."""
-    view = request.data.get('view')
-    valid_views = {choice for choice, _label in SavedFilterTab.VIEW_CHOICES}
-    if view not in valid_views:
+    """Restaurar los predefinidos de fábrica de una vista.
+
+    Sólo se borran y re-siembran las pestañas sembradas: las que el usuario
+    guardó son suyas y sobreviven al restablecimiento."""
+    view = _validated_view(request)
+    if view is None:
         return Response(
             {'view': 'Vista no válida.'}, status=status.HTTP_400_BAD_REQUEST,
         )
-    SavedFilterTab.objects.filter(user=request.user, view=view).delete()
-    saved_filter_tab_service.seed_default_tabs(request.user, view)
+    saved_filter_tab_service.reset_default_tabs(request.user, view)
+    qs = SavedFilterTab.objects.filter(user=request.user, view=view)
+    return Response(SavedFilterTabSerializer(qs, many=True).data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def saved_filter_tabs_reorder(request):
+    """Fijar el orden de la tira: ``{view, ids: [...]}`` de arriba a abajo."""
+    view = _validated_view(request)
+    if view is None:
+        return Response(
+            {'view': 'Vista no válida.'}, status=status.HTTP_400_BAD_REQUEST,
+        )
+    ids = request.data.get('ids')
+    if not isinstance(ids, list):
+        return Response(
+            {'ids': 'Debe ser una lista de identificadores.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    saved_filter_tab_service.reorder_tabs(request.user, view, ids)
     qs = SavedFilterTab.objects.filter(user=request.user, view=view)
     return Response(SavedFilterTabSerializer(qs, many=True).data)
 
