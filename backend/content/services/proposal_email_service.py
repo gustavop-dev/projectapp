@@ -1388,6 +1388,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_reengagement', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except, and a
+        # render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_reengagement.html', context
@@ -1415,13 +1418,24 @@ class ProposalEmailService:
                 html_body=html_content, proposal=proposal,
             )
 
+            cls._log_email(
+                'proposal_reengagement', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
+            )
             logger.info(
                 'Sent rejection re-engagement email for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_reengagement', proposal.client_email,
+                subject='', proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
+            )
             logger.exception(
                 'Failed to send re-engagement email for proposal %s',
                 proposal.uuid,
@@ -1760,6 +1774,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_scheduled_followup', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except, and a
+        # render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_scheduled_followup.html', context
@@ -1787,13 +1804,24 @@ class ProposalEmailService:
                 html_body=html_content, proposal=proposal,
             )
 
+            cls._log_email(
+                'proposal_scheduled_followup', proposal.client_email,
+                subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
+            )
             logger.info(
                 'Sent scheduled followup for proposal %s to %s',
                 proposal.uuid, proposal.client_email,
             )
             return True
 
-        except Exception:
+        except Exception as exc:
+            cls._log_email(
+                'proposal_scheduled_followup', proposal.client_email,
+                subject='', proposal=proposal, status='failed',
+                error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
+            )
             logger.exception(
                 'Failed to send scheduled followup for proposal %s',
                 proposal.uuid,
