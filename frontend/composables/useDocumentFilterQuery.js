@@ -1,7 +1,6 @@
 import { watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-
-const SCOPES = ['active', 'archived', 'all'];
+import { DEFAULT_SCOPE, DOCUMENT_SCOPES } from '~/utils/archiveScope';
 
 /**
  * Sincroniza los dos ejes del gestor de documentos con la URL:
@@ -13,13 +12,23 @@ const SCOPES = ['active', 'archived', 'all'];
  * Reglas:
  * - Los defaults ('all' / 'active') no se escriben: la URL limpia es la vista
  *   de reposo.
+ * - La URL manda en los dos sentidos. Es la regla que faltaba: el store sobrevivía
+ *   a salir del módulo y volver por el menú dejaba una carpeta vieja seleccionada
+ *   bajo una URL que decía «Todos», y atrás/adelante movían la barra de
+ *   direcciones sin mover la vista.
  * - `router.replace`, nunca `push`: navegar carpetas no debe llenar el
  *   historial del navegador.
- * - Mientras hay una búsqueda activa NO se escribe: la búsqueda mueve el
+ * - Mientras hay una búsqueda activa NO se toca nada: la búsqueda mueve el
  *   scope a 'all' de forma transitoria y persistirlo dejaría la URL mintiendo
  *   al limpiar el término.
+ *
+ * @param {object} documentStore
+ * @param {object}   [options]
+ * @param {import('vue').Ref<boolean>} [options.isSearching]
+ * @param {Function} [options.onNavigate]  se llama cuando la URL cambió la vista
+ *                                         por fuera del store (atrás/adelante).
  */
-export function useDocumentFilterQuery(documentStore, { isSearching } = {}) {
+export function useDocumentFilterQuery(documentStore, { isSearching, onNavigate } = {}) {
   const route = useRoute();
   const router = useRouter();
 
@@ -31,18 +40,31 @@ export function useDocumentFilterQuery(documentStore, { isSearching } = {}) {
   }
 
   function parseScope(raw) {
-    return SCOPES.includes(raw) ? raw : null;
+    return DOCUMENT_SCOPES.includes(raw) ? raw : null;
   }
 
   /**
-   * Vuelca el query inicial al store. Debe correr ANTES del primer fetch para
-   * que la carga inicial ya pida la carpeta/scope del deep link (un solo fetch).
+   * Vuelca el query al store. Debe correr ANTES del primer fetch para que la
+   * carga inicial ya pida la carpeta/scope del deep link (un solo fetch).
+   *
+   * Asigna SIEMPRE, también cuando el param falta: un valor ausente en la URL
+   * significa «el default», no «deja lo que hubiera». Con la asignación
+   * condicional, volver al módulo con la URL limpia conservaba la carpeta de la
+   * visita anterior y la vista contradecía a la barra de direcciones.
+   *
+   * @returns {boolean} si la vista cambió.
    */
   function applyQueryToStore() {
-    const folder = parseFolder(route.query.folder);
-    const scope = parseScope(route.query.scope);
-    if (folder !== null) documentStore.activeFolderId = folder;
-    if (scope) documentStore.archiveScope = scope;
+    const folder = parseFolder(route.query.folder) ?? 'all';
+    const scope = parseScope(route.query.scope) ?? DEFAULT_SCOPE;
+    const changed = documentStore.activeFolderId !== folder
+      || documentStore.archiveScope !== scope;
+    documentStore.activeFolderId = folder;
+    documentStore.archiveScope = scope;
+    // Normaliza lo que se haya escrito a mano (`?scope=active`, basura): la URL
+    // tiene que reproducir la vista, ni más ni menos.
+    syncQuery();
+    return changed;
   }
 
   /**
@@ -72,6 +94,14 @@ export function useDocumentFilterQuery(documentStore, { isSearching } = {}) {
   }
 
   watch(() => [documentStore.activeFolderId, documentStore.archiveScope], syncQuery);
+
+  // El otro sentido: atrás/adelante del navegador cambian la URL sin pasar por
+  // el store. Converge porque volcar valores que ya están puestos no dispara el
+  // watcher de arriba, y `syncQuery` no reescribe un query que ya es el suyo.
+  watch(() => [route.query.folder, route.query.scope], () => {
+    if (isSearching?.value) return;
+    if (applyQueryToStore()) onNavigate?.();
+  });
 
   return { applyQueryToStore, validateFolder };
 }
