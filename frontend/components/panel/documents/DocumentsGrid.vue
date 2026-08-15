@@ -14,6 +14,8 @@ defineProps({
   scope: { type: String, default: 'active' },
   // Mutación en vuelo: los botones de restaurar giran y quedan inertes.
   updating: { type: Boolean, default: false },
+  // Igual que en la tabla: función, no store — el componente es presentacional.
+  folderSummary: { type: Function, default: folderRowSummary },
 })
 
 const emit = defineEmits([
@@ -64,7 +66,7 @@ function archivedContentCount(folder) {
       </svg>
       <span class="text-sm font-medium text-text-default truncate max-w-full">{{ sub.name }}</span>
       <span class="text-xs text-text-subtle">
-        {{ folderRowSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+        {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
       </span>
       <FolderArchivedBadge
         v-if="!sub.is_archived && archivedContentCount(sub)"
