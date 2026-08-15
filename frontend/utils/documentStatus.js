@@ -49,6 +49,45 @@ export function archivedAgeLabel(dateStr) {
 }
 
 /**
+ * Documentos y subcarpetas de una carpeta, en el scope pedido.
+ *
+ * Los `active_*`/`archived_*` son absolutos; `document_count` es relativo al
+ * estado de la fila y sumarlo con el archivado duplicaría una carpeta
+ * archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
+ */
+function scopedCounts(folder, scope) {
+  const activeDocs = folder.active_document_count
+    ?? (folder.is_archived ? 0 : folder.document_count || 0);
+  const activeSubs = folder.active_children_count
+    ?? (folder.is_archived ? 0 : folder.children_count || 0);
+  // El fallback es simétrico: `document_count` es relativo al estado de la
+  // fila, así que alimenta el lado que coincide con ese estado y cero el otro.
+  const archivedDocs = folder.archived_document_count
+    ?? (folder.is_archived ? folder.document_count || 0 : 0);
+  const archivedSubs = folder.archived_children_count
+    ?? (folder.is_archived ? folder.children_count || 0 : 0);
+
+  if (scope === 'archived') return { docs: archivedDocs, subs: archivedSubs };
+  if (scope === 'all') {
+    return { docs: activeDocs + archivedDocs, subs: activeSubs + archivedSubs };
+  }
+  return { docs: activeDocs, subs: activeSubs };
+}
+
+/**
+ * Documentos que la carpeta muestra en el scope que se está viendo.
+ *
+ * Es el número de la fila del panel lateral: con el modo archivado encendido
+ * tiene que contar lo archivado, porque un contador de activos junto a un
+ * listado de archivados es la ambigüedad que hacía dudar de si faltaban
+ * documentos.
+ */
+export function scopedDocumentCount(folder, scope = 'active') {
+  if (!folder) return 0;
+  return scopedCounts(folder, scope).docs;
+}
+
+/**
  * Inventario legible de una carpeta, en el scope pedido.
  *
  * Con `'all'` suma los dos estados: es lo que necesita el tooltip del ícono de
@@ -56,26 +95,7 @@ export function archivedAgeLabel(dateStr) {
  * que sólo mirara lo activo diría «Vacía» de una carpeta imborrable.
  */
 export function folderRowSummary(folder, scope = 'active') {
-  // Los `active_*`/`archived_*` son absolutos; `document_count` es relativo al
-  // estado de la fila y sumarlo con el archivado duplicaría una carpeta
-  // archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
-  const activeDocs = folder.active_document_count
-    ?? (folder.is_archived ? 0 : folder.document_count || 0);
-  const activeSubs = folder.active_children_count
-    ?? (folder.is_archived ? 0 : folder.children_count || 0);
-  const archivedDocs = folder.archived_document_count || 0;
-  const archivedSubs = folder.archived_children_count || 0;
-
-  let docs = activeDocs;
-  let subs = activeSubs;
-  if (scope === 'archived') {
-    docs = archivedDocs;
-    subs = archivedSubs;
-  } else if (scope === 'all') {
-    docs = activeDocs + archivedDocs;
-    subs = activeSubs + archivedSubs;
-  }
-
+  const { docs, subs } = scopedCounts(folder, scope);
   const parts = [];
   if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
   if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
