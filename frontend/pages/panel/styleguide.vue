@@ -226,7 +226,7 @@ const shadowScale = [
           <div class="space-y-2">
             <p class="text-xs text-text-muted">Sólo una etiqueta se parte, y una sola lleva ayuda</p>
             <BaseFormRow data-testid="sg-row-one-wrapped">
-              <BaseFormField label="NIT (opcional)" hint="Para cuentas de cobro">
+              <BaseFormField label="C.C. / NIT (opcional)" hint="Para cuentas de cobro">
                 <BaseInput v-model="sampleRowA" data-testid="sg-row-one-a" />
               </BaseFormField>
               <BaseFormField label="Código de facturación (opcional)">

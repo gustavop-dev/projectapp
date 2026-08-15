@@ -142,9 +142,9 @@ test.describe('Admin Client Edit Modal', () => {
     tag: [...ADMIN_CLIENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // The two share a row. "Código de facturación (opcional)" does not fit on
-    // one line at the modal's width while "NIT (opcional)" does, and each column
-    // used to stack on its own — so the taller label pushed its own input down
-    // and the row rendered visibly crooked.
+    // one line at the modal's width while "C.C. / NIT (opcional)" does, and
+    // each column used to stack on its own — so the taller label pushed its
+    // own input down and the row rendered visibly crooked.
     await setupMock(page);
     // quality: allow-deep-link (the clients list is this flow's entry point, as
     // in every spec here; the modal itself is opened by clicking)
@@ -154,7 +154,7 @@ test.describe('Admin Client Edit Modal', () => {
     await page.getByTestId('client-edit-301').click();
     await expect(page.getByTestId('clients-edit-nit')).toBeVisible({ timeout: 5_000 });
 
-    const nitLabel = await page.getByText('NIT (opcional)', { exact: true }).boundingBox();
+    const nitLabel = await page.getByText('C.C. / NIT (opcional)', { exact: true }).boundingBox();
     const codeLabel = await page.getByText('Código de facturación (opcional)', { exact: true }).boundingBox();
     // Precondition: without an actually taller label this would prove nothing.
     expect(codeLabel.height).toBeGreaterThan(nitLabel.height);
