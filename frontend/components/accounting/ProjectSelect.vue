@@ -12,7 +12,7 @@
           v-model="inputText"
           type="text"
           :placeholder="placeholder"
-          :disabled="!clientProfileId"
+          :disabled="!clientProfileId && !allowNoClient"
           :data-testid="testid"
           autocomplete="off"
           class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none disabled:opacity-60 disabled:cursor-not-allowed"
@@ -41,7 +41,7 @@
 
       <!-- Dropdown -->
       <div
-        v-if="isOpen && clientProfileId"
+        v-if="isOpen && (clientProfileId || allowNoClient)"
         class="absolute z-30 mt-1 w-full bg-surface border border-border-default rounded-xl shadow-lg max-h-72 overflow-auto"
         role="listbox"
       >
@@ -117,16 +117,27 @@
             <span v-if="project.status !== 'active'" class="text-xs text-text-subtle">
               · {{ project.status_label }}
             </span>
+            <!-- Sin cliente fijado cada fila muestra su dueño: elegirla es
+                 también elegirlo. -->
+            <span
+              v-if="!clientProfileId && project.client_display_name"
+              class="text-xs text-text-subtle"
+              :data-testid="`${testid}-owner-${project.id}`"
+            >
+              · {{ project.client_display_name }}
+            </span>
           </li>
         </ul>
 
         <!-- No matches — offer to create with the typed term (R2) -->
         <div v-else class="px-4 py-3 text-sm text-text-muted">
           <p v-if="term" class="mb-2">Sin proyectos que coincidan con "{{ term }}".</p>
-          <p v-else class="mb-2">Este cliente no tiene proyectos.</p>
+          <p v-else class="mb-2">
+            {{ clientProfileId ? 'Este cliente no tiene proyectos.' : 'No hay proyectos todavía.' }}
+          </p>
           <!-- design-tokens: allow-raw-button -->
           <button
-            v-if="allowCreate"
+            v-if="allowCreate && clientProfileId"
             type="button"
             class="w-full text-left px-3 py-2 rounded-lg bg-primary-soft text-text-brand hover:opacity-90 transition-colors font-medium text-xs flex items-center gap-2"
             :data-testid="`${testid}-create-new`"
@@ -166,6 +177,11 @@ import { normalizeName } from '~/utils/clientMatch';
  * enforces (the project must belong to the record's client) cannot even be
  * evaluated without one, and it means the inline create always has its
  * client inherited.
+ *
+ * `allowNoClient` opts into the inverse cascade (documents form): with no
+ * client fixed the picker lists EVERY project with its owner on the row, and
+ * the parent listens to `select` to autofill the client from the chosen
+ * project. Creation stays client-first even in that mode.
  */
 const props = defineProps({
   modelValue: { type: [Number, String], default: null },
@@ -184,9 +200,14 @@ const props = defineProps({
    * only, so an edit never rewrites what was stored.
    */
   autoSelectSingle: { type: Boolean, default: false },
+  /**
+   * Enable the picker with no client fixed: lists all projects (each row
+   * showing its owner) so choosing a project first can complete the client.
+   */
+  allowNoClient: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'created']);
+const emit = defineEmits(['update:modelValue', 'created', 'select']);
 
 const store = useAccountingStore();
 
@@ -209,12 +230,18 @@ const userCleared = ref(false);
 const term = computed(() => inputText.value.trim());
 
 const placeholder = computed(() => {
-  if (!props.clientProfileId) return 'Elige un cliente primero';
+  if (!props.clientProfileId) {
+    return props.allowNoClient ? 'Buscar un proyecto...' : 'Elige un cliente primero';
+  }
   return 'Buscar o crear un proyecto...';
 });
 
 const hint = computed(() => {
-  if (!props.clientProfileId) return '';
+  if (!props.clientProfileId) {
+    return props.allowNoClient
+      ? 'Opcional. Elegir un proyecto completa el cliente.'
+      : '';
+  }
   // Item 3 of the original requirement: an empty project is a legitimate
   // state, not pending work — a cobro por diagnóstico happens before there
   // is one. Creation lives here AND in /panel/projects.
@@ -240,12 +267,12 @@ const inlineDuplicate = computed(() => {
 });
 
 async function load() {
-  if (!props.clientProfileId) {
+  if (!props.clientProfileId && !props.allowNoClient) {
     projects.value = [];
     return;
   }
   loading.value = true;
-  const result = await store.fetchProjectsForClient(props.clientProfileId);
+  const result = await store.fetchProjectsForClient(props.clientProfileId || null);
   projects.value = result.success ? result.data : [];
   loading.value = false;
   maybeAutoSelect();
@@ -253,6 +280,9 @@ async function load() {
 
 function maybeAutoSelect() {
   if (!props.autoSelectSingle || userCleared.value) return;
+  // La lista sin cliente cruza dueños: auto-elegir ahí decidiría el cliente
+  // por el operador.
+  if (!props.clientProfileId) return;
   if (props.modelValue != null) return;
   const actives = projects.value.filter((p) => p.status === 'active');
   if (actives.length === 1) selectProject(actives[0]);
@@ -265,15 +295,20 @@ function syncInputToSelection() {
 
 watch(
   () => props.clientProfileId,
-  (next, previous) => {
+  async (next, previous) => {
     // A new client is a new question; the previous clear no longer applies.
     userCleared.value = false;
-    load();
-    // The previous project belonged to the previous client; keeping it would
-    // send the backend a pair it is going to reject anyway.
-    if (previous !== undefined && next !== previous && props.modelValue) {
-      emit('update:modelValue', null);
-      inputText.value = '';
+    const kept = props.modelValue;
+    await load();
+    // Sólo un proyecto FUERA de la lista del nuevo cliente es un par que el
+    // backend rechazaría; uno presente sobrevive — es el caso del cliente
+    // autocompletado DESDE el proyecto (cascada inversa).
+    if (previous !== undefined && next !== previous && kept != null) {
+      const stillListed = projects.value.some((p) => p.id === Number(kept));
+      if (!stillListed) {
+        emit('update:modelValue', null);
+        inputText.value = '';
+      }
     }
   },
   { immediate: true },
@@ -282,7 +317,7 @@ watch(
 watch([selectedProject, () => props.modelValue], syncInputToSelection, { immediate: true });
 
 function openDropdown() {
-  if (!props.clientProfileId) return;
+  if (!props.clientProfileId && !props.allowNoClient) return;
   isOpen.value = true;
 }
 
@@ -307,6 +342,9 @@ function onInput() {
 
 function selectProject(project) {
   emit('update:modelValue', Number(project.id));
+  // La fila completa: sin cliente fijado el padre necesita al dueño
+  // (client_profile_id / client_display_name) para autocompletarlo.
+  emit('select', project);
   inputText.value = project.name;
   isOpen.value = false;
   inlineOpen.value = false;
@@ -316,6 +354,7 @@ function selectProject(project) {
 function clearSelection() {
   userCleared.value = true;
   emit('update:modelValue', null);
+  emit('select', null);
   inputText.value = '';
   inlineOpen.value = false;
   inputRef.value?.focus();
@@ -341,7 +380,10 @@ function onEnter() {
   if (inlineOpen.value) return;
   if (highlightIndex.value >= 0 && filteredProjects.value[highlightIndex.value]) {
     selectProject(filteredProjects.value[highlightIndex.value]);
-  } else if (props.allowCreate && filteredProjects.value.length === 0) {
+  } else if (
+    props.allowCreate && props.clientProfileId
+    && filteredProjects.value.length === 0
+  ) {
     openInlineCreate();
   }
 }
