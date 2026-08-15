@@ -253,9 +253,81 @@ describe('ProjectSelect', () => {
     const wrapper = mountSelect({ modelValue: 11 });
     await flushPromises();
 
+    // La lista del cliente nuevo no contiene el proyecto 11: el par sería
+    // rechazado por el backend, así que el picker lo limpia tras recargar.
+    get_request.mockResolvedValue({
+      data: {
+        results: [{ id: 21, name: 'Otro', status: 'active', status_label: 'Activo' }],
+      },
+    });
     await wrapper.setProps({ clientProfileId: 8 });
     await flushPromises();
 
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([null]);
+  });
+
+  describe('allowNoClient (cascada inversa: proyecto primero)', () => {
+    const OWNED = [
+      {
+        id: 11, name: 'Kore', status: 'active', status_label: 'Activo',
+        client_profile_id: 7, client_display_name: 'Deivis Ríos',
+      },
+      {
+        id: 12, name: 'Vástago', status: 'paused', status_label: 'Pausado',
+        client_profile_id: 9, client_display_name: 'Ana Pérez',
+      },
+    ];
+
+    it('lists every project with its owner when no client is fixed', async () => {
+      get_request.mockResolvedValue({ data: { results: OWNED } });
+      const wrapper = mountSelect({ clientProfileId: null, allowNoClient: true });
+      await flushPromises();
+
+      expect(input(wrapper).attributes('disabled')).toBeUndefined();
+      expect(input(wrapper).attributes('placeholder')).toBe('Buscar un proyecto...');
+      expect(get_request).toHaveBeenCalledWith('accounting/projects/');
+
+      await input(wrapper).trigger('focus');
+      expect(wrapper.find('[data-testid="project-select-owner-11"]').text())
+        .toContain('Deivis Ríos');
+    });
+
+    it('emits the full row on select so the parent can autofill the client', async () => {
+      get_request.mockResolvedValue({ data: { results: OWNED } });
+      const wrapper = mountSelect({ clientProfileId: null, allowNoClient: true });
+      await flushPromises();
+
+      await input(wrapper).trigger('focus');
+      await wrapper.find('[data-testid="project-select-option-11"]').trigger('click');
+
+      expect(wrapper.emitted('select').at(-1)[0]).toMatchObject({
+        id: 11, client_profile_id: 7, client_display_name: 'Deivis Ríos',
+      });
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([11]);
+    });
+
+    it('keeps the selection when the new client still owns the project', async () => {
+      const wrapper = mountSelect({
+        clientProfileId: null, allowNoClient: true, modelValue: 11,
+      });
+      await flushPromises();
+
+      // El padre autocompleta el cliente DESDE el proyecto elegido; 11 está
+      // en la lista del cliente 7, así que la recarga no borra la elección.
+      await wrapper.setProps({ clientProfileId: 7 });
+      await flushPromises();
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    });
+
+    it('hides the create affordance while no client is fixed', async () => {
+      get_request.mockResolvedValue({ data: { results: [] } });
+      const wrapper = mountSelect({ clientProfileId: null, allowNoClient: true });
+      await flushPromises();
+
+      await input(wrapper).trigger('focus');
+      expect(wrapper.find('[role="listbox"]').text()).toContain('No hay proyectos todavía');
+      expect(wrapper.find('[data-testid="project-select-create-new"]').exists()).toBe(false);
+    });
   });
 });

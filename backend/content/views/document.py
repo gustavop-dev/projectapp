@@ -1,7 +1,8 @@
 import copy
 import logging
 
-from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -97,7 +98,7 @@ def list_documents(request):
     documents = (
         apply_archive_scope(Document.objects.all(), scope)
         .prefetch_related('tags')
-        .select_related('folder')
+        .select_related('folder', 'project', 'client_user__profile')
     )
 
     folder_param = request.query_params.get('folder')
@@ -111,6 +112,35 @@ def list_documents(request):
                 {'folder': 'El identificador de carpeta no es válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    client_param = request.query_params.get('client')
+    if client_param == 'none':
+        documents = documents.filter(client_user__isnull=True)
+    elif client_param not in (None, '', 'all'):
+        try:
+            client_ids = [int(c) for c in client_param.split(',') if c.strip()]
+        except ValueError:
+            return Response(
+                {'client': 'El identificador de cliente no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if client_ids:
+            # El panel habla en pk de UserProfile; el modelo persiste auth.User.
+            documents = documents.filter(client_user__profile__id__in=client_ids)
+
+    project_param = request.query_params.get('project')
+    if project_param == 'none':
+        documents = documents.filter(project__isnull=True)
+    elif project_param not in (None, '', 'all'):
+        try:
+            project_ids = [int(p) for p in project_param.split(',') if p.strip()]
+        except ValueError:
+            return Response(
+                {'project': 'El identificador de proyecto no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if project_ids:
+            documents = documents.filter(project_id__in=project_ids)
 
     tags_param = request.query_params.get('tags')
     if tags_param:
@@ -179,6 +209,8 @@ def create_document_from_markdown(request):
         document_type=get_markdown_document_type(),
         folder=data.get('folder_id'),
         client_name=data.get('client_name', ''),
+        client_user=data.get('client_user'),
+        project=data.get('project'),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
         template_style=data.get('template_style', 'professional'),
@@ -388,6 +420,8 @@ def duplicate_document(request, document_id):
         title=f'{document.title} (copia)',
         document_type=doc_type,
         client_name=document.client_name,
+        client_user=document.client_user,
+        project=document.project,
         language=document.language,
         cover_type=document.cover_type,
         include_portada=document.include_portada,
@@ -434,3 +468,52 @@ def download_document_pdf(request, document_id):
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def suggest_folder_client(request):
+    """Cliente mayoritario de una carpeta, para prellenar el form de crear.
+
+    La carpeta ya está diciendo de quién es: si la mayoría estricta de sus
+    documentos activos vinculados pertenece a un cliente (y son al menos dos),
+    ése es el default propuesto. Una carpeta inexistente o sin señal devuelve
+    sugerencia nula — la sugerencia nunca es un error, sólo un prellenado.
+    """
+    try:
+        folder_id = int(request.query_params.get('folder'))
+    except (TypeError, ValueError):
+        return Response(
+            {'folder': 'El identificador de carpeta no es válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    docs = Document.objects.filter(folder_id=folder_id, is_archived=False)
+    ranking = list(
+        docs.filter(client_user__isnull=False)
+        .values('client_user')
+        .annotate(total=Count('id'))
+        .order_by('-total'),
+    )
+    linked_total = sum(row['total'] for row in ranking)
+
+    client_id = None
+    client_display_name = None
+    if ranking:
+        top = ranking[0]
+        if top['total'] >= 2 and top['total'] * 2 > linked_total:
+            user = get_user_model().objects.filter(pk=top['client_user']).first()
+            profile = getattr(user, 'profile', None) if user else None
+            if profile is not None:
+                from accounts.services.proposal_client_service import (
+                    build_client_display_name,
+                )
+                client_id = profile.id
+                client_display_name = build_client_display_name(profile)
+
+    return Response({
+        'client': client_id,
+        'client_display_name': client_display_name,
+        'linked_documents': linked_total,
+        'folder_documents': docs.count(),
+    })

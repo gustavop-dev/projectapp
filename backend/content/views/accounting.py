@@ -14,6 +14,7 @@ from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import Project
@@ -659,29 +660,46 @@ def retrieve_income_detail(request, record_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsSuperUser])
+@permission_classes([IsAdminUser])
 def list_client_projects(request):
     """Projects to pick from, optionally scoped to one client.
 
     A panel endpoint of its own instead of reusing /api/accounts/projects/:
     that one speaks User ids while the accounting module speaks UserProfile
-    ids everywhere, it is IsAuthenticated rather than IsSuperUser, and its
-    serializer runs several per-row aggregates that a dropdown has no use for.
+    ids everywhere, and its serializer runs several per-row aggregates that a
+    dropdown has no use for.
+
+    IsAdminUser y no IsSuperUser como el resto del módulo: el picker también
+    alimenta el formulario de documentos (IsAdminUser) y sus filas no exponen
+    nada que el listado de documentos no muestre ya. Cada fila lleva su dueño
+    para que un caller sin cliente fijado (elegir proyecto PRIMERO) pueda
+    autocompletar el cliente desde la selección.
     """
-    qs = Project.objects.all().order_by('name')
+    from accounts.services.proposal_client_service import build_client_display_name
+
+    qs = Project.objects.select_related('client__profile').order_by('name')
     client_profile_id = request.query_params.get('client')
     if client_profile_id:
         # The picker is scoped by UserProfile, the project by User.
         qs = qs.filter(client__profile__id=client_profile_id)
-    return Response({'results': [
-        {
+
+    results = []
+    for project in qs:
+        profile = (
+            getattr(project.client, 'profile', None)
+            if project.client_id else None
+        )
+        results.append({
             'id': project.pk,
             'name': project.name,
             'status': project.status,
             'status_label': project.status_display,
-        }
-        for project in qs
-    ]})
+            'client_profile_id': profile.id if profile else None,
+            'client_display_name': (
+                build_client_display_name(profile) if profile else None
+            ),
+        })
+    return Response({'results': results})
 
 
 def _update_record(request, key, record_id):

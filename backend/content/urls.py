@@ -162,6 +162,7 @@ from content.views.document import (
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
     archive_document, unarchive_document, document_counts,
+    suggest_folder_client,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -386,6 +387,7 @@ urlpatterns = [
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),
     path('documents/counts/', document_counts, name='document-counts'),
+    path('documents/folder-client-suggestion/', suggest_folder_client, name='document-folder-client-suggestion'),
     path('documents/create/', create_document, name='create-document'),
     path('documents/create-from-markdown/', create_document_from_markdown, name='create-document-from-markdown'),
     path('documents/upload-markdown/', upload_document_markdown, name='upload-document-markdown'),
