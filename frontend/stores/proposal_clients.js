@@ -18,6 +18,7 @@ import {
 export const useProposalClientsStore = defineStore('proposalClients', {
   state: () => ({
     clients: [],
+    statusCounts: {},
     currentClient: null,
     searchResults: [],
     isLoading: false,
@@ -79,6 +80,33 @@ export const useProposalClientsStore = defineStore('proposalClients', {
         this.error = data?.error || 'fetch_failed';
         if (!silent) this.isLoading = false;
         return { success: false, errors: data };
+      }
+    },
+
+    /**
+     * Match count per client-status option, honouring the same search.
+     *
+     * The status cut happens server-side, so the page only holds the rows of
+     * the selected one and cannot count the others itself. Failures leave the
+     * previous counts alone: a selector without numbers still works.
+     *
+     * @param {Object} [params]
+     * @param {string} [params.search] - same icontains match as fetchClients.
+     */
+    async fetchStatusCounts({ search = '' } = {}) {
+      try {
+        const query = new URLSearchParams();
+        if (search) query.set('search', search);
+        const url = `proposals/client-profiles/status-counts/${
+          query.toString() ? `?${query.toString()}` : ''
+        }`;
+        const response = await get_request(url);
+        this.statusCounts = response.data && typeof response.data === 'object'
+          ? response.data
+          : {};
+        return { success: true, data: this.statusCounts };
+      } catch (error) {
+        return { success: false, errors: error?.response?.data };
       }
     },
 

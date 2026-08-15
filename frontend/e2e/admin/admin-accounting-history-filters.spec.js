@@ -269,9 +269,9 @@ test.describe('Admin Accounting History — filters and diagnosis', () => {
 
     // Three rows, two of them failures, one born of a deletion. The counts
     // are asked of the server because there are no loaded rows to count.
-    await expect(page.getByTestId('filter-tabs-count-all')).toHaveText('3');
-    await expect(page.getByTestId('filter-tabs-count-failed')).toHaveText('2');
-    await expect(page.getByTestId('filter-tabs-count-12')).toHaveText('1');
+    await expect(page.getByTestId('filter-tabs-count-all')).toHaveText('(3)');
+    await expect(page.getByTestId('filter-tabs-count-failed')).toHaveText('(2)');
+    await expect(page.getByTestId('filter-tabs-count-12')).toHaveText('(1)');
   });
 
   test('a tab that matches nothing shows the zero rather than no badge', {
@@ -296,7 +296,7 @@ test.describe('Admin Accounting History — filters and diagnosis', () => {
     });
     await expect(page.getByTestId('email-log-row-1')).toBeVisible({ timeout: 25_000 });
 
-    await expect(page.getByTestId('filter-tabs-count-21')).toHaveText('0');
+    await expect(page.getByTestId('filter-tabs-count-21')).toHaveText('(0)');
   });
 
   test('a predefined tab filters the list and lands in the URL', {

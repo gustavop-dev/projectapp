@@ -1,10 +1,13 @@
 /**
  * FLOW: admin-clients-filter-presets
  *
- * E2E for the predefined one-click filters in /panel/clients: the preset tabs
- * carry a match count before being applied, narrow the list on click, toggle
- * back off, survive a reload through ?clientTab=, combine with the server-side
- * search box, and hand off to Hostings already filtered by the client.
+ * E2E for the two-level filters in /panel/clients: the business module (level 1)
+ * decides which subfilters level 2 offers without narrowing anything itself,
+ * and those subfilters carry a match count before being applied, narrow the
+ * list on click, toggle back off, survive a reload through ?clientModule= and
+ * ?clientTab=, combine with the server-side search box and with the transversal
+ * client-status selector, and hand off to Hostings already filtered by the
+ * client.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -97,6 +100,14 @@ function setupMock(page) {
       return { status: 200, contentType: 'application/json', body: '[]' };
     }
 
+    if (apiPath === 'proposals/client-profiles/status-counts/') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ all: 4, active: 4, orphans: 0, inactive: 0 }),
+      };
+    }
+
     if (apiPath === 'proposals/client-profiles/') {
       const search = (new URL(route.request().url())
         .searchParams.get('search') || '').toLowerCase();
@@ -133,6 +144,11 @@ async function gotoClients(page) {
 
 const rowsShown = (page) => page.locator('[data-testid^="client-row-"]');
 
+/** Level 1 is the way into level 2: the subfilters only exist under a module. */
+async function openModule(page, moduleId) {
+  await page.getByTestId(`clients-module-${moduleId}`).click();
+}
+
 test.describe('Admin Clients Filter Presets', () => {
   test.describe.configure({ timeout: 60_000 });
 
@@ -143,8 +159,8 @@ test.describe('Admin Clients Filter Presets', () => {
     });
   });
 
-  test('the count each preset advertises is the list it actually leaves', {
-    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  test('picking a module swaps the subfilters without narrowing the list', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     // quality: allow-deep-link (reaching /panel/clients through the sidebar is
     // its own flow and is baselined the same way across every clients spec;
@@ -152,23 +168,60 @@ test.describe('Admin Clients Filter Presets', () => {
     await setupMock(page);
     await gotoClients(page);
 
-    // Readable with the full list still on screen, before applying anything.
+    await openModule(page, 'hosting');
+
+    // The module groups; it does not cut. All four clients are still listed.
     await expect(rowsShown(page)).toHaveCount(4);
-    await expect(page.getByTestId('filter-tabs-count-hosting-charged')).toHaveText('2');
-    await expect(page.getByTestId('filter-tabs-count-hosting-any')).toHaveText('3');
-    await expect(page.getByTestId('filter-tabs-count-active-project')).toHaveText('0');
+    await expect(page.getByTestId('filter-tabs-tab-hosting-charged')).toBeVisible();
+    await expect(page.getByTestId('filter-tabs-tab-no-hosting')).toBeVisible();
+
+    // And the subfilters of the module left behind are gone from the row.
+    await openModule(page, 'proposals');
+    await expect(page.getByTestId('filter-tabs-tab-hosting-charged')).toHaveCount(0);
+    await expect(page.getByTestId('filter-tabs-tab-status-draft')).toBeVisible();
+    await expect(rowsShown(page)).toHaveCount(4);
+  });
+
+  test('the count each subfilter advertises is the list it actually leaves', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as its sibling above)
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'hosting');
+
+    // Readable with the full list still on screen, before applying anything,
+    // and in parentheses so the number never reads as part of the name.
+    await expect(rowsShown(page)).toHaveCount(4);
+    await expect(page.getByTestId('filter-tabs-count-hosting-charged')).toHaveText('(2)');
+    await expect(page.getByTestId('filter-tabs-count-hosting-any')).toHaveText('(3)');
+    await expect(page.getByTestId('filter-tabs-count-no-hosting')).toHaveText('(1)');
 
     // And the advertised number is honest: applying it leaves exactly that many.
     await page.getByTestId('filter-tabs-tab-hosting-any').click();
     await expect(rowsShown(page)).toHaveCount(3);
-    await expect(page.getByTestId('filter-tabs-count-hosting-any')).toHaveText('3');
+    await expect(page.getByTestId('filter-tabs-count-hosting-any')).toHaveText('(3)');
   });
 
-  test('applying the hosting preset narrows the list and stamps the URL', {
+  test('an empty subfilter shows (0) rather than hiding its count', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as its sibling above)
+    await setupMock(page);
+    await gotoClients(page);
+
+    // No client in the fixture has an active project: knowing the set is empty
+    // is information, and hiding it would force a click to find out.
+    await openModule(page, 'projects');
+    await expect(page.getByTestId('filter-tabs-count-active-project')).toHaveText('(0)');
+  });
+
+  test('applying the hosting subfilter narrows the list and stamps the URL', {
     tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
+    await openModule(page, 'hosting');
 
     await page.getByTestId('filter-tabs-tab-hosting-charged').click();
 
@@ -176,13 +229,15 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(page.getByText('Kore Healths')).toBeVisible();
     await expect(page.getByText('Senses Candles')).not.toBeVisible();
     await expect(page).toHaveURL(/clientTab=hosting-charged/);
+    await expect(page).toHaveURL(/clientModule=hosting/);
   });
 
-  test('pressing the applied preset again restores the full list', {
+  test('pressing the applied subfilter again restores the full list', {
     tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
+    await openModule(page, 'hosting');
 
     await page.getByTestId('filter-tabs-tab-hosting-charged').click();
     await expect(rowsShown(page)).toHaveCount(2);
@@ -192,6 +247,45 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(rowsShown(page)).toHaveCount(4);
     await expect(page.getByText('Vastago Studio')).toBeVisible();
     await expect(page).not.toHaveURL(/clientTab=/);
+    // Still reading the Hosting module, just without a cut applied.
+    await expect(page.getByTestId('filter-tabs-tab-hosting-charged')).toBeVisible();
+  });
+
+  test('removing the chip also drops the tab that was highlighting it', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'hosting');
+
+    await page.getByTestId('filter-tabs-tab-hosting-charged').click();
+    await expect(rowsShown(page)).toHaveCount(2);
+
+    // The chip lives in the filter panel and names the module it comes from.
+    await page.getByTestId('clients-filter-toggle').click();
+    await expect(page.getByText('Hosting: Con hosting cobrado')).toBeVisible();
+    await page.getByTestId('client-filter-chip-hostingStatus').click();
+
+    // Tab, chip and panel are one state: the list reopens and no tab stays lit.
+    await expect(rowsShown(page)).toHaveCount(4);
+    await expect(page.getByText('Hosting: Con hosting cobrado')).toHaveCount(0);
+    await expect(page).not.toHaveURL(/clientTab=hosting-charged/);
+  });
+
+  test('the panel can rebuild a predefined filter on its own', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+
+    // Every predefined filter is also a composable control, so a cut is
+    // reachable without going through its tab.
+    await page.getByTestId('clients-filter-toggle').click();
+    await page.getByTestId('client-filter-hosting-status').click();
+    await page.getByRole('radio', { name: 'Con hosting cobrado' }).check();
+
+    await expect(rowsShown(page)).toHaveCount(2);
+    await expect(page.getByText('Kore Healths')).toBeVisible();
   });
 
   test('the shared link reopens the list already filtered', {
@@ -210,13 +304,16 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(rowsShown(page)).toHaveCount(3);
     await expect(page.getByText('Kore Healths')).toBeVisible();
     await expect(page.getByText('Vastago Studio')).not.toBeVisible();
+    // The subfilter brought its own module along, so level 2 is the right one.
+    await expect(page.getByTestId('filter-tabs-tab-no-hosting')).toBeVisible();
   });
 
-  test('search narrows the preset instead of cancelling it', {
+  test('search narrows the subfilter instead of cancelling it', {
     tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     await setupMock(page);
     await gotoClients(page);
+    await openModule(page, 'hosting');
 
     await page.getByTestId('filter-tabs-tab-hosting-charged').click();
     await expect(rowsShown(page)).toHaveCount(2);
@@ -225,10 +322,28 @@ test.describe('Admin Clients Filter Presets', () => {
     await page.getByTestId('clients-search-input').fill('Mimittos');
     await searched;
 
-    // The preset is still on: only the searched client that also pays hosting.
+    // The subfilter is still on: only the searched client that also pays hosting.
     await expect(rowsShown(page)).toHaveCount(1);
     await expect(page.getByText('Mimittos SAS')).toBeVisible();
     await expect(page).toHaveURL(/clientTab=hosting-charged/);
+  });
+
+  test('the client status is transversal and travels in the URL', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'hosting');
+    await page.getByTestId('filter-tabs-tab-hosting-charged').click();
+
+    // Status combines with the module instead of replacing it: the request
+    // carries the status cut while the subfilter stays applied.
+    const refetched = page.waitForRequest((req) => req.url().includes('orphans=true'));
+    await page.getByTestId('clients-status-orphans').click();
+    await refetched;
+
+    await expect(page).toHaveURL(/status=orphans/);
+    await expect(page.getByTestId('filter-tabs-tab-hosting-charged')).toBeVisible();
   });
 
   test('the row count opens Hostings already filtered by that client', {
@@ -237,9 +352,9 @@ test.describe('Admin Clients Filter Presets', () => {
     await setupMock(page);
     await gotoClients(page);
 
-    // The hosting count only appears once a hosting preset is applied.
+    // The hosting count only appears while the Hosting module is being read.
     await expect(page.getByTestId('client-hostings-101')).toHaveCount(0);
-    await page.getByTestId('filter-tabs-tab-hosting-charged').click();
+    await openModule(page, 'hosting');
     await expect(page.getByTestId('client-hostings-101')).toHaveText('2 hostings');
 
     await page.getByTestId('client-hostings-101').click();

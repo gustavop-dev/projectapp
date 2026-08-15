@@ -179,6 +179,7 @@ from content.views.document_tag import (
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
+    proposal_client_status_counts,
 )
 from content.views.task import (
     list_tasks, create_task, update_task, reorder_task, delete_task,
@@ -272,6 +273,7 @@ urlpatterns = [
     # Proposals — client profiles (real UserProfile entities, replaces grouped list_clients)
     path('proposals/client-profiles/', list_proposal_clients, name='list-proposal-clients'),
     path('proposals/client-profiles/search/', search_proposal_clients, name='search-proposal-clients'),
+    path('proposals/client-profiles/status-counts/', proposal_client_status_counts, name='proposal-client-status-counts'),
     path('proposals/client-profiles/create/', create_proposal_client, name='create-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/', retrieve_proposal_client, name='retrieve-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/update/', update_proposal_client, name='update-proposal-client'),
