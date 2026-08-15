@@ -424,10 +424,16 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
     await expect(page.getByTestId('income-form-concept'))
       .toHaveValue('Kore - Hosting anual');
-    // Seeded from the hosting cycle, and labelled as such.
-    await expect(page.getByTestId('income-form-period')).toHaveValue('2027-02-01');
+    // A hosting duplicate opens on the window block: the proposed date lands
+    // on the start, labelled with where it came from.
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2027-02-01');
     await expect(page.getByTestId('income-form-period-hint'))
       .toContainText('hosting');
+
+    // The shortcut writes the cadence selector and the inclusive end follows.
+    await page.getByTestId('income-form-cycle-12').click();
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('annual');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2028-01-31');
 
     await page.getByTestId('income-form-submit').click();
 
@@ -439,7 +445,38 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(created.body.concept).toBe('Kore - Hosting anual');
     // Born pending whatever the original was — the point of the action.
     expect(created.body.kind).toBe('expected');
-    expect(created.body.period_date).toBe('2027-02-01');
+    // The window travels; period_date is the backend's to derive.
+    expect(created.body.period_start).toBe('2027-02-01');
+    expect(created.body.period_end).toBe('2028-01-31');
+    expect(created.body.period_cadence).toBe('annual');
+    expect(created.body.period_date).toBeUndefined();
+  });
+
+  test('a hosting income asks for the period it covers and submits it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Hosting Acme anual');
+
+    // Turning the origin to Hosting swaps the single date for the window.
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+    await expect(page.getByTestId('income-form-period')).toHaveCount(0);
+    await page.getByTestId('income-form-period-start').fill('2026-08-15');
+    await page.getByTestId('income-form-period-cadence').selectOption('semiannual');
+    // Inclusive end proposed from start + cadence, still editable.
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2027-02-14');
+
+    await page.getByTestId('partner-split-total').fill('550000');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls[0].body.period_start).toBe('2026-08-15');
+    expect(calls[0].body.period_end).toBe('2027-02-14');
+    expect(calls[0].body.period_cadence).toBe('semiannual');
   });
 
   test('a cadence shortcut overrides the proposed date before saving', {
