@@ -12,6 +12,33 @@ from content.utils import format_bogota_date, format_cop_email, safe_slug
 logger = logging.getLogger(__name__)
 
 
+# Flows whose recipient is, by construction, the client's own address — the
+# default `audience` for their log rows. The composed ones (branded_email,
+# proposal_email, diagnostic_custom_email) are deliberately absent: they go
+# to whatever address the panel typed, so they state their audience at the
+# call site. `team_copy` is absent for the opposite reason: it never does.
+CLIENT_FACING_TEMPLATE_KEYS = frozenset({
+    'proposal_sent_client',
+    'proposal_multi_sent_client',
+    'proposal_reminder',
+    'proposal_urgency',
+    'proposal_urgency_no_discount',
+    'proposal_accepted_client',
+    'proposal_finished_client',
+    'proposal_rejected_client',
+    'proposal_reengagement',
+    'proposal_abandonment_followup',
+    'proposal_investment_interest_followup',
+    'proposal_scheduled_followup',
+    'proposal_negotiation_confirmation',
+    'proposal_documents_sent',
+    'magic_link',
+    'diagnostic_initial_sent',
+    'diagnostic_final_sent',
+    'diagnostic_documents_sent',
+})
+
+
 # Fallback de marca cuando una propuesta no tiene email_method_phases diligenciado.
 # Renderiza el card oscuro "Método en 3 fases" del diseño nuevo.
 DEFAULT_METHOD_PHASES = [
@@ -185,18 +212,39 @@ class ProposalEmailService:
 
     @classmethod
     def _log_email(cls, template_key, recipient, subject='', proposal=None,
-                   status='sent', error_message='', metadata=None):
-        """Log an email send attempt to the EmailLog model."""
+                   status='sent', error_message='', metadata=None,
+                   client=None, audience=None, html_body='', text_body=''):
+        """Log an email send attempt, through the single writer.
+
+        Delegates to ``email_log_service.record_send`` so proposal traffic
+        lands in the same shape as the accounting notices: a stored body the
+        panel can show back, and a client the clients list can count. The
+        signature only grew keyword arguments, so the call sites that want
+        none of it stay as they were.
+        """
         try:
             from content.models import EmailLog
-            EmailLog.objects.create(
-                proposal=proposal,
+            from content.services import email_log_service
+
+            if client is None and proposal is not None:
+                # No extra query: the FK id is already on the instance.
+                client = proposal.client_id
+            email_log_service.record_send(
                 template_key=template_key,
-                recipient=recipient,
+                recipients=[recipient],
                 subject=subject[:500] if subject else '',
                 status=status,
                 error_message=error_message,
-                metadata=metadata or {},
+                metadata=metadata,
+                proposal=proposal,
+                client=client,
+                audience=audience or (
+                    EmailLog.Audience.CLIENT
+                    if template_key in CLIENT_FACING_TEMPLATE_KEYS
+                    else EmailLog.Audience.INTERNAL
+                ),
+                html_body=html_body,
+                text_body=text_body,
             )
         except Exception:
             logger.exception('Failed to create EmailLog entry')
@@ -417,6 +465,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_sent_client', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_sent_client.html', context
@@ -446,6 +497,7 @@ class ProposalEmailService:
                 'proposal_sent_client', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
                 metadata={'pdf_attached': pdf_attached},
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent proposal email for %s to %s',
@@ -458,6 +510,7 @@ class ProposalEmailService:
                 'proposal_sent_client', proposal.client_email,
                 subject='', proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send proposal email for %s',
@@ -515,6 +568,9 @@ class ProposalEmailService:
 
         group_uuid = str(uuid.uuid4())
 
+        # Bound before the try: the failure path logs from the except, and a
+        # render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_multi_sent_client.html', context,
@@ -542,7 +598,10 @@ class ProposalEmailService:
 
             email.send(fail_silently=False)
 
-            for proposal in proposals:
+            # One email, one stored body: the rows share `group_uuid`, so
+            # only the first carries it and the others point the reader at
+            # the group instead of duplicating the same HTML N times.
+            for index, proposal in enumerate(proposals):
                 cls._log_email(
                     'proposal_multi_sent_client', proposal.client_email,
                     subject=subject, proposal=proposal, status='sent',
@@ -551,6 +610,8 @@ class ProposalEmailService:
                         'group_size': len(proposals),
                         'pdfs_attached': attached_count,
                     },
+                    html_body=html_content if index == 0 else '',
+                    text_body=text_content if index == 0 else '',
                 )
             logger.info(
                 'Sent multi-proposal email (%d proposals, %d PDFs) to %s — group %s',
@@ -559,12 +620,14 @@ class ProposalEmailService:
             return _delivery(True, 'sent', f'group={group_uuid}')
 
         except Exception as exc:
-            for proposal in proposals:
+            for index, proposal in enumerate(proposals):
                 cls._log_email(
                     'proposal_multi_sent_client', proposal.client_email,
                     subject='', proposal=proposal, status='failed',
                     error_message=str(exc)[:1000],
                     metadata={'group_uuid': group_uuid},
+                    html_body=html_content if index == 0 else '',
+                    text_body=text_content if index == 0 else '',
                 )
             logger.exception(
                 'Failed to send multi-proposal email — group %s', group_uuid,
@@ -613,6 +676,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_reminder', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_reminder.html', context
@@ -646,6 +712,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_reminder', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent reminder email for proposal %s to %s',
@@ -658,6 +725,7 @@ class ProposalEmailService:
                 'proposal_reminder', proposal.client_email,
                 subject='', proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send reminder email for proposal %s',
@@ -735,6 +803,9 @@ class ProposalEmailService:
         context.update(resolved)
         subject = resolved.get('subject', f'{proposal.client_name}, tu propuesta expira pronto')
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(html_template, context)
             text_content = render_to_string(txt_template, context)
@@ -759,6 +830,7 @@ class ProposalEmailService:
             cls._log_email(
                 template_key, proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent urgency email for proposal %s to %s (discount=%s)',
@@ -771,6 +843,7 @@ class ProposalEmailService:
                 template_key, proposal.client_email,
                 subject=subject, proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send urgency email for proposal %s',
@@ -886,6 +959,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_accepted_client', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_accepted_client.html', context
@@ -961,6 +1037,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_accepted_client', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent acceptance confirmation for proposal %s to %s',
@@ -973,6 +1050,7 @@ class ProposalEmailService:
                 'proposal_accepted_client', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send acceptance confirmation for proposal %s',
@@ -1007,6 +1085,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_finished_client', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_finished_client.html', context
@@ -1032,6 +1113,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_finished_client', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent finished confirmation for proposal %s to %s',
@@ -1044,6 +1126,7 @@ class ProposalEmailService:
                 'proposal_finished_client', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send finished confirmation for proposal %s',
@@ -1077,6 +1160,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_rejected_client', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_rejected_client.html', context
@@ -1102,6 +1188,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_rejected_client', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent rejection thank-you for proposal %s to %s',
@@ -1114,6 +1201,7 @@ class ProposalEmailService:
                 'proposal_rejected_client', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send rejection thank-you for proposal %s',
@@ -1438,6 +1526,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_abandonment_followup', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_abandonment_followup.html', context
@@ -1471,6 +1562,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_abandonment_followup', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent abandonment followup for proposal %s to %s',
@@ -1483,6 +1575,7 @@ class ProposalEmailService:
                 'proposal_abandonment_followup', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send abandonment followup for proposal %s',
@@ -1525,6 +1618,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_investment_interest_followup', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_investment_interest_followup.html', context
@@ -1558,6 +1654,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_investment_interest_followup', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent investment interest followup for proposal %s to %s',
@@ -1570,6 +1667,7 @@ class ProposalEmailService:
                 'proposal_investment_interest_followup', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send investment interest followup for proposal %s',
@@ -1935,6 +2033,9 @@ class ProposalEmailService:
         resolved = cls._resolve_content('proposal_negotiation_confirmation', context)
         context.update(resolved)
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_negotiation_confirmation.html', context
@@ -1960,6 +2061,7 @@ class ProposalEmailService:
             cls._log_email(
                 'proposal_negotiation_confirmation', proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent negotiation confirmation for proposal %s to %s',
@@ -1972,6 +2074,7 @@ class ProposalEmailService:
                 'proposal_negotiation_confirmation', proposal.client_email,
                 subject=locals().get('subject', ''), proposal=proposal,
                 status='failed', error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send negotiation confirmation for proposal %s',
@@ -2231,6 +2334,9 @@ class ProposalEmailService:
             + '\n\nProject App — projectapp.co'
         )
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             email_msg = EmailMultiAlternatives(
                 subject=subject,
@@ -2244,6 +2350,7 @@ class ProposalEmailService:
             cls._log_email(
                 'magic_link', email, subject=subject,
                 proposal=proposals[0],
+                html_body=html_content, text_body=text_content,
             )
 
             logger.info('Sent magic link email to %s with %d proposals', email, len(proposals))
@@ -2254,6 +2361,7 @@ class ProposalEmailService:
                 'magic_link', email, subject=subject,
                 proposal=proposals[0], status='failed',
                 error_message='Send failed',
+                html_body=html_content, text_body=text_content,
             )
             logger.exception('Failed to send magic link email to %s', email)
             return False
@@ -2321,6 +2429,9 @@ class ProposalEmailService:
         }
         context.update(_build_design_context(proposal))
 
+        # Bound before the try: the failure path logs from the except,
+        # and a render error must not turn into a NameError there.
+        html_content = text_content = ''
         try:
             html_content = render_to_string(
                 'emails/proposal_documents_sent.html', context
@@ -2345,6 +2456,7 @@ class ProposalEmailService:
             cls._log_email(
                 template_key, proposal.client_email,
                 subject=subject, proposal=proposal, status='sent',
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent %d documents for proposal %s to %s',
@@ -2357,6 +2469,7 @@ class ProposalEmailService:
                 template_key, proposal.client_email,
                 subject='', proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send documents for proposal %s', proposal.pk,
@@ -2439,6 +2552,20 @@ class ProposalEmailService:
             'attachment_names': attachment_names,
         }
 
+        # A composed email goes wherever the panel addressed it — a
+        # stakeholder, an internal inbox, or the client — so the audience is a
+        # fact of this send and not of its template. It counts as contact only
+        # when it actually reached the client's own address.
+        from content.models import EmailLog
+
+        client_email = (getattr(proposal, 'client_email', '') or '').strip().lower()
+        audience = (
+            EmailLog.Audience.CLIENT
+            if client_email and recipient_email.strip().lower() == client_email
+            else EmailLog.Audience.INTERNAL
+        )
+
+        html_content = text_content = ''
         try:
             html_content, text_content = cls.render_composed_email(
                 template_key, proposal, subject, greeting,
@@ -2462,7 +2589,8 @@ class ProposalEmailService:
             cls._log_email(
                 template_key, recipient_email,
                 subject=subject, proposal=proposal, status='sent',
-                metadata=log_metadata,
+                metadata=log_metadata, audience=audience,
+                html_body=html_content, text_body=text_content,
             )
             logger.info(
                 'Sent %s for proposal %s to %s',
@@ -2475,7 +2603,8 @@ class ProposalEmailService:
                 template_key, recipient_email,
                 subject=subject, proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
-                metadata=log_metadata,
+                metadata=log_metadata, audience=audience,
+                html_body=html_content, text_body=text_content,
             )
             logger.exception(
                 'Failed to send %s for proposal %s', template_key, proposal.pk if proposal else 'standalone',
