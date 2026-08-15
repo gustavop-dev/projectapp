@@ -156,6 +156,23 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
+     * fetchFolderClientSuggestion: cliente mayoritario de una carpeta, para
+     * prellenar el form de crear. No toca isLoading: es un prellenado
+     * silencioso, no una carga de página.
+     */
+    async fetchFolderClientSuggestion(folderId) {
+      try {
+        const response = await get_request(
+          `documents/folder-client-suggestion/?folder=${folderId}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching folder client suggestion:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /**
      * Reconcilia una fila que cambió de estado con el scope que se está viendo.
      *
      * Bajo 'all' la fila se queda y sólo cambia su insignia; bajo un scope
