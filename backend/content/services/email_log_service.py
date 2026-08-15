@@ -16,6 +16,47 @@ is why the links are their own rows instead of a column pair on the log.
 from django.db import transaction
 
 
+def client_for_entity(entity_type, object_id):
+    """Client pk behind a target row, or None.
+
+    The write-time twin of ``accounting_history_service._client_target_q``,
+    which resolves the same three entities at query time. Keep both in step:
+    incomes and hostings point at the ``UserProfile``, a cuenta de cobro at
+    the ``User`` behind it.
+    """
+    from content.models import Document, HostingRecord, IncomeRecord
+
+    if not object_id:
+        return None
+    if entity_type == 'income':
+        return (
+            IncomeRecord.objects.filter(pk=object_id)
+            .values_list('client_id', flat=True).first()
+        )
+    if entity_type == 'hosting':
+        return (
+            HostingRecord.objects.filter(pk=object_id)
+            .values_list('client_id', flat=True).first()
+        )
+    if entity_type == 'collection_account':
+        return (
+            Document.objects.filter(pk=object_id)
+            .values_list('client_user__profile__id', flat=True).first()
+        )
+    return None
+
+
+def client_for_payment(payment):
+    """Client profile behind a platform payment, or None.
+
+    Its own resolver because ``_client_target_q`` never learned to read
+    ``payment`` targets: the hosting payment notice is the one accounting
+    notice its client filter cannot reach today.
+    """
+    project = getattr(getattr(payment, 'subscription', None), 'project', None)
+    return getattr(getattr(project, 'client', None), 'profile', None)
+
+
 def _normalize_targets(targets):
     """Coerce the callers' shorthand into ``(entity_type, id, repr)`` rows.
 
@@ -57,14 +98,25 @@ def record_send(
     html_body='',
     text_body='',
     retry_of=None,
+    proposal=None,
+    client=None,
+    audience=None,
 ):
     """Write one ``EmailLog`` per recipient and return them.
 
     The rendered message is stored once and shared by the sibling rows. The
     body is kept on the failure path too: diagnosing a bounce needs to show
     what could not be delivered.
+
+    ``client`` accepts an instance or a bare pk, so a caller holding only
+    ``proposal.client_id`` does not have to load the profile. ``audience``
+    defaults to internal: a forgotten one leaves the row out of a client's
+    contact count, which is the harmless direction to be wrong in.
     """
     from content.models import EmailBody, EmailLog, EmailLogTarget
+
+    client_id = getattr(client, 'pk', client)
+    audience = audience or EmailLog.Audience.INTERNAL
 
     body = None
     if html_body or text_body:
@@ -83,6 +135,9 @@ def record_send(
             body=body,
             origin_action=origin_action or '',
             retry_of=retry_of,
+            proposal=proposal,
+            client_id=client_id,
+            audience=audience,
         )
         for recipient in recipients
     ]

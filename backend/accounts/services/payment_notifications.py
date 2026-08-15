@@ -98,7 +98,7 @@ def send_payment_status_team_email(
 
     try:
         payment = Payment.objects.select_related(
-            'subscription__project__client',
+            'subscription__project__client__profile',
         ).get(id=payment_id)
     except Payment.DoesNotExist:
         logger.warning('Payment %s not found for team status email', payment_id)
@@ -118,6 +118,10 @@ def send_payment_status_team_email(
         'source': source or '',
     }
     targets = [('payment', payment_id, context['project_name'])]
+    # Internal: this one tells the team a hosting payment moved. Filed under
+    # the client anyway, and through its own resolver because `payment`
+    # targets are exactly what the query-time mapping never learned to read.
+    client = email_log_service.client_for_payment(payment)
     text_body = html_body = ''
 
     try:
@@ -147,6 +151,7 @@ def send_payment_status_team_email(
             html_body=html_body,
             text_body=text_body,
             retry_of=retry_of,
+            client=client,
         )
         return False
 
@@ -160,6 +165,7 @@ def send_payment_status_team_email(
         html_body=html_body,
         text_body=text_body,
         retry_of=retry_of,
+        client=client,
     )
     logger.info(
         'Sent payment status email (%s) for payment %s to %s',

@@ -362,6 +362,8 @@ def _send_digest(today, incomes, recurring, hostings, recipients, config):
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
     # One digest names many records; linking each of them is what lets the
     # history answer "what went out for this hosting" from the hosting's row.
+    # And why it passes no client=: it names several at once, so filing it
+    # under whichever came first would be a lie the clients list would count.
     targets = (
         [('income', item['id'], item.get('title', '')) for item in incomes]
         + [('recurring', item['id'], item.get('title', '')) for item in recurring]

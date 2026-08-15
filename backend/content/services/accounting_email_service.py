@@ -104,6 +104,11 @@ def send_accounting_change_email(change_log_id, *, recipients=None, retry_of=Non
     targets = [(
         change_log.entity_type, change_log.object_id, change_log.object_repr,
     )]
+    # Internal by default: this notice goes to the team, not to the client.
+    # It is still filed under them, because the change it reports is theirs.
+    client = email_log_service.client_for_entity(
+        change_log.entity_type, change_log.object_id,
+    )
     text_body = html_body = ''
 
     try:
@@ -134,6 +139,7 @@ def send_accounting_change_email(change_log_id, *, recipients=None, retry_of=Non
             html_body=html_body,
             text_body=text_body,
             retry_of=retry_of,
+            client=client,
         )
         return False
 
@@ -148,6 +154,7 @@ def send_accounting_change_email(change_log_id, *, recipients=None, retry_of=Non
         html_body=html_body,
         text_body=text_body,
         retry_of=retry_of,
+        client=client,
     )
     logger.info(
         'Sent accounting change email (change_log %s) to %s',
