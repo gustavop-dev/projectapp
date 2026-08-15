@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import IncomeFormModal from '../../../components/accounting/IncomeFormModal.vue';
+import { get_request } from '../../../stores/services/request_http';
 
 jest.mock('../../../stores/services/request_http', () => ({
   get_request: jest.fn(),
@@ -49,8 +50,17 @@ function mountModal(props = {}) {
           template: '<div v-if="modelValue"><slot /></div>',
         },
         BaseFormField: {
-          props: ['label', 'hint', 'error', 'required', 'for', 'size'],
-          template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
+          // The hint and the error are rendered here, not by the caller, so a
+          // stub that swallowed them would hide the very copy under test.
+          props: ['label', 'hint', 'hintTestid', 'error', 'required', 'for', 'size'],
+          template: `
+            <div>
+              <label v-if="label">{{ label }}</label>
+              <slot />
+              <p v-if="error" data-testid="form-field-error">{{ error }}</p>
+              <p v-else-if="hint" :data-testid="hintTestid || undefined">{{ hint }}</p>
+            </div>
+          `,
         },
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled'],
@@ -89,10 +99,10 @@ function mountModal(props = {}) {
             '<button type="button" role="switch" :aria-checked="modelValue" @click="$emit(\'update:modelValue\', !modelValue)" />',
         },
         BaseSelect: {
-          props: ['modelValue', 'options', 'size', 'error', 'disabled'],
+          props: ['modelValue', 'options', 'size', 'error', 'placeholder', 'disabled'],
           emits: ['update:modelValue'],
           template:
-            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
+            '<select :value="modelValue" @change="$emit(\'update:modelValue\', $event.target.value)"><option v-if="placeholder" value="" disabled>{{ placeholder }}</option><option v-for="o in options" :key="o.value" :value="o.value">{{ o.label }}</option></select>',
         },
         PartnerSplitInput: PartnerSplitInputStub,
       },
@@ -103,6 +113,33 @@ function mountModal(props = {}) {
 function segmentedButton(wrapper, label) {
   return wrapper.findAll('button').find((b) => b.text() === label);
 }
+
+/**
+ * Answer the antecedent lookup the hosting block makes on open. Every other
+ * GET keeps returning undefined, which is what the rest of this file expects.
+ */
+function mockPeriodSuggestion({ suggestedStart, previousEnd = null }) {
+  get_request.mockImplementation((url) => (
+    url.startsWith('accounting/incomes/period-suggestion/')
+      ? Promise.resolve({
+        data: { suggested_start: suggestedStart, previous_period_end: previousEnd },
+      })
+      : undefined
+  ));
+}
+
+/** The hosting block, opened on a create with a known antecedent. */
+async function mountHostingCreate(suggestion = { suggestedStart: '2026-09-01' }) {
+  mockPeriodSuggestion(suggestion);
+  const wrapper = mountModal();
+  await segmentedButton(wrapper, 'Hosting').trigger('click');
+  await flushPromises();
+  return wrapper;
+}
+
+afterEach(() => {
+  get_request.mockReset();
+});
 
 describe('IncomeFormModal', () => {
   it('renders an empty form in create mode', () => {
@@ -339,7 +376,7 @@ describe('IncomeFormModal', () => {
     expect(period.element.value).toBe('2026-10');
   });
 
-  it('offers no shortcuts outside a duplicate', async () => {
+  it('offers no shortcuts for a single date outside a duplicate', async () => {
     const created = mountModal();
     expect(created.find('[data-testid="income-form-cycles"]').exists()).toBe(false);
 
@@ -475,6 +512,189 @@ describe('IncomeFormModal', () => {
 
       expect(wrapper.find('[data-testid="income-form-period-hint"]').exists())
         .toBe(false);
+    });
+
+    it('reads as a window: start and end share a row, cadence sits with Tipo', async () => {
+      // A range split across two rows stops reading as a range, and the
+      // cadence is chosen before the dates it proposes.
+      const wrapper = await mountHostingCreate();
+      const rows = wrapper.findAll('form > div.grid');
+
+      const dateRow = rows.find(
+        (row) => row.find('[data-testid="income-form-period-start"]').exists(),
+      );
+      expect(dateRow.find('[data-testid="income-form-period-end"]').exists()).toBe(true);
+
+      const cadenceRow = rows.find(
+        (row) => row.find('[data-testid="income-form-period-cadence"]').exists(),
+      );
+      expect(cadenceRow.text()).toContain('Tipo');
+      expect(cadenceRow.find('[data-testid="income-form-period-start"]').exists())
+        .toBe(false);
+    });
+
+    it('opens the window on the period after the last one recorded', async () => {
+      // Nothing typed yet: the cadence is what the operator picks first, and
+      // the antecedent is what says where the window goes.
+      const wrapper = await mountHostingCreate({
+        suggestedStart: '2026-09-01', previousEnd: '2026-08-31',
+      });
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+
+      expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+        .toBe('2026-09-01');
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2026-11-30');
+      expect(wrapper.get('[data-testid="income-form-period-hint"]').text())
+        .toContain('El período anterior terminó');
+    });
+
+    it('recomputes the end when the origin seeded the start programmatically', async () => {
+      // The defect this delivery fixes: switching origin writes the start
+      // without the operator touching the field, and picking a cadence after
+      // that used to leave the end untouched.
+      mockPeriodSuggestion({ suggestedStart: '2026-09-01' });
+      const wrapper = mountModal();
+      await wrapper.find('[data-testid="income-form-period"]').setValue('2026-11-17');
+      await segmentedButton(wrapper, 'Hosting').trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('semiannual');
+
+      expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+        .toBe('2026-11-17');
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2027-05-16');
+    });
+
+    it('follows the start with the end, keeping the chosen cadence', async () => {
+      const wrapper = await mountHostingCreate();
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+      await wrapper.find('[data-testid="income-form-period-start"]').setValue('2026-10-01');
+
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2026-12-31');
+      expect(wrapper.find('[data-testid="income-form-period-cadence"]').element.value)
+        .toBe('quarterly');
+    });
+
+    it('turns the cadence to Personalizada when the end is written by hand', async () => {
+      // The form must never show a Trimestral over a window that is not one.
+      const wrapper = await mountHostingCreate();
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+      await wrapper.find('[data-testid="income-form-period-end"]').setValue('2027-01-15');
+
+      expect(wrapper.find('[data-testid="income-form-period-cadence"]').element.value)
+        .toBe('custom');
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2027-01-15');
+    });
+
+    it('stops proposing once the cadence is Personalizada', async () => {
+      const wrapper = await mountHostingCreate();
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('custom');
+      await wrapper.find('[data-testid="income-form-period-start"]').setValue('2026-10-01');
+      await wrapper.find('[data-testid="income-form-period-end"]').setValue('2026-10-20');
+
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2026-10-20');
+      expect(wrapper.find('[data-testid="income-form-period-cadence"]').element.value)
+        .toBe('custom');
+    });
+
+    it('anchors every shortcut on the same period instead of walking forward', async () => {
+      const wrapper = await mountHostingCreate({ suggestedStart: '2026-09-01' });
+
+      await wrapper.get('[data-testid="income-form-cycle-12"]').trigger('click');
+      expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+        .toBe('2026-09-01');
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2027-08-31');
+
+      // Re-lengthening the same window, not opening the one after it.
+      await wrapper.get('[data-testid="income-form-cycle-1"]').trigger('click');
+      expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+        .toBe('2026-09-01');
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2026-09-30');
+      expect(wrapper.find('[data-testid="income-form-period-cadence"]').element.value)
+        .toBe('monthly');
+    });
+
+    it('offers the shortcuts while opening a period and never while editing one', async () => {
+      const created = await mountHostingCreate();
+      expect(created.find('[data-testid="income-form-cycles"]').exists()).toBe(true);
+
+      const edited = mountModal({
+        record: {
+          ...EDIT_RECORD,
+          origin: 'hosting',
+          period_start: '2026-05-01',
+          period_end: '2026-07-31',
+          period_cadence: 'quarterly',
+        },
+      });
+      await flushPromises();
+      expect(edited.find('[data-testid="income-form-cycles"]').exists()).toBe(false);
+    });
+
+    it('keeps the stored end when an edit opens on a window that disagrees', async () => {
+      // Prefilling writes start, end and cadence at once; treating that batch
+      // as a cadence choice would overwrite the end actually saved.
+      const wrapper = mountModal({
+        record: {
+          ...EDIT_RECORD,
+          origin: 'hosting',
+          period_start: '2026-05-01',
+          period_end: '2026-06-15',
+          period_cadence: 'quarterly',
+        },
+      });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+        .toBe('2026-06-15');
+    });
+
+    it('still opens a window when the antecedent cannot be fetched', async () => {
+      // The lookup is a convenience, not a precondition: a failing request
+      // must leave the operator with a usable block, not an inert one.
+      get_request.mockImplementation(() => Promise.reject(new Error('boom')));
+      jest.useFakeTimers().setSystemTime(new Date('2026-08-15T09:00:00'));
+      try {
+        const wrapper = mountModal();
+        await segmentedButton(wrapper, 'Hosting').trigger('click');
+        await flushPromises();
+
+        await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('monthly');
+
+        expect(wrapper.find('[data-testid="income-form-period-start"]').element.value)
+          .toBe('2026-08-15');
+        expect(wrapper.find('[data-testid="income-form-period-end"]').element.value)
+          .toBe('2026-09-14');
+        // Nothing to say about a period that was never resolved.
+        expect(wrapper.find('[data-testid="income-form-period-hint"]').exists())
+          .toBe(false);
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('refuses an end that does not come after the start, and says why', async () => {
+      const wrapper = await mountHostingCreate();
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('custom');
+      await wrapper.find('[data-testid="income-form-period-start"]').setValue('2026-09-01');
+      await wrapper.find('[data-testid="income-form-period-end"]').setValue('2026-09-01');
+      await wrapper.find('form').trigger('submit');
+
+      expect(wrapper.get('[data-testid="form-field-error"]').text())
+        .toContain('posterior a la de inicio');
+      expect(wrapper.emitted('submit')).toBeUndefined();
     });
   });
 

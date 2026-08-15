@@ -25,7 +25,7 @@ from datetime import timedelta
 
 from content.models import HostingRecord, IncomeRecord, RecurringPayment
 from content.serializers.accounting import money_str
-from content.utils import add_months
+from content.utils import add_months, today_bogota
 
 HOSTING_CYCLE = 'hosting_cycle'
 INCOME_PERIOD = 'income_period'
@@ -75,10 +75,11 @@ def next_period_date(income):
 def build_cycle_options(income):
     """One candidate next date per offered cadence, counted from the original.
 
-    The dates are computed here rather than in the panel for two reasons: the
-    frontend carries no date library — every date advance in this module is
-    server-side by design — and ``add_months`` clamps the day, so a charge on
-    the 31st lands on the last day of a shorter month instead of overflowing.
+    These are the dates for an income with no covered window — the single
+    ``period_date``. A hosting income advances its window in the panel instead
+    (``frontend/utils/periodDates.js`` mirrors ``add_months``, day clamp
+    included), because the requirement is that the dates move the instant a
+    cadence is picked and a round trip per click cannot deliver that.
 
     Offering the dates is deliberately not the same as proposing one. The
     operator is who knows the cadence, so nothing is filled in behind their
@@ -113,6 +114,44 @@ def next_period_range(income):
     else:
         end = start + (income.period_end - income.period_start)
     return start, end
+
+
+def suggest_next_period_start(client_id, project_id=None):
+    """``(previous end, proposed start)`` for a client's next hosting window.
+
+    Creating a hosting income has no original to count from, so the antecedent
+    is the last window already on the book: the new one opens the day after
+    that one closed (``period_end`` is inclusive). With nothing recorded — the
+    first charge of a client — the proposal is simply today.
+
+    An income does not record which hosting it belongs to (``origin`` is a
+    label, not a link), so the antecedent is looked up by client and narrowed
+    by project when the form already has one. The ambiguity guard of
+    ``resolve_hosting_cycle_months`` applies here too: with several active
+    hostings on the client and no project telling them apart, the last window
+    may well belong to a different one, and a wrong date already filled in is
+    worse than an empty one the operator is forced to complete.
+    """
+    today = today_bogota()
+    if not client_id:
+        return None, today
+    if project_id is None and HostingRecord.objects.filter(
+        is_active=True, client_id=client_id,
+    ).count() > 1:
+        return None, today
+    windows = IncomeRecord.objects.filter(
+        origin=IncomeRecord.Origin.HOSTING,
+        client_id=client_id,
+        period_end__isnull=False,
+    )
+    if project_id is not None:
+        windows = windows.filter(project_id=project_id)
+    previous_end = (
+        windows.order_by('-period_end').values_list('period_end', flat=True).first()
+    )
+    if not previous_end:
+        return None, today
+    return previous_end, previous_end + timedelta(days=1)
 
 
 def build_income_duplicate_draft(income):

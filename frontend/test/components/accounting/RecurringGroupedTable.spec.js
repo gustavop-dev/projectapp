@@ -67,6 +67,13 @@ describe('RecurringGroupedTable', () => {
     expect(wrapper.find('[data-testid="recurring-group-1"]').text()).toContain('(2)');
   });
 
+  it('keeps the category name, its count and the subtotal on one line', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.find('[data-testid="recurring-group-1"]').text().replace(/\s+/g, ' '))
+      .toContain('Suscripciones de IA(2) · $880.000 COP /mes');
+  });
+
   it('totals every group in the footer', () => {
     const wrapper = mountTable();
 
@@ -235,8 +242,11 @@ describe('RecurringGroupedTable', () => {
       groups: groups.map((group, index) => ({ ...group, groupWeightPct: index === 0 ? 95.5 : 4.5 })),
     });
 
-    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text()).toContain('95,5%');
-    expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text()).toContain('4,5%');
+    // The share names its own base instead of trailing the row unlabelled.
+    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text())
+      .toContain('95,5% de los pagos activos');
+    expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text())
+      .toContain('4,5% de los pagos activos');
   });
 
   it('omits the group weight when the page does not compute one', () => {
