@@ -168,6 +168,11 @@ def _income_meta(queryset, params):
         # Completion debt of the client link over the whole filtered set —
         # legacy rows live in past years, so the year window would hide them.
         'without_client_count': queryset.filter(client__isnull=True).count(),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        'without_project_count': queryset.filter(
+            client__isnull=False, project__isnull=True,
+        ).count(),
     }
 
 
@@ -231,6 +236,11 @@ def _hosting_meta(queryset, params):
             ),
         ),
         without_client_count=Count('id', filter=Q(client__isnull=True)),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        without_project_count=Count(
+            'id', filter=Q(client__isnull=False, project__isnull=True),
+        ),
     )
     return {
         'active_count': totals['active_count'] or 0,
@@ -238,6 +248,7 @@ def _hosting_meta(queryset, params):
         'total_paid': _money(totals['total_paid'] or 0),
         'expiring_soon_count': totals['expiring_soon_count'] or 0,
         'without_client_count': totals['without_client_count'] or 0,
+        'without_project_count': totals['without_project_count'] or 0,
     }
 
 

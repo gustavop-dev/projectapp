@@ -129,7 +129,14 @@ describe('ProjectSelect', () => {
 
   it('creating inline auto-selects the new project', async () => {
     create_request.mockResolvedValueOnce({
-      data: { id: 31, name: 'Crushme', status: 'active', status_label: 'Activo' },
+      data: {
+        id: 31,
+        name: 'Crushme',
+        status: 'active',
+        status_label: 'Activo',
+        unlinked_hostings_count: 2,
+        unlinked_incomes_count: 1,
+      },
     });
     const wrapper = mountSelect();
     await flushPromises();
@@ -146,7 +153,14 @@ describe('ProjectSelect', () => {
       client_profile_id: 7,
     });
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([31]);
-    expect(wrapper.emitted('created')[0][0]).toMatchObject({ id: 31, name: 'Crushme' });
+    // The full annotated row travels with `created`: the page decides the
+    // backlog offer from these counters.
+    expect(wrapper.emitted('created')[0][0]).toMatchObject({
+      id: 31,
+      name: 'Crushme',
+      unlinked_hostings_count: 2,
+      unlinked_incomes_count: 1,
+    });
     expect(wrapper.find('[data-testid="project-select-inline-create"]').exists()).toBe(false);
   });
 

@@ -32,7 +32,7 @@
     <AccountingSubnav active="incomes" />
 
     <!-- KPI cards (year scope, server-computed) -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
       <AccountingStatCard
         label="Total esperado (año)"
         :value="money(incomesMeta.expected_total)"
@@ -63,6 +63,15 @@
         :value="String(incomesMeta.without_client_count ?? 0)"
         :tone="(incomesMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
         sub="Pendientes de vincular"
+      />
+      <!-- Válido pero visible: un vacío legítimo que igual se muestra como
+           pendiente. Cuenta sólo filas con cliente (sin cliente no hay
+           proyecto que proponer). -->
+      <AccountingStatCard
+        label="Sin proyecto"
+        :value="String(incomesMeta.without_project_count ?? 0)"
+        :tone="(incomesMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Con cliente, pendientes de proyecto"
       />
     </div>
 
@@ -333,6 +342,16 @@
       :saving="store.isUpdating"
       @close="closeModal"
       @submit="handleSubmit"
+      @project-created="onProjectCreated"
+    />
+
+    <!-- Post-create offer: a project created inline may have a backlog of
+         the client's older records; the same PA-51 modal closes it here. -->
+    <ProjectAssignUnlinkedModal
+      :open="assignOfferOpen"
+      :project="pendingAssignProject"
+      @close="dismissAssignOffer"
+      @assigned="onUnlinkedAssigned"
     />
 
     <!-- Row actions: one list for both view modes, opened from the kebab -->
@@ -411,7 +430,7 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
 import IncomeRowActionsButton from '~/components/accounting/IncomeRowActionsButton.vue';
@@ -433,6 +452,7 @@ import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsM
 import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
 import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
+import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -450,6 +470,7 @@ import {
   matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
 import { formatDate } from '~/utils/formatDate';
@@ -465,6 +486,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 
 const store = useAccountingStore();
 const notify = usePanelNotify();
+const projectsStore = usePanelProjectsStore();
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
 const INCOME_ENTITY = { singular: 'ingreso', plural: 'ingresos' };
@@ -561,6 +583,11 @@ const {
       name: 'Sin cliente',
       filters: { clients: [NO_CLIENT_KEY] },
     },
+    {
+      id: 'no-project',
+      name: 'Sin proyecto',
+      filters: { projects: [NO_PROJECT_KEY] },
+    },
   ],
   // The day-to-day question is what is still uncollected, not the full ledger.
   defaultTabId: 'expected-pending',
@@ -613,9 +640,27 @@ const clientFilterOptions = computed(() => {
   return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
 });
 
-/** Same shape as clientFilterOptions: bounded by the rows on screen. */
+/**
+ * Full catalog first (history.vue pattern): a project with zero linked rows
+ * must still be selectable — that gap is exactly what the filter reveals.
+ * Row-derived entries survive as a defensive union for projects the catalog
+ * no longer lists. Numeric ids: `matchProjects` compares `record.project`.
+ */
 const projectFilterOptions = computed(() => {
+  const catalog = projectsStore.records ?? [];
+  const nameCounts = new Map();
+  catalog.forEach((project) => {
+    nameCounts.set(project.name, (nameCounts.get(project.name) ?? 0) + 1);
+  });
   const seen = new Map();
+  catalog.forEach((project) => {
+    const ambiguous = (nameCounts.get(project.name) ?? 0) > 1
+      && project.client?.name;
+    seen.set(
+      project.id,
+      ambiguous ? `${project.name} — ${project.client.name}` : project.name,
+    );
+  });
   store.incomes.forEach((row) => {
     if (row.project != null && !seen.has(row.project)) {
       seen.set(row.project, row.project_name || `Proyecto #${row.project}`);
@@ -1130,6 +1175,38 @@ async function loadRecords() {
   await store.fetchRecords('incomes');
 }
 
+// -------------------------------------------------------------------
+// Post-create assign offer (the Vástago gap)
+// -------------------------------------------------------------------
+
+const pendingAssignProject = ref(null);
+const assignOfferOpen = ref(false);
+
+function onProjectCreated(project) {
+  const backlog = (project.unlinked_hostings_count ?? 0)
+    + (project.unlinked_incomes_count ?? 0);
+  pendingAssignProject.value = backlog > 0 ? project : null;
+}
+
+// The offer waits for the form to close: the preview it loads is
+// server-fresh, so a record just saved by that form is already (correctly)
+// absent from it — and the project outlives a cancelled form on purpose.
+watch(isModalOpen, (open) => {
+  if (!open && pendingAssignProject.value) {
+    assignOfferOpen.value = true;
+  }
+});
+
+function dismissAssignOffer() {
+  assignOfferOpen.value = false;
+  pendingAssignProject.value = null;
+}
+
+async function onUnlinkedAssigned() {
+  dismissAssignOffer();
+  await loadRecords();
+}
+
 onMounted(async () => {
   // ?project=<id> — deep link from the /panel/projects counts; the URL pins
   // accounting_incomeTab=all because the landing tab hides settled rows.
@@ -1137,6 +1214,10 @@ onMounted(async () => {
   if (Number.isInteger(projectParam) && projectParam > 0) {
     currentFilters.projects = [projectParam];
   }
+  // Project filter options come from the full catalog (history.vue
+  // pattern); the store swallows failures, so an error just means a
+  // smaller dropdown, never a blocked page.
+  projectsStore.fetchProjects();
   // Sequential on purpose: the landing mode must be known before rows render
   // (no mode flash), and fetchSettings shares store.isLoading with the rows
   // fetch — in parallel, whichever finishes first would flash the empty state.

@@ -943,7 +943,10 @@ export const useAccountingStore = defineStore('accounting', {
      * Create a project from a picker without leaving the form (crear al
      * vuelo). On success the memoized per-client list is updated in place —
      * and the 'all' key dropped — so every open picker sees the new project
-     * without waiting out the cache.
+     * without waiting out the cache. Returns the FULL annotated row: the
+     * caller decides whether to offer the client's backlog from its
+     * `unlinked_hostings_count`/`unlinked_incomes_count`; the picker cache
+     * keeps only the lean entry it lists.
      */
     async createProjectForClient(clientProfileId, { name }) {
       try {
@@ -964,7 +967,7 @@ export const useAccountingStore = defineStore('accounting', {
         const cache = { ...this.projectsByClient, [key]: next };
         if (key !== 'all') delete cache.all;
         this.projectsByClient = cache;
-        return { success: true, data: entry };
+        return { success: true, data: row };
       } catch (error) {
         return {
           success: false,
