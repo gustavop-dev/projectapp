@@ -36,8 +36,20 @@
       </template>
     </DocumentsToolbar>
 
-    <div class="grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-6 items-stretch flex-1">
+    <!--
+      La columna del panel es una variable CSS que sólo la clase `lg:` consume:
+      bajo lg el grid sigue siendo de una columna y el ancho guardado queda
+      inerte (el panel apilado no lo lee). El track medio de 1.5rem es el gap-6
+      de siempre, ahora habitado por la manija de redimensionado.
+    -->
+    <div
+      ref="foldersGridRef"
+      class="grid grid-cols-1 gap-6 lg:gap-0 lg:grid-cols-[var(--folders-panel-w,22rem)_1.5rem_minmax(0,1fr)] items-stretch flex-1"
+      :class="panelDragging ? 'select-none' : ''"
+      :style="folderPanelStyle"
+    >
       <FolderSidebar
+        data-testid="folder-panel"
         data-enter
         style="--enter-delay: 120ms"
         :folders="sidebarFolders"
@@ -57,6 +69,35 @@
         @view-archived="handleViewArchivedFolder"
         @toggle-archived="handleToggleArchivedMode"
       />
+
+      <!--
+        Manija de redimensionado: separator ARIA operable con teclado, con
+        pointer capture para que el drag no se pierda al salir del track.
+        `touch-none` evita que un iPad apaisado (1024px = lg) scrollee en vez
+        de redimensionar. Persiste al soltar; doble clic vuelve al default.
+      -->
+      <div
+        v-if="!isPanelStacked"
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Ajustar el ancho del panel de carpetas"
+        :aria-valuenow="Math.round(panelWidth)"
+        :aria-valuemin="FOLDER_PANEL_MIN"
+        :aria-valuemax="FOLDER_PANEL_MAX"
+        tabindex="0"
+        class="group flex cursor-col-resize touch-none items-center justify-center focus:outline-none"
+        data-testid="folder-panel-resize-handle"
+        data-enter
+        style="--enter-delay: 150ms"
+        @pointerdown="onHandleDown"
+        @pointermove="onHandleMove"
+        @pointerup="onHandleUp"
+        @pointercancel="onHandleUp"
+        @dblclick="resetWidth"
+        @keydown="onHandleKey"
+      >
+        <span class="h-10 w-1 rounded-full bg-border-default transition-colors group-hover:bg-text-brand group-focus-visible:bg-text-brand" />
+      </div>
 
       <section
         class="min-w-0 flex flex-col transition-colors"
@@ -434,6 +475,10 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
 import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
+import { useIsMobile } from '~/composables/useIsMobile';
+import {
+  FOLDER_PANEL_MAX, FOLDER_PANEL_MIN, useFolderPanelWidth,
+} from '~/composables/useFolderPanelWidth';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -449,6 +494,15 @@ const {
 } = useConfirmModal();
 const { viewMode } = useDocumentViewMode();
 const { reducedMotion } = useReducedMotion();
+
+// Bajo lg el panel apila a ancho completo: la manija no aplica ahí, y se
+// quita con v-if (no clases hidden) para no duplicar nodos ante Playwright.
+const { isMobile: isPanelStacked } = useIsMobile(1023);
+const foldersGridRef = ref(null);
+const {
+  width: panelWidth, dragging: panelDragging, gridStyle: folderPanelStyle,
+  onHandleDown, onHandleMove, onHandleUp, onHandleKey, resetWidth,
+} = useFolderPanelWidth(foldersGridRef);
 
 const searchQuery = ref('');
 const newlyCreatedId = ref(null);
