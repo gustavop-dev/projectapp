@@ -63,7 +63,9 @@
                 class="text-xs text-text-subtle mt-1"
                 data-testid="doc-client-suggested-hint"
               >
-                Sugerido por la carpeta — puedes cambiarlo o quitarlo.
+                {{ inheritedFromFolder
+                  ? 'Heredado de la carpeta — puedes cambiarlo o quitarlo.'
+                  : 'Sugerido por la carpeta — puedes cambiarlo o quitarlo.' }}
               </p>
               <p v-else class="text-xs text-text-subtle mt-1">
                 Opcional. Las plantillas y notas pueden no tener dueño.
@@ -334,6 +336,8 @@ const clientDisplayName = ref('');
 // sugerencia por carpeta para siempre en este form.
 const clientTouched = ref(false);
 const suggestedFromFolder = ref(false);
+// Distingue el dato firme (la carpeta lo dice) de la conjetura por mayoría.
+const inheritedFromFolder = ref(false);
 const inlineClientOpen = ref(false);
 const inlineClient = ref(emptyClientForm());
 const creatingClient = ref(false);
@@ -400,10 +404,12 @@ function clearSuggestedClient() {
   clientDisplayName.value = '';
   form.project = null;
   suggestedFromFolder.value = false;
+  inheritedFromFolder.value = false;
 }
 
 // La carpeta ya está diciendo de quién es: al fijarla (incluido ?folder= de
-// la URL) se propone su cliente mayoritario. Sólo prellenado — nunca pisa una
+// la URL) se propone su asociación —la propia si la tiene, si no la mayoritaria
+// de sus documentos. Sólo prellenado — nunca pisa una
 // decisión del operador, y cambiar de carpeta re-propone o retira lo sugerido.
 watch(() => form.folder_id, async (folderId) => {
   if (clientTouched.value) return;
@@ -412,12 +418,15 @@ watch(() => form.folder_id, async (folderId) => {
     if (suggestedFromFolder.value) clearSuggestedClient();
     return;
   }
-  const result = await documentStore.fetchFolderClientSuggestion(folderId);
+  const result = await documentStore.resolveFolderAssociation(folderId);
   if (clientTouched.value) return;
   if (result.success && result.data?.client) {
     form.client = result.data.client;
     clientDisplayName.value = result.data.client_display_name || '';
+    // La carpeta asociada trae también su proyecto; la heurística no.
+    if (result.data.project) form.project = result.data.project;
     suggestedFromFolder.value = true;
+    inheritedFromFolder.value = result.data.source === 'folder';
   } else if (suggestedFromFolder.value) {
     clearSuggestedClient();
   }

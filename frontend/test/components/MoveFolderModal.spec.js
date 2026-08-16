@@ -15,7 +15,7 @@ const mockFolderStore = {
   get activeFolders() {
     return mockFolderStore.folders.filter((f) => !f.is_archived);
   },
-  childrenOf: (id) => mockFolderStore.folders.filter((f) => f.parent === id),
+  childrenOf: (id) => mockFolderStore.folders.filter((f) => (f.parent ?? null) === id),
 };
 
 // Nuxt auto-imports — must be set before the component is required
@@ -179,6 +179,85 @@ describe('MoveFolderModal', () => {
       await wrapper.vm.$nextTick();
 
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+    });
+  });
+
+  // ── Cliente distinto al de la carpeta destino ─────────────────────────────
+
+  describe('moving into another client folder', () => {
+    // La carpeta organiza, no es dueña: un documento PUEDE quedar con un
+    // cliente distinto al de su carpeta. Por eso mover no decide solo — salvo
+    // cuando el documento no tiene cliente, donde adoptar no pisa nada.
+    const kore = { id: 3, name: 'Kore', client: 7, client_display_name: 'Kore SAS' };
+    const ownDoc = { id: 1, title: 'Contrato', folder: null, client: 9 };
+    const looseDoc = { id: 2, title: 'Suelto', folder: null, client: null };
+
+    beforeEach(() => {
+      mockFolderStore.folders = [kore];
+    });
+
+    function folderButton(wrapper) {
+      return wrapper.findAll('button').find((b) => b.text().includes('Kore'));
+    }
+
+    it('asks before overwriting a client the document already has', async () => {
+      const wrapper = mountModal({ document: ownDoc });
+
+      await folderButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(mockDocumentStore.updateDocument).not.toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="move-folder-client-choice"]').exists()).toBe(true);
+    });
+
+    it('keeps the document client when that is the answer', async () => {
+      const wrapper = mountModal({ document: ownDoc });
+      await folderButton(wrapper).trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="move-folder-keep-client"]').trigger('click');
+      await flushPromises();
+
+      expect(mockDocumentStore.updateDocument).toHaveBeenCalledWith(1, {
+        folder_id: 3,
+      });
+    });
+
+    it('adopts the folder client when that is the answer', async () => {
+      const wrapper = mountModal({ document: ownDoc });
+      await folderButton(wrapper).trigger('click');
+      await flushPromises();
+
+      await wrapper.find('[data-testid="move-folder-adopt-client"]').trigger('click');
+      await flushPromises();
+
+      expect(mockDocumentStore.updateDocument).toHaveBeenCalledWith(1, {
+        folder_id: 3, adopt_folder_client: true,
+      });
+    });
+
+    it('does not ask when the document has no client to lose', async () => {
+      const wrapper = mountModal({ document: looseDoc });
+
+      await folderButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(mockDocumentStore.updateDocument).toHaveBeenCalledWith(2, {
+        folder_id: 3,
+      });
+      expect(wrapper.find('[data-testid="move-folder-client-choice"]').exists()).toBe(false);
+    });
+
+    it('does not ask when both already belong to the same client', async () => {
+      const wrapper = mountModal({
+        document: { id: 4, title: 'Suyo', folder: null, client: 7 },
+      });
+
+      await folderButton(wrapper).trigger('click');
+      await flushPromises();
+
+      expect(mockDocumentStore.updateDocument).toHaveBeenCalled();
+      expect(wrapper.find('[data-testid="move-folder-client-choice"]').exists()).toBe(false);
     });
   });
 });
