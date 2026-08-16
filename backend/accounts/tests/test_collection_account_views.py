@@ -292,3 +292,58 @@ class TestProjectCollectionAccountList:
         )
 
         assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Audit trail (coherence requisito 12)
+# ---------------------------------------------------------------------------
+
+class TestCollectionAccountAuditTrail:
+    """Draft moves and lifecycle transitions leave COLLECTION_ACCOUNT rows:
+    the annul-and-reissue path is reconstructable next to the reassignments."""
+
+    def _audit_rows(self, object_id):
+        from content.models import AccountingChangeLog
+
+        return AccountingChangeLog.objects.filter(
+            entity_type='collection_account', object_id=object_id,
+        )
+
+    def test_a_draft_patch_that_moves_the_client_is_audited(
+        self, admin_client, client_user_obj, project,
+    ):
+        created = admin_client.post(
+            BASE_URL, _create_payload(client_user_id=client_user_obj.id),
+            format='json',
+        )
+        account_id = created.json()['id']
+
+        response = admin_client.patch(
+            f'{BASE_URL}{account_id}/',
+            {'project_id': project.id}, format='json',
+        )
+
+        assert response.status_code == 200, response.json()
+        row = self._audit_rows(account_id).get()
+        change = next(c for c in row.changes if c['field'] == 'project')
+        assert change['new'] == 'CA Test Project'
+
+    def test_issue_and_paid_leave_their_status_rows(
+        self, admin_client, client_user_obj,
+    ):
+        created = admin_client.post(
+            BASE_URL, _create_payload(client_user_id=client_user_obj.id),
+            format='json',
+        )
+        account_id = created.json()['id']
+
+        issued = admin_client.post(f'{BASE_URL}{account_id}/issue/')
+        assert issued.status_code == 200, issued.json()
+        paid = admin_client.post(f'{BASE_URL}{account_id}/mark-paid/')
+        assert paid.status_code == 200, paid.json()
+
+        statuses = [
+            next(c for c in row.changes if c['field'] == 'commercial_status')
+            for row in self._audit_rows(account_id).order_by('created_at')
+        ]
+        assert [c['new'] for c in statuses] == ['Issued', 'Paid']

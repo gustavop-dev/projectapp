@@ -33,7 +33,7 @@
             </BaseButton>
           </template>
         </BaseDropdown>
-        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges">
+        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
           {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
         </BaseButton>
       </div>
@@ -97,6 +97,19 @@
       class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
       @submit.prevent="handleSave"
     >
+      <!-- Requisito 6: un documento emitido no se reasigna ni se reescribe.
+           El form queda visible (consultarlo sigue valiendo) con el guardado
+           apagado; el backend rechaza igual con collection_account_locked. -->
+      <BaseAlert
+        v-if="lockedCuenta"
+        variant="warning"
+        class="lg:col-span-2"
+        data-testid="doc-locked-cuenta-alert"
+      >
+        Cuenta de cobro emitida: este documento es de sólo lectura aquí.
+        Si hubo un error, anúlala y emite una nueva desde
+        Contabilidad → Cuentas de cobro.
+      </BaseAlert>
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
@@ -358,7 +371,7 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
-          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges">
+          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
             {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
           </BaseButton>
           <BaseDropdown :items="downloadItems" align="right">
@@ -419,6 +432,8 @@ const tagStore = useDocumentTagStore();
 const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
 const loadError = ref(false);
+// Requisito 6: an issued cuenta is a fact — read-only here, forever.
+const lockedCuenta = ref(false);
 const clientDisplayName = ref('');
 // El nombre libre heredado sigue existiendo (lo lee el PDF); se muestra como
 // referencia mientras el documento no tenga cliente relacional.
@@ -600,6 +615,10 @@ async function reloadDocument() {
     form.folder_id = result.data.folder || null;
     form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
     form.template_style = result.data.template_style || 'professional';
+    lockedCuenta.value = (
+      result.data.document_type_code === 'collection_account'
+      && result.data.commercial_status !== 'draft'
+    );
     savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
   } else {
     loadError.value = true;
@@ -634,6 +653,11 @@ async function handleSave() {
       clientDisplayName.value = result.data.client_display_name || clientDisplayName.value;
     }
     notify.success({ title: 'Documento guardado' });
+  } else if (result.code === 'collection_account_locked') {
+    // The server is the truth: the cuenta was issued (maybe from another
+    // tab) after this form loaded. Lock the page to match.
+    lockedCuenta.value = true;
+    notify.error({ title: 'Documento emitido', detail: result.message });
   } else {
     const fieldDetail = result.fieldErrors
       ? Object.entries(result.fieldErrors).map(([k, v]) => `${k}: ${v}`).join(' · ')

@@ -54,9 +54,11 @@ from content.views.panel_dashboard import panel_dashboard
 from content.views.panel_projects import (
     archive_panel_project,
     assign_project_unlinked_records,
+    change_project_client,
     create_panel_project,
     list_panel_projects,
     list_project_unlinked_records,
+    preview_project_client_change,
     unarchive_panel_project,
     update_panel_project,
 )
@@ -255,6 +257,8 @@ urlpatterns = [
     path('projects/<int:project_id>/unarchive/', unarchive_panel_project, name='panel-projects-unarchive'),
     path('projects/<int:project_id>/unlinked-records/', list_project_unlinked_records, name='panel-projects-unlinked-records'),
     path('projects/<int:project_id>/assign-unlinked/', assign_project_unlinked_records, name='panel-projects-assign-unlinked'),
+    path('projects/<int:project_id>/change-client/preview/', preview_project_client_change, name='panel-projects-change-client-preview'),
+    path('projects/<int:project_id>/change-client/', change_project_client, name='panel-projects-change-client'),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),

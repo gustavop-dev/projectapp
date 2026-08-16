@@ -39,6 +39,7 @@ class TestDocumentListSerializer:
         expected = {
             'id', 'uuid', 'title', 'slug', 'status', 'client_name',
             'client', 'client_display_name', 'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
@@ -100,6 +101,7 @@ class TestDocumentDetailSerializer:
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json', 'client_name',
             'client', 'client_display_name', 'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',

@@ -15,6 +15,7 @@ import logging
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import (
     Avg, Count, DecimalField, F, Max, Min, OuterRef, Q, Subquery, Sum, Value,
@@ -120,6 +121,21 @@ TRACKED_FIELDS = {
         ('amount', 'Valor'),
         ('notes', 'Notas'),
     ],
+    # Not in ENTITY_MODELS on purpose: projects and cuentas never enter the
+    # generic create/update/delete pipeline — only the coherence operations
+    # (change-client, draft moves, lifecycle transitions) write these rows.
+    EntityType.PROJECT: [
+        ('name', 'Nombre'),
+        ('description', 'Descripción'),
+        ('status', 'Estado'),
+        ('client', 'Cliente'),
+    ],
+    EntityType.COLLECTION_ACCOUNT: [
+        ('title', 'Título'),
+        ('client_user', 'Cliente'),
+        ('project', 'Proyecto'),
+        ('commercial_status', 'Estado comercial'),
+    ],
     EntityType.RECURRING: [
         ('name', 'Nombre'),
         ('price', 'Precio'),
@@ -218,6 +234,18 @@ def display_value(instance, field_name):
         return ''
     if isinstance(value, bool):
         return 'Sí' if value else 'No'
+    if isinstance(value, get_user_model()):
+        # Project.client and Document.client_user point at the User, not the
+        # profile; render the same display name the panel shows so both key
+        # spaces read identically in the audit table.
+        profile = getattr(value, 'profile', None)
+        if profile is not None:
+            from accounts.services.proposal_client_service import (
+                build_client_display_name,
+            )
+
+            return build_client_display_name(profile)
+        return value.get_full_name() or value.email or value.username
     if isinstance(value, UserProfile):
         # A client FK renders as "email (Client)" through __str__, which is
         # noise in the audit table and the notification email.
@@ -285,6 +313,11 @@ def object_repr(entity_type, instance):
         return instance.match_text
     if entity_type == EntityType.NOTIFICATION_RECIPIENT:
         return instance.email
+    if entity_type == EntityType.PROJECT:
+        return instance.name
+    if entity_type == EntityType.COLLECTION_ACCOUNT:
+        # The number survives the document; the title is the draft fallback.
+        return instance.public_number or instance.title
     return 'Configuración contable'
 
 
@@ -307,6 +340,27 @@ def log_accounting_change(
         actor=actor if getattr(actor, 'is_authenticated', False) else None,
         actor_username=getattr(actor, 'username', '') or '',
     )
+
+
+def log_entity_diff(entity_type, instance, old_values, user):
+    """One audit row for a tracked entity mutated OUTSIDE the generic
+    pipeline (projects, cuentas de cobro): diff against ``old_values`` and
+    log it. Never notifies — the coherence writers follow the bulk
+    convention. Returns the changes list (empty = nothing written).
+    """
+    changes = compute_changes(
+        entity_type, old_values, snapshot_values(instance, entity_type),
+    )
+    if changes:
+        log_accounting_change(
+            entity_type=entity_type,
+            object_id=instance.pk,
+            object_repr=object_repr(entity_type, instance),
+            action=Action.UPDATED,
+            changes=changes,
+            actor=user,
+        )
+    return changes
 
 
 def _notify(change_log):

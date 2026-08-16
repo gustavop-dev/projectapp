@@ -3,11 +3,11 @@ from django.db import models
 from .accounting_change_log import AccountingChangeLog
 
 
-# The accounting vocabulary plus the two records that can originate an email
-# without being accounting entities themselves. Sharing the base list keeps
-# the target types from drifting away from the audit trail's.
+# The accounting vocabulary plus the one record that can originate an email
+# without being an audit entity itself. Sharing the base list keeps the
+# target types from drifting away from the audit trail's — which now names
+# 'collection_account' (and 'project') directly.
 ENTITY_TYPE_CHOICES = AccountingChangeLog.EntityType.choices + [
-    ('collection_account', 'Cuenta de cobro'),
     ('payment', 'Pago de plataforma'),
 ]
 

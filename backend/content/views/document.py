@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from content.api_errors import error_response
 from content.models import Document
 from content.serializers.document import (
     DocumentListSerializer,
@@ -323,11 +324,38 @@ def retrieve_document(request, document_id):
     return Response(serializer.data)
 
 
+def _locked_collection_account_error(document):
+    """400 when a cuenta de cobro already left draft.
+
+    Draft cuentas are provisional and stay editable/deletable here; once
+    issued (or paid/cancelled) the document is a fact — the only path for a
+    mistake is anular y reemitir from the cuentas module, never rewriting
+    the record the number was assigned to.
+    """
+    is_cuenta = (
+        document.document_type
+        and document.document_type.code == COLLECTION_ACCOUNT
+    )
+    if not is_cuenta:
+        return None
+    if document.commercial_status == Document.CommercialStatus.DRAFT:
+        return None
+    return error_response(
+        'Esta cuenta de cobro ya fue emitida y no se puede modificar ni '
+        'eliminar desde Documentos.',
+        code='collection_account_locked',
+        hint='Anúlala y emite una nueva desde Contabilidad → Cuentas de cobro.',
+    )
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_document(request, document_id):
     """Update a document."""
     document = get_object_or_404(Document, pk=document_id)
+    locked = _locked_collection_account_error(document)
+    if locked:
+        return locked
     serializer = DocumentCreateUpdateSerializer(
         document, data=request.data, partial=True,
     )
@@ -354,6 +382,9 @@ def delete_document(request, document_id):
     eliminar sigue disponible para la limpieza final.
     """
     document = get_object_or_404(Document, pk=document_id)
+    locked = _locked_collection_account_error(document)
+    if locked:
+        return locked
     document.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 

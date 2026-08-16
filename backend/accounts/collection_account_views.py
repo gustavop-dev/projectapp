@@ -207,6 +207,13 @@ def collection_account_detail_view(request, account_id):
         return Response(ser.errors, status=status.HTTP_400_BAD_REQUEST)
     payload = ser.validated_data
 
+    # Draft moves of client/project alter per-client figures like any
+    # reassignment; the diff-and-log at the end makes them reconstructable.
+    from content.services import accounting_service
+    audit_snapshot = accounting_service.snapshot_values(
+        doc, accounting_service.EntityType.COLLECTION_ACCOUNT,
+    )
+
     if 'title' in payload:
         doc.title = payload['title']
     if 'project_id' in payload:
@@ -289,6 +296,10 @@ def collection_account_detail_view(request, account_id):
     recalculate_document_totals(doc)
     doc.save()
     doc = _base_collection_qs().get(pk=doc.pk)
+    accounting_service.log_entity_diff(
+        accounting_service.EntityType.COLLECTION_ACCOUNT,
+        doc, audit_snapshot, request.user,
+    )
     return Response(CollectionAccountDetailSerializer(doc).data)
 
 
