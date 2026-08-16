@@ -26,7 +26,9 @@ const extraTagNames = computed(() => tags.value.slice(MAX_TAGS).map((t) => t.nam
 
 const meta = computed(() => {
   const parts = []
-  if (props.document.client_name) parts.push(props.document.client_name)
+  const clientLabel = props.document.client_display_name || props.document.client_name
+  if (clientLabel) parts.push(clientLabel)
+  if (props.document.project_name) parts.push(props.document.project_name)
   if (props.archived) {
     parts.push(`Archivado · ${archivedAgeLabel(props.document.archived_at) || '—'}`)
   } else {

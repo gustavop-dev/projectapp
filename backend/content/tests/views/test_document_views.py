@@ -3,6 +3,8 @@ from io import BytesIO
 from unittest.mock import patch
 
 import pytest
+from accounts.models import Project, UserProfile
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from content.models import Document, DocumentFolder, DocumentType
@@ -49,6 +51,208 @@ class TestListDocuments:
         response = api_client.get(url)
 
         assert response.status_code == 401
+
+
+# ── Filtros de asociación cliente/proyecto ──
+
+def make_client(email, *, first='Ana', last='Pérez'):
+    user = get_user_model().objects.create_user(
+        username=email, email=email, password='pass12345',
+        first_name=first, last_name=last,
+    )
+    return UserProfile.objects.create(user=user, cedula='1049654583')
+
+
+@pytest.fixture
+def association_setup(db, markdown_doc_type):
+    """Dos clientes y tres documentos: con proyecto, sólo cliente y suelto."""
+    ana = make_client('ana@example.com')
+    kore = make_client('kore@example.com', first='Kore', last='SAS')
+    project = Project.objects.create(name='Kore - Diseño', client=kore.user)
+    doc_project = Document.objects.create(
+        title='Entregable Kore', document_type=markdown_doc_type,
+        client_user=kore.user, project=project, content_markdown='# k',
+    )
+    doc_client = Document.objects.create(
+        title='Contrato Ana', document_type=markdown_doc_type,
+        client_user=ana.user, content_markdown='# a',
+    )
+    doc_free = Document.objects.create(
+        title='Plantilla interna', document_type=markdown_doc_type,
+        content_markdown='# p',
+    )
+    return {
+        'ana': ana, 'kore': kore, 'project': project,
+        'doc_project': doc_project, 'doc_client': doc_client,
+        'doc_free': doc_free,
+    }
+
+
+class TestListDocumentAssociationFilters:
+    def _ids(self, response):
+        return {row['id'] for row in response.json()}
+
+    def test_client_none_returns_only_unlinked_docs(self, admin_client, association_setup):
+        response = admin_client.get(reverse('list-documents'), {'client': 'none'})
+
+        assert response.status_code == 200
+        assert self._ids(response) == {association_setup['doc_free'].id}
+
+    def test_client_id_filters_by_profile_pk(self, admin_client, association_setup):
+        kore = association_setup['kore']
+        response = admin_client.get(reverse('list-documents'), {'client': str(kore.pk)})
+
+        assert response.status_code == 200
+        rows = response.json()
+        assert self._ids(response) == {association_setup['doc_project'].id}
+        assert rows[0]['client'] == kore.pk
+        assert rows[0]['project_name'] == 'Kore - Diseño'
+        assert rows[0]['client_display_name']
+
+    def test_client_csv_combines_several_ids(self, admin_client, association_setup):
+        param = f"{association_setup['ana'].pk},{association_setup['kore'].pk}"
+        response = admin_client.get(reverse('list-documents'), {'client': param})
+
+        assert response.status_code == 200
+        assert self._ids(response) == {
+            association_setup['doc_project'].id,
+            association_setup['doc_client'].id,
+        }
+
+    def test_client_invalid_returns_400(self, admin_client, association_setup):
+        response = admin_client.get(reverse('list-documents'), {'client': 'abc'})
+
+        assert response.status_code == 400
+        assert 'client' in response.json()
+
+    def test_project_none_returns_docs_without_project(self, admin_client, association_setup):
+        response = admin_client.get(reverse('list-documents'), {'project': 'none'})
+
+        assert response.status_code == 200
+        assert self._ids(response) == {
+            association_setup['doc_client'].id,
+            association_setup['doc_free'].id,
+        }
+
+    def test_project_id_filters_docs(self, admin_client, association_setup):
+        project = association_setup['project']
+        response = admin_client.get(
+            reverse('list-documents'), {'project': str(project.pk)},
+        )
+
+        assert response.status_code == 200
+        assert self._ids(response) == {association_setup['doc_project'].id}
+
+    def test_project_invalid_returns_400(self, admin_client, association_setup):
+        response = admin_client.get(reverse('list-documents'), {'project': 'x1'})
+
+        assert response.status_code == 400
+        assert 'project' in response.json()
+
+    def test_client_and_project_combine_as_and(self, admin_client, association_setup):
+        response = admin_client.get(reverse('list-documents'), {
+            'client': str(association_setup['kore'].pk),
+            'project': 'none',
+        })
+
+        assert response.status_code == 200
+        assert self._ids(response) == set()
+
+
+class TestDuplicateDocumentAssociation:
+    def test_duplicate_copies_client_and_project(self, admin_client, association_setup):
+        source = association_setup['doc_project']
+        response = admin_client.post(reverse('duplicate-document', args=[source.id]))
+
+        assert response.status_code == 201
+        duplicated = Document.objects.get(pk=response.json()['id'])
+        assert duplicated.client_user == association_setup['kore'].user
+        assert duplicated.project == association_setup['project']
+
+
+class TestFolderClientSuggestion:
+    def test_suggests_the_strict_majority_client(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        nestor = make_client('nestor@example.com', first='Néstor')
+        folder = DocumentFolder.objects.create(name='Carpeta Ana')
+        for index in range(2):
+            Document.objects.create(
+                title=f'Doc Ana {index}', document_type=markdown_doc_type,
+                folder=folder, client_user=ana.user,
+            )
+        Document.objects.create(
+            title='Doc Néstor', document_type=markdown_doc_type,
+            folder=folder, client_user=nestor.user,
+        )
+        Document.objects.create(
+            title='Doc suelto', document_type=markdown_doc_type, folder=folder,
+        )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['client'] == ana.pk
+        assert 'Ana' in data['client_display_name']
+        assert data['linked_documents'] == 3
+        assert data['folder_documents'] == 4
+
+    def test_a_tie_suggests_nothing(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        nestor = make_client('nestor@example.com', first='Néstor')
+        folder = DocumentFolder.objects.create(name='Compartida')
+        for owner in (ana, nestor):
+            for index in range(2):
+                Document.objects.create(
+                    title=f'Doc {owner.pk} {index}',
+                    document_type=markdown_doc_type,
+                    folder=folder, client_user=owner.user,
+                )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['client'] is None
+
+    def test_a_single_linked_document_is_not_enough(self, admin_client, markdown_doc_type):
+        ana = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(name='Casi vacía')
+        Document.objects.create(
+            title='Doc único', document_type=markdown_doc_type,
+            folder=folder, client_user=ana.user,
+        )
+
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'),
+            {'folder': str(folder.id)},
+        )
+
+        assert response.status_code == 200
+        assert response.json()['client'] is None
+
+    def test_invalid_folder_returns_400(self, admin_client):
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'), {'folder': 'abc'},
+        )
+
+        assert response.status_code == 400
+        assert 'folder' in response.json()
+
+    def test_unknown_folder_returns_a_null_suggestion(self, admin_client):
+        response = admin_client.get(
+            reverse('document-folder-client-suggestion'), {'folder': '999999'},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data['client'] is None
+        assert data['folder_documents'] == 0
 
 
 # ── create_document ──

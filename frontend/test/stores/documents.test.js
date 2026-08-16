@@ -561,4 +561,50 @@ describe('useDocumentStore', () => {
       expect(store.counts.documents.archived).toBe(3)
     })
   })
+
+  describe('association axes (client/project)', () => {
+    it('sends client and project params when the axes are set', async () => {
+      store.activeClientId = 4
+      store.activeProjectId = 9
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=4&project=9')
+    })
+
+    it('sends the none sentinel for the unlinked cut', async () => {
+      store.activeClientId = 'none'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=none')
+    })
+
+    it('setFilters updates the axes and refetches with them', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.setFilters({ client: 4, project: 'none' })
+      expect(store.activeClientId).toBe(4)
+      expect(store.activeProjectId).toBe('none')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=4&project=none')
+    })
+  })
+
+  describe('fetchFolderClientSuggestion', () => {
+    it('asks the endpoint for the folder and returns its payload', async () => {
+      get_request.mockResolvedValueOnce({
+        data: { client: 3, client_display_name: 'Ana Pérez' },
+      })
+      const result = await store.fetchFolderClientSuggestion(12)
+      expect(get_request).toHaveBeenCalledWith('documents/folder-client-suggestion/?folder=12')
+      expect(result).toEqual({
+        success: true,
+        data: { client: 3, client_display_name: 'Ana Pérez' },
+      })
+    })
+
+    it('reports failure without touching the list loading flag', async () => {
+      get_request.mockRejectedValueOnce({ response: { data: { folder: 'x' } } })
+      const result = await store.fetchFolderClientSuggestion(12)
+      expect(result.success).toBe(false)
+      expect(store.isLoading).toBe(false)
+    })
+  })
 })

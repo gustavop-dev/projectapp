@@ -5,7 +5,7 @@ from content.views.accounting import (
     retrieve_income_detail, list_client_projects,
     settle_income_record, bulk_assign_income_client, mute_income_reminders,
     bulk_assign_income_project,
-    duplicate_income_draft,
+    duplicate_income_draft, suggest_income_period,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
     update_expense_record, delete_expense_record,
@@ -163,6 +163,7 @@ from content.views.document import (
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
     archive_document, unarchive_document, document_counts,
+    suggest_folder_client,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -387,6 +388,7 @@ urlpatterns = [
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),
     path('documents/counts/', document_counts, name='document-counts'),
+    path('documents/folder-client-suggestion/', suggest_folder_client, name='document-folder-client-suggestion'),
     path('documents/create/', create_document, name='create-document'),
     path('documents/create-from-markdown/', create_document_from_markdown, name='create-document-from-markdown'),
     path('documents/upload-markdown/', upload_document_markdown, name='upload-document-markdown'),
@@ -547,6 +549,7 @@ urlpatterns = [
     path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
     path('accounting/incomes/<int:record_id>/mute/', mute_income_reminders, name='mute-income-reminders'),
     path('accounting/incomes/<int:record_id>/duplicate-draft/', duplicate_income_draft, name='duplicate-income-draft'),
+    path('accounting/incomes/period-suggestion/', suggest_income_period, name='suggest-income-period'),
     path('accounting/incomes/bulk-assign-client/', bulk_assign_income_client, name='bulk-assign-income-client'),
     path('accounting/incomes/bulk-assign-project/', bulk_assign_income_project, name='bulk-assign-income-project'),
     path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),

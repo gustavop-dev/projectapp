@@ -3,8 +3,9 @@ import { useRoute, useRouter } from 'vue-router';
 import { DEFAULT_SCOPE, DOCUMENT_SCOPES } from '~/utils/archiveScope';
 
 /**
- * Sincroniza los dos ejes del gestor de documentos con la URL:
- * `?folder=` (dónde) y `?scope=` (en qué estado).
+ * Sincroniza los ejes del gestor de documentos con la URL:
+ * `?folder=` (dónde), `?scope=` (en qué estado) y `?client=` / `?project=`
+ * (de quién — el salto desde /panel/clients entra por aquí).
  *
  * Sin esto, F5 devolvía siempre a Todos/activos y no existían deep links —
  * el resto del panel ya persiste su contexto con `?tab=` (useProposalFilters).
@@ -43,6 +44,16 @@ export function useDocumentFilterQuery(documentStore, { isSearching, onNavigate 
     return DOCUMENT_SCOPES.includes(raw) ? raw : null;
   }
 
+  // Ejes de asociación (?client= / ?project=): null (sin filtro), 'none'
+  // (sin asociar) o un id. Basura cae a null, mismo criterio permisivo que
+  // parseFolder: un deep link roto no debe romper la vista.
+  function parseAssociation(raw) {
+    if (raw === undefined || raw === null || raw === '') return null;
+    if (raw === 'none') return 'none';
+    const id = Number(raw);
+    return Number.isInteger(id) && id > 0 ? id : null;
+  }
+
   /**
    * Vuelca el query al store. Debe correr ANTES del primer fetch para que la
    * carga inicial ya pida la carpeta/scope del deep link (un solo fetch).
@@ -57,10 +68,16 @@ export function useDocumentFilterQuery(documentStore, { isSearching, onNavigate 
   function applyQueryToStore() {
     const folder = parseFolder(route.query.folder) ?? 'all';
     const scope = parseScope(route.query.scope) ?? DEFAULT_SCOPE;
+    const client = parseAssociation(route.query.client);
+    const project = parseAssociation(route.query.project);
     const changed = documentStore.activeFolderId !== folder
-      || documentStore.archiveScope !== scope;
+      || documentStore.archiveScope !== scope
+      || documentStore.activeClientId !== client
+      || documentStore.activeProjectId !== project;
     documentStore.activeFolderId = folder;
     documentStore.archiveScope = scope;
+    documentStore.activeClientId = client;
+    documentStore.activeProjectId = project;
     // Normaliza lo que se haya escrito a mano (`?scope=active`, basura): la URL
     // tiene que reproducir la vista, ni más ni menos.
     syncQuery();
@@ -85,20 +102,35 @@ export function useDocumentFilterQuery(documentStore, { isSearching, onNavigate 
     const query = { ...route.query };
     const folder = documentStore.activeFolderId;
     const scope = documentStore.archiveScope;
+    const client = documentStore.activeClientId;
+    const project = documentStore.activeProjectId;
     if (folder === 'all' || folder == null) delete query.folder;
     else query.folder = String(folder);
     if (scope === 'active') delete query.scope;
     else query.scope = scope;
-    if (query.folder === route.query.folder && query.scope === route.query.scope) return;
+    if (client == null) delete query.client;
+    else query.client = String(client);
+    if (project == null) delete query.project;
+    else query.project = String(project);
+    if (
+      query.folder === route.query.folder && query.scope === route.query.scope
+      && query.client === route.query.client && query.project === route.query.project
+    ) return;
     router.replace({ query });
   }
 
-  watch(() => [documentStore.activeFolderId, documentStore.archiveScope], syncQuery);
+  watch(() => [
+    documentStore.activeFolderId, documentStore.archiveScope,
+    documentStore.activeClientId, documentStore.activeProjectId,
+  ], syncQuery);
 
   // El otro sentido: atrás/adelante del navegador cambian la URL sin pasar por
   // el store. Converge porque volcar valores que ya están puestos no dispara el
   // watcher de arriba, y `syncQuery` no reescribe un query que ya es el suyo.
-  watch(() => [route.query.folder, route.query.scope], () => {
+  watch(() => [
+    route.query.folder, route.query.scope,
+    route.query.client, route.query.project,
+  ], () => {
     if (isSearching?.value) return;
     if (applyQueryToStore()) onNavigate?.();
   });

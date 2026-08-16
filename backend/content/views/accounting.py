@@ -14,6 +14,7 @@ from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import Project
@@ -86,6 +87,10 @@ from content.services import (
     accounting_settlement_service,
 )
 from content.utils import today_bogota
+from content.views.history_pagination import (
+    email_body_response,
+    paginated_history_response,
+)
 
 EntityType = AccountingChangeLog.EntityType
 
@@ -96,28 +101,11 @@ _parse_date = accounting_history_service.parse_date_param
 
 # Builtin presets plus the per-user ceiling of saved tabs, with room to spare.
 MAX_TAB_COUNT_SPECS = 24
-HISTORY_PAGE_SIZE = 20
 
-
-def _paginated_history_response(queryset, params, serializer_class):
-    """Serialize one 20-row page of a history queryset."""
-    total = queryset.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    offset = (page - 1) * HISTORY_PAGE_SIZE
-    num_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
-
-    serializer = serializer_class(
-        queryset[offset:offset + HISTORY_PAGE_SIZE], many=True,
-    )
-    return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
-    })
+# Shared with the per-client email modal, which pages the same rows through a
+# different scope. Re-exported under the old private names so the call sites
+# in this module read as they always did.
+_paginated_history_response = paginated_history_response
 
 
 def _parse_decimal(value, param):
@@ -685,29 +673,46 @@ def retrieve_income_detail(request, record_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsSuperUser])
+@permission_classes([IsAdminUser])
 def list_client_projects(request):
     """Projects to pick from, optionally scoped to one client.
 
     A panel endpoint of its own instead of reusing /api/accounts/projects/:
     that one speaks User ids while the accounting module speaks UserProfile
-    ids everywhere, it is IsAuthenticated rather than IsSuperUser, and its
-    serializer runs several per-row aggregates that a dropdown has no use for.
+    ids everywhere, and its serializer runs several per-row aggregates that a
+    dropdown has no use for.
+
+    IsAdminUser y no IsSuperUser como el resto del módulo: el picker también
+    alimenta el formulario de documentos (IsAdminUser) y sus filas no exponen
+    nada que el listado de documentos no muestre ya. Cada fila lleva su dueño
+    para que un caller sin cliente fijado (elegir proyecto PRIMERO) pueda
+    autocompletar el cliente desde la selección.
     """
-    qs = Project.objects.all().order_by('name')
+    from accounts.services.proposal_client_service import build_client_display_name
+
+    qs = Project.objects.select_related('client__profile').order_by('name')
     client_profile_id = request.query_params.get('client')
     if client_profile_id:
         # The picker is scoped by UserProfile, the project by User.
         qs = qs.filter(client__profile__id=client_profile_id)
-    return Response({'results': [
-        {
+
+    results = []
+    for project in qs:
+        profile = (
+            getattr(project.client, 'profile', None)
+            if project.client_id else None
+        )
+        results.append({
             'id': project.pk,
             'name': project.name,
             'status': project.status,
             'status_label': project.status_display,
-        }
-        for project in qs
-    ]})
+            'client_profile_id': profile.id if profile else None,
+            'client_display_name': (
+                build_client_display_name(profile) if profile else None
+            ),
+        })
+    return Response({'results': results})
 
 
 def _update_record(request, key, record_id):
@@ -850,6 +855,41 @@ def duplicate_income_draft(request, record_id):
     return Response(
         accounting_income_duplicate_service.build_income_duplicate_draft(income),
     )
+
+
+def _optional_id(request, name):
+    """Query param as an id, or None — an unreadable one counts as absent.
+
+    The form asks while it is being filled, so a half-written value is an
+    ordinary state, not an error: it just means there is nothing to look the
+    antecedent up from yet.
+    """
+    raw = request.query_params.get(name)
+    try:
+        return int(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def suggest_income_period(request):
+    """Where a client's next hosting window starts, so the form can propose it.
+
+    Persists nothing. Unlike the duplicate draft there is no record yet to
+    count from, so the client (and the project, when the form already has one)
+    arrive as query params.
+    """
+    previous_end, suggested_start = (
+        accounting_income_duplicate_service.suggest_next_period_start(
+            _optional_id(request, 'client'),
+            _optional_id(request, 'project'),
+        )
+    )
+    return Response({
+        'previous_period_end': previous_end.isoformat() if previous_end else None,
+        'suggested_start': suggested_start.isoformat(),
+    })
 
 
 def _missing_records_error(entity_type, record_ids, *, noun):
@@ -1510,21 +1550,7 @@ def accounting_email_log_body(request, log_id):
         id=log_id,
         template_key__in=EMAIL_TEMPLATE_LABELS,
     )
-    if log.body is None:
-        return error_response(
-            'Este envío es anterior a que se guardara el cuerpo de los '
-            'correos, así que no hay nada que mostrar.',
-            code='body_not_stored',
-            status=status.HTTP_404_NOT_FOUND,
-        )
-    return Response({
-        'id': log.id,
-        'subject': log.subject,
-        'recipient': log.recipient,
-        'sent_at': log.sent_at,
-        'html': log.body.html,
-        'text': log.body.text,
-    })
+    return email_body_response(log)
 
 
 @api_view(['POST'])

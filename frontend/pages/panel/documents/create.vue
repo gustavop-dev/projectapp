@@ -50,16 +50,64 @@
               />
             </div>
             <div>
-              <label for="doc-client" class="block text-sm font-medium text-text-default mb-1">Nombre del cliente</label>
-              <input
-                id="doc-client"
-                v-model="form.client_name"
-                type="text"
-                placeholder="Empresa S.A."
-                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
+              <ClientAutocomplete
+                v-model="form.client"
+                :initial-label="clientDisplayName"
+                test-id="doc-client-autocomplete"
+                @select="onClientSelect"
+                @create-new="onCreateNewClient"
               />
+              <p
+                v-if="suggestedFromFolder"
+                class="text-xs text-text-subtle mt-1"
+                data-testid="doc-client-suggested-hint"
+              >
+                Sugerido por la carpeta — puedes cambiarlo o quitarlo.
+              </p>
+              <p v-else class="text-xs text-text-subtle mt-1">
+                Opcional. Las plantillas y notas pueden no tener dueño.
+              </p>
             </div>
+
+            <!-- Inline client creation: the clients module without leaving the form -->
+            <div
+              v-if="inlineClientOpen"
+              class="rounded-xl border border-border-default bg-surface-raised p-4 space-y-3"
+              data-testid="doc-inline-client"
+            >
+              <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
+              <ClientFormFields
+                v-model="inlineClient"
+                testid-prefix="doc-inline-client"
+                dense
+              />
+              <div class="flex justify-end gap-2">
+                <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
+                  Cancelar
+                </BaseButton>
+                <BaseButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  :disabled="creatingClient"
+                  data-testid="doc-inline-client-save"
+                  @click="createInlineClient"
+                >
+                  {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
+                </BaseButton>
+              </div>
+            </div>
+
+            <ProjectSelect
+              v-model="form.project"
+              :client-profile-id="form.client"
+              :client-label="clientDisplayName"
+              :allow-no-client="true"
+              :auto-select-single="true"
+              testid="doc-project-select"
+              @select="onProjectSelect"
+            />
           </div>
 
           <hr class="border-border-muted" />
@@ -255,9 +303,14 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted } from 'vue';
+import { reactive, ref, computed, onMounted, watch } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
+import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
@@ -267,6 +320,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
+const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
 const mode = ref('paste');
 const uploadedFileName = ref('');
@@ -274,9 +328,19 @@ const showPreview = ref(true);
 const isDragging = ref(false);
 const route = useRoute();
 
+const clientDisplayName = ref('');
+// Una decisión del operador (elegir, crear o limpiar cliente) apaga la
+// sugerencia por carpeta para siempre en este form.
+const clientTouched = ref(false);
+const suggestedFromFolder = ref(false);
+const inlineClientOpen = ref(false);
+const inlineClient = ref(emptyClientForm());
+const creatingClient = ref(false);
+
 const form = reactive({
   title: '',
-  client_name: '',
+  client: null,
+  project: null,
   language: 'es',
   include_portada: true,
   include_subportada: true,
@@ -301,6 +365,74 @@ onMounted(async () => {
 const canSubmit = computed(
   () => !documentStore.isUpdating && form.title.trim() && form.content_markdown.trim(),
 );
+
+function onClientSelect(client) {
+  clientTouched.value = true;
+  suggestedFromFolder.value = false;
+  if (!client) {
+    form.client = null;
+    clientDisplayName.value = '';
+    // Sin cliente el proyecto no se sostiene: el backend lo derivaría de
+    // vuelta desde el proyecto y la limpieza no habría limpiado nada.
+    form.project = null;
+    return;
+  }
+  form.client = client.id;
+  clientDisplayName.value = client.name || '';
+}
+
+/** Cascada inversa: elegir proyecto primero completa el cliente solo. */
+function onProjectSelect(row) {
+  if (row && row.client_profile_id && !form.client) {
+    form.client = row.client_profile_id;
+    clientDisplayName.value = row.client_display_name || '';
+    clientTouched.value = true;
+    suggestedFromFolder.value = false;
+  }
+}
+
+function onCreateNewClient(typedName) {
+  inlineClientOpen.value = true;
+  inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
+}
+
+async function createInlineClient() {
+  creatingClient.value = true;
+  const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
+  creatingClient.value = false;
+  if (result.success && result.data?.id) {
+    inlineClientOpen.value = false;
+    onClientSelect(result.data);
+  }
+}
+
+function clearSuggestedClient() {
+  form.client = null;
+  clientDisplayName.value = '';
+  form.project = null;
+  suggestedFromFolder.value = false;
+}
+
+// La carpeta ya está diciendo de quién es: al fijarla (incluido ?folder= de
+// la URL) se propone su cliente mayoritario. Sólo prellenado — nunca pisa una
+// decisión del operador, y cambiar de carpeta re-propone o retira lo sugerido.
+watch(() => form.folder_id, async (folderId) => {
+  if (clientTouched.value) return;
+  if (form.client && !suggestedFromFolder.value) return;
+  if (!Number.isInteger(folderId)) {
+    if (suggestedFromFolder.value) clearSuggestedClient();
+    return;
+  }
+  const result = await documentStore.fetchFolderClientSuggestion(folderId);
+  if (clientTouched.value) return;
+  if (result.success && result.data?.client) {
+    form.client = result.data.client;
+    clientDisplayName.value = result.data.client_display_name || '';
+    suggestedFromFolder.value = true;
+  } else if (suggestedFromFolder.value) {
+    clearSuggestedClient();
+  }
+});
 
 const coverOptions = [
   { key: 'include_portada', label: 'Incluir portada' },
@@ -355,7 +487,9 @@ function handleDrop(event) {
 async function handleSubmit() {
   const payload = {
     title: form.title.trim(),
-    client_name: form.client_name.trim(),
+    // Siempre presentes, null incluido: es lo que permite guardar sin dueño.
+    client: form.client ?? null,
+    project: form.project ?? null,
     language: form.language,
     include_portada: form.include_portada,
     include_subportada: form.include_subportada,

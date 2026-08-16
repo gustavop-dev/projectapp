@@ -6,9 +6,11 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue'
 import ClientFormFields from '~/components/clients/ClientFormFields.vue'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
+import { useHostingPeriod } from '~/composables/useHostingPeriod'
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode'
-import { nextPeriodEnd, todayISO } from '~/utils/periodDates'
-import { CUSTOM_FREQUENCY, FREQUENCY_OPTIONS } from '~/utils/recurring'
+import { formatDate } from '~/utils/formatDate'
+import { todayISO } from '~/utils/periodDates'
+import { FREQUENCY_OPTIONS } from '~/utils/recurring'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -98,6 +100,22 @@ const isHosting = computed(() => form.value.origin === 'hosting')
 
 const cadenceOptions = FREQUENCY_OPTIONS
 
+const {
+  previousPeriodEnd,
+  beginHydration,
+  cycleOptions,
+  isCycleActive,
+  applyCycle,
+  onPeriodEndEdited,
+  periodEndError,
+  resolveAnchor,
+} = useHostingPeriod(form, {
+  isHosting,
+  isEdit,
+  isDuplicate,
+  seed: computed(() => props.seed),
+})
+
 // Only while the proposed date is untouched: once it changes, the hint would
 // be describing a date that is no longer the one the hosting cycle produced.
 // A hosting seed lands the proposal on `period_start` (the visible field),
@@ -118,20 +136,6 @@ const showsPeriodHint = computed(
 )
 
 const CYCLE_LABELS = { 1: '+1 mes', 3: '+3 meses', 6: '+6 meses', 12: '+1 año' }
-// What each shortcut means on the cadence scale, so in hosting mode the
-// buttons and the selector are one mechanism instead of two: a shortcut just
-// picks the cadence, and the active state reads back from the selector.
-const MONTHS_TO_CADENCE = { 1: 'monthly', 3: 'quarterly', 6: 'semiannual', 12: 'annual' }
-
-/**
- * Shortcuts to the next period, offered only while duplicating: a create has
- * no original to count from and an edit is not opening a new period. The
- * dates are computed by the server (`add_months` clamps the day, and this
- * codebase keeps every date advance backend-side), so this only picks one.
- */
-const cycleOptions = computed(
-  () => (isDuplicate.value ? props.seed?.cycle_options ?? [] : []),
-)
 
 function cycleLabel(months) {
   return CYCLE_LABELS[months] ?? `+${months} meses`
@@ -143,35 +147,51 @@ function cycleValue(option) {
   return exactDate.value ? option.date : option.date.slice(0, 7)
 }
 
-function isCycleActive(option) {
-  if (isHosting.value) {
-    return !!form.value.period_cadence
-      && form.value.period_cadence === MONTHS_TO_CADENCE[option.months]
+function onCycleClick(option) {
+  // Outside hosting a shortcut is still just the server's proposed date for a
+  // single-date income; the window logic belongs to the composable.
+  if (!isHosting.value) {
+    form.value.period_date = cycleValue(option)
+    periodDateTouched.value = true
+    return
   }
+  applyCycle(option)
+}
+
+function isCycleSelected(option) {
+  if (isHosting.value) return isCycleActive(option)
   return !!form.value.period_date && form.value.period_date === cycleValue(option)
 }
 
-function applyCycle(option) {
-  if (isHosting.value) {
-    const cadence = MONTHS_TO_CADENCE[option.months]
-    if (!cadence) return
-    form.value.period_cadence = cadence
-    recomputePeriodEnd()
-    return
+/**
+ * What the operator gains from the periodicity, said where they are choosing
+ * it. When the client already has a window on the book, the start says which
+ * one this period follows — the reason the dates land where they land.
+ */
+const cadenceHint = 'Al elegirla se calcula la fecha de fin del período.'
+
+const HOSTING_CYCLE_HINT = 'Siguiente ciclo del hosting. Ajústala si no corresponde.'
+
+const periodDateHint = computed(() => (showsCycleHint.value ? HOSTING_CYCLE_HINT : ''))
+
+const periodStartHint = computed(() => {
+  if (showsPeriodHint.value) {
+    return 'Siguiente período según la periodicidad registrada. Ajústalo si no corresponde.'
   }
-  form.value.period_date = cycleValue(option)
-}
+  if (showsCycleHint.value) return HOSTING_CYCLE_HINT
+  if (previousPeriodEnd.value) {
+    return `El período anterior terminó el ${formatDate(previousPeriodEnd.value)}.`
+  }
+  return ''
+})
 
 /**
- * Convenience default, not an invariant: picking a cadence (or moving the
- * start) proposes the matching inclusive end, and the operator adjusts it
- * freely afterwards. `custom` proposes nothing — both dates are handwritten.
+ * A create prefills the single date with today, which is boilerplate rather
+ * than an answer. Carrying that into the window would hide the period the
+ * client's last charge actually points to, so only a date the operator (or a
+ * record) put there counts as written.
  */
-function recomputePeriodEnd() {
-  if (!isHosting.value) return
-  const end = nextPeriodEnd(form.value.period_start, form.value.period_cadence)
-  if (end) form.value.period_end = end
-}
+const periodDateTouched = ref(false)
 
 /**
  * Requisito of the origin switch: what was already written survives. Only the
@@ -179,7 +199,7 @@ function recomputePeriodEnd() {
  * outgoing one so the operator never re-types it.
  */
 function onOriginChange() {
-  if (isHosting.value && !form.value.period_start && form.value.period_date) {
+  if (isHosting.value && !form.value.period_start && periodDateTouched.value) {
     form.value.period_start = form.value.period_date
   } else if (!isHosting.value && !form.value.period_date && form.value.period_start) {
     form.value.period_date = form.value.period_start
@@ -229,7 +249,13 @@ watch(
     // records, whose real day was never captured); the toggle still
     // downgrades when only the month is known.
     exactDate.value = true
+    // Prefilling writes start, end and cadence at once: the period watchers
+    // must not treat that batch as the operator choosing a cadence and
+    // recompute an end the record already stated.
+    beginHydration()
     const source = props.record || props.seed
+    // A stored date is an answer, not boilerplate.
+    periodDateTouched.value = !!source
     if (source) applyRecord(source)
     else form.value = defaultForm()
     inlineClientOpen.value = false
@@ -237,8 +263,20 @@ watch(
       form.value.client = props.lockedClient.id ?? null
       form.value.client_name = props.lockedClient.name ?? ''
     }
+    resolveAnchor()
   },
   { immediate: true },
+)
+
+// The antecedent is the client's, so it is re-resolved whenever the form
+// changes whose it is — including the project, which narrows the lookup when
+// one client holds several hostings.
+watch(
+  () => [form.value.client, form.value.project, isHosting.value],
+  () => {
+    if (!props.open) return
+    resolveAnchor()
+  },
 )
 
 function onClientSelect(client) {
@@ -262,6 +300,9 @@ async function createInlineClient() {
 }
 
 function onSubmit() {
+  // The serializer rejects it too, but a 400 round trip to say what the form
+  // already knows is a worse way to find out.
+  if (periodEndError.value) return
   const payload = {
     concept: form.value.concept,
     kind: form.value.kind,
@@ -381,70 +422,59 @@ function onSubmit() {
         />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <!-- How often first, then the window it produces: the periodicity sits
+           beside Tipo because it is chosen before the dates it proposes. -->
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Tipo" required>
           <BaseSegmented v-model="form.kind" :options="kindOptions" full-width />
         </BaseFormField>
-        <div v-if="!isHosting">
-          <PeriodDateField
-            v-model="form.period_date"
-            v-model:exact="exactDate"
-            label-exact="Fecha"
-            label-month="Mes"
-            required
-            input-testid="income-form-period"
-            toggle-testid="income-form-exact-date"
-          />
-          <p
-            v-if="showsCycleHint"
-            class="mt-1 text-xs text-text-subtle"
-            data-testid="income-form-period-hint"
-          >
-            Siguiente ciclo del hosting. Ajústala si no corresponde.
-          </p>
-        </div>
-        <div v-else>
-          <PeriodDateField
-            v-model="form.period_start"
-            v-model:exact="exactDate"
-            label-exact="Inicio del período"
-            label-month="Mes de inicio"
-            required
-            input-testid="income-form-period-start"
-            toggle-testid="income-form-exact-date"
-            @update:model-value="recomputePeriodEnd"
-          />
-          <p
-            v-if="showsPeriodHint || showsCycleHint"
-            class="mt-1 text-xs text-text-subtle"
-            data-testid="income-form-period-hint"
-          >
-            {{ showsPeriodHint
-              ? 'Siguiente período según la periodicidad registrada. Ajústalo si no corresponde.'
-              : 'Siguiente ciclo del hosting. Ajústala si no corresponde.' }}
-          </p>
-        </div>
-      </div>
-
-      <!-- The rest of the window a hosting income covers. The end proposes
-           itself from start + cadence and stays editable; `custom` writes
-           both dates by hand. -->
-      <BaseFormRow v-if="isHosting" :cols="2" :gap="4">
-        <BaseFormField label="Fin del período" required>
-          <BaseInput
-            v-model="form.period_end"
-            type="date"
-            required
-            data-testid="income-form-period-end"
-          />
-        </BaseFormField>
-        <BaseFormField label="Periodicidad" required hint="El mismo catálogo de los gastos recurrentes.">
+        <PeriodDateField
+          v-if="!isHosting"
+          v-model="form.period_date"
+          v-model:exact="exactDate"
+          label-exact="Fecha"
+          label-month="Mes"
+          required
+          input-testid="income-form-period"
+          toggle-testid="income-form-exact-date"
+          :hint="periodDateHint"
+          hint-testid="income-form-period-hint"
+          @update:model-value="periodDateTouched = true"
+        />
+        <BaseFormField v-else label="Periodicidad" required :hint="cadenceHint">
           <BaseSelect
             v-model="form.period_cadence"
             :options="cadenceOptions"
+            placeholder="Elegir periodicidad"
             required
             data-testid="income-form-period-cadence"
-            @update:model-value="recomputePeriodEnd"
+          />
+        </BaseFormField>
+      </BaseFormRow>
+
+      <!-- The window a hosting income covers, read left to right. The end
+           proposes itself from start + cadence and stays editable; writing it
+           by hand is what turns the periodicity into `Personalizada`. -->
+      <BaseFormRow v-if="isHosting" :cols="2" :gap="4">
+        <PeriodDateField
+          v-model="form.period_start"
+          v-model:exact="exactDate"
+          label-exact="Inicio del período"
+          label-month="Mes de inicio"
+          required
+          input-testid="income-form-period-start"
+          toggle-testid="income-form-exact-date"
+          :hint="periodStartHint"
+          hint-testid="income-form-period-hint"
+        />
+        <BaseFormField label="Fin del período" required :error="periodEndError">
+          <BaseInput
+            v-model="form.period_end"
+            type="date"
+            :error="!!periodEndError"
+            required
+            data-testid="income-form-period-end"
+            @update:model-value="onPeriodEndEdited"
           />
         </BaseFormField>
       </BaseFormRow>
@@ -457,10 +487,10 @@ function onSubmit() {
             :key="option.months"
             type="button"
             size="sm"
-            :variant="isCycleActive(option) ? 'primary' : 'secondary'"
-            :aria-pressed="isCycleActive(option)"
+            :variant="isCycleSelected(option) ? 'primary' : 'secondary'"
+            :aria-pressed="isCycleSelected(option)"
             :data-testid="`income-form-cycle-${option.months}`"
-            @click="applyCycle(option)"
+            @click="onCycleClick(option)"
           >
             {{ cycleLabel(option.months) }}
           </BaseButton>

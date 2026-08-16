@@ -81,6 +81,38 @@ RETRY_HANDLERS = {
     'payment_status_team': _retry_payment_status,
 }
 
+# The three digests. Named here rather than imported from the serializers so
+# this module keeps no import edge back into them.
+DIGEST_TEMPLATE_KEYS = frozenset({
+    'accounting_card_reminder',
+    'accounting_statement_reminder',
+    'accounting_payment_calendar',
+})
+
+# Everything else with no handler: proposal and diagnostic traffic, which the
+# client's email view lists alongside the accounting notices. Telling those
+# rows they "resume varios registros del día" would be nonsense, so they get
+# the sentence that actually helps.
+UNSUPPORTED_RETRY_REASON = (
+    'Los correos de propuestas y diagnósticos no se reenvían desde aquí; '
+    'vuelve a enviarlo desde la propuesta o el diagnóstico.'
+)
+
+
+def retry_blocked_reason(template_key):
+    """Why this notice cannot be retried, or '' when it can.
+
+    One source of truth for three families, read by both the endpoint and
+    the serializer field the button's tooltip renders.
+    """
+    from content.serializers.accounting import RETRY_BLOCKED_REASON
+
+    if template_key in RETRY_HANDLERS:
+        return ''
+    if template_key in DIGEST_TEMPLATE_KEYS:
+        return RETRY_BLOCKED_REASON
+    return UNSUPPORTED_RETRY_REASON
+
 
 def retry_send(log):
     """Re-send the notice this row failed to deliver, to its recipient only.
@@ -90,14 +122,13 @@ def retry_send(log):
     retry cannot be attempted at all.
     """
     from content.models import EmailLog
-    from content.serializers.accounting import RETRY_BLOCKED_REASON
 
     if log.status != EmailLog.Status.FAILED:
         raise RetryError('Solo se reintentan los envíos que fallaron.')
 
     handler = RETRY_HANDLERS.get(log.template_key)
     if handler is None:
-        raise RetryError(RETRY_BLOCKED_REASON)
+        raise RetryError(retry_blocked_reason(log.template_key))
 
     sent = handler(log)
     attempt = EmailLog.objects.filter(retry_of=log).order_by('-sent_at').first()
