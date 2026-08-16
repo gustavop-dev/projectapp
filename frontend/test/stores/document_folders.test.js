@@ -110,6 +110,59 @@ describe('useDocumentFolderStore', () => {
     expect(store.folders).toEqual([{ id: 1, name: 'A' }, { id: 2, name: 'B' }])
   })
 
+  describe('change client cascade', () => {
+    it('previewChangeClient asks the backend for the impact', async () => {
+      get_request.mockResolvedValue({ data: { totals: { documents: 3 } } })
+
+      const result = await store.previewChangeClient(5, 9)
+
+      expect(get_request).toHaveBeenCalledWith(
+        'document-folders/5/change-client/preview/?client_profile_id=9',
+      )
+      expect(result.success).toBe(true)
+      expect(result.data.totals.documents).toBe(3)
+    })
+
+    it('previewChangeClient reports a failure instead of throwing', async () => {
+      get_request.mockRejectedValue({ response: { data: { error: 'nope' } } })
+
+      const result = await store.previewChangeClient(5, 9)
+
+      expect(result.success).toBe(false)
+    })
+
+    it('changeClient posts the confirmed plan and refreshes the folder', async () => {
+      store.folders = [{ id: 5, name: 'Kore', client: 1 }]
+      create_request.mockResolvedValue({
+        data: { folder: { id: 5, name: 'Kore', client: 9 }, moved: { documents: 2 } },
+      })
+
+      const payload = {
+        client_profile_id: 9, mode: 'propagate', document_ids: [1, 2], folder_ids: [],
+      }
+      const result = await store.changeClient(5, payload)
+
+      expect(create_request).toHaveBeenCalledWith(
+        'document-folders/5/change-client/', payload,
+      )
+      expect(result.success).toBe(true)
+      // La fila vuelve con el cliente nuevo: el panel lateral no puede seguir
+      // mostrando al anterior.
+      expect(store.folders[0].client).toBe(9)
+    })
+
+    it('changeClient surfaces a stale-plan conflict', async () => {
+      create_request.mockRejectedValue({
+        response: { status: 409, data: { code: 'records_changed' } },
+      })
+
+      const result = await store.changeClient(5, { mode: 'propagate' })
+
+      expect(result.success).toBe(false)
+      expect(result.code).toBe('records_changed')
+    })
+  })
+
   describe('hierarchy getters', () => {
     // Árbol: 1 (raíz) -> 2 -> 4 ; 1 -> 3 ; 5 (raíz)
     beforeEach(() => {

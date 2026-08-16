@@ -419,6 +419,7 @@ import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
+import { useClientProjectCascade } from '~/composables/useClientProjectCascade';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
@@ -476,26 +477,10 @@ const form = reactive({
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
 
-function onClientSelect(client) {
-  if (!client) {
-    form.client = null;
-    clientDisplayName.value = '';
-    // Sin cliente el proyecto no se sostiene: el backend lo derivaría de
-    // vuelta desde el proyecto y la limpieza no habría limpiado nada.
-    form.project = null;
-    return;
-  }
-  form.client = client.id;
-  clientDisplayName.value = client.name || '';
-}
-
-/** Cascada inversa: elegir proyecto primero completa el cliente solo. */
-function onProjectSelect(row) {
-  if (row && row.client_profile_id && !form.client) {
-    form.client = row.client_profile_id;
-    clientDisplayName.value = row.client_display_name || '';
-  }
-}
+const { onClientSelect, onProjectSelect } = useClientProjectCascade(
+  form,
+  clientDisplayName,
+);
 
 function onCreateNewClient(typedName) {
   inlineClientOpen.value = true;

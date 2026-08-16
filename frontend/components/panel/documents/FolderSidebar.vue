@@ -121,8 +121,18 @@
                 @click="$emit('select', folder.id)"
               >
                 <!-- La segunda cifra le come ancho al nombre; el `title` deja
-                     recuperar el que se trunca sin robarle más columna. -->
-                <span class="truncate flex-1 min-w-0" :title="folder.name">{{ folder.name }}</span>
+                     recuperar el que se trunca sin robarle más columna. El
+                     cliente va debajo y sólo si la carpeta lo tiene: es la
+                     línea que dice de quién es sin abrirla. -->
+                <span class="flex-1 min-w-0 flex flex-col">
+                  <span class="truncate" :title="folder.name">{{ folder.name }}</span>
+                  <span
+                    v-if="folder.client_display_name"
+                    class="truncate text-2xs text-text-subtle"
+                    :data-testid="`folder-client-${folder.id}`"
+                    :title="folder.client_display_name"
+                  >{{ folder.client_display_name }}</span>
+                </span>
                 <!-- Directa a propósito, a diferencia del contador de al lado:
                      la insignia promete «clic para verlos» y ese clic entra a
                      ESTA carpeta, cuyo listado no es recursivo. -->
@@ -169,6 +179,28 @@
                     <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
                   </svg>
                 </div>
+
+                <!-- Editar vive acá por lo mismo que archivar y eliminar: es
+                     igual de frecuente, y hasta ahora era la única de las tres
+                     que había que ir a buscar al modal de NUEVA carpeta. -->
+                <BaseTooltip position="top" width="max-w-xs" min-width="min-w-0">
+                  <template #trigger>
+                    <BaseButton
+                      variant="ghost"
+                      icon-only
+                      size="sm"
+                      :aria-label="`Editar carpeta ${folder.name}`"
+                      class="opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      data-testid="folder-edit"
+                      @click="$emit('edit', folder)"
+                    >
+                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </BaseButton>
+                  </template>
+                  Editar carpeta
+                </BaseTooltip>
 
                 <!-- Archivar vive acá y no sólo en el gestor de carpetas: es la
                      salida para una carpeta con contenido, que no se puede
@@ -255,7 +287,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits([
-  'select', 'manage', 'folder-drop', 'delete', 'archive', 'view-archived',
+  'select', 'manage', 'folder-drop', 'edit', 'delete', 'archive', 'view-archived',
   'toggle-archived',
 ]);
 

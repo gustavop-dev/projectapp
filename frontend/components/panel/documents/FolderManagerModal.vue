@@ -108,54 +108,6 @@
             />
           </div>
 
-          <!-- Edit panel -->
-          <Transition name="fade-modal">
-            <div
-              v-if="editingFolder"
-              class="mx-6 mb-4 flex-shrink-0 rounded-xl border border-primary/20 bg-primary-soft p-4"
-            >
-              <p class="text-xs font-semibold text-text-brand mb-2">
-                Editar "{{ editingFolder.name }}"
-              </p>
-              <div class="space-y-2">
-                <input
-                  v-model="editName"
-                  type="text"
-                  placeholder="Nombre de la carpeta"
-                  class="w-full px-2.5 py-2 border border-input-border rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
-                  @keyup.enter="commitEdit"
-                  @keyup.esc="editingFolder = null"
-                />
-                <label class="flex items-center gap-2 text-xs text-text-muted">
-                  <span class="flex-shrink-0">Carpeta padre:</span>
-                  <select
-                    v-model="editParent"
-                    class="flex-1 min-w-0 px-2.5 py-2 border border-border-default rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
-                  >
-                    <option :value="null">Ninguna (carpeta raíz)</option>
-                    <option v-for="opt in editOptions" :key="opt.id" :value="opt.id">
-                      {{ opt.label }}
-                    </option>
-                  </select>
-                </label>
-              </div>
-              <div class="flex items-center gap-2 mt-3">
-                <BaseButton
-                  variant="primary"
-                  size="sm"
-                  :disabled="!editName.trim()"
-                  :loading="folderStore.isUpdating"
-                  @click="commitEdit"
-                >
-                  Guardar
-                </BaseButton>
-                <BaseButton variant="ghost" size="sm" @click="editingFolder = null">
-                  Cancelar
-                </BaseButton>
-              </div>
-            </div>
-          </Transition>
-
           <div v-if="errorMsg" class="px-6 pb-2 flex-shrink-0">
             <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
           </div>
@@ -184,6 +136,18 @@
       @deleted="onFolderDeleted"
       @archived="onFolderArchived"
     />
+
+    <!--
+      Y el mismo criterio para editar: un solo formulario de carpeta en toda la
+      app. Antes vivía acá como panel inline, que era además el ÚNICO camino
+      para editar algo ya existente — dentro del modal de crear.
+    -->
+    <FolderFormModal
+      v-model="showFolderForm"
+      :folder="editingFolder"
+      @saved="onFolderSaved"
+      @change-client="$emit('change-client', $event)"
+    />
   </Teleport>
 </template>
 
@@ -191,19 +155,21 @@
 import { computed, ref, watch } from 'vue';
 import FolderManagerTree from '~/components/panel/documents/FolderManagerTree.vue';
 import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
+import FolderFormModal from '~/components/panel/documents/FolderFormModal.vue';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   initialParent: { type: Number, default: null },
 });
-const emit = defineEmits(['update:modelValue', 'changed', 'archived']);
+const emit = defineEmits([
+  'update:modelValue', 'changed', 'archived', 'change-client',
+]);
 
 const folderStore = useDocumentFolderStore();
 const newName = ref('');
 const newParent = ref(null);
 const editingFolder = ref(null);
-const editName = ref('');
-const editParent = ref(null);
+const showFolderForm = ref(false);
 const deletingFolder = ref(null);
 const showDeleteFolder = ref(false);
 const errorMsg = ref('');
@@ -214,6 +180,7 @@ watch(() => props.modelValue, async (open) => {
     deletingFolder.value = null;
     showDeleteFolder.value = false;
     editingFolder.value = null;
+    showFolderForm.value = false;
     newName.value = '';
     newParent.value = props.initialParent ?? null;
     await folderStore.fetchFolders();
@@ -241,9 +208,6 @@ function buildFolderOptions(excludeId) {
 }
 
 const createOptions = computed(() => buildFolderOptions(null));
-const editOptions = computed(() => (
-  editingFolder.value ? buildFolderOptions(editingFolder.value.id) : []
-));
 
 function close() {
   emit('update:modelValue', false);
@@ -253,7 +217,15 @@ async function handleCreate() {
   const name = newName.value.trim();
   if (!name) return;
   errorMsg.value = '';
-  const result = await folderStore.createFolder({ name, parent: newParent.value });
+  // Crear dentro de una carpeta con dueño hereda su asociación: es el mismo
+  // default que propone el formulario completo, no una atadura.
+  const parent = newParent.value ? folderStore.folderById(newParent.value) : null;
+  const result = await folderStore.createFolder({
+    name,
+    parent: newParent.value,
+    client: parent?.client ?? null,
+    project: parent?.project ?? null,
+  });
   if (result.success) {
     newName.value = '';
     newParent.value = props.initialParent ?? null;
@@ -265,25 +237,14 @@ async function handleCreate() {
 
 function startEdit(folder) {
   editingFolder.value = folder;
-  editName.value = folder.name;
-  editParent.value = folder.parent ?? null;
   deletingFolder.value = null;
+  showFolderForm.value = true;
 }
 
-async function commitEdit() {
-  const name = editName.value.trim();
-  if (!editingFolder.value || !name) return;
-  errorMsg.value = '';
-  const result = await folderStore.updateFolder(editingFolder.value.id, {
-    name,
-    parent: editParent.value,
-  });
-  if (result.success) {
-    editingFolder.value = null;
-    emit('changed');
-  } else {
-    errorMsg.value = formatErr(result.errors) || 'No se pudo guardar.';
-  }
+async function onFolderSaved() {
+  editingFolder.value = null;
+  await folderStore.fetchFolders();
+  emit('changed');
 }
 
 function askDelete(folder) {
