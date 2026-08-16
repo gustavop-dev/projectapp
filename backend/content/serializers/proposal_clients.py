@@ -57,6 +57,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     last_email_at = serializers.SerializerMethodField()
     documents_count = serializers.SerializerMethodField()
     documents_no_project_count = serializers.SerializerMethodField()
+    document_folders_count = serializers.SerializerMethodField()
     last_document_at = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
@@ -95,6 +96,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'last_email_at',
             'documents_count',
             'documents_no_project_count',
+            'document_folders_count',
             'last_document_at',
             'is_orphan',
             'is_inactive',
@@ -126,6 +128,7 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'last_email_at',
             'documents_count',
             'documents_no_project_count',
+            'document_folders_count',
             'last_document_at',
             'is_orphan',
             'is_inactive',
@@ -262,6 +265,14 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             return annotated
         return obj.user.client_documents.filter(
             is_archived=False, project__isnull=True,
+        ).count()
+
+    def get_document_folders_count(self, obj):
+        annotated = getattr(obj, 'document_folders_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.client_document_folders.filter(
+            is_archived=False,
         ).count()
 
     def get_last_document_at(self, obj):
