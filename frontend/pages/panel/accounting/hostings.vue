@@ -22,7 +22,7 @@
     <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
       <AccountingStatCard
         label="Hostings activos"
         :value="String(hostingsMeta.active_count ?? 0)"
@@ -48,6 +48,15 @@
         :value="String(hostingsMeta.without_client_count ?? 0)"
         :tone="(hostingsMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
         sub="Pendientes de vincular"
+      />
+      <!-- Válido pero visible: un vacío legítimo que igual se muestra como
+           pendiente. Cuenta sólo filas con cliente (sin cliente no hay
+           proyecto que proponer). -->
+      <AccountingStatCard
+        label="Sin proyecto"
+        :value="String(hostingsMeta.without_project_count ?? 0)"
+        :tone="(hostingsMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
+        sub="Con cliente, pendientes de proyecto"
       />
     </div>
 
@@ -302,7 +311,7 @@
       error/empty/table chain, because a selection whose rows the filter just
       hid still needs its actions.
     -->
-    <ClientBulkAssignBar
+    <BulkAssignBar
       v-model:selected="selectedIds"
       :rows="store.hostings"
       :filtered-ids="filteredIds"
@@ -310,7 +319,9 @@
       testid-prefix="hostings"
       :record-label="hostingLabel"
       :busy="store.isUpdating"
+      project-enabled
       @submit="applyClientToSelection"
+      @submit-project="applyProjectToSelection"
     />
 
     <!-- Create/edit modal -->
@@ -320,6 +331,16 @@
       :saving="store.isUpdating"
       @close="closeModal"
       @submit="handleSubmit"
+      @project-created="onProjectCreated"
+    />
+
+    <!-- Post-create offer: a project created inline may have a backlog of
+         the client's older records; the same PA-51 modal closes it here. -->
+    <ProjectAssignUnlinkedModal
+      :open="assignOfferOpen"
+      :project="pendingAssignProject"
+      @close="dismissAssignOffer"
+      @assigned="onUnlinkedAssigned"
     />
 
     <!-- Confirm modal for delete -->
@@ -358,7 +379,7 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import {
   ClockIcon, EnvelopeIcon, PaperAirplaneIcon, PlusIcon,
 } from '@heroicons/vue/24/outline';
@@ -375,7 +396,8 @@ import AccountingStatusSelect from '~/components/accounting/AccountingStatusSele
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
-import ClientBulkAssignBar from '~/components/accounting/ClientBulkAssignBar.vue';
+import BulkAssignBar from '~/components/accounting/BulkAssignBar.vue';
+import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -391,8 +413,10 @@ import {
   matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
+import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
+import { describeProjectAssignmentResult } from '~/utils/projectAssignment';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
 import { clientLabelOf } from '~/utils/incomeClients';
@@ -401,6 +425,7 @@ import { addWeightPct, formatPercent } from '~/utils/percent';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
@@ -472,6 +497,11 @@ const {
       name: 'Sin cliente',
       filters: { clients: [NO_CLIENT_KEY] },
     },
+    {
+      id: 'no-project',
+      name: 'Sin proyecto',
+      filters: { projects: [NO_PROJECT_KEY] },
+    },
   ],
   defaults: {
     clients: [],
@@ -511,9 +541,27 @@ const clientFilterOptions = computed(() => {
   return [{ value: NO_CLIENT_KEY, label: NO_CLIENT_LABEL }, ...options];
 });
 
-/** Same shape as clientFilterOptions: bounded by the rows on screen. */
+/**
+ * Full catalog first (history.vue pattern): a project with zero linked rows
+ * must still be selectable — that gap is exactly what the filter reveals.
+ * Row-derived entries survive as a defensive union for projects the catalog
+ * no longer lists. Numeric ids: `matchProjects` compares `record.project`.
+ */
 const projectFilterOptions = computed(() => {
+  const catalog = projectsStore.records ?? [];
+  const nameCounts = new Map();
+  catalog.forEach((project) => {
+    nameCounts.set(project.name, (nameCounts.get(project.name) ?? 0) + 1);
+  });
   const seen = new Map();
+  catalog.forEach((project) => {
+    const ambiguous = (nameCounts.get(project.name) ?? 0) > 1
+      && project.client?.name;
+    seen.set(
+      project.id,
+      ambiguous ? `${project.name} — ${project.client.name}` : project.name,
+    );
+  });
   store.hostings.forEach((row) => {
     if (row.project != null && !seen.has(row.project)) {
       seen.set(row.project, row.project_name || `Proyecto #${row.project}`);
@@ -703,8 +751,70 @@ async function applyClientToSelection({ ids, client, mode, plan }) {
   }
 }
 
+async function applyProjectToSelection({ ids, project, mode, plan }) {
+  const result = await runMutation(
+    () => store.bulkAssignHostingProject(ids, project),
+    {
+      successTitle: mode === 'unlink'
+        ? 'Proyecto quitado de los hostings'
+        : 'Proyecto asignado a los hostings',
+      successDetail: (r) => describeProjectAssignmentResult(
+        plan, r.data?.updated ?? 0, { entity: HOSTING_ENTITY },
+      ),
+      errorTitle: mode === 'unlink'
+        ? 'No se pudo quitar el proyecto'
+        : 'No se pudo asignar el proyecto',
+    },
+  );
+  if (result.success) {
+    clearSelection();
+    // Cross-module courtesy: the projects page reads per-project counts; if
+    // its store already holds data, refresh it so a later visit agrees.
+    if (projectsStore.records.length) projectsStore.fetchProjects();
+    return;
+  }
+  // `records_not_found` and `client_mismatch` both name exact ids: drop
+  // them, keep the rest of the selection, and rebuild the view.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    await loadRecords();
+  }
+}
+
 async function loadRecords() {
   await store.fetchRecords('hostings');
+}
+
+// -------------------------------------------------------------------
+// Post-create assign offer (the Vástago gap)
+// -------------------------------------------------------------------
+
+const pendingAssignProject = ref(null);
+const assignOfferOpen = ref(false);
+
+function onProjectCreated(project) {
+  const backlog = (project.unlinked_hostings_count ?? 0)
+    + (project.unlinked_incomes_count ?? 0);
+  pendingAssignProject.value = backlog > 0 ? project : null;
+}
+
+// The offer waits for the form to close: the preview it loads is
+// server-fresh, so a record just saved by that form is already (correctly)
+// absent from it — and the project outlives a cancelled form on purpose.
+watch(isModalOpen, (open) => {
+  if (!open && pendingAssignProject.value) {
+    assignOfferOpen.value = true;
+  }
+});
+
+function dismissAssignOffer() {
+  assignOfferOpen.value = false;
+  pendingAssignProject.value = null;
+}
+
+async function onUnlinkedAssigned() {
+  dismissAssignOffer();
+  await loadRecords();
 }
 
 // -------------------------------------------------------------------
@@ -839,6 +949,10 @@ onMounted(() => {
     currentFilters.projects = [projectParam];
   }
   applyClientFromQuery();
+  // Project filter options come from the full catalog (history.vue
+  // pattern); the store swallows failures, so an error just means a
+  // smaller dropdown, never a blocked page.
+  projectsStore.fetchProjects();
   return loadRecords();
 });
 usePanelRefresh(loadRecords);

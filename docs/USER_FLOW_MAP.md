@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.37.0
-> **Last updated:** 2026-08-13
+> **Version:** 2.39.0
+> **Last updated:** 2026-08-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -1295,18 +1295,41 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/clients/`, `/panel/accounting/hostings/`
-- **Description:** Read the client list **by business module** instead of a flat strip of filters (Ago 2026 reorganisation). **Level 1** is the module — Todos, Propuestas, Proyectos, **Hosting** (its own module, not a corner of Contabilidad: it is a service line with a life of its own and its subfilters grow with PA-51) and Contabilidad. Picking one does **not** narrow the list; it decides which subfilters level 2 offers, which is precisely what lets a module hold both a cut and its complement ("Con hosting cobrado" next to "Sin hosting"). **Level 2** holds the thirteen subfilters: the seven proposal-status cuts (Draft, Sent/Viewed, Negociación, Accepted, Expired, Rejected, Finished — code-level entries since migration 0049 dropped the seeded `SavedFilterTab` rows, freeing the twelve saved-tab slots for the admin's own), **Con proyecto activo** / **Sin proyecto**, **Con hosting cobrado** (≥1 hosting with `is_active`, the very flag the client card renders as "Vigente", so the number reconciles with the Hostings tab) / **Con hosting (histórico)** / **Sin hosting**, and **Sin datos de facturación** (no `nit`, `cedula` nor `billing_code` — `billing_code` is stored NULL, the other two `''`). Every subfilter carries its match count **in parentheses, always shown, `(0)` included**, computed over the loaded rows after the status and search cuts so the number equals what pressing it returns. The hosting and project cuts ride the formal PA-25 FK via `active_hostings_count` / `active_projects_count`, annotated as `Subquery` aggregates — never text or project names. A subfilter is a set of values of the **filter panel's own controls**, not an opaque predicate: so each one can equally be rebuilt from the panel, combined with the others and with the panel's advanced filters, saved as a named tab under its module, and removed by its chip — which drops the tab highlight with it, because tab, chip and panel are three views of one state. Chips name the module they come from. Whatever does not fit the row moves into a "Más" menu instead of being clipped. The **client status** (Todos/Activos/Huérfanos/Inactivos) is transversal: next to the search box, with its own server-computed counts, mirrored in `?status=` and combinable with any module. Selecting a subfilter stamps `?clientTab=<id>` and `?clientModule=<module>` (shareable, survives reload); pressing it again clears the cut but stays in the module. Deactivated clients stay out by default even holding live hostings (the endpoint hides them; "Inactivos" remains an explicit opt-in). While the Hosting module is being read every row shows its hosting count, which for superusers doubles as the jump into `/panel/accounting/hostings?client=<id>` — landing there already filtered.
+- **Description:** Read the client list **by business module** instead of a flat strip of filters (Ago 2026 reorganisation). **Level 1** is the module — Todos, Propuestas, **Diagnóstico**, Proyectos, **Hosting** (its own module, not a corner of Contabilidad: it is a service line with a life of its own and its subfilters grow with PA-51), Contabilidad and **Documentos** (the documento→cliente/proyecto association turned into level-1 cuts, Ago 2026). Picking one does **not** narrow the list; it decides which subfilters level 2 offers, which is precisely what lets a module hold both a cut and its complement ("Con hosting cobrado" next to "Sin hosting"). **Level 2** holds the sixteen subfilters: the seven proposal-status cuts (Draft, Sent/Viewed, Negociación, Accepted, Expired, Rejected, Finished — code-level entries since migration 0049 dropped the seeded `SavedFilterTab` rows, freeing the twelve saved-tab slots for the admin's own), **Con proyecto activo** / **Sin proyecto**, **Con hosting cobrado** (≥1 hosting with `is_active`, the very flag the client card renders as "Vigente", so the number reconciles with the Hostings tab) / **Con hosting (histórico)** / **Sin hosting**, **Sin datos de facturación** (no `nit`, `cedula` nor `billing_code` — `billing_code` is stored NULL, the other two `''`), and the three Documentos cuts — **Con documentos** / **Sin documentos** / **Con documentos sin proyecto** (the review list the retroactive folder pass leaves behind), reading `documents_count` / `documents_no_project_count` computed over ACTIVE documents linked via `Document.client_user`. Every subfilter carries its match count **in parentheses, always shown, `(0)` included**, computed over the loaded rows after the status and search cuts so the number equals what pressing it returns. The hosting and project cuts ride the formal PA-25 FK via `active_hostings_count` / `active_projects_count`, annotated as `Subquery` aggregates — never text or project names. A subfilter is a set of values of the **filter panel's own controls**, not an opaque predicate: so each one can equally be rebuilt from the panel, combined with the others and with the panel's advanced filters, saved as a named tab under its module, and removed by its chip — which drops the tab highlight with it, because tab, chip and panel are three views of one state. Chips name the module they come from. Whatever does not fit the row moves into a "Más" menu instead of being clipped. The **client status** (Todos/Activos/Huérfanos/Inactivos) is transversal: next to the search box, with its own server-computed counts, mirrored in `?status=` and combinable with any module. Selecting a subfilter stamps `?clientTab=<id>` and `?clientModule=<module>` (shareable, survives reload); pressing it again clears the cut but stays in the module. Deactivated clients stay out by default even holding live hostings (the endpoint hides them; "Inactivos" remains an explicit opt-in). While the Hosting module is being read every row shows its hosting count, which for superusers doubles as the jump into `/panel/accounting/hostings?client=<id>` — landing there already filtered. While **Documentos** is active the row pill shows `<N> docs · <fecha del último>` (data-testid `client-documents-<id>`, no superuser gate — documents shares this page's admin gate) and jumps into `/panel/documents?client=<id>`. **(Ago 2026)** Two more modules join that row. **Diagnóstico** reads two sources on purpose: *Con diagnóstico facturado* reads the income (`origin=diagnostic`, write-offs excluded) so a diagnostic billed without its `WebAppDiagnostic` ever being created is not hidden, while *Sin diagnóstico* and *Diagnóstico sin propuesta posterior* read the entity — the latter anchored on `Coalesce(initial_sent_at, created_at)`, because a proposal written while the diagnostic still sat in draft cannot be its outcome, and expressed as a `~Exists` rather than a `NOT IN` because `BusinessProposal.client` is nullable. **Emails** is the transversal one, riding the `EmailLog.client`/`audience` pair this ticket materialised: its four cuts count only what was addressed to the client, so *Sin contacto en los últimos 30 días* deliberately includes whoever never received anything, the same way *Con hosting cobrado* sits inside *Con hosting (histórico)*.
 - **Steps:**
-  1. Admin navigates to `/panel/clients/`; the full list renders and the module row (data-testid: `clients-module-<id>`) offers the five business modules.
+  1. Admin navigates to `/panel/clients/`; the full list renders and the module row (data-testid: `clients-module-<id>`) offers the eight business modules.
   2. Admin picks a module — the list does **not** change; level 2 swaps to that module's subfilters, each showing its count in parentheses.
   3. Admin clicks a subfilter (data-testid: `filter-tabs-tab-hosting-charged`) — the list narrows client-side and the URL gains `?clientTab=hosting-charged&clientModule=hosting`.
   4. Typing in the search box (data-testid: `clients-search-input`) refetches server-side and the subfilter keeps narrowing the result; neither annuls the other. The status selector likewise combines instead of replacing.
   5. Opening the filter panel (data-testid: `clients-filter-toggle`) shows the cut as a module-prefixed chip; removing it (data-testid: `client-filter-chip-hostingStatus`) restores the full list and un-highlights the tab, leaving any other cut applied. The same control can rebuild the cut from scratch.
   6. Clicking the applied subfilter again clears it: full list, `?clientTab` gone, still in the module.
   7. While the Hosting module is being read, the row pill (data-testid: `client-hostings-<id>`) navigates to `/panel/accounting/hostings?client=<id>`, which seeds the client multi-select on arrival. Non-superusers see the count as plain text (accounting is superuser-only).
-- **Coverage:** ✅ Covered — module grouping without narrowing, counts before applying (including `(0)`), narrowing + URL stamp, toggle-off, chip removal dropping the tab, rebuilding a predefined filter from the panel, shared-link restore, search composition, the transversal status, and the pre-filtered handoff into Hostings are all asserted (2026-08-15).
+  8. While the Documentos module is being read, the row pill (data-testid: `client-documents-<id>`) shows `<N> docs · <fecha del último>` and navigates to `/panel/documents?client=<id>`, landing on the manager with the client axis already applied.
+  9. Under the Diagnóstico module, `filter-tabs-tab-diagnostic-unconverted` lists the clients whose diagnostic no proposal ever followed — the cut that had no way of being asked for before.
+  10. Under Emails, the row pill (data-testid: `client-emails-<id>`) shows how many emails went out and the date of the last one, and opens the history modal (data-testid: `client-emails-modal`); the same modal opens from the `client-view-emails-<id>` button on the expanded ficha, without going through the filter.
+  11. Inside the modal a segmented control (data-testid: `client-emails-audience`) switches between **Al cliente** and **Internos**, refetching per group because the endpoint paginates; the eye opens the message as delivered and a failed row can be retried, with proposal rows carrying their own blocked reason instead of the digests'.
+- **Coverage:** ✅ Covered — module grouping without narrowing, counts before applying (including `(0)`), narrowing + URL stamp, toggle-off, chip removal dropping the tab, rebuilding a predefined filter from the panel, shared-link restore, search composition, the transversal status, the pre-filtered handoff into Hostings, the Documentos subfilter counts and the pre-filtered handoff into Documents are all asserted (2026-08-16); los tres cortes de Diagnóstico, los cuatro de Emails, el pill de contacto de la fila y el modal con sus dos grupos también (2026-08-16).
 - **E2E Spec:** `e2e/admin/admin-clients-filter-presets.spec.js`
-- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestPresetAnnotations`, `content/tests/views/test_proposal_clients_views.py::TestClientStatusCounts`, `accounts/tests/test_seed_filter_tabs.py::TestDropClientStatusTabsMigration`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestPresetAnnotations`, `content/tests/views/test_proposal_clients_views.py::TestDocumentsModuleAnnotations`, `content/tests/views/test_proposal_clients_views.py::TestClientStatusCounts`, `accounts/tests/test_seed_filter_tabs.py::TestDropClientStatusTabsMigration`
+
+### FLOW: `admin-clients-documents-section`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/clients/`, `/panel/documents`
+- **Description:** The expanded client row (ficha) lists the client's **five most recent active documents** — title linking into `/panel/documents/:id/edit`, project, status and created date (data-testid `client-document-row-<id>`) — fed by the `documents` + `documents_total` keys the detail endpoint nests next to proposals/projects/hostings/incomes. "Ver todos (N)" (data-testid `client-documents-all-<id>`) jumps into `/panel/documents?client=<profileId>`: a client's documents are reachable from their ficha without touching the filters. The relation also works backwards — the document editor's "Ver cliente" link lands here with `?highlight=<profileId>`, a single-use param that expands that client's ficha and scrolls to the row (mirror of `/panel/projects?highlight=`), degrading silently if the client is not among the loaded rows.
+- **Steps:**
+  1. Admin expands a client row in `/panel/clients` → the ficha loads the detail payload.
+  2. The "Documentos" section renders the last 5 documents with project, status and date; half-linked ones show a dash in Proyecto.
+  3. Clicking a document title opens `/panel/documents/:id/edit`.
+  4. Clicking "Ver todos (N)" opens `/panel/documents?client=<id>` with the association filter seeded.
+- **Branches:**
+  - [Branch A — Sin documentos] A client with no active documents renders no section (the ficha stays as before).
+  - [Branch B — highlight] Arriving with `?highlight=<profileId>` expands that ficha, scrolls to the row and strips the param from the URL.
+- **Coverage:** ✅ Covered — section rows with project + editor link, and the pre-filtered "Ver todos" handoff (2026-08-16).
+- **E2E Spec:** `e2e/admin/admin-clients-documents-section.spec.js`
+- **Backend Tests:** `content/tests/views/test_proposal_clients_views.py::TestDocumentsModuleAnnotations`
 
 ### FLOW: `admin-client-drag-reassign`
 
@@ -2748,6 +2771,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-client-delete-protected` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-mini-crm-clients.spec.js` |
 | `admin-client-inactive-tab` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-inactive-tab.spec.js` |
 | `admin-clients-filter-presets` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-filter-presets.spec.js` |
+| `admin-clients-documents-section` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-documents-section.spec.js` |
 | `admin-client-drag-reassign` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-clients-drag-reassign.spec.js` |
 | `admin-proposal-send` | admin | admin | P1 | ✅ Covered (checklist modal, success vs failure toast, email_intro PATCH; PDF-attached metadata is pytest-covered) | `e2e/admin/admin-proposal-send.spec.js` |
 | `admin-proposal-multi-send` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-multi-send.spec.js` |
@@ -2873,6 +2897,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
+| `admin-accounting-project-bulk-assign` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-bulk-assign.spec.js` |
+| `admin-accounting-project-coherence` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-coherence.spec.js` |
+| `admin-project-inline-assign-offer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-inline-assign-offer.spec.js` |
+| `admin-project-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-change-client.spec.js` |
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-schedule-followup-reminder` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
@@ -3656,11 +3684,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** View the list of admin documents with title, status and client association. Per-row actions are collapsed into a single "Acciones" (kebab) icon that opens the `DocumentActionsSheet` modal listing each action with its own icon (edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete). The same single-icon + modal pattern is used on every breakpoint.
+- **Description:** View the list of admin documents with title, status and client association. The table carries **Cliente** and **Proyecto** columns reading the FK-backed association (`client_display_name` / `project_name`); a legacy free-text `client_name` renders in italics as a not-yet-linked name, and unlinked cells show a dash. Above the table, the association filters (data-testid `doc-association-filters`) offer a client autocomplete, a project picker and the "Sin cliente"/"Sin proyecto" chips; the axes travel in `?client=` / `?project=` (id or `none`), which is the deep-link contract the jumps from `/panel/clients` use. Per-row actions are collapsed into a single "Acciones" (kebab) icon that opens the `DocumentActionsSheet` modal listing each action with its own icon (edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete). The same single-icon + modal pattern is used on every breakpoint.
 - **Steps:**
   1. Admin navigates to `/panel/documents`.
   2. Document list loads from API (`GET /api/content/documents/`).
-  3. Table renders with columns: title, client name, status badge, created date, actions.
+  3. Table renders with columns: title, client, project, tags, status badge, created date, actions.
+  3b. Filtering by client/project (or their `none` chips) refetches with `?client=`/`?project=` and mirrors the axes in the URL.
   4. Admin clicks a row → navigates to `/panel/documents/:id/edit`.
   5. Admin clicks the single "Acciones" icon → `DocumentActionsSheet` opens; choosing "Editar contenido" navigates to `/panel/documents/:id/edit`.
   6. "Nuevo Documento" button navigates to `/panel/documents/create`.
@@ -3701,11 +3730,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/create`
-- **Description:** Create a new admin document using Markdown paste mode (with live preview) or file upload mode.
+- **Description:** Create a new admin document using Markdown paste mode (with live preview) or file upload mode. The Identificación block carries the OPTIONAL association pair: `ClientAutocomplete` (data-testid `doc-client-autocomplete`, with inline client creation) and `ProjectSelect` (data-testid `doc-project-select`) in `allowNoClient` mode — picking a project FIRST autofills its owner into the client field (inverse cascade), choosing the client first scopes the project list, and clearing the client also clears the project. Creating inside a folder whose documents mostly belong to one client pre-fills that client (`GET documents/folder-client-suggestion/`, hint `doc-client-suggested-hint`) — a suggestion, never a lock.
 - **Steps:**
   1. Admin navigates to `/panel/documents/create`.
   2. Page renders with "Pegar Markdown" / "Cargar Archivo" tab toggle.
-  3. Admin fills title, optional client association.
+  3. Admin optionally associates a client and/or project (either order — the pair stays coherent); the payload always carries `client`/`project`, null included.
   4. **Paste mode:** Admin pastes Markdown content → live preview renders alongside.
   5. **Upload mode:** Admin selects a file → file content loaded.
   6. Admin submits → API call `POST /api/content/documents/` creates document.
@@ -3722,11 +3751,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edit an existing admin document, update content and status, download as PDF. The markdown toolbar above the content textarea also exposes "Copiar" (copies the full markdown to the clipboard) and "Pegar" (inserts clipboard content at the current cursor position in the textarea) buttons.
+- **Description:** Edit an existing admin document, update content and status, download as PDF. The Identificación block carries the same client/project association pair as create (without the folder suggestion) and, for the SAVED association, backlinks to both sides: "Ver cliente" → `/panel/clients?highlight=<profileId>` (expands that ficha) and "Ver proyecto" → `/panel/projects?highlight=<id>` (data-testid `document-client-link` / `document-project-link`); a legacy free-text `client_name` shows as reference while the document has no relational client, and sending `client`/`project` as null unlinks. The markdown toolbar above the content textarea also exposes "Copiar" (copies the full markdown to the clipboard) and "Pegar" (inserts clipboard content at the current cursor position in the textarea) buttons.
 - **Steps:**
   1. Admin navigates to `/panel/documents/:id/edit`.
   2. Document data loads from API (`GET /api/content/documents/:id/`).
-  3. Edit form renders pre-filled with current content, title, status, client.
+  3. Edit form renders pre-filled with current content, title, status, client/project association (backlinks under the client field).
   4. Admin modifies content and clicks save.
   5. API call `PATCH /api/content/documents/:id/` updates document.
   6. Success feedback displayed.
@@ -5925,7 +5954,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Description:** Income records (expected vs liquid) with editable 50/50 partner split and a ledger selector ("Contabilidad": Empresa / Personal Gustavo / Personal Carlos). Personal-ledger records belong 100% to their owner and are excluded from company totals. Modal create/edit, ConfirmModal delete, notify toasts, and automatic pocket-movement sync for liquid incomes bound to the ProjectApp pocket (company ledger only). Since Aug 2026 the list lands on the builtin "Solo esperados" tab instead of "Todas", and the ledger has no column of its own (it stays a filter). The form also carries the client and origin fields — see `admin-accounting-income-client`.
 - **Steps:**
   1. Superuser opens the incomes list, which opens already narrowed to the uncollected expected rows (kind badge, collection badge, month, totals per partner).
-  2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total, and the period field (shared PeriodDateField) defaults to today's exact date with a toggle down to month-only. Edits always open in full-date mode showing the stored day (01 remains the month-only storage sentinel; the toggle still downgrades to month). (Ago 2026) With **Origen Hosting** the single date swaps for the period the income covers: inicio (same exact-day toggle), fin and a **Periodicidad** selector reusing the recurring-payments catalog. Picking a cadence proposes the inclusive end — inicio + cadence − 1 day, day clamped like `add_months` — and leaves it editable; "Personalizada" writes both dates by hand. The three fields are required for hosting (legacy rows complete their period on first edit; the backend derives `period_date` from the inicio so orderings and KPIs keep one axis), fin must come after inicio, switching the origin keeps everything typed and seeds the incoming mode's date from the outgoing one, and other origins keep the single date, clearing any stray window. The recorded window pre-fills the cuenta de cobro's "Período facturado" and appends three columns to the income export.
+  2. "Nuevo ingreso" opens the modal; PartnerSplitInput defaults to an exact 50/50 of the total, and the period field (shared PeriodDateField) defaults to today's exact date with a toggle down to month-only. Edits always open in full-date mode showing the stored day (01 remains the month-only storage sentinel; the toggle still downgrades to month). (Ago 2026) With **Origen Hosting** the single date swaps for the period the income covers: inicio (same exact-day toggle), fin and a **Periodicidad** selector reusing the recurring-payments catalog. The block is laid out in the order it is filled — **Periodicidad** rides in the top row beside **Tipo**, because how often is decided before the dates it proposes, and **inicio** and **fin** share the row below so the range reads left to right instead of splitting into two loose dates; the exact-day toggle sits under inicio, the date it applies to, and the cadence shortcuts under both. Its hint says what the control does for the operator ("Al elegirla se calcula la fecha de fin del período") rather than where the catalog came from. Picking a cadence recomputes on the spot: it writes the inclusive end — inicio + cadence − 1 day, day clamped like `add_months` — and, with no inicio yet, opens the window on the period after the last one recorded. `GET /api/accounting/incomes/period-suggestion/` resolves that antecedent by client, narrowed by project (an income has no FK to a hosting, so `origin` is only a label), and the inicio field says which period this one follows; a client's first charge falls back to today, and a client holding several active hostings with no project to tell them apart gets no proposal rather than a guessed one. Moving inicio carries fin with it keeping the cadence, and writing fin by hand turns the cadence to **Personalizada** instead of leaving the selector claiming a length the window no longer has; under "Personalizada" both dates are handwritten and nothing recomputes. The recompute watches the values rather than the keystrokes, so it also fires when inicio is written programmatically — switching the origin, or a shortcut — which is where the first delivery silently did nothing. The three fields are required for hosting (legacy rows complete their period on first edit; the backend derives `period_date` from the inicio so orderings and KPIs keep one axis), fin must come after inicio — refused inline under the field before the submit, not only by the serializer — and other origins keep the single date, clearing any stray window. Switching the origin still keeps everything typed, with one correction: a create's untouched "today" default is boilerplate, not an answer, so it no longer carries into the window, which is what lets the antecedent fill it. The recorded window pre-fills the cuenta de cobro's "Período facturado" and appends three columns to the income export.
   3. Submit POSTs `/api/accounting/incomes/create/` → success toast + audit + email.
   4. Row edit prefills the modal and PATCHes `.../update/`.
   5. Row delete asks for confirmation and DELETEs `.../delete/`.
@@ -5934,7 +5963,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   8. If the amount received is below the pending balance, the modal reveals "Saldo por resolver" with a live remaining counter and two collapsible, repeatable groups (a fixed hint under the pending block announces the mechanism at open, and the deductions group auto-expands once per open the moment the shortfall appears — an untouched auto-added row neither blocks the submit nor reaches the payload, so leaving the balance pending stays one click). "No es un cobro pendiente, es un gasto" books the shortfall as an expense with its concept (Comisión plataforma de pago / Comisión bancaria / Retención en la fuente / Otro, the last one requiring free text). "Sí lo voy a cobrar: crear ingreso esperado" reschedules it as one or more new expected incomes inheriting the parent's ledger, destination and partner ratio. Both can be combined in one settlement. Since Aug 2026 the amount received may be 0 as long as the shortfall is fully allocated: a residual-only settlement that creates no liquid record and sends no payment email — the rescue path for old partial collections whose fee-sized residual would otherwise stay "Parcial" forever (also scriptable via the `resolve_income_residual` management command).
   9. "Marcar como perdido" writes the row off (PATCH `kind=lost`) after a ConfirmModal.
   10. "Duplicar" — offered on every row whatever its state, and in the income detail modal — GETs `/api/accounting/incomes/:id/duplicate-draft/` and opens the form seeded with the original's concept, amounts, split, ledger, client, project, origin and notes, always as "Esperado". It writes nothing: confirming goes through the ordinary create POST, which flashes the new row and announces it as "Ingreso duplicado" so it reads apart from a manual alta. While the draft is in flight the row's three-dots button spins and refuses a second click, since the action menu closes the moment it is clicked.
-  11. The duplicate's date is the one field that is never copied. When the hosting behind the income resolves unambiguously the draft proposes the next cycle and labels it under the field; otherwise the field opens empty and its `required` blocks the save. Because most of the book carries no `origin` and no client, that lookup resolves for almost nothing, so the form also offers cadence shortcuts — "+1 mes", "+3 meses", "+6 meses", "+1 año" — computed server-side from the original's date (`add_months`, which clamps the day). Picking one fills the field, marks itself pressed, writes in month granularity when the exact-day toggle is off, and overrides the hosting proposal when the two disagree. (Ago 2026) On a **hosting** duplicate the shortcuts stop being a second mechanism: the proposal lands on the window's inicio, a shortcut writes the Periodicidad selector (its pressed state reads back from it) and the inclusive fin follows. An income with a recorded window proposes inicio = day after the recorded fin with the cadence's own length ("income_period" hint; "Personalizada" repeats the recorded duration), falling back to the hosting-catalog lookup for legacy rows without one.
+  11. The duplicate's date is the one field that is never copied. When the hosting behind the income resolves unambiguously the draft proposes the next cycle and labels it under the field; otherwise the field opens empty and its `required` blocks the save. Because most of the book carries no `origin` and no client, that lookup resolves for almost nothing, so the form also offers cadence shortcuts — "+1 mes", "+3 meses", "+6 meses", "+1 año" — computed server-side from the original's date (`add_months`, which clamps the day). Picking one fills the field, marks itself pressed, writes in month granularity when the exact-day toggle is off, and overrides the hosting proposal when the two disagree. (Ago 2026) On a **hosting** form the shortcuts stop being a second mechanism: they set the Periodicidad selector and the inclusive fin follows, and they are offered whenever a period is being **opened** — creating or duplicating — but never while editing one already on the book, since a charge already recorded should not change period on one click. Each shortcut anchors on the antecedent, not on what the form currently shows: the client's last recorded fin when creating, and on a duplicate the inicio the draft opened with (which the backend already computed as the original's fin plus a day). That is what makes "+1 año" then "+1 mes" re-lengthen the same window instead of walking a period further forward on every click, and their pressed state reads back from cadence and inicio together, so a window the operator has since moved stops claiming to be the one the button opens. An income with a recorded window proposes inicio = day after the recorded fin with the cadence's own length ("income_period" hint; "Personalizada" repeats the recorded duration), falling back to the hosting-catalog lookup for legacy rows without one.
 - **Branches:**
   - [Branch A] Manual split: turning off the 50/50 toggle allows custom per-partner amounts (sum must not exceed the total; backend validates too).
   - [Branch B] Backend 400 → error toast with the Spanish backend message; modal stays open.
@@ -6532,3 +6561,64 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 |---------|--------|------|----------|--------|------|
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
+
+## Section 28 — Client/Project Coherence (Aug 16, 2026)
+
+The coherence ticket's rule made executable: cliente y proyecto se registran una sola vez y valen en todo el sistema. Relations are FKs everywhere (the frozen `customer_*` snapshots of ISSUED cuentas are the deliberate exception — an emitted document is a fact), every reassignment shows its exact scope before running, the mutation response rebuilds the open views, and every touched record leaves an `AccountingChangeLog` row queryable by client and project from Historial → Cambios.
+
+### FLOW: `admin-accounting-project-bulk-assign`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/accounting/hostings/bulk-assign-project/`, `POST /api/accounting/incomes/bulk-assign-project/`, `GET /api/projects/?scope=all`
+- **Description:** The bulk bar gains an "Asignar: Cliente | Proyecto" toggle. The Proyecto target uses a catalog-wide combobox (every project, searched by name or client, actives first) and confirms against the full plan: toAssign, toReassign (origins named), unchanged, and the blocked bucket — rows of ANOTHER client the ownership rule refuses to touch, listed apart and never in the payload (the backend answers 409 `client_mismatch`/`mismatched_ids` on a stale plan and the page drops exactly those ids). Quitar proyecto is its own destructive action; clearing works across clients. `results` carries the cascaded liquid children so the in-place rebuild misses nothing. The CLIENT preview now also announces which rows will lose their project when the client changes hands (`projectCleared`), matching the server rule that clears a now-foreign project on every client move — bulk included.
+- **Steps:** select rows → toggle Proyecto → pick the project → read the plan (blocked bucket included) → confirm → rows update in place.
+- **Branches:** no project picked keeps the action off with the reason inline; every row already on target blocks with its own message; 409 drops the named ids and reloads.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-bulk-assign.spec.js`
+
+### FLOW: `admin-accounting-project-coherence`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/projects`
+- **API:** `POST /api/accounting/hostings/bulk-assign-client/`, `GET /api/accounting/hostings/`, `GET /api/projects/`
+- **Description:** Requisito 14 of the ticket verified over a stateful mock: one client reassignment propagates to every module without a reload (row rebuilt from the response, project cleared and announced beforehand, per-project counters moved on /panel/projects) and a full `page.reload()` serves the same truth — the database is the source of coherence, the reload never was the fix.
+- **Steps:** reassign a hosting's client → verify hostings in place → verify /panel/projects counters → reload → verify both again.
+- **Branches:** none — the flow IS the invariant.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-coherence.spec.js`
+
+### FLOW: `admin-project-inline-assign-offer`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/projects/create/`, `GET /api/projects/<id>/unlinked-records/`, `POST /api/projects/<id>/assign-unlinked/`
+- **Description:** The Vástago gap closed: the inline create keeps the annotated row (unlinked_* counters travel with the `created` event) and, when the form closes — saved or cancelled — the PA-51 assign modal opens with the client's server-fresh backlog. Confirming assigns the checked ids; `assign-unlinked` now returns the updated rows (cascaded liquid children included) and the open accounting table rebuilds without a reload.
+- **Steps:** new hosting/income → pick client → create project inline → close the form → the offer opens → confirm → Proyecto cells fill.
+- **Branches:** zero backlog never offers; dismissing the offer leaves the counters visible on /panel/projects; 409 reloads the preview.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-inline-assign-offer.spec.js`
+
+### FLOW: `admin-project-change-client`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/projects`
+- **API:** `GET /api/projects/<id>/change-client/preview/?client_profile_id=`, `POST /api/projects/<id>/change-client/`, `DELETE /api/accounts/projects/<id>/?force=1` (guarded)
+- **Description:** A project changes owner through ONE guided path — the form field stays immutable (`client_immutable`) and a ghost "Cambiar cliente…" entry opens the cascade. The preview names everything: movable records, incomes an active (non-cancelled) cuenta blocks (they detach and keep their client; anular y reemitir is the path for a wrong cuenta), draft cuentas that follow the project (fresh provisional snapshot) or their blocked income, ISSUED documents nothing touches, clientless rows left to the completion tools, and other documents that ride along. The mode — Mover | Desvincular — is chosen EVERY time (no preselection). The apply carries the preview's hosting/income ids as a staleness token (409 `records_not_found`/`records_changed` reload the preview) and runs in one transaction with an audit row per touched record. Hard-deleting a project now refuses with 409 `project_has_records` while anything is linked.
+- **Steps:** edit project → Cambiar cliente… → pick destination → read the impact → choose the mode → confirm → row and accounting lists refresh.
+- **Branches:** same client / unknown client / archived project answer 400 with their codes; missing mode keeps confirm disabled; 409 reloads the preview and drops the chosen mode.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-change-client.spec.js`
+
+### Section 28 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-accounting-project-bulk-assign` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-bulk-assign.spec.js` |
+| `admin-accounting-project-coherence` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-coherence.spec.js` |
+| `admin-project-inline-assign-offer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-inline-assign-offer.spec.js` |
+| `admin-project-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-change-client.spec.js` |

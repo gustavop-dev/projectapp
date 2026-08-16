@@ -19,7 +19,10 @@ describe('useDocumentFilterQuery', () => {
   let store
 
   beforeEach(() => {
-    store = reactive({ activeFolderId: 'all', archiveScope: 'active' })
+    store = reactive({
+      activeFolderId: 'all', archiveScope: 'active',
+      activeClientId: null, activeProjectId: null,
+    })
     mockRoute.query = {}
     mockReplace.mockClear()
     // Como el router real: replace deja el query visible en la ruta.
@@ -171,5 +174,48 @@ describe('useDocumentFilterQuery', () => {
 
     expect(changed).toBe(false)
     expect(store.activeFolderId).toBe(4)
+  })
+
+  it('applies the ?client and ?project association axes from the query', () => {
+    mockRoute.query = { client: '4', project: 'none' }
+
+    const { applyQueryToStore } = useDocumentFilterQuery(store)
+    applyQueryToStore()
+
+    expect(store.activeClientId).toBe(4)
+    expect(store.activeProjectId).toBe('none')
+  })
+
+  it('scrubs garbage association values from the url', () => {
+    mockRoute.query = { client: 'abc' }
+
+    const { applyQueryToStore } = useDocumentFilterQuery(store)
+    applyQueryToStore()
+
+    expect(store.activeClientId).toBeNull()
+    expect(mockReplace).toHaveBeenCalledWith({ query: {} })
+  })
+
+  it('writes the association axes to the url and clears them when off', async () => {
+    useDocumentFilterQuery(store)
+
+    store.activeClientId = 'none'
+    await nextTick()
+    expect(mockRoute.query).toEqual({ client: 'none' })
+
+    store.activeClientId = null
+    await nextTick()
+    expect(mockRoute.query).toEqual({})
+  })
+
+  it('back and forward with an association param reach the store', async () => {
+    const onNavigate = jest.fn()
+    useDocumentFilterQuery(store, { onNavigate })
+
+    mockRoute.query = { client: '7' }
+    await nextTick()
+
+    expect(store.activeClientId).toBe(7)
+    expect(onNavigate).toHaveBeenCalledTimes(1)
   })
 })

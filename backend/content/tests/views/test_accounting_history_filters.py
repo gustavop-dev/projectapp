@@ -352,3 +352,63 @@ class TestTabCounts:
             COUNTS, {'scope': 'sends', 'tabs': []}, format='json',
         )
         assert response.status_code == 403
+
+
+class TestChangesFilteredByClientAndProject:
+    """The question a reassignment raises — "qué le pasó a ESTE cliente" —
+    finally answerable on the audit trail, not just on the send log."""
+
+    def test_narrows_the_trail_to_one_clients_records_and_projects(
+        self, super_client,
+    ):
+        from content.models import AccountingChangeLog
+
+        ana = make_client('ana@test.com')
+        otro = make_client('otro@test.com', first='Otro')
+        project = Project.objects.create(name='Kore Web', client=ana.user)
+        mine = make_income(concept='Kore - Inicio', client=ana)
+        foreign = make_income(concept='Ajeno', client=otro)
+        for entity, object_id, repr_ in (
+            ('income', mine.pk, 'Kore - Inicio'),
+            ('income', foreign.pk, 'Ajeno'),
+            ('project', project.pk, 'Kore Web'),
+        ):
+            AccountingChangeLog.objects.create(
+                entity_type=entity, object_id=object_id,
+                object_repr=repr_, action='updated',
+            )
+
+        response = super_client.get(f'{CHANGES}?client={ana.pk}')
+
+        assert response.status_code == 200, response.data
+        assert {row['object_repr'] for row in response.data['results']} == {
+            'Kore - Inicio', 'Kore Web',
+        }
+
+    def test_narrows_the_trail_to_one_projects_rows(self, super_client):
+        from content.models import AccountingChangeLog
+
+        ana = make_client('ana@test.com')
+        project = Project.objects.create(name='Kore Web', client=ana.user)
+        linked = make_income(concept='Kore - Inicio', client=ana, project=project)
+        make_income(concept='Suelto', client=ana)
+        for entity, object_id, repr_ in (
+            ('income', linked.pk, 'Kore - Inicio'),
+            ('project', project.pk, 'Kore Web'),
+        ):
+            AccountingChangeLog.objects.create(
+                entity_type=entity, object_id=object_id,
+                object_repr=repr_, action='updated',
+            )
+        AccountingChangeLog.objects.create(
+            entity_type='income',
+            object_id=IncomeRecord.objects.get(concept='Suelto').pk,
+            object_repr='Suelto', action='updated',
+        )
+
+        response = super_client.get(f'{CHANGES}?project={project.pk}')
+
+        assert response.status_code == 200
+        assert {row['object_repr'] for row in response.data['results']} == {
+            'Kore - Inicio', 'Kore Web',
+        }

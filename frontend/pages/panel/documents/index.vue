@@ -134,6 +134,22 @@
           />
         </div>
 
+        <!-- Filtros de asociación (ocultos en búsqueda: la búsqueda es global
+             y estos ejes no la acotan) -->
+        <div
+          v-if="!isSearching"
+          class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4"
+          data-testid="doc-association-filters"
+        >
+          <DocumentsAssociationFilters
+            :client="documentStore.activeClientId"
+            :project="documentStore.activeProjectId"
+            :client-label="associationClientLabel"
+            @update:client="handleClientFilter"
+            @update:project="handleProjectFilter"
+          />
+        </div>
+
         <!-- Loading -->
         <DocumentListSkeleton v-if="isListLoading" :mode="viewMode" />
 
@@ -395,6 +411,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
+import DocumentsAssociationFilters from '~/components/panel/documents/DocumentsAssociationFilters.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
@@ -924,6 +941,24 @@ function handleToggleTag(id) {
 function handleClearTagFilters() {
   documentStore.setFilters({ tags: [] });
 }
+
+function handleClientFilter(value) {
+  documentStore.setFilters({ client: value });
+}
+
+function handleProjectFilter(value) {
+  documentStore.setFilters({ project: value });
+}
+
+// Label para rehidratar el autocomplete en un deep link (?client=<id>): se
+// resuelve de las filas ya cargadas para no gastar un fetch extra; sin filas
+// el fallback numérico al menos dice QUÉ filtro está puesto.
+const associationClientLabel = computed(() => {
+  const id = documentStore.activeClientId;
+  if (typeof id !== 'number') return '';
+  const row = documentStore.documents.find((d) => d.client === id);
+  return row?.client_display_name || `Cliente #${id}`;
+});
 
 function openFolderManager() {
   showFolderManager.value = true;

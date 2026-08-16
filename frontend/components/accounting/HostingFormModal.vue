@@ -14,7 +14,7 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'project-created'])
 
 const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
@@ -235,6 +235,7 @@ function onSubmit() {
         :client-label="form.client_display_name"
         :auto-select-single="!isEdit"
         testid="hosting-form-project"
+        @created="emit('project-created', $event)"
       />
 
       <!-- Inline client creation: the clients module without leaving the form -->

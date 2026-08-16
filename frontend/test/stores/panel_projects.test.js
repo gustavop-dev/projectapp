@@ -13,6 +13,7 @@ jest.mock('../../stores/services/request_http', () => ({
 
 import { setActivePinia, createPinia } from 'pinia';
 import { usePanelProjectsStore } from '../../stores/panel_projects';
+import { useAccountingStore } from '../../stores/accounting';
 import {
   get_request,
   create_request,
@@ -175,6 +176,32 @@ describe('panel_projects store', () => {
     expect(result.data.assigned_incomes).toBe(2);
   });
 
+  it('assignUnlinkedRecords rebuilds the open accounting tables from the response rows', async () => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    accounting.hostings = [
+      { id: 4, project: null, project_name: null },
+      { id: 5, project: null, project_name: null },
+    ];
+    accounting.incomes = [{ id: 8, project: null, project_name: null }];
+    create_request.mockResolvedValueOnce({
+      data: {
+        assigned_hostings: 1,
+        assigned_incomes: 1,
+        hostings: [{ id: 4, project: 1, project_name: 'Vastago' }],
+        incomes: [{ id: 8, project: 1, project_name: 'Vastago' }],
+        project: { id: 1 },
+      },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    await store.assignUnlinkedRecords(1, { hosting_ids: [4], income_ids: [8] });
+
+    // The touched rows are replaced in place; untouched ones survive as-is.
+    expect(accounting.hostings.map((row) => row.project)).toEqual([1, null]);
+    expect(accounting.incomes[0].project_name).toBe('Vastago');
+  });
+
   it('a 409 on assign keeps the code so the modal can reload its preview', async () => {
     create_request.mockRejectedValueOnce(apiError(409, {
       error: '1 registro de la lista ya no se puede asignar (ganaron proyecto o cambiaron de cliente).',
@@ -188,6 +215,48 @@ describe('panel_projects store', () => {
     expect(result.success).toBe(false);
     expect(result.code).toBe('records_changed');
     expect(get_request).not.toHaveBeenCalled();
+  });
+
+  it('previewChangeClient asks with the destination profile and returns the impact', async () => {
+    get_request.mockResolvedValueOnce({ data: { totals: { move: 2 } } });
+    const store = usePanelProjectsStore();
+
+    const result = await store.previewChangeClient(1, 9);
+
+    expect(get_request).toHaveBeenCalledWith(
+      'projects/1/change-client/preview/?client_profile_id=9',
+    );
+    expect(result).toEqual({ success: true, data: { totals: { move: 2 } } });
+  });
+
+  it('changeClient refetches only the accounting lists that are loaded', async () => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    accounting.hostings = [{ id: 4 }];
+    accounting.incomes = [];
+    // The cascade response carries counts, never rows, so the reconciliation
+    // is a refetch — pin that it only fires for lists actually in memory.
+    accounting.fetchRecords = jest.fn();
+    create_request.mockResolvedValueOnce({
+      data: {
+        project: { id: 1 },
+        moved: { hostings: 1, incomes: 0, draft_accounts: 0 },
+        detached: { hostings: 0, incomes: 0, draft_accounts: 0 },
+        skipped: { issued_accounts: 0, clientless: 0, other_documents: 0 },
+      },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    const result = await store.changeClient(1, {
+      client_profile_id: 9, mode: 'move', hosting_ids: [4], income_ids: [],
+    });
+
+    expect(create_request).toHaveBeenCalledWith('projects/1/change-client/', {
+      client_profile_id: 9, mode: 'move', hosting_ids: [4], income_ids: [],
+    });
+    expect(accounting.fetchRecords).toHaveBeenCalledWith('hostings');
+    expect(accounting.fetchRecords).not.toHaveBeenCalledWith('incomes');
+    expect(result.success).toBe(true);
   });
 
   it('fetchClientsWithoutProjects loads the uncovered-clients panel', async () => {

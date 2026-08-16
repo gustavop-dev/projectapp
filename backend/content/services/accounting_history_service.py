@@ -170,6 +170,72 @@ def email_log_queryset(params):
     return logs
 
 
+def _change_client_q(client_ids):
+    """Change-log rows about one of these clients, keyed by profile id.
+
+    Mirror of ``_client_target_q`` on the audit columns: the join needs a
+    LIVE row behind entity_type+object_id, so rows of records deleted since
+    are only reachable through ``object_repr`` — a documented limit, not a
+    bug. Project rows key their client through the User behind the profile.
+    """
+    from accounts.models import Project
+    from content.models import Document, HostingRecord, IncomeRecord
+
+    return (
+        Q(
+            entity_type='income',
+            object_id__in=IncomeRecord.objects.filter(
+                client_id__in=client_ids,
+            ).values('id'),
+        )
+        | Q(
+            entity_type='hosting',
+            object_id__in=HostingRecord.objects.filter(
+                client_id__in=client_ids,
+            ).values('id'),
+        )
+        | Q(
+            entity_type='collection_account',
+            object_id__in=Document.objects.filter(
+                client_user__profile__id__in=client_ids,
+            ).values('id'),
+        )
+        | Q(
+            entity_type='project',
+            object_id__in=Project.objects.filter(
+                client__profile__id__in=client_ids,
+            ).values('id'),
+        )
+    )
+
+
+def _change_project_q(project_ids):
+    """Change-log rows about a project: its own rows plus every record's."""
+    from content.models import Document, HostingRecord, IncomeRecord
+
+    return (
+        Q(entity_type='project', object_id__in=project_ids)
+        | Q(
+            entity_type='income',
+            object_id__in=IncomeRecord.objects.filter(
+                project_id__in=project_ids,
+            ).values('id'),
+        )
+        | Q(
+            entity_type='hosting',
+            object_id__in=HostingRecord.objects.filter(
+                project_id__in=project_ids,
+            ).values('id'),
+        )
+        | Q(
+            entity_type='collection_account',
+            object_id__in=Document.objects.filter(
+                project_id__in=project_ids,
+            ).values('id'),
+        )
+    )
+
+
 def change_log_queryset(params):
     """The audit trail, narrowed by ``params``.
 
@@ -181,6 +247,14 @@ def change_log_queryset(params):
 
     if params.get('entity_type'):
         logs = logs.filter(entity_type__in=_as_list(params['entity_type']))
+    if params.get('client'):
+        logs = logs.filter(
+            _change_client_q(_parse_id_list(params['client'], 'client')),
+        )
+    if params.get('project'):
+        logs = logs.filter(
+            _change_project_q(_parse_id_list(params['project'], 'project')),
+        )
     if params.get('object_id'):
         logs = logs.filter(
             object_id=_parse_int(params['object_id'], 'object_id'),
@@ -214,7 +288,7 @@ SENDS_FILTER_KEYS = frozenset({
 })
 CHANGES_FILTER_KEYS = frozenset({
     'entity_type', 'object_id', 'object_repr', 'action', 'actor',
-    'date_from', 'date_to',
+    'date_from', 'date_to', 'client', 'project',
 })
 
 QUERYSET_BY_SCOPE = {

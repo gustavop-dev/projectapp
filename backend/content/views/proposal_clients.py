@@ -20,7 +20,8 @@ Endpoints
 import logging
 
 from django.db.models import (
-    Count, IntegerField, Max, OuterRef, Q, Subquery, Sum, Value,
+    Count, DateTimeField, Exists, IntegerField, Max, OuterRef, Q, Subquery,
+    Sum, Value,
 )
 from django.db.models.functions import Coalesce
 from rest_framework import status
@@ -35,7 +36,10 @@ from accounts.services.billing_code import (
     billing_code_error,
     normalize_billing_code,
 )
-from content.models import BusinessProposal, HostingRecord, IncomeRecord
+from content.models import (
+    BusinessProposal, Document, EmailLog, HostingRecord, IncomeRecord,
+    WebAppDiagnostic,
+)
 from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordSerializer,
@@ -43,6 +47,7 @@ from content.serializers.accounting import (
 )
 from content.serializers.proposal import ProposalListSerializer
 from content.services import accounting_service
+from content.serializers.document import ClientDocumentRowSerializer
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
     ProposalClientSerializer,
@@ -132,6 +137,152 @@ def _base_queryset():
                     output_field=IntegerField(),
                 ),
                 Value(0),
+            ),
+            # Feeds the "Con diagnóstico facturado" subfilter, which reads the
+            # MONEY rather than the entity: a diagnostic billed without its
+            # WebAppDiagnostic ever being created is still billed, and asking
+            # for both would hide exactly the rows worth chasing. `lost` is
+            # written off, so it never counts; legacy rows carry origin='' and
+            # simply do not match.
+            diagnostic_incomes_count=Coalesce(
+                Subquery(
+                    IncomeRecord.objects
+                    .filter(
+                        client=OuterRef('pk'),
+                        origin=IncomeRecord.Origin.DIAGNOSTIC,
+                    )
+                    .exclude(kind=IncomeRecord.Kind.LOST)
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # The commercially valuable cut: a diagnostic no proposal ever
+            # followed. Two correlations, one level each — the inner NOT EXISTS
+            # binds to the diagnostic row, the outer Subquery to the client;
+            # WebAppDiagnostic carries client_id itself, which is what keeps
+            # this at OuterRef(...) instead of OuterRef(OuterRef(...)).
+            #
+            # ~Exists and not __in: BusinessProposal.client is nullable, so one
+            # legacy row with a NULL client would make a NOT IN return nothing
+            # at all. Anchored on the send rather than on created_at, because
+            # created_at is when we opened the draft — a proposal written while
+            # the diagnostic still sat unsent cannot be its outcome.
+            diagnostics_without_proposal_count=Coalesce(
+                Subquery(
+                    WebAppDiagnostic.objects
+                    .filter(client=OuterRef('pk'))
+                    .exclude(status=WebAppDiagnostic.Status.DRAFT)
+                    .filter(~Exists(
+                        BusinessProposal.objects.filter(
+                            client_id=OuterRef('client_id'),
+                            created_at__gt=Coalesce(
+                                OuterRef('initial_sent_at'),
+                                OuterRef('created_at'),
+                            ),
+                        )
+                    ))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # The Emails module counts contact, so all three read the rows
+            # addressed to the client. The internal notices about their
+            # records are in the modal, marked as such, but a digest that
+            # reached the team is not contact with them.
+            emails_sent_count=Coalesce(
+                Subquery(
+                    EmailLog.objects
+                    .filter(
+                        client=OuterRef('pk'),
+                        audience=EmailLog.Audience.CLIENT,
+                    )
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            emails_failed_count=Coalesce(
+                Subquery(
+                    EmailLog.objects
+                    .filter(
+                        client=OuterRef('pk'),
+                        audience=EmailLog.Audience.CLIENT,
+                        status=EmailLog.Status.FAILED,
+                    )
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # Top-1 rather than Max(): with the (client, audience, sent_at)
+            # index this is a backwards scan that stops at the first row, and
+            # it carries no GROUP BY. `last_proposal_at` above gets to use
+            # Max() because `proposals` is already joined for proposals_count;
+            # nothing joins email_logs.
+            last_email_at=Subquery(
+                EmailLog.objects
+                .filter(
+                    client=OuterRef('pk'),
+                    audience=EmailLog.Audience.CLIENT,
+                )
+                .order_by('-sent_at')
+                .values('sent_at')[:1],
+                output_field=DateTimeField(),
+            ),
+            # The Documents module counts what the manager's list shows for
+            # the client: active documents only — archiving is that module's
+            # own visibility axis, so the pill reconciles with the list the
+            # jump lands on. Document.client_user points at the User.
+            documents_count=Coalesce(
+                Subquery(
+                    Document.objects
+                    .filter(client_user=OuterRef('user_id'), is_archived=False)
+                    .order_by()
+                    .values('client_user')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # "A medio asociar": del cliente pero sin proyecto — la lista de
+            # revisión que deja la pasada retroactiva.
+            documents_no_project_count=Coalesce(
+                Subquery(
+                    Document.objects
+                    .filter(
+                        client_user=OuterRef('user_id'),
+                        is_archived=False,
+                        project__isnull=True,
+                    )
+                    .order_by()
+                    .values('client_user')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            last_document_at=Subquery(
+                Document.objects
+                .filter(client_user=OuterRef('user_id'), is_archived=False)
+                .order_by('-created_at')
+                .values('created_at')[:1],
+                output_field=DateTimeField(),
             ),
         )
     )
@@ -360,6 +511,19 @@ def retrieve_proposal_client(request, client_id):
         .order_by('-period_date')
     )
     payload['incomes'] = IncomeRecordSerializer(incomes, many=True).data
+
+    # Los últimos 5 alcanzan para la ficha; "Ver todos" salta al módulo de
+    # Documentos ya filtrado por el cliente, que es donde se trabaja en serio.
+    documents = (
+        profile.user.client_documents
+        .filter(is_archived=False)
+        .select_related('project', 'folder')
+        .order_by('-created_at')
+    )
+    payload['documents'] = ClientDocumentRowSerializer(
+        documents[:5], many=True,
+    ).data
+    payload['documents_total'] = documents.count()
     return Response(payload)
 
 

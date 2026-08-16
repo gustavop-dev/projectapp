@@ -56,11 +56,17 @@ const props = defineProps({
   open: { type: Boolean, default: false },
   /** The row being inspected; only its id is used to fetch. */
   entry: { type: Object, default: null },
+  /**
+   * How to load the body, as `(id) => { success, data: { html, text } }`.
+   * The accounting Historial reads its own superuser-scoped endpoint and is
+   * the default; the client's email modal passes the one nested under the
+   * client. Same viewer either way — the requirement is one preview, not two.
+   */
+  fetcher: { type: Function, default: null },
 });
 
 const emit = defineEmits(['close']);
 
-const store = useAccountingStore();
 const isLoading = ref(false);
 const error = ref('');
 const html = ref('');
@@ -71,7 +77,11 @@ async function load(id) {
   error.value = '';
   html.value = '';
   text.value = '';
-  const result = await store.fetchEmailBody(id);
+  // Resolved here rather than at setup: a caller that brings its own fetcher
+  // has no business depending on the accounting store at all.
+  const load_body = props.fetcher
+    || ((logId) => useAccountingStore().fetchEmailBody(logId));
+  const result = await load_body(id);
   if (result.success) {
     html.value = result.data.html || '';
     text.value = result.data.text || '';

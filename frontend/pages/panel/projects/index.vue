@@ -239,6 +239,15 @@
       :existing-projects="store.records"
       @close="closeModal"
       @submit="onFormSubmit"
+      @change-client="openChangeClient"
+    />
+
+    <!-- Guided cascade: the only path that moves a project between clients -->
+    <ProjectChangeClientModal
+      :open="changeClientOpen"
+      :project="changeClientProject"
+      @close="closeChangeClient"
+      @changed="onClientChanged"
     />
 
     <!-- Assign the client's unlinked records to a project (PA-51) -->
@@ -333,6 +342,7 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
+import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
@@ -502,6 +512,29 @@ function openAssign(row) {
 function closeAssign() {
   assignOpen.value = false;
   assignProject.value = null;
+}
+
+// ── Change-client cascade (opened from the edit form's ghost button) ──
+
+const changeClientOpen = ref(false);
+const changeClientProject = ref(null);
+
+function openChangeClient() {
+  if (!editingRecord.value) return;
+  changeClientProject.value = editingRecord.value;
+  changeClientOpen.value = true;
+}
+
+function closeChangeClient() {
+  changeClientOpen.value = false;
+  changeClientProject.value = null;
+}
+
+function onClientChanged() {
+  // The store already refetched projects and the loaded accounting lists;
+  // closing both modals is all that is left — the table under them is fresh.
+  closeChangeClient();
+  closeModal();
 }
 
 /**

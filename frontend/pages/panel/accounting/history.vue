@@ -228,7 +228,10 @@ const projectOptions = computed(() =>
 
 const filterFields = computed(() => (
   isChanges.value
-    ? changesFilterFields()
+    ? changesFilterFields({
+      clients: clientOptions.value,
+      projects: projectOptions.value,
+    })
     : sendsFilterFields({
       clients: clientOptions.value,
       projects: projectOptions.value,

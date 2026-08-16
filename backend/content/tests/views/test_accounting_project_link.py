@@ -10,7 +10,7 @@ import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 
-from content.models import ExpenseRecord, IncomeRecord
+from content.models import ExpenseRecord, HostingRecord, IncomeRecord
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -191,6 +191,77 @@ class TestProjectPickerEndpoint:
         assert [p['name'] for p in response.data['results']] == [
             'MIMITTOS', 'Xpandia',
         ]
+
+    def test_rows_carry_their_owner_for_the_unscoped_picker(self, super_client):
+        owner = make_client('daniel@example.com', first='Daniel', last='Ríos')
+        Project.objects.create(name='MIMITTOS', client=owner.user)
+
+        response = super_client.get('/api/accounting/projects/')
+
+        row = response.data['results'][0]
+        assert row['client_profile_id'] == owner.pk
+        assert 'Daniel' in row['client_display_name']
+
+    def test_a_staff_admin_can_use_the_picker(self, admin_client):
+        owner = make_client('daniel@example.com')
+        Project.objects.create(name='MIMITTOS', client=owner.user)
+
+        response = admin_client.get('/api/accounting/projects/')
+
+        assert response.status_code == 200
+        assert response.data['results'][0]['name'] == 'MIMITTOS'
+
+
+class TestWithoutProjectMeta:
+    def test_incomes_meta_counts_only_client_linked_rows_without_project(
+        self, super_client,
+    ):
+        """Same backlog definition as /panel/projects: a client-less row has
+        no project to propose, so it lives in without_client_count instead
+        and the two counters compose without overlap."""
+        owner = make_client('daniel@example.com')
+        project = Project.objects.create(name='MIMITTOS', client=owner.user)
+        make_income(client=owner)
+        make_income(client=owner, project=project)
+        make_income(concept='Sin dueño')
+
+        response = super_client.get('/api/accounting/incomes/')
+
+        assert response.status_code == 200
+        assert response.data['meta']['without_project_count'] == 1
+        assert response.data['meta']['without_client_count'] == 1
+
+    def test_the_counter_follows_the_active_filters(self, super_client):
+        owner = make_client('daniel@example.com')
+        make_income(client=owner, period_date='2025-01-01')
+
+        unfiltered = super_client.get('/api/accounting/incomes/')
+        filtered = super_client.get(
+            '/api/accounting/incomes/?date_from=2026-01-01',
+        )
+
+        assert unfiltered.data['meta']['without_project_count'] == 1
+        assert filtered.data['meta']['without_project_count'] == 0
+
+    def test_hostings_meta_counts_the_same_backlog(self, super_client):
+        owner = make_client('daniel@example.com')
+        project = Project.objects.create(name='MIMITTOS', client=owner.user)
+        HostingRecord.objects.create(
+            client=owner, client_name='Daniel - Backlog',
+            monthly_value=Decimal('77760.00'),
+        )
+        HostingRecord.objects.create(
+            client=owner, project=project, client_name='Daniel - Mimittos',
+            monthly_value=Decimal('77760.00'),
+        )
+        HostingRecord.objects.create(
+            client_name='Sin dueño', monthly_value=Decimal('77760.00'),
+        )
+
+        response = super_client.get('/api/accounting/hostings/')
+
+        assert response.status_code == 200
+        assert response.data['meta']['without_project_count'] == 1
 
 
 class TestExpectedIncomeFilter:

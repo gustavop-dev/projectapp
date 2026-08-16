@@ -268,12 +268,38 @@ def issue_collection_account(
     # a deadline either. A date set explicitly on the draft still stands.
 
     recalculate_document_totals(document)
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.ISSUED
     document.updated_by = acting_user
     document.save()
     ext.save()
+    _log_status_transition(document, old_values, acting_user)
 
     return document
+
+
+def _status_snapshot(document):
+    from content.services import accounting_service
+
+    return accounting_service.snapshot_values(
+        document, accounting_service.EntityType.COLLECTION_ACCOUNT,
+    )
+
+
+def _log_status_transition(document, old_values, acting_user):
+    """Audit row for a lifecycle transition (issue/paid/cancel).
+
+    This is what makes anular-y-reemitir reconstructable next to the
+    client/project reassignments: the trail says WHEN each cuenta changed
+    state and by whom, in the same table. Local import — this module is
+    itself imported from accounting paths.
+    """
+    from content.services import accounting_service
+
+    accounting_service.log_entity_diff(
+        accounting_service.EntityType.COLLECTION_ACCOUNT,
+        document, old_values, acting_user,
+    )
 
 
 @transaction.atomic
@@ -284,9 +310,11 @@ def mark_collection_account_paid(document, *, acting_user=None):
         return document
     if document.commercial_status != Document.CommercialStatus.ISSUED:
         raise CollectionAccountError('Only issued accounts can be marked paid.')
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.PAID
     document.updated_by = acting_user
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
+    _log_status_transition(document, old_values, acting_user)
     return document
 
 
@@ -303,9 +331,11 @@ def mark_collection_account_cancelled(document, *, acting_user=None):
         Document.CommercialStatus.ISSUED,
     ):
         raise CollectionAccountError('Only draft or issued accounts can be cancelled.')
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.CANCELLED
     document.updated_by = acting_user
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
+    _log_status_transition(document, old_values, acting_user)
     return document
 
 

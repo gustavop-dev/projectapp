@@ -106,6 +106,8 @@ export const CHANGE_ENTITY_OPTIONS = [
   { value: 'merchant_alias', label: 'Alias de comercio' },
   { value: 'notification_recipient', label: 'Destinatario de notificación' },
   { value: 'settings', label: 'Configuración' },
+  { value: 'project', label: 'Proyecto' },
+  { value: 'collection_account', label: 'Cuenta de cobro' },
 ];
 
 export const ACTION_OPTIONS = [
@@ -132,6 +134,8 @@ export const SENDS_DEFAULTS = {
 export const CHANGES_DEFAULTS = {
   entity_type: [],
   action: [],
+  client: [],
+  project: [],
   actor: '',
   object_id: '',
   date_from: '',
@@ -157,11 +161,15 @@ export function sendsFilterFields({ clients = [], projects = [] } = {}) {
   ];
 }
 
-/** Panel fields for Cambios. */
-export function changesFilterFields() {
+/** Panel fields for Cambios. Client and project options come from the page —
+ * the question a reassignment raises is "qué le pasó a ESTE cliente", and
+ * until now only the send log could answer it. */
+export function changesFilterFields({ clients = [], projects = [] } = {}) {
   return [
     { kind: 'multi', key: 'entity_type', label: 'Entidad', options: CHANGE_ENTITY_OPTIONS },
     { kind: 'multi', key: 'action', label: 'Acción', options: ACTION_OPTIONS },
+    { kind: 'multi', key: 'client', label: 'Cliente', options: clients },
+    { kind: 'multi', key: 'project', label: 'Proyecto', options: projects },
     { kind: 'text', key: 'actor', label: 'Usuario', placeholder: 'quién lo hizo…' },
     { kind: 'daterange', label: 'Fecha', minKey: 'date_from', maxKey: 'date_to' },
   ];
@@ -186,6 +194,8 @@ export const SENDS_PARAM_MAPPING = {
 export const CHANGES_PARAM_MAPPING = {
   entity_type: 'entity_type',
   action: 'action',
+  client: 'client',
+  project: 'project',
   actor: 'actor',
   object_id: 'object_id',
   date_from: 'date_from',
@@ -224,6 +234,8 @@ export const CHANGES_FILTERS_CONFIG = {
   matchers: {
     entity_type: serverFilter('entity_type'),
     action: serverFilter('action'),
+    client: serverFilter('client'),
+    project: serverFilter('project'),
     actor: serverFilter('actor'),
     object_id: serverFilter('object_id'),
     dateRange: serverFilter('date_from', 'date_to'),

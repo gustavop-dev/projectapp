@@ -134,3 +134,23 @@ class UpdatePanelProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['name', 'description', 'status']
+
+
+class ProjectChangeClientSerializer(serializers.Serializer):
+    """Apply payload for ``projects/<id>/change-client/``.
+
+    ``mode`` is a bare CharField on purpose: the view maps an unknown value
+    to its own ``invalid_mode`` code (the operator must choose move/detach
+    every time — there is no default to fall back to). The id lists are the
+    staleness token, not a selection: they must equal the CURRENT linked
+    sets or nothing runs.
+    """
+
+    client_profile_id = serializers.IntegerField()
+    mode = serializers.CharField()
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )

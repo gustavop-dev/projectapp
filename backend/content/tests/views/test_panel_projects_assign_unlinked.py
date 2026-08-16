@@ -180,6 +180,64 @@ class TestAssignUnlinkedRecords:
         assert hosting.project_id == project.pk
         assert income.project_id == project.pk
 
+    def test_the_response_carries_the_updated_rows(
+        self, admin_client, make_client_profile,
+    ):
+        """Full rows, not just counts: an accounting tab open in the SPA
+        rebuilds its table from these instead of keeping the stale cell."""
+        profile = make_client_profile()
+        project = make_project(profile)
+        hosting = make_hosting(profile)
+        income = make_income(profile)
+
+        response = admin_client.post(
+            apply_url(project.pk),
+            {'hosting_ids': [hosting.pk], 'income_ids': [income.pk]},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        hosting_row, = response.data['hostings']
+        income_row, = response.data['incomes']
+        assert (hosting_row['id'], hosting_row['project']) == (
+            hosting.pk, project.pk,
+        )
+        assert hosting_row['project_name'] == project.name
+        assert (income_row['id'], income_row['project']) == (
+            income.pk, project.pk,
+        )
+        assert income_row['project_name'] == project.name
+
+    def test_cascaded_liquid_children_travel_in_the_response_rows(
+        self, admin_client, make_client_profile,
+    ):
+        """The cascade rewrites children the operator never picked; without
+        them in the payload the panel would keep a stale child row. The
+        count stays parents-only — it answers for the confirmed plan."""
+        profile = make_client_profile()
+        project = make_project(profile)
+        expected = make_income(profile)
+        liquid = make_income(
+            profile,
+            kind=IncomeRecord.Kind.LIQUID,
+            expected_income=expected,
+            concept='Vastago - Fase 1 (pago)',
+        )
+
+        response = admin_client.post(
+            apply_url(project.pk), {'income_ids': [expected.pk]}, format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['assigned_incomes'] == 1
+        assert {row['id'] for row in response.data['incomes']} == {
+            expected.pk, liquid.pk,
+        }
+        assert all(
+            row['project'] == project.pk for row in response.data['incomes']
+        )
+        assert response.data['hostings'] == []
+
     def test_a_vanished_id_answers_409_and_writes_nothing(
         self, admin_client, make_client_profile,
     ):

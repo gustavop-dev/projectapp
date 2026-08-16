@@ -147,6 +147,26 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       this.isUpdating = true;
       try {
         const response = await create_request(`projects/${id}/assign-unlinked/`, payload);
+        // The response carries the updated accounting rows (cascaded liquid
+        // children included). An accounting tab open in the SPA rebuilds
+        // from them — reloading is a symptom, not a fix.
+        const accounting = useAccountingStore();
+        const hostings = new Map(
+          (response.data.hostings ?? []).map((row) => [row.id, row]),
+        );
+        if (hostings.size && accounting.hostings.length) {
+          accounting.hostings = accounting.hostings.map(
+            (record) => hostings.get(record.id) ?? record,
+          );
+        }
+        const incomes = new Map(
+          (response.data.incomes ?? []).map((row) => [row.id, row]),
+        );
+        if (incomes.size && accounting.incomes.length) {
+          accounting.incomes = accounting.incomes.map(
+            (record) => incomes.get(record.id) ?? record,
+          );
+        }
         await this.fetchProjects();
         invalidatePickerCache();
         return { success: true, data: response.data };
@@ -154,6 +174,51 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
         return {
           success: false,
           ...normalizeApiError(error, 'No se pudieron asignar los registros.'),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /** Impact preview of moving the project to another client. No state. */
+    async previewChangeClient(id, clientProfileId) {
+      try {
+        const response = await get_request(
+          `projects/${id}/change-client/preview/?client_profile_id=${clientProfileId}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudo calcular el impacto.'),
+        };
+      }
+    },
+
+    /**
+     * Apply the change-client cascade. The response carries counts plus the
+     * annotated project row, never the touched records (the set is
+     * unbounded and multi-module), so the accounting lists that are already
+     * loaded refetch instead of map-replacing.
+     */
+    async changeClient(id, payload) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `projects/${id}/change-client/`, payload,
+        );
+        const accounting = useAccountingStore();
+        if (accounting.hostings.length) accounting.fetchRecords('hostings');
+        if (accounting.incomes.length) accounting.fetchRecords('incomes');
+        await this.fetchProjects();
+        invalidatePickerCache();
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(
+            error, 'No se pudo cambiar el cliente del proyecto.',
+          ),
         };
       } finally {
         this.isUpdating = false;

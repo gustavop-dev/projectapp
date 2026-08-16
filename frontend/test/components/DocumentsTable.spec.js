@@ -175,3 +175,39 @@ describe('DocumentsTable — archived mode', () => {
     expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
   });
 });
+
+describe('DocumentsTable — asociación cliente/proyecto', () => {
+  it('renders the linked client and project in their own columns', () => {
+    const wrapper = mountTable({
+      documents: [{
+        ...activeDoc,
+        client: 4,
+        client_display_name: 'Kore SAS',
+        project: 11,
+        project_name: 'Kore - Diseño',
+      }],
+    });
+
+    expect(wrapper.find('thead').text()).toContain('Cliente');
+    expect(wrapper.find('thead').text()).toContain('Proyecto');
+    expect(wrapper.find('[data-testid="doc-client-cell-1"]').text()).toBe('Kore SAS');
+    expect(wrapper.find('[data-testid="doc-project-cell-1"]').text()).toBe('Kore - Diseño');
+  });
+
+  it('falls back to the free-text name in italics when nothing is linked', () => {
+    const wrapper = mountTable({
+      documents: [{ ...activeDoc, client_name: 'ACME Corp' }],
+    });
+
+    const cell = wrapper.find('[data-testid="doc-client-cell-1"]');
+    expect(cell.text()).toBe('ACME Corp');
+    expect(cell.find('span').classes()).toContain('italic');
+  });
+
+  it('shows dashes when the document has no association at all', () => {
+    const wrapper = mountTable({ documents: [{ ...activeDoc }] });
+
+    expect(wrapper.find('[data-testid="doc-client-cell-1"]').text()).toBe('—');
+    expect(wrapper.find('[data-testid="doc-project-cell-1"]').text()).toBe('—');
+  });
+});

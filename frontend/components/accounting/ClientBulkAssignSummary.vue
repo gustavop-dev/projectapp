@@ -42,6 +42,20 @@
         </span>
       </li>
       <li
+        v-if="plan.projectCleared?.length"
+        class="flex items-center gap-2 text-text-default"
+        data-testid="client-bulk-summary-project-cleared"
+      >
+        <span class="w-1.5 h-1.5 rounded-full bg-warning-strong flex-shrink-0" />
+        <span>
+          <span class="font-semibold tabular-nums">{{ plan.projectCleared.length }}</span>
+          {{ plan.projectCleared.length === 1
+            ? 'pierde también su proyecto'
+            : 'pierden también su proyecto' }}
+          (era del cliente anterior)
+        </span>
+      </li>
+      <li
         v-if="plan.unchanged.length"
         class="flex items-center gap-2 text-text-subtle"
         data-testid="client-bulk-summary-unchanged"

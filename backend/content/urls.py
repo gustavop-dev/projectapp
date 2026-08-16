@@ -4,12 +4,13 @@ from content.views.accounting import (
     list_income_records, create_income_record, retrieve_income_record,
     retrieve_income_detail, list_client_projects,
     settle_income_record, bulk_assign_income_client, mute_income_reminders,
-    duplicate_income_draft,
+    bulk_assign_income_project,
+    duplicate_income_draft, suggest_income_period,
     update_income_record, delete_income_record,
     list_expense_records, create_expense_record, retrieve_expense_record,
     update_expense_record, delete_expense_record,
     list_hosting_records, create_hosting_record, retrieve_hosting_record,
-    bulk_assign_hosting_client,
+    bulk_assign_hosting_client, bulk_assign_hosting_project,
     update_hosting_record, delete_hosting_record,
     list_hosting_cycles, create_hosting_cycle, delete_hosting_cycle,
     list_pocket_movements, create_pocket_movement, retrieve_pocket_movement,
@@ -53,9 +54,11 @@ from content.views.panel_dashboard import panel_dashboard
 from content.views.panel_projects import (
     archive_panel_project,
     assign_project_unlinked_records,
+    change_project_client,
     create_panel_project,
     list_panel_projects,
     list_project_unlinked_records,
+    preview_project_client_change,
     unarchive_panel_project,
     update_panel_project,
 )
@@ -162,6 +165,7 @@ from content.views.document import (
     upload_document_markdown, retrieve_document, update_document,
     delete_document, duplicate_document, download_document_pdf,
     archive_document, unarchive_document, document_counts,
+    suggest_folder_client,
 )
 from content.views.recurring_category import (
     list_recurring_categories, create_recurring_category,
@@ -177,6 +181,11 @@ from content.views.document_folder import (
 from content.views.document_tag import (
     list_document_tags, create_document_tag,
     update_document_tag, delete_document_tag,
+)
+from content.views.client_emails import (
+    client_email_body,
+    list_client_emails,
+    retry_client_email,
 )
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
@@ -248,6 +257,8 @@ urlpatterns = [
     path('projects/<int:project_id>/unarchive/', unarchive_panel_project, name='panel-projects-unarchive'),
     path('projects/<int:project_id>/unlinked-records/', list_project_unlinked_records, name='panel-projects-unlinked-records'),
     path('projects/<int:project_id>/assign-unlinked/', assign_project_unlinked_records, name='panel-projects-assign-unlinked'),
+    path('projects/<int:project_id>/change-client/preview/', preview_project_client_change, name='panel-projects-change-client-preview'),
+    path('projects/<int:project_id>/change-client/', change_project_client, name='panel-projects-change-client'),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),
@@ -282,6 +293,11 @@ urlpatterns = [
     path('proposals/client-profiles/<int:client_id>/', retrieve_proposal_client, name='retrieve-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/update/', update_proposal_client, name='update-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/delete/', delete_proposal_client, name='delete-proposal-client'),
+    # The client's email history. Nested under the client on purpose: the
+    # scope is what authorizes the row.
+    path('proposals/client-profiles/<int:client_id>/emails/', list_client_emails, name='list-client-emails'),
+    path('proposals/client-profiles/<int:client_id>/emails/<int:log_id>/body/', client_email_body, name='client-email-body'),
+    path('proposals/client-profiles/<int:client_id>/emails/<int:log_id>/retry/', retry_client_email, name='retry-client-email'),
     path('proposals/alerts/', proposal_alerts, name='proposal-alerts'),
     path('proposals/alerts/create/', create_proposal_alert, name='create-proposal-alert'),
     path('proposals/alerts/<int:alert_id>/dismiss/', dismiss_proposal_alert, name='dismiss-proposal-alert'),
@@ -386,6 +402,7 @@ urlpatterns = [
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),
     path('documents/counts/', document_counts, name='document-counts'),
+    path('documents/folder-client-suggestion/', suggest_folder_client, name='document-folder-client-suggestion'),
     path('documents/create/', create_document, name='create-document'),
     path('documents/create-from-markdown/', create_document_from_markdown, name='create-document-from-markdown'),
     path('documents/upload-markdown/', upload_document_markdown, name='upload-document-markdown'),
@@ -546,7 +563,9 @@ urlpatterns = [
     path('accounting/incomes/<int:record_id>/settle/', settle_income_record, name='settle-income-record'),
     path('accounting/incomes/<int:record_id>/mute/', mute_income_reminders, name='mute-income-reminders'),
     path('accounting/incomes/<int:record_id>/duplicate-draft/', duplicate_income_draft, name='duplicate-income-draft'),
+    path('accounting/incomes/period-suggestion/', suggest_income_period, name='suggest-income-period'),
     path('accounting/incomes/bulk-assign-client/', bulk_assign_income_client, name='bulk-assign-income-client'),
+    path('accounting/incomes/bulk-assign-project/', bulk_assign_income_project, name='bulk-assign-income-project'),
     path('accounting/incomes/<int:record_id>/', retrieve_income_record, name='retrieve-income-record'),
     path('accounting/incomes/<int:record_id>/update/', update_income_record, name='update-income-record'),
     path('accounting/incomes/<int:record_id>/delete/', delete_income_record, name='delete-income-record'),
@@ -568,6 +587,7 @@ urlpatterns = [
         name='send-hosting-collection-account',
     ),
     path('accounting/hostings/bulk-assign-client/', bulk_assign_hosting_client, name='bulk-assign-hosting-client'),
+    path('accounting/hostings/bulk-assign-project/', bulk_assign_hosting_project, name='bulk-assign-hosting-project'),
     path('accounting/hostings/<int:record_id>/cycles/', list_hosting_cycles, name='list-hosting-cycles'),
     path('accounting/hostings/<int:record_id>/cycles/create/', create_hosting_cycle, name='create-hosting-cycle'),
     path('accounting/hostings/<int:record_id>/cycles/<int:cycle_id>/delete/', delete_hosting_cycle, name='delete-hosting-cycle'),

@@ -28,6 +28,13 @@ class AccountingChangeLog(models.Model):
             'notification_recipient', 'Destinatario de notificación',
         )
         SETTINGS = 'settings', 'Configuración'
+        # Cross-module relations audit (client/project coherence): projects
+        # and cuentas de cobro are not accounting ledger rows, but their
+        # client/project moves alter every per-client figure — same trail,
+        # same survival-after-deletion contract. 'collection_account'
+        # deliberately matches the EmailLogTarget string.
+        PROJECT = 'project', 'Proyecto'
+        COLLECTION_ACCOUNT = 'collection_account', 'Cuenta de cobro'
 
     class Action(models.TextChoices):
         CREATED = 'created', 'Creado'

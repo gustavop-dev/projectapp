@@ -4,6 +4,8 @@ Covers: DocumentListSerializer, DocumentDetailSerializer,
 DocumentCreateUpdateSerializer, DocumentFromMarkdownSerializer.
 """
 import pytest
+from accounts.models import Project, UserProfile
+from django.contrib.auth import get_user_model
 
 from content.models import Document
 from content.serializers.document import (
@@ -36,6 +38,8 @@ class TestDocumentListSerializer:
         data = DocumentListSerializer(document).data
         expected = {
             'id', 'uuid', 'title', 'slug', 'status', 'client_name',
+            'client', 'client_display_name', 'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
@@ -96,6 +100,8 @@ class TestDocumentDetailSerializer:
         expected = {
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json', 'client_name',
+            'client', 'client_display_name', 'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',
@@ -189,3 +195,147 @@ class TestDocumentFromMarkdownSerializer:
         )
         assert serializer.is_valid()
         assert serializer.validated_data['client_name'] == ''
+
+
+# ── Asociación cliente/proyecto ───────────────────────────────────────────────
+
+def make_client(email, *, first='Ana', last='Pérez'):
+    user = get_user_model().objects.create_user(
+        username=email, email=email, password='pass12345',
+        first_name=first, last_name=last,
+    )
+    return UserProfile.objects.create(user=user, cedula='1049654583')
+
+
+class TestDocumentAssociation:
+    def test_client_writes_client_user_and_autofills_client_name(self):
+        profile = make_client('ana@example.com')
+        serializer = DocumentCreateUpdateSerializer(
+            data={'title': 'Contrato', 'client': profile.pk},
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user == profile.user
+        assert 'Ana' in document.client_name
+
+    def test_project_alone_derives_the_client(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore - Diseño', client=profile.user)
+        serializer = DocumentCreateUpdateSerializer(
+            data={'title': 'Entregable', 'project': project.pk},
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.project == project
+        assert document.client_user == profile.user
+
+    def test_project_of_another_client_is_rejected(self):
+        mine = make_client('ana@example.com')
+        other = make_client('nestor@example.com', first='Néstor')
+        project = Project.objects.create(name='MIMITTOS', client=other.user)
+        serializer = DocumentCreateUpdateSerializer(
+            data={'title': 'Contrato', 'client': mine.pk, 'project': project.pk},
+        )
+        assert not serializer.is_valid()
+        assert 'pertenece a otro cliente' in str(serializer.errors['project'])
+
+    def test_changing_client_without_project_clears_the_project(self):
+        kore = make_client('kore@example.com', first='Kore', last='SAS')
+        ana = make_client('ana@example.com')
+        project = Project.objects.create(name='Kore - Diseño', client=kore.user)
+        document = Document.objects.create(
+            title='Entregable', client_user=kore.user, project=project,
+        )
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'client': ana.pk}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user == ana.user
+        assert document.project is None
+
+    def test_client_null_unlinks_but_keeps_client_name(self):
+        profile = make_client('ana@example.com')
+        document = Document.objects.create(
+            title='Contrato', client_user=profile.user, client_name='ACME Corp',
+        )
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'client': None}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user is None
+        assert document.client_name == 'ACME Corp'
+
+    def test_project_null_keeps_the_client(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore - Diseño', client=profile.user)
+        document = Document.objects.create(
+            title='Entregable', client_user=profile.user, project=project,
+        )
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'project': None}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.project is None
+        assert document.client_user == profile.user
+
+    def test_explicit_client_name_wins_over_the_autofill(self):
+        profile = make_client('ana@example.com')
+        serializer = DocumentCreateUpdateSerializer(
+            data={
+                'title': 'Doc', 'client': profile.pk,
+                'client_name': 'Nombre propio',
+            },
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().client_name == 'Nombre propio'
+
+    def test_resending_the_same_client_preserves_a_custom_client_name(self):
+        profile = make_client('ana@example.com')
+        document = Document.objects.create(
+            title='Doc', client_user=profile.user, client_name='Nombre propio',
+        )
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'title': 'Doc v2', 'client': profile.pk}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.title == 'Doc v2'
+        assert document.client_name == 'Nombre propio'
+
+    def test_from_markdown_rejects_a_foreign_project(self):
+        mine = make_client('ana@example.com')
+        other = make_client('nestor@example.com', first='Néstor')
+        project = Project.objects.create(name='MIMITTOS', client=other.user)
+        serializer = DocumentFromMarkdownSerializer(
+            data={
+                'title': 'Doc', 'markdown': '# x',
+                'client': mine.pk, 'project': project.pk,
+            },
+        )
+        assert not serializer.is_valid()
+        assert 'pertenece a otro cliente' in str(serializer.errors['project'])
+
+    def test_from_markdown_derives_client_user_from_the_project(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore - Diseño', client=profile.user)
+        serializer = DocumentFromMarkdownSerializer(
+            data={'title': 'Doc', 'markdown': '# x', 'project': project.pk},
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['client_user'] == profile.user
+        assert serializer.validated_data['client_name'] != ''
+
+    def test_read_serializers_expose_profile_pk_and_project_name(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore - Diseño', client=profile.user)
+        document = Document.objects.create(
+            title='Entregable', client_user=profile.user, project=project,
+        )
+        data = DocumentListSerializer(document).data
+        assert data['client'] == profile.pk
+        assert data['project'] == project.pk
+        assert data['project_name'] == 'Kore - Diseño'
+        assert data['client_display_name']

@@ -17,6 +17,14 @@ defineProps({
   required: { type: Boolean, default: false },
   inputTestid: { type: String, default: '' },
   toggleTestid: { type: String, default: '' },
+  /**
+   * Forwarded to the inner `BaseFormField` rather than rendered by the parent
+   * next to this component: inside a `BaseFormRow` only a direct child field
+   * inherits the shared hint band, and a wrapper around it would break the
+   * alignment of the whole row.
+   */
+  hint: { type: String, default: '' },
+  hintTestid: { type: String, default: '' },
 })
 
 // Keep whatever was typed when flipping modes: 'YYYY-MM' ⇄ 'YYYY-MM-DD'.
@@ -35,7 +43,12 @@ watch(exact, (isExact) => {
 </script>
 
 <template>
-  <BaseFormField :label="exact ? labelExact : labelMonth" :required="required">
+  <BaseFormField
+    :label="exact ? labelExact : labelMonth"
+    :required="required"
+    :hint="hint"
+    :hint-testid="hintTestid"
+  >
     <BaseInput
       v-model="model"
       :type="exact ? 'date' : 'month'"

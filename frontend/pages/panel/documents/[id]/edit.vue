@@ -16,7 +16,7 @@
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
         <p v-if="documentStore.currentDocument" class="text-sm text-text-muted mt-1">
-          {{ statusLabel }}{{ form.client_name ? ` · ${form.client_name}` : '' }}
+          {{ statusLabel }}{{ headerClientLabel ? ` · ${headerClientLabel}` : '' }}
         </p>
       </div>
       <div v-if="documentStore.currentDocument && !loadError" class="hidden lg:flex items-center gap-3">
@@ -33,7 +33,7 @@
             </BaseButton>
           </template>
         </BaseDropdown>
-        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges">
+        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
           {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
         </BaseButton>
       </div>
@@ -97,6 +97,19 @@
       class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
       @submit.prevent="handleSave"
     >
+      <!-- Requisito 6: un documento emitido no se reasigna ni se reescribe.
+           El form queda visible (consultarlo sigue valiendo) con el guardado
+           apagado; el backend rechaza igual con collection_account_locked. -->
+      <BaseAlert
+        v-if="lockedCuenta"
+        variant="warning"
+        class="lg:col-span-2"
+        data-testid="doc-locked-cuenta-alert"
+      >
+        Cuenta de cobro emitida: este documento es de sólo lectura aquí.
+        Si hubo un error, anúlala y emite una nueva desde
+        Contabilidad → Cuentas de cobro.
+      </BaseAlert>
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
@@ -116,16 +129,83 @@
               />
             </div>
             <div>
-              <label for="edit-client" class="block text-sm font-medium text-text-default mb-1">Nombre del cliente</label>
-              <input
-                id="edit-client"
-                v-model="form.client_name"
-                type="text"
-                placeholder="Empresa S.A."
-                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default placeholder:text-text-subtle
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
+              <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
+              <ClientAutocomplete
+                v-model="form.client"
+                :initial-label="clientDisplayName"
+                test-id="doc-client-autocomplete"
+                @select="onClientSelect"
+                @create-new="onCreateNewClient"
               />
+              <p
+                v-if="!form.client && legacyClientName"
+                class="text-xs text-text-subtle mt-1"
+                data-testid="doc-legacy-client-name"
+              >
+                Nombre guardado (texto libre): {{ legacyClientName }}
+              </p>
+              <!-- La relación sirve en las dos direcciones: desde el documento
+                   se llega a su cliente y a su proyecto. -->
+              <div
+                v-if="savedClientId || savedProjectId"
+                class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs"
+              >
+                <NuxtLink
+                  v-if="savedClientId"
+                  data-testid="document-client-link"
+                  :to="localePath({ path: '/panel/clients', query: { highlight: String(savedClientId) } })"
+                  class="text-text-brand hover:underline"
+                >
+                  Ver cliente{{ savedClientLabel ? `: ${savedClientLabel}` : '' }}
+                </NuxtLink>
+                <NuxtLink
+                  v-if="savedProjectId"
+                  data-testid="document-project-link"
+                  :to="localePath({ path: '/panel/projects', query: { highlight: String(savedProjectId) } })"
+                  class="text-text-brand hover:underline"
+                >
+                  Ver proyecto{{ savedProjectName ? `: ${savedProjectName}` : '' }}
+                </NuxtLink>
+              </div>
             </div>
+
+            <!-- Inline client creation: the clients module without leaving the form -->
+            <div
+              v-if="inlineClientOpen"
+              class="rounded-xl border border-border-default bg-surface-raised p-4 space-y-3"
+              data-testid="doc-inline-client"
+            >
+              <p class="text-sm font-medium text-text-default">Crear cliente nuevo</p>
+              <ClientFormFields
+                v-model="inlineClient"
+                testid-prefix="doc-inline-client"
+                dense
+              />
+              <div class="flex justify-end gap-2">
+                <BaseButton type="button" variant="secondary" size="sm" @click="inlineClientOpen = false">
+                  Cancelar
+                </BaseButton>
+                <BaseButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  :disabled="creatingClient"
+                  data-testid="doc-inline-client-save"
+                  @click="createInlineClient"
+                >
+                  {{ creatingClient ? 'Creando...' : 'Crear cliente' }}
+                </BaseButton>
+              </div>
+            </div>
+
+            <ProjectSelect
+              v-model="form.project"
+              :client-profile-id="form.client"
+              :client-label="clientDisplayName"
+              :allow-no-client="true"
+              testid="doc-project-select"
+              @select="onProjectSelect"
+            />
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Estado</label>
               <select
@@ -291,7 +371,7 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
-          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges">
+          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
             {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
           </BaseButton>
           <BaseDropdown :items="downloadItems" align="right">
@@ -334,6 +414,11 @@ import { reactive, ref, computed, onMounted, nextTick } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
+import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
+import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
@@ -344,8 +429,23 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
+const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
 const loadError = ref(false);
+// Requisito 6: an issued cuenta is a fact — read-only here, forever.
+const lockedCuenta = ref(false);
+const clientDisplayName = ref('');
+// El nombre libre heredado sigue existiendo (lo lee el PDF); se muestra como
+// referencia mientras el documento no tenga cliente relacional.
+const legacyClientName = ref('');
+const inlineClientOpen = ref(false);
+const inlineClient = ref(emptyClientForm());
+const creatingClient = ref(false);
+// Los enlaces apuntan a lo GUARDADO, no a una selección sin guardar.
+const savedClientId = ref(null);
+const savedClientLabel = ref('');
+const savedProjectId = ref(null);
+const savedProjectName = ref('');
 const isDownloading = ref(false);
 const showPreview = ref(true);
 const showFullPreview = ref(false);
@@ -361,7 +461,8 @@ const hasChanges = computed(() => {
 
 const form = reactive({
   title: '',
-  client_name: '',
+  client: null,
+  project: null,
   language: 'es',
   include_portada: true,
   include_subportada: true,
@@ -372,6 +473,52 @@ const form = reactive({
   tag_ids: [],
   template_style: 'professional',
 });
+
+const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
+
+function onClientSelect(client) {
+  if (!client) {
+    form.client = null;
+    clientDisplayName.value = '';
+    // Sin cliente el proyecto no se sostiene: el backend lo derivaría de
+    // vuelta desde el proyecto y la limpieza no habría limpiado nada.
+    form.project = null;
+    return;
+  }
+  form.client = client.id;
+  clientDisplayName.value = client.name || '';
+}
+
+/** Cascada inversa: elegir proyecto primero completa el cliente solo. */
+function onProjectSelect(row) {
+  if (row && row.client_profile_id && !form.client) {
+    form.client = row.client_profile_id;
+    clientDisplayName.value = row.client_display_name || '';
+  }
+}
+
+function onCreateNewClient(typedName) {
+  inlineClientOpen.value = true;
+  inlineClient.value = { ...emptyClientForm(), name: typedName || '' };
+}
+
+async function createInlineClient() {
+  creatingClient.value = true;
+  const result = await clientsStore.createClient(clientFormPayload(inlineClient.value));
+  creatingClient.value = false;
+  if (result.success && result.data?.id) {
+    inlineClientOpen.value = false;
+    onClientSelect(result.data);
+  }
+}
+
+function applyAssociationSnapshot(data) {
+  savedClientId.value = data.client ?? null;
+  savedClientLabel.value = data.client_display_name || '';
+  savedProjectId.value = data.project ?? null;
+  savedProjectName.value = data.project_name || '';
+  legacyClientName.value = data.client_name || '';
+}
 
 const coverOptions = [
   { key: 'include_portada', label: 'Incluir portada' },
@@ -455,7 +602,10 @@ async function reloadDocument() {
   ]);
   if (result.success && result.data) {
     form.title = result.data.title || '';
-    form.client_name = result.data.client_name || '';
+    form.client = result.data.client ?? null;
+    form.project = result.data.project ?? null;
+    clientDisplayName.value = result.data.client_display_name || '';
+    applyAssociationSnapshot(result.data);
     form.language = result.data.language || 'es';
     form.include_portada = result.data.include_portada !== undefined ? result.data.include_portada : true;
     form.include_subportada = result.data.include_subportada !== undefined ? result.data.include_subportada : true;
@@ -465,6 +615,10 @@ async function reloadDocument() {
     form.folder_id = result.data.folder || null;
     form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
     form.template_style = result.data.template_style || 'professional';
+    lockedCuenta.value = (
+      result.data.document_type_code === 'collection_account'
+      && result.data.commercial_status !== 'draft'
+    );
     savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
   } else {
     loadError.value = true;
@@ -477,7 +631,9 @@ usePanelRefresh(reloadDocument);
 async function handleSave() {
   const payload = {
     title: form.title.trim(),
-    client_name: form.client_name.trim(),
+    // Siempre presentes, null incluido: es lo que permite desvincular.
+    client: form.client ?? null,
+    project: form.project ?? null,
     language: form.language,
     include_portada: form.include_portada,
     include_subportada: form.include_subportada,
@@ -492,7 +648,16 @@ async function handleSave() {
   const result = await documentStore.updateDocument(route.params.id, payload);
   if (result.success) {
     savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
+    if (result.data) {
+      applyAssociationSnapshot(result.data);
+      clientDisplayName.value = result.data.client_display_name || clientDisplayName.value;
+    }
     notify.success({ title: 'Documento guardado' });
+  } else if (result.code === 'collection_account_locked') {
+    // The server is the truth: the cuenta was issued (maybe from another
+    // tab) after this form loaded. Lock the page to match.
+    lockedCuenta.value = true;
+    notify.error({ title: 'Documento emitido', detail: result.message });
   } else {
     const fieldDetail = result.fieldErrors
       ? Object.entries(result.fieldErrors).map(([k, v]) => `${k}: ${v}`).join(' · ')

@@ -30,6 +30,27 @@ class TestCreateFakeAccounting:
             source_ref='fake:accounting',
         ).exists()
 
+    def test_seeds_a_billed_diagnostic_and_the_lost_one_it_must_exclude(
+        self, make_client_profile,
+    ):
+        """The Diagnóstico module of /panel/clients renders (0) without this.
+
+        Both halves matter: a billable row with a client so the cut has data,
+        and a written-off one so the exclusion is exercised rather than
+        assumed. The profile is seeded first because the command only links
+        incomes to clients that already exist.
+        """
+        make_client_profile(company='Diag SAS')
+        call_command('create_fake_accounting', '--count', '40')
+
+        diagnostic = IncomeRecord.objects.filter(
+            origin=IncomeRecord.Origin.DIAGNOSTIC,
+        )
+        assert diagnostic.filter(
+            client__isnull=False,
+        ).exclude(kind=IncomeRecord.Kind.LOST).exists()
+        assert diagnostic.filter(kind=IncomeRecord.Kind.LOST).exists()
+
     def test_covers_every_income_kind_and_fulfilment_state(self):
         """The Ingresos tab renders Pagado/Parcial/Pendiente plus Perdido.
 

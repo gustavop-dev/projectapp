@@ -186,6 +186,22 @@ class TestCreatePanelProject:
         project = Project.objects.get(pk=response.data['id'])
         assert project.client_id == owner.user_id
 
+    def test_the_create_response_reports_the_clients_backlog(self, admin_client):
+        """The inline-create flow (crear al vuelo from an accounting picker)
+        decides whether to offer the assign modal from these two counters."""
+        owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
+        make_income(client=owner)
+        make_hosting(owner, None, name='Deivis - Vastago')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 201, response.data
+        assert response.data['unlinked_hostings_count'] == 1
+        assert response.data['unlinked_incomes_count'] == 1
+
     def test_name_is_required(self, admin_client):
         owner = make_client('deivis@example.com')
 
@@ -341,3 +357,50 @@ class TestArchivePanelProject:
 
         assert response.status_code == 400
         assert response.data['code'] == 'not_archived'
+
+
+class TestProjectAuditTrail:
+    """Every project mutation leaves a PROJECT row (requisito 12): before
+    this, /panel/projects wrote no audit at all."""
+
+    def _rows(self, project_id):
+        from content.models import AccountingChangeLog
+
+        return AccountingChangeLog.objects.filter(
+            entity_type='project', object_id=project_id,
+        ).order_by('created_at')
+
+    def test_create_update_and_archive_are_audited(self, admin_client):
+        owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
+
+        created = admin_client.post(CREATE_URL, {
+            'name': 'Vastago', 'client_profile_id': owner.pk,
+        }, format='json')
+        project_id = created.data['id']
+        admin_client.patch(
+            f'/api/projects/{project_id}/update/',
+            {'name': 'Vastago v2'}, format='json',
+        )
+        admin_client.patch(f'/api/projects/{project_id}/archive/')
+
+        rows = list(self._rows(project_id))
+        assert [row.action for row in rows] == ['created', 'updated', 'updated']
+        name_change = next(
+            c for c in rows[1].changes if c['field'] == 'name'
+        )
+        assert (name_change['old'], name_change['new']) == ('Vastago', 'Vastago v2')
+        status_change = next(
+            c for c in rows[2].changes if c['field'] == 'status'
+        )
+        assert status_change['new'] == 'Archivado'
+
+    def test_a_noop_update_writes_nothing(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'name': 'Vastago'}, format='json',
+        )
+
+        assert self._rows(project.pk).count() == 0

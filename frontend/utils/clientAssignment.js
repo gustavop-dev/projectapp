@@ -77,6 +77,13 @@ export function buildAssignmentPlan({
   });
   plan.byCurrentClient = [...buckets.values()].sort((a, b) => b.count - a.count);
 
+  // Rows that will ALSO lose their project: the server clears `project`
+  // whenever the client changes hands (a record must never point at someone
+  // else's project). Only rows leaving a client qualify — a row with no
+  // client being assigned one keeps a project its new client already owns.
+  plan.projectCleared = (mode === 'unlink' ? plan.toUnlink : plan.toReassign)
+    .filter((row) => row.project != null);
+
   return plan;
 }
 
@@ -104,6 +111,13 @@ function unchangedNote(plan, entity) {
   return ` ${countLabel(count, entity)} ya ${count === 1 ? 'tiene' : 'tienen'} a ${plan.targetClientLabel} y no ${count === 1 ? 'cambia' : 'cambian'}.`;
 }
 
+/** The project side effect, said before it happens instead of after. */
+function projectClearedNote(plan) {
+  const count = plan.projectCleared?.length ?? 0;
+  if (count === 0) return '';
+  return ` ${count} ${count === 1 ? 'pierde' : 'pierden'} también su proyecto (era del cliente anterior).`;
+}
+
 /**
  * Copy for the confirmation, one message per scenario — assigning to rows
  * with no client, replacing the client of rows that already have one, the
@@ -115,7 +129,7 @@ function unchangedNote(plan, entity) {
  */
 export function describeAssignmentPlan(plan, { entity }) {
   const target = plan.targetClientLabel || 'el cliente seleccionado';
-  const note = unchangedNote(plan, entity);
+  const note = `${unchangedNote(plan, entity)}${projectClearedNote(plan)}`;
 
   if (plan.mode === 'unlink') {
     const origins = originList(plan.byCurrentClient);

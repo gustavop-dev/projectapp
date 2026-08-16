@@ -96,6 +96,9 @@ def send_attachments_to_client(
         'extra_filenames': [entry[0] for entry in extra_files or []],
     }
 
+    # Bound before the try: the failure path logs from the except, and a
+    # render error must not turn into a NameError there.
+    html_body = text_body = ''
     try:
         html_body = render_to_string(
             'emails/proposal_documents_sent.html', context,
@@ -117,6 +120,8 @@ def send_attachments_to_client(
         ProposalEmailService._log_email(
             TEMPLATE_KEY, recipient, subject=email_subject, status='failed',
             error_message=str(exc)[:1000], metadata=log_metadata,
+            client=diagnostic.client_id,
+            html_body=html_body, text_body=text_body,
         )
         logger.exception('Failed sending diagnostic documents for %s',
                          diagnostic.uuid)
@@ -125,6 +130,8 @@ def send_attachments_to_client(
     ProposalEmailService._log_email(
         TEMPLATE_KEY, recipient, subject=email_subject, status='sent',
         metadata=log_metadata,
+        client=diagnostic.client_id,
+        html_body=html_body, text_body=text_body,
     )
     logger.info('Sent %d attachments for diagnostic %s to %s',
                 len(files_payload), diagnostic.uuid, recipient)

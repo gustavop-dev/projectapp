@@ -463,6 +463,28 @@ class IncomeRecordCreateUpdateSerializer(
                 'Este ingreso esperado ya tiene liquidaciones. Reduce su monto '
                 'y registra la diferencia como un ingreso perdido aparte.'
             )
+        # An active (non-cancelled) cuenta de cobro freezes an EXISTING
+        # client: the document went out in their name, and even a draft is a
+        # cuenta in flight. The path for a mistake is anular y reemitir.
+        # Completing a missing client stays allowed (the legacy backlog and
+        # the issue-time adoption both do exactly that), and hostings stay
+        # exempt on purpose — they accumulate issued cuentas for years and
+        # each one carries its own frozen snapshot.
+        if (
+            'client' in data
+            and self.instance is not None
+            and self.instance.client_id is not None
+            and data['client'] != self.instance.client
+            and self.instance.collection_documents.exclude(
+                commercial_status=Document.CommercialStatus.CANCELLED,
+            ).exists()
+        ):
+            raise serializers.ValidationError({
+                'client': (
+                    'Este ingreso tiene una cuenta de cobro activa. Anúlala '
+                    'y emite una nueva para reasignar el cliente.'
+                ),
+            })
         # Moving the record to another client orphans a project that belonged
         # to the previous one — not merely a stale value like the hosting
         # billing snapshot, but a record pointing at someone else's project.
@@ -602,6 +624,22 @@ class IncomeClientBulkAssignSerializer(serializers.Serializer):
     )
 
 
+class IncomeProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several incomes; ``project: null`` unlinks them."""
+
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped on purpose, like the single-record field: the ownership rule
+    # (every record's client must own the project) needs the records in
+    # hand, so it lives in the view's pre-checks.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
+
 class IncomeReminderMuteSerializer(serializers.Serializer):
     """Silence an expected income's notices, optionally until a given date."""
 
@@ -627,6 +665,21 @@ class HostingClientBulkAssignSerializer(serializers.Serializer):
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
+class HostingProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several hostings; ``project: null`` unlinks them."""
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped for the same reason as the income flavour: ownership is a
+    # cross-record rule, checked in the view against the loaded rows.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
         required=False,
         allow_null=True,
     )
@@ -1446,9 +1499,12 @@ class EmailLogSerializer(serializers.ModelSerializer):
         )
 
     def get_retry_blocked_reason(self, obj):
-        if obj.template_key in RETRYABLE_TEMPLATE_KEYS:
-            return ''
-        return RETRY_BLOCKED_REASON
+        # Delegated so the tooltip and the endpoint's 400 cannot disagree,
+        # and so a proposal row gets its own sentence instead of the digest's.
+        from content.services.accounting_email_retry_service import (
+            retry_blocked_reason,
+        )
+        return retry_blocked_reason(obj.template_key)
 
 
 # ── Change log & settings ──
