@@ -3866,12 +3866,12 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P3
 - **Routes:** `/panel/documents`
 - **API:** none (client-side layout preference; persisted in localStorage `projectapp-documents-folder-width`)
-- **Description:** Resize the folder sidebar of `/panel/documents`. The default width (352px) guarantees the longest real folder names (22 characters, live inventory of 2026-08-16) render untruncated — including the active row, which is wider in `font-medium`. A keyboard-accessible drag handle (`role=separator`) lives in the gap between the panel and the documents view: dragging resizes between 240px (the historical width) and 480px, and the width persists on drag end. Double-click on the handle returns to the default and forgets the stored preference. Below `lg` (1024px) the panel stacks above the documents at full width: the handle does not render and the stored width is ignored.
+- **Description:** Resize the folder sidebar of `/panel/documents`. The default width (384px) guarantees the longest real folder names (22 characters, live inventory of 2026-08-16) render untruncated — including the active row, which is wider in `font-medium`. A keyboard-accessible drag handle (`role=separator`) lives in the gap between the panel and the documents view: dragging resizes between 240px (the historical width) and 480px, and the width persists on drag end. Double-click on the handle returns to the default and forgets the stored preference. Below `lg` (1024px) the panel stacks above the documents at full width: the handle does not render and the stored width is ignored.
 - **Steps:**
-  1. Admin loads `/panel/documents` at ≥1024px — sidebar renders at 352px (or the stored width) and every root folder name is readable.
+  1. Admin loads `/panel/documents` at ≥1024px — sidebar renders at 384px (or the stored width) and every root folder name is readable.
   2. Admin drags the handle right/left → the panel follows the pointer, clamped to 240–480px.
   3. Admin releases → the chosen width is written to localStorage and survives reloads.
-  4. Admin double-clicks the handle → width returns to 352px and the stored value is cleared.
+  4. Admin double-clicks the handle → width returns to 384px and the stored value is cleared.
   5. Admin focuses the handle and presses ←/→ (±16px), Home (240) or End (480) → same clamp and persistence per keystroke.
 - **Branches:**
   - [Branch A — Clamp] Drags beyond either bound stop at 240/480; a tampered or stale stored value re-clamps on load before first paint.
@@ -3879,7 +3879,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
   - [Branch C — Keyboard] The handle is a focusable `role=separator` with `aria-valuenow/min/max`; arrows, Home and End resize without a pointer.
   - [Branch D — Mobile stack] Below `lg` the grid is single-column: full-width panel, no handle, stored width inert.
 - **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-folder-panel-resize.spec.js` — added 2026-08-16 together with the resizable-panel feature (default width raised 240→352, sized by the live folder inventory and arbitrated by the untruncated-names E2E — 336 truncated the 22-char name; truncation tooltip via native `title` pre-existed).
+- **E2E Spec:** `e2e/admin/admin-document-folder-panel-resize.spec.js` — added 2026-08-16 together with the resizable-panel feature (default width raised 240→384, sized by the live folder inventory and arbitrated by the untruncated-names E2E: 336 truncated the 22-char name, and 352 fell short once the row gained the edit icon from the change-client feature; truncation tooltip via native `title` pre-existed).
 
 #### FLOW: `admin-document-pdf-download`
 

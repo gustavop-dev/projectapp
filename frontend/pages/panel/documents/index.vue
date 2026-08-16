@@ -44,7 +44,7 @@
     -->
     <div
       ref="foldersGridRef"
-      class="grid grid-cols-1 gap-6 lg:gap-0 lg:grid-cols-[var(--folders-panel-w,22rem)_1.5rem_minmax(0,1fr)] items-stretch flex-1"
+      class="grid grid-cols-1 gap-6 lg:gap-0 lg:grid-cols-[var(--folders-panel-w,24rem)_1.5rem_minmax(0,1fr)] items-stretch flex-1"
       :class="panelDragging ? 'select-none' : ''"
       :style="folderPanelStyle"
     >

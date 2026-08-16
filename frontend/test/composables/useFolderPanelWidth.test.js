@@ -30,10 +30,10 @@ describe('useFolderPanelWidth', () => {
     window.localStorage.clear()
   })
 
-  it('defaults to 352px on a clean profile and exposes it as the CSS variable', () => {
+  it('defaults to 384px on a clean profile and exposes it as the CSS variable', () => {
     const { width, gridStyle } = useFolderPanelWidth(makeContainer())
-    expect(width.value).toBe(352)
-    expect(gridStyle.value).toEqual({ '--folders-panel-w': '352px' })
+    expect(width.value).toBe(384)
+    expect(gridStyle.value).toEqual({ '--folders-panel-w': '384px' })
   })
 
   it('restores a persisted width', () => {
@@ -52,7 +52,7 @@ describe('useFolderPanelWidth', () => {
   it('falls back to the default when the stored value is not a number', () => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify('wide'))
     const { width } = useFolderPanelWidth(makeContainer())
-    expect(width.value).toBe(352)
+    expect(width.value).toBe(384)
   })
 
   it('drags the width from the container left edge and persists only on release', () => {
@@ -62,7 +62,7 @@ describe('useFolderPanelWidth', () => {
 
     // Un move sin pointerdown previo no debe mover nada.
     onHandleMove(pointerEvent({ clientX: 500 }))
-    expect(width.value).toBe(352)
+    expect(width.value).toBe(384)
 
     const down = pointerEvent()
     onHandleDown(down)
@@ -95,12 +95,12 @@ describe('useFolderPanelWidth', () => {
 
     const right = keyEvent('ArrowRight')
     onHandleKey(right)
-    expect(width.value).toBe(368)
+    expect(width.value).toBe(400)
     expect(right.preventDefault).toHaveBeenCalled()
-    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('368')
+    expect(window.localStorage.getItem(STORAGE_KEY)).toBe('400')
 
     onHandleKey(keyEvent('ArrowLeft'))
-    expect(width.value).toBe(352)
+    expect(width.value).toBe(384)
     onHandleKey(keyEvent('Home'))
     expect(width.value).toBe(240)
     onHandleKey(keyEvent('End'))
@@ -122,7 +122,7 @@ describe('useFolderPanelWidth', () => {
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('450')
 
     resetWidth()
-    expect(width.value).toBe(352)
+    expect(width.value).toBe(384)
     expect(window.localStorage.getItem(STORAGE_KEY)).toBeNull()
   })
 })

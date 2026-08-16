@@ -9,7 +9,7 @@ import { usePersistedRef } from '~/composables/usePersistedRef';
 // garantía (admin-document-folder-panel-resize), no el ojo en una pantalla.
 export const FOLDER_PANEL_MIN = 240; // el ancho histórico: nunca más angosto que hoy
 export const FOLDER_PANEL_MAX = 480; // tope para no comerse la vista de documentos
-export const FOLDER_PANEL_DEFAULT = 352; // 22rem; 336 truncaba el nombre de 22 chars (medido por el E2E)
+export const FOLDER_PANEL_DEFAULT = 384; // 24rem; 336 truncaba el nombre de 22 chars y 352 quedó corto al sumar la fila el ícono de editar (#196) — medido por el E2E
 export const FOLDER_PANEL_KEY = 'projectapp-documents-folder-width';
 const KEYBOARD_STEP = 16;
 

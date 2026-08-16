@@ -109,7 +109,7 @@ test.describe('Admin Document Folder Panel Resize', () => {
     // server (Vite on-demand) y en frío supera los 15s del timeout por defecto.
     await expect(panel).toBeVisible({ timeout: 30_000 });
     const box = await panel.boundingBox();
-    expect(Math.abs(box.width - 352)).toBeLessThanOrEqual(2);
+    expect(Math.abs(box.width - 384)).toBeLessThanOrEqual(2);
 
     // La garantía se mide con la webfont ya aplicada: con la fallback los
     // anchos mienten en los dos sentidos.
@@ -146,11 +146,13 @@ test.describe('Admin Document Folder Panel Resize', () => {
     await page.goto('/panel/documents');
     await expect(page.getByTestId('folder-panel')).toBeVisible({ timeout: 30_000 });
 
+    // +60 y no más: con el default en 384 hay ~96px hasta el tope de 480, y
+    // este test prueba el ensanche libre — el clamp tiene su propio test.
     const handleBox = await page.getByTestId('folder-panel-resize-handle').boundingBox();
-    await dragHandleTo(page, handleBox.x + handleBox.width / 2 + 100);
+    await dragHandleTo(page, handleBox.x + handleBox.width / 2 + 60);
 
     const widened = await panelWidth(page);
-    expect(widened).toBeGreaterThan(420);
+    expect(widened).toBeGreaterThan(430);
     expect(widened).toBeLessThan(470);
 
     const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
@@ -211,7 +213,7 @@ test.describe('Admin Document Folder Panel Resize', () => {
 
     await page.getByTestId('folder-panel-resize-handle').dblclick();
 
-    expect(Math.abs(await panelWidth(page) - 352)).toBeLessThanOrEqual(2);
+    expect(Math.abs(await panelWidth(page) - 384)).toBeLessThanOrEqual(2);
     const stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
     expect(stored).toBeNull();
 
@@ -234,9 +236,9 @@ test.describe('Admin Document Folder Panel Resize', () => {
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('ArrowRight');
 
-    expect(Math.abs(await panelWidth(page) - 384)).toBeLessThanOrEqual(2);
+    expect(Math.abs(await panelWidth(page) - 416)).toBeLessThanOrEqual(2);
     let stored = await page.evaluate((key) => window.localStorage.getItem(key), STORAGE_KEY);
-    expect(stored).toBe('384');
+    expect(stored).toBe('416');
 
     await page.keyboard.press('Home');
     expect(Math.abs(await panelWidth(page) - 240)).toBeLessThanOrEqual(2);
