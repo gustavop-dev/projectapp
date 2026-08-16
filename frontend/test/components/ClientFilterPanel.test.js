@@ -7,6 +7,7 @@ const emptyFilters = {
   acceptedMin: null, acceptedMax: null,
   lastActivityAfter: null, lastActivityBefore: null,
   hostingStatus: '', projectStatus: '', billingData: '',
+  documentsStatus: '', diagnosticStatus: '', emailStatus: '',
 };
 
 function mountPanel(props = {}, { stubChoice = true } = {}) {
@@ -71,6 +72,45 @@ describe('ClientFilterPanel', () => {
     expect(wrapper.find('[data-testid="client-filter-project-status"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="client-filter-billing-data"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="client-filter-documents-status"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="client-filter-diagnostic-status"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="client-filter-email-status"]').exists()).toBe(true);
+  });
+
+  it('names the diagnostic and email modules on their chips too', () => {
+    const wrapper = mountPanel({
+      modelValue: {
+        ...emptyFilters,
+        diagnosticStatus: 'unconverted',
+        emailStatus: 'failed',
+      },
+      filterCount: 2,
+    });
+
+    expect(wrapper.text()).toContain('Diagnóstico: Diagnóstico sin propuesta posterior');
+    expect(wrapper.text()).toContain('Emails: Con envíos fallidos');
+  });
+
+  it('clearing the diagnostic chip emits the filters without it', async () => {
+    // CHIP_RESET is the one entry in this slice with no derivation behind it.
+    const wrapper = mountPanel({
+      modelValue: { ...emptyFilters, diagnosticStatus: 'unconverted' },
+      filterCount: 1,
+    });
+
+    await wrapper.get('[data-testid="client-filter-chip-diagnosticStatus"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')[0][0].diagnosticStatus).toBe('');
+  });
+
+  it('clearing the email chip emits the filters without it', async () => {
+    const wrapper = mountPanel({
+      modelValue: { ...emptyFilters, emailStatus: 'cold' },
+      filterCount: 1,
+    });
+
+    await wrapper.get('[data-testid="client-filter-chip-emailStatus"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')[0][0].emailStatus).toBe('');
   });
 
   it('names the module each active chip comes from', () => {

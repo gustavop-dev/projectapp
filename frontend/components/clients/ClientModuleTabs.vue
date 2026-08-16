@@ -36,13 +36,13 @@
  * hosting cobrado" next to "Sin hosting").
  *
  * That is also why these carry no match count: with no narrowing of their own,
- * all five would show the same total and the number would be noise. The counts
+ * every one would show the same total and the number would be noise. The counts
  * live where a cut actually happens — the subfilters and the status selector.
  *
  * Solid pills against the underlined tabs of level 2: the two rows must read as
  * a hierarchy, not as two lists of the same rank.
  *
- * It wraps instead of scrolling, so no module is ever cut off (there are five,
+ * It wraps instead of scrolling, so no module is ever cut off (there are seven,
  * all short). The overflow rule matters at level 2, where the set grows.
  */
 import { CLIENT_MODULES } from '~/constants/clientFilters';
