@@ -177,6 +177,7 @@ from content.views.document_folder import (
     update_document_folder, delete_document_folder,
     reorder_document_folders,
     archive_document_folder, unarchive_document_folder,
+    preview_document_folder_client_change, change_document_folder_client,
 )
 from content.views.document_tag import (
     list_document_tags, create_document_tag,
@@ -422,6 +423,8 @@ urlpatterns = [
     path('document-folders/<int:folder_id>/delete/', delete_document_folder, name='delete-document-folder'),
     path('document-folders/<int:folder_id>/archive/', archive_document_folder, name='archive-document-folder'),
     path('document-folders/<int:folder_id>/unarchive/', unarchive_document_folder, name='unarchive-document-folder'),
+    path('document-folders/<int:folder_id>/change-client/preview/', preview_document_folder_client_change, name='preview-document-folder-client-change'),
+    path('document-folders/<int:folder_id>/change-client/', change_document_folder_client, name='change-document-folder-client'),
 
     # Kanban tasks (admin panel)
     path('tasks/', list_tasks, name='list-tasks'),

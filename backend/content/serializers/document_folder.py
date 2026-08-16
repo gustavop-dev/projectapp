@@ -10,6 +10,24 @@ from content.services.document_archive_service import (
 )
 
 
+class DocumentFolderChangeClientSerializer(serializers.Serializer):
+    """Payload del apply de cambio de cliente.
+
+    `mode` va sin default a propósito: el operador elige cada vez qué pasa con
+    el contenido. Las dos listas de ids son el token de staleness — el plan que
+    corre es el que se mostró en el preview, o no corre nada.
+    """
+
+    client_profile_id = serializers.IntegerField()
+    mode = serializers.CharField()
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+    folder_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
+
+
 class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializer):
     """Serializer para carpetas de documentos (jerárquicas).
 

@@ -83,6 +83,32 @@ def apply_client_project_association(attrs, instance=None, *, snapshot_client_na
     return attrs
 
 
+def _inherit_from_folder(attrs, instance, *, adopt=False):
+    """Toma cliente/proyecto de la carpeta destino cuando corresponde.
+
+    La carpeta organiza, no es dueña: por eso heredar sólo ocurre cuando no
+    pisa nada —el documento no tiene cliente— o cuando el operador lo pidió
+    explícitamente con `adopt_folder_client` (la respuesta a la pregunta que
+    hace el gestor al mover a la carpeta de otro cliente). Mandar `client` en
+    la misma petición gana siempre: eso ya es una decisión, no una herencia.
+
+    El proyecto sólo se copia si la carpeta tiene uno; si no, se deja que la
+    regla común lo desvincule al cambiar de cliente.
+    """
+    folder = attrs.get('folder')
+    if folder is None or 'client' in attrs:
+        return
+    profile = getattr(folder.client_user, 'profile', None)
+    if profile is None:
+        return
+    current_client_id = instance.client_user_id if instance else None
+    if current_client_id is not None and not adopt:
+        return
+    attrs['client'] = profile
+    if folder.project_id:
+        attrs['project'] = folder.project
+
+
 class ClientProjectReadMixin:
     """Campos de asociación compartidos por los serializers de lectura.
 
@@ -215,6 +241,10 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(
         queryset=Project.objects.all(), required=False, allow_null=True,
     )
+    # Bandera de la pregunta que hace el gestor al mover un documento a la
+    # carpeta de OTRO cliente. No es un campo del modelo: se consume en
+    # validate() y nunca llega a validated_data.
+    adopt_folder_client = serializers.BooleanField(required=False, write_only=True)
 
     class Meta:
         model = Document
@@ -222,7 +252,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
             'title', 'client_name', 'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'status', 'content_markdown', 'content_json',
-            'folder_id', 'tag_ids', 'client', 'project',
+            'folder_id', 'tag_ids', 'client', 'project', 'adopt_folder_client',
         )
         extra_kwargs = {
             'title': {'required': True},
@@ -238,6 +268,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
         es un caso soportado, y la pertenencia proyecto→cliente compara campos
         hermanos.
         """
+        adopt = attrs.pop('adopt_folder_client', False)
         if 'folder' in attrs:
             try:
                 ensure_active_target(
@@ -246,6 +277,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
                 )
             except DocumentArchiveError as exc:
                 raise serializers.ValidationError({'folder_id': str(exc)}) from exc
+            _inherit_from_folder(attrs, self.instance, adopt=adopt)
         return apply_client_project_association(attrs, self.instance)
 
     def create(self, validated_data):
