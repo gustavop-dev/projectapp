@@ -128,7 +128,9 @@ for (const listing of LISTINGS) {
 
       await link.press('Enter');
 
-      await expect(page).toHaveURL(listing.detail);
+      // Timeout propio: la ruta de detalle puede estar sin compilar todavía y
+      // el dev server la construye en el primer acceso.
+      await expect(page).toHaveURL(listing.detail, { timeout: 25_000 });
     });
 
     test(`${listing.name}: un clic simple en el cuerpo de la fila abre en la misma pestaña`, {
@@ -139,7 +141,7 @@ for (const listing of LISTINGS) {
 
       await page.getByTestId(listing.inertCell).click({ timeout: 20_000 });
 
-      await expect(page).toHaveURL(listing.detail);
+      await expect(page).toHaveURL(listing.detail, { timeout: 25_000 });
     });
 
     test(`${listing.name}: ctrl+clic en el cuerpo de la fila abre otra pestaña`, {
