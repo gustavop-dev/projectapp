@@ -64,21 +64,23 @@
         <span class="text-xs text-text-subtle">{{ zombieExpanded ? '▲' : '▼' }}</span>
       </div>
       <div v-if="zombieExpanded" class="space-y-2">
-        <div
+        <!-- Sin controles adentro: la tarjeta entera es el enlace. -->
+        <BaseRowLink
           v-for="alert in zombieAlerts"
           :key="`zombie-${alert.id}-${alert.alert_type}`"
-          class="flex items-center justify-between bg-surface-raised rounded-lg px-4 py-2.5 border border-border-default cursor-pointer hover:border-focus-ring/40 transition-colors"
-          @click="navigateToProposal(alert.id, $event)"
+          :to="proposalHref(alert.id)"
+          :data-testid="`zombie-open-${alert.id}`"
+          class="flex items-center justify-between bg-surface-raised rounded-lg px-4 py-2.5 border border-border-default hover:border-focus-ring/40 transition-colors"
         >
-          <div class="flex items-center gap-3">
-            <span class="text-sm">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
-            <div>
+          <span class="flex items-center gap-3">
+            <span class="text-sm" aria-hidden="true">{{ alert.alert_type === 'zombie_draft' ? '📝💀' : alert.alert_type === 'zombie_sent_stale' ? '📤💀' : '💀' }}</span>
+            <span>
               <span class="text-sm font-medium text-text-default">{{ alert.client_name }}</span>
               <span class="text-xs text-text-subtle ml-2">{{ alert.title }}</span>
-            </div>
-          </div>
+            </span>
+          </span>
           <span class="text-xs text-text-subtle font-medium">{{ alert.message }}</span>
-        </div>
+        </BaseRowLink>
       </div>
     </div>
 
@@ -158,7 +160,15 @@
               <span class="text-base shrink-0 mt-0.5 sm:mt-0">{{ group.icon }}</span>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span class="text-sm font-medium text-text-default truncate">{{ group.client_name }}</span>
+                  <!-- Un grupo con varias propuestas es un desplegable, no un
+                       destino: sólo el de una sola tiene dirección que publicar.
+                       El botón de descartar vive en esta misma fila, así que el
+                       enlace se queda en el nombre y no se estira. -->
+                  <BaseRowLink
+                    :to="group.isMulti ? null : proposalHref(group.firstProposalId)"
+                    :data-testid="`alert-group-open-${group.key}`"
+                    class="text-sm font-medium text-text-default truncate"
+                  >{{ group.client_name }}</BaseRowLink>
                   <span v-if="group.priority === 'critical'" class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-danger-soft text-danger-strong">urgente</span>
                   <span v-if="group.alerts.length > 1" class="px-1.5 py-0.5 text-[10px] font-bold uppercase rounded bg-warning-soft text-warning-strong">
                     {{ group.alerts.length }} alertas
@@ -190,7 +200,7 @@
             <PanelAlertGroupSubItems
               v-if="group.isMulti && expandedAlertGroups.has(group.key)"
               :proposals="group.proposals"
-              @select="openProposalFromAlert"
+              :href-for="proposalHref"
             />
           </Transition>
         </div>
@@ -327,15 +337,26 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border-muted">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedSet.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedSet.has(p.id) ? 'bg-primary-soft' : '']" :data-testid="`proposal-row-${p.id}`" @click="navigateToProposal(p.id, $event)" @auxclick.middle="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
               <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedSet.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
-            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ p.id }}</td>
-            <td class="px-6 py-4">
-              <div class="text-sm font-medium text-text-default">{{ p.client_name }}</div>
-              <div v-if="p.title" class="text-xs text-text-muted mt-0.5 leading-snug">{{ p.title }}</div>
-              <div v-if="p.client_phone" class="text-[10px] text-text-subtle">📱 {{ p.client_phone }}</div>
+            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums" :data-testid="`proposal-row-id-${p.id}`">#{{ p.id }}</td>
+            <!-- `relative` es el marco contra el que se estira el enlace. -->
+            <td class="relative px-6 py-4">
+              <BaseRowLink
+                :to="proposalHref(p.id)"
+                stretch
+                :data-testid="`proposal-open-${p.id}`"
+                class="block hover:text-text-brand transition-colors"
+              >
+                <span class="block text-sm font-medium text-text-default">{{ p.client_name }}</span>
+                <span v-if="p.title" class="block text-xs text-text-muted mt-0.5 leading-snug">{{ p.title }}</span>
+              </BaseRowLink>
+              <!-- Fuera del enlace a propósito: un teléfono es un dato para
+                   copiar, no una dirección a seguir, y alargaría el nombre
+                   accesible del enlace. -->
+              <div v-if="p.client_phone" class="relative z-10 w-fit text-[10px] text-text-subtle">📱 {{ p.client_phone }}</div>
             </td>
             <td class="px-6 py-4">
               <ProposalStatusSelect
@@ -405,7 +426,10 @@
             <td class="px-6 py-4">
               <div class="flex items-center gap-2">
                 <button
+                  type="button"
                   class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-muted"
+                  title="Acciones"
+                  :aria-label="`Acciones de ${p.title || p.client_name}`"
                   @click.stop="actionsModalProposal = p"
                 >
                   <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -594,9 +618,11 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
 import { useRowSelection } from '~/composables/useRowSelection';
+import { useRowNavigation } from '~/composables/useRowNavigation';
 import { toggleKeys } from '~/utils/rowSelection';
 
 const localePath = useLocalePath();
+const { openRow } = useRowNavigation();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
@@ -876,6 +902,19 @@ const proposalActions = computed(() => {
     onClick: () => { actionsModalProposal.value = null; },
   });
 
+  // Un <a target="_blank"> de verdad, no un botón que llame a window.open: la
+  // acción existe también en pantallas táctiles, donde ctrl+clic no está.
+  actions.push({
+    key: 'edit-new-tab',
+    icon: '↗️',
+    label: 'Abrir en pestaña nueva',
+    info: 'Abre el editor en otra pestaña, sin salir del listado. Igual que ctrl/cmd + clic sobre la fila.',
+    href: proposalHref(p.id),
+    bgClass: 'bg-surface-raised',
+    textClass: 'text-text-default',
+    onClick: () => { actionsModalProposal.value = null; },
+  });
+
   actions.push({
     key: 'preview',
     icon: '👁️',
@@ -975,13 +1014,15 @@ const proposalActions = computed(() => {
 });
 
 const router = useRouter();
+
+// Fuente única de la dirección: la leen el <a> del título de la fila, el de las
+// tarjetas zombie, el ítem «Abrir en pestaña nueva» del menú y el atajo de clic.
+function proposalHref(id) {
+  return localePath(`/panel/proposals/${id}/edit`);
+}
+
 function navigateToProposal(id, event) {
-  const path = localePath(`/panel/proposals/${id}/edit`);
-  if (event?.ctrlKey || event?.metaKey) {
-    window.open(path, '_blank');
-  } else {
-    router.push(path);
-  }
+  openRow(proposalHref(id), event);
 }
 
 // Contract modal for inline negotiation
