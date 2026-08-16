@@ -186,20 +186,9 @@ def change_client_preview(project, new_profile):
 
 
 def _log_diff(entity_type, instance, old_values, user):
-    changes = accounting_service.compute_changes(
-        entity_type, old_values,
-        accounting_service.snapshot_values(instance, entity_type),
+    return accounting_service.log_entity_diff(
+        entity_type, instance, old_values, user,
     )
-    if changes:
-        accounting_service.log_accounting_change(
-            entity_type=entity_type,
-            object_id=instance.pk,
-            object_repr=accounting_service.object_repr(entity_type, instance),
-            action=Action.UPDATED,
-            changes=changes,
-            actor=user,
-        )
-    return changes
 
 
 def _detach_record(entity_type, record, user):

@@ -79,3 +79,34 @@ class TestForceDeleteGuard:
 
         assert response.status_code == 403
         assert type(project).objects.filter(pk=project.pk).exists()
+
+
+class TestPlatformProjectAudit:
+    def test_platform_create_and_update_leave_project_rows(
+        self, api_client, admin_headers, client_user,
+    ):
+        created = api_client.post(
+            '/api/accounts/projects/',
+            {'name': 'Plataforma X', 'client_id': client_user.id},
+            format='json',
+            **admin_headers,
+        )
+        assert created.status_code == 201, created.data
+        project_id = created.data['id']
+
+        patched = api_client.patch(
+            f'/api/accounts/projects/{project_id}/',
+            {'name': 'Plataforma X v2'}, format='json', **admin_headers,
+        )
+        assert patched.status_code == 200, patched.data
+        # Progress is operational noise, not identity: tracked fields are
+        # name/description/status/client, so this writes no row.
+        api_client.patch(
+            f'/api/accounts/projects/{project_id}/',
+            {'progress': 40}, format='json', **admin_headers,
+        )
+
+        rows = list(
+            project_audit_rows(project_id).order_by('created_at'),
+        )
+        assert [row.action for row in rows] == ['created', 'updated']

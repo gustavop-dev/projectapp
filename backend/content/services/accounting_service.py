@@ -342,6 +342,27 @@ def log_accounting_change(
     )
 
 
+def log_entity_diff(entity_type, instance, old_values, user):
+    """One audit row for a tracked entity mutated OUTSIDE the generic
+    pipeline (projects, cuentas de cobro): diff against ``old_values`` and
+    log it. Never notifies — the coherence writers follow the bulk
+    convention. Returns the changes list (empty = nothing written).
+    """
+    changes = compute_changes(
+        entity_type, old_values, snapshot_values(instance, entity_type),
+    )
+    if changes:
+        log_accounting_change(
+            entity_type=entity_type,
+            object_id=instance.pk,
+            object_repr=object_repr(entity_type, instance),
+            action=Action.UPDATED,
+            changes=changes,
+            actor=user,
+        )
+    return changes
+
+
 def _notify(change_log):
     """Enqueue the change email; failures never break the mutation."""
     try:

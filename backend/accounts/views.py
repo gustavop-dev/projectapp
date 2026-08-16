@@ -808,6 +808,10 @@ def project_list_view(request):
         payment_milestones=payment_milestones,
         hosting_tiers=hosting_tiers,
     )
+    from content.services import project_service
+    project_service.log_project_event(
+        project, project_service.Action.CREATED, {}, request.user,
+    )
 
     if proposal:
         from accounts.models import Deliverable, ProjectPhase
@@ -876,10 +880,10 @@ def project_detail_view(request, project_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
-    if request.method == 'DELETE':
-        from content.api_errors import error_response
-        from content.services import project_service
+    from content.api_errors import error_response
+    from content.services import project_service
 
+    if request.method == 'DELETE':
         force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
         if force:
             # A hard delete SET_NULLs every accounting/document FK in
@@ -912,6 +916,7 @@ def project_detail_view(request, project_id):
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    snapshot = project_service.project_snapshot(project)
     update_fields = ['updated_at']
     simple_fields = (
         'name', 'description', 'status', 'progress',
@@ -930,6 +935,9 @@ def project_detail_view(request, project_id):
         update_fields.append('admin_password_encrypted')
 
     project.save(update_fields=update_fields)
+    project_service.log_project_event(
+        project, project_service.Action.UPDATED, snapshot, request.user,
+    )
 
     return Response(ProjectDetailSerializer(project, context={'request': request}).data)
 

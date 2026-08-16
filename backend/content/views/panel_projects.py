@@ -212,6 +212,9 @@ def create_panel_project(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     project = serializer.save()
+    project_service.log_project_event(
+        project, project_service.Action.CREATED, {}, request.user,
+    )
     logger.info(
         'Panel project %s created for client profile %s',
         project.pk, serializer.client_profile.pk,
@@ -240,7 +243,11 @@ def update_panel_project(request, project_id):
     )
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    snapshot = project_service.project_snapshot(project)
     serializer.save()
+    project_service.log_project_event(
+        project, project_service.Action.UPDATED, snapshot, request.user,
+    )
     return Response(_annotated_row(project.pk))
 
 
@@ -254,8 +261,12 @@ def archive_panel_project(request, project_id):
         return error_response(
             'El proyecto ya está archivado.', code='already_archived',
         )
+    snapshot = project_service.project_snapshot(project)
     project.status = Project.STATUS_ARCHIVED
     project.save(update_fields=['status', 'updated_at'])
+    project_service.log_project_event(
+        project, project_service.Action.UPDATED, snapshot, request.user,
+    )
     return Response(_annotated_row(project.pk))
 
 
@@ -269,8 +280,12 @@ def unarchive_panel_project(request, project_id):
         return error_response(
             'El proyecto no está archivado.', code='not_archived',
         )
+    snapshot = project_service.project_snapshot(project)
     project.status = Project.STATUS_ACTIVE
     project.save(update_fields=['status', 'updated_at'])
+    project_service.log_project_event(
+        project, project_service.Action.UPDATED, snapshot, request.user,
+    )
     return Response(_annotated_row(project.pk))
 
 
