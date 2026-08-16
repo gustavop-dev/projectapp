@@ -465,7 +465,7 @@
             <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <template v-for="action in proposalActions" :key="action.key">
                 <component
-                  :is="action.href ? 'a' : action.to ? 'NuxtLink' : 'button'"
+                  :is="action.href ? 'a' : action.to ? NuxtLinkComponent : 'button'"
                   v-bind="action.href ? { href: action.href, target: '_blank', rel: 'noopener noreferrer' } : action.to ? { to: action.to } : {}"
                   class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors group"
                   :class="action.danger ? 'hover:bg-danger-soft' : 'hover:bg-surface-raised'"
@@ -603,7 +603,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, resolveComponent } from 'vue';
 import ProposalDashboard from '~/components/BusinessProposal/admin/ProposalDashboard.vue';
 import MetricsManual from '~/components/BusinessProposal/admin/MetricsManual.vue';
 import ContractParamsModal from '~/components/BusinessProposal/admin/ContractParamsModal.vue';
@@ -623,6 +623,11 @@ import { toggleKeys } from '~/utils/rowSelection';
 
 const localePath = useLocalePath();
 const { openRow } = useRowNavigation();
+// Resuelto acá y no como string en `:is`: Nuxt resuelve los componentes en
+// compilación, así que 'NuxtLink' en un `:is` se renderiza como el elemento
+// desconocido <nuxtlink> — sin href y sin navegar. `resolveComponent` sí lo
+// resuelve (mismo camino que components/base/BaseDropdown.vue).
+const NuxtLinkComponent = resolveComponent('NuxtLink');
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const proposalStore = useProposalStore();
@@ -896,7 +901,10 @@ const proposalActions = computed(() => {
     icon: '✏️',
     label: 'Editar propuesta',
     info: 'Abre el editor para modificar secciones, precios y contenido de la propuesta.',
-    to: `/panel/proposals/${p.id}/edit`,
+    // Con prefijo de idioma: i18n corre con strategy 'prefix', así que una ruta
+    // sin prefijo no existe. Antes daba igual porque el enlace nunca llegaba a
+    // resolverse; ahora sí navega.
+    to: proposalHref(p.id),
     bgClass: 'bg-surface-raised',
     textClass: 'text-text-default',
     onClick: () => { actionsModalProposal.value = null; },

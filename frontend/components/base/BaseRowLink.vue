@@ -36,13 +36,21 @@ const classes = computed(() => [
 </script>
 
 <template>
-  <component
-    :is="to ? 'NuxtLink' : 'span'"
-    :to="to || undefined"
-    :draggable="to ? 'false' : undefined"
+  <!-- Etiqueta estática y no `<component :is="'NuxtLink'">`: Nuxt resuelve los
+       componentes en tiempo de compilación, así que un nombre en string se
+       renderiza como el elemento desconocido <nuxtlink> — con `to` en vez de
+       `href` y, por lo tanto, sin ninguno de los gestos del navegador. Era
+       exactamente el bug reportado. -->
+  <NuxtLink
+    v-if="to"
+    :to="to"
+    draggable="false"
     :class="classes"
     @click.stop
   >
     <slot />
-  </component>
+  </NuxtLink>
+  <span v-else :class="classes" @click.stop>
+    <slot />
+  </span>
 </template>
