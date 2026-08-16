@@ -52,6 +52,43 @@ at once. `/panel/styleguide` renders each row as its executable spec.
 | Dropdown / popover / floating button | `bg-surface border border-border-default shadow-raised` |
 | Tooltip | `bg-primary-strong text-white` (never `bg-gray-900`) |
 | Empty state | `BaseEmptyState` or `bg-surface-raised text-text-muted` |
+| Row that leads to a detail | `<BaseRowLink :to>` on the title cell (`relative` on the `<td>` + `stretch`), and the row's own `@click` routed through `useRowNavigation` |
+
+### Navigable rows
+
+**Si una fila lleva a un detalle, el detalle tiene dirección y la fila la
+publica en un `<a href>`.**
+
+1. **Dirección primero.** No hay fila navegable sin URL. Ruta propia si el
+   detalle es una pantalla (`/panel/x/{id}/edit`); parámetro sobre la vista
+   actual (`?income=123`) si el detalle es un modal.
+2. **El título es el enlace.** `<BaseRowLink :to>` en la celda del título,
+   estirado a *su* celda (`relative` en el `<td>` + `stretch`). Nunca sobre el
+   `<tr>` entero: taparía la casilla, el kebab y los selectores de la fila, y
+   se llevaría por delante la selección de texto.
+3. **Botón lo que actúa, enlace lo que va.** Un `<a>` nunca envuelve `<td>`s ni
+   contiene un `<button>`.
+4. **El clic de fila es un atajo, no la navegación.** Pasa siempre por
+   `useRowNavigation`, que decide según de dónde nació el clic y qué teclas hay
+   pulsadas. Escuchá también `@auxclick.middle`: la rueda no dispara `click`.
+5. **Cero `ctrlKey` en las pantallas.** El único archivo que lee modificadores
+   es `utils/rowNavigation.js`. Si ramificás por `ctrlKey`/`metaKey` en una
+   página, estás reimplementando un `<a>` — y sólo uno de los cinco gestos.
+6. **El menú de la fila trae «Abrir en pestaña nueva»** como
+   `<a target="_blank" rel="noopener noreferrer">` con el mismo href, no un
+   botón que llame a `window.open`. En una pantalla táctil es la única vía.
+
+Cuando el clic simple no puede ser el del navegador — entrar a una carpeta pasa
+por el store, y en plena búsqueda significa otra cosa — el enlace igual existe
+por los gestos, y la página se queda el clic simple con `isPlainActivation`.
+
+Nunca escribas `<component :is="'NuxtLink'">`: Nuxt resuelve los componentes en
+compilación, así que un nombre en string se renderiza como el elemento
+desconocido `<nuxtlink>`, con `to` en vez de `href` y sin navegar. Usá la
+etiqueta estática, o `resolveComponent('NuxtLink')` si el tag es dinámico.
+
+Los cinco gestos a probar en cada listado: clic simple, ctrl/cmd + clic, clic
+con la rueda, clic derecho → «abrir en pestaña nueva», y copiar la dirección.
 
 ### Status color convention
 
@@ -305,10 +342,21 @@ and `BaseTooltip` instead.)
 (`bg-white`, `bg-esmerald`, `dark:bg-gray-700`, `text-gray-700`,
 `bg-emerald-600`, etc.) and prints what to use instead.
 
+It also guards the navigable-row contract above:
+
+- **`MANUAL_MODIFIER_NAVIGATION`** — `ctrlKey`/`metaKey` within eight lines of
+  `window.open` / `router.push` / `navigateTo` / `location.href`. Gates always;
+  `utils/rowNavigation.js` is the one exempt file.
+- **`ROW_LINK_MISSING`** — a tag with both `v-for` and `@click` whose block
+  holds no `<a>` / `<NuxtLink>` / `<BaseRowLink>`. Warn-only until
+  `--strict-rows`. A row that only expands in place is not a destination: mark
+  it `design-tokens: allow-clickable-row` on or above the tag.
+
 ```bash
 npm --prefix frontend run check:design-tokens          # full repo, warn-only
 npm --prefix frontend run check:design-tokens:panel    # admin panel scope only
 npm --prefix frontend run check:design-tokens:strict   # exit 1 on any offense (CI / pre-commit)
+npm --prefix frontend run check:design-tokens:rows     # panel + the navigable-row gate
 node frontend/scripts/check-design-tokens.mjs --files path/to/file.vue   # focused check on touched files
 ```
 
