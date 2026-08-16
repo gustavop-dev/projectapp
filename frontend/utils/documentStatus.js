@@ -55,7 +55,8 @@ export function archivedAgeLabel(dateStr) {
  * estado de la fila y sumarlo con el archivado duplicaría una carpeta
  * archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
  */
-function scopedCounts(folder, scope) {
+export function scopedCounts(folder, scope) {
+  if (!folder) return { docs: 0, subs: 0 };
   const activeDocs = folder.active_document_count
     ?? (folder.is_archived ? 0 : folder.document_count || 0);
   const activeSubs = folder.active_children_count
@@ -75,16 +76,17 @@ function scopedCounts(folder, scope) {
 }
 
 /**
- * Documentos que la carpeta muestra en el scope que se está viendo.
+ * Inventario legible a partir de un par de conteos ya resuelto.
  *
- * Es el número de la fila del panel lateral: con el modo archivado encendido
- * tiene que contar lo archivado, porque un contador de activos junto a un
- * listado de archivados es la ambigüedad que hacía dudar de si faltaban
- * documentos.
+ * Se separó de `folderRowSummary` porque el mismo texto lo necesitan los
+ * conteos recursivos del árbol, que no salen de una sola carpeta sino del
+ * rollup — y duplicar la pluralización era garantizar que se separaran.
  */
-export function scopedDocumentCount(folder, scope = 'active') {
-  if (!folder) return 0;
-  return scopedCounts(folder, scope).docs;
+export function folderSummaryFrom({ docs = 0, subs = 0 } = {}) {
+  const parts = [];
+  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
+  if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
+  return parts.length ? parts.join(' · ') : 'Vacía';
 }
 
 /**
@@ -95,9 +97,19 @@ export function scopedDocumentCount(folder, scope = 'active') {
  * que sólo mirara lo activo diría «Vacía» de una carpeta imborrable.
  */
 export function folderRowSummary(folder, scope = 'active') {
-  const { docs, subs } = scopedCounts(folder, scope);
+  return folderSummaryFrom(scopedCounts(folder, scope));
+}
+
+/**
+ * Nombre accesible de una fila de carpeta: «Familia — 1 subcarpeta, 12 documentos».
+ *
+ * La fila muestra dos cifras desnudas junto a dos íconos, y los íconos van
+ * `aria-hidden` para no ensuciar el nombre del botón. Sin este rótulo un lector
+ * de pantalla anunciaría «Familia 1 12», que no significa nada.
+ */
+export function folderRowLabel(name, { docs = 0, subs = 0 } = {}) {
   const parts = [];
-  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
   if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
-  return parts.length ? parts.join(' · ') : 'Vacía';
+  parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
+  return `${name} — ${parts.join(', ')}`;
 }

@@ -55,6 +55,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     emails_sent_count = serializers.SerializerMethodField()
     emails_failed_count = serializers.SerializerMethodField()
     last_email_at = serializers.SerializerMethodField()
+    documents_count = serializers.SerializerMethodField()
+    documents_no_project_count = serializers.SerializerMethodField()
+    last_document_at = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
     deactivated_at = serializers.DateTimeField(read_only=True)
@@ -90,6 +93,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'emails_sent_count',
             'emails_failed_count',
             'last_email_at',
+            'documents_count',
+            'documents_no_project_count',
+            'last_document_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -118,6 +124,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'emails_sent_count',
             'emails_failed_count',
             'last_email_at',
+            'documents_count',
+            'documents_no_project_count',
+            'last_document_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -240,6 +249,32 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         return obj.email_logs.filter(
             audience=EmailLog.Audience.CLIENT,
         ).values_list('sent_at', flat=True).first()
+
+    def get_documents_count(self, obj):
+        annotated = getattr(obj, 'documents_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.client_documents.filter(is_archived=False).count()
+
+    def get_documents_no_project_count(self, obj):
+        annotated = getattr(obj, 'documents_no_project_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.client_documents.filter(
+            is_archived=False, project__isnull=True,
+        ).count()
+
+    def get_last_document_at(self, obj):
+        annotated = getattr(obj, 'last_document_at', None)
+        if annotated is not None:
+            return annotated
+        return (
+            obj.user.client_documents
+            .filter(is_archived=False)
+            .order_by('-created_at')
+            .values_list('created_at', flat=True)
+            .first()
+        )
 
     def get_active_projects_count(self, obj):
         annotated = getattr(obj, 'active_projects_count', None)

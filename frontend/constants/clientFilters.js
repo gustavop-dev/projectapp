@@ -51,12 +51,21 @@ export const CLIENT_MODULE_ALL = 'all';
 export const CLIENT_MODULES = [
   { id: CLIENT_MODULE_ALL, name: 'Todos' },
   { id: 'proposals', name: 'Propuestas' },
+  // Before Proyectos because that is the order of the funnel: a diagnostic is
+  // what a proposal comes out of. Its cuts read two different sources — the
+  // income for "facturado", the entity for the other two — which is why they
+  // live in one module instead of splitting across Contabilidad.
+  { id: 'diagnostics', name: 'Diagnóstico' },
   { id: 'projects', name: 'Proyectos' },
   // Hosting is its own module rather than a corner of Contabilidad: it is a
   // service line with a life of its own, and its subfilters grow once hosting
   // records its period (PA-51).
   { id: 'hosting', name: 'Hosting' },
   { id: 'accounting', name: 'Contabilidad' },
+  { id: 'documents', name: 'Documentos' },
+  // Last because it is the transversal one: every other module is a line of
+  // business, this one is how we have talked to the client.
+  { id: 'emails', name: 'Emails' },
 ];
 
 const MODULE_BY_ID = new Map(CLIENT_MODULES.map((m) => [m.id, m]));
@@ -89,6 +98,15 @@ export const CLIENT_SUBFILTERS = [
   { id: 'status-rejected', name: 'Rejected', module: 'proposals', filters: { lastStatuses: ['rejected'] } },
   { id: 'status-finished', name: 'Finished', module: 'proposals', filters: { lastStatuses: ['finished'] } },
 
+  // Diagnóstico — "facturado" reads the INCOME on purpose: a diagnostic that
+  // was charged for without its entity ever being created is still billed,
+  // and asking for both would hide exactly the rows worth chasing. The other
+  // two read the entity, which is what carries the date a proposal is
+  // compared against.
+  { id: 'diagnostic-billed', name: 'Con diagnóstico facturado', module: 'diagnostics', filters: { diagnosticStatus: 'billed' } },
+  { id: 'no-diagnostic', name: 'Sin diagnóstico', module: 'diagnostics', filters: { diagnosticStatus: 'none' } },
+  { id: 'diagnostic-unconverted', name: 'Diagnóstico sin propuesta posterior', module: 'diagnostics', filters: { diagnosticStatus: 'unconverted' } },
+
   // Proyectos — leans on the Plataforma module (PA-49), where a project
   // becomes an administrable entity.
   { id: 'active-project', name: 'Con proyecto activo', module: 'projects', filters: { projectStatus: 'active' } },
@@ -102,6 +120,21 @@ export const CLIENT_SUBFILTERS = [
   // Contabilidad — the smallest module today and the one that will grow most
   // (cuentas de cobro pendientes/vencidas land here).
   { id: 'no-billing', name: 'Sin datos de facturación', module: 'accounting', filters: { billingData: 'missing' } },
+
+  // Documentos — la pertenencia dejó de vivir en el nombre de una carpeta:
+  // estos cortes leen la relación documento→cliente/proyecto. El tercero es
+  // la lista de lo que quedó a medio asociar tras la pasada retroactiva.
+  { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: 'with' } },
+  { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: 'none' } },
+  { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: 'no-project' } },
+
+  // Emails — contact, not business. All four read what was addressed to the
+  // client: the internal notices about their records show in the modal,
+  // marked, but a digest that reached the team is not contact with them.
+  { id: 'emails-any', name: 'Con correos enviados', module: 'emails', filters: { emailStatus: 'any' } },
+  { id: 'no-emails', name: 'Sin ningún correo', module: 'emails', filters: { emailStatus: 'none' } },
+  { id: 'emails-failed', name: 'Con envíos fallidos', module: 'emails', filters: { emailStatus: 'failed' } },
+  { id: 'emails-cold', name: 'Sin contacto en los últimos 30 días', module: 'emails', filters: { emailStatus: 'cold' } },
 ];
 
 const SUBFILTER_BY_ID = new Map(CLIENT_SUBFILTERS.map((s) => [s.id, s]));
@@ -185,6 +218,51 @@ export function matchProjectStatus(record, value) {
 }
 matchProjectStatus.keys = ['projectStatus'];
 
+/**
+ * Three reads of one module from two sources. "Facturado" is the income
+ * (`origin=diagnostic`, write-offs excluded) and deliberately not also the
+ * entity, so a diagnostic billed without its record is not hidden. "Sin
+ * diagnóstico" is zero entities of any status, drafts included — the
+ * complement of the module as a whole. "Sin propuesta posterior" is the
+ * commercial cut: a sent diagnostic that no proposal ever followed.
+ */
+export function matchDiagnosticStatus(record, value) {
+  if (value === 'billed') return Number(record.diagnostic_incomes_count || 0) > 0;
+  if (value === 'none') return Number(record.diagnostics_count || 0) === 0;
+  if (value === 'unconverted') {
+    return Number(record.diagnostics_without_proposal_count || 0) > 0;
+  }
+  return true;
+}
+matchDiagnosticStatus.keys = ['diagnosticStatus'];
+
+/** Days since the last email that reached the client, or null if never. */
+function daysSinceLastEmail(record) {
+  if (!record.last_email_at) return null;
+  const sent = new Date(record.last_email_at).getTime();
+  if (Number.isNaN(sent)) return null;
+  return (Date.now() - sent) / 86400000;
+}
+
+/**
+ * "Cold" deliberately includes the clients who never received anything: the
+ * question is "who have we not written to in a month", and never-contacted is
+ * the emptiest answer to it. That makes it a superset of "Sin ningún correo",
+ * the same way "Con hosting cobrado" sits inside "Con hosting (histórico)".
+ */
+export function matchEmailStatus(record, value) {
+  const sent = Number(record.emails_sent_count || 0);
+  if (value === 'any') return sent > 0;
+  if (value === 'none') return sent === 0;
+  if (value === 'failed') return Number(record.emails_failed_count || 0) > 0;
+  if (value === 'cold') {
+    const days = daysSinceLastEmail(record);
+    return days === null || days > 30;
+  }
+  return true;
+}
+matchEmailStatus.keys = ['emailStatus'];
+
 export function matchBillingData(record, value) {
   const missing = isBlank(record.nit) && isBlank(record.cedula) && isBlank(record.billing_code);
   if (value === 'missing') return missing;
@@ -192,6 +270,19 @@ export function matchBillingData(record, value) {
   return true;
 }
 matchBillingData.keys = ['billingData'];
+
+/**
+ * `documents_count` cuenta sólo documentos ACTIVOS (el archivado es el eje de
+ * visibilidad propio del módulo de documentos), así que el pill y el salto
+ * aterrizan en la misma lista que el gestor muestra por defecto.
+ */
+export function matchDocumentsStatus(record, value) {
+  if (value === 'with') return Number(record.documents_count || 0) > 0;
+  if (value === 'none') return Number(record.documents_count || 0) === 0;
+  if (value === 'no-project') return Number(record.documents_no_project_count || 0) > 0;
+  return true;
+}
+matchDocumentsStatus.keys = ['documentsStatus'];
 
 // ---------------------------------------------------------------------------
 // Legacy `preset` key
@@ -254,6 +345,9 @@ export const CLIENT_FILTERS_CONFIG = {
     hostingStatus: '',
     projectStatus: '',
     billingData: '',
+    documentsStatus: '',
+    diagnosticStatus: '',
+    emailStatus: '',
   },
   matchers: {
     lastStatuses: matchIncludes('last_status', 'lastStatuses'),
@@ -269,6 +363,9 @@ export const CLIENT_FILTERS_CONFIG = {
     hostingStatus: matchHostingStatus,
     projectStatus: matchProjectStatus,
     billingData: matchBillingData,
+    documentsStatus: matchDocumentsStatus,
+    diagnosticStatus: matchDiagnosticStatus,
+    emailStatus: matchEmailStatus,
   },
   builtinTabs: CLIENT_SUBFILTERS.map(({ id, name, module, filters }) => ({
     id, name, module, filters: { ...filters, module },

@@ -185,4 +185,45 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByRole('button', { name: /^Pegado$/i })).toBeVisible({ timeout: 5000 });
     await expect(textarea).toHaveValue(`${documentWithMarkdown.content_markdown}\n\nTexto pegado desde el portapapeles.`);
   });
+
+  test('the saved association links back to its client and project', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the editor is reached by URL across this whole
+    // spec; the subject is the association block it renders after loading)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            ...mockDocument,
+            client: 7, client_display_name: 'Kore SAS',
+            project: 11, project_name: 'Kore - Diseño',
+          }),
+        };
+      }
+      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: '[]' };
+      if (apiPath.startsWith('accounts/saved-filter-tabs')) return { status: 200, contentType: 'application/json', body: '[]' };
+      if (apiPath === 'proposals/client-profiles/status-counts/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, inactive: 0 }) };
+      }
+      if (apiPath === 'proposals/client-profiles/') return { status: 200, contentType: 'application/json', body: '[]' };
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    // La relación sirve en las dos direcciones: del documento a su cliente
+    // (ficha expandida vía ?highlight=) y a su proyecto.
+    await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('Kore SAS');
+    await expect(page.getByTestId('document-project-link'))
+      .toHaveAttribute('href', /\/panel\/projects\?highlight=11/);
+
+    // Seguir el enlace prueba la vuelta: aterriza en /panel/clients con el
+    // ?highlight= que expande la ficha de ese cliente.
+    await page.getByTestId('document-client-link').click();
+    await expect(page).toHaveURL(/\/panel\/clients/, { timeout: 30_000 });
+  });
 });

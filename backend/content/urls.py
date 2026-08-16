@@ -182,6 +182,11 @@ from content.views.document_tag import (
     list_document_tags, create_document_tag,
     update_document_tag, delete_document_tag,
 )
+from content.views.client_emails import (
+    client_email_body,
+    list_client_emails,
+    retry_client_email,
+)
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
@@ -288,6 +293,11 @@ urlpatterns = [
     path('proposals/client-profiles/<int:client_id>/', retrieve_proposal_client, name='retrieve-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/update/', update_proposal_client, name='update-proposal-client'),
     path('proposals/client-profiles/<int:client_id>/delete/', delete_proposal_client, name='delete-proposal-client'),
+    # The client's email history. Nested under the client on purpose: the
+    # scope is what authorizes the row.
+    path('proposals/client-profiles/<int:client_id>/emails/', list_client_emails, name='list-client-emails'),
+    path('proposals/client-profiles/<int:client_id>/emails/<int:log_id>/body/', client_email_body, name='client-email-body'),
+    path('proposals/client-profiles/<int:client_id>/emails/<int:log_id>/retry/', retry_client_email, name='retry-client-email'),
     path('proposals/alerts/', proposal_alerts, name='proposal-alerts'),
     path('proposals/alerts/create/', create_proposal_alert, name='create-proposal-alert'),
     path('proposals/alerts/<int:alert_id>/dismiss/', dismiss_proposal_alert, name='dismiss-proposal-alert'),

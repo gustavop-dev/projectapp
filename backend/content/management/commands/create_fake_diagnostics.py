@@ -193,6 +193,50 @@ class Command(BaseCommand):
                 f'— {client} [{diagnostic.status}] [{diagnostic.language}]'
             ))
 
+        self._seed_converted_diagnostic(clients)
+
         self.stdout.write(self.style.SUCCESS(
             f'\n✓ {created} diagnostic(s) created.'
+        ))
+
+    def _seed_converted_diagnostic(self, clients):
+        """One diagnostic a proposal actually followed.
+
+        Without it the "Diagnóstico sin propuesta posterior" subfilter does not
+        render (0) locally — it matches *every* client with a diagnostic, and
+        its complement is unreachable, which is worse than having no data.
+        The reason is ordering: create_fake_proposals runs before this command
+        and `created_at` is auto_now_add, so every seeded proposal predates
+        every seeded diagnostic.
+
+        Both stamps move, not just `created_at`: the cut anchors on
+        Coalesce(initial_sent_at, created_at), so backdating one alone would
+        change nothing.
+        """
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        converted_for = next(
+            (c for c in clients if c.proposals.exists()), None,
+        )
+        if converted_for is None:
+            return
+
+        diagnostic = diagnostic_service.create_diagnostic(
+            client=converted_for, language='es',
+        )
+        try:
+            diagnostic_service.transition_status(
+                diagnostic, WebAppDiagnostic.Status.SENT,
+            )
+        except ValueError:
+            pass
+        anchor = timezone.now() - timedelta(days=120)
+        WebAppDiagnostic.objects.filter(pk=diagnostic.pk).update(
+            created_at=anchor, initial_sent_at=anchor,
+        )
+        self.stdout.write(self.style.SUCCESS(
+            f'Created diagnostic #{diagnostic.id} — backdated, already '
+            f'followed by a proposal of {converted_for}'
         ))

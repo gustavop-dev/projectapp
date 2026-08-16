@@ -21,6 +21,11 @@ const props = defineProps({
   scope: { type: String, default: 'active' },
   // Mutación en vuelo: los botones de restaurar giran y quedan inertes.
   updating: { type: Boolean, default: false },
+  // Inventario de una fila de subcarpeta. Llega como función y no se consulta
+  // el store acá porque este componente es presentacional: sus specs lo montan
+  // sin Pinia. El default conserva el conteo directo de siempre; la página lo
+  // reemplaza por el que suma el subárbol.
+  folderSummary: { type: Function, default: folderRowSummary },
 })
 
 const emit = defineEmits([
@@ -85,7 +90,7 @@ function archivedContentCount(folder) {
             </div>
           </td>
           <td class="px-6 py-4 text-sm text-text-subtle" colspan="5">
-            {{ folderRowSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+            {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
           <td class="px-6 py-4" @click.stop>
             <BaseButton

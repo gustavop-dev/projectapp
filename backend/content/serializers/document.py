@@ -299,3 +299,25 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         return apply_client_project_association(attrs)
+
+
+class ClientDocumentRowSerializer(serializers.ModelSerializer):
+    """Fila ligera para la sección Documentos de la ficha del cliente.
+
+    Sin excerpt ni tags a propósito: la ficha lista para reconocer y saltar,
+    no para leer — el payload del detalle de cliente ya es grande.
+    """
+
+    project_name = serializers.CharField(
+        source='project.name', read_only=True, default=None,
+    )
+    folder_name = serializers.CharField(
+        source='folder.name', read_only=True, default=None,
+    )
+
+    class Meta:
+        model = Document
+        fields = (
+            'id', 'title', 'status', 'project', 'project_name',
+            'folder_name', 'created_at',
+        )

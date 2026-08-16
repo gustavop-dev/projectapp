@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
-from content.models import HostingRecord
+from content.models import Document, HostingRecord
 from content.models.business_proposal import BusinessProposal
 from content.serializers.proposal_clients import ProposalClientSerializer
 
@@ -348,6 +348,103 @@ class TestPresetAnnotations:
 
         assert data['active_hostings_count'] == 1
         assert data['active_projects_count'] == 1
+
+
+class TestDocumentsModuleAnnotations:
+    """Los tres agregados detrás del módulo Documentos de /panel/clients."""
+
+    def test_documents_count_excludes_the_archived_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Docs SAS')
+        Document.objects.create(title='Contrato', client_user=profile.user)
+        Document.objects.create(
+            title='Acta vieja', client_user=profile.user, is_archived=True,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['documents_count'] == 1
+
+    def test_documents_no_project_count_reads_the_half_linked(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Medio SAS')
+        project = Project.objects.create(name='Kore', client=profile.user)
+        Document.objects.create(
+            title='Con proyecto', client_user=profile.user, project=project,
+        )
+        Document.objects.create(title='Sin proyecto', client_user=profile.user)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['documents_count'] == 2
+        assert row['documents_no_project_count'] == 1
+
+    def test_last_document_at_is_the_newest_active_one(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Fechas SAS')
+        with freeze_time('2026-08-01 10:00:00'):
+            Document.objects.create(title='Viejo', client_user=profile.user)
+        with freeze_time('2026-08-10 10:00:00'):
+            Document.objects.create(title='Nuevo', client_user=profile.user)
+        with freeze_time('2026-08-14 10:00:00'):
+            Document.objects.create(
+                title='Archivado después', client_user=profile.user,
+                is_archived=True,
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert str(row['last_document_at']).startswith('2026-08-10')
+
+    def test_documents_of_one_client_do_not_leak_into_another(
+        self, admin_client, make_client_profile,
+    ):
+        owner = make_client_profile(company='Dueno Docs SAS')
+        stranger = make_client_profile(company='Ajeno Docs SAS')
+        Document.objects.create(title='Contrato', client_user=owner.user)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['documents_count'] == 1
+        assert _row_for(response, stranger)['documents_count'] == 0
+
+    def test_detail_nests_the_recent_documents_with_total(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Ficha SAS')
+        project = Project.objects.create(name='Kore', client=profile.user)
+        for index in range(6):
+            Document.objects.create(
+                title=f'Doc {index}', client_user=profile.user,
+                project=project if index == 5 else None,
+            )
+
+        response = admin_client.get(
+            reverse('retrieve-proposal-client', args=[profile.pk]),
+        )
+
+        assert response.status_code == 200
+        assert response.data['documents_total'] == 6
+        assert len(response.data['documents']) == 5
+        newest = response.data['documents'][0]
+        assert newest['title'] == 'Doc 5'
+        assert newest['project_name'] == 'Kore'
+
+    def test_serializer_falls_back_without_annotations(self, make_client_profile):
+        profile = make_client_profile(company='Fallback Docs SAS')
+        Document.objects.create(title='Suelto', client_user=profile.user)
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['documents_count'] == 1
+        assert data['documents_no_project_count'] == 1
 
 
 # ---------------------------------------------------------------------------

@@ -128,8 +128,19 @@ class Command(BaseCommand):
             total = Decimal(rng.randrange(400_000, 4_000_000, 10_000))
             gustavo, carlos = split_half(total)
             concept = rng.choice(INCOME_CONCEPTS)
+            # Cobro por diagnóstico: what the "Con diagnóstico facturado"
+            # subfilter of /panel/clients reads. Chosen by index rather than by
+            # concept so the cut always has data, and so `rng.choice` above is
+            # still consumed every iteration — the seeded stream, and every
+            # assertion that depends on it, stays exactly as it was. Index 3 is
+            # also the written-off row, which seeds the case the filter must
+            # exclude.
+            is_diagnostic = index % 4 == 0 or index % 8 == 3
+            if is_diagnostic:
+                concept = 'Diagnóstico técnico - Cobro único'
             origin = (
-                IncomeRecord.Origin.HOSTING if 'Hosting' in concept
+                IncomeRecord.Origin.DIAGNOSTIC if is_diagnostic
+                else IncomeRecord.Origin.HOSTING if 'Hosting' in concept
                 else IncomeRecord.Origin.DEVELOPMENT
             )
             # Every third income is left without a client on purpose: the

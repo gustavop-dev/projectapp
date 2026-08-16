@@ -36,6 +36,11 @@ function client(overrides) {
     hostings_count: 0,
     active_hostings_count: 0,
     active_projects_count: 0,
+    diagnostic_incomes_count: 0,
+    diagnostics_without_proposal_count: 0,
+    emails_sent_count: 0,
+    emails_failed_count: 0,
+    last_email_at: null,
     is_orphan: false,
     is_inactive: false,
     deactivated_at: null,
@@ -44,6 +49,9 @@ function client(overrides) {
     last_sent_at: '2026-05-01T10:00:00Z',
     project_types: [],
     market_types: [],
+    documents_count: 0,
+    documents_no_project_count: 0,
+    last_document_at: null,
     nit: '900123456',
     cedula: '',
     billing_code: 'ACME',
@@ -55,13 +63,36 @@ function client(overrides) {
 
 // Two clients pay hosting today, a third only has an expired one, a fourth
 // none at all — so "cobrado" (2) and "histórico" (3) are visibly different.
+//
+// "Sin contacto en los últimos 30 días" is measured against the clock, so the
+// one client who counts as warm has to stay warm: a literal date would freeze
+// on the day it was written and silently flip the client to cold a month
+// later, which is the same reason the Historial's date tabs are builtin
+// rather than seeded.
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
+// The diagnostic and email facts ride the same four rows: Kore was billed a
+// diagnostic that never turned into a proposal and has been written to twice
+// (once failed, and recently); Mimittos has a diagnostic with a proposal
+// after it and one send long enough ago to be cold; Senses has neither.
 const CHARGED_ONE = client({
   id: 101, name: 'Kore Healths', company: 'Kore',
   hostings_count: 2, active_hostings_count: 1,
+  // También el único con documentos: alimenta el módulo Documentos sin sumar
+  // otra fila al fixture.
+  documents_count: 3, documents_no_project_count: 1,
+  last_document_at: '2026-08-10T10:00:00Z',
+  diagnostics_count: 1, diagnostic_incomes_count: 1,
+  diagnostics_without_proposal_count: 1,
+  emails_sent_count: 2, emails_failed_count: 1,
+  last_email_at: daysAgo(2),
 });
 const CHARGED_TWO = client({
   id: 102, name: 'Mimittos SAS', company: 'Mimittos',
   hostings_count: 1, active_hostings_count: 1,
+  diagnostics_count: 1,
+  emails_sent_count: 1,
+  last_email_at: daysAgo(120),
 });
 const EXPIRED_ONLY = client({
   id: 103, name: 'Senses Candles', company: 'Senses',
@@ -92,6 +123,28 @@ const HOSTING_ROW = {
   notes: '',
 };
 
+const EMAIL_ROW = {
+  id: 5001,
+  template_key: 'collection_account_sent',
+  template_label: 'Cuenta de cobro',
+  recipient: 'kore@test.com',
+  subject: 'Cuenta de cobro CC-001',
+  status: 'sent',
+  status_label: 'Sent',
+  error_message: '',
+  sent_at: '2026-05-01T10:00:00Z',
+  origin_action: '',
+  origin_action_label: '',
+  targets: [],
+  has_body: true,
+  is_retryable: false,
+  retry_blocked_reason: '',
+  retry_of: null,
+  audience: 'client',
+  audience_label: 'Al cliente',
+  proposal: null,
+};
+
 function setupMock(page) {
   return mockApi(page, async ({ route, apiPath }) => {
     if (apiPath === 'auth/check/') return authCheck;
@@ -108,6 +161,19 @@ function setupMock(page) {
       };
     }
 
+    if (/^proposals\/client-profiles\/\d+\/emails\/$/.test(apiPath)) {
+      const audience = new URL(route.request().url())
+        .searchParams.get('audience') || 'client';
+      const rows = audience === 'internal' ? [] : [EMAIL_ROW];
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          results: rows, count: rows.length, page: 1, num_pages: 1,
+        }),
+      };
+    }
+
     if (apiPath === 'proposals/client-profiles/') {
       const search = (new URL(route.request().url())
         .searchParams.get('search') || '').toLowerCase();
@@ -115,6 +181,25 @@ function setupMock(page) {
         ? ALL_CLIENTS.filter((c) => c.name.toLowerCase().includes(search))
         : ALL_CLIENTS;
       return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+    }
+
+    // Destino del salto del pill de Documentos: el gestor monta lista,
+    // contadores, carpetas, etiquetas y el picker de proyectos del filtro.
+    if (apiPath === 'documents/counts/') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          documents: { active: 0, archived: 0, unfiled_active: 0, unfiled_archived: 0 },
+          folders: { active: 0, archived: 0 },
+        }),
+      };
+    }
+    if (apiPath === 'documents/') {
+      return { status: 200, contentType: 'application/json', body: '[]' };
+    }
+    if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+      return { status: 200, contentType: 'application/json', body: '[]' };
     }
 
     if (apiPath === 'accounting/hostings/') {
@@ -365,5 +450,109 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(page.getByRole('link', { name: 'https://korehealths.com/' }))
       .toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('accounting-filter-chip')).toHaveCount(1);
+  });
+  test('the Documentos module shows its three subfilters with honest counts', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as its siblings above)
+    await setupMock(page);
+    await gotoClients(page);
+
+    await openModule(page, 'documents');
+
+    // El módulo agrupa sin recortar; cada subfiltro anuncia su corte real.
+    await expect(rowsShown(page)).toHaveCount(4);
+    await expect(page.getByTestId('filter-tabs-count-docs-with')).toHaveText('(1)');
+    await expect(page.getByTestId('filter-tabs-count-docs-none')).toHaveText('(3)');
+    await expect(page.getByTestId('filter-tabs-count-docs-no-project')).toHaveText('(1)');
+
+    await page.getByTestId('filter-tabs-tab-docs-with').click();
+    await expect(rowsShown(page)).toHaveCount(1);
+  });
+
+  test('the row doc count opens Documents already filtered by that client', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+
+    // El conteo (con la fecha del último) sólo aparece con el módulo activo.
+    await expect(page.getByTestId('client-documents-101')).toHaveCount(0);
+    await openModule(page, 'documents');
+    await expect(page.getByTestId('client-documents-101')).toContainText('3 docs');
+
+    await page.getByTestId('client-documents-101').click();
+
+    await expect(page).toHaveURL(/\/panel\/documents\?client=101/);
+    await expect(page.getByTestId('doc-association-filters'))
+      .toBeVisible({ timeout: 30_000 });
+  });
+
+  test('the diagnostic module lists the ones no proposal followed', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'diagnostics');
+
+    // The commercially valuable cut: Kore was diagnosed and nothing followed;
+    // Mimittos was diagnosed and a proposal did.
+    await expect(page.getByTestId('filter-tabs-count-diagnostic-unconverted'))
+      .toHaveText('(1)');
+    await page.getByTestId('filter-tabs-tab-diagnostic-unconverted').click();
+
+    await expect(rowsShown(page)).toHaveCount(1);
+    await expect(page.getByText('Kore Healths')).toBeVisible();
+    await expect(page).toHaveURL(/clientTab=diagnostic-unconverted/);
+  });
+
+  test('a billed diagnostic counts even where no diagnostic entity exists', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as its siblings above)
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'diagnostics');
+
+    // Only Kore has a diagnostic income; two clients have no diagnostic at all.
+    await expect(page.getByTestId('filter-tabs-count-diagnostic-billed'))
+      .toHaveText('(1)');
+    await expect(page.getByTestId('filter-tabs-count-no-diagnostic'))
+      .toHaveText('(2)');
+  });
+
+  test('the emails module counts who has gone quiet, never-written included', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'emails');
+
+    // Cold is deliberately a superset of "sin ningun correo": the two who
+    // never got anything, plus Mimittos whose only send is months old.
+    await expect(page.getByTestId('filter-tabs-count-no-emails')).toHaveText('(2)');
+    await expect(page.getByTestId('filter-tabs-count-emails-cold')).toHaveText('(3)');
+
+    await page.getByTestId('filter-tabs-tab-emails-failed').click();
+
+    await expect(rowsShown(page)).toHaveCount(1);
+    await expect(page.getByText('Kore Healths')).toBeVisible();
+  });
+
+  test('the row shows the contact and opens the history from it', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+
+    // Like the hosting pill, it only appears while its module is being read.
+    await expect(page.getByTestId('client-emails-101')).toHaveCount(0);
+    await openModule(page, 'emails');
+    await expect(page.getByTestId('client-emails-101')).toContainText('2 correos');
+
+    await page.getByTestId('client-emails-101').click();
+
+    await expect(page.getByTestId('client-emails-modal')).toBeVisible();
+    await expect(page.getByTestId('email-log-row-5001')).toBeVisible();
   });
 });

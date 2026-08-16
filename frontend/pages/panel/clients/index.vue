@@ -213,6 +213,38 @@
               {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
             </span>
 
+            <!-- Documentos: cuántos tiene + fecha del último, sólo con el
+                 módulo activo. Salta al gestor ya filtrado por el cliente.
+                 Sin gate de superuser: documentos comparte el gate admin de
+                 esta misma página. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsDocumentsCount(client)"
+              type="button"
+              :data-testid="`client-documents-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los documentos de ${client.name}`"
+              @click.stop="goToClientDocuments(client)"
+            >
+              {{ client.documents_count }} doc{{ client.documents_count !== 1 ? 's' : '' }}<span v-if="client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
+            </button>
+
+            <!-- Emails: the count plus when we last wrote, which is what turns
+                 the list into a reading of contact and not just a filter.
+                 Opens the same modal the ficha does. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsEmailCount(client)"
+              type="button"
+              :data-testid="`client-emails-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los correos de ${client.name}`"
+              @click.stop="openEmails(client)"
+            >
+              {{ client.emails_sent_count }} correo{{ client.emails_sent_count !== 1 ? 's' : '' }}
+              <template v-if="client.last_email_at"> · {{ formatDate(client.last_email_at) }}</template>
+            </button>
+
             <button
               v-if="client.accepted_count > 0"
               type="button"
@@ -280,6 +312,20 @@
             Cargando...
           </div>
           <template v-else>
+            <!-- Reachable without going through the filter: filtering is for
+                 finding who, the ficha is where you already are when the
+                 question "what did we send them?" comes up. -->
+            <div class="px-5 pt-4 flex justify-end">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :data-testid="`client-view-emails-${client.id}`"
+                @click.stop="openEmails(client)"
+              >
+                Ver correos
+              </BaseButton>
+            </div>
+
             <!-- Proposals (drop target for proposal reassignment) -->
             <div
               :data-testid="`client-proposals-zone-${client.id}`"
@@ -544,6 +590,56 @@
                 </table>
               </div>
             </div>
+
+            <!-- Los últimos 5 documentos del cliente; "Ver todos" entra al
+                 módulo ya filtrado — la relación sirve en las dos direcciones. -->
+            <div v-if="detailCache[client.id]?.documents?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2 flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Documentos</p>
+                <!-- design-tokens: allow-raw-button -->
+                <button
+                  type="button"
+                  :data-testid="`client-documents-all-${client.id}`"
+                  class="text-xs text-text-brand hover:underline"
+                  @click.stop="goToClientDocuments(client)"
+                >
+                  Ver todos ({{ detailCache[client.id].documents_total }})
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Documento</th>
+                      <th class="px-4 py-3">Proyecto</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3">Creado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="doc in detailCache[client.id].documents"
+                      :key="doc.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-document-row-${doc.id}`"
+                    >
+                      <td class="px-5 py-3">
+                        <NuxtLink
+                          :to="localePath(`/panel/documents/${doc.id}/edit`)"
+                          class="text-text-default hover:text-text-brand hover:underline"
+                          @click.stop
+                        >
+                          {{ doc.title }}
+                        </NuxtLink>
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ doc.project_name || '—' }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ documentStatusLabel(doc.status) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ formatDate(doc.created_at) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -629,6 +725,23 @@
       </div>
     </div>
 
+    <!-- The client's emails, and the viewer for one of them. Siblings rather
+         than nested: BaseModal has no stacking manager, so DOM order is what
+         decides which one paints on top. -->
+    <ClientEmailsModal
+      :open="emailsModalOpen"
+      :client="emailsClient"
+      :preview-open="emailBodyOpen"
+      @close="closeEmails"
+      @view-body="openEmailBody"
+    />
+    <EmailBodyModal
+      :open="emailBodyOpen"
+      :entry="emailBodyEntry"
+      :fetcher="fetchEmailBody"
+      @close="emailBodyOpen = false"
+    />
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -646,10 +759,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
+import { statusLabel as documentStatusLabel } from '~/utils/documentStatus';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
@@ -657,6 +771,8 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
+import ClientEmailsModal from '~/components/clients/ClientEmailsModal.vue';
+import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -743,6 +859,38 @@ function showsHostingCount(client) {
   return activeModule.value === 'hosting' && Number(client.hostings_count || 0) > 0;
 }
 
+function showsEmailCount(client) {
+  return activeModule.value === 'emails' && Number(client.emails_sent_count || 0) > 0;
+}
+
+// The emails modal, reachable two ways: the row pill while the Emails module
+// is being read, and the "Ver correos" button on the expanded card — filtering
+// is for finding who, the ficha is where you already are when the question
+// comes up. One modal serves both.
+const emailsClient = ref(null);
+const emailsModalOpen = ref(false);
+const emailBodyEntry = ref(null);
+const emailBodyOpen = ref(false);
+
+function openEmails(client) {
+  emailsClient.value = client;
+  emailsModalOpen.value = true;
+}
+
+function closeEmails() {
+  emailsModalOpen.value = false;
+  emailsClient.value = null;
+}
+
+function openEmailBody(entry) {
+  emailBodyEntry.value = entry;
+  emailBodyOpen.value = true;
+}
+
+function fetchEmailBody(logId) {
+  return clientsStore.fetchClientEmailBody(emailsClient.value?.id, logId);
+}
+
 /**
  * /panel/clients only requires admin, but /panel/accounting/* is behind the
  * superuser-only middleware. Without this guard a staff non-superuser would
@@ -753,6 +901,21 @@ const canOpenHostings = computed(() => proposalStore.isSuperuser);
 function goToClientHostings(client) {
   navigateTo({
     path: '/panel/accounting/hostings',
+    query: { client: String(client.id) },
+  });
+}
+
+/**
+ * A diferencia del pill de hostings, sin guard de superuser: /panel/documents
+ * comparte el gate admin de esta misma página.
+ */
+function showsDocumentsCount(client) {
+  return activeModule.value === 'documents' && Number(client.documents_count || 0) > 0;
+}
+
+function goToClientDocuments(client) {
+  navigateTo({
+    path: '/panel/documents',
     query: { client: String(client.id) },
   });
 }
@@ -972,10 +1135,32 @@ function handleEditEscape(e) {
   if (e.key === 'Escape' && editingClient.value) closeEditModal();
 }
 
-onMounted(() => {
-  loadClients();
+onMounted(async () => {
   document.addEventListener('keydown', handleEditEscape);
+  await loadClients();
+  applyHighlightFromQuery();
 });
+
+/**
+ * ?highlight=<profileId>: llega desde el enlace "Ver cliente" de un documento
+ * — expande la ficha y hace scroll a la fila. Param de un solo uso (espejo de
+ * ?highlight= en /panel/projects): se limpia de la URL y degrada sin ruido si
+ * el cliente no está entre las filas cargadas o quedó en otra página.
+ */
+function applyHighlightFromQuery() {
+  const targetId = Number.parseInt(route.query.highlight, 10);
+  if (!Number.isFinite(targetId)) return;
+  const query = { ...route.query };
+  delete query.highlight;
+  router.replace({ query });
+  const target = clientsStore.clients.find((c) => c.id === targetId);
+  if (!target) return;
+  toggleClient(target);
+  nextTick(() => {
+    document.querySelector(`[data-testid="client-row-${targetId}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
 
 usePanelRefresh(refreshAll);
 onBeforeUnmount(() => {

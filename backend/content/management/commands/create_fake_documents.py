@@ -25,6 +25,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import Project, UserProfile
+from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     Document,
     DocumentCollectionAccount,
@@ -216,6 +217,15 @@ class Command(BaseCommand):
                 [Document.Status.PUBLISHED, Document.Status.DRAFT, Document.Status.ARCHIVED],
                 weights=[6, 3, 1],
             )[0]
+            # ~60% asociados (cliente, y proyecto cuando el par lo trae): el
+            # resto queda suelto a propósito — alimenta el recorte «Sin
+            # cliente» del gestor y el subfiltro «Sin documentos» de clientes.
+            project = client_user = None
+            client_name = ''
+            if clients and rng.random() < 0.6:
+                project, client_user = rng.choice(clients)
+                profile = getattr(client_user, 'profile', None)
+                client_name = build_client_display_name(profile) if profile else ''
             doc = Document(
                 document_type=md_type,
                 folder=rng.choice(md_folders),
@@ -223,6 +233,9 @@ class Command(BaseCommand):
                 status=status,
                 content_markdown=body,
                 language=Document.Language.ES,
+                project=project,
+                client_user=client_user,
+                client_name=client_name,
                 created_by=admin,
                 updated_by=admin,
             )
