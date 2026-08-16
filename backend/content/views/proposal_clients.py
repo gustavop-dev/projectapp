@@ -37,7 +37,8 @@ from accounts.services.billing_code import (
     normalize_billing_code,
 )
 from content.models import (
-    BusinessProposal, EmailLog, HostingRecord, IncomeRecord, WebAppDiagnostic,
+    BusinessProposal, Document, EmailLog, HostingRecord, IncomeRecord,
+    WebAppDiagnostic,
 )
 from content.serializers.accounting import (
     HostingRecordSerializer,
@@ -46,6 +47,7 @@ from content.serializers.accounting import (
 )
 from content.serializers.proposal import ProposalListSerializer
 from content.services import accounting_service
+from content.serializers.document import ClientDocumentRowSerializer
 from content.serializers.proposal_clients import (
     ProposalClientSearchSerializer,
     ProposalClientSerializer,
@@ -239,6 +241,47 @@ def _base_queryset():
                 )
                 .order_by('-sent_at')
                 .values('sent_at')[:1],
+                output_field=DateTimeField(),
+            ),
+            # The Documents module counts what the manager's list shows for
+            # the client: active documents only — archiving is that module's
+            # own visibility axis, so the pill reconciles with the list the
+            # jump lands on. Document.client_user points at the User.
+            documents_count=Coalesce(
+                Subquery(
+                    Document.objects
+                    .filter(client_user=OuterRef('user_id'), is_archived=False)
+                    .order_by()
+                    .values('client_user')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # "A medio asociar": del cliente pero sin proyecto — la lista de
+            # revisión que deja la pasada retroactiva.
+            documents_no_project_count=Coalesce(
+                Subquery(
+                    Document.objects
+                    .filter(
+                        client_user=OuterRef('user_id'),
+                        is_archived=False,
+                        project__isnull=True,
+                    )
+                    .order_by()
+                    .values('client_user')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            last_document_at=Subquery(
+                Document.objects
+                .filter(client_user=OuterRef('user_id'), is_archived=False)
+                .order_by('-created_at')
+                .values('created_at')[:1],
                 output_field=DateTimeField(),
             ),
         )
@@ -468,6 +511,19 @@ def retrieve_proposal_client(request, client_id):
         .order_by('-period_date')
     )
     payload['incomes'] = IncomeRecordSerializer(incomes, many=True).data
+
+    # Los últimos 5 alcanzan para la ficha; "Ver todos" salta al módulo de
+    # Documentos ya filtrado por el cliente, que es donde se trabaja en serio.
+    documents = (
+        profile.user.client_documents
+        .filter(is_archived=False)
+        .select_related('project', 'folder')
+        .order_by('-created_at')
+    )
+    payload['documents'] = ClientDocumentRowSerializer(
+        documents[:5], many=True,
+    ).data
+    payload['documents_total'] = documents.count()
     return Response(payload)
 
 
