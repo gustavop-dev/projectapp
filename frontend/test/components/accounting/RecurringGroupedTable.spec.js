@@ -67,11 +67,19 @@ describe('RecurringGroupedTable', () => {
     expect(wrapper.find('[data-testid="recurring-group-1"]').text()).toContain('(2)');
   });
 
-  it('keeps the category name, its count and the subtotal on one line', () => {
+  it('labels the subtotal in its own block instead of chaining it to the name', () => {
     const wrapper = mountTable();
 
-    expect(wrapper.find('[data-testid="recurring-group-1"]').text().replace(/\s+/g, ' '))
-      .toContain('Suscripciones de IA(2) · $880.000 COP /mes');
+    const header = wrapper.find('[data-testid="recurring-group-1"]');
+    // The amount carries its own label, so the block can be spread across the
+    // row and still say what the figure is.
+    expect(header.text()).toContain('Mensual');
+    // The track spacing separates the blocks now, so the separator that used
+    // to chain name and figure into one sentence is gone.
+    expect(header.text()).not.toContain('·');
+    // The count belongs to the category, so it stays with the name.
+    expect(wrapper.find('[data-testid="recurring-group-toggle-1"]').text().replace(/\s+/g, ' '))
+      .toContain('Suscripciones de IA(2)');
   });
 
   it('totals every group in the footer', () => {
@@ -242,11 +250,11 @@ describe('RecurringGroupedTable', () => {
       groups: groups.map((group, index) => ({ ...group, groupWeightPct: index === 0 ? 95.5 : 4.5 })),
     });
 
+    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text()).toBe('95,5%');
+    expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text()).toBe('4,5%');
     // The share names its own base instead of trailing the row unlabelled.
-    expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text())
-      .toContain('95,5% de los pagos activos');
-    expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text())
-      .toContain('4,5% de los pagos activos');
+    expect(wrapper.find('[data-testid="recurring-group-1"]').text())
+      .toContain('% de pagos activos');
   });
 
   it('omits the group weight when the page does not compute one', () => {
