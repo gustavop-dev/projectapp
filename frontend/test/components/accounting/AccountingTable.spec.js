@@ -130,6 +130,24 @@ describe('AccountingTable', () => {
     expect(wrapper.text()).toContain(formatMoney(350000, 'COP'));
   });
 
+  it('formats date cells with the system date standard instead of raw ISO', () => {
+    const wrapper = mountTable();
+
+    expect(wrapper.text()).toContain('Vie, 1 may 2026');
+    expect(wrapper.text()).not.toContain('2026-05-01');
+  });
+
+  it('renders an em-dash for a null date instead of an empty cell', () => {
+    // A cuenta with plazo cero has no due_date; the Vence column has to say
+    // "no deadline" rather than look like a value that failed to load.
+    const wrapper = mountTable({
+      rows: [{ id: 3, concept: 'Pago inmediato', amount: 100, date: null, status: 'paid' }],
+    });
+
+    const cell = wrapper.find('[data-testid="accounting-row-3"]').findAll('td')[2];
+    expect(cell.text()).toBe('—');
+  });
+
   it('formats percent cells rounded to one decimal, subtle and right-aligned', () => {
     const wrapper = mountTable({
       columns: [
@@ -265,12 +283,22 @@ describe('AccountingTable', () => {
     expect(wrapper.find('[data-testid="sortable-hint"]').exists()).toBe(false);
   });
 
-  it('renders skeleton rows and aria-busy while loading', () => {
-    const wrapper = mountTable({ loading: true, skeletonRows: 4 });
+  it('renders skeleton rows and aria-busy on the first load', () => {
+    const wrapper = mountTable({ rows: [], loading: true, skeletonRows: 4 });
 
     expect(wrapper.attributes('aria-busy')).toBe('true');
     expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(4);
     expect(wrapper.findAll('[data-testid^="accounting-row-"]')).toHaveLength(0);
+  });
+
+  it('keeps the rows on screen while refetching over them', () => {
+    // Every accounting mutation refetches, so swapping the table for
+    // placeholders made a delete or an edit read as a full reload.
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(0);
+    expect(wrapper.findAll('[data-testid^="accounting-row-"]')).toHaveLength(2);
+    expect(wrapper.attributes('aria-busy')).toBe('true');
   });
 
   it('announces the row count via an aria-live region when loaded', () => {

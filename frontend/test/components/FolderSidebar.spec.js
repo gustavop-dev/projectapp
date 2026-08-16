@@ -12,9 +12,23 @@
 const archivedContentCount = (f) => (f?.archived_document_count || 0)
   + (f?.archived_children_count || 0);
 
+/**
+ * Conteo DIRECTO por ámbito — el stand-in del rollup en este spec.
+ *
+ * El algoritmo del subárbol NO se reimplementa acá a propósito: un mock que lo
+ * calculara haría que el spec asertara su propia copia. Vive testeado en
+ * `test/utils/folderRollup.test.js` y en el store; lo que este archivo fija es
+ * que la fila lee el getter recursivo y no `document_count`, y para eso alcanza
+ * con que el mock pueda devolver un número distinto del directo.
+ */
+const directDocs = (f, scope = 'active') => (scope === 'archived'
+  ? (f?.archived_document_count ?? (f?.is_archived ? f?.document_count : 0) ?? 0)
+  : (f?.active_document_count ?? (f?.is_archived ? 0 : f?.document_count) ?? 0));
+
 const mockFolderStore = {
   reorderFolders: jest.fn(),
   fetchFolders: jest.fn(),
+  recursiveDocumentCount: jest.fn(directDocs),
   // Espejo de los getters reales: el ícono de eliminar depende de ellos.
   archivedContentCount,
   totalContentCount: (f) => (f?.active_document_count ?? f?.document_count ?? 0)
@@ -48,6 +62,18 @@ const mixedFolder = {
   active_children_count: 0,
   archived_document_count: 2,
   archived_children_count: 0,
+};
+// Cuatro contadores distintos entre sí para que el número de la fila delate de
+// cuál de los dos ámbitos salió (la insignia suma 3+1=4, y no colisiona).
+const scopedFolder = {
+  id: 6,
+  name: 'Mixta',
+  document_count: 0,
+  children_count: 0,
+  active_document_count: 7,
+  active_children_count: 0,
+  archived_document_count: 3,
+  archived_children_count: 1,
 };
 
 // Stub that renders all items from v-model and can emit @end
@@ -99,6 +125,7 @@ describe('FolderSidebar', () => {
   beforeEach(() => {
     mockFolderStore.reorderFolders.mockReset().mockResolvedValue({ success: true });
     mockFolderStore.fetchFolders.mockReset().mockResolvedValue({ success: true });
+    mockFolderStore.recursiveDocumentCount.mockReset().mockImplementation(directDocs);
   });
 
   // ── Static entries ────────────────────────────────────────────────────────
@@ -126,6 +153,60 @@ describe('FolderSidebar', () => {
 
       expect(wrapper.text()).toContain('Propuestas');
       expect(wrapper.text()).toContain('Contratos');
+    });
+  });
+
+  // ── Los dos contadores de la fila ─────────────────────────────────────────
+
+  describe('row counters', () => {
+    it('reports what the branch holds, not what hangs directly off the folder', () => {
+      // El bug: «Xpandia Project» decía 0 teniendo 6 documentos en subcarpetas,
+      // y ese cero era la única señal de dónde había algo.
+      mockFolderStore.recursiveDocumentCount.mockReturnValue(6);
+      const wrapper = mountSidebar({ folders: [{ ...emptyFolder, children_count: 3 }] });
+
+      expect(wrapper.find('[data-testid="folder-document-count"]').text()).toBe('6');
+      expect(emptyFolder.document_count).toBe(0);
+    });
+
+    it('counts the subfolders you will actually see when you enter', () => {
+      // Directas a propósito: entrar lista los hijos de la carpeta, así que un
+      // total del subárbol prometería filas que ese clic no muestra.
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(wrapper.find('[data-testid="folder-subfolder-count"]').text()).toBe('2');
+    });
+
+    it('drops the subfolder counter when the folder has none', () => {
+      const wrapper = mountSidebar({ folders: [folderA] });
+
+      expect(wrapper.find('[data-testid="folder-subfolder-count"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="folder-document-count"]').text()).toBe('5');
+    });
+
+    it('asks for the branch of the mode being viewed', () => {
+      mountSidebar({ folders: [scopedFolder], archiveScope: 'archived' });
+
+      expect(mockFolderStore.recursiveDocumentCount)
+        .toHaveBeenCalledWith(scopedFolder, 'archived');
+    });
+
+    it('names both counters for a screen reader instead of two bare numbers', () => {
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(folderNameButton(wrapper, 'Clientes').attributes('aria-label'))
+        .toBe('Clientes — 2 subcarpetas, 0 documentos');
+    });
+
+    it('keeps the delete guard on the direct inventory the server rejects with', () => {
+      // Aunque la rama guarde 12 documentos, el 409 habla de la subcarpeta que
+      // cuelga directo: el tooltip tiene que citar ESO, no el total.
+      mockFolderStore.recursiveDocumentCount.mockReturnValue(12);
+      const wrapper = mountSidebar({ folders: [parentFolder] });
+
+      expect(wrapper.find('[data-testid="folder-delete"]').element.disabled).toBe(true);
+      expect(wrapper.text()).toContain('contiene 2 subcarpetas');
+      expect(wrapper.text()).not.toContain('contiene 12 documentos');
     });
   });
 
@@ -307,14 +388,70 @@ describe('FolderSidebar', () => {
     });
   });
 
-  describe('Archivados entry', () => {
-    it('highlights only at the top of the archive, not inside a subfolder', () => {
-      const atRoot = mountSidebar({ archiveScope: 'archived', activeId: 'root' });
-      const inside = mountSidebar({ archiveScope: 'archived', activeId: 9 });
+  // ── Interruptor de modo archivado ─────────────────────────────────────────
+  // «Archivados» dejó de ser una pseudo-entrada de la lista de carpetas: como
+  // fila se leía igual que un destino, y el usuario no tenía cómo saber que el
+  // archivo es el ÁMBITO en que se ve todo el panel.
 
-      const entryOf = (w) => w.find('[data-testid="folder-archived-entry"]').classes().join(' ');
-      expect(entryOf(atRoot)).toContain('text-text-brand');
-      expect(entryOf(inside)).not.toContain('text-text-brand');
+  describe('archived mode switch', () => {
+    const switchOf = (w) => w.find('[data-testid="folder-archived-entry"]');
+
+    it('reflects the mode it is in', () => {
+      expect(switchOf(mountSidebar()).attributes('aria-checked')).toBe('false');
+      expect(
+        switchOf(mountSidebar({ archiveScope: 'archived' })).attributes('aria-checked'),
+      ).toBe('true');
+    });
+
+    it('emits the flip in both directions', async () => {
+      const off = mountSidebar();
+      await switchOf(off).trigger('click');
+      expect(off.emitted('toggle-archived')).toEqual([[true]]);
+
+      const on = mountSidebar({ archiveScope: 'archived' });
+      await switchOf(on).trigger('click');
+      expect(on.emitted('toggle-archived')).toEqual([[false]]);
+    });
+
+    it('shows the archived total beside the switch', () => {
+      const wrapper = mountSidebar({ archivedCount: 23 });
+
+      expect(wrapper.find('[data-testid="folder-archived-count"]').text()).toBe('23');
+    });
+
+    it('goes inert while a search is running', async () => {
+      // La búsqueda recorre los dos estados: un mando que no filtra, no se ofrece.
+      const wrapper = mountSidebar({ scopeLocked: true });
+
+      await switchOf(wrapper).trigger('click');
+
+      expect(switchOf(wrapper).attributes('aria-checked')).toBe('false');
+      expect(wrapper.emitted('toggle-archived')).toBeUndefined();
+    });
+
+    it('lights the folder you are standing in, archive included', () => {
+      // Lo contrario de la regla de resaltado único que regía antes: con el modo
+      // declarado por el interruptor, apagar la fila activa dejaba al panel sin
+      // decir dónde estaba parado el usuario.
+      const wrapper = mountSidebar({
+        folders: [folderA], archiveScope: 'archived', activeId: folderA.id,
+      });
+
+      const row = wrapper.find('[data-testid="folder-archive"]').element
+        .closest('.transition-all');
+      expect(row.className).toContain('text-text-brand');
+    });
+
+    it('counts what the mode shows, not what the folder holds when active', () => {
+      // El contador de la fila decía activos mientras el listado mostraba
+      // archivados: los números no cuadraban y parecía que faltaban documentos.
+      const active = mountSidebar({ folders: [scopedFolder] });
+      const archived = mountSidebar({ folders: [scopedFolder], archiveScope: 'archived' });
+
+      expect(folderNameButton(active, 'Mixta').text()).toContain('7');
+      expect(folderNameButton(active, 'Mixta').text()).not.toContain('3');
+      expect(folderNameButton(archived, 'Mixta').text()).toContain('3');
+      expect(folderNameButton(archived, 'Mixta').text()).not.toContain('7');
     });
   });
 

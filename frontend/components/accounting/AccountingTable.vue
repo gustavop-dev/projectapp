@@ -61,7 +61,7 @@
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
-        <template v-if="loading">
+        <template v-if="showSkeleton">
           <tr
             v-for="n in skeletonRows"
             :key="`skeleton-${n}`"
@@ -88,7 +88,7 @@
           </td>
         </tr>
         <tr
-          v-for="row in loading ? [] : rows"
+          v-for="row in showSkeleton ? [] : rows"
           :key="row[rowKey]"
           :data-testid="`accounting-row-${row[rowKey]}`"
           class="hover:bg-surface-raised transition-colors h-9"
@@ -121,6 +121,9 @@
                 </template>
                 <template v-else-if="col.format === 'percent'">
                   {{ formatPercent(row[col.key]) }}
+                </template>
+                <template v-else-if="col.format === 'date'">
+                  {{ formatDate(row[col.key]) }}
                 </template>
                 <span
                   v-else-if="col.format === 'badge'"
@@ -174,6 +177,7 @@ import {
   TrashIcon,
 } from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
+import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
 import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
@@ -235,6 +239,16 @@ const actionsWidth = computed(() => actionsWidthFor(resolved.value));
 const tableMinWidth = computed(
   () => minWidthFor(resolved.value, { hasActions: props.showActions }),
 );
+
+/**
+ * Skeleton only when there is nothing to show yet.
+ *
+ * Every accounting mutation refetches, so binding the placeholders to
+ * `loading` alone made the whole table blank and come back after a delete or
+ * an edit — a refresh that read as a reload. With rows already on screen the
+ * update now happens in place; `aria-busy` still announces the fetch.
+ */
+const showSkeleton = computed(() => props.loading && props.rows.length === 0);
 
 const ROW_TONE_CLASSES = {
   success: 'bg-success-soft',

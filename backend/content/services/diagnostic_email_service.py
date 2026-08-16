@@ -14,7 +14,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from accounts.services.proposal_client_service import build_client_display_name
-from content.models import WebAppDiagnostic
+from content.models import EmailLog, WebAppDiagnostic
 from content.services.proposal_email_service import (
     ProposalEmailService,
     _is_unsendable_client_email,
@@ -55,6 +55,9 @@ class DiagnosticEmailService:
         context.update(_build_design_context())
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
 
+        # Bound before the try: the failure path logs from the except, and a
+        # render error must not turn into a NameError there.
+        html_body = text_body = ''
         try:
             html_body = render_to_string(f'emails/{template_key}.html', context)
             text_body = render_to_string(f'emails/{template_key}.txt', context)
@@ -69,6 +72,8 @@ class DiagnosticEmailService:
             ProposalEmailService._log_email(
                 template_key, recipient, subject=subject, status='sent',
                 metadata={'diagnostic_uuid': str(diagnostic.uuid)},
+                client=diagnostic.client_id,
+                html_body=html_body, text_body=text_body,
             )
             logger.info('Sent %s to %s for diagnostic %s',
                         template_key, recipient, diagnostic.uuid)
@@ -78,6 +83,8 @@ class DiagnosticEmailService:
                 template_key, recipient, subject=subject, status='failed',
                 error_message=str(exc)[:1000],
                 metadata={'diagnostic_uuid': str(diagnostic.uuid)},
+                client=diagnostic.client_id,
+                html_body=html_body, text_body=text_body,
             )
             logger.exception('Failed sending %s for diagnostic %s',
                              template_key, diagnostic.uuid)
@@ -138,7 +145,19 @@ class DiagnosticEmailService:
         }
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL',
                              'team@projectapp.co')
+        # A composed email goes wherever the panel addressed it, so the
+        # audience is a fact of this send and not of its template: it counts
+        # as contact only when it actually reached the client's own address.
+        client_email = (
+            getattr(getattr(diagnostic.client, 'user', None), 'email', '') or ''
+        ).strip().lower()
+        audience = (
+            EmailLog.Audience.CLIENT
+            if client_email and recipient_email.strip().lower() == client_email
+            else EmailLog.Audience.INTERNAL
+        )
 
+        html_body = text_body = ''
         try:
             html_body, text_body = ProposalEmailService.render_composed_email(
                 'branded_email', None, subject, greeting,
@@ -159,6 +178,8 @@ class DiagnosticEmailService:
                 cls.TEMPLATE_CUSTOM, recipient_email,
                 subject=subject, status='sent',
                 metadata=log_metadata,
+                client=diagnostic.client_id, audience=audience,
+                html_body=html_body, text_body=text_body,
             )
             logger.info(
                 'Sent %s to %s for diagnostic %s',
@@ -171,6 +192,8 @@ class DiagnosticEmailService:
                 subject=subject, status='failed',
                 error_message=str(exc)[:1000],
                 metadata=log_metadata,
+                client=diagnostic.client_id, audience=audience,
+                html_body=html_body, text_body=text_body,
             )
             logger.exception(
                 'Failed sending %s for diagnostic %s',

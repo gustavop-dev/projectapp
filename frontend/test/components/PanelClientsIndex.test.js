@@ -11,9 +11,11 @@ import PanelClientsIndex from '../../pages/panel/clients/index.vue';
 
 const mockStore = {
   clients: [],
+  statusCounts: {},
   isLoading: false,
   isUpdating: false,
   fetchClients: jest.fn(),
+  fetchStatusCounts: jest.fn(),
   fetchClient: jest.fn(),
   createClient: jest.fn(),
   deleteClient: jest.fn(),
@@ -83,9 +85,11 @@ function mountPage() {
 describe('panel/clients index page', () => {
   beforeEach(() => {
     mockStore.clients = [];
+    mockStore.statusCounts = {};
     mockStore.isLoading = false;
     mockStore.isUpdating = false;
     mockStore.fetchClients.mockReset().mockResolvedValue({ success: true, data: [] });
+    mockStore.fetchStatusCounts.mockReset().mockResolvedValue({ success: true, data: {} });
     mockStore.fetchClient.mockReset().mockResolvedValue({ success: true, data: { proposals: [] } });
     mockStore.createClient.mockReset().mockResolvedValue({ success: true });
     mockStore.deleteClient.mockReset().mockResolvedValue({ success: true });
@@ -96,15 +100,51 @@ describe('panel/clients index page', () => {
     jest.useRealTimers();
   });
 
-  it('loads orphan clients when the Huérfanos tab is selected', async () => {
+  const selectStatus = (wrapper, value) =>
+    wrapper.findComponent({ name: 'BaseSegmented' }).vm.$emit('update:modelValue', value);
+
+  it('loads orphan clients when the Huérfanos status is selected', async () => {
     const wrapper = mountPage();
     await flushPromises();
 
-    await wrapper.get('[data-testid="clients-tab-orphans"]').trigger('click');
+    selectStatus(wrapper, 'orphans');
     await flushPromises();
 
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, inactive: false, silent: false });
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, inactive: false, silent: false });
+    // `limit` asks for the endpoint's hard cap: the page does not paginate
+    // server-side and the subfilters (and their counts) run over whatever was
+    // loaded, so a 100-row window would make them lie.
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(1, { search: '', orphans: null, inactive: false, limit: 500, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: '', orphans: true, inactive: false, limit: 500, silent: false });
+  });
+
+  it('keeps the status out of the module row it used to compete with', async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+
+    expect(wrapper.find('[data-testid="clients-module-hosting"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="clients-tab-orphans"]').exists()).toBe(false);
+  });
+
+  it('labels each status with its own match count', async () => {
+    mockStore.statusCounts = { all: 12, active: 9, orphans: 3, inactive: 0 };
+    const wrapper = mountPage();
+    await flushPromises();
+
+    const options = wrapper.findComponent({ name: 'BaseSegmented' }).props('options');
+    expect(options.map((o) => o.label)).toEqual([
+      'Todos (12)', 'Activos (9)', 'Huérfanos (3)', 'Inactivos (0)',
+    ]);
+  });
+
+  it('asks for the status counts with the same search as the list', async () => {
+    const wrapper = mountPage();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="clients-search-input"]').setValue('acme');
+    jest.advanceTimersByTime(250);
+    await flushPromises();
+
+    expect(mockStore.fetchStatusCounts).toHaveBeenLastCalledWith({ search: 'acme' });
   });
 
   it('submits the create modal payload trimmed and refreshes the list', async () => {
@@ -200,6 +240,6 @@ describe('panel/clients index page', () => {
     jest.advanceTimersByTime(250);
     await flushPromises();
 
-    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, inactive: false, silent: false });
+    expect(mockStore.fetchClients).toHaveBeenNthCalledWith(2, { search: 'ana', orphans: null, inactive: false, limit: 500, silent: false });
   });
 });

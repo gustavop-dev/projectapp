@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { useDebounceFn } from '@vueuse/core';
+import { onClickOutside, useDebounceFn } from '@vueuse/core';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
@@ -40,6 +40,9 @@ const preview = ref(null);
 // Served by the backend, not a blob: the viewer names its download after the
 // URL / Content-Disposition, and a blob: URL carries neither.
 const pdfUrl = ref('');
+// <embed> gives no load/error events, so the viewer's state comes from
+// probing the URL with fetch: 'loading' | 'ready' | 'error' | 'idle'.
+const pdfState = ref('idle');
 
 // ── Client ──
 const clientId = ref(null);
@@ -55,19 +58,34 @@ const inlineClient = ref(emptyClientForm());
 // ── Income ──
 const selectedIncome = ref(null);
 const incomeQuery = ref('');
+/** The FULL eligible set for the current search term, unscoped by client. */
 const incomeOptions = ref([]);
 const incomeOpen = ref(false);
 const searchingIncomes = ref(false);
 const showIncomeForm = ref(false);
+const incomeBoxRef = ref(null);
+
+/**
+ * Quick filters, applied client-side.
+ *
+ * The incomes endpoint does not paginate and the whole eligible ledger is a
+ * couple of hundred rows, so alcance and estado are decided here instead of
+ * round-tripping: every chip count is then exact, and switching a filter costs
+ * no request — which is what keeps the dropdown open and the cursor in the box.
+ * If the eligible set ever reaches the thousands, the counts move to the
+ * endpoint's `meta` and this goes back to being server-side.
+ */
+const incomeScope = ref('all'); // 'client' | 'all'
+const incomeKind = ref('all'); // 'all' | 'expected' | 'liquid'
 
 /** Rows rendered per group; the rest are announced, never dropped in silence. */
 const INCOME_GROUP_LIMIT = 25;
-// Monotonic token: switching client while a debounced search is in flight
+// Monotonic token: an extra keystroke while a debounced search is in flight
 // would otherwise let the older response land last and win the list.
 let incomeRequestId = 0;
-// Client the current options were fetched for, so the watcher below can tell
-// a real client change from the reset that already reloaded them.
-let loadedForClient;
+// Whether the options were ever fetched, so refocusing an empty-but-loaded
+// list does not re-ask for it.
+let incomeFetched = false;
 
 function defaultForm() {
   return {
@@ -130,6 +148,9 @@ watch(
     selectedIncome.value = null;
     incomeQuery.value = '';
     incomeOptions.value = [];
+    incomeScope.value = 'all';
+    incomeKind.value = 'all';
+    incomeFetched = false;
     if (props.income) {
       applyIncome(props.income);
     } else {
@@ -150,6 +171,12 @@ function applyIncome(income) {
   if (!form.value.unit_price) {
     const amount = Number(income.pending_amount ?? income.total_amount ?? 0);
     form.value.unit_price = amount > 0 ? amount : null;
+  }
+  // A hosting income records the window it covers; the cuenta bills that
+  // same window, so it arrives pre-filled instead of re-typed.
+  if (income.period_start && !form.value.period_start) {
+    form.value.period_start = income.period_start;
+    form.value.period_end = income.period_end || '';
   }
   // The income already knows whose money this is: resolve the client from
   // it instead of asking for it again.
@@ -175,30 +202,29 @@ async function applyClientById(profileId) {
 
 async function loadIncomes(query) {
   const requestId = ++incomeRequestId;
-  const client = clientId.value;
-  loadedForClient = client;
   const params = {};
   if (query) params.q = query;
-  // Their incomes plus the still-unassigned ones: issuing the cuenta adopts
-  // the client on an orphan income, so hiding those rows would cut off the
-  // very path that completes the linkage.
-  if (client) params.client = `${client},none`;
+  // No `client` param on purpose: the request is the same whoever is billed,
+  // so the alcance filter below can widen and narrow without a round trip and
+  // its counts can be exact.
   searchingIncomes.value = true;
   const result = await store.searchIncomesForCollection(params);
-  // A newer search (client switch, extra keystroke) already owns the list.
+  // A newer search (extra keystroke) already owns the list.
   if (requestId !== incomeRequestId) return;
   searchingIncomes.value = false;
-  if (result.success) incomeOptions.value = result.data;
+  if (result.success) {
+    incomeOptions.value = result.data;
+    incomeFetched = true;
+  }
 }
 
-// Reload whenever the client changes: the list is scoped to them, so keeping
-// the first load would keep offering another client's ledger. Skipped while
-// the income came preselected (the combobox is locked then) and when the
-// reset already loaded for this client.
+// Changing client re-aims the filters, it never re-fetches: the options ref
+// already holds every eligible income. The recorte of the previous selection
+// must not survive the switch, and 'Del cliente' means nothing without one.
 watch(clientId, (id) => {
-  if (!props.open || props.income) return;
-  if (id === loadedForClient) return;
-  loadIncomes(incomeQuery.value.trim());
+  if (!props.open) return;
+  incomeScope.value = id ? 'client' : 'all';
+  incomeKind.value = 'all';
 });
 
 const debouncedIncomeSearch = useDebounceFn(
@@ -216,14 +242,108 @@ function onIncomeInput() {
 
 function onIncomeFocus() {
   incomeOpen.value = true;
-  if (!incomeOptions.value.length) loadIncomes(incomeQuery.value.trim());
+  // Once loaded, an empty list is an answer ("nothing matches"), not a reason
+  // to ask again — and re-asking on the concept of an already picked income
+  // would shrink the set the chip counts describe.
+  if (!incomeFetched) loadIncomes(incomeQuery.value.trim());
 }
 
-function buildIncomeGroup(key, label, rows, hint = '') {
+// The list is the only thing that closes on its own today (picking a row), so
+// once it also renders on zero results it needs a way out that is not a pick.
+onClickOutside(incomeBoxRef, () => {
+  incomeOpen.value = false;
+});
+
+// ── Quick filters: alcance × estado ──
+
+/** 'Del cliente' is literal: only their ledger. Anything unassigned, or filed
+ *  under someone else, is what 'Todos' is for. */
+function inScope(row, scope) {
+  return scope === 'all' || row.client === clientId.value;
+}
+
+function inKind(row, kind) {
+  return kind === 'all' || row.kind === kind;
+}
+
+/** Without a client there is no 'Del cliente' to speak of. */
+const effectiveIncomeScope = computed(() => (clientId.value ? incomeScope.value : 'all'));
+
+const filteredIncomes = computed(() => incomeOptions.value.filter(
+  (row) => inScope(row, effectiveIncomeScope.value) && inKind(row, incomeKind.value),
+));
+
+// Faceted: each group is counted with the OTHER group's filter already
+// applied, so a chip's number is exactly what clicking it would show.
+const scopeCounts = computed(() => {
+  const rows = incomeOptions.value.filter((row) => inKind(row, incomeKind.value));
+  return {
+    client: rows.filter((row) => inScope(row, 'client')).length,
+    all: rows.length,
+  };
+});
+
+const kindCounts = computed(() => {
+  const rows = incomeOptions.value.filter(
+    (row) => inScope(row, effectiveIncomeScope.value),
+  );
+  return {
+    all: rows.length,
+    expected: rows.filter((row) => row.kind === 'expected').length,
+    liquid: rows.filter((row) => row.kind === 'liquid').length,
+  };
+});
+
+const incomeScopeOptions = computed(() => [
+  {
+    value: 'client',
+    label: `Del cliente (${scopeCounts.value.client})`,
+    testId: 'collection-form-income-scope-client',
+    disabled: !clientId.value,
+  },
+  {
+    value: 'all',
+    label: `Todos (${scopeCounts.value.all})`,
+    testId: 'collection-form-income-scope-all',
+  },
+]);
+
+const incomeKindOptions = computed(() => [
+  {
+    value: 'all',
+    label: `Todos (${kindCounts.value.all})`,
+    testId: 'collection-form-income-kind-all',
+  },
+  {
+    value: 'expected',
+    label: `Esperados (${kindCounts.value.expected})`,
+    testId: 'collection-form-income-kind-expected',
+  },
+  {
+    value: 'liquid',
+    label: `Líquidos (${kindCounts.value.liquid})`,
+    testId: 'collection-form-income-kind-liquid',
+  },
+]);
+
+// Applying a filter must reveal its result, never hide it: the chips sit right
+// above the input, so a closed list would read as "the filter emptied it".
+function setIncomeScope(value) {
+  incomeScope.value = value;
+  incomeOpen.value = true;
+}
+
+function setIncomeKind(value) {
+  incomeKind.value = value;
+  incomeOpen.value = true;
+}
+
+function buildIncomeGroup(key, label, rows, { hint = '', showClient = false } = {}) {
   return {
     key,
     label,
     hint,
+    showClient,
     total: rows.length,
     rows: rows.slice(0, INCOME_GROUP_LIMIT),
     hidden: Math.max(0, rows.length - INCOME_GROUP_LIMIT),
@@ -231,32 +351,73 @@ function buildIncomeGroup(key, label, rows, hint = '') {
 }
 
 /**
- * Options split in two blocks once a client is chosen: theirs first, then the
- * ones still unassigned — selectable on purpose, since issuing the cuenta
- * assigns the client to them. Each block declares how many rows it is holding
- * back, so a long ledger never loses records without saying so.
+ * Under 'Del cliente' there is a single block: their ledger. Widening to
+ * 'Todos' adds the other clients' rows — each naming its owner, since that is
+ * the whole reason to look outside — and the still-unassigned ones, selectable
+ * on purpose because issuing the cuenta assigns the client to them. Each block
+ * declares how many rows it is holding back, so a long ledger never loses
+ * records without saying so.
  */
 const incomeGroups = computed(() => {
-  const rows = incomeOptions.value;
-  if (!clientId.value) return [buildIncomeGroup('all', '', rows)];
-  return [
-    buildIncomeGroup(
+  const rows = filteredIncomes.value;
+  const groups = [];
+  if (clientId.value) {
+    groups.push(buildIncomeGroup(
       'own',
       `De ${selectedClientName.value}`,
       rows.filter((row) => row.client === clientId.value),
-    ),
-    buildIncomeGroup(
+    ));
+  }
+  if (effectiveIncomeScope.value === 'all') {
+    groups.push(buildIncomeGroup(
+      'others',
+      clientId.value ? 'De otros clientes' : 'Con cliente asignado',
+      rows.filter((row) => row.client != null && row.client !== clientId.value),
+      { showClient: true },
+    ));
+    groups.push(buildIncomeGroup(
       'orphan',
-      'Sin cliente asignado',
+      'Sin cliente',
       rows.filter((row) => row.client == null),
-      `Al elegirlo se asigna a ${selectedClientName.value}`,
-    ),
-  ].filter((group) => group.total > 0);
+      {
+        hint: clientId.value
+          ? `Al elegirlo se asigna a ${selectedClientName.value}`
+          : '',
+      },
+    ));
+  }
+  return groups.filter((group) => group.total > 0);
 });
 
 const hasIncomeMatches = computed(
   () => incomeGroups.value.some((group) => group.rows.length),
 );
+
+const INCOME_KIND_PHRASE = {
+  all: 'ingresos para cobrar',
+  expected: 'ingresos esperados',
+  liquid: 'ingresos líquidos',
+};
+
+const INCOME_KIND_NOUN = {
+  all: 'ingreso',
+  expected: 'ingreso esperado',
+  liquid: 'ingreso líquido',
+};
+
+/** A combination with no rows says WHICH combination came back empty: an empty
+ *  list is otherwise indistinguishable from a load that failed. */
+const incomeEmptyMessage = computed(() => {
+  const query = incomeQuery.value.trim();
+  const scoped = effectiveIncomeScope.value === 'client';
+  if (query) {
+    const owner = scoped ? ` de ${selectedClientName.value}` : '';
+    return `Ningún ${INCOME_KIND_NOUN[incomeKind.value]}${owner} coincide con «${query}».`;
+  }
+  return scoped
+    ? `${selectedClientName.value} no tiene ${INCOME_KIND_PHRASE[incomeKind.value]}.`
+    : `No hay ${INCOME_KIND_PHRASE[incomeKind.value]} registrados.`;
+});
 
 function pickIncome(option) {
   if (option.has_collection_account) return;
@@ -284,6 +445,17 @@ const incomeClientConflict = computed(() => (
 const incomeOwnerName = computed(() => (
   selectedIncome.value?.client_name
   || `Cliente #${selectedIncome.value?.client}`
+));
+
+/**
+ * The other half of the pairing: an income nobody owns yet.
+ *
+ * Issuing adopts the client onto it (the create service does it in the same
+ * transaction), so the form says so before the send rather than mutating the
+ * income now — abandoning the modal must leave the ledger as it was.
+ */
+const orphanIncomeSelected = computed(() => (
+  !!selectedIncome.value && selectedIncome.value.client == null
 ));
 
 /**
@@ -499,7 +671,18 @@ function buildPayload() {
   if (form.value.term === 'fixed' && form.value.due_date) {
     payload.due_date = form.value.due_date;
   } else {
-    payload.payment_term_days = Number(form.value.payment_term_days) || 8;
+    // `|| 8` read a deliberate 0 — pago inmediato — as "empty" and billed it
+    // at the default term instead, so the zero has to survive on its own.
+    // Blank is tested before Number(), which turns '' into 0 and would have
+    // made an emptied field mean immediate payment.
+    const raw = form.value.payment_term_days;
+    const days = Number(raw);
+    const unset = raw === '' || raw === null || raw === undefined;
+    // The input declares min=0/max=120 but typed values bypass those bounds;
+    // clamping here keeps a stray "-5" from bouncing off the serializer as a 400.
+    payload.payment_term_days = unset || Number.isNaN(days)
+      ? 8
+      : Math.min(120, Math.max(0, Math.trunc(days)));
   }
   return payload;
 }
@@ -521,10 +704,31 @@ async function goPreview() {
   // save in Chrome's own viewer button and in "Save to Drive" — the blob: URL
   // this used to build had no name and the viewer fell back to its UUID.
   pdfUrl.value = result.data.pdf_url || '';
+  probePdf();
   // On a phone two columns would leave ~180px each and the PDF unreadable, so
   // the tabs open on the document; from a tablet up the email leads.
   previewPane.value = isPhone.value ? 'pdf' : 'email';
   step.value = 'preview';
+}
+
+/**
+ * The embed only mounts once the URL is known to answer: a blocked or broken
+ * URL would otherwise leave the browser's own connection-refused page inside
+ * the frame, which says nothing about what to do next. On failure the panel
+ * keeps Descargar / Abrir PDF as the way to review before sending.
+ */
+async function probePdf() {
+  if (!pdfUrl.value) {
+    pdfState.value = 'error';
+    return;
+  }
+  pdfState.value = 'loading';
+  try {
+    const response = await fetch(pdfUrl.value, { credentials: 'same-origin' });
+    pdfState.value = response.ok ? 'ready' : 'error';
+  } catch {
+    pdfState.value = 'error';
+  }
 }
 
 async function confirmSend() {
@@ -559,6 +763,7 @@ async function confirmSend() {
 /** Nothing to revoke any more; the URL is the backend's, not an object URL. */
 function clearPdf() {
   pdfUrl.value = '';
+  pdfState.value = 'idle';
 }
 
 function close() {
@@ -662,7 +867,7 @@ function downloadPdf() {
       <BaseFormField
         label="Ingreso vinculado"
         required
-        hint="Esperados y líquidos, nunca perdidos"
+        hint="Los ingresos perdidos nunca se listan"
       >
         <template v-if="props.income">
           <div
@@ -673,116 +878,187 @@ function downloadPdf() {
             <span class="text-text-subtle">· {{ incomeAmountLabel(props.income) }}</span>
           </div>
         </template>
-        <div v-else class="relative">
-          <input
-            v-model="incomeQuery"
-            type="text"
-            role="combobox"
-            autocomplete="off"
-            aria-autocomplete="list"
-            aria-haspopup="listbox"
-            :aria-expanded="incomeOpen"
-            placeholder="Buscar ingreso por concepto..."
-            data-testid="collection-form-income"
-            :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE.md]"
-            @input="onIncomeInput"
-            @focus="onIncomeFocus"
+        <div v-else ref="incomeBoxRef">
+          <!-- Narrowing the set before searching it. The row cancels the
+               mousedown default action — the one that moves focus — so a chip
+               click never pulls the cursor out of the box below nor collapses
+               the list, the same trick the option rows already use. -->
+          <div
+            class="flex flex-wrap items-center gap-x-3 gap-y-2 mb-2"
+            data-testid="collection-form-income-filters"
+            @mousedown.prevent
           >
-          <ul
-            v-if="incomeOpen && (hasIncomeMatches || searchingIncomes)"
-            class="absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border-default bg-surface shadow-lg"
-            role="listbox"
-          >
-            <li v-if="searchingIncomes" class="px-3 py-2 text-sm text-text-subtle">
-              Buscando...
-            </li>
-            <template v-for="group in incomeGroups" :key="group.key">
-              <li
-                v-if="group.label"
-                role="presentation"
-                :data-testid="`collection-form-income-group-${group.key}`"
-                class="sticky top-0 bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-subtle border-b border-border-default"
-              >
-                {{ group.label }} ({{ group.total }})
-                <span v-if="group.hint" class="block font-normal">{{ group.hint }}</span>
+            <span class="flex items-center gap-1.5 text-xs text-text-muted">
+              Alcance
+              <BaseSegmented
+                :model-value="effectiveIncomeScope"
+                :options="incomeScopeOptions"
+                size="sm"
+                @update:model-value="setIncomeScope"
+              />
+            </span>
+            <span class="flex items-center gap-1.5 text-xs text-text-muted">
+              Estado
+              <BaseSegmented
+                :model-value="incomeKind"
+                :options="incomeKindOptions"
+                size="sm"
+                @update:model-value="setIncomeKind"
+              />
+            </span>
+          </div>
+          <div class="relative">
+            <input
+              v-model="incomeQuery"
+              type="text"
+              role="combobox"
+              autocomplete="off"
+              aria-autocomplete="list"
+              aria-haspopup="listbox"
+              :aria-expanded="incomeOpen"
+              placeholder="Buscar ingreso por concepto..."
+              data-testid="collection-form-income"
+              :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE.md]"
+              @input="onIncomeInput"
+              @focus="onIncomeFocus"
+              @keydown.esc.prevent="incomeOpen = false"
+            >
+            <ul
+              v-if="incomeOpen"
+              class="absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border-default bg-surface shadow-lg"
+              role="listbox"
+            >
+              <li v-if="searchingIncomes" class="px-3 py-2 text-sm text-text-subtle">
+                Buscando...
               </li>
+              <!-- Naming the combination that came back empty: a blank panel
+                   reads as a load that failed. -->
               <li
-                v-for="option in group.rows"
-                :key="option.id"
-                role="option"
-                :aria-disabled="option.has_collection_account"
-                :data-testid="`collection-form-income-option-${option.id}`"
-                :class="[
-                  'px-3 py-2 text-sm transition-colors',
-                  option.has_collection_account
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'cursor-pointer hover:bg-surface-raised text-text-default',
-                ]"
-                @mousedown.prevent="pickIncome(option)"
+                v-else-if="!hasIncomeMatches"
+                class="px-3 py-2 text-sm text-text-subtle"
+                data-testid="collection-form-income-empty"
               >
-                <span class="flex items-center justify-between gap-2">
-                  <span class="truncate">{{ option.concept }}</span>
-                  <span class="text-xs text-text-subtle whitespace-nowrap">
-                    {{ option.kind_label }} · {{ incomeAmountLabel(option) }}
-                  </span>
-                </span>
-                <span
-                  v-if="option.has_collection_account"
-                  class="block text-xs text-warning-strong"
+                {{ incomeEmptyMessage }}
+                <button
+                  v-if="effectiveIncomeScope === 'client' && scopeCounts.all"
+                  type="button"
+                  class="underline text-text-brand"
+                  data-testid="collection-form-income-see-all"
+                  @mousedown.prevent="setIncomeScope('all')"
                 >
-                  Ya tiene cuenta de cobro ({{ option.collection_account_number }})
-                </span>
+                  Ver todos ({{ scopeCounts.all }})
+                </button>
               </li>
-              <li
-                v-if="group.hidden"
-                role="presentation"
-                :data-testid="`collection-form-income-more-${group.key}`"
-                class="px-3 py-2 text-xs text-text-subtle"
+              <template v-for="group in incomeGroups" :key="group.key">
+                <li
+                  v-if="group.label"
+                  role="presentation"
+                  :data-testid="`collection-form-income-group-${group.key}`"
+                  class="sticky top-0 bg-surface-raised px-3 py-1.5 text-xs font-medium text-text-subtle border-b border-border-default"
+                >
+                  {{ group.label }} ({{ group.total }})
+                  <span v-if="group.hint" class="block font-normal">{{ group.hint }}</span>
+                </li>
+                <li
+                  v-for="option in group.rows"
+                  :key="option.id"
+                  role="option"
+                  :aria-disabled="option.has_collection_account"
+                  :data-testid="`collection-form-income-option-${option.id}`"
+                  :class="[
+                    'px-3 py-2 text-sm transition-colors',
+                    option.has_collection_account
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'cursor-pointer hover:bg-surface-raised text-text-default',
+                  ]"
+                  @mousedown.prevent="pickIncome(option)"
+                >
+                  <span class="flex items-center justify-between gap-2">
+                    <span class="truncate">{{ option.concept }}</span>
+                    <span class="text-xs text-text-subtle whitespace-nowrap">
+                      {{ option.kind_label }} · {{ incomeAmountLabel(option) }}
+                    </span>
+                  </span>
+                  <!-- Outside the client's own ledger the owner is the fact that
+                       decides whether the row is billable at all. -->
+                  <span
+                    v-if="group.showClient"
+                    class="block text-xs text-text-subtle"
+                    :data-testid="`collection-form-income-client-${option.id}`"
+                  >
+                    {{ option.client_name || `Cliente #${option.client}` }}
+                  </span>
+                  <span
+                    v-if="option.has_collection_account"
+                    class="block text-xs text-warning-strong"
+                  >
+                    Ya tiene cuenta de cobro ({{ option.collection_account_number }})
+                  </span>
+                </li>
+                <li
+                  v-if="group.hidden"
+                  role="presentation"
+                  :data-testid="`collection-form-income-more-${group.key}`"
+                  class="px-3 py-2 text-xs text-text-subtle"
+                >
+                  Mostrando {{ group.rows.length }} de {{ group.total }} · escribe para filtrar
+                </li>
+              </template>
+            </ul>
+            <p
+              v-if="incomeClientConflict"
+              class="text-xs text-warning-strong mt-1"
+              data-testid="collection-form-income-conflict"
+            >
+              Este ingreso es de {{ incomeOwnerName }}, no de {{ selectedClientName }}.
+              <button
+                type="button"
+                class="underline"
+                data-testid="collection-form-use-income-client"
+                @click="useIncomeClient"
               >
-                Mostrando {{ group.rows.length }} de {{ group.total }} · escribe para filtrar
-              </li>
-            </template>
-          </ul>
-          <p
-            v-if="incomeClientConflict"
-            class="text-xs text-warning-strong mt-1"
-            data-testid="collection-form-income-conflict"
-          >
-            Este ingreso es de {{ incomeOwnerName }}, no de {{ selectedClientName }}.
+                Usar el cliente del ingreso
+              </button>
+              ·
+              <button
+                type="button"
+                class="underline"
+                data-testid="collection-form-clear-income"
+                @click="clearSelectedIncome"
+              >
+                Quitar el ingreso
+              </button>
+            </p>
+            <p
+              v-else-if="orphanIncomeSelected"
+              class="text-xs text-text-muted mt-1"
+              data-testid="collection-form-income-orphan-notice"
+            >
+              Ingreso <span class="tabular-nums">#{{ selectedIncome.id }}</span> sin cliente:
+              <template v-if="clientId">
+                al emitir quedará asignado a {{ selectedClientName }}.
+              </template>
+              <template v-else>
+                elige el cliente arriba y quedará asignado a él al emitir.
+              </template>
+            </p>
+            <p v-else-if="selectedIncome" class="text-xs text-text-subtle mt-1">
+              Ingreso enlazado: {{ selectedIncome.concept }}
+              <span class="tabular-nums">(#{{ selectedIncome.id }})</span>
+            </p>
             <button
               type="button"
-              class="underline"
-              data-testid="collection-form-use-income-client"
-              @click="useIncomeClient"
+              class="text-xs text-text-brand hover:underline mt-1"
+              data-testid="collection-form-create-income"
+              @click="showIncomeForm = true"
             >
-              Usar el cliente del ingreso
+              + Crear ingreso esperado
             </button>
-            ·
-            <button
-              type="button"
-              class="underline"
-              data-testid="collection-form-clear-income"
-              @click="clearSelectedIncome"
-            >
-              Quitar el ingreso
-            </button>
-          </p>
-          <p v-else-if="selectedIncome" class="text-xs text-text-subtle mt-1">
-            Ingreso enlazado: {{ selectedIncome.concept }}
-            <span class="tabular-nums">(#{{ selectedIncome.id }})</span>
-          </p>
-          <button
-            type="button"
-            class="text-xs text-text-brand hover:underline mt-1"
-            data-testid="collection-form-create-income"
-            @click="showIncomeForm = true"
-          >
-            + Crear ingreso esperado
-          </button>
+          </div>
         </div>
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Consecutivo" hint="Sugerido; editable">
           <BaseInput
             v-model="form.public_number"
@@ -798,7 +1074,7 @@ function downloadPdf() {
             required
           />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField
         label="Concepto del servicio"
@@ -824,27 +1100,34 @@ function downloadPdf() {
         />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Período facturado (opcional)">
           <div class="flex items-center gap-2">
-            <BaseInput v-model="form.period_start" type="date" />
+            <BaseInput v-model="form.period_start" type="date" data-testid="collection-form-period-start" />
             <span class="text-text-subtle text-sm">a</span>
-            <BaseInput v-model="form.period_end" type="date" />
+            <BaseInput v-model="form.period_end" type="date" data-testid="collection-form-period-end" />
           </div>
         </BaseFormField>
         <BaseFormField label="Ciudad">
           <BaseInput v-model="form.city" placeholder="Ciudad de emisión" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
-      <BaseFormField label="Plazo de pago">
+      <!-- The hint only holds for the days mode; the fixed-date mode shares
+           this field, where a 0 would mean nothing. -->
+      <BaseFormField
+        label="Plazo de pago"
+        :hint="form.term === 'days'
+          ? '0 días = pago inmediato: la cuenta sale sin fecha de vencimiento.'
+          : undefined"
+      >
         <div class="space-y-2">
           <BaseSegmented v-model="form.term" :options="termOptions" full-width />
           <BaseInput
             v-if="form.term === 'days'"
             v-model="form.payment_term_days"
             type="number"
-            min="1"
+            min="0"
             max="120"
             data-testid="collection-form-term-days"
           />
@@ -860,7 +1143,7 @@ function downloadPdf() {
       <!-- Editable customer snapshot -->
       <div class="rounded-xl border border-border-default p-4 space-y-3">
         <p class="text-sm font-medium text-text-default">Datos del cliente en el documento</p>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <BaseFormRow :cols="2" :gap="3">
           <BaseFormField label="Nombre / Razón social">
             <BaseInput v-model="form.customer.name" data-testid="collection-form-customer-name" />
           </BaseFormField>
@@ -891,7 +1174,7 @@ function downloadPdf() {
           <BaseFormField label="Dirección">
             <BaseInput v-model="form.customer.address" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
       </div>
 
       <p class="text-xs text-text-subtle">
@@ -1025,16 +1308,41 @@ function downloadPdf() {
             </div>
           </div>
           <embed
-            v-if="pdfUrl"
+            v-if="pdfState === 'ready'"
             :src="pdfUrl"
             type="application/pdf"
             class="flex-1 min-h-0 w-full rounded-xl border border-border-default"
             :class="dragging ? 'pointer-events-none' : ''"
             data-testid="collection-preview-pdf"
           >
-          <p v-else class="text-sm text-danger-strong">
-            No se pudo generar el PDF de previsualización.
-          </p>
+          <div
+            v-else-if="pdfState === 'loading'"
+            class="flex-1 min-h-0 flex items-center justify-center gap-2 rounded-xl border border-border-default text-sm text-text-subtle"
+            data-testid="collection-preview-pdf-loading"
+          >
+            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Cargando el documento…
+          </div>
+          <div
+            v-else
+            class="flex-1 min-h-0 flex flex-col items-center justify-center gap-1 rounded-xl border border-border-default px-6 text-center"
+            data-testid="collection-preview-pdf-error"
+          >
+            <template v-if="pdfUrl">
+              <p class="text-sm font-medium text-text-default">
+                No pudimos mostrar la previsualización del PDF.
+              </p>
+              <p class="text-sm text-text-subtle">
+                El documento existe: revísalo con «Descargar» o «Abrir PDF» antes de enviarlo.
+              </p>
+            </template>
+            <p v-else class="text-sm text-danger-strong">
+              No se pudo generar el PDF de previsualización.
+            </p>
+          </div>
         </section>
       </div>
 

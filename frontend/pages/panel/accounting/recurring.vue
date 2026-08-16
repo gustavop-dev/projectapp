@@ -727,6 +727,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'recurring',
+  resetPageOn: currentFilters,
   store,
   filteredRecords: weightedRows,
   labels: {

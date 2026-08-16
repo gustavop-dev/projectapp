@@ -40,11 +40,13 @@
       <FolderSidebar
         data-enter
         style="--enter-delay: 120ms"
-        :folders="folderStore.rootFolders"
+        :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
         :archive-scope="documentStore.archiveScope"
-        :total-count="documentStore.counts.documents.active"
+        :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
+        :unfiled-count="sidebarUnfiledCount"
+        :scope-locked="isSearching"
         :is-dragging="!!draggingDoc"
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
@@ -53,9 +55,34 @@
         @delete="handleDeleteFolder"
         @archive="handleArchiveFolder"
         @view-archived="handleViewArchivedFolder"
+        @toggle-archived="handleToggleArchivedMode"
       />
 
-      <section class="min-w-0 flex flex-col" data-enter style="--enter-delay: 180ms">
+      <section
+        class="min-w-0 flex flex-col transition-colors"
+        :class="isArchived ? 'rounded-xl bg-warning-soft p-3' : ''"
+        data-enter
+        style="--enter-delay: 180ms"
+      >
+        <!--
+          Rótulo del ámbito, siempre visible mientras no sea el de reposo.
+          Sin él, «Todos» con el modo encendido listaba archivados sin que nada
+          en la vista lo dijera: se leían como documentos perdidos, y la única
+          forma de recuperar la vista normal era editar la URL a mano.
+        -->
+        <div
+          v-if="scopeNotice"
+          class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-3 py-2 text-sm"
+          :class="scopeNotice.tone"
+          data-testid="doc-scope-banner"
+        >
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+          <span class="font-medium">{{ scopeNotice.label }}</span>
+          <span class="text-text-muted">{{ scopeNotice.detail }}</span>
+        </div>
+
         <FolderBreadcrumb
           v-if="showBreadcrumb"
           :active-id="documentStore.activeFolderId"
@@ -72,6 +99,30 @@
           Buscando «{{ searchQuery.trim() }}» en todo el gestor, activos y archivados.
         </BaseAlert>
 
+        <!-- Parado DENTRO de una carpeta archivada: restaurar la carpeta
+             completa vive aquí — las filas del listado solo restauran hijas.
+             No depende del modo: apagarlo estando dentro deja al usuario en la
+             misma carpeta (req 19), y ahí la salida tiene que seguir a la vista. -->
+        <BaseAlert
+          v-if="currentFolder?.is_archived"
+          variant="info"
+          class="mb-4"
+          data-testid="current-folder-archived-alert"
+        >
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <span>Estás dentro de una carpeta archivada.</span>
+            <BaseButton
+              variant="secondary"
+              size="sm"
+              :loading="folderStore.isUpdating"
+              data-testid="doc-restore-current-folder"
+              @click="handleUnarchiveFolder(currentFolder, { follow: true })"
+            >
+              Restaurar esta carpeta
+            </BaseButton>
+          </div>
+        </BaseAlert>
+
         <!-- Tag filter chips -->
         <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
           <TagFilterChips
@@ -80,6 +131,22 @@
             @toggle="handleToggleTag"
             @clear="handleClearTagFilters"
             @manage="showTagManager = true"
+          />
+        </div>
+
+        <!-- Filtros de asociación (ocultos en búsqueda: la búsqueda es global
+             y estos ejes no la acotan) -->
+        <div
+          v-if="!isSearching"
+          class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4"
+          data-testid="doc-association-filters"
+        >
+          <DocumentsAssociationFilters
+            :client="documentStore.activeClientId"
+            :project="documentStore.activeProjectId"
+            :client-label="associationClientLabel"
+            @update:client="handleClientFilter"
+            @update:project="handleProjectFilter"
           />
         </div>
 
@@ -127,6 +194,25 @@
             <BaseButton variant="secondary" size="sm" @click="handleClearTagFilters">Quitar filtros</BaseButton>
           </template>
         </BaseEmptyState>
+        <!-- Una carpeta sin nada archivado tiene que decirlo por su nombre: el
+             vacío genérico se leía como que la carpeta no existía en este modo. -->
+        <BaseEmptyState
+          v-else-if="!hasContent && isArchived && currentFolder"
+          :title="`«${currentFolder.name}» no tiene nada archivado`"
+          description="La carpeta sigue ahí y puede tener documentos activos. Apaga el modo archivado para verlos."
+          data-testid="folder-archived-empty"
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleToggleArchivedMode(false)">
+              Ver su contenido activo
+            </BaseButton>
+          </template>
+        </BaseEmptyState>
         <BaseEmptyState
           v-else-if="!hasContent && isArchived"
           title="No hay nada archivado"
@@ -140,6 +226,26 @@
           <template #actions>
             <BaseButton variant="secondary" size="sm" @click="handleBackToActive">
               Volver a los activos
+            </BaseButton>
+          </template>
+        </BaseEmptyState>
+        <!-- Con el modo apagado dentro de una carpeta archivada: ofrecer «crea un
+             documento aquí» sería mandar al usuario a un 400, porque el backend
+             no admite contenido activo bajo una carpeta archivada. -->
+        <BaseEmptyState
+          v-else-if="!hasContent && currentFolder?.is_archived"
+          title="Esta carpeta está archivada"
+          description="Su contenido salió de la vista principal. Restáurala para volver a trabajar aquí, o enciende el modo archivado para ver lo que guarda."
+          data-testid="folder-archived-inactive-empty"
+        >
+          <template #icon>
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+          </template>
+          <template #actions>
+            <BaseButton variant="secondary" size="sm" @click="handleToggleArchivedMode(true)">
+              Ver lo que guarda
             </BaseButton>
           </template>
         </BaseEmptyState>
@@ -188,6 +294,8 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :folder-summary="subfolderSummary"
+            :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
@@ -211,6 +319,8 @@
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
             :scope="documentStore.archiveScope"
+            :folder-summary="subfolderSummary"
+            :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
             @action="actionDoc = $event"
             @unarchive-folder="handleUnarchiveFolder"
@@ -288,6 +398,7 @@
       :secondary-text="confirmState.secondaryText"
       :secondary-variant="confirmState.secondaryVariant"
       :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
       @confirm="handleConfirmed"
       @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
@@ -300,6 +411,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
+import DocumentsAssociationFilters from '~/components/panel/documents/DocumentsAssociationFilters.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
 import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
@@ -315,11 +427,12 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
-import { isRootInScope } from '~/utils/archiveScope';
-import { folderRowSummary } from '~/utils/documentStatus';
+import { isRootInScope, treeScopeFor } from '~/utils/archiveScope';
+import { folderSummaryFrom, scopedCounts } from '~/utils/documentStatus';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
+import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 
 const localePath = useLocalePath();
@@ -357,6 +470,60 @@ const showBreadcrumb = computed(
     && !(documentStore.activeFolderId === 'root' && !isArchived.value),
 );
 
+const currentFolder = computed(() => (
+  typeof documentStore.activeFolderId === 'number'
+    ? folderStore.folderById(documentStore.activeFolderId)
+    : null
+));
+
+// ── El panel lateral sigue al modo ───────────────────────────────────────────
+// Antes listaba siempre el árbol activo con contadores de activos, incluso con
+// el archivo encendido: una carpeta archivada entera no aparecía por ningún
+// lado y «Todos» decía un número mientras el listado mostraba otro.
+//
+// `treeScopeFor` es la MISMA regla con que el rollup decide por qué carpetas
+// puede bajar. Importarla en los dos sitios es lo que garantiza que la suma de
+// las filas más «Sin carpeta» dé exactamente «Todos»: las raíces que se listan
+// y los subárboles que se suman son la misma partición del árbol.
+const treeScope = computed(() => treeScopeFor(documentStore.archiveScope));
+
+const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.value));
+
+// Los tres modos, no dos: con 'all' el listado mezcla los dos estados y las
+// filas de carpeta ya sumaban ambos, así que un total de sólo activos decía
+// menos que la suma de sus propias carpetas.
+const sidebarTotalCount = computed(() => {
+  const { active, archived } = documentStore.counts.documents;
+  if (documentStore.archiveScope === 'archived') return archived;
+  if (documentStore.archiveScope === 'all') return active + archived;
+  return active;
+});
+
+const sidebarUnfiledCount = computed(() => {
+  const { unfiled_active: unfiledActive, unfiled_archived: unfiledArchived } = documentStore.counts.documents;
+  if (documentStore.archiveScope === 'archived') return unfiledArchived;
+  if (documentStore.archiveScope === 'all') return unfiledActive + unfiledArchived;
+  return unfiledActive;
+});
+
+// El ámbito en palabras. 'active' es el estado de reposo y no lleva rótulo:
+// anunciar lo normal entrena a ignorar el aviso que sí importa.
+const SCOPE_NOTICES = {
+  archived: {
+    label: 'Modo archivado',
+    detail: 'Estás viendo lo archivado; los contadores del panel cuentan archivados.',
+    // Sólido sobre el panel teñido: repetir el tinte lo volvería invisible.
+    tone: 'bg-surface text-text-default',
+  },
+  all: {
+    label: 'Activos y archivados',
+    detail: 'La lista mezcla los dos estados; cada fila declara el suyo.',
+    tone: 'bg-info-soft text-text-default',
+  },
+};
+
+const scopeNotice = computed(() => SCOPE_NOTICES[documentStore.archiveScope] || null);
+
 const filteredDocuments = computed(() => {
   if (isSearching.value) return documentStore.searchResults;
   if (documentStore.activeFolderId !== 'root') return documentStore.documents;
@@ -380,6 +547,19 @@ const currentSubfolders = computed(() => {
 const hasContent = computed(
   () => filteredDocuments.value.length > 0 || currentSubfolders.value.length > 0,
 );
+
+/**
+ * Inventario de una fila de subcarpeta del listado.
+ *
+ * Es el mismo defecto del panel lateral un clic más adentro: entrar a «Familia»
+ * y ver sus tres subcarpetas diciendo «Vacía» cuando entre las tres guardan 12.
+ * Los documentos se cuentan del subárbol; las subcarpetas siguen siendo las
+ * directas, que es lo que la fila promete si se hace clic.
+ */
+function subfolderSummary(folder, scope) {
+  const { docs } = folderStore.rollupOf(folder, scope);
+  return folderSummaryFrom({ docs, subs: scopedCounts(folder, scope).subs });
+}
 
 const {
   currentPage: docPage,
@@ -432,6 +612,7 @@ watch(searchQuery, (value) => {
   clearTimeout(searchTimer);
   if (!term) {
     searchFolders.value = [];
+    documentStore.isSearchLoading = false;
     // Al limpiar se devuelve el control a donde estaba, salvo que el usuario lo
     // haya movido él mismo mientras buscaba: ahí manda su elección.
     if (scopeBeforeSearch.value && !scopeTouchedDuringSearch.value) {
@@ -448,8 +629,35 @@ watch(searchQuery, (value) => {
     // «Solo activos» mientras devuelve archivados sería una interfaz mentirosa.
     if (documentStore.archiveScope !== 'all') documentStore.archiveScope = 'all';
   }
+  // Los resultados de la búsqueda anterior no sobreviven al debounce: verlos
+  // mientras se escribe otro término los hace pasar por resultados nuevos.
+  documentStore.searchResults = [];
+  searchFolders.value = [];
+  documentStore.isSearchLoading = true;
   searchTimer = setTimeout(() => runSearch(term), 300);
 });
+
+/**
+ * Sale de la búsqueda y navega en un solo gesto.
+ *
+ * El watcher de `searchQuery` restaura el scope previo al limpiar (flush pre,
+ * corre DESPUÉS de este handler): anular `scopeBeforeSearch` antes de vaciar el
+ * término convierte esa rama en no-op y el destino de la navegación sobrevive.
+ * Nunca "reordenar" las líneas como fix — es exactamente lo que fallaba.
+ */
+function exitSearchAndNavigate({ folder, scope } = {}) {
+  clearTimeout(searchTimer);
+  const targetScope = scope
+    ?? ((scopeTouchedDuringSearch.value || !scopeBeforeSearch.value)
+      ? documentStore.archiveScope
+      : scopeBeforeSearch.value);
+  scopeBeforeSearch.value = null;
+  scopeTouchedDuringSearch.value = false;
+  searchFolders.value = [];
+  documentStore.isSearchLoading = false;
+  searchQuery.value = '';
+  return documentStore.setFilters({ folder, scope: targetScope });
+}
 
 onBeforeUnmount(() => {
   clearTimeout(searchTimer);
@@ -495,7 +703,11 @@ const createLink = computed(() => {
   return localePath('/panel/documents/create');
 });
 
-const isListLoading = computed(() => documentStore.isLoading);
+// La búsqueda comparte el skeleton de la lista: sin esto no tenía ningún
+// indicador de carga y los 300 ms de debounce parecían un buscador roto.
+const isListLoading = computed(
+  () => documentStore.isLoading || documentStore.isSearchLoading,
+);
 
 const loadError = ref(null);
 
@@ -524,13 +736,31 @@ function loadDocuments() {
   return refreshView({ tags: true });
 }
 
-onMounted(loadDocuments);
+// Carpeta y scope viven en la URL (?folder=&scope=): F5 y los deep links
+// reconstruyen la vista. El query se aplica ANTES del primer fetch.
+const filterQuery = useDocumentFilterQuery(documentStore, {
+  isSearching,
+  // Atrás/adelante cambian carpeta y estado, no el árbol ni los contadores:
+  // basta con volver a pedir la lista, igual que al navegar por el panel.
+  onNavigate: () => documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
+});
+
+onMounted(async () => {
+  filterQuery.applyQueryToStore();
+  await loadDocuments();
+  // La carpeta del deep link ya no existe: se cae a Todos y se refetchea.
+  if (filterQuery.validateFolder(folderStore)) {
+    await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
+  }
+});
 usePanelRefresh(loadDocuments);
 
 function handleSelectFolder(id) {
-  // «Archivados» es un atajo sobre los dos ejes, no una carpeta.
-  if (id === 'archived') {
-    documentStore.setFilters({ folder: 'root', scope: 'archived' });
+  if (isSearching.value) {
+    // Elegir una carpeta en plena búsqueda es navegación: se sale de la
+    // búsqueda hacia esa carpeta. Antes el filtro cambiaba por debajo y la
+    // vista seguía mostrando los resultados, como si el clic no hiciera nada.
+    exitSearchAndNavigate({ folder: id });
     return;
   }
   // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
@@ -543,11 +773,28 @@ function handleBackToActive() {
   documentStore.setFilters({ folder: 'all', scope: 'active' });
 }
 
+/**
+ * Enciende y apaga el modo archivado.
+ *
+ * Cambiar de ámbito no mueve al usuario de sitio: dentro de una carpeta se
+ * queda en ella y sólo cambia lo que se lista. Las dos vistas de cima sí se
+ * traducen una en otra, porque no son la misma en cada ámbito: «Todos» es la
+ * lista plana de activos y el archivo se recorre como árbol desde su raíz, que
+ * es lo que conserva las carpetas como contenedores en vez de aplanarlas junto
+ * a sus documentos.
+ */
+function handleToggleArchivedMode(on) {
+  const folderId = documentStore.activeFolderId;
+  let folder;
+  if (on && folderId === 'all') folder = 'root';
+  if (!on && folderId === 'root') folder = 'all';
+  documentStore.setFilters({ folder, scope: on ? 'archived' : 'active' });
+}
+
 /** Entra a la carpeta en su scope archivado — el destino de la insignia. */
 function handleViewArchivedFolder(folder) {
   if (!folder) return;
-  searchQuery.value = '';
-  documentStore.setFilters({ folder: folder.id, scope: 'archived' });
+  exitSearchAndNavigate({ folder: folder.id, scope: 'archived' });
 }
 
 function handleScopeChange(scope) {
@@ -600,7 +847,7 @@ function restoredChainDetail(result) {
   return `Se restauró también ${names} para que tenga dónde volver.`;
 }
 
-async function handleUnarchiveFolder(folder) {
+async function handleUnarchiveFolder(folder, { follow = false } = {}) {
   if (!folder) return;
   const result = await folderStore.unarchiveFolder(folder.id);
   if (result.success) {
@@ -616,11 +863,14 @@ async function handleUnarchiveFolder(folder) {
       title: 'Carpeta restaurada',
       detail: details.length ? details.join(' ') : undefined,
     });
+    // Seguir la restauración: la carpeta vuelve a los activos y la vista va
+    // con ella, en vez de quedarse mirando su hueco en Archivados.
+    if (follow) documentStore.archiveScope = 'active';
     await refreshView();
   } else {
     notify.error({
       title: 'No se pudo restaurar la carpeta',
-      detail: result.errors?.detail,
+      detail: result.message,
     });
   }
 }
@@ -629,14 +879,18 @@ function handleArchiveFolder(folder) {
   if (!folder) return;
   requestConfirm({
     title: `Archivar "${folder.name}"`,
-    message: `Se archivará junto con su contenido (${folderRowSummary(folder, 'all')}). `
+    // El aviso tiene que nombrar lo que la cascada se va a llevar, que es todo
+    // el subárbol y no sólo lo que cuelga directo: archivar Vastago avisaba
+    // «1 documento» antes de arrastrar 36.
+    message: `Se archivará junto con su contenido (${folderSummaryFrom(folderStore.cascadeContentOf(folder))}). `
       + 'Sale de la vista y de los contadores, pero podrás restaurarla cuando quieras.',
     variant: 'warning',
     confirmText: 'Archivar',
+    waitForConfirm: true,
     onConfirm: async () => {
       const result = await folderStore.archiveFolder(folder.id);
       if (!result.success) {
-        notify.error({ title: 'No se pudo archivar la carpeta' });
+        notify.error({ title: 'No se pudo archivar la carpeta', detail: result.message });
         return;
       }
       notify.success({
@@ -645,10 +899,39 @@ function handleArchiveFolder(folder) {
           ? `Se archivaron también ${result.archivedDocuments} documento(s).`
           : undefined,
       });
-      if (documentStore.activeFolderId === folder.id) handleSelectFolder('all');
+      exitFolderIfViewing(folder);
       await refreshView();
     },
   });
+}
+
+/**
+ * ¿La vista actual está parada en esta carpeta o en una descendiente?
+ *
+ * El check de identidad se quedaba corto: archivar un ancestro desde el
+ * sidebar dejaba al usuario dentro de una descendiente recién archivada,
+ * viendo un empty state falso en una carpeta fantasma.
+ */
+function isViewingFolderOrDescendant(folderId) {
+  const active = documentStore.activeFolderId;
+  if (typeof active !== 'number') return false;
+  return active === folderId || folderStore.descendantIdsOf(folderId).has(active);
+}
+
+/** Destino al retirarse de una carpeta que dejó de existir: su padre, o Todos. */
+function folderExitTarget(folder) {
+  return folder?.parent ?? 'all';
+}
+
+/**
+ * Retira la vista ANTES del refreshView del caller: la escritura directa no
+ * dispara fetch propio, así el refresco llega ya apuntando al destino y no
+ * parpadea un empty state falso de la carpeta que acaba de irse.
+ */
+function exitFolderIfViewing(folder) {
+  if (folder && isViewingFolderOrDescendant(folder.id)) {
+    documentStore.activeFolderId = folderExitTarget(folder);
+  }
 }
 
 function handleToggleTag(id) {
@@ -658,6 +941,24 @@ function handleToggleTag(id) {
 function handleClearTagFilters() {
   documentStore.setFilters({ tags: [] });
 }
+
+function handleClientFilter(value) {
+  documentStore.setFilters({ client: value });
+}
+
+function handleProjectFilter(value) {
+  documentStore.setFilters({ project: value });
+}
+
+// Label para rehidratar el autocomplete en un deep link (?client=<id>): se
+// resuelve de las filas ya cargadas para no gastar un fetch extra; sin filas
+// el fallback numérico al menos dice QUÉ filtro está puesto.
+const associationClientLabel = computed(() => {
+  const id = documentStore.activeClientId;
+  if (typeof id !== 'number') return '';
+  const row = documentStore.documents.find((d) => d.client === id);
+  return row?.client_display_name || `Cliente #${id}`;
+});
 
 function openFolderManager() {
   showFolderManager.value = true;
@@ -675,18 +976,14 @@ async function handleFolderArchived({ folder, documents } = {}) {
       ? `Se archivaron también ${documents} documento(s).`
       : undefined,
   });
-  if (documentStore.activeFolderId === folder?.id) {
-    handleSelectFolder('all');
-  }
+  exitFolderIfViewing(folder);
   await refreshView();
 }
 
 async function handleFolderDeleted(folder) {
   notify.success({ title: 'Carpeta eliminada' });
   // La carpeta borrada era el filtro activo: no queda vista que mostrar.
-  if (documentStore.activeFolderId === folder?.id) {
-    handleSelectFolder('all');
-  }
+  exitFolderIfViewing(folder);
   await refreshView();
 }
 
@@ -869,6 +1166,7 @@ function handleDelete(doc) {
       ? ''
       : 'Archivar lo saca de la lista y de los contadores, pero lo conserva: podrás consultarlo o restaurarlo desde Archivados.',
     onSecondary: () => handleArchiveDoc(doc),
+    waitForConfirm: true,
     onConfirm: async () => {
       const result = await documentStore.deleteDocument(doc.id);
       if (result.success) {

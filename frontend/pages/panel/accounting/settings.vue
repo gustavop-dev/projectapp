@@ -232,26 +232,20 @@
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
         <p class="text-sm text-text-muted mb-5">
-          Restaura las pestañas predefinidas de cada vista del módulo contable.
-          Al restablecer una vista se eliminan sus pestañas personalizadas.
+          Elige qué pestañas se muestran en cada vista del módulo contable y en
+          qué orden. Restablecer devuelve las predefinidas a su estado original
+          y conserva las que hayas guardado tú.
         </p>
         <div class="space-y-2">
-          <div
+          <SavedFilterTabsManager
             v-for="view in FILTER_VIEWS"
             :key="view.value"
-            class="flex items-center justify-between gap-3"
-          >
-            <span class="text-sm text-text-default">{{ view.label }}</span>
-            <BaseButton
-              variant="secondary"
-              size="sm"
-              :disabled="resettingView !== null"
-              :data-testid="`settings-reset-tabs-${view.value}`"
-              @click="askResetTabs(view)"
-            >
-              {{ resettingView === view.value ? 'Restableciendo...' : 'Restablecer' }}
-            </BaseButton>
-          </div>
+            :ref="(el) => registerManager(view.value, el)"
+            :view="view.value"
+            :label="view.label"
+            :is-resetting="resettingView === view.value"
+            @reset="askResetTabs"
+          />
         </div>
       </div>
     </div>
@@ -276,6 +270,7 @@ import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import NotificationRecipients from '~/components/accounting/NotificationRecipients.vue';
+import SavedFilterTabsManager from '~/components/accounting/SavedFilterTabsManager.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
@@ -380,16 +375,24 @@ const FILTER_VIEWS = [
   { value: 'accounting_pocket', label: 'Bolsillo' },
   { value: 'accounting_recurring', label: 'Recurrentes' },
   { value: 'accounting_ads', label: 'Ads' },
+  { value: 'accounting_history_sends', label: 'Historial · Envíos' },
+  { value: 'accounting_history_changes', label: 'Historial · Cambios' },
 ];
 
 const resetConfirmOpen = ref(false);
 const pendingResetView = ref(null);
 const resettingView = ref(null);
+const managers = new Map();
+
+function registerManager(view, el) {
+  if (el) managers.set(view, el);
+  else managers.delete(view);
+}
 
 const resetConfirmMessage = computed(() =>
   pendingResetView.value
-    ? `Se eliminarán tus pestañas personalizadas de "${pendingResetView.value.label}" ` +
-      'y se restaurarán las predefinidas. Esta acción no se puede deshacer.'
+    ? `Las pestañas predefinidas de "${pendingResetView.value.label}" volverán a ` +
+      'su estado original. Las que guardaste tú se conservan.'
     : '',
 );
 
@@ -404,6 +407,7 @@ async function doResetTabs() {
   resettingView.value = view.value;
   try {
     await create_request('accounts/saved-filter-tabs/reset/', { view: view.value });
+    await managers.get(view.value)?.refresh();
     notify.success({
       title: 'Pestañas restablecidas',
       detail: `La vista ${view.label} volvió a sus filtros predefinidos.`,

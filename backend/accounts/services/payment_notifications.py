@@ -64,13 +64,19 @@ def build_payment_status_context(payment, to_status, source=''):
     }
 
 
-def send_payment_status_team_email(payment_id, to_status, source=''):
+def send_payment_status_team_email(
+    payment_id, to_status, source='', *, recipients=None, retry_of=None,
+):
     """
     Render and send the team notification for a payment outcome.
     Returns True if the email was sent, False otherwise. Never raises.
+
+    `recipients` overrides the configured list — a manual retry re-sends to
+    the one address that failed, not to everybody who already got it.
     """
     from accounts.models import Payment
     from content.models import AccountingSettings, EmailLog
+    from content.services import email_log_service
     from content.services.notification_recipient_service import (
         active_recipient_emails,
     )
@@ -82,7 +88,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         )
         return False
 
-    recipients = active_recipient_emails()
+    recipients = recipients or active_recipient_emails()
     if not recipients:
         logger.warning(
             'No active notification recipients; skipping payment email for %s',
@@ -92,7 +98,7 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
 
     try:
         payment = Payment.objects.select_related(
-            'subscription__project__client',
+            'subscription__project__client__profile',
         ).get(id=payment_id)
     except Payment.DoesNotExist:
         logger.warning('Payment %s not found for team status email', payment_id)
@@ -111,6 +117,12 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
         'to_status': to_status,
         'source': source or '',
     }
+    targets = [('payment', payment_id, context['project_name'])]
+    # Internal: this one tells the team a hosting payment moved. Filed under
+    # the client anyway, and through its own resolver because `payment`
+    # targets are exactly what the query-time mapping never learned to read.
+    client = email_log_service.client_for_payment(payment)
+    text_body = html_body = ''
 
     try:
         text_body = render_to_string('emails/payment_status_team.txt', context)
@@ -128,25 +140,33 @@ def send_payment_status_team_email(payment_id, to_status, source=''):
             'Failed to send payment status email for payment %s: %s',
             payment_id, exc,
         )
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            html_body=html_body,
+            text_body=text_body,
+            retry_of=retry_of,
+            client=client,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        html_body=html_body,
+        text_body=text_body,
+        retry_of=retry_of,
+        client=client,
+    )
     logger.info(
         'Sent payment status email (%s) for payment %s to %s',
         to_status, payment_id, ', '.join(recipients),

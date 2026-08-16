@@ -22,6 +22,7 @@ Guardrails (mirror the panel):
 
 Each entry: {'name', 'description', 'input_schema', 'handler'}.
 """
+from accounts.models import Project
 from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
 from content.models import AccountingChangeLog, AccountingSettings
@@ -102,10 +103,54 @@ def _make_get(key):
     return handler
 
 
+def _resolve_project_reference(key, data, instance=None):
+    """Turn a ``project_name`` alias into the ``project`` FK, in place.
+
+    ``project_name`` is read-only on the models (a property over the FK), so
+    the write serializer would silently drop it — the bug that left MCP-created
+    hostings with no project. The alias is resolved against the record's
+    client and always removed from the payload; anything unresolvable is a
+    loud ToolError, never a silent discard. An explicit ``project`` id wins
+    over the alias (documented in the schema).
+    """
+    if key not in ('income', 'hosting'):
+        return data
+    raw_name = data.pop('project_name', None)
+    name = (raw_name or '').strip() if isinstance(raw_name, str) else ''
+    if not name or data.get('project') is not None:
+        return data
+    client_id = data.get('client')
+    if client_id is None and instance is not None:
+        client_id = instance.client_id
+    if client_id is None:
+        raise ToolError(
+            "Para resolver 'project_name' se necesita el 'client' del "
+            "registro: el proyecto pertenece a un cliente."
+        )
+    matches = list(
+        Project.objects.filter(
+            client__profile__id=client_id, name__iexact=name,
+        )[:2],
+    )
+    if not matches:
+        raise ToolError(
+            f"Ese cliente no tiene un proyecto llamado '{name}'. "
+            "Créalo primero o pasa 'project' (id)."
+        )
+    if len(matches) > 1:
+        raise ToolError(
+            f"Ese cliente tiene más de un proyecto llamado '{name}'; "
+            "usa 'project' (id) para elegir uno."
+        )
+    data['project'] = matches[0].pk
+    return data
+
+
 def _make_create(key):
     def handler(arguments):
         config = _ENTITIES[key]
         data = {k: v for k, v in arguments.items() if k != 'record_id'}
+        data = _resolve_project_reference(key, data)
         serializer = config['write'](data=data)
         if not serializer.is_valid():
             raise ToolError(_serializer_errors_to_message(serializer.errors))
@@ -124,6 +169,7 @@ def _make_update(key):
         config = _ENTITIES[key]
         instance = _get_instance_or_error(key, arguments.get('record_id'))
         data = {k: v for k, v in arguments.items() if k != 'record_id'}
+        data = _resolve_project_reference(key, data, instance=instance)
         if not data:
             raise ToolError('No se indicó ningún campo para actualizar.')
         serializer = config['write'](instance, data=data, partial=True)
@@ -263,10 +309,46 @@ _ENTITY_FIELDS = {
                     'mismo cliente del registro.'
                 ),
             },
+            'project_name': {
+                'type': 'string',
+                'description': (
+                    'Alias de conveniencia: nombre del proyecto del cliente, '
+                    'resuelto a su id (falla si no existe o hay más de uno '
+                    'con ese nombre). Se ignora si también pasas project.'
+                ),
+            },
             'origin': {
                 'type': 'string',
                 'enum': ['development', 'hosting', 'diagnostic', 'other'],
-                'description': 'Línea de negocio que origina el ingreso.',
+                'description': (
+                    'Línea de negocio que origina el ingreso. Con hosting son '
+                    'obligatorios period_start, period_end y period_cadence.'
+                ),
+            },
+            'period_start': {
+                'type': 'string',
+                'description': (
+                    'Inicio del período cubierto (YYYY-MM-DD o YYYY-MM). Solo '
+                    'origin=hosting; define además period_date.'
+                ),
+            },
+            'period_end': {
+                'type': 'string',
+                'description': (
+                    'Fin INCLUSIVO del período cubierto (YYYY-MM-DD). Solo '
+                    'origin=hosting.'
+                ),
+            },
+            'period_cadence': {
+                'type': 'string',
+                'enum': [
+                    'monthly', 'bimonthly', 'quarterly', 'four_monthly',
+                    'semiannual', 'annual', 'biennial', 'triennial', 'custom',
+                ],
+                'description': (
+                    'Periodicidad del período cubierto (catálogo de gastos '
+                    'recurrentes). Solo origin=hosting.'
+                ),
             },
             'gustavo_amount': {'type': ['number', 'string']},
             'carlos_amount': {'type': ['number', 'string']},
@@ -303,7 +385,11 @@ _ENTITY_FIELDS = {
             'client_name': {'type': 'string'},
             'project_name': {
                 'type': 'string',
-                'description': 'Proyecto o marca a la que sirve el hosting.',
+                'description': (
+                    'Alias de conveniencia: nombre del proyecto del cliente, '
+                    'resuelto a su id (falla si no existe o hay más de uno '
+                    'con ese nombre). Se ignora si también pasas project.'
+                ),
             },
             'monthly_value': {'type': ['number', 'string']},
             'domain_url': {'type': 'string'},

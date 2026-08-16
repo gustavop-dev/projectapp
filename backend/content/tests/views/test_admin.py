@@ -8,10 +8,29 @@ from django.contrib.auth import get_user_model
 from django.test import RequestFactory
 
 from content.admin import CompanySettingsForm, admin_site
+from content.models import Document, DocumentFolder
 
 User = get_user_model()
 
 pytestmark = pytest.mark.django_db
+
+
+class TestArchiveFieldsSealedInAdmin:
+    """El admin no puede mover el estado de archivado a mano: editar
+    `is_archived` suelto se salta la cascada del servicio y es el vector que
+    recrea filas activas bajo carpetas archivadas (ERR-016)."""
+
+    ARCHIVE_FIELDS = ('is_archived', 'archived_at', 'archived_via_folder')
+
+    def test_document_admin_archive_fields_are_readonly(self, db):
+        admin_instance = admin_site._registry[Document]
+        for field in self.ARCHIVE_FIELDS:
+            assert field in admin_instance.readonly_fields
+
+    def test_document_folder_admin_archive_fields_are_readonly(self, db):
+        admin_instance = admin_site._registry[DocumentFolder]
+        for field in self.ARCHIVE_FIELDS:
+            assert field in admin_instance.readonly_fields
 
 
 class TestProjectAppAdminSiteGetAppList:

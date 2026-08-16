@@ -1,5 +1,5 @@
 import { mount, flushPromises } from '@vue/test-utils';
-import ClientBulkAssignBar from '../../../components/accounting/ClientBulkAssignBar.vue';
+import BulkAssignBar from '../../../components/accounting/BulkAssignBar.vue';
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
@@ -8,16 +8,31 @@ const ClientAutocompleteStub = {
   template: '<div data-testid="client-autocomplete-stub" />',
 };
 
+const ProjectCatalogSelectStub = {
+  name: 'ProjectCatalogSelect',
+  props: ['modelValue', 'testId', 'placeholder'],
+  emits: ['update:modelValue', 'select'],
+  template: '<div data-testid="project-catalog-select-stub" />',
+};
+
 const ENTITY = { singular: 'hosting', plural: 'hostings' };
 
 const ROWS = [
-  { id: 1, client: null, client_name: 'Kore - Marca', domain_url: 'kore.com.co' },
-  { id: 2, client: null, client_name: 'Huella - Marca', domain_url: 'tuhuella.co' },
-  { id: 3, client: 7, client_display_name: 'Kore SAS', domain_url: 'a.com' },
+  { id: 1, client: null, project: null, client_name: 'Kore - Marca', domain_url: 'kore.com.co' },
+  { id: 2, client: null, project: null, client_name: 'Huella - Marca', domain_url: 'tuhuella.co' },
+  { id: 3, client: 7, project: null, client_display_name: 'Kore SAS', domain_url: 'a.com' },
+  {
+    id: 4,
+    client: 7,
+    project: 41,
+    project_name: 'Vieja Web',
+    client_display_name: 'Kore SAS',
+    domain_url: 'b.com',
+  },
 ];
 
 function mountBar(props = {}) {
-  return mount(ClientBulkAssignBar, {
+  return mount(BulkAssignBar, {
     props: {
       rows: ROWS,
       selected: [1, 2],
@@ -30,6 +45,7 @@ function mountBar(props = {}) {
     global: {
       stubs: {
         ClientAutocomplete: ClientAutocompleteStub,
+        ProjectCatalogSelect: ProjectCatalogSelectStub,
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
@@ -54,7 +70,7 @@ async function confirm(wrapper) {
   await flushPromises();
 }
 
-describe('ClientBulkAssignBar — the two actions are separate', () => {
+describe('BulkAssignBar — the two actions are separate', () => {
   it('keeps Asignar disabled with the reason on screen until a client is picked', async () => {
     const wrapper = mountBar();
 
@@ -95,7 +111,7 @@ describe('ClientBulkAssignBar — the two actions are separate', () => {
   });
 });
 
-describe('ClientBulkAssignBar — the row holds its line', () => {
+describe('BulkAssignBar — the row holds its line', () => {
   // El hint del picker crecía DENTRO de la celda del flex y, con
   // `sm:items-center`, re-centraba la fila entera: el input subía y los
   // botones se quedaban abajo. La barra dibuja esa línea ella misma, fuera
@@ -139,7 +155,7 @@ describe('ClientBulkAssignBar — the row holds its line', () => {
   });
 });
 
-describe('ClientBulkAssignBar — nothing runs without confirmation', () => {
+describe('BulkAssignBar — nothing runs without confirmation', () => {
   it('breaks a mixed selection into its two halves instead of one flat count', async () => {
     const wrapper = mountBar({ selected: [1, 2, 3] });
     await pickClient(wrapper);
@@ -224,7 +240,7 @@ describe('ClientBulkAssignBar — nothing runs without confirmation', () => {
   });
 });
 
-describe('ClientBulkAssignBar — selection plumbing', () => {
+describe('BulkAssignBar — selection plumbing', () => {
   it('hands the parent every filtered id when asked to select them all', async () => {
     const wrapper = mountBar({ selected: [1] });
 
@@ -265,5 +281,165 @@ describe('ClientBulkAssignBar — selection plumbing', () => {
     const wrapper = mountBar({ selected: [1, 2], filteredIds: [1, 2, 3] });
 
     expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+  });
+});
+
+const PROJECT = {
+  id: 40,
+  name: 'Kore Web',
+  status: 'active',
+  status_label: 'Activo',
+  client: { profile_id: 7, name: 'Kore SAS' },
+};
+
+async function switchToProject(wrapper) {
+  await wrapper
+    .find('[data-testid="hostings-bulk-target"]')
+    .findAll('button')
+    .find((button) => button.text() === 'Proyecto')
+    .trigger('click');
+  await flushPromises();
+}
+
+/** Pick a project the way ProjectCatalogSelect does: id, then the full row. */
+async function pickProject(wrapper, project = PROJECT) {
+  const picker = wrapper.findComponent(ProjectCatalogSelectStub);
+  await picker.vm.$emit('update:modelValue', project.id);
+  await picker.vm.$emit('select', project);
+  await flushPromises();
+}
+
+describe('BulkAssignBar — the Proyecto target', () => {
+  it('offers the toggle only where the page enables it', () => {
+    expect(mountBar().find('[data-testid="hostings-bulk-target"]').exists())
+      .toBe(false);
+    expect(
+      mountBar({ projectEnabled: true })
+        .find('[data-testid="hostings-bulk-target"]').exists(),
+    ).toBe(true);
+  });
+
+  it('switching targets swaps the picker and keeps the status line talking', async () => {
+    const wrapper = mountBar({ projectEnabled: true, selected: [3, 4] });
+
+    await switchToProject(wrapper);
+
+    expect(wrapper.findComponent(ProjectCatalogSelectStub).exists()).toBe(true);
+    expect(wrapper.findComponent(ClientAutocompleteStub).exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
+      .toContain('Elige un proyecto para poder asignar');
+  });
+
+  it('confirms against the plan and leaves the foreign-client rows out', async () => {
+    const wrapper = mountBar({ projectEnabled: true, selected: [1, 3, 4] });
+    await switchToProject(wrapper);
+    await pickProject(wrapper);
+
+    await wrapper.find('[data-testid="hostings-bulk-assign-project"]').trigger('click');
+    await flushPromises();
+
+    // Row 1 has no client: named apart, never in the payload.
+    expect(wrapper.find('[data-testid="project-bulk-summary-blocked"]').text())
+      .toContain('kore.com.co');
+    expect(wrapper.find('[data-testid="project-bulk-summary-list"]').text())
+      .toContain('Vieja Web');
+    expect(wrapper.emitted('submit-project')).toBeUndefined();
+
+    await confirm(wrapper);
+
+    expect(wrapper.emitted('submit-project')[0][0]).toMatchObject({
+      ids: [3, 4],
+      project: 40,
+      mode: 'assign',
+    });
+  });
+
+  it('blocks Asignar with the ownership reason when nothing can change', async () => {
+    const wrapper = mountBar({ projectEnabled: true, selected: [1, 2] });
+    await switchToProject(wrapper);
+    await pickProject(wrapper);
+
+    expect(
+      wrapper.find('[data-testid="hostings-bulk-assign-project"]').attributes('disabled'),
+    ).toBeDefined();
+    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
+      .toContain('pertenece a otro cliente');
+  });
+
+  it('offers Quitar proyecto only when the selection has one to lose', async () => {
+    const without = mountBar({ projectEnabled: true, selected: [1, 3] });
+    await switchToProject(without);
+    expect(without.find('[data-testid="hostings-bulk-unlink-project"]').exists())
+      .toBe(false);
+
+    const wrapper = mountBar({ projectEnabled: true, selected: [4] });
+    await switchToProject(wrapper);
+    await wrapper.find('[data-testid="hostings-bulk-unlink-project"]').trigger('click');
+    await flushPromises();
+    await confirm(wrapper);
+
+    expect(wrapper.emitted('submit-project')[0][0]).toMatchObject({
+      ids: [4],
+      project: null,
+      mode: 'unlink',
+    });
+  });
+});
+
+/**
+ * A record can leave the selection two ways, and the bar must not confuse
+ * them: the filters can stop showing it (kept, and announced) or it can stop
+ * existing (dropped by the page, and gone from every count). The page owns the
+ * pruning — these pin what the bar does with the result of it.
+ */
+describe('BulkAssignBar — a deleted record is not a filtered one', () => {
+  it('counts only what the page still holds once the deleted id is pruned', () => {
+    // Row 2 was deleted: gone from `rows`, gone from `filteredIds`, and the
+    // page has already dropped it from the selection.
+    const wrapper = mountBar({
+      rows: [ROWS[0], ROWS[2]],
+      selected: [1],
+      filteredIds: [1, 3],
+    });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('1 seleccionado');
+    // The deleted row must not resurface as "fuera del filtro actual" — that
+    // notice is about records that still exist.
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+  });
+
+  it('leaves on its own when the pruning empties the selection', async () => {
+    const wrapper = mountBar({ selected: [1], filteredIds: [1] });
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(true);
+
+    await wrapper.setProps({ rows: [ROWS[2]], selected: [], filteredIds: [3] });
+
+    // No reload, no Cancelar.
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(false);
+  });
+
+  it('keeps a still-existing row that the filter hides, and says so', () => {
+    // Same shape as the case above, except row 2 was only filtered out. It
+    // stays selected and stays counted.
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
+      .toContain('1 fuera del filtro actual');
+  });
+
+  it('leaves a stale id out of the payload it submits', async () => {
+    // The safety net for the window the page cannot close: the confirmation
+    // freezes the plan when it opens, and a row can vanish while it is up.
+    const wrapper = mountBar({ selected: [1, 99] });
+    await pickClient(wrapper);
+
+    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
+    await flushPromises();
+    await confirm(wrapper);
+
+    expect(wrapper.emitted('submit')[0][0].ids).toEqual([1]);
   });
 });

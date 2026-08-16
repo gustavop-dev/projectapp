@@ -19,6 +19,13 @@ const props = defineProps({
   // fecha, arrastre) lo decide `is_archived` de cada fila: con `scope='all'` y
   // con la búsqueda global la lista es mixta.
   scope: { type: String, default: 'active' },
+  // Mutación en vuelo: los botones de restaurar giran y quedan inertes.
+  updating: { type: Boolean, default: false },
+  // Inventario de una fila de subcarpeta. Llega como función y no se consulta
+  // el store acá porque este componente es presentacional: sus specs lo montan
+  // sin Pinia. El default conserva el conteo directo de siempre; la página lo
+  // reemplaza por el que suma el subárbol.
+  folderSummary: { type: Function, default: folderRowSummary },
 })
 
 const emit = defineEmits([
@@ -45,6 +52,8 @@ function archivedContentCount(folder) {
       <thead>
         <tr class="border-b border-border-muted text-left">
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
+          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Cliente</th>
+          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Proyecto</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
@@ -80,14 +89,16 @@ function archivedContentCount(folder) {
               />
             </div>
           </td>
-          <td class="px-6 py-4 text-sm text-text-subtle" colspan="3">
-            {{ folderRowSummary(sub, sub.is_archived ? 'archived' : 'active') }}
+          <td class="px-6 py-4 text-sm text-text-subtle" colspan="5">
+            {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
           <td class="px-6 py-4" @click.stop>
             <BaseButton
               v-if="sub.is_archived"
               variant="secondary"
               size="sm"
+              :loading="updating"
+              :disabled="updating"
               data-testid="folder-unarchive"
               @click="emit('unarchive-folder', sub)"
             >
@@ -130,7 +141,21 @@ function archivedContentCount(folder) {
                 📁 {{ doc.folder_name }}
               </span>
             </div>
-            <div v-if="doc.client_name" class="text-xs text-text-subtle mt-0.5">{{ doc.client_name }}</div>
+          </td>
+          <td class="px-6 py-4 text-sm" :data-testid="`doc-client-cell-${doc.id}`">
+            <span v-if="doc.client_display_name" class="text-text-default">{{ doc.client_display_name }}</span>
+            <!-- Nombre libre heredado, sin cliente vinculado: en itálica para
+                 que se note que aún no es una relación. -->
+            <span
+              v-else-if="doc.client_name"
+              class="italic text-text-subtle"
+              title="Nombre libre, sin cliente vinculado"
+            >{{ doc.client_name }}</span>
+            <span v-else class="text-text-subtle">—</span>
+          </td>
+          <td class="px-6 py-4 text-sm" :data-testid="`doc-project-cell-${doc.id}`">
+            <span v-if="doc.project_name" class="text-text-default">{{ doc.project_name }}</span>
+            <span v-else class="text-text-subtle">—</span>
           </td>
           <td class="px-6 py-4">
             <div class="flex flex-wrap gap-1">

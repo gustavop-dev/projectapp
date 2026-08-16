@@ -23,9 +23,9 @@ document_type helpers as the panel so the PDF pipeline stays identical.
 """
 from content.mcp.protocol import ToolError
 from content.models import Document, DocumentFolder
+from content.services.document_content import build_content_json
 from content.services.document_type_codes import MARKDOWN
 from content.services.document_type_utils import get_markdown_document_type
-from content.services.markdown_parser import markdown_to_blocks
 
 LANGUAGE_CHOICES = {c[0] for c in Document.Language.choices}
 STATUS_CHOICES = {c[0] for c in Document.Status.choices}
@@ -114,21 +114,6 @@ def _doc_detail(doc):
     return {**_doc_summary(doc), 'content_markdown': doc.content_markdown}
 
 
-def _build_content_json(doc, markdown_text):
-    """Mirror the panel views: meta header + parsed blocks for the PDF stage."""
-    return {
-        'meta': {
-            'title': doc.title,
-            'client_name': doc.client_name,
-            'cover_type': doc.cover_type,
-            'include_portada': doc.include_portada,
-            'include_subportada': doc.include_subportada,
-            'include_contraportada': doc.include_contraportada,
-        },
-        'blocks': markdown_to_blocks(markdown_text),
-    }
-
-
 # ── Handlers ─────────────────────────────────────────────────────────────────
 
 def list_folders(arguments):
@@ -214,7 +199,7 @@ def create_document(arguments):
         language=language,
         content_markdown=markdown_text,
     )
-    doc.content_json = _build_content_json(doc, markdown_text)
+    doc.content_json = build_content_json(doc, markdown_text)
     doc.save()
     return _doc_detail(doc)
 
@@ -268,7 +253,7 @@ def update_document(arguments):
 
     # content_json must always reflect the current title/meta + markdown, so
     # rebuild it whenever the markdown or any meta field changed.
-    doc.content_json = _build_content_json(doc, doc.content_markdown)
+    doc.content_json = build_content_json(doc, doc.content_markdown)
     update_fields.add('content_json')
     doc.save(update_fields=list(update_fields) + ['updated_at'])
     return _doc_detail(doc)
@@ -297,7 +282,7 @@ def append_document(arguments):
     doc.content_markdown = (
         (doc.content_markdown or '').rstrip('\n') + separator + markdown_text
     )
-    doc.content_json = _build_content_json(doc, doc.content_markdown)
+    doc.content_json = build_content_json(doc, doc.content_markdown)
     doc.save(update_fields=['content_markdown', 'content_json', 'updated_at'])
     return _doc_detail(doc)
 

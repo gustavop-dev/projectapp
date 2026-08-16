@@ -505,10 +505,16 @@ watch(activeTab, (tab) => {
   // re-runs the `admin-auth` middleware, which cost one auth/check request per
   // tab switch (13 instead of 2 across the twelve tabs). Only the URL needs to
   // change — `?tab=` is read once on mount, so a stale router query is fine.
-  if (import.meta.client && new URLSearchParams(window.location.search).get('tab') !== tab) {
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', tab);
-    window.history.replaceState(window.history.state, '', url);
+  // `general` es el aterrizaje por defecto y no se escribe: la URL limpia es la
+  // vista de reposo.
+  if (import.meta.client) {
+    const next = tab === 'general' ? null : tab;
+    if (new URLSearchParams(window.location.search).get('tab') !== next) {
+      const url = new URL(window.location.href);
+      if (next) url.searchParams.set('tab', next);
+      else url.searchParams.delete('tab');
+      window.history.replaceState(window.history.state, '', url);
+    }
   }
 });
 const hasSendEmailTab = computed(() =>

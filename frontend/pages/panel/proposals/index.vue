@@ -49,7 +49,7 @@
     </div>
 
     <!-- KPI Dashboard -->
-    <ProposalDashboard />
+    <ProposalDashboard ref="proposalDashboardRef" />
 
     <!-- Floating metrics manual -->
     <MetricsManual />
@@ -103,7 +103,7 @@
 
       <!-- Create alert form -->
       <div v-if="showAlertForm" class="mb-4 bg-surface rounded-lg border border-warning-soft p-4 space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <BaseFormRow :cols="3" :gap="3">
           <BaseFormField label="Propuesta" size="sm">
             <BaseSelect v-model="newAlert.proposal" size="sm" placeholder="Seleccionar...">
               <option value="">Seleccionar...</option>
@@ -126,7 +126,7 @@
           <BaseFormField label="Fecha" size="sm">
             <BaseInput v-model="newAlert.alert_date" type="datetime-local" size="sm" />
           </BaseFormField>
-        </div>
+        </BaseFormRow>
         <div class="flex gap-3 items-end">
           <BaseFormField label="Mensaje" size="sm" class="flex-1">
             <BaseInput v-model="newAlert.message" type="text" size="sm" placeholder="Ej: Llamar al cliente para seguimiento..." />
@@ -278,8 +278,8 @@
 
     <!-- Batch action bar -->
     <Transition name="fade-modal">
-      <div v-if="selectedIds.size > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
-        <span class="text-sm font-medium">{{ selectedIds.size }} seleccionada(s)</span>
+      <div v-if="selectedIds.length > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
+        <span class="text-sm font-medium">{{ selectedIds.length }} seleccionada(s)</span>
         <div class="flex items-center gap-2">
           <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('resend')">
             🔄 Re-enviar
@@ -290,7 +290,7 @@
           <BaseButton variant="danger-ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('delete')">
             🗑️ Eliminar
           </BaseButton>
-          <BaseButton variant="ghost" size="sm" @click="selectedIds = new Set()">
+          <BaseButton variant="ghost" size="sm" @click="clearSelection">
             Cancelar
           </BaseButton>
         </div>
@@ -303,7 +303,7 @@
         <thead>
           <tr class="border-b border-border-muted text-left">
             <th class="px-3 py-3 w-10">
-              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.size === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.length === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
             </th>
             <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
             <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('client_name')">
@@ -327,9 +327,9 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border-muted">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedIds.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
+          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedSet.has(p.id) ? 'bg-primary-soft' : '']" @click="navigateToProposal(p.id, $event)">
             <td class="px-3 py-4" @click.stop>
-              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.has(p.id)" @change="toggleSelect(p.id)" />
+              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedSet.has(p.id)" @change="toggleSelect(p.id)" />
             </td>
             <td class="px-4 py-4 text-xs text-text-subtle tabular-nums">#{{ p.id }}</td>
             <td class="px-6 py-4">
@@ -593,6 +593,8 @@ import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
+import { useRowSelection } from '~/composables/useRowSelection';
+import { toggleKeys } from '~/utils/rowSelection';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -652,23 +654,25 @@ const zombieExpanded = ref(false);
 const attentionExpanded = ref(true);
 const dismissedComputedAlertKeys = ref(new Set());
 const expandedAlertGroups = ref(new Set());
-const selectedIds = ref(new Set());
+// Fed the FULL store list, not the page: the selection spans pages, so only a
+// proposal that stopped existing may drop out of it. Deleting one used to
+// leave its id behind and the batch bar went on counting it.
+const { selectedIds, selectedSet, clearSelection } = useRowSelection(
+  () => proposalStore.proposals,
+);
 const isBulkActing = ref(false);
 const isRefreshing = ref(false);
 
 function toggleSelectAll() {
-  if (selectedIds.value.size === paginatedProposals.value.length) {
-    selectedIds.value = new Set();
+  if (selectedIds.value.length === paginatedProposals.value.length) {
+    clearSelection();
   } else {
-    selectedIds.value = new Set(paginatedProposals.value.map(p => p.id));
+    selectedIds.value = paginatedProposals.value.map((p) => p.id);
   }
 }
 
 function toggleSelect(id) {
-  const s = new Set(selectedIds.value);
-  if (s.has(id)) s.delete(id);
-  else s.add(id);
-  selectedIds.value = s;
+  selectedIds.value = toggleKeys(selectedIds.value, [id], !selectedSet.value.has(id));
 }
 
 function handleBulkAction(action) {
@@ -683,7 +687,7 @@ function handleBulkAction(action) {
       isBulkActing.value = true;
       const result = await proposalStore.bulkAction(ids, action);
       if (result.success) {
-        selectedIds.value = new Set();
+        clearSelection();
         proposalStore.fetchProposals();
       }
       isBulkActing.value = false;
@@ -1045,6 +1049,7 @@ async function handleContractConfirmFromList(params) {
 }
 
 const alerts = ref([]);
+const proposalDashboardRef = ref(null);
 
 // Notify a load failure once, not on every refresh/poll cycle.
 let alertsErrorNotified = false;
@@ -1064,6 +1069,10 @@ async function refreshData() {
   try {
     await proposalStore.fetchProposals();
     await loadAlerts();
+    // Los KPI del dashboard salen del servidor: sin esto quedaban viejos tras
+    // eliminar/mutar (la guarda `fetched` no refetchea sola). Sin await — el
+    // spinner de la lista no debe esperar al panel colapsable.
+    proposalDashboardRef.value?.refreshIfLoaded();
   } finally {
     isRefreshing.value = false;
   }

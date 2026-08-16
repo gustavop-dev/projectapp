@@ -146,7 +146,7 @@ const OWN_INCOME = {
   payment_status: null,
 };
 
-/** Someone else's money: must never reach Acme's dropdown. */
+/** Someone else's money: reachable only from the "Todos" alcance. */
 const OTHER_CLIENT_INCOME = {
   ...ELIGIBLE_INCOME,
   id: 22,
@@ -158,24 +158,22 @@ const OTHER_CLIENT_INCOME = {
 const INCOME_POOL = [ELIGIBLE_INCOME, OWN_INCOME, OTHER_CLIENT_INCOME];
 
 /**
- * The `client` filter the backend applies: comma-separated ids, with `none`
- * isolating the rows that have no client yet.
+ * The concept search the backend applies. The client scoping is no longer a
+ * query param — the modal asks for the whole eligible set and narrows it on
+ * the page — so `q` is all that reaches the endpoint.
  */
 function filterIncomes(requestUrl) {
-  const value = new URL(requestUrl).searchParams.get('client');
-  if (!value) return INCOME_POOL;
-  const tokens = value.split(',');
-  return INCOME_POOL.filter((row) => (
-    row.client == null
-      ? tokens.includes('none')
-      : tokens.includes(String(row.client))
-  ));
+  const search = (new URL(requestUrl).searchParams.get('q') || '').toLowerCase();
+  if (!search) return INCOME_POOL;
+  return INCOME_POOL.filter(
+    (row) => row.concept.toLowerCase().includes(search),
+  );
 }
 
 const PREVIEW_PDF_URL =
   '/api/accounting/collection-accounts/preview/tok-e2e/PA-ACME-001.pdf';
 
-function buildHandler({ calls, incomeDetail = null }) {
+function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
   const state = { rows: makeRows() };
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -302,6 +300,13 @@ function buildHandler({ calls, incomeDetail = null }) {
     // The preview PDF is served, not built from base64 in the browser: a
     // blob: URL has no name and Chrome's viewer fell back to the blob UUID.
     if (apiPath === PREVIEW_PDF_URL.replace(/^\/api\//, '') && method === 'GET') {
+      if (previewPdfStatus !== 200) {
+        return {
+          status: previewPdfStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'La previsualización expiró.' }),
+        };
+      }
       return {
         status: 200,
         contentType: 'application/pdf',
@@ -423,6 +428,42 @@ test.describe('Admin Accounting Collections', () => {
     ).toBeVisible();
   });
 
+  test('a cuenta with no plazo shows no vencimiento and cannot read as vencida', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is how a cuenta with no vencimiento renders and filters, reached by
+    // clicking the Vencidas tab)
+    const handler = buildHandler({ calls: [] });
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+        const rows = makeRows();
+        // What the backend now returns for a pago-inmediato cuenta: no
+        // deadline at all, so there is nothing to fall overdue against.
+        rows[0].due_date = null;
+        rows[0].is_overdue = false;
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ results: rows, meta: META }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    const row = page.getByTestId('accounting-row-1');
+    await expect(row).toBeVisible();
+    // The Vence cell is empty rather than repeating the emisión date.
+    await expect(row).not.toContainText('2026-06-15');
+    await expect(row.getByText('Vencida', { exact: true })).toHaveCount(0);
+    await expect(row.getByText('Emitida', { exact: true })).toBeVisible();
+
+    // And the tab that used to sweep it up no longer does.
+    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
+  });
+
   test('marking an issued account as paid confirms and updates the badge', {
     tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -528,8 +569,10 @@ test.describe('Admin Accounting Collections', () => {
     await expect(page.getByTestId('collection-form-number')).toHaveValue('PA-ACME-001');
     await expect(page.getByTestId('collection-form-customer-email')).toHaveValue('ana@acme.co');
 
-    // Mandatory income link via the searchable combobox.
+    // Mandatory income link via the searchable combobox. The one being billed
+    // has no client yet, so the alcance has to be widened to reach it.
     await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-scope-all').click();
     await page.getByTestId('collection-form-income-option-8').click();
     await expect(page.getByTestId('collection-form-concept'))
       .toHaveValue('Desarrollo módulo de reportes');
@@ -600,18 +643,25 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await expect(page.getByTestId('collection-form-number')).toHaveValue('PA-ACME-001');
 
-    // Now it is Acme's ledger plus what is still unassigned — and Torrios'
-    // income is gone, so it cannot be billed to the wrong client by mistake.
+    // Now it is Acme's ledger and nothing else: neither Torrios' income nor the
+    // unassigned ones crowd the list the operator has to read.
     await page.getByTestId('collection-form-income').click();
+    await expect(page.getByTestId('collection-form-income-scope-client'))
+      .toContainText('Del cliente (1)');
     await expect(page.getByTestId('collection-form-income-group-own'))
       .toContainText('De Acme Soluciones (1)');
     await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
-    await expect(page.getByTestId('collection-form-income-group-orphan'))
-      .toContainText('Sin cliente asignado (1)');
     await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
+    await expect(page.getByTestId('collection-form-income-option-8')).toHaveCount(0);
 
-    // An unassigned income is selectable on purpose: issuing adopts the client.
+    // Widening reaches the unassigned ones, selectable on purpose: issuing
+    // adopts the client onto them.
+    await page.getByTestId('collection-form-income-scope-all').click();
+    await expect(page.getByTestId('collection-form-income-group-orphan'))
+      .toContainText('Sin cliente (1)');
     await page.getByTestId('collection-form-income-option-8').click();
+    await expect(page.getByTestId('collection-form-income-orphan-notice'))
+      .toContainText('al emitir quedará asignado a Acme Soluciones');
     await expect(page.getByTestId('collection-form-concept'))
       .toHaveValue('Desarrollo módulo de reportes');
 
@@ -627,6 +677,92 @@ test.describe('Admin Accounting Collections', () => {
     );
     expect(createCall.body.client_profile_id).toBe(5);
     expect(createCall.body.income_record_id).toBe(8);
+  });
+
+  test('the income filters count what they hold and never drop the cursor', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the filters under
+    // test live in the create modal, which IS opened by clicking)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-income').click();
+
+    // Before a client there is nothing to scope to, so the whole ledger is on
+    // offer and 'Del cliente' says so by being unavailable.
+    await expect(page.getByTestId('collection-form-income-scope-client')).toBeDisabled();
+    await expect(page.getByTestId('collection-form-income-kind-all')).toContainText('Todos (3)');
+    await expect(page.getByTestId('collection-form-income-kind-expected'))
+      .toContainText('Esperados (2)');
+    await expect(page.getByTestId('collection-form-income-kind-liquid'))
+      .toContainText('Líquidos (1)');
+
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('collection-form-income').click();
+
+    // Acme holds one income and it is liquid, so the estado counts split it.
+    await expect(page.getByTestId('collection-form-income-kind-liquid'))
+      .toContainText('Líquidos (1)');
+    await page.getByTestId('collection-form-income-kind-liquid').click();
+
+    // The whole point of the chips: they refine without ejecting you from the
+    // search box or collapsing the list you were reading.
+    await expect(page.getByTestId('collection-form-income')).toBeFocused();
+    await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
+
+    // An empty combination names itself instead of rendering a blank panel.
+    await page.getByTestId('collection-form-income-kind-expected').click();
+    await expect(page.getByTestId('collection-form-income-empty'))
+      .toContainText('Acme Soluciones no tiene ingresos esperados.');
+    await expect(page.getByTestId('collection-form-income')).toBeFocused();
+
+    // And it offers the way out, which is the second of the two clicks.
+    await page.getByTestId('collection-form-income-see-all').click();
+    await expect(page.getByTestId('collection-form-income-option-8')).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-client-22')).toHaveText('Torrios SAS');
+
+    // Filters combine with the search rather than being replaced by it.
+    await page.getByTestId('collection-form-income').fill('Torrios');
+    await expect(page.getByTestId('collection-form-income-option-22')).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-option-8')).toHaveCount(0);
+
+    // Clicking away dismisses the list: picking a row is no longer its only
+    // exit, which matters now that it also renders on zero results. The target
+    // is the modal title, above the field — anything below it sits under the
+    // dropdown itself.
+    await page.locator('#collection-form-title').click();
+    await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
+  });
+
+  test('a broken PDF viewer explains itself and keeps the download exits', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    // The step exists to review the document before it reaches the client.
+    // When the served PDF cannot render, the panel must say so in the app's
+    // own words — not the browser's connection-refused page — and leave
+    // Descargar / Abrir PDF as the way to review; the send is not blocked.
+    await mockApi(page, buildHandler({ calls: [], previewPdfStatus: 500 }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-scope-all').click();
+    await page.getByTestId('collection-form-income-option-8').click();
+    await page.getByTestId('collection-form-preview').click();
+
+    await expect(page.getByTestId('collection-preview-subject'))
+      .toContainText('PA-ACME-001');
+    await expect(page.getByTestId('collection-preview-pdf-error'))
+      .toContainText('No pudimos mostrar la previsualización');
+    await expect(page.getByTestId('collection-preview-pdf')).toHaveCount(0);
+    await expect(page.getByTestId('collection-preview-download-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-preview-open-pdf')).toBeVisible();
+    await expect(page.getByTestId('collection-form-confirm')).toBeEnabled();
   });
 
   test('an income of another client is refused before the preview is spent', {
@@ -694,7 +830,9 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-form-client').fill('Acme');
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('collection-form-income').click();
-    await page.getByTestId('collection-form-income-option-8').click();
+    // Acme's own income: this test is about the preview layout, so it takes the
+    // shortest route to it rather than widening the alcance.
+    await page.getByTestId('collection-form-income-option-21').click();
     await page.getByTestId('collection-form-preview').click();
 
     await expect(page.getByTestId('collection-preview-subject')).toBeVisible();
@@ -822,9 +960,12 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-view-detail-2').click();
     await page.getByTestId('collection-detail-go-to-income').click();
 
-    // Without the tab param Ingresos lands on its "Solo esperados" builtin,
-    // which filters the focused row straight out of its own list.
+    // El salto entrega los dos params. `focus` sólo destaca la fila una vez y
+    // la vista lo suelta al montar, así que se comprueba en el hand-off.
+    await page.waitForURL(/focus=8/);
+    // El tab sí describe lo que se está viendo y se queda: sin él Ingresos
+    // aterriza en su builtin "Solo esperados", que filtra la fila destacada
+    // fuera de su propia lista.
     await expect(page).toHaveURL(/accounting_incomeTab=all/);
-    await expect(page).toHaveURL(/focus=8/);
   });
 });

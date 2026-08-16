@@ -2,37 +2,15 @@
   <div v-show="isOpen" class="mb-4">
     <div class="bg-surface border border-border-default rounded-xl divide-y divide-border-muted">
 
-      <!-- Clasificación -->
+      <!-- Propuestas -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Clasificación</span>
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Propuestas</span>
         <ProposalFilterDropdown
-          label="Estado"
+          label="Estado de propuesta"
           :options="statusOptions"
           :model-value="modelValue.lastStatuses"
           @update:model-value="emit('update:modelValue', { ...modelValue, lastStatuses: $event })"
         />
-      </div>
-
-      <!-- Proyecto -->
-      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Proyecto</span>
-        <ProposalFilterDropdown
-          label="Tipo de proyecto"
-          :options="projectTypeOptions"
-          :model-value="modelValue.projectTypes"
-          @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
-        />
-        <ProposalFilterDropdown
-          label="Mercado"
-          :options="marketTypeOptions"
-          :model-value="modelValue.marketTypes"
-          @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
-        />
-      </div>
-
-      <!-- Propuestas -->
-      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
-        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Propuestas</span>
         <ProposalFilterRangeDropdown
           label="Total"
           type="number"
@@ -52,6 +30,90 @@
           :max-value="modelValue.acceptedMax"
           @update:min-value="emit('update:modelValue', { ...modelValue, acceptedMin: $event })"
           @update:max-value="emit('update:modelValue', { ...modelValue, acceptedMax: $event })"
+        />
+      </div>
+
+      <!-- Diagnóstico -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Diagnóstico</span>
+        <ProposalFilterChoiceDropdown
+          label="Diagnóstico"
+          test-id="client-filter-diagnostic-status"
+          :options="diagnosticStatusOptions"
+          :model-value="modelValue.diagnosticStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, diagnosticStatus: $event })"
+        />
+      </div>
+
+      <!-- Proyectos -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Proyectos</span>
+        <ProposalFilterChoiceDropdown
+          label="Proyecto"
+          test-id="client-filter-project-status"
+          :options="projectStatusOptions"
+          :model-value="modelValue.projectStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, projectStatus: $event })"
+        />
+        <ProposalFilterDropdown
+          label="Tipo de proyecto"
+          :options="projectTypeOptions"
+          :model-value="modelValue.projectTypes"
+          @update:model-value="emit('update:modelValue', { ...modelValue, projectTypes: $event })"
+        />
+        <ProposalFilterDropdown
+          label="Mercado"
+          :options="marketTypeOptions"
+          :model-value="modelValue.marketTypes"
+          @update:model-value="emit('update:modelValue', { ...modelValue, marketTypes: $event })"
+        />
+      </div>
+
+      <!-- Hosting -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Hosting</span>
+        <ProposalFilterChoiceDropdown
+          label="Hosting"
+          test-id="client-filter-hosting-status"
+          :options="hostingStatusOptions"
+          :model-value="modelValue.hostingStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, hostingStatus: $event })"
+        />
+      </div>
+
+      <!-- Contabilidad -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Contabilidad</span>
+        <ProposalFilterChoiceDropdown
+          label="Facturación"
+          test-id="client-filter-billing-data"
+          :options="billingDataOptions"
+          :model-value="modelValue.billingData || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, billingData: $event })"
+        />
+      </div>
+
+      <!-- Documentos -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Documentos</span>
+        <ProposalFilterChoiceDropdown
+          label="Documentos"
+          test-id="client-filter-documents-status"
+          :options="documentsStatusOptions"
+          :model-value="modelValue.documentsStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, documentsStatus: $event })"
+        />
+      </div>
+
+      <!-- Emails -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Emails</span>
+        <ProposalFilterChoiceDropdown
+          label="Correos"
+          test-id="client-filter-email-status"
+          :options="emailStatusOptions"
+          :model-value="modelValue.emailStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, emailStatus: $event })"
         />
       </div>
 
@@ -88,7 +150,14 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
+        <BaseButton
+          variant="danger-ghost"
+          icon-only
+          size="sm"
+          aria-label="Quitar"
+          :data-testid="`client-filter-chip-${chip.key}`"
+          @click="clearChip(chip.key)"
+        >&times;</BaseButton>
       </span>
     </div>
   </div>
@@ -98,6 +167,7 @@
 import { computed } from 'vue';
 import ProposalFilterDropdown from '~/components/proposals/ProposalFilterDropdown.vue';
 import ProposalFilterRangeDropdown from '~/components/proposals/ProposalFilterRangeDropdown.vue';
+import ProposalFilterChoiceDropdown from '~/components/proposals/ProposalFilterChoiceDropdown.vue';
 import {
   proposalStatusOptions as statusOptions,
   projectTypeOptions,
@@ -107,6 +177,26 @@ import {
   marketTypeLabelMap,
 } from '~/constants/filterOptions.js';
 import { formatDate } from '~/utils/formatDate';
+import { clientModuleName, subfilterOptionsFor } from '~/constants/clientFilters';
+
+// Derived from the subfilters themselves, so the panel can always rebuild any
+// predefined filter and the two can never drift apart.
+const hostingStatusOptions = subfilterOptionsFor('hosting', 'hostingStatus');
+const projectStatusOptions = subfilterOptionsFor('projects', 'projectStatus');
+const billingDataOptions = subfilterOptionsFor('accounting', 'billingData');
+const documentsStatusOptions = subfilterOptionsFor('documents', 'documentsStatus');
+const diagnosticStatusOptions = subfilterOptionsFor('diagnostics', 'diagnosticStatus');
+const emailStatusOptions = subfilterOptionsFor('emails', 'emailStatus');
+
+/** Chip label prefixed with the module the cut belongs to. */
+function moduleLabel(moduleId, text) {
+  const name = clientModuleName(moduleId);
+  return name ? `${name}: ${text}` : text;
+}
+
+function optionLabel(options, value) {
+  return options.find((o) => o.value === value)?.label || value;
+}
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -135,20 +225,40 @@ const activeChips = computed(() => {
   const chips = [];
   const mv = props.modelValue;
 
+  // Every chip names the module its cut comes from, so a list narrowed from
+  // several angles at once can still be read back one clause at a time.
   if (mv.lastStatuses?.length)
-    chips.push({ key: 'lastStatuses', label: `Estado: ${mv.lastStatuses.map((s) => statusLabelMap[s] || s).join(', ')}` });
-
-  if (mv.projectTypes?.length)
-    chips.push({ key: 'projectTypes', label: `Tipo: ${mv.projectTypes.map((t) => projectTypeLabelMap[t] || t).join(', ')}` });
-
-  if (mv.marketTypes?.length)
-    chips.push({ key: 'marketTypes', label: `Mercado: ${mv.marketTypes.map((t) => marketTypeLabelMap[t] || t).join(', ')}` });
+    chips.push({ key: 'lastStatuses', label: moduleLabel('proposals', mv.lastStatuses.map((s) => statusLabelMap[s] || s).join(', ')) });
 
   const total = formatRange(mv.totalProposalsMin, mv.totalProposalsMax);
-  if (total) chips.push({ key: 'totalProposals', label: `Total propuestas: ${total}` });
+  if (total) chips.push({ key: 'totalProposals', label: moduleLabel('proposals', `total ${total}`) });
 
   const accepted = formatRange(mv.acceptedMin, mv.acceptedMax);
-  if (accepted) chips.push({ key: 'accepted', label: `Aceptadas: ${accepted}` });
+  if (accepted) chips.push({ key: 'accepted', label: moduleLabel('proposals', `aceptadas ${accepted}`) });
+
+  if (mv.diagnosticStatus)
+    chips.push({ key: 'diagnosticStatus', label: moduleLabel('diagnostics', optionLabel(diagnosticStatusOptions, mv.diagnosticStatus)) });
+
+  if (mv.projectStatus)
+    chips.push({ key: 'projectStatus', label: moduleLabel('projects', optionLabel(projectStatusOptions, mv.projectStatus)) });
+
+  if (mv.projectTypes?.length)
+    chips.push({ key: 'projectTypes', label: moduleLabel('projects', `tipo ${mv.projectTypes.map((t) => projectTypeLabelMap[t] || t).join(', ')}`) });
+
+  if (mv.marketTypes?.length)
+    chips.push({ key: 'marketTypes', label: moduleLabel('projects', `mercado ${mv.marketTypes.map((t) => marketTypeLabelMap[t] || t).join(', ')}`) });
+
+  if (mv.hostingStatus)
+    chips.push({ key: 'hostingStatus', label: moduleLabel('hosting', optionLabel(hostingStatusOptions, mv.hostingStatus)) });
+
+  if (mv.billingData)
+    chips.push({ key: 'billingData', label: moduleLabel('accounting', optionLabel(billingDataOptions, mv.billingData)) });
+
+  if (mv.documentsStatus)
+    chips.push({ key: 'documentsStatus', label: moduleLabel('documents', optionLabel(documentsStatusOptions, mv.documentsStatus)) });
+
+  if (mv.emailStatus)
+    chips.push({ key: 'emailStatus', label: moduleLabel('emails', optionLabel(emailStatusOptions, mv.emailStatus)) });
 
   const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
   if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
@@ -163,6 +273,12 @@ const CHIP_RESET = {
   totalProposals: (mv) => { mv.totalProposalsMin = null; mv.totalProposalsMax = null; },
   accepted:       (mv) => { mv.acceptedMin = null; mv.acceptedMax = null; },
   activityRange:  (mv) => { mv.lastActivityAfter = null; mv.lastActivityBefore = null; },
+  hostingStatus:  (mv) => { mv.hostingStatus = ''; },
+  projectStatus:  (mv) => { mv.projectStatus = ''; },
+  billingData:    (mv) => { mv.billingData = ''; },
+  documentsStatus: (mv) => { mv.documentsStatus = ''; },
+  diagnosticStatus: (mv) => { mv.diagnosticStatus = ''; },
+  emailStatus:    (mv) => { mv.emailStatus = ''; },
 };
 
 function clearChip(key) {

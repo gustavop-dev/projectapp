@@ -14,6 +14,7 @@ from django.db.models import Count, F, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from accounts.models import Project
@@ -55,11 +56,13 @@ from content.serializers.accounting import (
     HostingCycleCreateSerializer,
     HostingCycleSerializer,
     HostingClientBulkAssignSerializer,
+    HostingProjectBulkAssignSerializer,
     HostingRecordCreateUpdateSerializer,
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
     IncomeClientBulkAssignSerializer,
+    IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
     NotificationRecipientCreateUpdateSerializer,
@@ -76,21 +79,33 @@ from content.serializers.accounting_statement import (
     MerchantAliasWriteSerializer,
 )
 from content.services import (
+    accounting_email_retry_service,
+    accounting_history_service,
     accounting_income_duplicate_service,
     accounting_income_mute_service,
     accounting_service,
     accounting_settlement_service,
 )
 from content.utils import today_bogota
+from content.views.history_pagination import (
+    email_body_response,
+    paginated_history_response,
+)
 
 EntityType = AccountingChangeLog.EntityType
 
 
-def _parse_date(value, param):
-    try:
-        return date.fromisoformat(value)
-    except (TypeError, ValueError):
-        raise ValueError(f"El parámetro '{param}' debe ser una fecha AAAA-MM-DD.")
+# The history service owns the parsing so its querysets and these views
+# reject a malformed date with the same message.
+_parse_date = accounting_history_service.parse_date_param
+
+# Builtin presets plus the per-user ceiling of saved tabs, with room to spare.
+MAX_TAB_COUNT_SPECS = 24
+
+# Shared with the per-client email modal, which pages the same rows through a
+# different scope. Re-exported under the old private names so the call sites
+# in this module read as they always did.
+_paginated_history_response = paginated_history_response
 
 
 def _parse_decimal(value, param):
@@ -143,6 +158,11 @@ def _income_meta(queryset, params):
         # Completion debt of the client link over the whole filtered set —
         # legacy rows live in past years, so the year window would hide them.
         'without_client_count': queryset.filter(client__isnull=True).count(),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        'without_project_count': queryset.filter(
+            client__isnull=False, project__isnull=True,
+        ).count(),
     }
 
 
@@ -206,6 +226,11 @@ def _hosting_meta(queryset, params):
             ),
         ),
         without_client_count=Count('id', filter=Q(client__isnull=True)),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        without_project_count=Count(
+            'id', filter=Q(client__isnull=False, project__isnull=True),
+        ),
     )
     return {
         'active_count': totals['active_count'] or 0,
@@ -213,6 +238,7 @@ def _hosting_meta(queryset, params):
         'total_paid': _money(totals['total_paid'] or 0),
         'expiring_soon_count': totals['expiring_soon_count'] or 0,
         'without_client_count': totals['without_client_count'] or 0,
+        'without_project_count': totals['without_project_count'] or 0,
     }
 
 
@@ -647,29 +673,46 @@ def retrieve_income_detail(request, record_id):
 
 
 @api_view(['GET'])
-@permission_classes([IsSuperUser])
+@permission_classes([IsAdminUser])
 def list_client_projects(request):
     """Projects to pick from, optionally scoped to one client.
 
     A panel endpoint of its own instead of reusing /api/accounts/projects/:
     that one speaks User ids while the accounting module speaks UserProfile
-    ids everywhere, it is IsAuthenticated rather than IsSuperUser, and its
-    serializer runs several per-row aggregates that a dropdown has no use for.
+    ids everywhere, and its serializer runs several per-row aggregates that a
+    dropdown has no use for.
+
+    IsAdminUser y no IsSuperUser como el resto del módulo: el picker también
+    alimenta el formulario de documentos (IsAdminUser) y sus filas no exponen
+    nada que el listado de documentos no muestre ya. Cada fila lleva su dueño
+    para que un caller sin cliente fijado (elegir proyecto PRIMERO) pueda
+    autocompletar el cliente desde la selección.
     """
-    qs = Project.objects.all().order_by('name')
+    from accounts.services.proposal_client_service import build_client_display_name
+
+    qs = Project.objects.select_related('client__profile').order_by('name')
     client_profile_id = request.query_params.get('client')
     if client_profile_id:
         # The picker is scoped by UserProfile, the project by User.
         qs = qs.filter(client__profile__id=client_profile_id)
-    return Response({'results': [
-        {
+
+    results = []
+    for project in qs:
+        profile = (
+            getattr(project.client, 'profile', None)
+            if project.client_id else None
+        )
+        results.append({
             'id': project.pk,
             'name': project.name,
             'status': project.status,
             'status_label': project.status_display,
-        }
-        for project in qs
-    ]})
+            'client_profile_id': profile.id if profile else None,
+            'client_display_name': (
+                build_client_display_name(profile) if profile else None
+            ),
+        })
+    return Response({'results': results})
 
 
 def _update_record(request, key, record_id):
@@ -814,6 +857,125 @@ def duplicate_income_draft(request, record_id):
     )
 
 
+def _optional_id(request, name):
+    """Query param as an id, or None — an unreadable one counts as absent.
+
+    The form asks while it is being filled, so a half-written value is an
+    ordinary state, not an error: it just means there is nothing to look the
+    antecedent up from yet.
+    """
+    raw = request.query_params.get(name)
+    try:
+        return int(raw) if raw else None
+    except (TypeError, ValueError):
+        return None
+
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def suggest_income_period(request):
+    """Where a client's next hosting window starts, so the form can propose it.
+
+    Persists nothing. Unlike the duplicate draft there is no record yet to
+    count from, so the client (and the project, when the form already has one)
+    arrive as query params.
+    """
+    previous_end, suggested_start = (
+        accounting_income_duplicate_service.suggest_next_period_start(
+            _optional_id(request, 'client'),
+            _optional_id(request, 'project'),
+        )
+    )
+    return Response({
+        'previous_period_end': previous_end.isoformat() if previous_end else None,
+        'suggested_start': suggested_start.isoformat(),
+    })
+
+
+def _missing_records_error(entity_type, record_ids, *, noun):
+    """409 naming every id that vanished, or ``None`` when they all exist.
+
+    A mass edit is confirmed against a named scope, so it runs on that scope
+    or not at all: writing the surviving half of a batch the operator never
+    agreed to is worse than asking them to look again. Runs BEFORE the
+    service, so its atomic block never opens.
+
+    The panel cannot close this window on its own — the confirmation dialog
+    freezes the plan when it opens, and the list can be refetched (or another
+    session can delete a row) while it sits there. `missing_ids` is what lets
+    the UI drop exactly those ids instead of guessing.
+    """
+    missing = accounting_service.missing_record_ids(entity_type, record_ids)
+    if not missing:
+        return None
+    count = len(missing)
+    verb = 'existe' if count == 1 else 'existen'
+    return error_response(
+        f'{count} de los {noun} seleccionados ya no {verb}.',
+        code='records_not_found',
+        hint='La lista se actualizó. Revisa la selección y vuelve a intentarlo.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'missing_ids': missing},
+    )
+
+
+def _collection_account_conflict_error(income_ids, client):
+    """409 naming incomes whose EXISTING client is frozen by an active cuenta.
+
+    The bulk mirror of the single-record serializer rule: an emitted (or
+    in-flight) cuenta went out in a client's name, so that client only
+    changes by anular y reemitir. Completing a missing client is not a
+    change — the legacy backlog and the issue-time adoption (which calls
+    the service directly) both stay untouched.
+    """
+    target_pk = client.pk if client else None
+    conflicting = sorted(
+        IncomeRecord.objects.filter(pk__in=income_ids)
+        .exclude(client_id=None)
+        .exclude(client_id=target_pk)
+        .filter(collection_documents__isnull=False)
+        .exclude(
+            collection_documents__commercial_status=(
+                Document.CommercialStatus.CANCELLED
+            ),
+        )
+        .values_list('pk', flat=True)
+        .distinct(),
+    )
+    if not conflicting:
+        return None
+    count = len(conflicting)
+    noun = 'ingreso' if count == 1 else 'ingresos'
+    verb = 'tiene' if count == 1 else 'tienen'
+    return error_response(
+        f'{count} de los {noun} seleccionados {verb} una cuenta de cobro '
+        'activa y no pueden cambiar de cliente.',
+        code='records_with_collection_account',
+        hint='Anula sus cuentas de cobro y vuelve a emitirlas para '
+             'reasignar el cliente.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'conflicting_ids': conflicting},
+    )
+
+
+def _with_liquid_children(updated):
+    """The updated incomes plus the liquid children their cascade rewrote.
+
+    The client/project cascades touch children the operator never selected;
+    without them in ``results`` the panel would map-replace the parents and
+    keep stale child rows. Children that were already aligned ride along
+    harmlessly — an identical replacement is a no-op.
+    """
+    expected_pks = [
+        record.pk for record in updated
+        if record.kind == IncomeRecord.Kind.EXPECTED
+    ]
+    return IncomeRecord.objects.filter(
+        Q(pk__in=[record.pk for record in updated])
+        | Q(expected_income_id__in=expected_pks),
+    )
+
+
 @api_view(['POST'])
 @permission_classes([IsSuperUser])
 def bulk_assign_income_client(request):
@@ -825,15 +987,29 @@ def bulk_assign_income_client(request):
     serializer = IncomeClientBulkAssignSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = serializer.validated_data['income_ids']
+    # Before reading `client`, so unlinking is held to the same contract.
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
+    conflict = _collection_account_conflict_error(
+        income_ids, serializer.validated_data.get('client'),
+    )
+    if conflict:
+        return conflict
     updated = accounting_service.bulk_assign_client(
         EntityType.INCOME,
-        serializer.validated_data['income_ids'],
+        income_ids,
         serializer.validated_data.get('client'),
         request.user,
     )
     return Response({
         'updated': len(updated),
-        'results': IncomeRecordSerializer(updated, many=True).data,
+        'results': IncomeRecordSerializer(
+            _with_liquid_children(updated), many=True,
+        ).data,
     })
 
 
@@ -848,11 +1024,118 @@ def bulk_assign_hosting_client(request):
     serializer = HostingClientBulkAssignSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    hosting_ids = serializer.validated_data['hosting_ids']
+    vanished = _missing_records_error(
+        EntityType.HOSTING, hosting_ids, noun='hostings',
+    )
+    if vanished:
+        return vanished
     updated = accounting_service.bulk_assign_client(
         EntityType.HOSTING,
-        serializer.validated_data['hosting_ids'],
+        hosting_ids,
         serializer.validated_data.get('client'),
         request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': HostingRecordSerializer(updated, many=True).data,
+    })
+
+
+def _project_mismatch_error(model, record_ids, project, *, noun):
+    """409 naming every id whose client does not own ``project``.
+
+    Same stale-plan philosophy as `_missing_records_error`: the panel builds
+    its plan from rows it already sees as the project's client's, so a
+    mismatch here means the selection changed under the open dialog — asking
+    the operator to look again beats writing a batch they never confirmed.
+    Client-less rows mismatch by definition: without a client there is no
+    ownership to satisfy (`validate_project_client_match` is the
+    single-record mirror of this rule). Clearing (project=None) skips the
+    check — removing a link needs no owner.
+    """
+    if project is None:
+        return None
+    mismatched = sorted(
+        pk for pk, client_user_id in model.objects.filter(
+            pk__in=record_ids,
+        ).values_list('pk', 'client__user_id')
+        if client_user_id != project.client_id
+    )
+    if not mismatched:
+        return None
+    count = len(mismatched)
+    verb = 'pertenece' if count == 1 else 'pertenecen'
+    return error_response(
+        f'{count} de los {noun} seleccionados no {verb} al cliente del '
+        'proyecto.',
+        code='client_mismatch',
+        hint='Asigna primero el cliente correcto: el proyecto debe ser suyo.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'mismatched_ids': mismatched},
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_income_project(request):
+    """Assign one project to several incomes at once (or clear it with null).
+
+    The project-side completion tool (mirror of the client one): filter by
+    "sin proyecto", select the rows and assign in one step without leaving
+    the accounting list.
+    """
+    serializer = IncomeProjectBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = serializer.validated_data['income_ids']
+    project = serializer.validated_data.get('project')
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
+    mismatch = _project_mismatch_error(
+        IncomeRecord, income_ids, project, noun='ingresos',
+    )
+    if mismatch:
+        return mismatch
+    updated = accounting_service.bulk_assign_project(
+        EntityType.INCOME, income_ids, project, request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': IncomeRecordSerializer(
+            _with_liquid_children(updated), many=True,
+        ).data,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_hosting_project(request):
+    """Assign one project to several hostings at once (or clear it with null).
+
+    Same completion path as incomes; hostings have no settlement children,
+    so ``results`` is exactly the updated rows.
+    """
+    serializer = HostingProjectBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    hosting_ids = serializer.validated_data['hosting_ids']
+    project = serializer.validated_data.get('project')
+    vanished = _missing_records_error(
+        EntityType.HOSTING, hosting_ids, noun='hostings',
+    )
+    if vanished:
+        return vanished
+    mismatch = _project_mismatch_error(
+        HostingRecord, hosting_ids, project, noun='hostings',
+    )
+    if mismatch:
+        return mismatch
+    updated = accounting_service.bulk_assign_project(
+        EntityType.HOSTING, hosting_ids, project, request.user,
     )
     return Response({
         'updated': len(updated),
@@ -1232,50 +1515,15 @@ def delete_card_snapshot(request, record_id):
 @permission_classes([IsSuperUser])
 def list_accounting_change_logs(request):
     """Audit trail, paginated 20 per page (it grows unbounded)."""
-    logs = AccountingChangeLog.objects.select_related('actor').all()
     params = request.query_params
     try:
-        if params.get('entity_type'):
-            logs = logs.filter(entity_type=params['entity_type'])
-        if params.get('object_id'):
-            logs = logs.filter(object_id=params['object_id'])
-        if params.get('action'):
-            logs = logs.filter(action=params['action'])
-        if params.get('actor'):
-            logs = logs.filter(actor_username__icontains=params['actor'])
-        if params.get('date_from'):
-            logs = logs.filter(
-                created_at__date__gte=_parse_date(
-                    params['date_from'], 'date_from',
-                ),
-            )
-        if params.get('date_to'):
-            logs = logs.filter(
-                created_at__date__lte=_parse_date(
-                    params['date_to'], 'date_to',
-                ),
-            )
+        logs = accounting_history_service.change_log_queryset(params)
     except ValueError as exc:
         return error_response_from_exc(exc)
 
-    total = logs.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    page_size = 20
-    offset = (page - 1) * page_size
-    num_pages = max(1, -(-total // page_size))
-
-    serializer = AccountingChangeLogSerializer(
-        logs[offset:offset + page_size], many=True,
+    return _paginated_history_response(
+        logs, params, AccountingChangeLogSerializer,
     )
-    return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
-    })
 
 
 # ── Notification recipients ──
@@ -1321,44 +1569,84 @@ def list_accounting_email_logs(request):
     shares the EmailLog table stays out. Paginated 20 per page like the
     change log — it grows unbounded.
     """
-    logs = EmailLog.objects.filter(template_key__in=EMAIL_TEMPLATE_LABELS)
     params = request.query_params
     try:
-        if params.get('template_key'):
-            logs = logs.filter(template_key=params['template_key'])
-        if params.get('status'):
-            logs = logs.filter(status=params['status'])
-        if params.get('recipient'):
-            logs = logs.filter(recipient__icontains=params['recipient'])
-        if params.get('date_from'):
-            logs = logs.filter(
-                sent_at__date__gte=_parse_date(
-                    params['date_from'], 'date_from',
-                ),
-            )
-        if params.get('date_to'):
-            logs = logs.filter(
-                sent_at__date__lte=_parse_date(params['date_to'], 'date_to'),
-            )
+        logs = accounting_history_service.email_log_queryset(params)
     except ValueError as exc:
         return error_response_from_exc(exc)
 
-    total = logs.count()
-    try:
-        page = max(1, int(params.get('page', 1)))
-    except (ValueError, TypeError):
-        page = 1
-    page_size = 20
-    offset = (page - 1) * page_size
-    num_pages = max(1, -(-total // page_size))
+    return _paginated_history_response(
+        logs.prefetch_related('targets'), params, EmailLogSerializer,
+    )
 
-    serializer = EmailLogSerializer(logs[offset:offset + page_size], many=True)
-    return Response({
-        'results': serializer.data,
-        'count': total,
-        'page': page,
-        'num_pages': num_pages,
-    })
+
+@api_view(['GET'])
+@permission_classes([IsSuperUser])
+def accounting_email_log_body(request, log_id):
+    """The message as it went out.
+
+    The history exists to diagnose, and without the body it can only confirm
+    that something was sent, not what. Scoped to the module's own notices so
+    this never becomes a reader for the proposal traffic sharing the table.
+    """
+    log = get_object_or_404(
+        EmailLog.objects.select_related('body'),
+        id=log_id,
+        template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    return email_body_response(log)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def retry_accounting_email_log(request, log_id):
+    """Re-send a failed notice to the address on the row, and only to it."""
+    log = get_object_or_404(
+        EmailLog, id=log_id, template_key__in=EMAIL_TEMPLATE_LABELS,
+    )
+    try:
+        attempt = accounting_email_retry_service.retry_send(log)
+    except accounting_email_retry_service.RetryError as exc:
+        return error_response(str(exc))
+    return Response(EmailLogSerializer(attempt).data, status=status.HTTP_201_CREATED)
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def accounting_history_tab_counts(request):
+    """How many rows each tab of the strip would show.
+
+    The other accounting views count their tabs in the browser over the rows
+    they already loaded; Historial is the one that paginates server-side, so
+    an honest badge — including the (0) — has to be asked for.
+
+    One COUNT per tab rather than a single conditional aggregate: the send
+    log joins its targets, so a digest naming fifty records would fan the
+    joined rowset out fifty times under a shared aggregate. Each count is an
+    indexed lookup, and the specs are capped.
+    """
+    scope = request.data.get('scope')
+    tabs = request.data.get('tabs')
+    if not isinstance(tabs, list):
+        return error_response("El parámetro 'tabs' debe ser una lista.")
+    if len(tabs) > MAX_TAB_COUNT_SPECS:
+        return error_response(
+            f'Máximo {MAX_TAB_COUNT_SPECS} pestañas por consulta.',
+        )
+
+    counts = {}
+    for spec in tabs:
+        if not isinstance(spec, dict) or spec.get('id') in (None, ''):
+            continue
+        try:
+            queryset = accounting_history_service.queryset_for(
+                scope, spec.get('filters') or {},
+            )
+        except ValueError as exc:
+            return error_response_from_exc(exc)
+        counts[str(spec['id'])] = queryset.count()
+
+    return Response({'counts': counts})
 
 
 # ── Settings ──

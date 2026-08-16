@@ -143,7 +143,7 @@ function onSubmit() {
         <BaseInput v-model="form.name" required />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Precio" required>
           <BaseCurrencyInput
             v-model="form.price"
@@ -154,7 +154,7 @@ function onSubmit() {
         <BaseFormField label="Moneda">
           <BaseSegmented v-model="form.currency" :options="currencyOptions" full-width />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField
         v-if="form.currency === 'USD'"
@@ -164,14 +164,14 @@ function onSubmit() {
         <BaseCurrencyInput v-model="form.cop_equivalent" />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Método de pago">
           <BaseSelect v-model="form.payment_method" :options="paymentMethodOptions" />
         </BaseFormField>
         <BaseFormField label="Frecuencia">
           <BaseSelect v-model="form.frequency" :options="frequencyOptions" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField
         v-if="isCustomFrequency"
@@ -199,7 +199,7 @@ function onSubmit() {
         />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField
           label="Día de cobro"
           :hint="isMonthlyFrequency ? '' : 'Sólo referencial: el próximo cobro sale de la fecha de arriba.'"
@@ -209,7 +209,7 @@ function onSubmit() {
         <BaseFormField label="Tipo de costo">
           <BaseSegmented v-model="form.cost_type" :options="costTypeOptions" full-width />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Categoría" hint="Agrupa el recurrente en la vista por categorías">
         <BaseSelect

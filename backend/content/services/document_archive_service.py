@@ -117,6 +117,11 @@ def unarchive_document(document):
     cadena está rota por un ciclo se lo manda ahí a propósito: una ubicación
     pobre es mejor que ninguna.
     """
+    # Lock de fila (no-op en SQLite/tests, lock real en MySQL/prod): serializa
+    # este unarchive con un archive_folder concurrente de un ancestro — la
+    # carrera que deja un documento activo sepultado bajo carpeta archivada.
+    Document.objects.select_for_update().filter(pk=document.pk).exists()
+
     if not document.is_archived:
         return {'changed': False, 'restored_chain': [], 'moved_to_root': False}
 
@@ -142,6 +147,9 @@ def archive_folder(folder):
     ya estaba archivado conserva su marca y su `archived_at` original, de modo
     que re-archivar no rejuvenece nada en la vista ordenada por antigüedad.
     """
+    # Lock de fila antes de computar descendientes (ver unarchive_document).
+    DocumentFolder.objects.select_for_update().filter(pk=folder.pk).exists()
+
     now = timezone.now()
     descendant_ids = folder.get_descendant_ids()
     scope_ids = {folder.pk} | descendant_ids
@@ -176,6 +184,9 @@ def unarchive_folder(folder):
     apuntando a esta carpeta (haría falta un ciclo, que sale antes), así que
     ninguna fila se actualiza dos veces.
     """
+    # Lock de fila antes de reabrir la cadena (ver unarchive_document).
+    DocumentFolder.objects.select_for_update().filter(pk=folder.pk).exists()
+
     restored_chain, broken = _restore_chain(folder.parent)
     if broken:
         DocumentFolder.objects.filter(pk=folder.pk).update(parent=None)

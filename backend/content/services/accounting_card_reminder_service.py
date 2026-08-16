@@ -16,6 +16,7 @@ from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
+from content.services import email_log_service
 from content.services.notification_recipient_service import (
     active_recipient_emails,
 )
@@ -37,7 +38,9 @@ def run_card_reminder(today=None):
 
     Returns True when an email was sent. Never raises.
     """
-    from content.models import AccountingSettings, CardBalanceSnapshot, EmailLog
+    from content.models import (
+        AccountingSettings, CardBalanceSnapshot, CreditCard, EmailLog,
+    )
     from content.services.accounting_service import latest_card_snapshots
 
     today = today or today_bogota()
@@ -85,6 +88,14 @@ def run_card_reminder(today=None):
         'cycle_friday': friday.isoformat(),
         'reminder_number': reminder_number,
     }
+    # The reminder is about the catalog cards whose debt is still unregistered,
+    # not about the snapshots it happens to quote, so those are what the
+    # history links it to.
+    targets = [
+        ('credit_card', card.pk, card.name)
+        for card in CreditCard.objects.filter(is_active=True)
+    ]
+    text_body = html_body = ''
 
     try:
         text_body = render_to_string(
@@ -103,25 +114,29 @@ def run_card_reminder(today=None):
         email.send(fail_silently=False)
     except Exception as exc:
         logger.warning('Failed to send card-debt reminder: %s', exc)
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            html_body=html_body,
+            text_body=text_body,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        html_body=html_body,
+        text_body=text_body,
+    )
 
     # System state, not a user change: update directly (no audit trail).
     AccountingSettings.objects.filter(pk=1).update(

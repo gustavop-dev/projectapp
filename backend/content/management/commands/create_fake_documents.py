@@ -25,6 +25,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from accounts.models import Project, UserProfile
+from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     Document,
     DocumentCollectionAccount,
@@ -35,6 +36,7 @@ from content.models import (
     DocumentType,
 )
 from content.services import collection_account_service as ca_service
+from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 
 User = get_user_model()
@@ -215,16 +217,32 @@ class Command(BaseCommand):
                 [Document.Status.PUBLISHED, Document.Status.DRAFT, Document.Status.ARCHIVED],
                 weights=[6, 3, 1],
             )[0]
-            doc = Document.objects.create(
+            # ~60% asociados (cliente, y proyecto cuando el par lo trae): el
+            # resto queda suelto a propósito — alimenta el recorte «Sin
+            # cliente» del gestor y el subfiltro «Sin documentos» de clientes.
+            project = client_user = None
+            client_name = ''
+            if clients and rng.random() < 0.6:
+                project, client_user = rng.choice(clients)
+                profile = getattr(client_user, 'profile', None)
+                client_name = build_client_display_name(profile) if profile else ''
+            doc = Document(
                 document_type=md_type,
                 folder=rng.choice(md_folders),
                 title=title,
                 status=status,
                 content_markdown=body,
                 language=Document.Language.ES,
+                project=project,
+                client_user=client_user,
+                client_name=client_name,
                 created_by=admin,
                 updated_by=admin,
             )
+            # Los documentos fake deben ser descargables como PDF igual que los
+            # reales: sin `content_json` el bug queda invisible al probar.
+            doc.content_json = build_content_json(doc, body)
+            doc.save()
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
             created_md += 1
 
@@ -484,7 +502,7 @@ class Command(BaseCommand):
         if not Document.objects.filter(
             title=unsigned_title, project=project, requires_signature=True,
         ).exists():
-            Document.objects.create(
+            unsigned = Document(
                 document_type=md_type,
                 folder=contract_folder,
                 title=unsigned_title,
@@ -502,6 +520,8 @@ class Command(BaseCommand):
                 created_by=admin,
                 updated_by=admin,
             )
+            unsigned.content_json = build_content_json(unsigned)
+            unsigned.save()
             created += 1
 
         # Already-signed contract (acceptance stamp filled in).
@@ -509,7 +529,7 @@ class Command(BaseCommand):
         if not Document.objects.filter(
             title=signed_title, project=project, requires_signature=True,
         ).exists():
-            Document.objects.create(
+            signed = Document(
                 document_type=md_type,
                 folder=contract_folder,
                 title=signed_title,
@@ -532,6 +552,8 @@ class Command(BaseCommand):
                 created_by=admin,
                 updated_by=admin,
             )
+            signed.content_json = build_content_json(signed)
+            signed.save()
             created += 1
 
         if created:

@@ -5,7 +5,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
-import { normalizeApiError } from './services/normalize_api_error';
+import { normalizeApiError, numericIdsFromError } from './services/normalize_api_error';
 
 /**
  * Accounting entities exposed by the backend (/api/accounting/...).
@@ -751,6 +751,65 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * fetchHistoryTabCounts: how many rows each predefined tab is worth.
+     *
+     * The other accounting views count their tabs in the browser over the
+     * rows already loaded; Historial paginates server-side, so an honest
+     * badge — the (0) included — has to be asked for. Deliberately does not
+     * touch `isLoading`: a stale badge must never blank the table.
+     *
+     * @param {'sends'|'changes'} scope
+     * @param {Array<{id: string|number, filters: object}>} tabs
+     */
+    async fetchHistoryTabCounts(scope, tabs) {
+      try {
+        const response = await create_request(
+          'accounting/history/tab-counts/', { scope, tabs },
+        );
+        return { success: true, counts: response.data.counts || {} };
+      } catch (error) {
+        console.error('Error fetching history tab counts:', error);
+        return { success: false, counts: {}, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * fetchEmailBody: the message a send log row actually delivered.
+     *
+     * Kept out of `isLoading` and `error` like the tab counts: opening one
+     * row's body must not blank the table behind the modal.
+     */
+    async fetchEmailBody(logId) {
+      try {
+        const response = await get_request(
+          `accounting/email-log/${logId}/body/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching email body:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
+     * retryEmailLog: re-send a failed notice to the address on that row.
+     *
+     * Returns the new log entry, which points back at the original through
+     * `retry_of` so the history shows both.
+     */
+    async retryEmailLog(logId) {
+      try {
+        const response = await create_request(
+          `accounting/email-log/${logId}/retry/`, {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error retrying email log:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
      * fetchSettings: Notification settings singleton.
      */
     async fetchSettings() {
@@ -859,6 +918,27 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * Where a client's next hosting window starts. Creating an income has no
+     * original to count from, so the antecedent — the last window already on
+     * the book — is resolved server-side. Persists nothing.
+     */
+    async fetchIncomePeriodSuggestion({ client, project } = {}) {
+      const params = new URLSearchParams();
+      if (client) params.set('client', String(client));
+      if (project) params.set('project', String(project));
+      const query = params.toString();
+      try {
+        const response = await get_request(
+          `accounting/incomes/period-suggestion/${query ? `?${query}` : ''}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching income period suggestion:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /**
      * Projects to pick from, scoped to one client. Memoized per client:
      * the form re-opens far more often than a client gains a project.
      */
@@ -878,6 +958,60 @@ export const useAccountingStore = defineStore('accounting', {
         console.error('Error fetching projects:', error);
         return { success: false, ...normalizeApiError(error) };
       }
+    },
+
+    /**
+     * Create a project from a picker without leaving the form (crear al
+     * vuelo). On success the memoized per-client list is updated in place —
+     * and the 'all' key dropped — so every open picker sees the new project
+     * without waiting out the cache. Returns the FULL annotated row: the
+     * caller decides whether to offer the client's backlog from its
+     * `unlinked_hostings_count`/`unlinked_incomes_count`; the picker cache
+     * keeps only the lean entry it lists.
+     */
+    async createProjectForClient(clientProfileId, { name }) {
+      try {
+        const response = await create_request('projects/create/', {
+          name,
+          client_profile_id: clientProfileId,
+        });
+        const row = response.data;
+        const entry = {
+          id: row.id,
+          name: row.name,
+          status: row.status,
+          status_label: row.status_label,
+        };
+        const key = clientProfileId ?? 'all';
+        const next = [...(this.projectsByClient[key] ?? []), entry]
+          .sort((a, b) => a.name.localeCompare(b.name));
+        const cache = { ...this.projectsByClient, [key]: next };
+        if (key !== 'all') delete cache.all;
+        this.projectsByClient = cache;
+        return { success: true, data: row };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudo crear el proyecto.'),
+        };
+      }
+    },
+
+    /**
+     * Drop memoized picker lists so the next open refetches. The projects
+     * module calls this after create/update/archive/restore — the memo is
+     * otherwise permanent and a renamed or archived project would keep its
+     * stale entry in every form.
+     */
+    invalidateProjectsCache(clientProfileId = null) {
+      if (clientProfileId === null) {
+        this.projectsByClient = {};
+        return;
+      }
+      const cache = { ...this.projectsByClient };
+      delete cache[clientProfileId];
+      delete cache.all;
+      this.projectsByClient = cache;
     },
 
     /**
@@ -942,7 +1076,18 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error assigning client to incomes:', error);
-        return { success: false, ...normalizeApiError(error) };
+        // `records_not_found` names rows that vanished under the open
+        // dialog; `records_with_collection_account` names rows whose client
+        // is frozen by an active cuenta. Either way the page drops exactly
+        // those instead of clearing the whole selection.
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'conflicting_ids'),
+          ],
+        };
       } finally {
         this.isUpdating = false;
       }
@@ -970,7 +1115,84 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error assigning client to hostings:', error);
-        return { success: false, ...normalizeApiError(error) };
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: numericIdsFromError(error),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignIncomeProject: link (or unlink, with project=null) several
+     * incomes to one project. `results` also carries the liquid children
+     * the cascade rewrote, so the in-place replacement misses nothing.
+     */
+    async bulkAssignIncomeProject(incomeIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-assign-project/',
+          { income_ids: incomeIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to incomes:', error);
+        // `records_not_found` / `client_mismatch` name the rows that fell
+        // out of the plan; the page drops exactly those from the selection.
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignHostingProject: link (or unlink) several hostings to one
+     * project. Replaces the affected rows in place, like the incomes one.
+     */
+    async bulkAssignHostingProject(hostingIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/hostings/bulk-assign-project/',
+          { hosting_ids: hostingIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.hostings = this.hostings.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to hostings:', error);
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
+        };
       } finally {
         this.isUpdating = false;
       }

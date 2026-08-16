@@ -80,6 +80,28 @@ class Command(BaseCommand):
         # standalone in tests. Without them every income stays unassigned,
         # which is a legitimate (and useful) seed state.
         client_profiles = list(UserProfile.objects.clients()[:8])
+        # Seed a small project catalog before resolving projects per client:
+        # the Projects module needs clients WITH projects (counts, scopes,
+        # the fly-create picker) and clients WITHOUT any (the indicator's
+        # bucket). The first two profiles get one — plus one archived row to
+        # exercise the Archivados scope — and the rest stay uncovered on
+        # purpose. delete_fake_data removes Project wholesale, so these need
+        # no source tag.
+        for offset, profile in enumerate(client_profiles[:2]):
+            if Project.objects.filter(client_id=profile.user_id).exists():
+                # Never widen an existing catalog: callers (and tests) that
+                # pre-created a project rely on every linked row using it.
+                continue
+            base = (profile.company_name or 'Proyecto demo').strip()
+            Project.objects.get_or_create(
+                client_id=profile.user_id, name=f'{base} Web',
+                defaults={'status': 'active'},
+            )
+            if offset == 0:
+                Project.objects.get_or_create(
+                    client_id=profile.user_id, name=f'{base} Legacy',
+                    defaults={'status': 'archived'},
+                )
         # A record's project must belong to its own client (the write
         # serializers enforce it), so the seed resolves projects per client
         # rather than picking from a global pool. Clients with no project
@@ -106,8 +128,19 @@ class Command(BaseCommand):
             total = Decimal(rng.randrange(400_000, 4_000_000, 10_000))
             gustavo, carlos = split_half(total)
             concept = rng.choice(INCOME_CONCEPTS)
+            # Cobro por diagnóstico: what the "Con diagnóstico facturado"
+            # subfilter of /panel/clients reads. Chosen by index rather than by
+            # concept so the cut always has data, and so `rng.choice` above is
+            # still consumed every iteration — the seeded stream, and every
+            # assertion that depends on it, stays exactly as it was. Index 3 is
+            # also the written-off row, which seeds the case the filter must
+            # exclude.
+            is_diagnostic = index % 4 == 0 or index % 8 == 3
+            if is_diagnostic:
+                concept = 'Diagnóstico técnico - Cobro único'
             origin = (
-                IncomeRecord.Origin.HOSTING if 'Hosting' in concept
+                IncomeRecord.Origin.DIAGNOSTIC if is_diagnostic
+                else IncomeRecord.Origin.HOSTING if 'Hosting' in concept
                 else IncomeRecord.Origin.DEVELOPMENT
             )
             # Every third income is left without a client on purpose: the

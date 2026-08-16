@@ -200,6 +200,27 @@ describe('useDocumentFolderStore', () => {
       expect(result.archivedDocuments).toBe(7)
     })
 
+    it('archiveFolder failure returns a normalized message for the toast', async () => {
+      patch_request.mockRejectedValueOnce({
+        response: { status: 500, data: { detail: 'boom' } },
+      })
+
+      const result = await store.archiveFolder(4)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('boom')
+      expect(result.errors).toEqual({ detail: 'boom' })
+    })
+
+    it('unarchiveFolder failure falls back to a Spanish message', async () => {
+      patch_request.mockRejectedValueOnce(new Error('network'))
+
+      const result = await store.unarchiveFolder(4)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('No se pudo restaurar la carpeta.')
+    })
+
     it('unarchiveFolder reports the ancestor chain it reopened', async () => {
       patch_request.mockResolvedValueOnce({
         data: {
@@ -273,6 +294,161 @@ describe('useDocumentFolderStore', () => {
 
       expect(store.archivedContentCount(folder)).toBe(3)
       expect(store.totalContentCount(folder)).toBe(3)
+    })
+  })
+
+  describe('subtree counters', () => {
+    /** Carpeta con los seis contadores absolutos, como los sirve el backend. */
+    const folder = (id, parent, {
+      docs = 0, subs = 0, archivedDocs = 0, archivedSubs = 0, archived = false,
+    } = {}) => ({
+      id,
+      parent,
+      name: `F${id}`,
+      is_archived: archived,
+      document_count: archived ? archivedDocs : docs,
+      children_count: archived ? archivedSubs : subs,
+      active_document_count: docs,
+      active_children_count: subs,
+      archived_document_count: archivedDocs,
+      archived_children_count: archivedSubs,
+    })
+
+    it('reports what a folder holds in its subfolders, not just its own', () => {
+      // «Familia» en producción: cero documentos propios, 12 dos niveles abajo.
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { docs: 1, subs: 2 }),
+        folder(3, 2, { docs: 6 }),
+        folder(4, 2, { docs: 5 }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(12)
+      expect(store.folderById(1).document_count).toBe(0)
+    })
+
+    it('carries the whole chain, four levels down', () => {
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { subs: 1 }),
+        folder(3, 2, { subs: 1 }),
+        folder(4, 3, { docs: 9 }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(9)
+    })
+
+    it('does not let sibling branches bleed into each other', () => {
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { docs: 7 }),
+        folder(8, null, { subs: 1 }),
+        folder(9, 8, { docs: 3 }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(7)
+      expect(store.recursiveDocumentCount(store.folderById(8))).toBe(3)
+    })
+
+    it('counts a branch promoted to the top exactly once', () => {
+      // A(activa) → B(archivada) → C(activa). El panel lista a C en la cima
+      // porque su contenedor está fuera del scope; si A también la contara, la
+      // suma de las filas pasaría del total de «Todos».
+      store.folders = [
+        folder(1, null, { docs: 2 }),
+        folder(2, 1, { archived: true }),
+        folder(3, 2, { docs: 5 }),
+      ]
+
+      const roots = store.scopedRootFolders('active')
+      expect(roots.map((f) => f.id)).toEqual([1, 3])
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(2)
+      expect(store.recursiveDocumentCount(store.folderById(3))).toBe(5)
+      expect(roots.reduce((n, f) => n + store.recursiveDocumentCount(f), 0)).toBe(7)
+    })
+
+    it('reaches archived content held inside an active folder', () => {
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { archivedDocs: 4, archived: true }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1), 'archived')).toBe(4)
+    })
+
+    it('gives the same tree a different answer per mode', () => {
+      store.folders = [
+        folder(1, null, { docs: 1, subs: 1 }),
+        folder(2, 1, { docs: 3, archivedDocs: 4 }),
+      ]
+      const root = () => store.folderById(1)
+
+      expect(store.recursiveDocumentCount(root(), 'active')).toBe(4)
+      expect(store.recursiveDocumentCount(root(), 'archived')).toBe(4)
+      expect(store.recursiveDocumentCount(root(), 'all')).toBe(8)
+    })
+
+    it('follows the whole ancestor chain when the tree is refetched', () => {
+      // Requisito de sincronización: mover un documento dos niveles arriba
+      // cambia DOS contadores, no sólo el de la carpeta tocada.
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { subs: 1 }),
+        folder(3, 2, { docs: 4 }),
+      ]
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(4)
+
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { subs: 1 }),
+        folder(3, 2, { docs: 1 }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(1)
+      expect(store.recursiveDocumentCount(store.folderById(2))).toBe(1)
+    })
+
+    it('falls back to the direct count for a folder outside the loaded tree', () => {
+      // Los resultados de `searchFolders` no viven en `folders` a propósito.
+      store.folders = []
+
+      expect(store.recursiveDocumentCount(folder(99, null, { docs: 3 }))).toBe(3)
+    })
+
+    it('rolls up a legacy payload without the absolute counters', () => {
+      store.folders = [
+        { id: 1, parent: null, document_count: 1, children_count: 1, is_archived: false },
+        { id: 2, parent: 1, document_count: 6, children_count: 0, is_archived: false },
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(7)
+    })
+
+    it('finishes on a cyclic parent chain instead of hanging the panel', () => {
+      store.folders = [folder(1, 2, { docs: 2 }), folder(2, 1, { docs: 3 })]
+
+      expect(Number.isFinite(store.recursiveDocumentCount(store.folderById(1)))).toBe(true)
+    })
+
+    it('cascadeContentOf names everything archiving would drag, at any depth', () => {
+      // El aviso decía «1 documento» antes de arrastrar todo el subárbol.
+      store.folders = [
+        folder(1, null, { docs: 1, subs: 1 }),
+        folder(2, 1, { docs: 6, archivedDocs: 2 }),
+      ]
+
+      expect(store.cascadeContentOf(store.folderById(1))).toMatchObject({ docs: 7, subs: 1 })
+    })
+
+    it('leaves the delete guard on the direct count, matching the 409', () => {
+      // Un contador recursivo acá haría que el tooltip contradijera al servidor.
+      store.folders = [
+        folder(1, null, { subs: 1 }),
+        folder(2, 1, { docs: 12 }),
+      ]
+
+      expect(store.recursiveDocumentCount(store.folderById(1))).toBe(12)
+      expect(store.totalContentCount(store.folderById(1))).toBe(1)
     })
   })
 })

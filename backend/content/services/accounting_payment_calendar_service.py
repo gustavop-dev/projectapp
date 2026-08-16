@@ -24,7 +24,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.db.models import F, Q
 from django.template.loader import render_to_string
 
-from content.services import accounting_service
+from content.services import accounting_service, email_log_service
 from content.services.accounting_notice_cadence import is_notice_due
 from content.services.hosting_expiry_service import (
     collect_hosting_notices,
@@ -360,6 +360,16 @@ def _send_digest(today, incomes, recurring, hostings, recipients, config):
     }
     metadata = _metadata(today, incomes, recurring, hostings, counts, config)
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
+    # One digest names many records; linking each of them is what lets the
+    # history answer "what went out for this hosting" from the hosting's row.
+    # And why it passes no client=: it names several at once, so filing it
+    # under whichever came first would be a lie the clients list would count.
+    targets = (
+        [('income', item['id'], item.get('title', '')) for item in incomes]
+        + [('recurring', item['id'], item.get('title', '')) for item in recurring]
+        + [('hosting', item['id'], item.get('title', '')) for item in hostings]
+    )
+    text_body = html_body = ''
 
     try:
         text_body = render_to_string('emails/accounting_payment_calendar.txt', context)
@@ -371,25 +381,29 @@ def _send_digest(today, incomes, recurring, hostings, recipients, config):
         email.send(fail_silently=False)
     except Exception as exc:
         logger.warning('Failed to send the payment calendar: %s', exc)
-        for recipient in recipients:
-            EmailLog.objects.create(
-                template_key=TEMPLATE_KEY,
-                recipient=recipient,
-                subject=subject,
-                status=EmailLog.Status.FAILED,
-                error_message=str(exc),
-                metadata=metadata,
-            )
+        email_log_service.record_send(
+            template_key=TEMPLATE_KEY,
+            recipients=recipients,
+            subject=subject,
+            status=EmailLog.Status.FAILED,
+            error_message=str(exc),
+            metadata=metadata,
+            targets=targets,
+            html_body=html_body,
+            text_body=text_body,
+        )
         return False
 
-    for recipient in recipients:
-        EmailLog.objects.create(
-            template_key=TEMPLATE_KEY,
-            recipient=recipient,
-            subject=subject,
-            status=EmailLog.Status.SENT,
-            metadata=metadata,
-        )
+    email_log_service.record_send(
+        template_key=TEMPLATE_KEY,
+        recipients=recipients,
+        subject=subject,
+        status=EmailLog.Status.SENT,
+        metadata=metadata,
+        targets=targets,
+        html_body=html_body,
+        text_body=text_body,
+    )
     logger.info(
         'Sent the payment calendar: %s ingresos, %s recurrentes, %s hostings',
         len(incomes), len(recurring), len(hostings),

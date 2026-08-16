@@ -88,6 +88,21 @@ class TestClientInheritance:
         assert follow_up.client_id == profile.pk
         assert follow_up.origin == IncomeRecord.Origin.DEVELOPMENT
 
+    def test_liquid_child_inherits_the_project(
+        self, superuser, make_client_profile,
+    ):
+        from accounts.models import Project
+
+        profile = make_client_profile()
+        project = Project.objects.create(name='Kore', client=profile.user)
+        income = make_expected(client=profile, project=project)
+
+        result = accounting_settlement_service.settle_expected_income(
+            income, settlement(), superuser,
+        )
+
+        assert result['liquid'].project_id == project.pk
+
     def test_client_less_income_settles_without_a_client(self, superuser):
         income = make_expected()
 

@@ -12,8 +12,8 @@
         @change="handleMobileSelect($event.target.value)"
       >
         <option value="all">Todas</option>
-        <option v-for="tab in tabs" :key="tab.id" :value="tab.id">
-          {{ tab.name }}{{ isModified(tab) ? ' •' : '' }}
+        <option v-for="tab in visibleTabs" :key="tab.id" :value="tab.id">
+          {{ tab.name }}{{ countFor(tab) != null ? ` (${countFor(tab)})` : '' }}{{ isModified(tab) ? ' •' : '' }}
         </option>
         <option v-if="showConfigTab" value="__config__">⚙ Configuraciones</option>
       </select>
@@ -30,12 +30,17 @@
           : 'border-transparent text-text-muted hover:text-text-default'"
         @click="$emit('select', 'all')"
       >
-        Todas
+        Todas<span
+          v-if="allCount != null"
+          data-testid="filter-tabs-count-all"
+          class="ml-1 text-xs tabular-nums text-text-subtle"
+          :title="countTitle"
+        >({{ allCount }})</span>
       </button>
 
       <!-- Saved tabs -->
       <div
-        v-for="tab in tabs"
+        v-for="tab in stripTabs"
         :key="tab.id"
         class="relative group flex items-center"
       >
@@ -49,6 +54,11 @@
           @click="$emit('select', tab.id)"
         >
           {{ tab.name }}<span
+            v-if="countFor(tab) != null"
+            :data-testid="`filter-tabs-count-${tab.id}`"
+            class="ml-1 text-xs tabular-nums text-text-subtle"
+            :title="countTitle"
+          >({{ countFor(tab) }})</span><span
             v-if="isModified(tab)"
             :data-testid="`filter-tabs-modified-${tab.id}`"
             class="ml-1 text-warning-strong"
@@ -105,6 +115,24 @@
           </BaseButton>
         </div>
       </div>
+
+      <!-- Overflow: what did not fit, so the strip never wraps or clips -->
+      <BaseDropdown
+        v-if="overflowTabs.length"
+        align="left"
+        width="w-64"
+        :items="overflowItems"
+      >
+        <template #trigger>
+          <span
+            data-testid="filter-tabs-overflow"
+            class="inline-block cursor-pointer px-3 py-2.5 text-sm font-medium transition-colors border-b-2 border-transparent -mb-px whitespace-nowrap text-text-muted hover:text-text-default"
+            :title="`${overflowTabs.length} pestañas más`"
+          >
+            +{{ overflowTabs.length }}
+          </span>
+        </template>
+      </BaseDropdown>
 
       <!-- "+" button to create new tab -->
       <button
@@ -176,7 +204,8 @@
 </template>
 
 <script setup>
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
+import BaseDropdown from '~/components/base/BaseDropdown.vue';
 import { sameFilters } from '~/composables/useSavedFilterTabs';
 import { SELECT_ARROW_STYLE as selectArrowStyle } from '~/utils/selectArrowStyle';
 
@@ -184,6 +213,15 @@ const props = defineProps({
   tabs: { type: Array, default: () => [] },
   activeTabId: { type: String, default: 'all' },
   isTabLimitReached: { type: Boolean, default: false },
+  // Optional per-tab match count, keyed by tab id, so a quick filter can show
+  // how many rows it would leave without being applied. Views that pass
+  // nothing render exactly as before.
+  counts: { type: Object, default: () => ({}) },
+  // What the count badge means, which is not the same sentence in every view.
+  countTitle: { type: String, default: 'Registros que cumplen este filtro' },
+  // How many tabs the strip shows before the rest move into a "+N" menu.
+  // 0 keeps the previous behaviour: every tab rendered inline.
+  maxVisible: { type: Number, default: 0 },
   // Opt-in fixed trailing "Configuraciones" tab (clients/proposals views).
   showConfigTab: { type: Boolean, default: false },
   configActive: { type: Boolean, default: false },
@@ -202,6 +240,63 @@ function isModified(tab) {
     && !sameFilters(tab.filters, tab.base_filters)
   );
 }
+
+/**
+ * Saved tabs carry numeric ids and builtins carry strings, so the lookup is
+ * keyed by the stringified id. Returns null (not 0) when there is no count,
+ * which is what keeps the badge off for the views that pass no `counts`.
+ */
+function countFor(tab) {
+  const value = props.counts[String(tab.id)];
+  return typeof value === 'number' ? value : null;
+}
+
+// "Todas" is rendered apart from the list, so its badge reads its own key.
+const allCount = computed(() => {
+  const value = props.counts.all;
+  return typeof value === 'number' ? value : null;
+});
+
+// A tab hidden from Configuración keeps existing; it just stops taking room.
+const visibleTabs = computed(() => props.tabs.filter((tab) => !tab.is_hidden));
+
+/**
+ * Split the strip into what is shown inline and what moves into the "+N".
+ *
+ * The selected tab is always inline: swapped with the last visible slot when
+ * it would have landed in the menu, so the strip never reads as if nothing
+ * were applied.
+ */
+const splitTabs = computed(() => {
+  const all = visibleTabs.value;
+  const limit = Number(props.maxVisible) || 0;
+  if (!limit || all.length <= limit) return { strip: all, overflow: [] };
+
+  const strip = all.slice(0, limit);
+  const overflow = all.slice(limit);
+  const active = overflow.find(
+    (tab) => String(tab.id) === String(props.activeTabId),
+  );
+  if (active) {
+    const displaced = strip[limit - 1];
+    strip[limit - 1] = active;
+    overflow[overflow.indexOf(active)] = displaced;
+  }
+  return { strip, overflow };
+});
+
+const stripTabs = computed(() => splitTabs.value.strip);
+const overflowTabs = computed(() => splitTabs.value.overflow);
+
+const overflowItems = computed(() =>
+  overflowTabs.value.map((tab) => {
+    const count = countFor(tab);
+    return {
+      label: count != null ? `${tab.name} (${count})` : tab.name,
+      onClick: () => emit('select', tab.id),
+    };
+  }),
+);
 
 function handleMobileSelect(value) {
   if (value === '__config__') {

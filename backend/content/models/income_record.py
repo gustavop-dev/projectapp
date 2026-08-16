@@ -1,6 +1,7 @@
 from django.db import models
 
 from .accounting_base import AccountingRecordBase, PartnerSplitMixin
+from .recurring_payment import RecurringPayment
 
 
 class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
@@ -70,6 +71,20 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
     # Month granularity by default (serializer accepts "YYYY-MM" → day 1);
     # a day other than 1 records the exact payment date when it is known.
     period_date = models.DateField()
+    # The service window a hosting income covers — only origin=hosting carries
+    # it (the write serializer enforces both directions). `period_end` is
+    # INCLUSIVE: start + cadence months − 1 day, so the next cycle starts the
+    # day after it. For hosting rows `period_date` is derived from
+    # `period_start`, keeping every ordering/KPI/filter on one axis. Cadence
+    # reuses the recurring-payments catalog rather than growing a third one.
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
+    period_cadence = models.CharField(
+        max_length=20,
+        choices=RecurringPayment.Frequency.choices,
+        blank=True,
+        default='',
+    )
     destination = models.CharField(
         max_length=10,
         choices=Destination.choices,

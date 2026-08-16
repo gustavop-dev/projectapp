@@ -36,6 +36,19 @@
             @update:min-value="setValue(field.minKey, $event)"
             @update:max-value="setValue(field.maxKey, $event)"
           />
+          <div v-else-if="field.kind === 'text'" class="flex items-center gap-2">
+            <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
+              {{ field.label }}
+            </span>
+            <BaseInput
+              size="sm"
+              class="w-44"
+              :placeholder="field.placeholder || ''"
+              :data-testid="`accounting-filter-text-${field.key}`"
+              :model-value="modelValue[field.key] || ''"
+              @update:model-value="setValue(field.key, $event)"
+            />
+          </div>
           <div v-else-if="field.kind === 'segmented'" class="flex items-center gap-2">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
               {{ field.label }}
@@ -93,6 +106,7 @@ import { computed } from 'vue';
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ProposalFilterDropdown from '~/components/proposals/ProposalFilterDropdown.vue';
 import ProposalFilterRangeDropdown from '~/components/proposals/ProposalFilterRangeDropdown.vue';
+import BaseInput from '~/components/base/BaseInput.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 
 const props = defineProps({
@@ -102,6 +116,7 @@ const props = defineProps({
    * { kind: 'range', minKey, maxKey, label, type: 'number' }
    * { kind: 'daterange', minKey, maxKey, label }
    * { kind: 'segmented', key, label, options: [{ value, label }] }
+   * { kind: 'text', key, label, placeholder }
    */
   fields: { type: Array, required: true },
   modelValue: { type: Object, required: true },
@@ -174,6 +189,14 @@ const appliedChips = computed(() => {
       chips.push({
         id: field.key,
         label: `${field.label}: ${optionLabel(field, value)}`,
+        clear: () => setValue(field.key, ''),
+      });
+    } else if (field.kind === 'text') {
+      const value = props.modelValue[field.key];
+      if (!hasValue(value) || !String(value).trim()) continue;
+      chips.push({
+        id: field.key,
+        label: `${field.label}: ${String(value).trim()}`,
         clear: () => setValue(field.key, ''),
       });
     }

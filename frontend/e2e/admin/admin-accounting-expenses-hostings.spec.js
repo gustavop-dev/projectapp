@@ -182,6 +182,15 @@ function buildHandler({
         body: JSON.stringify({ ...HOSTING_ROWS[0], id: 99, ...body }),
       };
     }
+    if (/^accounting\/hostings\/\d+\/delete\/$/.test(apiPath) && method === 'DELETE') {
+      calls.push({ apiPath, method });
+      // The page refetches after every mutation, so the mock has to drop the
+      // row like the server would or the reload would bring it back.
+      const id = Number(apiPath.split('/')[2]);
+      const index = hostings.findIndex((row) => row.id === id);
+      if (index !== -1) hostings.splice(index, 1);
+      return { status: 204, contentType: 'application/json', body: '' };
+    }
     if (apiPath === 'accounting/hostings/bulk-assign-client/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
@@ -555,5 +564,34 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
     );
     // Only the linked row travels — the unassigned one had nothing to lose.
     expect(bulk.body).toEqual({ hosting_ids: [1], client: null });
+  });
+
+  test('deleting a selected hosting drops it from the bar and keeps the rest', {
+    tag: [...ADMIN_ACCOUNTING_HOSTING_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Hostings and incomes share the bar and now share the selection
+    // composable too. This is the spec that catches a fix applied to only one
+    // of the two pages.
+    await mockApi(page, buildHandler({
+      hostings: [HOSTING_ROWS[0], HOSTING_ROWS[1]],
+      calls: [],
+    }));
+    // quality: allow-deep-link (the tab is a subnav entry; what is under test
+    // is the selection surviving a row delete, which IS driven below)
+    await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
+    await expect(
+      page.getByRole('heading', { name: 'Hostings', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await expect(page.getByTestId('hostings-bulk-bar')).toContainText('2 seleccionados');
+
+    await page.getByTestId('accounting-delete-2').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    await expect(page.getByTestId('hostings-bulk-bar')).toContainText('1 seleccionado');
+    await expect(page.getByTestId('hostings-bulk-outside')).toHaveCount(0);
   });
 });

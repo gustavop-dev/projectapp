@@ -160,6 +160,16 @@ describe('useDocumentStore', () => {
       expect(store.activeTagIds).toEqual([1, 3])
       expect(get_request).toHaveBeenCalledWith('documents/?scope=active&tags=1%2C3')
     })
+
+    it('keeps the archived scope when toggling a tag', async () => {
+      // Togglear una etiqueta dentro de Archivados no debe devolver al usuario
+      // a la vista de activos: el scope viaja explícito en el refetch.
+      store.archiveScope = 'archived'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.toggleTagFilter(8)
+      expect(store.activeTagIds).toEqual([8])
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=archived&tags=8')
+    })
   })
 
   describe('fetchDocument', () => {
@@ -307,6 +317,35 @@ describe('useDocumentStore', () => {
       get_request.mockRejectedValue(new Error('boom'))
       const result = await store.downloadPdf(1)
       expect(result.success).toBe(false)
+    })
+
+    it('surfaces the backend detail carried inside the error blob', async () => {
+      // Con responseType: 'blob' el 400 llega como Blob, no como JSON: sin
+      // leerlo el usuario sólo ve el mensaje genérico.
+      get_request.mockRejectedValue({
+        response: {
+          status: 400,
+          data: new Blob(
+            [JSON.stringify({ detail: 'El documento no tiene contenido para generar el PDF.' })],
+            { type: 'application/json' },
+          ),
+        },
+      })
+
+      const result = await store.downloadPdf(122, 'Estimate')
+
+      expect(result.success).toBe(false)
+      expect(result.message).toBe('El documento no tiene contenido para generar el PDF.')
+    })
+
+    it('falls back to the generic message when the error blob is not json', async () => {
+      get_request.mockRejectedValue({
+        response: { status: 500, data: new Blob(['<html>oops</html>'], { type: 'text/html' }) },
+      })
+
+      const result = await store.downloadPdf(1)
+
+      expect(result.message).toBe('No se pudo descargar el PDF.')
     })
   })
 
@@ -462,6 +501,41 @@ describe('useDocumentStore', () => {
 
       expect(store.searchResults).toEqual([{ id: 2 }])
     })
+
+    it('turns the search loading flag on while searching and off when done', async () => {
+      let resolve
+      get_request.mockReturnValueOnce(new Promise((r) => { resolve = r }))
+
+      const pending = store.searchDocuments('mapeo')
+      expect(store.isSearchLoading).toBe(true)
+
+      resolve({ data: [] })
+      await pending
+
+      expect(store.isSearchLoading).toBe(false)
+    })
+
+    it('a stale search response neither clears the flag nor writes results', async () => {
+      let resolveFirst
+      let resolveSecond
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveFirst = r }))
+      get_request.mockReturnValueOnce(new Promise((r) => { resolveSecond = r }))
+
+      const first = store.searchDocuments('ma')
+      const second = store.searchDocuments('mapeo')
+      resolveFirst({ data: [{ id: 1 }] })
+      await first
+
+      // La búsqueda vieja terminó, pero la vigente sigue en vuelo.
+      expect(store.isSearchLoading).toBe(true)
+      expect(store.searchResults).toEqual([])
+
+      resolveSecond({ data: [{ id: 2 }] })
+      await second
+
+      expect(store.isSearchLoading).toBe(false)
+      expect(store.searchResults).toEqual([{ id: 2 }])
+    })
   })
 
   describe('panel counts', () => {
@@ -485,6 +559,52 @@ describe('useDocumentStore', () => {
 
       expect(store.counts.documents.active).toBe(89)
       expect(store.counts.documents.archived).toBe(3)
+    })
+  })
+
+  describe('association axes (client/project)', () => {
+    it('sends client and project params when the axes are set', async () => {
+      store.activeClientId = 4
+      store.activeProjectId = 9
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=4&project=9')
+    })
+
+    it('sends the none sentinel for the unlinked cut', async () => {
+      store.activeClientId = 'none'
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.fetchDocuments()
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=none')
+    })
+
+    it('setFilters updates the axes and refetches with them', async () => {
+      get_request.mockResolvedValueOnce({ data: [] })
+      await store.setFilters({ client: 4, project: 'none' })
+      expect(store.activeClientId).toBe(4)
+      expect(store.activeProjectId).toBe('none')
+      expect(get_request).toHaveBeenCalledWith('documents/?scope=active&client=4&project=none')
+    })
+  })
+
+  describe('fetchFolderClientSuggestion', () => {
+    it('asks the endpoint for the folder and returns its payload', async () => {
+      get_request.mockResolvedValueOnce({
+        data: { client: 3, client_display_name: 'Ana Pérez' },
+      })
+      const result = await store.fetchFolderClientSuggestion(12)
+      expect(get_request).toHaveBeenCalledWith('documents/folder-client-suggestion/?folder=12')
+      expect(result).toEqual({
+        success: true,
+        data: { client: 3, client_display_name: 'Ana Pérez' },
+      })
+    })
+
+    it('reports failure without touching the list loading flag', async () => {
+      get_request.mockRejectedValueOnce({ response: { data: { folder: 'x' } } })
+      const result = await store.fetchFolderClientSuggestion(12)
+      expect(result.success).toBe(false)
+      expect(store.isLoading).toBe(false)
     })
   })
 })

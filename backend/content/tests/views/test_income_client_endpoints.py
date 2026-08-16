@@ -83,8 +83,13 @@ class TestClientFilter:
         assert 'Acme - Inicio' in body
         assert 'Reembolso banco' not in body
         # Appended columns: the header keeps its first five in place and the
-        # client rides along in the same row, under its display name.
-        assert body.splitlines()[0].endswith('Cliente,Origen,Proyecto')
+        # client rides along in the same row, under its display name. The
+        # period trio was appended after it (same append-only rule), so the
+        # client block sits mid-header now — assert the order, not the tail.
+        assert (
+            'Cliente,Origen,Proyecto,Período inicio,Período fin,Periodicidad'
+            in body.splitlines()[0]
+        )
         assert build_client_display_name(acme) in body
 
 
@@ -216,9 +221,11 @@ class TestBulkAssignClient:
             action=AccountingChangeLog.Action.UPDATED,
         ).exists()
 
-    def test_unknown_ids_are_ignored(
+    def test_unknown_ids_are_rejected_and_nothing_is_written(
         self, super_client, make_income, make_client_profile,
     ):
+        # A mass edit is confirmed against a named scope, so a vanished row
+        # aborts the whole batch instead of quietly writing the rest.
         profile = make_client_profile()
         income = make_income(concept='Acme - Inicio')
 
@@ -228,7 +235,46 @@ class TestBulkAssignClient:
             format='json',
         )
 
-        assert response.data['updated'] == 1
+        assert response.status_code == 409
+        assert response.data['code'] == 'records_not_found'
+        assert response.data['missing_ids'] == [999999]
+        income.refresh_from_db()
+        assert income.client_id is None
+        assert not AccountingChangeLog.objects.filter(
+            action=AccountingChangeLog.Action.UPDATED,
+        ).exists()
+
+    def test_the_error_names_every_missing_id(
+        self, super_client, make_income, make_client_profile,
+    ):
+        profile = make_client_profile()
+        income = make_income(concept='Acme - Inicio')
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk, 999998, 999999], 'client': profile.pk},
+            format='json',
+        )
+
+        assert response.data['missing_ids'] == [999998, 999999]
+        assert '2 de los ingresos seleccionados ya no existen' in response.data['error']
+
+    def test_unlinking_is_held_to_the_same_contract(
+        self, super_client, make_income, make_client_profile,
+    ):
+        # The check runs before `client` is read, so clearing it is covered
+        # by the same guard as assigning.
+        income = make_income(concept='Acme - Inicio', client=make_client_profile())
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk, 999999], 'client': None},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        income.refresh_from_db()
+        assert income.client_id is not None
 
     def test_empty_id_list_is_rejected(self, super_client, make_client_profile):
         response = super_client.post(
@@ -390,3 +436,154 @@ class TestClientCascadeToLiquids:
         assert response.status_code == 200, response.data
         liquid.refresh_from_db()
         assert liquid.client_id == acme.pk
+
+
+class TestBulkClientAssignClearsForeignProject:
+    def test_the_previous_clients_project_is_cleared_and_cascaded(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """The bulk mirror of the single-record serializer rule: a record
+        must never point at someone else's project. The liquid child follows
+        both the client and the cleared project, and the rewritten rows
+        travel in ``results`` so the panel can rebuild them."""
+        from accounts.models import Project
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        project = Project.objects.create(name='Kore Web', client=kore.user)
+        expected = make_income(
+            concept='Kore - Inicio', kind='expected',
+            client=kore, project=project,
+        )
+        liquid = make_income(
+            concept='Kore - Inicio', kind='liquid',
+            expected_income=expected, client=kore, project=project,
+        )
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [expected.pk], 'client': acme.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        expected.refresh_from_db()
+        liquid.refresh_from_db()
+        assert expected.client_id == acme.pk
+        assert expected.project_id is None
+        assert liquid.project_id is None
+        assert liquid.pk in {row['id'] for row in response.data['results']}
+
+    def test_an_active_cuenta_freezes_an_existing_client(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Requisito 6: the cuenta went out in a client's name; that client
+        only changes by anular y reemitir. Single PATCH and bulk agree."""
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Con cuenta', client=kore)
+        Document.objects.create(
+            title='CC Kore',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.ISSUED,
+            income_record=income,
+        )
+
+        single = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'client': acme.pk}, format='json',
+        )
+        bulk = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk}, format='json',
+        )
+
+        assert single.status_code == 400
+        assert 'cuenta de cobro activa' in str(single.data['client'])
+        assert bulk.status_code == 409
+        assert bulk.data['code'] == 'records_with_collection_account'
+        assert bulk.data['conflicting_ids'] == [income.pk]
+        income.refresh_from_db()
+        assert income.client_id == kore.pk
+
+    def test_completing_a_missing_client_stays_allowed(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """The legacy backlog: 92 of 115 cuenta-linked incomes had no client
+        when the link arrived. Completion is not a change of identity."""
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Legacy con cuenta')
+        Document.objects.create(
+            title='CC legacy',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.ISSUED,
+            income_record=income,
+        )
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk}, format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+
+    def test_a_cancelled_cuenta_frees_the_income(
+        self, super_client, make_income, make_client_profile,
+    ):
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Cuenta anulada', client=kore)
+        Document.objects.create(
+            title='CC anulada',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.CANCELLED,
+            income_record=income,
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'client': acme.pk}, format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+
+    def test_a_project_already_owned_by_the_new_client_is_kept(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Legacy rows can carry a project without a client; adopting the
+        project's own client must not throw that link away."""
+        from accounts.models import Project
+
+        acme = make_client_profile(company='Acme SAS')
+        project = Project.objects.create(name='Acme Web', client=acme.user)
+        income = make_income(concept='Legacy sin cliente', project=project)
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+        assert income.project_id == project.pk

@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia';
 import { isRootInScope, matchesScope } from '~/utils/archiveScope';
+import { buildFolderRollup, directRollupRecord } from '~/utils/folderRollup';
 import {
   get_request, create_request, patch_request, delete_request,
 } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 export const useDocumentFolderStore = defineStore('documentFolders', {
   state: () => ({
@@ -68,6 +70,88 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
           .forEach((f) => pending.push(f.id));
       }
       return result;
+    },
+
+    // ── Conteos del subárbol ──────────────────────────────────────────────
+    // Los cuatro rollups son getters SIN ARGUMENTOS a propósito, y eso es
+    // load-bearing: un getter que devuelve una closure no lo cachea Pinia, así
+    // que `rollup: (state) => (scope) => build(...)` reconstruiría el mapa
+    // entero una vez POR FILA del panel. Sin argumentos son `computed` de
+    // verdad, y se recalculan sólo cuando cambia `folders` — que es justo lo
+    // que hace que los contadores sigan a cualquier archivado, movimiento o
+    // borrado sin código de invalidación: `refreshView` vuelve a pedir la
+    // lista y toda la cadena de ancestros se recalcula sola.
+
+    /** Modo normal: se cuenta lo activo y se baja sólo por carpetas activas. */
+    activeRollup(state) {
+      return buildFolderRollup(state.folders, {
+        countingScope: 'active', membershipScope: 'active',
+      });
+    },
+
+    /**
+     * Modo archivado: se cuenta lo archivado, pero se baja por el árbol
+     * COMPLETO — una carpeta activa puede guardar documentos archivados, y
+     * bajando sólo por archivadas no quedarían en ninguna fila.
+     */
+    archivedRollup(state) {
+      return buildFolderRollup(state.folders, {
+        countingScope: 'archived', membershipScope: 'all',
+      });
+    },
+
+    /** Modo mixto: los dos estados, sobre el árbol completo. */
+    mixedRollup(state) {
+      return buildFolderRollup(state.folders, {
+        countingScope: 'all', membershipScope: 'all',
+      });
+    },
+
+    /**
+     * Lo que se llevaría por delante archivar la carpeta.
+     *
+     * `archive_folder` arrastra TODO el subárbol (`get_descendant_ids`, sin
+     * mirar estados) pero sólo tiene efecto sobre lo que todavía está activo:
+     * de ahí la combinación activo-sobre-árbol-completo, que no coincide con
+     * ninguno de los tres modos de vista.
+     */
+    cascadeRollup(state) {
+      return buildFolderRollup(state.folders, {
+        countingScope: 'active', membershipScope: 'all',
+      });
+    },
+
+    rollupFor() {
+      return (scope) => {
+        if (scope === 'archived') return this.archivedRollup;
+        if (scope === 'all') return this.mixedRollup;
+        return this.activeRollup;
+      };
+    },
+
+    /**
+     * Conteos de la carpeta con todo lo que cuelga de ella.
+     *
+     * Cae a los conteos DIRECTOS cuando la carpeta no está en el mapa: los
+     * resultados de `searchFolders` son carpetas que a propósito no viven en
+     * `folders`, y prefieren un número corto a un cero.
+     */
+    rollupOf() {
+      return (folder, scope = 'active') => (
+        this.rollupFor(scope).get(folder?.id) ?? directRollupRecord(folder, scope)
+      );
+    },
+
+    /** El número de documentos de la fila del panel: el subárbol entero. */
+    recursiveDocumentCount() {
+      return (folder, scope = 'active') => this.rollupOf(folder, scope).docs;
+    },
+
+    /** Lo que arrastraría archivar la carpeta, para el aviso de confirmación. */
+    cascadeContentOf() {
+      return (folder) => (
+        this.cascadeRollup.get(folder?.id) ?? directRollupRecord(folder, 'active')
+      );
     },
 
     /** Elementos archivados que la carpeta todavía guarda (estado mixto). */
@@ -157,7 +241,11 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       } catch (error) {
         this.error = 'archive_folder_failed';
         console.error('Error archiving folder:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo archivar la carpeta.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;
@@ -185,7 +273,11 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       } catch (error) {
         this.error = 'unarchive_folder_failed';
         console.error('Error unarchiving folder:', error);
-        return { success: false, errors: error.response?.data };
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(error, 'No se pudo restaurar la carpeta.'),
+        };
       /* c8 ignore next 3 */
       } finally {
         this.isUpdating = false;

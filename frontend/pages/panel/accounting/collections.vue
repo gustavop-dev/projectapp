@@ -156,8 +156,14 @@
           </span>
         </template>
         <template #cell-project_name="{ row }">
-          <span v-if="row.project_name" class="text-text-default">
+          <span v-if="row.project_name" class="inline-flex items-center gap-1 text-text-default">
             {{ row.project_name }}
+            <!-- Only documents whose live FK survives get the jump; older
+                 rows keep the frozen snapshot text with no link (by design). -->
+            <ProjectSpaceLink
+              :project-id="row.project_id"
+              :data-testid="`collection-project-space-${row.id}`"
+            />
           </span>
           <!-- Empty is a legitimate state here (a cobro por diagnóstico has
                no project yet), so it gets no debt pill — unlike the client. -->
@@ -212,6 +218,17 @@
               @click="downloadPdf(row)"
             >
               <DocumentArrowDownIcon class="w-5 h-5" />
+            </BaseButton>
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Ver correos de esta cuenta"
+              title="Ver qué correos salieron por esta cuenta de cobro"
+              :data-testid="`collection-emails-${row.id}`"
+              @click="goToCollectionEmails(row)"
+            >
+              <EnvelopeIcon class="w-5 h-5" />
             </BaseButton>
             <BaseButton
               v-if="row.commercial_status === 'issued' || row.commercial_status === 'paid'"
@@ -312,6 +329,7 @@ import {
   ChatBubbleBottomCenterTextIcon,
   CheckCircleIcon,
   DocumentArrowDownIcon,
+  EnvelopeIcon,
   EyeIcon,
   NoSymbolIcon,
   PaperAirplaneIcon,
@@ -329,6 +347,7 @@ import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import {
@@ -338,19 +357,18 @@ import {
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useAccountingStore } from '~/stores/accounting';
+import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
+import { historySendsLink } from '~/utils/historyDeepLink';
 import { originLabel, originTone, statusBadgeClass } from '~/utils/collectionStatus';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
-const route = useRoute();
-
-// ?focus=<id> flashes a row (bidirectional navigation from Ingresos).
-const highlightId = ref(route.query.focus ? Number(route.query.focus) : null);
 
 const meta = computed(() => store.collectionAccountsMeta || {});
 
@@ -376,10 +394,16 @@ const matchClients = (record, value) => {
 };
 matchClients.keys = ['clients'];
 
+// The live FK is the filter key — same contract as hostings/incomes, so one
+// project id selects the same work everywhere. The frozen snapshot name only
+// answers for legacy rows whose project was deleted (SET_NULL); a row with
+// neither never had a project. The CELL keeps showing the snapshot: what the
+// issued document says is not up for reinterpretation.
 const matchProjects = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
-  if (!record.project_name) return value.includes(NO_PROJECT_KEY);
-  return value.includes(record.project_name);
+  if (record.project_id != null) return value.includes(record.project_id);
+  if (record.project_name) return value.includes(record.project_name);
+  return value.includes(NO_PROJECT_KEY);
 };
 matchProjects.keys = ['projects'];
 
@@ -409,8 +433,10 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_collections',
+  ephemeralParams: ['focus'],
   builtinTabs: [
     { id: 'open', name: 'Por cobrar', filters: { status: 'issued' } },
     { id: 'overdue', name: 'Vencidas', filters: { status: 'overdue' } },
@@ -442,6 +468,12 @@ const {
   ],
 });
 
+// ?focus=<id> flashes a row (bidirectional navigation from Ingresos). Se lee
+// por `consumeParam` y no por `route.query`: el param siembra la vista una vez
+// y sale de la URL, en vez de quedarse re-encendiendo el destello en cada F5.
+const focusParam = consumeParam('focus');
+const highlightId = ref(focusParam ? Number(focusParam) : null);
+
 const filteredRows = computed(() => applyFilters(store.collectionAccounts));
 
 /** Derived from the loaded rows, like every other accounting tab. */
@@ -458,17 +490,45 @@ const clientFilterOptions = computed(() => {
   return [{ value: NO_CLIENT_KEY, label: 'Sin cliente' }, ...options];
 });
 
-// Keyed by name, not id: `project_name` is the frozen snapshot the row
-// carries, so the document and the filter can never disagree.
+/**
+ * Catalog ids first (history.vue pattern) so a project with zero cuentas is
+ * still selectable, defensively unioned with row-derived ids the catalog no
+ * longer lists. Legacy snapshot-only rows (FK lost) keep their name entries,
+ * marked "(histórico)" — they no longer bucket under "Sin proyecto", because
+ * they never lacked one.
+ */
 const projectFilterOptions = computed(() => {
-  const seen = new Set();
-  store.collectionAccounts.forEach((row) => {
-    if (row.project_name) seen.add(row.project_name);
+  const catalog = projectsStore.records ?? [];
+  const nameCounts = new Map();
+  catalog.forEach((project) => {
+    nameCounts.set(project.name, (nameCounts.get(project.name) ?? 0) + 1);
   });
-  const options = [...seen]
-    .map((name) => ({ value: name, label: name }))
+  const seen = new Map();
+  catalog.forEach((project) => {
+    const ambiguous = (nameCounts.get(project.name) ?? 0) > 1
+      && project.client?.name;
+    seen.set(
+      project.id,
+      ambiguous ? `${project.name} — ${project.client.name}` : project.name,
+    );
+  });
+  const legacyNames = new Set();
+  store.collectionAccounts.forEach((row) => {
+    if (row.project_id != null) {
+      if (!seen.has(row.project_id)) {
+        seen.set(row.project_id, row.project_name || `Proyecto #${row.project_id}`);
+      }
+    } else if (row.project_name) {
+      legacyNames.add(row.project_name);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options];
+  const legacy = [...legacyNames]
+    .map((name) => ({ value: name, label: `${name} (histórico)` }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options, ...legacy];
 });
 
 const filterFields = computed(() => [
@@ -658,6 +718,10 @@ function goToIncome(incomeId) {
   });
 }
 
+function goToCollectionEmails(row) {
+  navigateTo(historySendsLink('collection_account', row.id));
+}
+
 // ── Mark paid: expected-linked cuentas route through Liquidar ──
 
 const liquidateOpen = ref(false);
@@ -740,6 +804,12 @@ async function handleConfirmed() {
   }
 }
 
-onMounted(loadRecords);
+onMounted(() => {
+  // Project filter options come from the full catalog (history.vue
+  // pattern); the store swallows failures, so an error just means a
+  // smaller dropdown, never a blocked page.
+  projectsStore.fetchProjects();
+  return loadRecords();
+});
 usePanelRefresh(loadRecords);
 </script>

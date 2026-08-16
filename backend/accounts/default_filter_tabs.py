@@ -4,9 +4,6 @@ Code-level defaults for ``SavedFilterTab``, keyed by view.
 Each entry is ``{'name': str, 'filters': dict}``. The ``filters`` dict must
 match the frontend ``DEFAULT_FILTERS`` shape for its view:
 
-- ``client``   -> ``frontend/composables/useClientFilters.js`` (lastStatuses,
-  projectTypes, marketTypes, totalProposalsMin/Max, acceptedMin/Max,
-  lastActivityAfter/Before)
 - ``proposal`` -> ``frontend/composables/useProposalFilters.js`` (statuses,
   projectTypes, marketTypes, currencies, languages, investmentMin/Max,
   heatScoreMin/Max, viewCountMin/Max, createdAfter/Before,
@@ -22,20 +19,14 @@ fresh defaults, so only the keys that differ need to be listed here.
   audiences, viewTypes).
 
 Values captured from the production DB on 2026-07-09 (one tab per proposal
-status, mirrored across the client and proposal views). Re-seed with
-``python manage.py seed_filter_tabs``.
+status). Re-seed with ``python manage.py seed_filter_tabs``.
+
+``client`` has no entry on purpose: its proposal-status cuts are code-level
+subfilters of the Propuestas module (``frontend/constants/clientFilters.js``),
+not seeded rows. Migration ``0049`` dropped the ones already in the database.
 """
 
 DEFAULT_FILTER_TABS = {
-    'client': [
-        {'name': 'Draft', 'filters': {'lastStatuses': ['draft']}},
-        {'name': 'Sent/Viewed', 'filters': {'lastStatuses': ['sent', 'viewed']}},
-        {'name': 'Negociación', 'filters': {'lastStatuses': ['negotiating']}},
-        {'name': 'Accepted', 'filters': {'lastStatuses': ['accepted']}},
-        {'name': 'Expired', 'filters': {'lastStatuses': ['expired']}},
-        {'name': 'Rejected', 'filters': {'lastStatuses': ['rejected']}},
-        {'name': 'Finished', 'filters': {'lastStatuses': ['finished']}},
-    ],
     'proposal': [
         {'name': 'Draft', 'filters': {'statuses': ['draft']}},
         {'name': 'Sent/Viewed', 'filters': {'statuses': ['sent', 'viewed']}},
@@ -91,5 +82,31 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Facebook', 'filters': {'platform': ['facebook']}},
         {'name': 'Google', 'filters': {'platform': ['google']}},
         {'name': 'Otros', 'filters': {'platform': ['other']}},
+    ],
+    # Historial. Three of its presets are builtin tabs in history.vue instead
+    # of rows here: "Hoy" and "Últimos 7 días" because a stored `date_from`
+    # would freeze on the day it was seeded — a tab called "Hoy" that means
+    # last Tuesday is a lie — and "Fallidos" because it has to sit second in
+    # the strip (it is where anyone lands when a notice did not arrive) and
+    # builtins render before the saved ones. The three seeded here are the
+    # opinionated groupings, which is what "Restablecer" exists to put back.
+    'accounting_history_sends': [
+        {
+            'name': 'Recordatorios de cobro',
+            'filters': {'template_key': [
+                'accounting_payment_calendar', 'collection_account_sent',
+            ]},
+        },
+        {
+            'name': 'Cambios contables',
+            'filters': {'template_key': ['accounting_change']},
+        },
+        {'name': 'Eliminaciones', 'filters': {'origin_action': ['deleted']}},
+    ],
+    'accounting_history_changes': [
+        {'name': 'Eliminaciones', 'filters': {'action': ['deleted']}},
+        {'name': 'Ingresos', 'filters': {'entity_type': ['income']}},
+        {'name': 'Gastos', 'filters': {'entity_type': ['expense']}},
+        {'name': 'Hostings', 'filters': {'entity_type': ['hosting']}},
     ],
 }

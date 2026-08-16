@@ -39,6 +39,18 @@
       >
         Seleccionar los {{ filteredIds.length }} filtrados
       </BaseButton>
+      <!-- Qué se asigna: cliente o proyecto. Un solo toggle en la misma
+           barra, porque dos barras sticky pelearían por el mismo lugar. -->
+      <BaseSegmented
+        v-if="projectEnabled"
+        v-model="target"
+        size="sm"
+        :options="[
+          { value: 'client', label: 'Cliente' },
+          { value: 'project', label: 'Proyecto' },
+        ]"
+        :data-testid="`${testidPrefix}-bulk-target`"
+      />
       <!--
         Sin el hint propio del picker: crecía DENTRO de esta celda del flex y,
         con `sm:items-center`, re-centraba toda la fila contra la celda más
@@ -47,11 +59,19 @@
       -->
       <div class="flex-1 min-w-[16rem]">
         <ClientAutocomplete
+          v-if="target === 'client'"
           v-model="clientId"
           :test-id="`${testidPrefix}-bulk-client`"
           placeholder="Buscar el cliente a asignar..."
           :show-linked-hint="false"
           @select="onClientSelect"
+        />
+        <ProjectCatalogSelect
+          v-else
+          v-model="projectId"
+          :test-id="`${testidPrefix}-bulk-project`"
+          placeholder="Buscar el proyecto a asignar..."
+          @select="onProjectSelect"
         />
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -61,27 +81,50 @@
         <!--
           Desvincular es su propio botón, no el mismo con el selector vacío:
           sólo aparece cuando hay algo que desvincular, así que su presencia
-          ya dice que la selección tiene cliente.
+          ya dice que la selección tiene cliente (o proyecto).
         -->
-        <BaseButton
-          v-if="canUnlink"
-          variant="danger"
-          size="sm"
-          :disabled="busy"
-          :data-testid="`${testidPrefix}-bulk-unlink`"
-          @click="confirmAndSubmit(unlinkPlan)"
-        >
-          Desvincular cliente
-        </BaseButton>
-        <BaseButton
-          variant="primary"
-          size="sm"
-          :disabled="Boolean(assignBlockedReason) || busy"
-          :data-testid="`${testidPrefix}-bulk-assign`"
-          @click="confirmAndSubmit(assignPlan)"
-        >
-          Asignar cliente
-        </BaseButton>
+        <template v-if="target === 'client'">
+          <BaseButton
+            v-if="canUnlink"
+            variant="danger"
+            size="sm"
+            :disabled="busy"
+            :data-testid="`${testidPrefix}-bulk-unlink`"
+            @click="confirmAndSubmit(unlinkPlan)"
+          >
+            Desvincular cliente
+          </BaseButton>
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="Boolean(assignBlockedReason) || busy"
+            :data-testid="`${testidPrefix}-bulk-assign`"
+            @click="confirmAndSubmit(assignPlan)"
+          >
+            Asignar cliente
+          </BaseButton>
+        </template>
+        <template v-else>
+          <BaseButton
+            v-if="canUnlinkProject"
+            variant="danger"
+            size="sm"
+            :disabled="busy"
+            :data-testid="`${testidPrefix}-bulk-unlink-project`"
+            @click="confirmAndSubmitProject(unlinkProjectPlan)"
+          >
+            Quitar proyecto
+          </BaseButton>
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="Boolean(projectBlockedReason) || busy"
+            :data-testid="`${testidPrefix}-bulk-assign-project`"
+            @click="confirmAndSubmitProject(assignProjectPlan)"
+          >
+            Asignar proyecto
+          </BaseButton>
+        </template>
       </div>
     </div>
 
@@ -117,7 +160,12 @@
     @cancel="handleCancelled"
   >
     <ClientBulkAssignSummary
-      v-if="pendingPlan"
+      v-if="pendingPlan && pendingPlanKind === 'client'"
+      :plan="pendingPlan"
+      :record-label="recordLabel"
+    />
+    <ProjectBulkAssignSummary
+      v-else-if="pendingPlan"
       :plan="pendingPlan"
       :record-label="recordLabel"
     />
@@ -130,23 +178,34 @@ import { InformationCircleIcon, LinkIcon } from '@heroicons/vue/24/outline';
 
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
+import ProjectBulkAssignSummary from '~/components/accounting/ProjectBulkAssignSummary.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ProjectCatalogSelect from '~/components/accounting/ProjectCatalogSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { buildAssignmentPlan, describeAssignmentPlan } from '~/utils/clientAssignment';
+import {
+  buildProjectAssignmentPlan,
+  describeProjectAssignmentPlan,
+} from '~/utils/projectAssignment';
 
 /**
- * Bulk client (un)assignment bar for the accounting tables that carry a
- * client link — hostings and incomes today, whatever comes next tomorrow.
+ * Bulk (un)assignment bar for the accounting tables — client since the
+ * beginning, project behind the `projectEnabled` toggle. One bar for both
+ * targets on purpose: two sticky bars would stack over the same corner and
+ * duplicate the selection chrome whose layout invariants live above.
  *
- * Shared on purpose: the two pages used to hold a byte-identical copy of
- * this block, so a fix in one silently left the other behind.
+ * Shared between hostings and incomes: the two pages used to hold a
+ * byte-identical copy of this block, so a fix in one silently left the
+ * other behind.
  *
- * The two operations are two buttons. Assigning needs a client and says so
- * inline when it hasn't got one; unlinking only exists while the selection
- * actually has a client to lose. Either way the operator confirms against a
- * breakdown of what changes and a list of every record involved — this is a
- * mass edit, and the scope has to be visible before it runs, not after.
+ * Each target keeps its two operations as two buttons. Assigning needs a
+ * target and says so inline when it hasn't got one; unlinking only exists
+ * while the selection actually has something to lose. Either way the
+ * operator confirms against a breakdown of what changes and a list of every
+ * record involved — this is a mass edit, and the scope has to be visible
+ * before it runs, not after.
  */
 const props = defineProps({
   /**
@@ -166,16 +225,22 @@ const props = defineProps({
   recordLabel: { type: Function, required: true },
   /** Store mutation in flight: blocks both actions. */
   busy: { type: Boolean, default: false },
+  /** Offer the Proyecto target (pages whose rows carry a project link). */
+  projectEnabled: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:selected', 'submit']);
+const emit = defineEmits(['update:selected', 'submit', 'submit-project']);
 
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
 
+const target = ref('client');
 const clientId = ref(null);
 const clientLabel = ref('');
+const projectId = ref(null);
+const selectedProjectRow = ref(null);
 const pendingPlan = ref(null);
+const pendingPlanKind = ref('client');
 
 const allFilteredSelected = computed(
   () => props.filteredIds.length > 0
@@ -204,6 +269,23 @@ const unlinkPlan = computed(() => buildAssignmentPlan({
 
 const canUnlink = computed(() => unlinkPlan.value.toUnlink.length > 0);
 
+const assignProjectPlan = computed(() => buildProjectAssignmentPlan({
+  rows: props.rows,
+  selectedIds: props.selected,
+  mode: 'assign',
+  targetProject: selectedProjectRow.value,
+}));
+
+const unlinkProjectPlan = computed(() => buildProjectAssignmentPlan({
+  rows: props.rows,
+  selectedIds: props.selected,
+  mode: 'unlink',
+}));
+
+const canUnlinkProject = computed(
+  () => unlinkProjectPlan.value.toUnlink.length > 0,
+);
+
 /** Empty string = the assign button is live. */
 const assignBlockedReason = computed(() => {
   if (!clientId.value) return 'Elige un cliente para poder asignar.';
@@ -213,13 +295,37 @@ const assignBlockedReason = computed(() => {
   return '';
 });
 
+/** Same contract for the project target: empty string = button live. */
+const projectBlockedReason = computed(() => {
+  if (!projectId.value) return 'Elige un proyecto para poder asignar.';
+  const plan = assignProjectPlan.value;
+  if (plan.affected.length > 0) return '';
+  if (plan.blockedClientMismatch.length > 0) {
+    return `La selección pertenece a otro cliente: "${plan.targetProjectLabel}" es de ${plan.targetClientLabel || 'otro cliente'}.`;
+  }
+  return `Todo lo seleccionado ya tiene "${plan.targetProjectLabel}".`;
+});
+
 /**
- * `assignBlockedReason` sólo queda vacío cuando ya hay cliente Y hay filas que
- * cambiar, así que el else de este ternario es exactamente el caso en que
- * corresponde confirmar el enlace. Por eso la línea nunca está vacía, y por eso
- * la barra no cambia de alto entre estados.
+ * La razón de bloqueo sólo queda vacía cuando ya hay destino Y hay filas que
+ * cambiar, así que el else de cada rama es exactamente el caso en que
+ * corresponde confirmar el enlace. Por eso la línea nunca está vacía, y por
+ * eso la barra no cambia de alto entre estados ni entre targets.
  */
 const statusLine = computed(() => {
+  if (target.value === 'project') {
+    if (projectBlockedReason.value) {
+      return { text: projectBlockedReason.value, icon: InformationCircleIcon };
+    }
+    const blocked = assignProjectPlan.value.blockedClientMismatch.length;
+    const suffix = blocked > 0
+      ? ` · ${blocked} de otro cliente no se ${blocked === 1 ? 'toca' : 'tocan'}`
+      : '';
+    return {
+      text: `Proyecto enlazado: ${assignProjectPlan.value.targetProjectLabel} (#${projectId.value})${suffix}`,
+      icon: LinkIcon,
+    };
+  }
   if (assignBlockedReason.value) {
     return { text: assignBlockedReason.value, icon: InformationCircleIcon };
   }
@@ -241,19 +347,28 @@ function onClientSelect(client) {
   clientLabel.value = client?.name || '';
 }
 
+function onProjectSelect(project) {
+  selectedProjectRow.value = project || null;
+}
+
 // Typing in the picker drops the committed id without re-emitting `select`,
-// so the label has to follow the id or the confirmation would name a client
+// so the label has to follow the id or the confirmation would name a target
 // that is no longer chosen.
 watch(clientId, (id) => {
   if (id == null) clientLabel.value = '';
 });
+watch(projectId, (id) => {
+  if (id == null) selectedProjectRow.value = null;
+});
 
-// The page clears the selection after a successful run; the picker resets
+// The page clears the selection after a successful run; both pickers reset
 // with it so the next batch starts from scratch.
 watch(() => props.selected.length, (count) => {
   if (count === 0) {
     clientId.value = null;
     clientLabel.value = '';
+    projectId.value = null;
+    selectedProjectRow.value = null;
   }
 });
 
@@ -267,12 +382,29 @@ async function confirmAndSubmit(plan) {
   // Kept after the await on purpose: clearing it here would blank the body
   // while the dialog is still transitioning out.
   pendingPlan.value = plan;
+  pendingPlanKind.value = 'client';
   const copy = describeAssignmentPlan(plan, { entity: props.entity });
   const confirmed = await requestConfirm({ ...copy, cancelText: 'Cancelar' });
   if (!confirmed) return;
   emit('submit', {
     ids: plan.affected.map((row) => row.id),
     client: plan.mode === 'unlink' ? null : plan.targetClientId,
+    mode: plan.mode,
+    plan,
+  });
+}
+
+/** Project twin of `confirmAndSubmit`, emitting `submit-project`. */
+async function confirmAndSubmitProject(plan) {
+  if (plan.affected.length === 0) return;
+  pendingPlan.value = plan;
+  pendingPlanKind.value = 'project';
+  const copy = describeProjectAssignmentPlan(plan, { entity: props.entity });
+  const confirmed = await requestConfirm({ ...copy, cancelText: 'Cancelar' });
+  if (!confirmed) return;
+  emit('submit-project', {
+    ids: plan.affected.map((row) => row.id),
+    project: plan.mode === 'unlink' ? null : plan.targetProjectId,
     mode: plan.mode,
     plan,
   });

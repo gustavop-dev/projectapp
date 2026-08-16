@@ -43,6 +43,76 @@ export function normalizeApiError(error, fallback = 'Ocurrió un error. Inténta
   return { message: fallback, code, hint, fieldErrors: null, status };
 }
 
+/**
+ * Same as `normalizeApiError`, but for calls made with `responseType: 'blob'`.
+ *
+ * Axios honours the requested response type even when the request fails, so a
+ * JSON error body arrives as a `Blob` and every key lookup on it returns
+ * undefined — the caller ends up showing the generic fallback while the
+ * backend's explanation sits unread inside the blob. This reads it first.
+ *
+ * @param {*} error - The value thrown by an awaited HTTP call.
+ * @param {string} [fallback] - Message to use when nothing usable is found.
+ * @returns {Promise<ReturnType<typeof normalizeApiError>>}
+ */
+export async function normalizeBlobApiError(error, fallback) {
+  const data = error?.response?.data;
+  if (typeof Blob === 'undefined' || !(data instanceof Blob)) {
+    return normalizeApiError(error, fallback);
+  }
+
+  let parsed = null;
+  try {
+    parsed = JSON.parse(await readBlobText(data));
+  } catch {
+    // Not JSON (an HTML error page, a truncated PDF): the fallback is the
+    // best we can say, and it beats throwing while handling an error.
+    return normalizeApiError({ ...error, response: { ...error.response, data: null } }, fallback);
+  }
+
+  return normalizeApiError({ ...error, response: { ...error.response, data: parsed } }, fallback);
+}
+
+/**
+ * Read a Blob as text. Browsers have `Blob.text()`; jsdom does not, so the
+ * FileReader path keeps this readable under unit tests too.
+ *
+ * @param {Blob} blob
+ * @returns {Promise<string>}
+ */
+function readBlobText(blob) {
+  if (typeof blob.text === 'function') return blob.text();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(blob);
+  });
+}
+
+/**
+ * Numeric ids an error payload carries under `key` (default `missing_ids`).
+ *
+ * Read apart from `normalizeApiError` on purpose: `collectFieldErrors` keeps
+ * only strings, because it feeds human-facing per-field messages for every
+ * store in the app. Widening it to preserve numbers would change how errors
+ * render everywhere for the sake of one pair of endpoints, so the machine
+ * payload gets its own reader.
+ *
+ * @returns {number[]} Empty when the key is absent, not an array, or holds
+ *   nothing numeric.
+ */
+export function numericIdsFromError(error, key = 'missing_ids') {
+  const value = error?.response?.data?.[key];
+  if (!Array.isArray(value)) return [];
+  // Strings are coerced (a JSON id may arrive quoted) but nothing else is:
+  // a blanket Number() turns null into 0, which would drop a real row from
+  // the selection.
+  return value
+    .map((id) => (typeof id === 'string' ? Number(id) : id))
+    .filter((id) => typeof id === 'number' && Number.isFinite(id));
+}
+
 /** Return `value` as a trimmed string if it's a non-empty string, else null. */
 function firstString(value) {
   return typeof value === 'string' && value.trim() ? value.trim() : null;

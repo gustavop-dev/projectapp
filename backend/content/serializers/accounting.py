@@ -20,6 +20,7 @@ from content.models import (
     CreditCard,
     Document,
     EmailLog,
+    EmailLogTarget,
     ExpenseRecord,
     HostingCycle,
     HostingRecord,
@@ -214,12 +215,19 @@ class IncomeRecordSerializer(PeriodReadMixin, serializers.ModelSerializer):
     origin_label = serializers.CharField(
         source='get_origin_display', read_only=True,
     )
+    # '' → None: "sin periodicidad" should read as an absence, not a blank.
+    period_cadence_label = serializers.SerializerMethodField()
+
+    def get_period_cadence_label(self, obj):
+        return obj.get_period_cadence_display() if obj.period_cadence else None
 
     class Meta:
         model = IncomeRecord
         fields = (
             'id', 'concept', 'kind', 'kind_label',
             'period', 'period_label', 'period_date',
+            'period_start', 'period_end',
+            'period_cadence', 'period_cadence_label',
             'destination', 'destination_label', 'ledger', 'ledger_label',
             'client', 'client_name', 'project', 'project_name',
             'origin', 'origin_label',
@@ -357,7 +365,13 @@ def validate_project_client_match(project, client):
 class IncomeRecordCreateUpdateSerializer(
     PartnerSplitWriteMixin, serializers.ModelSerializer,
 ):
-    period_date = FlexiblePeriodField()
+    # required=False because hosting incomes derive it from `period_start` in
+    # validate(); every other origin still has to send it (checked there too).
+    period_date = FlexiblePeriodField(required=False)
+    # Same month-shorthand as period_date: the form's exact-day toggle applies
+    # to the start of the covered window.
+    period_start = FlexiblePeriodField(required=False, allow_null=True)
+    period_end = serializers.DateField(required=False, allow_null=True)
     expected_income = serializers.PrimaryKeyRelatedField(
         queryset=IncomeRecord.objects.filter(kind=IncomeRecord.Kind.EXPECTED),
         required=False,
@@ -381,6 +395,7 @@ class IncomeRecordCreateUpdateSerializer(
         fields = (
             'concept', 'kind', 'period_date', 'destination', 'ledger',
             'client', 'project', 'origin',
+            'period_start', 'period_end', 'period_cadence',
             'total_amount', 'gustavo_amount', 'carlos_amount',
             'expected_income', 'notes',
         )
@@ -448,6 +463,28 @@ class IncomeRecordCreateUpdateSerializer(
                 'Este ingreso esperado ya tiene liquidaciones. Reduce su monto '
                 'y registra la diferencia como un ingreso perdido aparte.'
             )
+        # An active (non-cancelled) cuenta de cobro freezes an EXISTING
+        # client: the document went out in their name, and even a draft is a
+        # cuenta in flight. The path for a mistake is anular y reemitir.
+        # Completing a missing client stays allowed (the legacy backlog and
+        # the issue-time adoption both do exactly that), and hostings stay
+        # exempt on purpose — they accumulate issued cuentas for years and
+        # each one carries its own frozen snapshot.
+        if (
+            'client' in data
+            and self.instance is not None
+            and self.instance.client_id is not None
+            and data['client'] != self.instance.client
+            and self.instance.collection_documents.exclude(
+                commercial_status=Document.CommercialStatus.CANCELLED,
+            ).exists()
+        ):
+            raise serializers.ValidationError({
+                'client': (
+                    'Este ingreso tiene una cuenta de cobro activa. Anúlala '
+                    'y emite una nueva para reasignar el cliente.'
+                ),
+            })
         # Moving the record to another client orphans a project that belonged
         # to the previous one — not merely a stale value like the hosting
         # billing snapshot, but a record pointing at someone else's project.
@@ -460,6 +497,56 @@ class IncomeRecordCreateUpdateSerializer(
         ):
             data['project'] = None
         validate_project_client_match(effective('project'), effective('client'))
+
+        # --- Covered period (hosting only) -------------------------------
+        # A hosting income is a service window, not a point payment, so it
+        # must say what window it covers; every other origin keeps the single
+        # date. Legacy hosting rows predate the fields: a partial PATCH that
+        # touches neither origin nor the period stays valid, while the panel
+        # form always sends `origin`, so editing one from there completes its
+        # period (deliberate gradual backfill).
+        origin = effective('origin', '')
+        period_fields = ('origin', 'period_start', 'period_end', 'period_cadence')
+        touches_period = any(field in data for field in period_fields)
+        if origin == IncomeRecord.Origin.HOSTING:
+            if self.instance is None or touches_period:
+                if not effective('period_start'):
+                    raise serializers.ValidationError({
+                        'period_start': (
+                            'Indica el período que cubre el ingreso de hosting.'
+                        ),
+                    })
+                if not effective('period_end'):
+                    raise serializers.ValidationError({
+                        'period_end': (
+                            'Indica el fin del período que cubre el ingreso.'
+                        ),
+                    })
+                if not effective('period_cadence'):
+                    raise serializers.ValidationError({
+                        'period_cadence': 'Elige la periodicidad del período.',
+                    })
+                # One axis for ordering, KPIs and filters: the hosting row's
+                # period_date IS the start of the window it covers.
+                data['period_date'] = effective('period_start')
+        else:
+            # Switching a record away from hosting would otherwise leave an
+            # orphaned window attached to a point payment.
+            data['period_start'] = None
+            data['period_end'] = None
+            data['period_cadence'] = ''
+        start = effective('period_start')
+        end = effective('period_end')
+        if start and end and end <= start:
+            raise serializers.ValidationError({
+                'period_end': (
+                    'La fecha fin debe ser posterior a la fecha de inicio.'
+                ),
+            })
+        if effective('period_date') is None:
+            raise serializers.ValidationError({
+                'period_date': 'Indica la fecha del ingreso.',
+            })
         return data
 
 
@@ -537,6 +624,22 @@ class IncomeClientBulkAssignSerializer(serializers.Serializer):
     )
 
 
+class IncomeProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several incomes; ``project: null`` unlinks them."""
+
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped on purpose, like the single-record field: the ownership rule
+    # (every record's client must own the project) needs the records in
+    # hand, so it lives in the view's pre-checks.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
+
 class IncomeReminderMuteSerializer(serializers.Serializer):
     """Silence an expected income's notices, optionally until a given date."""
 
@@ -562,6 +665,21 @@ class HostingClientBulkAssignSerializer(serializers.Serializer):
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
+class HostingProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several hostings; ``project: null`` unlinks them."""
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped for the same reason as the income flavour: ownership is a
+    # cross-record rule, checked in the view against the loaded rows.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
         required=False,
         allow_null=True,
     )
@@ -1322,21 +1440,71 @@ EMAIL_TEMPLATE_LABELS = {
 }
 
 
+# Notices tied to one record, which is what makes a retry reproducible: the
+# rest are digests assembled from whatever was due that morning, so resending
+# one would rebuild today's summary, not the one that failed.
+RETRYABLE_TEMPLATE_KEYS = frozenset({
+    'accounting_change',
+    'collection_account_sent',
+    'payment_status_team',
+})
+RETRY_BLOCKED_REASON = (
+    'Este aviso resume varios registros del día en que salió: reenviarlo '
+    'armaría el resumen de hoy, no el que falló.'
+)
+
+
+class EmailLogTargetSerializer(serializers.ModelSerializer):
+    entity_type_label = serializers.CharField(
+        source='get_entity_type_display', read_only=True,
+    )
+
+    class Meta:
+        model = EmailLogTarget
+        fields = ('entity_type', 'entity_type_label', 'object_id', 'object_repr')
+
+
 class EmailLogSerializer(serializers.ModelSerializer):
     template_label = serializers.SerializerMethodField()
     status_label = serializers.CharField(
         source='get_status_display', read_only=True,
     )
+    origin_action_label = serializers.CharField(
+        source='get_origin_action_display', read_only=True, default='',
+    )
+    targets = EmailLogTargetSerializer(many=True, read_only=True)
+    has_body = serializers.SerializerMethodField()
+    is_retryable = serializers.SerializerMethodField()
+    retry_blocked_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailLog
         fields = (
             'id', 'template_key', 'template_label', 'recipient', 'subject',
             'status', 'status_label', 'error_message', 'sent_at',
+            'origin_action', 'origin_action_label', 'targets', 'has_body',
+            'is_retryable', 'retry_blocked_reason', 'retry_of',
         )
 
     def get_template_label(self, obj):
         return EMAIL_TEMPLATE_LABELS.get(obj.template_key, obj.template_key)
+
+    def get_has_body(self, obj):
+        return obj.body_id is not None
+
+    def get_is_retryable(self, obj):
+        return (
+            obj.status == EmailLog.Status.FAILED
+            and obj.template_key in RETRYABLE_TEMPLATE_KEYS
+        )
+
+    def get_retry_blocked_reason(self, obj):
+        # Delegated so the tooltip and the endpoint's 400 cannot disagree,
+        # and so a proposal row gets its own sentence instead of the digest's.
+        from content.services.accounting_email_retry_service import (
+            retry_blocked_reason,
+        )
+        return retry_blocked_reason(obj.template_key)
 
 
 # ── Change log & settings ──

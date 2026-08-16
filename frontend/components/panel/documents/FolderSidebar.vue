@@ -11,13 +11,45 @@
       </button>
     </div>
 
-    <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list">
+    <!--
+      Interruptor de modo, deliberadamente FUERA de la lista. Como pseudo-entrada
+      entre las carpetas, «Archivados» se leía como un destino más y el usuario no
+      tenía cómo saber que el archivo es el ámbito en que se ve TODO el panel:
+      volvía a «Todos», seguía viendo archivados y lo tomaba por documentos
+      perdidos. Un interruptor sí declara un modo.
+    -->
+    <div
+      class="px-3 py-2.5 border-b border-border-muted flex items-center justify-between gap-2 flex-shrink-0 transition-colors"
+      :class="archivedMode ? 'bg-warning-soft' : ''"
+    >
+      <span class="flex items-center gap-2 min-w-0">
+        <svg class="w-3.5 h-3.5 flex-shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+        <span class="text-sm truncate" :class="archivedMode ? 'font-medium text-text-default' : 'text-text-muted'">
+          Ver archivados
+        </span>
+        <span class="text-xs text-text-subtle flex-shrink-0" data-testid="folder-archived-count">{{ archivedCount }}</span>
+      </span>
+      <BaseToggle
+        :model-value="archivedMode"
+        :disabled="scopeLocked"
+        size="sm"
+        aria-label="Ver archivados"
+        :title="scopeLocked ? 'La búsqueda recorre activos y archivados' : undefined"
+        data-testid="folder-archived-entry"
+        @update:model-value="$emit('toggle-archived', $event)"
+      />
+    </div>
+
+    <ul class="p-2 space-y-1 flex-1 overflow-y-auto" role="list" data-testid="folder-list">
       <li>
         <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
         <button
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
           :class="entryClass('all')"
+          :aria-current="ariaCurrent('all')"
           @click="$emit('select', 'all')"
         >
           <span>Todos</span>
@@ -32,6 +64,7 @@
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
           :class="[entryClass('none'), dropZoneClass('none')]"
+          :aria-current="ariaCurrent('none')"
           @click="$emit('select', 'none')"
           @dragover.prevent="dragOverId = 'none'"
           @dragleave="dragOverId = null"
@@ -41,6 +74,7 @@
           <svg v-if="isDragging" class="w-3 h-3 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
+          <span v-else class="text-xs text-text-subtle">{{ unfiledCount }}</span>
         </button>
       </li>
 
@@ -67,32 +101,58 @@
               @dragleave="dragOverId = null"
               @drop.prevent="onFolderDrop(folder.id)"
             >
-              <!-- Comparte padding, radio y tamaño con Todos/Sin carpeta para que la
-                   columna entera lea sobre un único eje.
-                   design-tokens: allow-raw-button — selectable list row, not an action -->
+              <!--
+                Comparte padding, radio y tamaño con Todos/Sin carpeta para que
+                la columna entera lea sobre un único eje.
+
+                Dos cifras: las subcarpetas que verás al entrar (directas) y los
+                documentos que la carpeta guarda EN TOTAL, contando lo que vive
+                en sus subcarpetas. Un contador directo de documentos decía cero
+                de una carpeta llena y mandaba a buscar al lugar equivocado.
+                Los íconos van `aria-hidden` y el rótulo del botón lleva el
+                inventario en palabras: dos números pelados no dicen nada leídos.
+              -->
+              <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
               <button
                 type="button"
                 class="flex-1 min-w-0 flex items-center gap-1 px-3 py-2 text-sm text-left"
+                :aria-current="ariaCurrent(folder.id)"
+                :aria-label="rowLabel(folder)"
                 @click="$emit('select', folder.id)"
               >
-                <span class="truncate flex-1 min-w-0">{{ folder.name }}</span>
-                <svg
-                  v-if="folder.children_count > 0"
-                  class="w-3 h-3 text-text-subtle flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <title>Tiene subcarpetas</title>
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+                <!-- La segunda cifra le come ancho al nombre; el `title` deja
+                     recuperar el que se trunca sin robarle más columna. -->
+                <span class="truncate flex-1 min-w-0" :title="folder.name">{{ folder.name }}</span>
+                <!-- Directa a propósito, a diferencia del contador de al lado:
+                     la insignia promete «clic para verlos» y ese clic entra a
+                     ESTA carpeta, cuyo listado no es recursivo. -->
                 <FolderArchivedBadge
                   v-if="folderStore.archivedContentCount(folder)"
                   :count="folderStore.archivedContentCount(folder)"
                   :folder-name="folder.name"
                   @view="$emit('view-archived', folder)"
                 />
-                <span v-if="!isDragging || dragOverId !== folder.id" class="text-xs text-text-subtle flex-shrink-0">{{ folder.document_count }}</span>
+                <template v-if="!isDragging || dragOverId !== folder.id">
+                  <span
+                    v-if="rowCounts(folder).subs"
+                    class="flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0"
+                    data-testid="folder-subfolder-count"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h3.9a2 2 0 011.6.8l.9 1.2H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                    </svg>
+                    {{ rowCounts(folder).subs }}
+                  </span>
+                  <span
+                    class="flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0"
+                    data-testid="folder-document-count"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3h5l5 5v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zm5 0v5h5" />
+                    </svg>
+                    {{ rowCounts(folder).docs }}
+                  </span>
+                </template>
                 <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
                 </svg>
@@ -159,31 +219,6 @@
           </li>
         </template>
       </draggable>
-
-      <!--
-        Archivados: tercera pseudo-entrada, junto a Todos y Sin carpeta.
-        A propósito NO es drop target: soltar algo encima sería un archivado
-        implícito, y archivar debe ser siempre un gesto explícito.
-      -->
-      <li class="my-1 border-t border-border-muted"></li>
-      <li>
-        <!-- design-tokens: allow-raw-button — selectable list row, not an action -->
-        <button
-          type="button"
-          class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-          :class="archivedEntryActive ? ACTIVE_CLASS : INACTIVE_CLASS"
-          data-testid="folder-archived-entry"
-          @click="$emit('select', 'archived')"
-        >
-          <span class="flex items-center gap-2">
-            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-            </svg>
-            Archivados
-          </span>
-          <span class="text-xs text-text-subtle">{{ archivedCount }}</span>
-        </button>
-      </li>
     </ul>
 
     <div class="p-3 border-t border-border-muted flex-shrink-0">
@@ -201,7 +236,8 @@
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue';
-import { folderRowSummary } from '~/utils/documentStatus';
+import BaseToggle from '~/components/base/BaseToggle.vue';
+import { folderRowLabel, folderRowSummary, scopedCounts } from '~/utils/documentStatus';
 
 const props = defineProps({
   folders: { type: Array, default: () => [] },
@@ -209,12 +245,18 @@ const props = defineProps({
   archiveScope: { type: String, default: 'active' },
   totalCount: { type: Number, default: 0 },
   archivedCount: { type: Number, default: 0 },
+  unfiledCount: { type: Number, default: 0 },
   isDragging: { type: Boolean, default: false },
   draggingFolderId: { type: [String, Number], default: null },
+  // La búsqueda recorre los dos estados, así que el interruptor queda inerte
+  // mientras hay consulta — misma regla que el control de la barra, porque dos
+  // mandos del mismo eje que se comportan distinto vuelven a mentir.
+  scopeLocked: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
   'select', 'manage', 'folder-drop', 'delete', 'archive', 'view-archived',
+  'toggle-archived',
 ]);
 
 const folderStore = useDocumentFolderStore();
@@ -233,6 +275,36 @@ function entryClass(id) {
   return props.activeId === id ? ACTIVE_CLASS : INACTIVE_CLASS;
 }
 
+// El resaltado de la fila de carpeta vive en el div contenedor (comparte la
+// caja con los íconos de acción), así que la marca semántica va en el botón:
+// es el único gancho estable para «dónde dice el panel que estoy».
+function ariaCurrent(id) {
+  return props.activeId === id ? 'page' : undefined;
+}
+
+/**
+ * Las dos cifras de la fila: subcarpetas DIRECTAS y documentos del subárbol.
+ *
+ * Las subcarpetas se quedan directas porque responden «qué voy a ver si entro»,
+ * y entrar lista `childrenOf(id, scope)` — un total recursivo prometería filas
+ * que ese clic no muestra.
+ */
+function rowCounts(folder) {
+  return {
+    subs: scopedCounts(folder, props.archiveScope).subs,
+    docs: folderStore.recursiveDocumentCount(folder, props.archiveScope),
+  };
+}
+
+function rowLabel(folder) {
+  return folderRowLabel(folder.name, rowCounts(folder));
+}
+
+// Ojo: `hasContent` y `deleteTooltip` se quedan con el conteo DIRECTO a
+// propósito. Espejan el 409 de `delete_document_folder`, que cuenta
+// `folder.documents` y `folder.children` de un salto y sin excluir archivados;
+// un tooltip recursivo diría «contiene 12 documentos» donde el servidor
+// responde «tiene 1 subcarpeta». No unificar con el contador de la fila.
 function hasContent(folder) {
   return folderStore.totalContentCount(folder) > 0;
 }
@@ -243,11 +315,10 @@ function deleteTooltip(folder) {
     + 'Archívala en su lugar.';
 }
 
-// «Archivados» es un atajo sobre los dos ejes, no una carpeta: se apaga en
-// cuanto se entra a una subcarpeta y el breadcrumb toma el relevo.
-const archivedEntryActive = computed(
-  () => props.archiveScope === 'archived' && props.activeId === 'root',
-);
+// El interruptor sólo está encendido en el scope archivado puro. Con 'all' la
+// lista mezcla los dos estados, y encenderlo ahí diría que se está viendo sólo
+// el archivo; ese caso lo declara el rótulo de la cabecera del listado.
+const archivedMode = computed(() => props.archiveScope === 'archived');
 
 function dropZoneClass(id) {
   // Acepta documentos (props.isDragging) o carpetas en arrastre para anidar.

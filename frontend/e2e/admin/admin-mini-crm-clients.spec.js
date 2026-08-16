@@ -133,6 +133,19 @@ function setupMock(page, {
   return mockApi(page, async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') return authCheck;
 
+    if (apiPath === 'proposals/client-profiles/status-counts/') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          all: clients.length,
+          active: clients.filter((c) => !c.is_orphan).length,
+          orphans: clients.filter((c) => c.is_orphan).length,
+          inactive: 0,
+        }),
+      };
+    }
+
     if (apiPath === 'proposals/client-profiles/') {
       const requestUrl = new URL(route.request().url());
       const search = (requestUrl.searchParams.get('search') || '').toLowerCase().trim();
@@ -318,7 +331,7 @@ test.describe('Admin Clients — Tab filtering', () => {
     await gotoClients(page);
 
     // Switch to orphans tab
-    await page.getByTestId('clients-tab-orphans').click();
+    await page.getByTestId('clients-status-orphans').click();
     await expect(page.getByTestId(`client-row-${mockOrphanClient.id}`)).toBeVisible();
     await expect(page.getByTestId('client-row-101')).not.toBeVisible();
     await expect(page.getByTestId('client-row-102')).not.toBeVisible();
@@ -331,7 +344,7 @@ test.describe('Admin Clients — Tab filtering', () => {
     await setupMock(page, { clients: allClients });
     await gotoClients(page);
 
-    await page.getByTestId('clients-tab-active').click();
+    await page.getByTestId('clients-status-active').click();
     await expect(page.getByTestId('client-row-101')).toBeVisible();
     await expect(page.getByTestId('client-row-102')).toBeVisible();
     await expect(page.getByTestId(`client-row-${mockOrphanClient.id}`)).not.toBeVisible();

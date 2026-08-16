@@ -7,7 +7,7 @@
  */
 
 import {
-  DEFAULT_SCOPE, isRootInScope, matchesScope, normalizeScope,
+  DEFAULT_SCOPE, isRootInScope, matchesScope, normalizeScope, treeScopeFor,
 } from '../../utils/archiveScope';
 
 const active = { id: 1, is_archived: false };
@@ -70,5 +70,28 @@ describe('isRootInScope', () => {
   it('nests under any container in the mixed scope', () => {
     expect(isRootInScope(archived.id, find, 'all')).toBe(false);
     expect(isRootInScope(active.id, find, 'all')).toBe(false);
+  });
+});
+
+describe('treeScopeFor', () => {
+  it('keeps the active mode inside its own tree', () => {
+    expect(treeScopeFor('active')).toBe('active');
+  });
+
+  it('opens the whole tree for the archived mode', () => {
+    // Una carpeta ACTIVA puede guardar documentos archivados. Bajando sólo por
+    // carpetas archivadas, esos documentos no quedarían en ninguna fila.
+    expect(treeScopeFor('archived')).toBe('all');
+  });
+
+  it('opens the whole tree for the mixed mode', () => {
+    expect(treeScopeFor('all')).toBe('all');
+  });
+
+  it('never returns a tree narrower than the scope being counted', () => {
+    // El invariante: el árbol por el que se baja tiene que contener a todas las
+    // carpetas cuyo contenido se suma, o habría contenido inalcanzable.
+    expect(treeScopeFor(undefined)).toBe('active');
+    expect(treeScopeFor('banana')).toBe('active');
   });
 });

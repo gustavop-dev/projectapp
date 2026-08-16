@@ -15,6 +15,7 @@ import logging
 from datetime import date
 from decimal import Decimal
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import (
     Avg, Count, DecimalField, F, Max, Min, OuterRef, Q, Subquery, Sum, Value,
@@ -120,6 +121,21 @@ TRACKED_FIELDS = {
         ('amount', 'Valor'),
         ('notes', 'Notas'),
     ],
+    # Not in ENTITY_MODELS on purpose: projects and cuentas never enter the
+    # generic create/update/delete pipeline — only the coherence operations
+    # (change-client, draft moves, lifecycle transitions) write these rows.
+    EntityType.PROJECT: [
+        ('name', 'Nombre'),
+        ('description', 'Descripción'),
+        ('status', 'Estado'),
+        ('client', 'Cliente'),
+    ],
+    EntityType.COLLECTION_ACCOUNT: [
+        ('title', 'Título'),
+        ('client_user', 'Cliente'),
+        ('project', 'Proyecto'),
+        ('commercial_status', 'Estado comercial'),
+    ],
     EntityType.RECURRING: [
         ('name', 'Nombre'),
         ('price', 'Precio'),
@@ -218,6 +234,18 @@ def display_value(instance, field_name):
         return ''
     if isinstance(value, bool):
         return 'Sí' if value else 'No'
+    if isinstance(value, get_user_model()):
+        # Project.client and Document.client_user point at the User, not the
+        # profile; render the same display name the panel shows so both key
+        # spaces read identically in the audit table.
+        profile = getattr(value, 'profile', None)
+        if profile is not None:
+            from accounts.services.proposal_client_service import (
+                build_client_display_name,
+            )
+
+            return build_client_display_name(profile)
+        return value.get_full_name() or value.email or value.username
     if isinstance(value, UserProfile):
         # A client FK renders as "email (Client)" through __str__, which is
         # noise in the audit table and the notification email.
@@ -285,6 +313,11 @@ def object_repr(entity_type, instance):
         return instance.match_text
     if entity_type == EntityType.NOTIFICATION_RECIPIENT:
         return instance.email
+    if entity_type == EntityType.PROJECT:
+        return instance.name
+    if entity_type == EntityType.COLLECTION_ACCOUNT:
+        # The number survives the document; the title is the draft fallback.
+        return instance.public_number or instance.title
     return 'Configuración contable'
 
 
@@ -307,6 +340,27 @@ def log_accounting_change(
         actor=actor if getattr(actor, 'is_authenticated', False) else None,
         actor_username=getattr(actor, 'username', '') or '',
     )
+
+
+def log_entity_diff(entity_type, instance, old_values, user):
+    """One audit row for a tracked entity mutated OUTSIDE the generic
+    pipeline (projects, cuentas de cobro): diff against ``old_values`` and
+    log it. Never notifies — the coherence writers follow the bulk
+    convention. Returns the changes list (empty = nothing written).
+    """
+    changes = compute_changes(
+        entity_type, old_values, snapshot_values(instance, entity_type),
+    )
+    if changes:
+        log_accounting_change(
+            entity_type=entity_type,
+            object_id=instance.pk,
+            object_repr=object_repr(entity_type, instance),
+            action=Action.UPDATED,
+            changes=changes,
+            actor=user,
+        )
+    return changes
 
 
 def _notify(change_log):
@@ -491,6 +545,23 @@ def _cascade_client_to_liquid_children(income, user):
             )
 
 
+def missing_record_ids(entity_type, record_ids):
+    """Ids in ``record_ids`` with no row behind them, sorted.
+
+    Kept apart from :func:`bulk_assign_client`, which stays lenient: that one
+    is also called from ``collection_account_create_service`` with a pk it has
+    already fetched and locked, and has no business refusing it. Deciding what
+    to do about a vanished id belongs to the caller that has a user in front
+    of it.
+    """
+    existing = set(
+        ENTITY_MODELS[entity_type]
+        .objects.filter(pk__in=record_ids)
+        .values_list('pk', flat=True),
+    )
+    return sorted(set(record_ids) - existing)
+
+
 @transaction.atomic
 def bulk_assign_client(entity_type, record_ids, client, user):
     """Assign (or clear, with ``client=None``) the client of several records.
@@ -500,10 +571,17 @@ def bulk_assign_client(entity_type, record_ids, client, user):
     the history is per record, and a single aggregate entry would make an
     individual timeline lie. Rows already pointing at the target client are
     skipped, so re-running the same assignment writes nothing.
+
+    A project that no longer belongs to the new client is cleared in the
+    same write — the bulk mirror of the single-record serializer rule: a
+    record must never point at someone else's project, and the operator
+    re-picks explicitly if the move was intentional.
     """
     model = ENTITY_MODELS[entity_type]
     records = list(
-        model.objects.select_related('client__user').filter(pk__in=record_ids),
+        model.objects
+        .select_related('client__user', 'project')
+        .filter(pk__in=record_ids),
     )
     updated = []
     for record in records:
@@ -512,6 +590,13 @@ def bulk_assign_client(entity_type, record_ids, client, user):
         old_values = snapshot_values(record, entity_type)
         record.client = client
         update_fields = ['client', 'updated_at']
+        project_cleared = False
+        if record.project_id is not None and (
+            client is None or record.project.client_id != client.user_id
+        ):
+            record.project = None
+            update_fields.append('project')
+            project_cleared = True
         if entity_type == EntityType.HOSTING:
             update_fields += _refresh_hosting_snapshot(record)
         record.save(update_fields=update_fields)
@@ -532,6 +617,11 @@ def bulk_assign_client(entity_type, record_ids, client, user):
             and record.kind == IncomeRecord.Kind.EXPECTED
         ):
             _cascade_client_to_liquid_children(record, user)
+            if project_cleared:
+                # The children follow the parent's client AND its cleared
+                # project: a liquid child must not keep pointing at the
+                # previous client's project either.
+                _cascade_project_to_liquid_children(record, user)
         updated.append(record)
     return updated
 
@@ -539,6 +629,80 @@ def bulk_assign_client(entity_type, record_ids, client, user):
 def bulk_assign_income_client(income_ids, client, user):
     """Incomes flavour of :func:`bulk_assign_client` (kept for its callers)."""
     return bulk_assign_client(EntityType.INCOME, income_ids, client, user)
+
+
+def _cascade_project_to_liquid_children(income, user):
+    """Carry an expected income's project to the liquids that settle it.
+
+    Same rationale as :func:`_cascade_client_to_liquid_children`: settlement
+    inherits at creation time only, so a project assigned later would leave
+    the collected money under "Sin proyecto" and split one deal across two
+    per-project buckets. One audit row per child.
+    """
+    for child in income.liquid_records.select_related('project'):
+        if child.project_id == income.project_id:
+            continue
+        old_values = snapshot_values(child, EntityType.INCOME)
+        child.project = income.project
+        child.save(update_fields=['project', 'updated_at'])
+        changes = compute_changes(
+            EntityType.INCOME, old_values,
+            snapshot_values(child, EntityType.INCOME),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=EntityType.INCOME,
+                object_id=child.pk,
+                object_repr=object_repr(EntityType.INCOME, child),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+
+
+@transaction.atomic
+def bulk_assign_project(entity_type, record_ids, project, user):
+    """Assign (or clear, with ``project=None``) the project of several
+    records — the completion tool for rows created before their project
+    existed, and the project mirror of :func:`bulk_assign_client`.
+
+    One audit row per record; rows already pointing at the target are
+    skipped so a re-run writes nothing. No hosting snapshot refresh — the
+    project never touches the billing snapshot. Ownership (every record's
+    client must own the project) is the caller's pre-check: the ids arrive
+    validated and the service stays mechanical.
+    """
+    model = ENTITY_MODELS[entity_type]
+    records = list(
+        model.objects.select_related('project').filter(pk__in=record_ids),
+    )
+    target_id = project.pk if project else None
+    updated = []
+    for record in records:
+        if record.project_id == target_id:
+            continue
+        old_values = snapshot_values(record, entity_type)
+        record.project = project
+        record.save(update_fields=['project', 'updated_at'])
+        changes = compute_changes(
+            entity_type, old_values, snapshot_values(record, entity_type),
+        )
+        if changes:
+            log_accounting_change(
+                entity_type=entity_type,
+                object_id=record.pk,
+                object_repr=object_repr(entity_type, record),
+                action=Action.UPDATED,
+                changes=changes,
+                actor=user,
+            )
+        if (
+            entity_type == EntityType.INCOME
+            and record.kind == IncomeRecord.Kind.EXPECTED
+        ):
+            _cascade_project_to_liquid_children(record, user)
+        updated.append(record)
+    return updated
 
 
 def _deletion_changes(entity_type, old_values):

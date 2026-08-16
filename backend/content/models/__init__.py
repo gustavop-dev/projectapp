@@ -34,7 +34,9 @@ from .qr_cards import QRCard
 from .linktree import Linktree, LinktreeButton
 from .proposal_default_config import ProposalDefaultConfig
 from .email_template_config import EmailTemplateConfig
+from .email_body import EmailBody
 from .email_log import EmailLog
+from .email_log_target import EmailLogTarget
 from .document import Document
 from .document_type import DocumentType
 from .document_folder import DocumentFolder

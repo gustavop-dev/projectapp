@@ -19,39 +19,32 @@
       </BaseButton>
     </div>
 
-    <!-- Filter tabs (Todos / Activos / Huérfanos) -->
-    <div class="flex flex-wrap items-center gap-2 mb-5">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        :data-testid="`clients-tab-${tab.id}`"
-        :class="[
-          'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-          activeTab === tab.id
-            ? 'bg-primary text-white'
-            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
-        ]"
-        @click="setActiveTab(tab.id)"
-      >
-        {{ tab.label }}
-      </button>
-      <button
-        data-testid="clients-tab-config"
-        :class="[
-          'ml-auto px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-          activeTab === 'config'
-            ? 'bg-primary text-white'
-            : 'bg-surface-raised text-text-muted hover:bg-border-muted',
-        ]"
-        @click="setActiveTab('config')"
-      >
-        Configuraciones
-      </button>
-    </div>
+    <!-- Level 1: business module. It groups the subfilters below; the cut
+         itself happens at level 2. -->
+    <ClientModuleTabs
+      :model-value="activeModule"
+      @update:model-value="selectModule"
+    >
+      <template #trailing>
+        <!-- design-tokens: allow-raw-button -->
+        <button
+          data-testid="clients-tab-config"
+          :class="[
+            'ml-auto px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+            isConfigOpen
+              ? 'bg-primary text-white'
+              : 'bg-surface-raised text-text-muted hover:bg-border-muted',
+          ]"
+          @click="isConfigOpen = !isConfigOpen"
+        >
+          Configuraciones
+        </button>
+      </template>
+    </ClientModuleTabs>
 
     <!-- Settings tab replaces the list area -->
     <ViewSettingsPanel
-      v-if="activeTab === 'config'"
+      v-if="isConfigOpen"
       :filter-views="[{ value: 'client', label: 'Clientes' }]"
       @reset="reloadFilterTabs"
     >
@@ -67,13 +60,16 @@
       </section>
     </ViewSettingsPanel>
 
-    <template v-if="activeTab !== 'config'">
-    <!-- Saved filter tabs -->
+    <template v-if="!isConfigOpen">
+    <!-- Level 2: the subfilters of the selected module, plus its saved tabs -->
     <ProposalFilterTabs
-      :tabs="savedTabs"
+      :tabs="displayTabs"
       :active-tab-id="filterTabId"
+      :counts="subfilterCounts"
       :is-tab-limit-reached="isTabLimitReached"
-      @select="selectFilterTab"
+      count-title="Clientes que cumplen este filtro"
+      :max-visible="7"
+      @select="onSelectFilterTab"
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
       @delete="deleteFilterTab"
@@ -81,8 +77,10 @@
       @rebase="rebaseFilterTab"
     />
 
-    <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <!-- Search + client status + Filter toggle. Status sits here, next to the
+         search box, because it qualifies the register itself and combines with
+         any module rather than competing with them for the row above. -->
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="search"
         type="text"
@@ -91,9 +89,17 @@
         class="w-full sm:max-w-xs"
         @input="onSearchInput"
       />
+      <BaseSegmented
+        :model-value="clientStatus"
+        :options="clientStatusOptions"
+        size="sm"
+        data-testid="clients-status-selector"
+        @update:model-value="setClientStatus"
+      />
       <UiFilterToggleButton
         :open="isFilterPanelOpen"
         :count="activeFilterCount"
+        data-testid="clients-filter-toggle"
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
     </div>
@@ -103,7 +109,7 @@
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
       :filter-count="activeFilterCount"
-      @update:model-value="Object.assign(currentFilters, $event)"
+      @update:model-value="onFiltersUpdate"
       @reset="handleResetFilters"
     />
 
@@ -186,6 +192,59 @@
               {{ client.total_proposals }} propuesta{{ client.total_proposals !== 1 ? 's' : '' }}
             </span>
 
+            <!-- Hosting count, only while a hosting preset is applied. Doubles
+                 as the jump into Hostings already filtered by this client. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsHostingCount(client) && canOpenHostings"
+              type="button"
+              :data-testid="`client-hostings-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los hostings de ${client.name} en Contabilidad`"
+              @click.stop="goToClientHostings(client)"
+            >
+              {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
+            </button>
+            <span
+              v-else-if="showsHostingCount(client)"
+              :data-testid="`client-hostings-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium"
+            >
+              {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
+            </span>
+
+            <!-- Documentos: cuántos tiene + fecha del último, sólo con el
+                 módulo activo. Salta al gestor ya filtrado por el cliente.
+                 Sin gate de superuser: documentos comparte el gate admin de
+                 esta misma página. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsDocumentsCount(client)"
+              type="button"
+              :data-testid="`client-documents-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los documentos de ${client.name}`"
+              @click.stop="goToClientDocuments(client)"
+            >
+              {{ client.documents_count }} doc{{ client.documents_count !== 1 ? 's' : '' }}<span v-if="client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
+            </button>
+
+            <!-- Emails: the count plus when we last wrote, which is what turns
+                 the list into a reading of contact and not just a filter.
+                 Opens the same modal the ficha does. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsEmailCount(client)"
+              type="button"
+              :data-testid="`client-emails-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los correos de ${client.name}`"
+              @click.stop="openEmails(client)"
+            >
+              {{ client.emails_sent_count }} correo{{ client.emails_sent_count !== 1 ? 's' : '' }}
+              <template v-if="client.last_email_at"> · {{ formatDate(client.last_email_at) }}</template>
+            </button>
+
             <button
               v-if="client.accepted_count > 0"
               type="button"
@@ -253,6 +312,20 @@
             Cargando...
           </div>
           <template v-else>
+            <!-- Reachable without going through the filter: filtering is for
+                 finding who, the ficha is where you already are when the
+                 question "what did we send them?" comes up. -->
+            <div class="px-5 pt-4 flex justify-end">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :data-testid="`client-view-emails-${client.id}`"
+                @click.stop="openEmails(client)"
+              >
+                Ver correos
+              </BaseButton>
+            </div>
+
             <!-- Proposals (drop target for proposal reassignment) -->
             <div
               :data-testid="`client-proposals-zone-${client.id}`"
@@ -432,6 +505,7 @@
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Hosting</th>
+                      <th class="px-4 py-3">Proyecto</th>
                       <th class="px-4 py-3">Valor/mes</th>
                       <th class="px-4 py-3">Vence</th>
                       <th class="px-4 py-3">Estado</th>
@@ -446,6 +520,12 @@
                     >
                       <td class="px-5 py-3 text-text-default">
                         {{ hosting.domain_url || hosting.client_name }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-text-muted text-xs"
+                        :data-testid="`client-hosting-project-${hosting.id}`"
+                      >
+                        {{ hosting.project_name || '—' }}
                       </td>
                       <td class="px-4 py-3 tabular-nums text-text-muted">
                         {{ formatMoney(hosting.monthly_value) }}
@@ -478,6 +558,7 @@
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Concepto</th>
+                      <th class="px-4 py-3">Proyecto</th>
                       <th class="px-4 py-3">Mes</th>
                       <th class="px-4 py-3">Total</th>
                       <th class="px-4 py-3">Cobro</th>
@@ -491,6 +572,12 @@
                       :data-testid="`client-income-${income.id}`"
                     >
                       <td class="px-5 py-3 text-text-default">{{ income.concept }}</td>
+                      <td
+                        class="px-4 py-3 text-text-muted text-xs"
+                        :data-testid="`client-income-project-${income.id}`"
+                      >
+                        {{ income.project_name || '—' }}
+                      </td>
                       <td class="px-4 py-3 text-text-muted text-xs">{{ income.period_label }}</td>
                       <td class="px-4 py-3 tabular-nums text-text-muted">
                         {{ formatMoney(income.total_amount) }}
@@ -498,6 +585,56 @@
                       <td class="px-4 py-3 text-text-muted text-xs">
                         {{ income.payment_status_label || income.kind_label }}
                       </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Los últimos 5 documentos del cliente; "Ver todos" entra al
+                 módulo ya filtrado — la relación sirve en las dos direcciones. -->
+            <div v-if="detailCache[client.id]?.documents?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2 flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Documentos</p>
+                <!-- design-tokens: allow-raw-button -->
+                <button
+                  type="button"
+                  :data-testid="`client-documents-all-${client.id}`"
+                  class="text-xs text-text-brand hover:underline"
+                  @click.stop="goToClientDocuments(client)"
+                >
+                  Ver todos ({{ detailCache[client.id].documents_total }})
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Documento</th>
+                      <th class="px-4 py-3">Proyecto</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3">Creado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="doc in detailCache[client.id].documents"
+                      :key="doc.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-document-row-${doc.id}`"
+                    >
+                      <td class="px-5 py-3">
+                        <NuxtLink
+                          :to="localePath(`/panel/documents/${doc.id}/edit`)"
+                          class="text-text-default hover:text-text-brand hover:underline"
+                          @click.stop
+                        >
+                          {{ doc.title }}
+                        </NuxtLink>
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ doc.project_name || '—' }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ documentStatusLabel(doc.status) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ formatDate(doc.created_at) }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -588,6 +725,23 @@
       </div>
     </div>
 
+    <!-- The client's emails, and the viewer for one of them. Siblings rather
+         than nested: BaseModal has no stacking manager, so DOM order is what
+         decides which one paints on top. -->
+    <ClientEmailsModal
+      :open="emailsModalOpen"
+      :client="emailsClient"
+      :preview-open="emailBodyOpen"
+      @close="closeEmails"
+      @view-body="openEmailBody"
+    />
+    <EmailBodyModal
+      :open="emailBodyOpen"
+      :entry="emailBodyEntry"
+      :fetcher="fetchEmailBody"
+      @close="emailBodyOpen = false"
+    />
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -605,22 +759,34 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
+import { statusLabel as documentStatusLabel } from '~/utils/documentStatus';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
+import ClientEmailsModal from '~/components/clients/ClientEmailsModal.vue';
+import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
-import { useClientFilters } from '~/composables/useClientFilters';
+import { useAccountingFilters } from '~/composables/useAccountingFilters';
+import {
+  CLIENT_FILTERS_CONFIG,
+  clientSubfiltersFor,
+  findClientSubfilter,
+  matchesSubfilter,
+} from '~/constants/clientFilters';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
@@ -657,10 +823,16 @@ async function onProposalStatusSelect(client, proposal, newStatus) {
   if (result) await refreshClientDetail(client.id);
 }
 
+// Migrated off the old useClientFilters (its pre-generalization ancestor) so
+// the predefined filters ride the same `builtinTabs` mechanism the accounting
+// subviews already use. The configuration itself lives in ~/constants/
+// clientFilters so this page and its tests never drift apart.
 const {
   currentFilters,
-  savedTabs,
+  displayTabs,
   activeTabId: filterTabId,
+  activeModule,
+  selectModule,
   isFilterPanelOpen,
   hasActiveFilters,
   activeFilterCount,
@@ -674,9 +846,145 @@ const {
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
   reloadTabs: reloadFilterTabs,
-} = useClientFilters();
+} = useAccountingFilters(CLIENT_FILTERS_CONFIG);
 
 const filteredClients = computed(() => applyFilters(clientsStore.clients));
+
+/**
+ * The per-row hosting count only earns its space while the Hosting module is
+ * the one being read — that is the moment the question "cuántos" is being
+ * asked, whichever of its subfilters is applied.
+ */
+function showsHostingCount(client) {
+  return activeModule.value === 'hosting' && Number(client.hostings_count || 0) > 0;
+}
+
+function showsEmailCount(client) {
+  return activeModule.value === 'emails' && Number(client.emails_sent_count || 0) > 0;
+}
+
+// The emails modal, reachable two ways: the row pill while the Emails module
+// is being read, and the "Ver correos" button on the expanded card — filtering
+// is for finding who, the ficha is where you already are when the question
+// comes up. One modal serves both.
+const emailsClient = ref(null);
+const emailsModalOpen = ref(false);
+const emailBodyEntry = ref(null);
+const emailBodyOpen = ref(false);
+
+function openEmails(client) {
+  emailsClient.value = client;
+  emailsModalOpen.value = true;
+}
+
+function closeEmails() {
+  emailsModalOpen.value = false;
+  emailsClient.value = null;
+}
+
+function openEmailBody(entry) {
+  emailBodyEntry.value = entry;
+  emailBodyOpen.value = true;
+}
+
+function fetchEmailBody(logId) {
+  return clientsStore.fetchClientEmailBody(emailsClient.value?.id, logId);
+}
+
+/**
+ * /panel/clients only requires admin, but /panel/accounting/* is behind the
+ * superuser-only middleware. Without this guard a staff non-superuser would
+ * click the pill straight into a redirect.
+ */
+const canOpenHostings = computed(() => proposalStore.isSuperuser);
+
+function goToClientHostings(client) {
+  navigateTo({
+    path: '/panel/accounting/hostings',
+    query: { client: String(client.id) },
+  });
+}
+
+/**
+ * A diferencia del pill de hostings, sin guard de superuser: /panel/documents
+ * comparte el gate admin de esta misma página.
+ */
+function showsDocumentsCount(client) {
+  return activeModule.value === 'documents' && Number(client.documents_count || 0) > 0;
+}
+
+function goToClientDocuments(client) {
+  navigateTo({
+    path: '/panel/documents',
+    query: { client: String(client.id) },
+  });
+}
+
+/**
+ * Matches per subfilter of the active module, read straight off the loaded
+ * rows so the number is visible without applying the filter. Counted before
+ * the panel's advanced filters — a badge should not move as you tweak
+ * unrelated controls — but after the status selector and search, which is what
+ * "lo que obtendrías si lo presionas ahora" means here.
+ *
+ * Always a number, never absent: an empty set is information, and hiding the
+ * zero would force the user to press the filter to find out.
+ */
+const subfilterCounts = computed(() => {
+  const counts = {};
+  for (const sub of clientSubfiltersFor(activeModule.value)) {
+    counts[sub.id] = clientsStore.clients.filter((c) => matchesSubfilter(sub, c)).length;
+  }
+  return counts;
+});
+
+/**
+ * Presses on the active subfilter turn it off (requisito: "al presionarlo de
+ * nuevo, la lista vuelve a todos los clientes"). Gated to subfilter ids on
+ * purpose: re-clicking a saved tab has always been an idempotent reload of
+ * its filters, and toggling those off would be a silent behavior change.
+ */
+function onSelectFilterTab(tabId) {
+  const key = String(tabId);
+  if (findClientSubfilter(key) && key === String(filterTabId.value)) {
+    selectFilterTab('all');
+    return;
+  }
+  selectFilterTab(tabId);
+}
+
+/**
+ * Tab, chip and panel are three views of one state, so they have to move
+ * together: the panel owns the whole filter object, and once an edit from it
+ * (typically removing a chip) leaves the highlighted subfilter's own values no
+ * longer set, that highlight is a lie and has to go.
+ *
+ * Only the highlight is dropped, not the filters: the user may well have other
+ * cuts applied, and clearing one chip must not take them down with it. Saved
+ * tabs are left alone — editing one is how you modify it, and the composable
+ * already tracks that as "modificada" with its own restore.
+ */
+function onFiltersUpdate(next) {
+  Object.assign(currentFilters, next);
+
+  const active = findClientSubfilter(filterTabId.value);
+  if (active && !subfilterStillApplied(active)) {
+    filterTabId.value = 'all';
+  }
+}
+
+/** Whether every value the subfilter stands for is still set in the panel. */
+function subfilterStillApplied(subfilter) {
+  return Object.entries(subfilter.filters).every(([key, value]) => {
+    const current = currentFilters[key];
+    if (Array.isArray(value)) {
+      return Array.isArray(current)
+        && current.length === value.length
+        && value.every((v) => current.includes(v));
+    }
+    return current === value;
+  });
+}
 
 const {
   currentPage: clientsPage,
@@ -693,13 +1001,37 @@ const {
 
 watch(filteredClients, () => clientsResetPage(), { deep: false });
 
-const tabs = [
+/**
+ * Client status: the state of the register itself, orthogonal to every module,
+ * so it lives next to the search box and combines with any of them. Applied
+ * server-side, which is why its counts come from their own endpoint.
+ */
+const CLIENT_STATUSES = [
   { id: 'all', label: 'Todos' },
   { id: 'active', label: 'Activos' },
   { id: 'orphans', label: 'Huérfanos' },
   { id: 'inactive', label: 'Inactivos' },
 ];
-const activeTab = ref('all');
+const route = useRoute();
+const router = useRouter();
+const VALID_STATUSES = CLIENT_STATUSES.map((s) => s.id);
+const initialStatus = String(route.query.status || 'all');
+const clientStatus = ref(VALID_STATUSES.includes(initialStatus) ? initialStatus : 'all');
+const isConfigOpen = ref(false);
+
+const clientStatusOptions = computed(() =>
+  CLIENT_STATUSES.map(({ id, label }) => {
+    const count = clientsStore.statusCounts?.[id];
+    return {
+      value: id,
+      // Same treatment as the subfilter counts: in parentheses, always shown,
+      // zero included.
+      label: count == null ? label : `${label} (${count})`,
+      testId: `clients-status-${id}`,
+    };
+  }),
+);
+
 const search = ref('');
 const expandedClients = ref(new Set());
 const loadingDetails = ref(new Set());
@@ -713,14 +1045,25 @@ let searchTimer = null;
 
 async function loadClients({ silent = false } = {}) {
   let orphans = null;
-  if (activeTab.value === 'orphans') orphans = true;
-  else if (activeTab.value === 'active') orphans = false;
-  await clientsStore.fetchClients({
-    search: search.value.trim(),
-    orphans,
-    inactive: activeTab.value === 'inactive',
-    silent,
-  });
+  if (clientStatus.value === 'orphans') orphans = true;
+  else if (clientStatus.value === 'active') orphans = false;
+  const search_ = search.value.trim();
+  await Promise.all([
+    clientsStore.fetchClients({
+      search: search_,
+      orphans,
+      // The endpoint does not paginate and every filter on this page — the
+      // subfilters and their counts included — runs over whatever was loaded,
+      // so ask for the endpoint's hard cap instead of the default 100. Past 500
+      // clients this needs real server-side pagination.
+      limit: 500,
+      inactive: clientStatus.value === 'inactive',
+      silent,
+    }),
+    // Same search, so the numbers in the selector describe the same table the
+    // list is showing.
+    clientsStore.fetchStatusCounts({ search: search_ }),
+  ]);
 }
 
 /**
@@ -744,8 +1087,19 @@ async function refreshAll() {
   );
 }
 
-function setActiveTab(tabId) {
-  activeTab.value = tabId;
+/**
+ * The applied status travels in the URL so the link can be saved and survives
+ * a reload, and is dropped again when it goes back to the default instead of
+ * staying glued there.
+ */
+function setClientStatus(status) {
+  if (status === clientStatus.value) return;
+  clientStatus.value = status;
+  const query = { ...route.query };
+  if (status === 'all') delete query.status;
+  else query.status = status;
+  router.replace({ query });
+  clientsResetPage();
   loadClients();
 }
 
@@ -781,10 +1135,32 @@ function handleEditEscape(e) {
   if (e.key === 'Escape' && editingClient.value) closeEditModal();
 }
 
-onMounted(() => {
-  loadClients();
+onMounted(async () => {
   document.addEventListener('keydown', handleEditEscape);
+  await loadClients();
+  applyHighlightFromQuery();
 });
+
+/**
+ * ?highlight=<profileId>: llega desde el enlace "Ver cliente" de un documento
+ * — expande la ficha y hace scroll a la fila. Param de un solo uso (espejo de
+ * ?highlight= en /panel/projects): se limpia de la URL y degrada sin ruido si
+ * el cliente no está entre las filas cargadas o quedó en otra página.
+ */
+function applyHighlightFromQuery() {
+  const targetId = Number.parseInt(route.query.highlight, 10);
+  if (!Number.isFinite(targetId)) return;
+  const query = { ...route.query };
+  delete query.highlight;
+  router.replace({ query });
+  const target = clientsStore.clients.find((c) => c.id === targetId);
+  if (!target) return;
+  toggleClient(target);
+  nextTick(() => {
+    document.querySelector(`[data-testid="client-row-${targetId}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
 
 usePanelRefresh(refreshAll);
 onBeforeUnmount(() => {

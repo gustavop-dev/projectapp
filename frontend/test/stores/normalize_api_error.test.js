@@ -3,7 +3,11 @@
  * into a consistent { message, code, hint, fieldErrors, status }.
  */
 
-import { normalizeApiError } from '../../stores/services/normalize_api_error';
+import {
+  normalizeApiError,
+  normalizeBlobApiError,
+  numericIdsFromError,
+} from '../../stores/services/normalize_api_error';
 
 function axiosError(status, data) {
   return { response: { status, data } };
@@ -68,5 +72,76 @@ describe('normalizeApiError', () => {
   it('uses the fallback for an empty object payload', () => {
     const r = normalizeApiError(axiosError(400, {}), 'Error genérico.');
     expect(r.message).toBe('Error genérico.');
+  });
+
+  // The machine payload must not leak into the human-facing field errors:
+  // fieldErrors feeds per-field messages for every store in the app.
+  it('keeps a numeric missing_ids array out of fieldErrors', () => {
+    const r = normalizeApiError(
+      axiosError(409, {
+        error: '1 de los ingresos seleccionados ya no existe.',
+        code: 'records_not_found',
+        missing_ids: [2],
+      }),
+    );
+
+    expect(r.message).toBe('1 de los ingresos seleccionados ya no existe.');
+    expect(r.code).toBe('records_not_found');
+    expect(r.fieldErrors).toBeNull();
+  });
+});
+
+describe('normalizeBlobApiError', () => {
+  it('reads the payload hidden inside a blob body', async () => {
+    const error = axiosError(400, new Blob([JSON.stringify({ detail: 'Sin contenido.' })]));
+
+    expect(await normalizeBlobApiError(error, 'Falló.')).toMatchObject({
+      message: 'Sin contenido.',
+      status: 400,
+    });
+  });
+
+  it('keeps the field-error map from a blob body', async () => {
+    const error = axiosError(400, new Blob([JSON.stringify({ folder_id: ['Archivada.'] })]));
+
+    const result = await normalizeBlobApiError(error, 'Falló.');
+
+    expect(result.fieldErrors).toEqual({ folder_id: 'Archivada.' });
+  });
+
+  it('falls back when the blob is not json', async () => {
+    const error = axiosError(500, new Blob(['<html>502</html>']));
+
+    expect((await normalizeBlobApiError(error, 'Falló.')).message).toBe('Falló.');
+  });
+
+  it('delegates plain json errors untouched', async () => {
+    const error = axiosError(403, { detail: 'Sin permisos.' });
+
+    expect((await normalizeBlobApiError(error, 'Falló.')).message).toBe('Sin permisos.');
+  });
+});
+
+describe('numericIdsFromError', () => {
+  it('reads the ids the server named', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: [2, 7] })))
+      .toEqual([2, 7]);
+  });
+
+  it('returns nothing when the key is absent', () => {
+    expect(numericIdsFromError(axiosError(400, { error: 'Nope' }))).toEqual([]);
+  });
+
+  it('returns nothing when the key is not a list', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: 'dos' }))).toEqual([]);
+  });
+
+  it('drops entries that are not numbers', () => {
+    expect(numericIdsFromError(axiosError(409, { missing_ids: [2, null, 'x'] })))
+      .toEqual([2]);
+  });
+
+  it('survives an error with no response at all', () => {
+    expect(numericIdsFromError(new Error('network down'))).toEqual([]);
   });
 });

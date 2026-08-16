@@ -166,8 +166,10 @@ function mountModal(props = {}) {
         BaseInput: {
           props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength'],
           emits: ['update:modelValue'],
+          // min/max are rendered, not just declared: they are the native guard
+          // that keeps a negative plazo out of the form.
           template:
-            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :min="min" :max="max" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled', 'suggestion'],
@@ -182,10 +184,16 @@ function mountModal(props = {}) {
             '<textarea :value="modelValue" :placeholder="placeholder" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseSegmented: {
-          props: ['modelValue', 'options', 'fullWidth', 'size'],
+          props: ['modelValue', 'options', 'fullWidth', 'size', 'disabled'],
           emits: ['update:modelValue'],
+          // Mirrors the real control's per-option lock and selected state: the
+          // income filters rely on both.
           template:
-            '<div><button v-for="o in options" :key="o.value" type="button" :data-testid="o.testId" @click="$emit(\'update:modelValue\', o.value)">{{ o.label }}</button></div>',
+            '<div><button v-for="o in options" :key="o.value" type="button"'
+            + ' :data-testid="o.testId" :disabled="disabled || o.disabled"'
+            + ' :aria-selected="String(modelValue === o.value)"'
+            + ' @click="!(disabled || o.disabled) && $emit(\'update:modelValue\', o.value)">'
+            + '{{ o.label }}</button></div>',
         },
         BaseButton: {
           props: ['variant', 'size', 'disabled', 'type', 'iconOnly'],
@@ -249,6 +257,8 @@ describe('CollectionAccountFormModal', () => {
     window.localStorage.clear();
     global.URL.createObjectURL = jest.fn(() => 'blob:preview-pdf');
     global.URL.revokeObjectURL = jest.fn();
+    // The viewer probes the PDF URL before mounting the <embed>.
+    global.fetch = jest.fn(() => Promise.resolve({ ok: true }));
   });
 
   afterEach(() => {
@@ -268,6 +278,35 @@ describe('CollectionAccountFormModal', () => {
     expect(
       Number(wrapper.find('[data-testid="collection-form-amount"]').element.value),
     ).toBe(1490000);
+  });
+
+  it('prefills the período facturado from a hosting income window', async () => {
+    // The income already says what window this cuenta bills — re-typing it
+    // was the gap that motivated recording the period at all.
+    const wrapper = mountModal({
+      income: {
+        ...incomeFixture,
+        period_start: '2026-08-15',
+        period_end: '2027-08-14',
+      },
+    });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('2026-08-15');
+    expect(
+      wrapper.find('[data-testid="collection-form-period-end"]').element.value,
+    ).toBe('2027-08-14');
+  });
+
+  it('leaves the período facturado empty when the income records none', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(
+      wrapper.find('[data-testid="collection-form-period-start"]').element.value,
+    ).toBe('');
   });
 
   it('lists incomes and blocks the ones that already have a cuenta', async () => {
@@ -322,44 +361,186 @@ describe('CollectionAccountFormModal', () => {
       expect(lastIncomeUrl()).not.toContain('client=');
     });
 
-    it('narrows to the chosen client plus the unassigned incomes', async () => {
+    it('scopes to the chosen client without asking the server again', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
       const wrapper = mountModal();
       await flushPromises();
 
       await selectClient(wrapper);
+      await openOptions(wrapper);
 
-      expect(lastIncomeUrl()).toContain('client=5%2Cnone');
+      // The request is the same whoever is billed: the alcance is decided here,
+      // which is what makes the chip counts exact and the switch instant.
+      expect(lastIncomeUrl()).not.toContain('client=');
+      expect(incomeUrls()).toHaveLength(1);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-13"]').exists())
+        .toBe(false);
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(false);
     });
 
-    it('reloads the options when the client changes', async () => {
+    it('re-aims the list at the new client without a second request', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
       const wrapper = mountModal();
       await flushPromises();
 
       await selectClient(wrapper);
       await selectClient(wrapper, otherClientFixture);
+      await openOptions(wrapper);
 
-      const urls = incomeUrls();
-      expect(urls).toHaveLength(3);
-      expect(urls[1]).toContain('client=5%2Cnone');
-      expect(urls[2]).toContain('client=7%2Cnone');
+      expect(incomeUrls()).toHaveLength(1);
+      expect(wrapper.find('[data-testid="collection-form-income-group-own"]').text())
+        .toContain('De Torrios SAS (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-option-13"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(false);
     });
 
-    it("splits the list into the client's own incomes and the unassigned ones", async () => {
+    it('counts each alcance option and widens to the unassigned ones', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').text())
+        .toContain('Del cliente (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-scope-all"]').text())
+        .toContain('Todos (3)');
+
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      const orphanGroup = wrapper.find(
+        '[data-testid="collection-form-income-group-orphan"]',
+      );
+      expect(orphanGroup.text()).toContain('Sin cliente (1)');
+      expect(orphanGroup.text()).toContain('Al elegirlo se asigna a Acme Soluciones');
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(true);
+      // The other client's row names its owner: that is the fact that decides
+      // whether it can be billed here at all.
+      expect(wrapper.find('[data-testid="collection-form-income-group-others"]').text())
+        .toContain('De otros clientes (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-client-13"]').text())
+        .toBe('Torrios SAS');
+    });
+
+    it('counts each estado option and filters without a request', async () => {
+      mockIncomes([ownIncome, { ...ownIncome, id: 14, kind: 'liquid', kind_label: 'Líquido' }]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]').text())
+        .toContain('Todos (2)');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-expected"]').text())
+        .toContain('Esperados (1)');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-liquid"]').text())
+        .toContain('Líquidos (1)');
+
+      await wrapper.find('[data-testid="collection-form-income-kind-liquid"]').trigger('click');
+
+      expect(wrapper.find('[data-testid="collection-form-income-option-14"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(false);
+      expect(incomeUrls()).toHaveLength(1);
+    });
+
+    it('leaves the list open when a filter is applied', async () => {
       mockIncomes([ownIncome, orphanIncome]);
       const wrapper = mountModal();
       await flushPromises();
       await selectClient(wrapper);
       await openOptions(wrapper);
 
-      expect(wrapper.find('[data-testid="collection-form-income-group-own"]').text())
-        .toContain('De Acme Soluciones (1)');
-      const orphanGroup = wrapper.find(
-        '[data-testid="collection-form-income-group-orphan"]',
-      );
-      expect(orphanGroup.text()).toContain('Sin cliente asignado (1)');
-      expect(orphanGroup.text()).toContain('Al elegirlo se asigna a Acme Soluciones');
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income"]').attributes('aria-expanded'))
+        .toBe('true');
+    });
+
+    it('says which combination came back empty and offers to widen it', async () => {
+      mockIncomes([
+        { ...ownIncome, kind: 'liquid', kind_label: 'Líquido' },
+        orphanIncome,
+      ]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
+
+      const empty = wrapper.find('[data-testid="collection-form-income-empty"]');
+      expect(empty.text()).toContain('Acme Soluciones no tiene ingresos esperados.');
+      expect(wrapper.findAll('[data-testid^="collection-form-income-option-"]'))
+        .toHaveLength(0);
+
+      // The orphan expected income is one click away instead of unreachable.
+      const seeAll = wrapper.find('[data-testid="collection-form-income-see-all"]');
+      expect(seeAll.text()).toContain('Ver todos (1)');
+      await seeAll.trigger('mousedown');
+
       expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
         .toBe(true);
+    });
+
+    it('resets alcance and estado when the client changes', async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
+
+      await selectClient(wrapper, otherClientFixture);
+      await openOptions(wrapper);
+
+      // Back to the defaults: no recorte of the previous client survives.
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').attributes('aria-selected'))
+        .toBe('true');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]').attributes('aria-selected'))
+        .toBe('true');
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(false);
+    });
+
+    it("locks 'Del cliente' until a client is chosen", async () => {
+      mockIncomes([ownIncome, orphanIncome, otherClientIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').element.disabled)
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-scope-all"]').attributes('aria-selected'))
+        .toBe('true');
+      // Nothing is scoped away yet, so the whole eligible ledger is on offer.
+      expect(wrapper.findAll('[data-testid^="collection-form-income-option-"]'))
+        .toHaveLength(3);
+    });
+
+    it('announces that an unassigned income will be adopted on issue', async () => {
+      mockIncomes([orphanIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+      await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
+
+      await wrapper.find('[data-testid="collection-form-income-option-12"]').trigger('mousedown');
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="collection-form-income-orphan-notice"]').text())
+        .toContain('al emitir quedará asignado a Acme Soluciones');
     });
 
     it('lists past the old eight-row cap and says how many are left out', async () => {
@@ -377,7 +558,7 @@ describe('CollectionAccountFormModal', () => {
       expect(
         wrapper.findAll('[data-testid^="collection-form-income-option-"]'),
       ).toHaveLength(25);
-      expect(wrapper.find('[data-testid="collection-form-income-more-all"]').text())
+      expect(wrapper.find('[data-testid="collection-form-income-more-orphan"]').text())
         .toContain('Mostrando 25 de 30');
     });
 
@@ -444,6 +625,65 @@ describe('CollectionAccountFormModal', () => {
     expect(payload.client_profile_id).toBe(5);
     expect(payload.income_record_id).toBe(8);
     expect(payload.items[0].unit_price).toBe('1490000');
+  });
+
+  it('sends a zero plazo as a real 0 rather than the default term', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('0');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    // `Number(...) || 8` used to read the deliberate 0 as "empty" and bill the
+    // cuenta at 8 days, so pago inmediato could not be expressed at all.
+    const payload = create_request.mock.calls.at(-1)[1];
+    expect(payload.payment_term_days).toBe(0);
+    expect(payload.due_date).toBeUndefined();
+  });
+
+  it('still falls back to the default term when the plazo is left empty', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(8);
+  });
+
+  it('clamps a typed negative plazo to 0 instead of sending it to the API', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    // min="0" stops the spinner but not the keyboard; the serializer would
+    // reject -5 with a 400, so the payload builder keeps it inside the bounds.
+    await wrapper.find('[data-testid="collection-form-term-days"]').setValue('-5');
+    await wrapper.find('[data-testid="collection-form-preview"]').trigger('submit');
+    await flushPromises();
+
+    expect(create_request.mock.calls.at(-1)[1].payment_term_days).toBe(0);
+  });
+
+  it('explains what a zero plazo does, and only while days are being asked', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('0 días = pago inmediato');
+    expect(wrapper.find('[data-testid="collection-form-term-days"]').attributes('min'))
+      .toBe('0');
+
+    // Switching to a fixed date drops the hint: a 0 means nothing there.
+    await wrapper.findAll('button')
+      .find((b) => b.text() === 'Fecha fija')
+      .trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).not.toContain('0 días = pago inmediato');
   });
 
   it('sends the long description as the detail line, not the short concept', async () => {
@@ -684,6 +924,21 @@ describe('CollectionAccountFormModal', () => {
       window.open = jest.fn();
       await wrapper.find('[data-testid="collection-preview-open-pdf"]').trigger('click');
       expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noopener');
+    });
+
+    it('falls back to its own message, keeping the download exits, when the viewer fails', async () => {
+      // The browser's connection-refused page inside the frame explains
+      // nothing; the panel says what happened and where to review instead.
+      global.fetch = jest.fn(() => Promise.reject(new Error('refused')));
+      const wrapper = mountModal({ income: incomeFixture });
+      await flushPromises();
+      await goToPreview(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-preview-pdf"]').exists()).toBe(false);
+      expect(wrapper.get('[data-testid="collection-preview-pdf-error"]').text())
+        .toContain('No pudimos mostrar la previsualización');
+      expect(wrapper.find('[data-testid="collection-preview-download-pdf"]').exists()).toBe(true);
+      expect(wrapper.find('[data-testid="collection-preview-open-pdf"]').exists()).toBe(true);
     });
 
     it('gives the PDF the wider column by default', async () => {

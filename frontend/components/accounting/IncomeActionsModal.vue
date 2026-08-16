@@ -56,6 +56,7 @@ import {
   BellSlashIcon,
   DocumentDuplicateIcon,
   DocumentPlusIcon,
+  EnvelopeIcon,
   EyeIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -81,7 +82,7 @@ const props = defineProps({
 
 const emit = defineEmits([
   'close', 'detail', 'edit', 'duplicate', 'liquidate', 'generate-collection',
-  'view-collection', 'toggle-mute', 'write-off', 'delete',
+  'view-collection', 'view-emails', 'toggle-mute', 'write-off', 'delete',
 ]);
 
 function money(value) {
@@ -135,6 +136,10 @@ const actions = computed(() => {
       event: 'write-off',
     });
   }
+  list.push({
+    id: 'view-emails', label: 'Ver correos de este ingreso',
+    icon: EnvelopeIcon, event: 'view-emails',
+  });
   list.push({
     id: 'delete', label: 'Eliminar', icon: TrashIcon, event: 'delete',
     danger: true,

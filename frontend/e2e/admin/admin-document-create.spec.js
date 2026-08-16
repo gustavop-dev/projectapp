@@ -124,5 +124,92 @@ test.describe('Admin Document Create', () => {
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
     expect(postBody.markdown).toContain('Contenido del anexo.');
   });
+
+  test('picking a project first autofills its client into the payload', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let postBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'accounting/projects/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [{
+              id: 11, name: 'Kore - Diseño', status: 'active',
+              status_label: 'Activo', client_profile_id: 7,
+              client_display_name: 'Kore SAS',
+            }],
+          }),
+        };
+      }
+      if (apiPath === 'documents/create-from-markdown/' && method === 'POST') {
+        postBody = route.request().postDataJSON();
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(createdDocument) };
+      }
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([createdDocument]) };
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: '[]' };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/create');
+
+    // Proyecto PRIMERO: el selector lista todos con su dueño y elegir uno
+    // completa el cliente solo (cascada inversa).
+    await page.getByTestId('doc-project-select').click();
+    await page.getByTestId('doc-project-select-option-11').click();
+    await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('Kore SAS');
+
+    await page.getByLabel(/T[ií]tulo/i).fill('Entregable Kore');
+    const textarea = page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i);
+    await textarea.fill('# Entregable');
+    await page.getByRole('button', { name: /Crear|Guardar/i }).click();
+    await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
+
+    expect(postBody.project).toBe(11);
+    expect(postBody.client).toBe(7);
+  });
+
+  test('creating inside a client folder proposes that client by default', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (?folder= is the create page's own contract —
+    // the subject is the suggestion that folder context triggers)
+    // quality: allow-no-interaction (the trigger IS the folder context carried
+    // by the navigation; the assertions pin the concrete suggested client)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 9, name: 'Kore - Diseño', parent: null, order: 0,
+            is_archived: false, document_count: 4, children_count: 0,
+          }]),
+        };
+      }
+      if (apiPath === 'documents/folder-client-suggestion/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            client: 7, client_display_name: 'Kore SAS',
+            linked_documents: 3, folder_documents: 4,
+          }),
+        };
+      }
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: '[]' };
+      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      return null;
+    });
+    await page.goto('/panel/documents/create?folder=9');
+
+    // Sólo prellenado, nunca lock: el hint lo dice y el selector queda vivo.
+    await expect(page.getByTestId('doc-client-suggested-hint')).toBeVisible();
+    await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('Kore SAS');
+  });
 });
 

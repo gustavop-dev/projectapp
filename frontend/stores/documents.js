@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { DEFAULT_SCOPE, matchesScope, normalizeScope } from '~/utils/archiveScope';
 import { get_request, create_request, patch_request, delete_request } from './services/request_http';
-import { normalizeApiError } from './services/normalize_api_error';
+import { normalizeApiError, normalizeBlobApiError } from './services/normalize_api_error';
 
 // Fuera del store para que no sean reactivos: descartan respuestas viejas
 // cuando dos peticiones se pisan (búsqueda con debounce, refrescos encadenados).
@@ -30,6 +30,9 @@ export const useDocumentStore = defineStore('documents', {
     },
     currentDocument: null,
     isLoading: false,
+    // La búsqueda tiene su propia bandera: comparte skeleton con la lista pero
+    // no debe pisar isLoading, que gobierna los fetch de navegación.
+    isSearchLoading: false,
     isUpdating: false,
     error: null,
     // Dónde: 'all' | 'root' | 'none' | <folder id>
@@ -37,8 +40,11 @@ export const useDocumentStore = defineStore('documents', {
     // Estado, eje independiente de la carpeta: 'active' | 'archived' | 'all'
     archiveScope: DEFAULT_SCOPE,
     archivedOrder: 'recent',
-    searchQuery: '',
     activeTagIds: [],
+    // Asociación, dos ejes más: null (sin filtro) | 'none' (sin asociar) | id.
+    // `client` habla en pk de UserProfile, igual que el resto del panel.
+    activeClientId: null,
+    activeProjectId: null,
   }),
 
   getters: {
@@ -68,6 +74,8 @@ export const useDocumentStore = defineStore('documents', {
         const tags = overrides.tags !== undefined ? overrides.tags : this.activeTagIds;
         const scope = normalizeScope(overrides.scope);
         const order = overrides.order !== undefined ? overrides.order : this.archivedOrder;
+        const client = overrides.client !== undefined ? overrides.client : this.activeClientId;
+        const project = overrides.project !== undefined ? overrides.project : this.activeProjectId;
 
         const params = new URLSearchParams();
         // 'root' se resuelve en el cliente: la partición necesita el árbol de
@@ -78,6 +86,12 @@ export const useDocumentStore = defineStore('documents', {
         params.set('scope', scope);
         if (Array.isArray(tags) && tags.length > 0) {
           params.set('tags', tags.join(','));
+        }
+        if (client != null) {
+          params.set('client', client === 'none' ? 'none' : String(client));
+        }
+        if (project != null) {
+          params.set('project', project === 'none' ? 'none' : String(project));
         }
         if (scope === 'archived' && order === 'oldest') params.set('order', 'oldest');
 
@@ -109,6 +123,7 @@ export const useDocumentStore = defineStore('documents', {
      */
     async searchDocuments(term) {
       const token = ++searchToken;
+      this.isSearchLoading = true;
       this.error = null;
       try {
         const params = new URLSearchParams({ scope: 'all', search: term });
@@ -123,6 +138,10 @@ export const useDocumentStore = defineStore('documents', {
           errors: error.response?.data,
           ...normalizeApiError(error, 'No se pudo completar la búsqueda.'),
         };
+      } finally {
+        // Sólo la última búsqueda pedida apaga la bandera: una respuesta vieja
+        // no debe cortar el skeleton de la que sigue en vuelo.
+        if (token === searchToken) this.isSearchLoading = false;
       }
     },
 
@@ -144,6 +163,23 @@ export const useDocumentStore = defineStore('documents', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error fetching document counts:', error);
+        return { success: false, errors: error.response?.data };
+      }
+    },
+
+    /**
+     * fetchFolderClientSuggestion: cliente mayoritario de una carpeta, para
+     * prellenar el form de crear. No toca isLoading: es un prellenado
+     * silencioso, no una carga de página.
+     */
+    async fetchFolderClientSuggestion(folderId) {
+      try {
+        const response = await get_request(
+          `documents/folder-client-suggestion/?folder=${folderId}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching folder client suggestion:', error);
         return { success: false, errors: error.response?.data };
       }
     },
@@ -220,13 +256,15 @@ export const useDocumentStore = defineStore('documents', {
 
     /**
      * setFilters: Update active filters and refetch the list.
-     * @param {object} filters - { folder?, scope?, tags?, order? }
+     * @param {object} filters - { folder?, scope?, tags?, order?, client?, project? }
      */
-    async setFilters({ folder, scope, tags, order } = {}) {
+    async setFilters({ folder, scope, tags, order, client, project } = {}) {
       if (folder !== undefined) this.activeFolderId = folder;
       if (scope !== undefined) this.archiveScope = normalizeScope(scope);
       if (order !== undefined) this.archivedOrder = order;
       if (tags !== undefined) this.activeTagIds = Array.isArray(tags) ? [...tags] : [];
+      if (client !== undefined) this.activeClientId = client;
+      if (project !== undefined) this.activeProjectId = project;
       return this.fetchDocuments({ scope: this.archiveScope });
     },
 
@@ -237,7 +275,9 @@ export const useDocumentStore = defineStore('documents', {
       const idx = this.activeTagIds.indexOf(tagId);
       if (idx === -1) this.activeTagIds.push(tagId);
       else this.activeTagIds.splice(idx, 1);
-      return this.fetchDocuments();
+      // El scope viaja explícito, como en setFilters: fetchDocuments no lo
+      // hereda del store, y omitirlo aquí sacaba al usuario de Archivados.
+      return this.fetchDocuments({ scope: this.archiveScope });
     },
 
     /**
@@ -457,7 +497,7 @@ export const useDocumentStore = defineStore('documents', {
         return {
           success: false,
           errors: error.response?.data,
-          ...normalizeApiError(error, 'No se pudo descargar el PDF.'),
+          ...(await normalizeBlobApiError(error, 'No se pudo descargar el PDF.')),
         };
       }
     },

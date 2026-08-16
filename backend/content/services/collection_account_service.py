@@ -254,22 +254,52 @@ def issue_collection_account(
 
     ptt = ext.payment_term_type
     if ptt == DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE:
+        # A zero-day term is immediate payment against presentation, so there is
+        # no deadline to state. Storing the issue date as the due date printed
+        # the same date twice on the PDF and, worse, turned the cuenta overdue
+        # the very next day. No date is what "no plazo" actually means.
         days = ext.payment_term_days or 0
-        document.due_date = today + timedelta(days=days)
+        document.due_date = today + timedelta(days=days) if days else None
     elif ptt == DocumentCollectionAccount.PaymentTermType.FIXED_DATE:
         if not document.due_date:
             raise CollectionAccountError('due_date is required for fixed_date payment term.')
-    else:
-        if not document.due_date:
-            document.due_date = today
+    # against_delivery is that same immediate payment reached through the term
+    # type instead of through a zero, so it no longer invents the issue date as
+    # a deadline either. A date set explicitly on the draft still stands.
 
     recalculate_document_totals(document)
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.ISSUED
     document.updated_by = acting_user
     document.save()
     ext.save()
+    _log_status_transition(document, old_values, acting_user)
 
     return document
+
+
+def _status_snapshot(document):
+    from content.services import accounting_service
+
+    return accounting_service.snapshot_values(
+        document, accounting_service.EntityType.COLLECTION_ACCOUNT,
+    )
+
+
+def _log_status_transition(document, old_values, acting_user):
+    """Audit row for a lifecycle transition (issue/paid/cancel).
+
+    This is what makes anular-y-reemitir reconstructable next to the
+    client/project reassignments: the trail says WHEN each cuenta changed
+    state and by whom, in the same table. Local import — this module is
+    itself imported from accounting paths.
+    """
+    from content.services import accounting_service
+
+    accounting_service.log_entity_diff(
+        accounting_service.EntityType.COLLECTION_ACCOUNT,
+        document, old_values, acting_user,
+    )
 
 
 @transaction.atomic
@@ -280,9 +310,11 @@ def mark_collection_account_paid(document, *, acting_user=None):
         return document
     if document.commercial_status != Document.CommercialStatus.ISSUED:
         raise CollectionAccountError('Only issued accounts can be marked paid.')
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.PAID
     document.updated_by = acting_user
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
+    _log_status_transition(document, old_values, acting_user)
     return document
 
 
@@ -299,9 +331,11 @@ def mark_collection_account_cancelled(document, *, acting_user=None):
         Document.CommercialStatus.ISSUED,
     ):
         raise CollectionAccountError('Only draft or issued accounts can be cancelled.')
+    old_values = _status_snapshot(document)
     document.commercial_status = Document.CommercialStatus.CANCELLED
     document.updated_by = acting_user
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
+    _log_status_transition(document, old_values, acting_user)
     return document
 
 

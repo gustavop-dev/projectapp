@@ -345,6 +345,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'cards',
+  resetPageOn: currentFilters,
   store,
   filteredRecords: weightedRecords,
   sortDefaults: {

@@ -128,15 +128,88 @@ export function useAccountingFilters({
   // Tab the view lands on with no `?<viewName>Tab` in the URL. Only 'all' or a
   // builtin id make sense here: saved-tab ids are per-user database rows.
   defaultTabId = 'all',
+  // Deep-link params this view is seeded with once (`project`, `client`,
+  // `focus`). See `consumeParam`.
+  ephemeralParams = [],
+  // Query param carrying the active tab. Defaults to `<viewName>Tab`; views
+  // whose name is long enough to make an ugly URL can shorten it.
+  tabQueryParam = `${viewName}Tab`,
+  // Put the active filters in the URL too, not just the tab, so a query can
+  // be bookmarked and shared. Off by default: the views that filter in the
+  // browser already restore their state from the tab alone.
+  syncFiltersToUrl = false,
+  // With two instances on one page (Historial's two subtabs), only the one on
+  // screen owns the query string — otherwise both would write the keys they
+  // share and overwrite each other.
+  isUrlOwner = () => true,
+  // Keys to clear before writing. Defaults to this instance's own; a page
+  // with several instances passes the union so switching between them cannot
+  // leave the previous one's filters behind.
+  urlFilterKeys = null,
+  // Opt-in second level. When set, it names the filter key holding the active
+  // module and `displayTabs` only lists the tabs belonging to it, so a view can
+  // group its quick filters instead of laying them out flat. Views that leave
+  // it null behave exactly as before.
+  moduleKey = null,
+  defaultModule = 'all',
+  // Query param carrying the active module, same shortening rationale as
+  // `tabQueryParam`.
+  moduleQueryParam = `${viewName}Module`,
+  // Optional migration hook applied to a stored tab's filters before they are
+  // loaded, for keys whose shape changed after the tab was saved.
+  normalizeFilters = null,
 } = {}) {
   const route = useRoute();
   const router = useRouter();
 
   const DEFAULT_FILTERS = Object.freeze({ search: '', ...structuredClone(defaults) });
-  const tabQueryParam = `${viewName}Tab`;
+  const queryKeys = urlFilterKeys || Object.keys(DEFAULT_FILTERS);
+
+  // ── Params de deep link ────────────────────────────────────────────────────
+  // Se leían sueltos con `route.query.x` en el `onMounted` de cada página y no
+  // los borraba nadie. Como el watcher del tab clona el query entero, cada
+  // `replace` posterior los volvía a arrastrar: limpiar los filtros dejaba la
+  // URL diciendo `?project=5` con el filtro ya apagado, y el F5 siguiente lo
+  // resucitaba. Un param que sobrevive a su contexto es estado oculto.
+  //
+  // El valor se captura AQUÍ, en el setup, antes de que nada pueda retirarlo,
+  // así el orden en que la página lo consuma deja de importar.
+  const ephemeral = ephemeralParams.map(
+    (param) => (typeof param === 'string' ? { name: param } : param),
+  );
+
+  const seededQuery = Object.freeze(Object.fromEntries(
+    ephemeral.map(({ name }) => [name, route?.query?.[name]]),
+  ));
+
+  /** Valor con el que se sembró la vista, o undefined si no venía en la URL. */
+  function consumeParam(name) {
+    return seededQuery[name];
+  }
+
+  function dropParams(names) {
+    if (!route || !router || !names.length) return;
+    const present = names.filter((name) => route.query?.[name] !== undefined);
+    if (!present.length) return;
+    const query = { ...route.query };
+    present.forEach((name) => delete query[name]);
+    router.replace({ query });
+  }
 
   function freshFilters() {
     return structuredClone(DEFAULT_FILTERS);
+  }
+
+  /**
+   * Defaults for "clear everything" and for stepping off a tab. The module is
+   * carried over: it selects an angle, it is not one of the cuts being
+   * cleared, so dropping the filters must not also walk the user back to the
+   * first module.
+   */
+  function freshFiltersKeepingModule(from) {
+    const fresh = freshFilters();
+    if (moduleKey) fresh[moduleKey] = from[moduleKey];
+    return fresh;
   }
 
   function cloneFilters(filters) {
@@ -144,7 +217,32 @@ export function useAccountingFilters({
   }
 
   function loadTabFilters(target, tab) {
-    Object.assign(target, freshFilters(), cloneFilters(tab.filters));
+    const stored = cloneFilters(tab.filters);
+    Object.assign(target, freshFilters(), normalizeFilters ? normalizeFilters(stored) : stored);
+  }
+
+  /** Read this instance's filters out of the query string. */
+  function filtersFromQuery(query) {
+    const parsed = {};
+    for (const [key, fallback] of Object.entries(DEFAULT_FILTERS)) {
+      const raw = Array.isArray(query?.[key]) ? query[key][0] : query?.[key];
+      if (raw === undefined || raw === null || raw === '') continue;
+      parsed[key] = Array.isArray(fallback)
+        ? String(raw).split(',').filter(Boolean)
+        : String(raw);
+    }
+    return parsed;
+  }
+
+  /** Serialize the active filters, arrays joined like the export params. */
+  function filtersToQuery() {
+    const serialized = {};
+    for (const [key, fallback] of Object.entries(DEFAULT_FILTERS)) {
+      const value = currentFilters[key];
+      if (!isValueActive(value, fallback)) continue;
+      serialized[key] = Array.isArray(value) ? value.join(',') : String(value);
+    }
+    return serialized;
   }
 
   const builtinById = new Map(builtinTabs.map((t) => [String(t.id), t]));
@@ -158,15 +256,76 @@ export function useAccountingFilters({
   if (builtinById.has(String(initialTab))) {
     loadTabFilters(currentFilters, builtinById.get(String(initialTab)));
   }
+  // Same reason, for a shared link: the filters have to be in place before
+  // the page's first fetch, not after it.
+  if (syncFiltersToUrl && isUrlOwner()) {
+    Object.assign(currentFilters, filtersFromQuery(route?.query));
+  }
+  // Read after the landing tab, which stamps its own module: an explicit
+  // ?<view>Module in the URL is the more specific instruction and wins.
+  if (moduleKey && route?.query?.[moduleQueryParam]) {
+    currentFilters[moduleKey] = String(route.query[moduleQueryParam]);
+  }
   const isFilterPanelOpen = ref(false);
 
-  const tabs = useSavedFilterTabs(viewName);
-  const { savedTabs, isTabLimitReached } = tabs;
+  // Un param que dispara una acción de una sola vez (destacar una fila) agota
+  // su contexto al montar: dejarlo puesto re-enciende el destello en cada F5.
+  onMounted(() => {
+    dropParams(ephemeral.filter((p) => !p.boundTo).map((p) => p.name));
+  });
 
-  const displayTabs = computed(() => [
-    ...builtinTabs.map((t) => ({ id: t.id, name: t.name, builtin: true })),
-    ...savedTabs.value,
-  ]);
+  // El que siembra un FILTRO se queda mientras ese filtro siga puesto — ahí el
+  // param sí describe la vista y sostiene el deep link a través de un F5. Se va
+  // en cuanto el filtro cambia o se limpia, que es lo que antes no pasaba
+  // nunca: la URL seguía prometiendo un filtro ya apagado.
+  ephemeral.filter((p) => p.boundTo).forEach(({ name, boundTo }) => {
+    if (seededQuery[name] === undefined) return;
+    watch(() => currentFilters[boundTo], (value) => {
+      const stillSeeded = Array.isArray(value)
+        && value.length === 1
+        && String(value[0]) === String(seededQuery[name]);
+      if (!stillSeeded) dropParams([name]);
+    }, { deep: true });
+  });
+
+  const tabs = useSavedFilterTabs(viewName);
+  const { savedTabs, isLoading, isReady, lastError, isTabLimitReached } = tabs;
+
+  // Tabs carry their module inside their filters, so a saved one is grouped by
+  // whatever module was active when it was saved. Anything without a module —
+  // every tab of every other view — belongs to the default one.
+  function moduleOf(tab) {
+    return String(tab.module ?? tab.filters?.[moduleKey] ?? defaultModule);
+  }
+
+  const activeModule = computed(() =>
+    (moduleKey ? String(currentFilters[moduleKey] ?? defaultModule) : defaultModule),
+  );
+
+  // `filters` travels with the builtins too: a view that badges its tabs has
+  // to be able to ask the server what each one is worth, and a builtin with
+  // no definition attached would be counted as if it filtered nothing.
+  const displayTabs = computed(() => {
+    const all = [
+      ...builtinTabs.map((t) => ({
+        id: t.id, name: t.name, filters: t.filters || {}, module: t.module, builtin: true,
+      })),
+      ...savedTabs.value,
+    ];
+    if (!moduleKey) return all;
+    return all.filter((tab) => moduleOf(tab) === activeModule.value);
+  });
+
+  /**
+   * Switching module never clears what is already applied: the panel and the
+   * active-filter chips keep showing it, so nothing goes invisible, and cuts
+   * from different modules stay combinable. A tab selected in another module
+   * simply drops out of `displayTabs` and lights up again on the way back.
+   */
+  function selectModule(moduleId) {
+    if (!moduleKey) return;
+    currentFilters[moduleKey] = String(moduleId);
+  }
 
   // Debounced free-text search: pages bind their search box to
   // `searchInput`; the actual `currentFilters.search` value (which drives
@@ -200,19 +359,41 @@ export function useAccountingFilters({
     return typeof value === 'number' ? value : Number(value);
   }
 
-  // The param is written for every tab that is NOT the landing one — including
-  // 'all'. Omitting it there would make a reload of the cleared view snap back
-  // to the default tab.
-  watch(activeTabId, (tabId) => {
+  /**
+   * Write tab, module and filters in one `router.replace`.
+   *
+   * One writer on purpose: two watchers each replacing the query would race,
+   * and whichever landed second would drop the other's keys. Selecting a
+   * subfilter moves the tab AND the module at once, so they have to share it.
+   *
+   * The tab param is written for every tab that is NOT the landing one —
+   * including 'all'. Omitting it there would make a reload of the cleared
+   * view snap back to the default tab. The module param follows the same rule.
+   */
+  function syncUrl() {
     if (!route || !router) return;
     const query = { ...route.query };
-    if (String(tabId) === String(defaultTabId)) {
+    if (String(activeTabId.value) === String(defaultTabId)) {
       delete query[tabQueryParam];
     } else {
-      query[tabQueryParam] = String(tabId);
+      query[tabQueryParam] = String(activeTabId.value);
+    }
+    if (syncFiltersToUrl && isUrlOwner()) {
+      for (const key of queryKeys) delete query[key];
+      Object.assign(query, filtersToQuery());
+    }
+    if (moduleKey) {
+      if (String(activeModule.value) === String(defaultModule)) {
+        delete query[moduleQueryParam];
+      } else {
+        query[moduleQueryParam] = String(activeModule.value);
+      }
     }
     router.replace({ query });
-  });
+  }
+
+  watch(activeTabId, syncUrl);
+  watch(activeModule, syncUrl);
 
   watch(
     currentFilters,
@@ -223,6 +404,7 @@ export function useAccountingFilters({
       ) {
         tabs.updateTabFilters(numericTabId(activeTabId.value), cloneFilters(currentFilters));
       }
+      if (syncFiltersToUrl) syncUrl();
     },
     { deep: true },
   );
@@ -293,7 +475,7 @@ export function useAccountingFilters({
   }
 
   function resetFilters() {
-    Object.assign(currentFilters, freshFilters());
+    Object.assign(currentFilters, freshFiltersKeepingModule(currentFilters));
     activeTabId.value = 'all';
   }
 
@@ -314,7 +496,7 @@ export function useAccountingFilters({
     }
     activeTabId.value = tabId;
     if (tabId === 'all') {
-      Object.assign(currentFilters, freshFilters());
+      Object.assign(currentFilters, freshFiltersKeepingModule(currentFilters));
       return;
     }
     const tab = savedTabs.value.find((t) => String(t.id) === String(tabId));
@@ -358,7 +540,12 @@ export function useAccountingFilters({
     savedTabs,
     displayTabs,
     activeTabId,
+    activeModule,
+    selectModule,
     isFilterPanelOpen,
+    isLoading,
+    isReady,
+    lastError,
     hasActiveFilters,
     activeFilterCount,
     isTabLimitReached,
@@ -371,5 +558,11 @@ export function useAccountingFilters({
     renameTab,
     restoreTab,
     rebaseTab,
+    reloadTabs: tabs.loadTabs,
+    consumeParam,
+    // For a page with several instances: whichever becomes the visible one
+    // re-claims the query string.
+    syncUrl,
+    filtersFromQuery,
   };
 }

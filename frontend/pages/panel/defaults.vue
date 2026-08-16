@@ -98,7 +98,12 @@ const mode = computed(() => (route.query.mode === 'diagnostic' ? 'diagnostic' : 
 
 function setMode(next) {
   if (next === mode.value) return;
-  router.replace({ query: { ...route.query, mode: next, tab: undefined } });
+  // `proposal` es el default de `mode` (ver el computed de arriba): escribirlo
+  // deja en la URL un estado que no dice nada.
+  const query = { ...route.query, tab: undefined };
+  if (next === 'proposal') delete query.mode;
+  else query.mode = next;
+  router.replace({ query });
 }
 
 const backLink = computed(() => (

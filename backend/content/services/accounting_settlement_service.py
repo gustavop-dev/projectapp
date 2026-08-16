@@ -211,6 +211,9 @@ def _create_liquid_child(income, data, user):
         # Inherited from the projection: without this the collected money
         # would drop out of its client's totals the moment it is settled.
         'client': income.client_id,
+        # Same inheritance for the project — a liquid with no project would
+        # split the deal across two per-project buckets (PA-51).
+        'project': income.project_id,
         'origin': income.origin,
         'notes': data.get('notes', ''),
     }

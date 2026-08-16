@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from content.api_errors import error_response
 from content.models import CreditCardTransaction
 from content.permissions import IsSuperUser
-from content.services import accounting_export_service
+from content.services import accounting_export_service, accounting_history_service
 from content.utils import today_bogota
 from content.views.accounting import _ENTITIES, _apply_filters, base_queryset
 
@@ -33,11 +33,20 @@ def _xlsx_response(workbook, filename):
     return response
 
 
+# The Historial subtabs are not `_ENTITIES` rows — they have no CRUD and
+# their own filter vocabulary — so they build their queryset from the same
+# service the list and the tab counts use.
+_HISTORY_SECTIONS = {
+    'email_log': accounting_history_service.email_log_queryset,
+    'change_log': accounting_history_service.change_log_queryset,
+}
+
+
 @api_view(['GET'])
 @permission_classes([IsSuperUser])
 def export_accounting_records(request):
     section = request.query_params.get('section', '')
-    if section not in _ENTITIES:
+    if section not in _ENTITIES and section not in _HISTORY_SECTIONS:
         return error_response(
             "El parámetro 'section' no corresponde a una sección contable.",
             code='invalid_section',
@@ -51,10 +60,16 @@ def export_accounting_records(request):
             status=400,
         )
 
-    config = _ENTITIES[section]
-    queryset = base_queryset(config)
     try:
-        queryset = _apply_filters(queryset, request.query_params, config)
+        if section in _HISTORY_SECTIONS:
+            queryset = _HISTORY_SECTIONS[section](request.query_params)
+            if section == 'email_log':
+                queryset = queryset.prefetch_related('targets')
+        else:
+            config = _ENTITIES[section]
+            queryset = _apply_filters(
+                base_queryset(config), request.query_params, config,
+            )
     except ValueError as exc:
         return error_response(str(exc), code='invalid_filter', status=400)
 

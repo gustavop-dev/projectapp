@@ -107,7 +107,7 @@ function onSubmit() {
       <h3 id="card-snapshot-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
     <form class="px-6 py-4 space-y-4" @submit.prevent="onSubmit">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Tarjeta" required>
           <BaseSelect
             v-model="form.card_name"
@@ -120,7 +120,7 @@ function onSubmit() {
         <BaseFormField label="Fecha" required>
           <BaseInput v-model="form.snapshot_date" type="date" required />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Disponible" required>
         <BaseCurrencyInput v-model="form.available_amount" required />

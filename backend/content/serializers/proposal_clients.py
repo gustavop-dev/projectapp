@@ -7,7 +7,7 @@ shape expected by ``/panel/clients`` and the proposal create/edit autocomplete.
 
 from rest_framework import serializers
 
-from accounts.models import UserProfile
+from accounts.models import Project, UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
 
 
@@ -48,6 +48,16 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     diagnostics_count = serializers.SerializerMethodField()
     incomes_count = serializers.SerializerMethodField()
     hostings_count = serializers.SerializerMethodField()
+    active_hostings_count = serializers.SerializerMethodField()
+    active_projects_count = serializers.SerializerMethodField()
+    diagnostic_incomes_count = serializers.SerializerMethodField()
+    diagnostics_without_proposal_count = serializers.SerializerMethodField()
+    emails_sent_count = serializers.SerializerMethodField()
+    emails_failed_count = serializers.SerializerMethodField()
+    last_email_at = serializers.SerializerMethodField()
+    documents_count = serializers.SerializerMethodField()
+    documents_no_project_count = serializers.SerializerMethodField()
+    last_document_at = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
     deactivated_at = serializers.DateTimeField(read_only=True)
@@ -76,6 +86,16 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'diagnostics_count',
             'incomes_count',
             'hostings_count',
+            'active_hostings_count',
+            'active_projects_count',
+            'diagnostic_incomes_count',
+            'diagnostics_without_proposal_count',
+            'emails_sent_count',
+            'emails_failed_count',
+            'last_email_at',
+            'documents_count',
+            'documents_no_project_count',
+            'last_document_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -97,6 +117,16 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'diagnostics_count',
             'incomes_count',
             'hostings_count',
+            'active_hostings_count',
+            'active_projects_count',
+            'diagnostic_incomes_count',
+            'diagnostics_without_proposal_count',
+            'emails_sent_count',
+            'emails_failed_count',
+            'last_email_at',
+            'documents_count',
+            'documents_no_project_count',
+            'last_document_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -147,6 +177,110 @@ class ProposalClientSerializer(serializers.ModelSerializer):
         if annotated is not None:
             return annotated
         return obj.hosting_records.count()
+
+    def get_active_hostings_count(self, obj):
+        annotated = getattr(obj, 'active_hostings_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.hosting_records.filter(is_active=True).count()
+
+    def get_diagnostic_incomes_count(self, obj):
+        annotated = getattr(obj, 'diagnostic_incomes_count', None)
+        if annotated is not None:
+            return annotated
+        from content.models import IncomeRecord
+        return (
+            obj.income_records
+            .filter(origin=IncomeRecord.Origin.DIAGNOSTIC)
+            .exclude(kind=IncomeRecord.Kind.LOST)
+            .count()
+        )
+
+    def get_diagnostics_without_proposal_count(self, obj):
+        annotated = getattr(obj, 'diagnostics_without_proposal_count', None)
+        if annotated is not None:
+            return annotated
+        # The annotation minus its outer Subquery: with the diagnostics query
+        # outermost, the Exists' OuterRefs bind to it directly, exactly as
+        # they do one level down in `_base_queryset`.
+        from django.db.models import Exists, OuterRef
+        from django.db.models.functions import Coalesce
+
+        from content.models import BusinessProposal, WebAppDiagnostic
+        return (
+            obj.web_app_diagnostics
+            .exclude(status=WebAppDiagnostic.Status.DRAFT)
+            .filter(~Exists(
+                BusinessProposal.objects.filter(
+                    client_id=OuterRef('client_id'),
+                    created_at__gt=Coalesce(
+                        OuterRef('initial_sent_at'), OuterRef('created_at'),
+                    ),
+                )
+            ))
+            .count()
+        )
+
+    def get_emails_sent_count(self, obj):
+        annotated = getattr(obj, 'emails_sent_count', None)
+        if annotated is not None:
+            return annotated
+        from content.models import EmailLog
+        return obj.email_logs.filter(
+            audience=EmailLog.Audience.CLIENT,
+        ).count()
+
+    def get_emails_failed_count(self, obj):
+        annotated = getattr(obj, 'emails_failed_count', None)
+        if annotated is not None:
+            return annotated
+        from content.models import EmailLog
+        return obj.email_logs.filter(
+            audience=EmailLog.Audience.CLIENT,
+            status=EmailLog.Status.FAILED,
+        ).count()
+
+    def get_last_email_at(self, obj):
+        annotated = getattr(obj, 'last_email_at', None)
+        if annotated is not None:
+            return annotated
+        from content.models import EmailLog
+        # EmailLog orders newest-first, so first() is the latest.
+        return obj.email_logs.filter(
+            audience=EmailLog.Audience.CLIENT,
+        ).values_list('sent_at', flat=True).first()
+
+    def get_documents_count(self, obj):
+        annotated = getattr(obj, 'documents_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.client_documents.filter(is_archived=False).count()
+
+    def get_documents_no_project_count(self, obj):
+        annotated = getattr(obj, 'documents_no_project_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.client_documents.filter(
+            is_archived=False, project__isnull=True,
+        ).count()
+
+    def get_last_document_at(self, obj):
+        annotated = getattr(obj, 'last_document_at', None)
+        if annotated is not None:
+            return annotated
+        return (
+            obj.user.client_documents
+            .filter(is_archived=False)
+            .order_by('-created_at')
+            .values_list('created_at', flat=True)
+            .first()
+        )
+
+    def get_active_projects_count(self, obj):
+        annotated = getattr(obj, 'active_projects_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.user.projects.filter(status=Project.STATUS_ACTIVE).count()
 
     def get_is_orphan(self, obj):
         if self.get_total_proposals(obj) > 0:

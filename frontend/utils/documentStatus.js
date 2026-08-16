@@ -49,6 +49,47 @@ export function archivedAgeLabel(dateStr) {
 }
 
 /**
+ * Documentos y subcarpetas de una carpeta, en el scope pedido.
+ *
+ * Los `active_*`/`archived_*` son absolutos; `document_count` es relativo al
+ * estado de la fila y sumarlo con el archivado duplicaría una carpeta
+ * archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
+ */
+export function scopedCounts(folder, scope) {
+  if (!folder) return { docs: 0, subs: 0 };
+  const activeDocs = folder.active_document_count
+    ?? (folder.is_archived ? 0 : folder.document_count || 0);
+  const activeSubs = folder.active_children_count
+    ?? (folder.is_archived ? 0 : folder.children_count || 0);
+  // El fallback es simétrico: `document_count` es relativo al estado de la
+  // fila, así que alimenta el lado que coincide con ese estado y cero el otro.
+  const archivedDocs = folder.archived_document_count
+    ?? (folder.is_archived ? folder.document_count || 0 : 0);
+  const archivedSubs = folder.archived_children_count
+    ?? (folder.is_archived ? folder.children_count || 0 : 0);
+
+  if (scope === 'archived') return { docs: archivedDocs, subs: archivedSubs };
+  if (scope === 'all') {
+    return { docs: activeDocs + archivedDocs, subs: activeSubs + archivedSubs };
+  }
+  return { docs: activeDocs, subs: activeSubs };
+}
+
+/**
+ * Inventario legible a partir de un par de conteos ya resuelto.
+ *
+ * Se separó de `folderRowSummary` porque el mismo texto lo necesitan los
+ * conteos recursivos del árbol, que no salen de una sola carpeta sino del
+ * rollup — y duplicar la pluralización era garantizar que se separaran.
+ */
+export function folderSummaryFrom({ docs = 0, subs = 0 } = {}) {
+  const parts = [];
+  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
+  if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
+  return parts.length ? parts.join(' · ') : 'Vacía';
+}
+
+/**
  * Inventario legible de una carpeta, en el scope pedido.
  *
  * Con `'all'` suma los dos estados: es lo que necesita el tooltip del ícono de
@@ -56,28 +97,19 @@ export function archivedAgeLabel(dateStr) {
  * que sólo mirara lo activo diría «Vacía» de una carpeta imborrable.
  */
 export function folderRowSummary(folder, scope = 'active') {
-  // Los `active_*`/`archived_*` son absolutos; `document_count` es relativo al
-  // estado de la fila y sumarlo con el archivado duplicaría una carpeta
-  // archivada. El fallback cubre payloads viejos (tests, respuestas cacheadas).
-  const activeDocs = folder.active_document_count
-    ?? (folder.is_archived ? 0 : folder.document_count || 0);
-  const activeSubs = folder.active_children_count
-    ?? (folder.is_archived ? 0 : folder.children_count || 0);
-  const archivedDocs = folder.archived_document_count || 0;
-  const archivedSubs = folder.archived_children_count || 0;
+  return folderSummaryFrom(scopedCounts(folder, scope));
+}
 
-  let docs = activeDocs;
-  let subs = activeSubs;
-  if (scope === 'archived') {
-    docs = archivedDocs;
-    subs = archivedSubs;
-  } else if (scope === 'all') {
-    docs = activeDocs + archivedDocs;
-    subs = activeSubs + archivedSubs;
-  }
-
+/**
+ * Nombre accesible de una fila de carpeta: «Familia — 1 subcarpeta, 12 documentos».
+ *
+ * La fila muestra dos cifras desnudas junto a dos íconos, y los íconos van
+ * `aria-hidden` para no ensuciar el nombre del botón. Sin este rótulo un lector
+ * de pantalla anunciaría «Familia 1 12», que no significa nada.
+ */
+export function folderRowLabel(name, { docs = 0, subs = 0 } = {}) {
   const parts = [];
-  if (docs) parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
   if (subs) parts.push(`${subs} subcarpeta${subs !== 1 ? 's' : ''}`);
-  return parts.length ? parts.join(' · ') : 'Vacía';
+  parts.push(`${docs} documento${docs !== 1 ? 's' : ''}`);
+  return `${name} — ${parts.join(', ')}`;
 }

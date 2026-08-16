@@ -277,6 +277,56 @@ def test_generate_renders_words_formats_and_parties(issuer, project, client_user
     assert float(page.mediabox.height) < A4[1]
 
 
+def test_generate_omits_the_due_date_line_for_an_immediate_payment_cuenta(
+    issuer, project, client_user,
+):
+    """A zero-day term leaves no due date, so the whole labelled line goes —
+    label included. Printing it would have restated the issue date verbatim."""
+    dt = get_collection_account_document_type()
+    doc = Document.objects.create(
+        title='Cuenta de cobro — Pago inmediato',
+        document_type=dt,
+        commercial_status=Document.CommercialStatus.ISSUED,
+        project=project,
+        client_user=client_user,
+        issuer=issuer,
+        public_number='PA-ACME-002',
+        issue_date=date(2026, 8, 5),
+        due_date=None,
+        subtotal=Decimal('500000'),
+        tax_total=Decimal('0'),
+        total=Decimal('500000'),
+        currency='COP',
+        city='Bogotá',
+    )
+    DocumentCollectionAccount.objects.create(
+        document=doc,
+        payment_term_type=DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE,
+        payment_term_days=0,
+        customer_name='Acme Soluciones',
+        billing_concept='Soporte puntual',
+    )
+    DocumentItem.objects.create(
+        document=doc,
+        position=0,
+        description='Soporte puntual',
+        quantity=Decimal('1'),
+        unit_price=Decimal('500000'),
+        line_total=Decimal('500000'),
+    )
+
+    reader = PdfReader(io.BytesIO(CollectionAccountPdfService.generate(doc)))
+    text = ''.join(page.extract_text() for page in reader.pages)
+
+    assert 'Fecha de vencimiento' not in text
+    # The emisión line survives, and its date is printed exactly once: the
+    # defect being fixed was the same date appearing under two labels.
+    assert 'Fecha de emisión' in text
+    assert text.count('5 de agosto de 2026') == 1
+    # The neighbours close ranks instead of leaving a labelled gap behind.
+    assert 'Ciudad' in text
+
+
 def test_generate_returns_none_when_canvas_raises(project, client_user):
     """Return None when ReportLab canvas construction raises."""
     dt = get_collection_account_document_type()

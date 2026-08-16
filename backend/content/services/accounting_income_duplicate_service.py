@@ -13,12 +13,28 @@ Two rules carry the intent of the action:
   its cuenta de cobro, its deductions, its silenced calendar and its history
   all stay behind. Most of that is free (they are reverse relations, or fields
   the write serializer cannot set), so the draft simply omits them.
+
+The date is the one field that cannot simply be copied, and it is the reason
+duplicating opens the form instead of writing the row. When the hosting cycle
+can be resolved the draft proposes it; otherwise the date comes back empty and
+``cycle_options`` gives the form the candidate dates to fill it with in one
+click. Neither path ever guesses silently — a wrong date already filled in is
+worse than an empty one the operator is forced to complete.
 """
-from content.models import HostingRecord, IncomeRecord
+from datetime import timedelta
+
+from content.models import HostingRecord, IncomeRecord, RecurringPayment
 from content.serializers.accounting import money_str
-from content.utils import add_months
+from content.utils import add_months, today_bogota
 
 HOSTING_CYCLE = 'hosting_cycle'
+INCOME_PERIOD = 'income_period'
+
+# Cadences the form offers so the next period is one click away when the
+# hosting lookup below cannot resolve one on its own — which is the normal
+# case, not the exception: the book is written as free-text concepts, so most
+# incomes carry no ``origin`` and no client for it to work from.
+CYCLE_OPTION_MONTHS = (1, 3, 6, 12)
 
 
 def resolve_hosting_cycle_months(income):
@@ -56,13 +72,105 @@ def next_period_date(income):
     return add_months(income.period_date, months)
 
 
+def build_cycle_options(income):
+    """One candidate next date per offered cadence, counted from the original.
+
+    These are the dates for an income with no covered window — the single
+    ``period_date``. A hosting income advances its window in the panel instead
+    (``frontend/utils/periodDates.js`` mirrors ``add_months``, day clamp
+    included), because the requirement is that the dates move the instant a
+    cadence is picked and a round trip per click cannot deliver that.
+
+    Offering the dates is deliberately not the same as proposing one. The
+    operator is who knows the cadence, so nothing is filled in behind their
+    back: this only spares them from computing the date by hand.
+    """
+    return [
+        {
+            'months': months,
+            'date': add_months(income.period_date, months).isoformat(),
+        }
+        for months in CYCLE_OPTION_MONTHS
+    ]
+
+
+def next_period_range(income):
+    """(start, end) of the following covered window, or None.
+
+    Only a hosting income with a recorded window can propose one. The next
+    window starts the day after the recorded end (``period_end`` is
+    inclusive) and lasts one cadence — ``custom`` or a missing cadence falls
+    back to the original window's own length, which is the only cadence the
+    record actually attests.
+    """
+    if income.origin != IncomeRecord.Origin.HOSTING:
+        return None
+    if not (income.period_start and income.period_end):
+        return None
+    start = income.period_end + timedelta(days=1)
+    months = RecurringPayment.FREQUENCY_MONTHS.get(income.period_cadence)
+    if months:
+        end = add_months(start, months) - timedelta(days=1)
+    else:
+        end = start + (income.period_end - income.period_start)
+    return start, end
+
+
+def suggest_next_period_start(client_id, project_id=None):
+    """``(previous end, proposed start)`` for a client's next hosting window.
+
+    Creating a hosting income has no original to count from, so the antecedent
+    is the last window already on the book: the new one opens the day after
+    that one closed (``period_end`` is inclusive). With nothing recorded — the
+    first charge of a client — the proposal is simply today.
+
+    An income does not record which hosting it belongs to (``origin`` is a
+    label, not a link), so the antecedent is looked up by client and narrowed
+    by project when the form already has one. The ambiguity guard of
+    ``resolve_hosting_cycle_months`` applies here too: with several active
+    hostings on the client and no project telling them apart, the last window
+    may well belong to a different one, and a wrong date already filled in is
+    worse than an empty one the operator is forced to complete.
+    """
+    today = today_bogota()
+    if not client_id:
+        return None, today
+    if project_id is None and HostingRecord.objects.filter(
+        is_active=True, client_id=client_id,
+    ).count() > 1:
+        return None, today
+    windows = IncomeRecord.objects.filter(
+        origin=IncomeRecord.Origin.HOSTING,
+        client_id=client_id,
+        period_end__isnull=False,
+    )
+    if project_id is not None:
+        windows = windows.filter(project_id=project_id)
+    previous_end = (
+        windows.order_by('-period_end').values_list('period_end', flat=True).first()
+    )
+    if not previous_end:
+        return None, today
+    return previous_end, previous_end + timedelta(days=1)
+
+
 def build_income_duplicate_draft(income):
     """Return the prefill for a new income copied from ``income``."""
     from accounts.services.proposal_client_service import (
         build_client_display_name,
     )
 
-    period_date = next_period_date(income)
+    period_range = next_period_range(income)
+    if period_range:
+        # The recorded window beats the hosting lookup: it is first-hand data
+        # on this very charge, while the lookup infers from the catalog.
+        period_start, period_end = period_range
+        period_date = period_start
+        period_date_source = INCOME_PERIOD
+    else:
+        period_start = period_end = None
+        period_date = next_period_date(income)
+        period_date_source = HOSTING_CYCLE if period_date else None
     return {
         'concept': income.concept,
         # Always pending, whatever the original was. Pocket is a liquid-only
@@ -70,7 +178,14 @@ def build_income_duplicate_draft(income):
         'kind': IncomeRecord.Kind.EXPECTED,
         'destination': IncomeRecord.Destination.PARTNERS,
         'period_date': period_date.isoformat() if period_date else None,
-        'period_date_source': HOSTING_CYCLE if period_date else None,
+        'period_date_source': period_date_source,
+        'period_start': period_start.isoformat() if period_start else None,
+        'period_end': period_end.isoformat() if period_end else None,
+        'period_cadence': income.period_cadence,
+        # Always offered, including when the hosting cycle already proposed a
+        # date: the operator may well disagree with it, and these count from
+        # the original's date, never from the proposal.
+        'cycle_options': build_cycle_options(income),
         'ledger': income.ledger,
         'client': income.client_id,
         # Same shape as the list rows: the form shows this as the label of the

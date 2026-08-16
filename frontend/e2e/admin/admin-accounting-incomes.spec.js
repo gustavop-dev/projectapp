@@ -65,6 +65,14 @@ function buildHandler({
   // pagination) — without this branch mockApi's empty fallback would leave
   // the page grouped and break them all.
   incomeViewMode = 'classic',
+  // Non-empty makes the bulk endpoint answer 409 records_not_found, the way
+  // the server does when part of the batch was deleted while the
+  // confirmation was open.
+  bulkAssignMissingIds = [],
+  // The window a create proposes when the origin turns to Hosting: the day
+  // after the client's last recorded period. Pinned so the dates under test
+  // do not move with the calendar.
+  periodSuggestion = { previous_period_end: '2026-08-31', suggested_start: '2026-09-01' },
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -81,6 +89,13 @@ function buildHandler({
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({ income_default_view_mode: incomeViewMode }),
+      };
+    }
+    if (apiPath === 'accounting/incomes/period-suggestion/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(periodSuggestion),
       };
     }
     if (apiPath === 'accounting/incomes/' && method === 'GET') {
@@ -149,6 +164,14 @@ function buildHandler({
           kind: 'expected',
           period_date: '2027-02-01',
           period_date_source: 'hosting_cycle',
+          // Counted from the original's 2026-02-01, so the operator can
+          // override the proposal without working the date out by hand.
+          cycle_options: [
+            { months: 1, date: '2026-03-01' },
+            { months: 3, date: '2026-05-01' },
+            { months: 6, date: '2026-08-01' },
+            { months: 12, date: '2027-02-01' },
+          ],
           destination: 'partners',
           ledger: source.ledger,
           client: source.client,
@@ -208,6 +231,18 @@ function buildHandler({
     if (apiPath === 'accounting/incomes/bulk-assign-client/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ method, apiPath, body });
+      if (bulkAssignMissingIds.length) {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: `${bulkAssignMissingIds.length} de los ingresos seleccionados ya no existe.`,
+            code: 'records_not_found',
+            hint: 'La lista se actualizó. Revisa la selección y vuelve a intentarlo.',
+            missing_ids: bulkAssignMissingIds,
+          }),
+        };
+      }
       const assigned = body.income_ids.map((id) => {
         const row = rows.find((item) => item.id === id) || incomeRow({ id });
         Object.assign(row, {
@@ -400,20 +435,141 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
     await expect(page.getByTestId('income-form-concept'))
       .toHaveValue('Kore - Hosting anual');
-    // Seeded from the hosting cycle, and labelled as such.
-    await expect(page.getByTestId('income-form-period')).toHaveValue('2027-02-01');
+    // A hosting duplicate opens on the window block: the proposed date lands
+    // on the start, labelled with where it came from.
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2027-02-01');
     await expect(page.getByTestId('income-form-period-hint'))
       .toContainText('hosting');
 
+    // The shortcut writes the cadence selector and the inclusive end follows.
+    await page.getByTestId('income-form-cycle-12').click();
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('annual');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2028-01-31');
+
     await page.getByTestId('income-form-submit').click();
 
-    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    // Named as a duplicate, so it reads apart from a manual alta in the
+    // notification history.
+    await expect(page.getByText('Ingreso duplicado')).toBeVisible();
     const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
     expect(created.method).toBe('POST');
     expect(created.body.concept).toBe('Kore - Hosting anual');
     // Born pending whatever the original was — the point of the action.
     expect(created.body.kind).toBe('expected');
-    expect(created.body.period_date).toBe('2027-02-01');
+    // The window travels; period_date is the backend's to derive.
+    expect(created.body.period_start).toBe('2027-02-01');
+    expect(created.body.period_end).toBe('2028-01-31');
+    expect(created.body.period_cadence).toBe('annual');
+    expect(created.body.period_date).toBeUndefined();
+  });
+
+  test('a hosting income asks for the period it covers and submits it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Hosting Acme anual');
+
+    // Turning the origin to Hosting swaps the single date for the window.
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+    await expect(page.getByTestId('income-form-period')).toHaveCount(0);
+    await page.getByTestId('income-form-period-start').fill('2026-08-15');
+    await page.getByTestId('income-form-period-cadence').selectOption('semiannual');
+    // Inclusive end proposed from start + cadence, still editable.
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2027-02-14');
+
+    await page.getByTestId('partner-split-total').fill('550000');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls[0].body.period_start).toBe('2026-08-15');
+    expect(calls[0].body.period_end).toBe('2027-02-14');
+    expect(calls[0].body.period_cadence).toBe('semiannual');
+  });
+
+  test('picking a periodicity opens the window on the period after the last one', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByTestId('income-form-concept').fill('Hosting Acme');
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+
+    // Nothing typed: the periodicity is chosen first and the dates follow it.
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('');
+    await page.getByTestId('income-form-period-cadence').selectOption('quarterly');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-11-30');
+    await expect(page.getByTestId('income-form-period-hint'))
+      .toContainText('El período anterior terminó');
+
+    // Moving the start carries the end with it, cadence intact.
+    await page.getByTestId('income-form-period-start').fill('2026-10-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-12-31');
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('quarterly');
+
+    // Writing the end by hand is what makes the window custom: the selector
+    // must never claim a periodicity the dates no longer describe.
+    await page.getByTestId('income-form-period-end').fill('2027-01-20');
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('custom');
+
+    await page.getByTestId('partner-split-total').fill('300000');
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso creado')).toBeVisible();
+    expect(calls[0].body.period_start).toBe('2026-10-01');
+    expect(calls[0].body.period_end).toBe('2027-01-20');
+    expect(calls[0].body.period_cadence).toBe('custom');
+  });
+
+  test('a shortcut re-lengthens the proposed window instead of walking past it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ rows: [], calls: [] }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('incomes-new-button').click();
+    await page.getByRole('tab', { name: 'Hosting' }).click();
+
+    await page.getByTestId('income-form-cycle-12').click();
+    await expect(page.getByTestId('income-form-period-cadence')).toHaveValue('annual');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2027-08-31');
+
+    // Same window, different length — the start stays on the antecedent.
+    await page.getByTestId('income-form-cycle-3').click();
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-09-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-11-30');
+  });
+
+  test('a cadence shortcut overrides the proposed date before saving', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+    await expect(page.getByTestId('income-form-period')).toHaveValue('2027-02-01');
+
+    // The proposal is annual; this charge is really quarterly.
+    await page.getByTestId('income-form-cycle-3').click();
+
+    await expect(page.getByTestId('income-form-period')).toHaveValue('2026-05-01');
+    // Picking a date the hosting cycle did not produce retires its hint.
+    await expect(page.getByTestId('income-form-period-hint')).toHaveCount(0);
+
+    await page.getByTestId('income-form-submit').click();
+
+    const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
+    expect(created.body.period_date).toBe('2026-05-01');
   });
 
   test('duplicating from the detail modal opens the same seeded form', {
@@ -983,8 +1139,10 @@ test.describe('Admin Accounting Incomes — cuenta de cobro entry point', () => 
     await page.getByTestId('income-actions-1').click();
     await page.getByTestId('income-action-view-collection-1').click();
 
+    // `focus` viaja en el salto y la vista de destino lo suelta al montar: es
+    // una acción de una sola vez, no un estado de la vista.
     await page.waitForURL('**/panel/accounting/collections?focus=33');
-    expect(page.url()).toContain('/panel/accounting/collections?focus=33');
+    await expect(page).toHaveURL(/\/panel\/accounting\/collections/);
   });
 });
 
@@ -1137,6 +1295,120 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('income-client-row-none')).toContainText('Sin cliente');
     await expect(page.getByTestId('income-client-billed-sum')).toContainText('1.500.000');
   });
+
+  test('deleting one of the selected incomes drops it from the bar and keeps the rest', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%', total_amount: '1000000.00' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%', total_amount: '1000000.00' }),
+        incomeRow({ id: 3, concept: 'Kore - Cierre 30%', total_amount: '1000000.00' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('accounting-select-3').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-2').click();
+    await page.getByTestId('income-action-delete-2').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // The deleted id leaves the selection on its own — only that one.
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    // And it must not come back disguised as a filtered-out row.
+    await expect(page.getByTestId('incomes-bulk-outside')).toHaveCount(0);
+    // Header totals recompute with no reload: 3.000.000 minus the deleted row.
+    await expect(page.getByTestId('incomes-total-expected')).toContainText('2.000.000');
+  });
+
+  test('the bar leaves when the only selected income is deleted', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toBeVisible();
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-delete-1').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // No reload, no Cancelar: with nothing left to assign, the bar goes.
+    await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
+  });
+
+  test('a mass selection shrinks with the dataset instead of counting ghosts', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Cierre 30%' }),
+      ],
+      calls: [],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('incomes-select-all-filtered').click();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-3').click();
+    await page.getByTestId('income-action-delete-3').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+    // The two survivors are still the whole filtered set, so the offer to
+    // select them all stays away.
+    await expect(page.getByTestId('incomes-select-all-filtered')).toHaveCount(0);
+  });
+
+  test('a bulk assign over a record deleted elsewhere reports it and reconciles', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    // The window the frontend cannot close on its own: the confirmation
+    // freezes the plan when it opens, and another session can delete a row
+    // while it is up. The server refuses the batch and names what vanished.
+    const listFetches = { count: 0 };
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+      ],
+      calls: [],
+      listFetches,
+      bulkAssignMissingIds: [2],
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('accounting-select-1').check();
+    await page.getByTestId('accounting-select-2').check();
+    await page.getByTestId('incomes-bulk-client').fill('Ana');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('incomes-bulk-assign').click();
+    const fetchesBefore = listFetches.count;
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('1 de los ingresos seleccionados ya no existe.'))
+      .toBeVisible();
+    // Nothing was written, and the vanished id left the selection.
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('1 seleccionado');
+    expect(listFetches.count).toBeGreaterThan(fetchesBefore);
+  });
 });
 
 test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
@@ -1175,6 +1447,10 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
 
     await expect(page.getByTestId('income-group-5')).toContainText('Ana Pérez');
     await expect(page.getByTestId('income-group-billed-5')).toContainText('1.160.000');
+    // Both amounts and the labelled share sit next to the client name, so the
+    // header reads as one sentence instead of two ends of the row.
+    await expect(page.getByTestId('income-group-pending-5')).toContainText('1.160.000');
+    await expect(page.getByTestId('income-group-weight-5')).toContainText('de lo facturado');
     // The unassigned bucket closes the list, flagged as completion work.
     await expect(page.getByTestId('income-group-none')).toContainText('por completar');
     await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');
@@ -1310,5 +1586,44 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     await expect(page.getByTestId('accounting-select-1')).toBeChecked();
     await expect(page.getByTestId('accounting-select-2')).toBeChecked();
     await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+  });
+
+  test('deleting a grouped income leaves its group and the bar count with it', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // The group badge already shed a deleted row while the bar went on
+    // counting it — two counters, one truth. Both are asserted here so a
+    // regression cannot fix one and leave the other.
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, client: 5, client_name: 'Ana Pérez' }),
+        incomeRow({
+          id: 2, client: 5, client_name: 'Ana Pérez', concept: 'Kore - Entrega 30%',
+        }),
+        incomeRow({
+          id: 3, client: 5, client_name: 'Ana Pérez', concept: 'Kore - Cierre 30%',
+        }),
+      ],
+      calls: [],
+      incomeViewMode: 'grouped',
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-group-select-5').check();
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('3 seleccionados');
+
+    await page.getByTestId('income-actions-2').click();
+    await page.getByTestId('income-action-delete-2').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    // The row leaves its group, the group recounts, and the bar agrees.
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    await expect(page.getByTestId('income-group-5')).toContainText('(2)');
+    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
+
+    await page.getByTestId('income-group-toggle-5').click();
+
+    await expect(page.getByTestId('income-group-selected-5'))
+      .toHaveText('2 seleccionados');
   });
 });

@@ -1,0 +1,373 @@
+/**
+ * The whole filter definition for /panel/clients: the business modules, the
+ * subfilters each one offers, and the `useAccountingFilters` configuration the
+ * page runs on.
+ *
+ * It lives here as plain data so the page and its tests share one definition
+ * instead of drifting apart. The mechanism itself is `useAccountingFilters`.
+ *
+ * The view is read along three independent axes:
+ *
+ *   - Client status (Activos / Huérfanos / Inactivos) — cross-cutting, applied
+ *     server-side by the page itself. It is not part of this file.
+ *   - Module (level 1) — `module`. It does NOT narrow the list: it decides
+ *     which subfilters level 2 offers. That is what lets a module host both a
+ *     cut and its complement ("Con hosting cobrado" and "Sin hosting").
+ *   - Subfilter (level 2) — the cut itself.
+ *
+ * Subfilters are expressed as values of the filter panel's own controls, never
+ * as opaque predicates. That is deliberate: it is what makes every predefined
+ * filter reproducible from the panel, removable by its chip and saveable as a
+ * named tab, all through the machinery that already exists. Adding one is a
+ * single entry in CLIENT_SUBFILTERS plus, if it needs a new control, a matcher
+ * and its widget in ClientFilterPanel.
+ *
+ * Matchers may only read fields the clients list endpoint already returns (see
+ * ProposalClientSerializer): the filtering happens in the browser over the rows
+ * the server sent, like every other filter on this page.
+ */
+
+import {
+  matchDateRange,
+  matchIncludes,
+  matchNumberRange,
+} from '~/composables/useAccountingFilters';
+
+/**
+ * Billing identity is stored inconsistently by design: `billing_code` is a
+ * unique column that holds NULL when unset, while `nit` and `cedula` default
+ * to ''. Both shapes mean "missing".
+ */
+function isBlank(value) {
+  return !String(value ?? '').trim();
+}
+
+// ---------------------------------------------------------------------------
+// Level 1: business modules
+// ---------------------------------------------------------------------------
+
+export const CLIENT_MODULE_ALL = 'all';
+
+export const CLIENT_MODULES = [
+  { id: CLIENT_MODULE_ALL, name: 'Todos' },
+  { id: 'proposals', name: 'Propuestas' },
+  // Before Proyectos because that is the order of the funnel: a diagnostic is
+  // what a proposal comes out of. Its cuts read two different sources — the
+  // income for "facturado", the entity for the other two — which is why they
+  // live in one module instead of splitting across Contabilidad.
+  { id: 'diagnostics', name: 'Diagnóstico' },
+  { id: 'projects', name: 'Proyectos' },
+  // Hosting is its own module rather than a corner of Contabilidad: it is a
+  // service line with a life of its own, and its subfilters grow once hosting
+  // records its period (PA-51).
+  { id: 'hosting', name: 'Hosting' },
+  { id: 'accounting', name: 'Contabilidad' },
+  { id: 'documents', name: 'Documentos' },
+  // Last because it is the transversal one: every other module is a line of
+  // business, this one is how we have talked to the client.
+  { id: 'emails', name: 'Emails' },
+];
+
+const MODULE_BY_ID = new Map(CLIENT_MODULES.map((m) => [m.id, m]));
+
+export function findClientModule(id) {
+  return MODULE_BY_ID.get(String(id ?? '')) || null;
+}
+
+export function clientModuleName(id) {
+  return findClientModule(id)?.name || '';
+}
+
+// ---------------------------------------------------------------------------
+// Level 2: subfilters, grouped by module
+// ---------------------------------------------------------------------------
+
+/**
+ * Ids are part of the URL (`?clientTab=`), so the four that shipped with the
+ * predefined filters keep the names they had — old links stay valid.
+ */
+export const CLIENT_SUBFILTERS = [
+  // Propuestas — the commercial cycle. These were seeded saved tabs until
+  // migration 0049; as code-level entries they count uniformly, cannot be
+  // deleted by accident and no longer eat 7 of the 12 saved-tab slots.
+  { id: 'status-draft', name: 'Draft', module: 'proposals', filters: { lastStatuses: ['draft'] } },
+  { id: 'status-sent-viewed', name: 'Sent/Viewed', module: 'proposals', filters: { lastStatuses: ['sent', 'viewed'] } },
+  { id: 'status-negotiating', name: 'Negociación', module: 'proposals', filters: { lastStatuses: ['negotiating'] } },
+  { id: 'status-accepted', name: 'Accepted', module: 'proposals', filters: { lastStatuses: ['accepted'] } },
+  { id: 'status-expired', name: 'Expired', module: 'proposals', filters: { lastStatuses: ['expired'] } },
+  { id: 'status-rejected', name: 'Rejected', module: 'proposals', filters: { lastStatuses: ['rejected'] } },
+  { id: 'status-finished', name: 'Finished', module: 'proposals', filters: { lastStatuses: ['finished'] } },
+
+  // Diagnóstico — "facturado" reads the INCOME on purpose: a diagnostic that
+  // was charged for without its entity ever being created is still billed,
+  // and asking for both would hide exactly the rows worth chasing. The other
+  // two read the entity, which is what carries the date a proposal is
+  // compared against.
+  { id: 'diagnostic-billed', name: 'Con diagnóstico facturado', module: 'diagnostics', filters: { diagnosticStatus: 'billed' } },
+  { id: 'no-diagnostic', name: 'Sin diagnóstico', module: 'diagnostics', filters: { diagnosticStatus: 'none' } },
+  { id: 'diagnostic-unconverted', name: 'Diagnóstico sin propuesta posterior', module: 'diagnostics', filters: { diagnosticStatus: 'unconverted' } },
+
+  // Proyectos — leans on the Plataforma module (PA-49), where a project
+  // becomes an administrable entity.
+  { id: 'active-project', name: 'Con proyecto activo', module: 'projects', filters: { projectStatus: 'active' } },
+  { id: 'no-project', name: 'Sin proyecto', module: 'projects', filters: { projectStatus: 'none' } },
+
+  // Hosting
+  { id: 'hosting-charged', name: 'Con hosting cobrado', module: 'hosting', filters: { hostingStatus: 'charged' } },
+  { id: 'hosting-any', name: 'Con hosting (histórico)', module: 'hosting', filters: { hostingStatus: 'any' } },
+  { id: 'no-hosting', name: 'Sin hosting', module: 'hosting', filters: { hostingStatus: 'none' } },
+
+  // Contabilidad — the smallest module today and the one that will grow most
+  // (cuentas de cobro pendientes/vencidas land here).
+  { id: 'no-billing', name: 'Sin datos de facturación', module: 'accounting', filters: { billingData: 'missing' } },
+
+  // Documentos — la pertenencia dejó de vivir en el nombre de una carpeta:
+  // estos cortes leen la relación documento→cliente/proyecto. El tercero es
+  // la lista de lo que quedó a medio asociar tras la pasada retroactiva.
+  { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: 'with' } },
+  { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: 'none' } },
+  { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: 'no-project' } },
+
+  // Emails — contact, not business. All four read what was addressed to the
+  // client: the internal notices about their records show in the modal,
+  // marked, but a digest that reached the team is not contact with them.
+  { id: 'emails-any', name: 'Con correos enviados', module: 'emails', filters: { emailStatus: 'any' } },
+  { id: 'no-emails', name: 'Sin ningún correo', module: 'emails', filters: { emailStatus: 'none' } },
+  { id: 'emails-failed', name: 'Con envíos fallidos', module: 'emails', filters: { emailStatus: 'failed' } },
+  { id: 'emails-cold', name: 'Sin contacto en los últimos 30 días', module: 'emails', filters: { emailStatus: 'cold' } },
+];
+
+const SUBFILTER_BY_ID = new Map(CLIENT_SUBFILTERS.map((s) => [s.id, s]));
+
+export function findClientSubfilter(id) {
+  return SUBFILTER_BY_ID.get(String(id ?? '')) || null;
+}
+
+export function clientSubfiltersFor(moduleId) {
+  return CLIENT_SUBFILTERS.filter((s) => s.module === String(moduleId ?? ''));
+}
+
+/**
+ * Panel options for a module's scalar filter key, derived from the subfilters
+ * themselves. Requirement: every predefined filter must also exist as a
+ * composable control in the panel — deriving both from one list is what makes
+ * that true by construction instead of by discipline.
+ */
+export function subfilterOptionsFor(moduleId, key) {
+  return clientSubfiltersFor(moduleId)
+    .filter((s) => typeof s.filters[key] === 'string')
+    .map((s) => ({ value: s.filters[key], label: s.name }));
+}
+
+/**
+ * Whether a row satisfies a subfilter, running only the matchers the subfilter
+ * actually sets. Used for the counts each one advertises before being applied,
+ * so the badge cannot disagree with what pressing it returns.
+ */
+export function matchesSubfilter(subfilter, record) {
+  return Object.entries(CLIENT_FILTERS_CONFIG.matchers).every(([key, fn]) => {
+    const keys = Array.isArray(fn.keys) && fn.keys.length ? fn.keys : [key];
+    if (!keys.some((k) => k in subfilter.filters)) return true;
+    return fn(record, subfilter.filters[key], subfilter.filters);
+  });
+}
+
+/** The subfilter a set of filter values corresponds to, if any. */
+export function matchingSubfilter(filters) {
+  if (!filters) return null;
+  return CLIENT_SUBFILTERS.find((sub) =>
+    Object.entries(sub.filters).every(([key, value]) => {
+      const current = filters[key];
+      return Array.isArray(value)
+        ? Array.isArray(current)
+          && current.length === value.length
+          && value.every((v) => current.includes(v))
+        : current === value;
+    }),
+  ) || null;
+}
+
+// ---------------------------------------------------------------------------
+// Matchers for the module-specific controls
+// ---------------------------------------------------------------------------
+
+/**
+ * "Cobrado" is `is_active`, the same flag the hosting rows already render as
+ * "Vigente" and the Hostings tab labels "Vigentes", so this cut reconciles with
+ * what that tab shows. Adding valid_to >= hoy would have invented a third
+ * definition neither surface agrees with.
+ */
+export function matchHostingStatus(record, value) {
+  const ever = Number(record.hostings_count || 0);
+  if (value === 'charged') return Number(record.active_hostings_count || 0) > 0;
+  if (value === 'any') return ever > 0;
+  if (value === 'none') return ever === 0;
+  return true;
+}
+matchHostingStatus.keys = ['hostingStatus'];
+
+/**
+ * `projects_count` counts every status, so "activo" reads the active-only
+ * aggregate while "Sin proyecto" means none at all — the same predicate the
+ * endpoint exposes as `without_projects`.
+ */
+export function matchProjectStatus(record, value) {
+  if (value === 'active') return Number(record.active_projects_count || 0) > 0;
+  if (value === 'none') return Number(record.projects_count || 0) === 0;
+  return true;
+}
+matchProjectStatus.keys = ['projectStatus'];
+
+/**
+ * Three reads of one module from two sources. "Facturado" is the income
+ * (`origin=diagnostic`, write-offs excluded) and deliberately not also the
+ * entity, so a diagnostic billed without its record is not hidden. "Sin
+ * diagnóstico" is zero entities of any status, drafts included — the
+ * complement of the module as a whole. "Sin propuesta posterior" is the
+ * commercial cut: a sent diagnostic that no proposal ever followed.
+ */
+export function matchDiagnosticStatus(record, value) {
+  if (value === 'billed') return Number(record.diagnostic_incomes_count || 0) > 0;
+  if (value === 'none') return Number(record.diagnostics_count || 0) === 0;
+  if (value === 'unconverted') {
+    return Number(record.diagnostics_without_proposal_count || 0) > 0;
+  }
+  return true;
+}
+matchDiagnosticStatus.keys = ['diagnosticStatus'];
+
+/** Days since the last email that reached the client, or null if never. */
+function daysSinceLastEmail(record) {
+  if (!record.last_email_at) return null;
+  const sent = new Date(record.last_email_at).getTime();
+  if (Number.isNaN(sent)) return null;
+  return (Date.now() - sent) / 86400000;
+}
+
+/**
+ * "Cold" deliberately includes the clients who never received anything: the
+ * question is "who have we not written to in a month", and never-contacted is
+ * the emptiest answer to it. That makes it a superset of "Sin ningún correo",
+ * the same way "Con hosting cobrado" sits inside "Con hosting (histórico)".
+ */
+export function matchEmailStatus(record, value) {
+  const sent = Number(record.emails_sent_count || 0);
+  if (value === 'any') return sent > 0;
+  if (value === 'none') return sent === 0;
+  if (value === 'failed') return Number(record.emails_failed_count || 0) > 0;
+  if (value === 'cold') {
+    const days = daysSinceLastEmail(record);
+    return days === null || days > 30;
+  }
+  return true;
+}
+matchEmailStatus.keys = ['emailStatus'];
+
+export function matchBillingData(record, value) {
+  const missing = isBlank(record.nit) && isBlank(record.cedula) && isBlank(record.billing_code);
+  if (value === 'missing') return missing;
+  if (value === 'complete') return !missing;
+  return true;
+}
+matchBillingData.keys = ['billingData'];
+
+/**
+ * `documents_count` cuenta sólo documentos ACTIVOS (el archivado es el eje de
+ * visibilidad propio del módulo de documentos), así que el pill y el salto
+ * aterrizan en la misma lista que el gestor muestra por defecto.
+ */
+export function matchDocumentsStatus(record, value) {
+  if (value === 'with') return Number(record.documents_count || 0) > 0;
+  if (value === 'none') return Number(record.documents_count || 0) === 0;
+  if (value === 'no-project') return Number(record.documents_no_project_count || 0) > 0;
+  return true;
+}
+matchDocumentsStatus.keys = ['documentsStatus'];
+
+// ---------------------------------------------------------------------------
+// Legacy `preset` key
+// ---------------------------------------------------------------------------
+
+const LEGACY_PRESET_MAP = {
+  'hosting-charged': { hostingStatus: 'charged', module: 'hosting' },
+  'hosting-any': { hostingStatus: 'any', module: 'hosting' },
+  'no-billing': { billingData: 'missing', module: 'accounting' },
+  'active-project': { projectStatus: 'active', module: 'projects' },
+};
+
+/**
+ * Translate a tab saved while the predefined filters lived in a single `preset`
+ * key into the per-module keys that replaced it. Without this such a tab would
+ * still load, but silently filter nothing.
+ */
+export function normalizeLegacyPreset(filters) {
+  if (!filters || !filters.preset) return filters;
+  const { preset, ...rest } = filters;
+  return { ...rest, ...(LEGACY_PRESET_MAP[String(preset)] || {}) };
+}
+
+// ---------------------------------------------------------------------------
+// useAccountingFilters configuration
+// ---------------------------------------------------------------------------
+
+/**
+ * `searchFields` is deliberately empty: this page's search box is server-side
+ * (it refetches with ?search= across the whole table, not just the loaded
+ * rows), so `currentFilters.search` stays inert and selecting a subfilter —
+ * which resets the filters to their defaults — can never wipe what the user
+ * typed.
+ *
+ * `viewName` stays 'client', so the ?clientTab= URL param and the
+ * useSavedFilterTabs('client') key keep working.
+ *
+ * `module` is a default but never a matcher: it groups, it does not narrow, so
+ * it must not count towards the active-filter badge nor raise a chip. Living
+ * inside the filters dict is what lets a saved tab carry its module without a
+ * schema change.
+ */
+export const CLIENT_FILTERS_CONFIG = {
+  viewName: 'client',
+  searchFields: [],
+  defaultTabId: 'all',
+  moduleKey: 'module',
+  normalizeFilters: normalizeLegacyPreset,
+  defaults: {
+    module: CLIENT_MODULE_ALL,
+    lastStatuses: [],
+    projectTypes: [],
+    marketTypes: [],
+    totalProposalsMin: null,
+    totalProposalsMax: null,
+    acceptedMin: null,
+    acceptedMax: null,
+    lastActivityAfter: null,
+    lastActivityBefore: null,
+    hostingStatus: '',
+    projectStatus: '',
+    billingData: '',
+    documentsStatus: '',
+    diagnosticStatus: '',
+    emailStatus: '',
+  },
+  matchers: {
+    lastStatuses: matchIncludes('last_status', 'lastStatuses'),
+    projectTypes: matchIncludes('project_types', 'projectTypes'),
+    marketTypes: matchIncludes('market_types', 'marketTypes'),
+    totalProposals: matchNumberRange(
+      'total_proposals', 'totalProposalsMin', 'totalProposalsMax',
+    ),
+    accepted: matchNumberRange('accepted_count', 'acceptedMin', 'acceptedMax'),
+    activityRange: matchDateRange(
+      'last_sent_at', 'lastActivityAfter', 'lastActivityBefore',
+    ),
+    hostingStatus: matchHostingStatus,
+    projectStatus: matchProjectStatus,
+    billingData: matchBillingData,
+    documentsStatus: matchDocumentsStatus,
+    diagnosticStatus: matchDiagnosticStatus,
+    emailStatus: matchEmailStatus,
+  },
+  builtinTabs: CLIENT_SUBFILTERS.map(({ id, name, module, filters }) => ({
+    id, name, module, filters: { ...filters, module },
+  })),
+};

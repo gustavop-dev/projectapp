@@ -336,6 +336,7 @@ const {
   toggleSort,
 } = useAccountingCrudPage({
   entity: 'ads',
+  resetPageOn: currentFilters,
   store,
   filteredRecords: weightedRows,
   sortDefaults: { spend_date: 'desc', amount: 'desc', weight_pct: 'desc' },

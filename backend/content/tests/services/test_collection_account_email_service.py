@@ -176,6 +176,22 @@ class TestBuildCollectionAccountEmail:
         # The house weekday format, not 19/08/2026.
         assert deadline == 'Fecha límite de pago: Mié, 19 ago 2026.'
 
+    def test_omits_the_deadline_when_the_term_is_immediate_payment(
+        self, super_client,
+    ):
+        """Fails if a zero-day cuenta puts the deadline line back: with no due
+        date it could only restate the issue date the client already read."""
+        document = create_document(
+            super_client, items=PERIOD_ITEMS, payment_term_days=0,
+        )
+
+        email = build_collection_account_email(document)
+
+        assert document.due_date is None
+        assert not any('Fecha límite' in s for s in email['sections'])
+        assert 'Fecha límite' not in email['html_body']
+        assert 'Fecha límite' not in email['text_body']
+
     def test_text_alternative_carries_no_markdown_markers(self, super_client):
         """Fails if the plain-text part ships raw ** and ### to whoever reads without HTML."""
         document = create_document(super_client, items=PERIOD_ITEMS)

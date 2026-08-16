@@ -105,6 +105,23 @@ test.describe('Platform Project Detail — Admin', () => {
     await expect(boardLink).toHaveAttribute('href', /\/platform\/projects\/1\/board$/);
   });
 
+  test('admin jumps back to the commercial record in a new tab (PA-50)', {
+    tag: [...PLATFORM_PROJECT_DETAIL, '@role:platform-admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupDetailMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1', { waitUntil: 'domcontentloaded' });
+
+    const backLink = page.getByTestId('project-back-to-panel');
+    await expect(backLink).toBeVisible();
+
+    const popupPromise = page.context().waitForEvent('page');
+    await backLink.click();
+    const popup = await popupPromise;
+
+    await popup.waitForURL(/\/panel\/projects\?highlight=1/, { timeout: 25_000 });
+    await expect(popup).toHaveURL(/\/panel\/projects\?highlight=1/);
+  });
+
   test('admin sees Editar button', {
     tag: ['@outcome:display', ...PLATFORM_PROJECT_DETAIL, '@role:platform-admin'],
   }, async ({ page }) => {
@@ -132,5 +149,7 @@ test.describe('Platform Project Detail — Client', () => {
       page.getByRole('heading', { name: 'E-commerce Platform', exact: true }),
     ).toBeVisible();
     await expect(page.getByRole('button', { name: /editar/i })).not.toBeVisible();
+    // PA-50: the panel is admin territory; the back-link must not exist here.
+    await expect(page.getByTestId('project-back-to-panel')).not.toBeVisible();
   });
 });

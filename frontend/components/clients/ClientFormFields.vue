@@ -12,6 +12,7 @@
  * filled in later.
  */
 import BaseFormField from '~/components/base/BaseFormField.vue';
+import BaseFormRow from '~/components/base/BaseFormRow.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import { BILLING_CODE_MAX_LENGTH } from '~/utils/billingCode';
 
@@ -33,7 +34,7 @@ function update(field, value) {
 
 <template>
   <div :class="dense ? 'space-y-3' : 'space-y-4'">
-    <div :class="dense ? 'grid grid-cols-1 sm:grid-cols-3 gap-3' : 'space-y-4'">
+    <BaseFormRow :cols="dense ? 3 : 1" :gap="dense ? 3 : 4">
       <BaseFormField label="Nombre" required :size="dense ? 'sm' : 'md'">
         <BaseInput
           :model-value="modelValue.name"
@@ -71,12 +72,17 @@ function update(field, value) {
           @update:model-value="update('company', $event)"
         />
       </BaseFormField>
-    </div>
+    </BaseFormRow>
 
     <!-- Billing identity: what the cuenta de cobro needs to name and number
-         the document. Paired because they are filled together or not at all. -->
-    <div class="grid grid-cols-2 gap-3">
-      <BaseFormField label="NIT (opcional)" :size="dense ? 'sm' : 'md'">
+         the document. Paired because they are filled together or not at all.
+         The row is what keeps both inputs starting at the same height, since
+         "Código de facturación (opcional)" wraps to two lines and "C.C. / NIT"
+         does not. The label names both documents the field accepts: most
+         clients are personas naturales whose cédula goes here, and "NIT"
+         alone made them second-guess it. -->
+    <BaseFormRow>
+      <BaseFormField label="C.C. / NIT (opcional)" :size="dense ? 'sm' : 'md'">
         <BaseInput
           :model-value="modelValue.nit"
           type="text"
@@ -98,6 +104,6 @@ function update(field, value) {
           @update:model-value="update('billing_code', $event)"
         />
       </BaseFormField>
-    </div>
+    </BaseFormRow>
   </div>
 </template>

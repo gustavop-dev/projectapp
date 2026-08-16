@@ -14,7 +14,7 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'project-created'])
 
 const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
@@ -232,7 +232,10 @@ function onSubmit() {
       <ProjectSelect
         v-model="form.project"
         :client-profile-id="form.client"
+        :client-label="form.client_display_name"
+        :auto-select-single="!isEdit"
         testid="hosting-form-project"
+        @created="emit('project-created', $event)"
       />
 
       <!-- Inline client creation: the clients module without leaving the form -->
@@ -264,7 +267,7 @@ function onSubmit() {
         </div>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Nombre en la cuenta de cobro" required>
           <BaseInput v-model="form.client_name" data-testid="hosting-form-client-name" required />
         </BaseFormField>
@@ -275,9 +278,9 @@ function onSubmit() {
             placeholder="https://ejemplo.com"
           />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField
           label="Email del cliente"
           hint="Opcional: si lo dejas vacío se usa el correo del cliente"
@@ -296,33 +299,33 @@ function onSubmit() {
             placeholder="Nombre de quien recibe"
           />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Identificación del cliente (NIT/CC)">
         <BaseInput v-model="form.client_identification" data-testid="hosting-form-identification" />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Valor por mes" required>
           <BaseCurrencyInput v-model="form.monthly_value" data-testid="hosting-form-monthly" required />
         </BaseFormField>
         <BaseFormField label="Modalidad de pago">
           <BaseSelect v-model="form.payment_modality" :options="modalityOptions" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField label="Beneficio">
         <BaseInput v-model="form.benefit" data-testid="hosting-form-benefit" />
       </BaseFormField>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Vigente desde">
           <BaseInput v-model="form.valid_from" type="date" />
         </BaseFormField>
         <BaseFormField label="Vigente hasta">
           <BaseInput v-model="form.valid_to" type="date" />
         </BaseFormField>
-      </div>
+      </BaseFormRow>
 
       <BaseFormField
         label="Pago por ciclo"

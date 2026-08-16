@@ -192,6 +192,58 @@ export function useSavedFilterTabs(viewName) {
     }
   }
 
+  /** Patch a single stored attribute (visibility, for now). */
+  async function updateTab(tabId, patch) {
+    const idx = savedTabs.value.findIndex((t) => t.id === tabId);
+    if (idx === -1) return null;
+    const previous = { ...savedTabs.value[idx] };
+    _replaceTab(idx, patch);
+    try {
+      const { data } = await patch_request(`${ENDPOINT}${tabId}/`, patch);
+      const stillThere = savedTabs.value.findIndex((t) => t.id === tabId);
+      if (stillThere !== -1) _replaceTab(stillThere, data);
+      return data;
+    } catch (err) {
+      lastError.value = err;
+      const stillThere = savedTabs.value.findIndex((t) => t.id === tabId);
+      if (stillThere !== -1) _replaceTab(stillThere, previous);
+      return null;
+    }
+  }
+
+  /** Apply the strip's order, top to bottom. */
+  async function reorderTabs(ids) {
+    lastError.value = null;
+    try {
+      const { data } = await create_request(`${ENDPOINT}reorder/`, {
+        view: viewName, ids,
+      });
+      savedTabs.value = Array.isArray(data) ? data : savedTabs.value;
+      return true;
+    } catch (err) {
+      lastError.value = err;
+      return false;
+    }
+  }
+
+  /**
+   * Put the factory tabs back. The server keeps the user's own: only the
+   * seeded rows are rebuilt.
+   */
+  async function resetTabs() {
+    lastError.value = null;
+    try {
+      const { data } = await create_request(`${ENDPOINT}reset/`, {
+        view: viewName,
+      });
+      savedTabs.value = Array.isArray(data) ? data : [];
+      return true;
+    } catch (err) {
+      lastError.value = err;
+      return false;
+    }
+  }
+
   async function deleteTab(tabId) {
     const idx = savedTabs.value.findIndex((t) => t.id === tabId);
     if (idx === -1) return;
@@ -219,6 +271,9 @@ export function useSavedFilterTabs(viewName) {
     loadTabs,
     saveTab,
     updateTabFilters,
+    updateTab,
+    reorderTabs,
+    resetTabs,
     restoreTab,
     rebaseTab,
     renameTab,

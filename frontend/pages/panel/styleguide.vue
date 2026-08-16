@@ -15,6 +15,11 @@ const sampleTextarea = ref('Una nota corta\ncon dos líneas.')
 const toggleA = ref(true)
 const toggleB = ref(false)
 const checkA = ref(false)
+// BaseFormRow demo
+const sampleRowA = ref('')
+const sampleRowB = ref('')
+const sampleRowC = ref('')
+const sampleRowD = ref('')
 const modalOpen = ref(false)
 const workspaceModalOpen = ref(false)
 const fieldError = ref(false)
@@ -156,7 +161,7 @@ const shadowScale = [
     <section class="space-y-4">
       <h2 class="text-lg font-semibold text-text-default">4. Form controls</h2>
       <BaseCard padding="md">
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <BaseFormRow :cols="2" :gap="4">
           <BaseFormField label="Texto" hint="Hint de ayuda" for="sg-text">
             <BaseInput id="sg-text" v-model="sampleText" placeholder="Escribe algo…" />
           </BaseFormField>
@@ -184,11 +189,12 @@ const shadowScale = [
           <BaseFormField label="Textarea" hint="Soporta múltiples líneas" class="sm:col-span-2">
             <BaseTextarea v-model="sampleTextarea" :rows="3" />
           </BaseFormField>
-          <div class="space-y-3">
+          <!-- Not fields: they claim the three bands so they line up beside them. -->
+          <div class="space-y-3 sm:row-span-3">
             <BaseCheckbox v-model="checkA">Acepto los términos</BaseCheckbox>
             <BaseCheckbox v-model="fieldError">Mostrar estado de error en el campo de arriba</BaseCheckbox>
           </div>
-          <div class="space-y-3">
+          <div class="space-y-3 sm:row-span-3">
             <div class="flex items-center gap-3">
               <BaseToggle v-model="toggleA" aria-label="Activar A" />
               <span class="text-sm text-text-default">Toggle A — {{ toggleA ? 'on' : 'off' }}</span>
@@ -201,6 +207,44 @@ const shadowScale = [
               <BaseToggle :model-value="false" disabled aria-label="Disabled" />
               <span class="text-sm text-text-muted">Toggle disabled</span>
             </div>
+          </div>
+        </BaseFormRow>
+      </BaseCard>
+
+      <!-- BaseFormRow: the alignment the plain grid does not give you. Narrow on
+           purpose (a modal column is about this wide) so the long labels wrap
+           here the way they do in the real form. -->
+      <BaseCard padding="md">
+        <h3 class="text-sm font-semibold text-text-default">BaseFormRow — bandas compartidas</h3>
+        <p class="text-xs text-text-muted mt-1 mb-4">
+          La fila reparte tres bandas — etiqueta, campo y ayuda — entre sus campos, así los
+          campos arrancan a la misma altura aunque una etiqueta ocupe dos líneas y la otra una.
+          Sin la fila, cada columna se apila por su cuenta y queda torcida.
+        </p>
+
+        <div class="max-w-sm space-y-5" data-testid="styleguide-form-rows">
+          <div class="space-y-2">
+            <p class="text-xs text-text-muted">Sólo una etiqueta se parte, y una sola lleva ayuda</p>
+            <BaseFormRow data-testid="sg-row-one-wrapped">
+              <BaseFormField label="C.C. / NIT (opcional)" hint="Para cuentas de cobro">
+                <BaseInput v-model="sampleRowA" data-testid="sg-row-one-a" />
+              </BaseFormField>
+              <BaseFormField label="Código de facturación (opcional)">
+                <BaseInput v-model="sampleRowB" data-testid="sg-row-one-b" />
+              </BaseFormField>
+            </BaseFormRow>
+          </div>
+
+          <div class="space-y-2">
+            <p class="text-xs text-text-muted">Las dos etiquetas se parten</p>
+            <BaseFormRow data-testid="sg-row-both-wrapped">
+              <BaseFormField label="Nombre en la cuenta de cobro">
+                <BaseInput v-model="sampleRowC" data-testid="sg-row-both-a" />
+              </BaseFormField>
+              <BaseFormField label="Código de facturación (opcional)">
+                <BaseInput v-model="sampleRowD" data-testid="sg-row-both-b" />
+              </BaseFormField>
+            </BaseFormRow>
           </div>
         </div>
       </BaseCard>

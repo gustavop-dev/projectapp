@@ -5,6 +5,7 @@ update, delete) plus the integration with proposal create/update via
 ``client_id``.
 """
 
+from decimal import Decimal
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -14,8 +15,11 @@ from accounts.models import Project, UserProfile
 from accounts.services import proposal_client_service
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.utils import timezone
 
+from content.models import Document, HostingRecord
 from content.models.business_proposal import BusinessProposal
+from content.serializers.proposal_clients import ProposalClientSerializer
 
 pytestmark = pytest.mark.django_db
 User = get_user_model()
@@ -189,6 +193,258 @@ class TestListProposalClients:
 
         assert response.status_code == 200
         assert len(response.data) == 500
+
+
+class TestWithoutProjectsFilter:
+    """``without_projects`` feeds the Projects module indicator: clients the
+    operator still has to register a project for. Weaker than ``orphans`` —
+    a client with proposals but no project must appear here."""
+
+    def test_without_projects_true_returns_only_uncovered_clients(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        Project.objects.create(
+            name='Cubierto', client=real_client_with_proposal.user,
+        )
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'true'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert orphan_client.pk in ids
+        assert real_client_with_proposal.pk not in ids
+
+    def test_a_client_with_proposals_but_no_project_counts_as_uncovered(
+        self, admin_client, real_client_with_proposal,
+    ):
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'true'},
+        )
+
+        assert response.status_code == 200
+        assert [c['id'] for c in response.data] == [real_client_with_proposal.pk]
+
+    def test_without_projects_false_returns_the_covered_inverse(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        Project.objects.create(
+            name='Cubierto', client=real_client_with_proposal.user,
+        )
+
+        response = admin_client.get(
+            reverse('list-proposal-clients'), {'without_projects': 'false'},
+        )
+
+        assert response.status_code == 200
+        ids = [c['id'] for c in response.data]
+        assert ids == [real_client_with_proposal.pk]
+        assert orphan_client.pk not in ids
+
+
+# ---------------------------------------------------------------------------
+# Preset annotations (hosting vigente / proyecto activo)
+# ---------------------------------------------------------------------------
+
+def _row_for(response, profile):
+    return next(row for row in response.data if row['id'] == profile.pk)
+
+
+class TestPresetAnnotations:
+    """The two aggregates behind the 'Con hosting cobrado' / 'Con proyecto
+    activo' predefined filters in /panel/clients."""
+
+    def test_active_hostings_count_ignores_the_inactive_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Hosting SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Hosting SAS - Vigente',
+            monthly_value=Decimal('90000.00'), is_active=True,
+        )
+        HostingRecord.objects.create(
+            client=profile, client_name='Hosting SAS - Caido',
+            monthly_value=Decimal('50000.00'), is_active=False,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['hostings_count'] == 2
+        assert row['active_hostings_count'] == 1
+
+    def test_client_without_hostings_reports_zero(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Sin Hosting SAS')
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, profile)['active_hostings_count'] == 0
+
+    def test_active_projects_count_ignores_the_archived_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Proyectos SAS')
+        Project.objects.create(
+            name='En curso', client=profile.user, status=Project.STATUS_ACTIVE,
+        )
+        Project.objects.create(
+            name='Guardado', client=profile.user, status=Project.STATUS_ARCHIVED,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['projects_count'] == 2
+        assert row['active_projects_count'] == 1
+
+    def test_hosting_of_one_client_does_not_leak_into_another(
+        self, admin_client, make_client_profile,
+    ):
+        owner = make_client_profile(company='Dueno SAS')
+        stranger = make_client_profile(company='Ajeno SAS')
+        HostingRecord.objects.create(
+            client=owner, client_name='Dueno SAS - Web',
+            monthly_value=Decimal('70000.00'), is_active=True,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['active_hostings_count'] == 1
+        assert _row_for(response, stranger)['active_hostings_count'] == 0
+
+    @freeze_time('2026-08-13 12:00:00')
+    def test_deactivated_client_stays_out_even_holding_a_live_hosting(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Pausado SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Pausado SAS - Web',
+            monthly_value=Decimal('60000.00'), is_active=True,
+        )
+        profile.deactivated_at = timezone.now()
+        profile.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert profile.pk not in {row['id'] for row in response.data}
+
+    def test_serializer_falls_back_when_the_queryset_is_not_annotated(
+        self, make_client_profile,
+    ):
+        profile = make_client_profile(company='Sin Anotar SAS')
+        HostingRecord.objects.create(
+            client=profile, client_name='Sin Anotar SAS - Web',
+            monthly_value=Decimal('80000.00'), is_active=True,
+        )
+        Project.objects.create(
+            name='Vivo', client=profile.user, status=Project.STATUS_ACTIVE,
+        )
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['active_hostings_count'] == 1
+        assert data['active_projects_count'] == 1
+
+
+class TestDocumentsModuleAnnotations:
+    """Los tres agregados detrás del módulo Documentos de /panel/clients."""
+
+    def test_documents_count_excludes_the_archived_ones(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Docs SAS')
+        Document.objects.create(title='Contrato', client_user=profile.user)
+        Document.objects.create(
+            title='Acta vieja', client_user=profile.user, is_archived=True,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['documents_count'] == 1
+
+    def test_documents_no_project_count_reads_the_half_linked(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Medio SAS')
+        project = Project.objects.create(name='Kore', client=profile.user)
+        Document.objects.create(
+            title='Con proyecto', client_user=profile.user, project=project,
+        )
+        Document.objects.create(title='Sin proyecto', client_user=profile.user)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['documents_count'] == 2
+        assert row['documents_no_project_count'] == 1
+
+    def test_last_document_at_is_the_newest_active_one(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Fechas SAS')
+        with freeze_time('2026-08-01 10:00:00'):
+            Document.objects.create(title='Viejo', client_user=profile.user)
+        with freeze_time('2026-08-10 10:00:00'):
+            Document.objects.create(title='Nuevo', client_user=profile.user)
+        with freeze_time('2026-08-14 10:00:00'):
+            Document.objects.create(
+                title='Archivado después', client_user=profile.user,
+                is_archived=True,
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert str(row['last_document_at']).startswith('2026-08-10')
+
+    def test_documents_of_one_client_do_not_leak_into_another(
+        self, admin_client, make_client_profile,
+    ):
+        owner = make_client_profile(company='Dueno Docs SAS')
+        stranger = make_client_profile(company='Ajeno Docs SAS')
+        Document.objects.create(title='Contrato', client_user=owner.user)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['documents_count'] == 1
+        assert _row_for(response, stranger)['documents_count'] == 0
+
+    def test_detail_nests_the_recent_documents_with_total(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Ficha SAS')
+        project = Project.objects.create(name='Kore', client=profile.user)
+        for index in range(6):
+            Document.objects.create(
+                title=f'Doc {index}', client_user=profile.user,
+                project=project if index == 5 else None,
+            )
+
+        response = admin_client.get(
+            reverse('retrieve-proposal-client', args=[profile.pk]),
+        )
+
+        assert response.status_code == 200
+        assert response.data['documents_total'] == 6
+        assert len(response.data['documents']) == 5
+        newest = response.data['documents'][0]
+        assert newest['title'] == 'Doc 5'
+        assert newest['project_name'] == 'Kore'
+
+    def test_serializer_falls_back_without_annotations(self, make_client_profile):
+        profile = make_client_profile(company='Fallback Docs SAS')
+        Document.objects.create(title='Suelto', client_user=profile.user)
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['documents_count'] == 1
+        assert data['documents_no_project_count'] == 1
 
 
 # ---------------------------------------------------------------------------
@@ -792,3 +1048,411 @@ class TestOrphanFlagTransitionsAfterProposalDelete:
             reverse('delete-proposal-client', args=[real_client_with_proposal.pk]),
         )
         assert response.status_code == 204
+
+
+@pytest.mark.django_db
+class TestClientStatusCounts:
+    """
+    The status cut runs server-side, so the selector cannot count the options it
+    is not showing. These pin the counts against the lists they describe: a
+    number that disagrees with what pressing it returns is worse than none.
+    """
+
+    def test_counts_match_the_list_each_status_returns(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        response = admin_client.get(reverse('proposal-client-status-counts'))
+
+        assert response.status_code == 200
+        for status, params in (
+            ('all', {}),
+            ('active', {'orphans': 'false'}),
+            ('orphans', {'orphans': 'true'}),
+            ('inactive', {'inactive': 'true'}),
+        ):
+            listed = admin_client.get(reverse('list-proposal-clients'), params)
+            assert response.data[status] == len(listed.data), status
+
+    @freeze_time('2026-01-15 12:00:00')
+    def test_deactivated_client_only_counts_under_inactive(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        from django.utils import timezone
+        orphan_client.deactivated_at = timezone.now()
+        orphan_client.save(update_fields=['deactivated_at'])
+
+        response = admin_client.get(reverse('proposal-client-status-counts'))
+
+        assert response.data['inactive'] == 1
+        assert response.data['all'] == 1
+        assert response.data['orphans'] == 0
+
+    def test_counts_honour_the_search_term(
+        self, admin_client, real_client_with_proposal, orphan_client,
+    ):
+        response = admin_client.get(
+            reverse('proposal-client-status-counts'),
+            {'search': real_client_with_proposal.user.email},
+        )
+
+        assert response.data['all'] == 1
+        assert response.data['active'] == 1
+        assert response.data['orphans'] == 0
+
+    def test_requires_admin(self, client):
+        response = client.get(reverse('proposal-client-status-counts'))
+
+        assert response.status_code in (401, 403)
+
+
+# ---------------------------------------------------------------------------
+
+def _diagnostic(profile, status=None, **kwargs):
+    """A WebAppDiagnostic with only what these annotations read."""
+    from content.models import WebAppDiagnostic
+    return WebAppDiagnostic.objects.create(
+        client=profile,
+        status=status or WebAppDiagnostic.Status.SENT,
+        **kwargs,
+    )
+
+
+class TestDiagnosticModuleAnnotations:
+    """The two aggregates behind the Diagnóstico subfilters. The billed cut
+    reads the income; the unconverted cut reads the entity against whatever
+    proposals followed it."""
+
+    def test_a_billed_diagnostic_counts_without_any_diagnostic_entity(
+        self, admin_client, make_client_profile, make_income,
+    ):
+        """The decision this module rests on, as an executable statement:
+        'facturado' is the money, so a diagnostic that was charged for
+        without its entity ever being created is still a billed one."""
+        from content.models import IncomeRecord
+        profile = make_client_profile(company='Diag SAS')
+        make_income(client=profile, origin=IncomeRecord.Origin.DIAGNOSTIC)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostic_incomes_count'] == 1
+        assert row['diagnostics_count'] == 0
+
+    def test_a_legacy_income_without_origin_is_not_a_billed_diagnostic(
+        self, admin_client, make_client_profile, make_income,
+    ):
+        profile = make_client_profile(company='Legado SAS')
+        make_income(client=profile)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['incomes_count'] == 1
+        assert row['diagnostic_incomes_count'] == 0
+
+    def test_a_written_off_diagnostic_income_does_not_count_as_billed(
+        self, admin_client, make_client_profile, make_income,
+    ):
+        from content.models import IncomeRecord
+        profile = make_client_profile(company='Perdido SAS')
+        make_income(
+            client=profile, origin=IncomeRecord.Origin.DIAGNOSTIC,
+            kind=IncomeRecord.Kind.LOST,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostic_incomes_count'] == 0
+
+    def test_a_written_off_row_does_not_hide_a_real_one(
+        self, admin_client, make_client_profile, make_income,
+    ):
+        from content.models import IncomeRecord
+        profile = make_client_profile(company='Mixto SAS')
+        make_income(
+            client=profile, origin=IncomeRecord.Origin.DIAGNOSTIC,
+            kind=IncomeRecord.Kind.LOST,
+        )
+        make_income(client=profile, origin=IncomeRecord.Origin.DIAGNOSTIC)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostic_incomes_count'] == 1
+
+    def test_a_draft_only_diagnostic_is_never_a_missed_opportunity(
+        self, admin_client, make_client_profile,
+    ):
+        """A draft never left the building, so 'no proposal followed it' is
+        trivially true and would flood the cut with work in progress."""
+        from content.models import WebAppDiagnostic
+        profile = make_client_profile(company='Borrador SAS')
+        _diagnostic(profile, status=WebAppDiagnostic.Status.DRAFT)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_count'] == 1
+        assert row['diagnostics_without_proposal_count'] == 0
+
+    def test_a_sent_diagnostic_with_no_proposal_at_all_counts(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Enfriado SAS')
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 1
+
+    def test_a_proposal_created_later_the_same_day_converts_it(
+        self, admin_client, make_client_profile,
+    ):
+        """'Posterior' is a timestamp, not a date: same-day still converts."""
+        profile = make_client_profile(company='Convertido SAS')
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+        with freeze_time('2026-03-10 17:00:00'):
+            BusinessProposal.objects.create(
+                title='Propuesta', client=profile,
+                client_name='Ana', client_email='ana@example.com',
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 0
+
+    def test_a_proposal_created_at_the_same_instant_does_not_convert_it(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Empate SAS')
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+            BusinessProposal.objects.create(
+                title='Propuesta', client=profile,
+                client_name='Ana', client_email='ana@example.com',
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 1
+
+    def test_a_proposal_created_before_it_leaves_it_unconverted(
+        self, admin_client, make_client_profile,
+    ):
+        """The headline false negative: an older proposal must not absolve a
+        diagnostic that came after it."""
+        profile = make_client_profile(company='Anterior SAS')
+        with freeze_time('2026-01-05 09:00:00'):
+            BusinessProposal.objects.create(
+                title='Propuesta vieja', client=profile,
+                client_name='Ana', client_email='ana@example.com',
+            )
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 1
+
+    def test_the_anchor_is_the_send_not_the_draft(
+        self, admin_client, make_client_profile,
+    ):
+        """Drafted in January, proposal in February, sent in June: that
+        proposal cannot be the outcome of something the client had not
+        received yet, so the diagnostic is still unconverted."""
+        profile = make_client_profile(company='Ancla SAS')
+        with freeze_time('2026-01-05 09:00:00'):
+            diag = _diagnostic(profile)
+        with freeze_time('2026-02-01 09:00:00'):
+            BusinessProposal.objects.create(
+                title='Propuesta', client=profile,
+                client_name='Ana', client_email='ana@example.com',
+            )
+        with freeze_time('2026-06-01 09:00:00'):
+            diag.initial_sent_at = timezone.now()
+            diag.save(update_fields=['initial_sent_at'])
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 1
+
+    def test_a_non_draft_diagnostic_never_sent_falls_back_to_created_at(
+        self, admin_client, make_client_profile,
+    ):
+        """Without the Coalesce the comparison would go NULL and the row
+        would count as unconverted forever, whatever followed it."""
+        profile = make_client_profile(company='Sin envio SAS')
+        from content.models import WebAppDiagnostic
+        with freeze_time('2026-01-05 09:00:00'):
+            _diagnostic(
+                profile, status=WebAppDiagnostic.Status.ACCEPTED,
+                initial_sent_at=None,
+            )
+        with freeze_time('2026-02-01 09:00:00'):
+            BusinessProposal.objects.create(
+                title='Propuesta', client=profile,
+                client_name='Ana', client_email='ana@example.com',
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 0
+
+    def test_it_counts_each_unconverted_diagnostic(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Varios SAS')
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+            _diagnostic(profile, initial_sent_at=timezone.now())
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['diagnostics_without_proposal_count'] == 2
+
+    def test_another_clients_proposal_does_not_convert_this_diagnostic(
+        self, admin_client, make_client_profile,
+    ):
+        """The only test that catches a mis-bound OuterRef."""
+        owner = make_client_profile(company='Dueno SAS')
+        stranger = make_client_profile(company='Ajeno SAS')
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(owner, initial_sent_at=timezone.now())
+        with freeze_time('2026-04-01 09:00:00'):
+            BusinessProposal.objects.create(
+                title='Propuesta ajena', client=stranger,
+                client_name='Otro', client_email='otro@example.com',
+            )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['diagnostics_without_proposal_count'] == 1
+        assert _row_for(response, stranger)['diagnostics_without_proposal_count'] == 0
+
+    def test_the_serializer_falls_back_when_the_queryset_is_not_annotated(
+        self, make_client_profile, make_income,
+    ):
+        from content.models import IncomeRecord
+        profile = make_client_profile(company='Sin anotar SAS')
+        make_income(client=profile, origin=IncomeRecord.Origin.DIAGNOSTIC)
+        with freeze_time('2026-03-10 09:00:00'):
+            _diagnostic(profile, initial_sent_at=timezone.now())
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['diagnostic_incomes_count'] == 1
+        assert data['diagnostics_without_proposal_count'] == 1
+
+
+class TestEmailModuleAnnotations:
+    """The three aggregates behind the Emails subfilters and the row column.
+    All of them read what went TO the client: an internal notice about their
+    income is in their trail, but it is not contact with them."""
+
+    def _log(self, profile, **kwargs):
+        from content.models import EmailLog
+        defaults = {
+            'template_key': 'collection_account_sent',
+            'recipient': 'ana@example.com',
+            'subject': 'Cuenta de cobro',
+            'status': EmailLog.Status.SENT,
+            'audience': EmailLog.Audience.CLIENT,
+            'client': profile,
+        }
+        defaults.update(kwargs)
+        return EmailLog.objects.create(**defaults)
+
+    def test_it_counts_only_what_was_addressed_to_the_client(
+        self, admin_client, make_client_profile,
+    ):
+        from content.models import EmailLog
+        profile = make_client_profile(company='Contacto SAS')
+        self._log(profile)
+        self._log(
+            profile, template_key='accounting_change',
+            audience=EmailLog.Audience.INTERNAL,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['emails_sent_count'] == 1
+
+    def test_failed_sends_are_counted_apart(
+        self, admin_client, make_client_profile,
+    ):
+        from content.models import EmailLog
+        profile = make_client_profile(company='Fallido SAS')
+        self._log(profile)
+        self._log(profile, status=EmailLog.Status.FAILED)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['emails_sent_count'] == 2
+        assert row['emails_failed_count'] == 1
+
+    def test_last_email_at_is_the_most_recent_one(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Fecha SAS')
+        with freeze_time('2026-01-05 09:00:00'):
+            self._log(profile)
+        with freeze_time('2026-06-01 09:00:00'):
+            self._log(profile)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['last_email_at'].date().isoformat() == '2026-06-01'
+
+    def test_a_client_who_never_got_anything_reads_zero_and_null(
+        self, admin_client, make_client_profile,
+    ):
+        """What 'Sin ningún correo' and 'Sin contacto en 30 días' both read."""
+        profile = make_client_profile(company='Silencio SAS')
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['emails_sent_count'] == 0
+        assert row['emails_failed_count'] == 0
+        assert row['last_email_at'] is None
+
+    def test_another_clients_email_does_not_leak_into_this_count(
+        self, admin_client, make_client_profile,
+    ):
+        owner = make_client_profile(company='Dueno mail SAS')
+        stranger = make_client_profile(company='Ajeno mail SAS')
+        self._log(owner)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, owner)['emails_sent_count'] == 1
+        assert _row_for(response, stranger)['emails_sent_count'] == 0
+
+    def test_the_serializer_falls_back_when_the_queryset_is_not_annotated(
+        self, make_client_profile,
+    ):
+        from content.models import EmailLog
+        profile = make_client_profile(company='Sin anotar mail SAS')
+        self._log(profile)
+        self._log(profile, status=EmailLog.Status.FAILED)
+
+        raw = UserProfile.objects.get(pk=profile.pk)
+        data = ProposalClientSerializer(raw).data
+
+        assert data['emails_sent_count'] == 2
+        assert data['emails_failed_count'] == 1
+        assert data['last_email_at'] is not None

@@ -122,6 +122,9 @@ class TestListAndDetail:
         assert pdf.status_code == 200
         assert pdf['Content-Type'] == 'application/pdf'
         assert pdf.content[:4] == b'%PDF'
+        # The detail modal embeds `?inline=1`; the middleware's DENY default
+        # would blank that viewer, so the view opts into SAMEORIGIN.
+        assert pdf['X-Frame-Options'] == 'SAMEORIGIN'
 
 
 class TestLifecycleActions:

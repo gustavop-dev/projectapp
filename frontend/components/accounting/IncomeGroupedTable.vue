@@ -48,7 +48,7 @@
       </div>
 
       <!-- Skeleton -->
-      <div v-if="loading" class="accounting-grid-band divide-y divide-border-muted">
+      <div v-if="showSkeleton" class="accounting-grid-band divide-y divide-border-muted">
         <div
           v-for="n in skeletonRows"
           :key="`skeleton-${n}`"
@@ -62,9 +62,16 @@
       <template v-else>
         <div v-for="group in groups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
+          <!--
+            Name and subtotals read as one sentence, so they sit next to each
+            other instead of at opposite ends of the row. Below sm the figures
+            drop to their own line under the name rather than wrapping mid
+            amount — the break is a breakpoint and not flex-wrap so the leading
+            separator can be hidden with it.
+          -->
           <div
             role="row"
-            class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-y border-border-muted px-4 py-2"
+            class="accounting-grid-band flex flex-col items-start gap-y-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`income-group-${group.id}`"
           >
             <div class="flex items-center gap-2 min-w-0">
@@ -115,24 +122,30 @@
                 seleccionado{{ groupSummary(group.id).count === 1 ? '' : 's' }}
               </span>
             </div>
-            <span class="text-sm tabular-nums text-text-muted whitespace-nowrap">
-              <span class="text-xs text-text-subtle">Facturado </span>
-              <span :data-testid="`income-group-billed-${group.id}`">
+            <!--
+              Both amounts always render, zero included, so every group states
+              the same facts in the same order — the footer row and the totals
+              modal already spell out their zeros.
+            -->
+            <span class="text-xs tabular-nums text-text-muted whitespace-nowrap">
+              <span class="hidden sm:inline text-text-subtle"> · </span>
+              <span class="text-text-subtle">Facturado </span>
+              <span class="font-medium" :data-testid="`income-group-billed-${group.id}`">
                 {{ money(group.billed) }}
               </span>
-              <template v-if="group.pending > 0">
-                <span class="text-xs text-text-subtle"> · Pendiente </span>
-                <span class="text-warning-strong" :data-testid="`income-group-pending-${group.id}`">
-                  {{ money(group.pending) }}
-                </span>
-              </template>
+              <span class="text-text-subtle"> · Pendiente </span>
+              <span
+                class="font-medium text-warning-strong"
+                :data-testid="`income-group-pending-${group.id}`"
+              >
+                {{ money(group.pending) }}
+              </span>
               <span
                 v-if="group.weightPct != null"
-                class="text-xs text-text-subtle tabular-nums"
+                class="text-text-subtle tabular-nums"
                 :data-testid="`income-group-weight-${group.id}`"
-                title="Peso del cliente sobre el total facturado del conjunto filtrado"
               >
-                · {{ formatPercent(group.weightPct) }}
+                · {{ formatPercent(group.weightPct) }} de lo facturado
               </span>
             </span>
           </div>
@@ -312,6 +325,14 @@ const containerVars = computed(() => {
 const rowCount = computed(
   () => props.groups.reduce((total, group) => total + group.rows.length, 0),
 );
+
+/**
+ * Skeleton only when there is nothing to show yet. Every mutation refetches,
+ * so binding it to `loading` alone blanked the whole grid — groups, counters
+ * and the totals row — and brought it back after a delete. `aria-busy` still
+ * announces the fetch.
+ */
+const showSkeleton = computed(() => props.loading && props.groups.length === 0);
 
 const totals = computed(() => sumClientGroups(props.groups));
 

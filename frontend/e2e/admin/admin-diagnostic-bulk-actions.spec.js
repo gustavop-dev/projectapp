@@ -117,4 +117,41 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
     await batchBar.getByRole('button', { name: 'Cancelar' }).click();
     await expect(batchBar).not.toBeVisible();
   });
+
+  test('deleting one selected diagnostic drops it from the bar and keeps the rest', {
+    tag: [...ADMIN_DIAGNOSTIC_BULK_ACTIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Same defect the accounting bar had: the selection was an id list nobody
+    // reconciled, so a deleted row went on being counted.
+    const rows = mockDiagnostics.map((d) => ({ ...d }));
+
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'diagnostics/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+      }
+      if (/^diagnostics\/\d+\/delete\/$/.test(apiPath) && method === 'DELETE') {
+        const id = Number(apiPath.split('/')[1]);
+        const index = rows.findIndex((row) => row.id === id);
+        if (index !== -1) rows.splice(index, 1);
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+      return null;
+    });
+
+    await page.goto('/panel/diagnostics/');
+    await expect(page.getByLabel('Seleccionar Diagnóstico Acme Corp')).toBeVisible({ timeout: 15000 });
+
+    await page.getByLabel('Seleccionar Diagnóstico Acme Corp').check();
+    await page.getByLabel('Seleccionar Diagnóstico Beta Inc').check();
+
+    const batchBar = page.getByTestId('diagnostics-batch-bar');
+    await expect(batchBar).toContainText('2 seleccionados');
+
+    await page.getByLabel('Acciones de Diagnóstico Beta Inc').click();
+    await page.getByRole('button', { name: 'Eliminar' }).last().click();
+    await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
+
+    await expect(batchBar).toContainText('1 seleccionado');
+  });
 });

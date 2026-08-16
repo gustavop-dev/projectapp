@@ -64,16 +64,28 @@ describe('IncomeGroupedTable', () => {
     expect(wrapper.find('[data-testid="income-group-pending-22"]').text())
       .toBe('$6.646.746 COP');
     expect(wrapper.find('[data-testid="income-group-weight-22"]').text())
-      .toContain('88,4%');
+      .toContain('88,4% de lo facturado');
   });
 
-  it('omits the pending chunk when a group is fully collected', () => {
+  it('keeps the client name, its count and both subtotals on one line', () => {
+    const wrapper = mountTable();
+
+    // The header reads as a sentence, so the figures follow the name instead
+    // of sitting at the opposite end of the row.
+    expect(wrapper.find('[data-testid="income-group-22"]').text().replace(/\s+/g, ' '))
+      .toContain('Deivis Rios(2) · Facturado $7.646.746 COP · Pendiente $6.646.746 COP');
+  });
+
+  it('spells out a zero subtotal instead of dropping the term', () => {
     const groups = makeGroups();
+    groups[0].billed = 0;
     groups[0].pending = 0;
     const wrapper = mountTable({ groups });
 
-    expect(wrapper.find('[data-testid="income-group-pending-22"]').exists())
-      .toBe(false);
+    expect(wrapper.find('[data-testid="income-group-billed-22"]').text())
+      .toBe('$0 COP');
+    expect(wrapper.find('[data-testid="income-group-pending-22"]').text())
+      .toBe('$0 COP');
   });
 
   it('renders the unassigned bucket last, flagged "por completar"', () => {
@@ -173,11 +185,21 @@ describe('IncomeGroupedTable', () => {
       .toBe('Vastago - Abono inicial!');
   });
 
-  it('shows skeleton rows while loading', () => {
-    const wrapper = mountTable({ loading: true, skeletonRows: 3 });
+  it('shows skeleton rows on the first load', () => {
+    const wrapper = mountTable({ groups: [], loading: true, skeletonRows: 3 });
 
     expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(3);
     expect(wrapper.find('[data-testid="income-group-22"]').exists()).toBe(false);
+  });
+
+  it('keeps the groups and their counters on screen while refetching', () => {
+    // Blanking the grid on every mutation took the group counters and the
+    // totals row with it, so a delete looked like a reload instead of a
+    // recount.
+    const wrapper = mountTable({ loading: true });
+
+    expect(wrapper.findAll('[data-testid="accounting-skeleton-row"]')).toHaveLength(0);
+    expect(wrapper.find('[data-testid="income-group-22"]').text()).toContain('(2)');
   });
 
   it('flashes the highlighted row', () => {

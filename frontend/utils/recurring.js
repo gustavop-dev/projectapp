@@ -31,6 +31,21 @@ export const FREQUENCY_OPTIONS = [
 ];
 
 /**
+ * Months per frequency, mirroring `RecurringPayment.FREQUENCY_MONTHS`.
+ * `custom` is deliberately absent — its length is whatever the operator wrote.
+ */
+export const FREQUENCY_MONTHS = {
+  monthly: 1,
+  bimonthly: 2,
+  quarterly: 3,
+  four_monthly: 4,
+  semiannual: 6,
+  annual: 12,
+  biennial: 24,
+  triennial: 36,
+};
+
+/**
  * Format a monthly price in the record's own currency.
  *
  * COP stays in whole pesos; anything else keeps two decimals, because a

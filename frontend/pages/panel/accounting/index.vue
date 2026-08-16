@@ -477,7 +477,11 @@ async function loadCardSnapshots() {
 }
 
 function syncYearQueryParam() {
-  const query = { ...route.query, year: String(store.selectedYear) };
+  // El año en curso es el default del store: dejarlo en la URL la vuelve una
+  // foto del día en que se compartió el enlace.
+  const query = { ...route.query };
+  if (store.selectedYear === new Date().getFullYear()) delete query.year;
+  else query.year = String(store.selectedYear);
   router.replace({ query });
 }
 

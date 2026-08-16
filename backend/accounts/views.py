@@ -808,6 +808,10 @@ def project_list_view(request):
         payment_milestones=payment_milestones,
         hosting_tiers=hosting_tiers,
     )
+    from content.services import project_service
+    project_service.log_project_event(
+        project, project_service.Action.CREATED, {}, request.user,
+    )
 
     if proposal:
         from accounts.models import Deliverable, ProjectPhase
@@ -876,19 +880,43 @@ def project_detail_view(request, project_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    from content.api_errors import error_response
+    from content.services import project_service
+
     if request.method == 'DELETE':
         force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
         if force:
+            # A hard delete SET_NULLs every accounting/document FK in
+            # silence — the exact blanking the coherence rules exist to
+            # stop. Reassign or detach first; PA-29 says archive otherwise.
+            blockers = project_service.deletion_blockers(project)
+            if any(blockers.values()):
+                return error_response(
+                    'El proyecto tiene registros contables o documentos vinculados.',
+                    code='project_has_records',
+                    hint='Archívalo, o reasigna/desvincula sus registros antes de eliminarlo.',
+                    status=status.HTTP_409_CONFLICT,
+                    errors={'counts': blockers},
+                )
+            snapshot = project_service.project_snapshot(project)
+            project_service.log_project_event(
+                project, project_service.Action.DELETED, snapshot, request.user,
+            )
             project.delete()
             return Response({'detail': 'Proyecto eliminado.'})
+        snapshot = project_service.project_snapshot(project)
         project.status = Project.STATUS_ARCHIVED
         project.save(update_fields=['status', 'updated_at'])
+        project_service.log_project_event(
+            project, project_service.Action.UPDATED, snapshot, request.user,
+        )
         return Response({'detail': 'Proyecto archivado.'})
 
     serializer = UpdateProjectSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
 
+    snapshot = project_service.project_snapshot(project)
     update_fields = ['updated_at']
     simple_fields = (
         'name', 'description', 'status', 'progress',
@@ -907,6 +935,9 @@ def project_detail_view(request, project_id):
         update_fields.append('admin_password_encrypted')
 
     project.save(update_fields=update_fields)
+    project_service.log_project_event(
+        project, project_service.Action.UPDATED, snapshot, request.user,
+    )
 
     return Response(ProjectDetailSerializer(project, context={'request': request}).data)
 

@@ -1,7 +1,8 @@
 import copy
 import logging
 
-from django.db.models import Q
+from django.contrib.auth import get_user_model
+from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
@@ -9,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from content.api_errors import error_response
 from content.models import Document
 from content.serializers.document import (
     DocumentListSerializer,
@@ -17,9 +19,9 @@ from content.serializers.document import (
     DocumentFromMarkdownSerializer,
 )
 from content.services import document_archive_service
+from content.services.document_content import build_content_json, resolve_blocks
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
-from content.services.markdown_parser import markdown_to_blocks
 from content.utils import safe_slug
 
 logger = logging.getLogger(__name__)
@@ -97,7 +99,7 @@ def list_documents(request):
     documents = (
         apply_archive_scope(Document.objects.all(), scope)
         .prefetch_related('tags')
-        .select_related('folder')
+        .select_related('folder', 'project', 'client_user__profile')
     )
 
     folder_param = request.query_params.get('folder')
@@ -111,6 +113,35 @@ def list_documents(request):
                 {'folder': 'El identificador de carpeta no es válido.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+    client_param = request.query_params.get('client')
+    if client_param == 'none':
+        documents = documents.filter(client_user__isnull=True)
+    elif client_param not in (None, '', 'all'):
+        try:
+            client_ids = [int(c) for c in client_param.split(',') if c.strip()]
+        except ValueError:
+            return Response(
+                {'client': 'El identificador de cliente no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if client_ids:
+            # El panel habla en pk de UserProfile; el modelo persiste auth.User.
+            documents = documents.filter(client_user__profile__id__in=client_ids)
+
+    project_param = request.query_params.get('project')
+    if project_param == 'none':
+        documents = documents.filter(project__isnull=True)
+    elif project_param not in (None, '', 'all'):
+        try:
+            project_ids = [int(p) for p in project_param.split(',') if p.strip()]
+        except ValueError:
+            return Response(
+                {'project': 'El identificador de proyecto no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if project_ids:
+            documents = documents.filter(project_id__in=project_ids)
 
     tags_param = request.query_params.get('tags')
     if tags_param:
@@ -156,18 +187,7 @@ def create_document(request):
 
     # If markdown was provided but no JSON, parse it
     if document.content_markdown and not document.content_json:
-        blocks = markdown_to_blocks(document.content_markdown)
-        document.content_json = {
-            'meta': {
-                'title': document.title,
-                'client_name': document.client_name,
-                'cover_type': document.cover_type,
-                'include_portada': document.include_portada,
-                'include_subportada': document.include_subportada,
-                'include_contraportada': document.include_contraportada,
-            },
-            'blocks': blocks,
-        }
+        document.content_json = build_content_json(document)
         document.save(update_fields=['content_json'])
 
     detail = DocumentDetailSerializer(document)
@@ -184,13 +204,14 @@ def create_document_from_markdown(request):
 
     data = serializer.validated_data
     markdown_text = data['markdown']
-    blocks = markdown_to_blocks(markdown_text)
 
-    document = Document.objects.create(
+    document = Document(
         title=data['title'],
         document_type=get_markdown_document_type(),
         folder=data.get('folder_id'),
         client_name=data.get('client_name', ''),
+        client_user=data.get('client_user'),
+        project=data.get('project'),
         language=data.get('language', 'es'),
         cover_type=data.get('cover_type', 'generic'),
         template_style=data.get('template_style', 'professional'),
@@ -198,19 +219,10 @@ def create_document_from_markdown(request):
         include_subportada=data.get('include_subportada', True),
         include_contraportada=data.get('include_contraportada', True),
         content_markdown=markdown_text,
-        content_json={
-            'meta': {
-                'title': data['title'],
-                'client_name': data.get('client_name', ''),
-                'cover_type': data.get('cover_type', 'generic'),
-                'template_style': data.get('template_style', 'professional'),
-                'include_portada': data.get('include_portada', True),
-                'include_subportada': data.get('include_subportada', True),
-                'include_contraportada': data.get('include_contraportada', True),
-            },
-            'blocks': blocks,
-        },
     )
+    document.content_json = build_content_json(document, markdown_text)
+    document.save()
+
     tag_ids = data.get('tag_ids')
     if tag_ids:
         document.tags.set(tag_ids)
@@ -245,8 +257,6 @@ def upload_document_markdown(request):
     cover_type = request.data.get('cover_type', 'generic')
     template_style = request.data.get('template_style', 'professional')
 
-    blocks = markdown_to_blocks(markdown_text)
-
     def _to_bool(value, default=True):
         if isinstance(value, bool):
             return value
@@ -271,7 +281,7 @@ def upload_document_markdown(request):
     except document_archive_service.DocumentArchiveError as exc:
         return Response({'folder_id': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    document = Document.objects.create(
+    document = Document(
         title=title,
         document_type=get_markdown_document_type(),
         folder=folder,
@@ -283,19 +293,9 @@ def upload_document_markdown(request):
         include_subportada=include_subportada,
         include_contraportada=include_contraportada,
         content_markdown=markdown_text,
-        content_json={
-            'meta': {
-                'title': title,
-                'client_name': client_name,
-                'cover_type': cover_type,
-                'template_style': template_style,
-                'include_portada': include_portada,
-                'include_subportada': include_subportada,
-                'include_contraportada': include_contraportada,
-            },
-            'blocks': blocks,
-        },
     )
+    document.content_json = build_content_json(document, markdown_text)
+    document.save()
 
     tag_ids_raw = request.data.get('tag_ids')
     if tag_ids_raw:
@@ -324,11 +324,38 @@ def retrieve_document(request, document_id):
     return Response(serializer.data)
 
 
+def _locked_collection_account_error(document):
+    """400 when a cuenta de cobro already left draft.
+
+    Draft cuentas are provisional and stay editable/deletable here; once
+    issued (or paid/cancelled) the document is a fact — the only path for a
+    mistake is anular y reemitir from the cuentas module, never rewriting
+    the record the number was assigned to.
+    """
+    is_cuenta = (
+        document.document_type
+        and document.document_type.code == COLLECTION_ACCOUNT
+    )
+    if not is_cuenta:
+        return None
+    if document.commercial_status == Document.CommercialStatus.DRAFT:
+        return None
+    return error_response(
+        'Esta cuenta de cobro ya fue emitida y no se puede modificar ni '
+        'eliminar desde Documentos.',
+        code='collection_account_locked',
+        hint='Anúlala y emite una nueva desde Contabilidad → Cuentas de cobro.',
+    )
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_document(request, document_id):
     """Update a document."""
     document = get_object_or_404(Document, pk=document_id)
+    locked = _locked_collection_account_error(document)
+    if locked:
+        return locked
     serializer = DocumentCreateUpdateSerializer(
         document, data=request.data, partial=True,
     )
@@ -339,18 +366,7 @@ def update_document(request, document_id):
 
     # Re-parse markdown if it changed
     if 'content_markdown' in request.data and document.content_markdown:
-        blocks = markdown_to_blocks(document.content_markdown)
-        document.content_json = {
-            'meta': {
-                'title': document.title,
-                'client_name': document.client_name,
-                'cover_type': document.cover_type,
-                'include_portada': document.include_portada,
-                'include_subportada': document.include_subportada,
-                'include_contraportada': document.include_contraportada,
-            },
-            'blocks': blocks,
-        }
+        document.content_json = build_content_json(document)
         document.save(update_fields=['content_json'])
 
     detail = DocumentDetailSerializer(document)
@@ -366,6 +382,9 @@ def delete_document(request, document_id):
     eliminar sigue disponible para la limpieza final.
     """
     document = get_object_or_404(Document, pk=document_id)
+    locked = _locked_collection_account_error(document)
+    if locked:
+        return locked
     document.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -432,6 +451,8 @@ def duplicate_document(request, document_id):
         title=f'{document.title} (copia)',
         document_type=doc_type,
         client_name=document.client_name,
+        client_user=document.client_user,
+        project=document.project,
         language=document.language,
         cover_type=document.cover_type,
         include_portada=document.include_portada,
@@ -453,7 +474,9 @@ def download_document_pdf(request, document_id):
     """Generate and download document as PDF."""
     document = get_object_or_404(Document, pk=document_id)
 
-    if not document.content_json or not document.content_json.get('blocks'):
+    # `resolve_blocks` y no `content_json['blocks']`: un documento cuyo writer
+    # se saltó el parseo sigue teniendo el markdown, y ése es el contenido real.
+    if not resolve_blocks(document):
         return Response(
             {'detail': 'El documento no tiene contenido para generar el PDF.'},
             status=status.HTTP_400_BAD_REQUEST,
@@ -476,3 +499,52 @@ def download_document_pdf(request, document_id):
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def suggest_folder_client(request):
+    """Cliente mayoritario de una carpeta, para prellenar el form de crear.
+
+    La carpeta ya está diciendo de quién es: si la mayoría estricta de sus
+    documentos activos vinculados pertenece a un cliente (y son al menos dos),
+    ése es el default propuesto. Una carpeta inexistente o sin señal devuelve
+    sugerencia nula — la sugerencia nunca es un error, sólo un prellenado.
+    """
+    try:
+        folder_id = int(request.query_params.get('folder'))
+    except (TypeError, ValueError):
+        return Response(
+            {'folder': 'El identificador de carpeta no es válido.'},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    docs = Document.objects.filter(folder_id=folder_id, is_archived=False)
+    ranking = list(
+        docs.filter(client_user__isnull=False)
+        .values('client_user')
+        .annotate(total=Count('id'))
+        .order_by('-total'),
+    )
+    linked_total = sum(row['total'] for row in ranking)
+
+    client_id = None
+    client_display_name = None
+    if ranking:
+        top = ranking[0]
+        if top['total'] >= 2 and top['total'] * 2 > linked_total:
+            user = get_user_model().objects.filter(pk=top['client_user']).first()
+            profile = getattr(user, 'profile', None) if user else None
+            if profile is not None:
+                from accounts.services.proposal_client_service import (
+                    build_client_display_name,
+                )
+                client_id = profile.id
+                client_display_name = build_client_display_name(profile)
+
+    return Response({
+        'client': client_id,
+        'client_display_name': client_display_name,
+        'linked_documents': linked_total,
+        'folder_documents': docs.count(),
+    })
