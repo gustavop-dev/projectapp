@@ -120,15 +120,17 @@
                 :aria-label="rowLabel(folder)"
                 @click="$emit('select', folder.id)"
               >
-                <!-- La segunda cifra le come ancho al nombre; el `title` deja
-                     recuperar el que se trunca sin robarle más columna. El
-                     cliente va debajo y sólo si la carpeta lo tiene: es la
-                     línea que dice de quién es sin abrirla. -->
-                <span class="flex-1 min-w-0 flex flex-col">
-                  <span class="truncate" :title="folder.name">{{ folder.name }}</span>
+                <!-- El cliente va debajo del nombre y sólo si la carpeta lo
+                     tiene: es la línea que dice de quién es sin abrirla.
+                     `block` y no `flex`, y con piso de ancho: sumar el ícono de
+                     editar dejó la fila sin holgura y el nombre se encogía
+                     hasta desaparecer. Con `min-w-16` siempre se lee algo, y lo
+                     que sobra trunca — el `title` lo recupera. -->
+                <span class="flex-1 min-w-16 block">
+                  <span class="block truncate" :title="folder.name">{{ folder.name }}</span>
                   <span
                     v-if="folder.client_display_name"
-                    class="truncate text-2xs text-text-subtle"
+                    class="block truncate text-2xs text-text-subtle"
                     :data-testid="`folder-client-${folder.id}`"
                     :title="folder.client_display_name"
                   >{{ folder.client_display_name }}</span>
