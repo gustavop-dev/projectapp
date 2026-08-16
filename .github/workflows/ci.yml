@@ -71,9 +71,11 @@ jobs:
         working-directory: frontend
         run: node scripts/check-design-tokens.mjs --strict --files ${{ steps.changed.outputs.files }}
 
+      # --strict-rows: el panel quedó en 0 filas clicables sin enlace, así que
+      # la regla gatea desde ya. Ver components/base/README.md → Navigable rows.
       - name: Strict gate on full panel scope
         working-directory: frontend
-        run: node scripts/check-design-tokens.mjs --scope=panel --strict
+        run: node scripts/check-design-tokens.mjs --scope=panel --strict --strict-rows
 
       - name: Strict gate on full public scope
         working-directory: frontend

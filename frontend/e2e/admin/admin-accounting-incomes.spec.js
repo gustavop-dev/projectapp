@@ -73,6 +73,21 @@ function buildHandler({
   // after the client's last recorded period. Pinned so the dates under test
   // do not move with the calendar.
   periodSuggestion = { previous_period_end: '2026-08-31', suggested_start: '2026-09-01' },
+  // What the duplicate draft says its window is counted from. The default is
+  // the resolvable case (the client's hosting says annual, so the draft can
+  // already propose a date); tests that need the everyday one — no recorded
+  // window and an ambiguous hosting — pass the `original_date` anchor instead.
+  duplicateDraftPeriod = {
+    period_date: '2027-02-01',
+    period_date_source: 'hosting_cycle',
+    period_anchor: {
+      source: 'hosting_cycle',
+      start: '2027-02-01',
+      origin_start: null,
+      origin_end: null,
+      origin_date: '2026-02-01',
+    },
+  },
 }) {
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
@@ -162,8 +177,7 @@ function buildHandler({
         body: JSON.stringify({
           concept: source.concept,
           kind: 'expected',
-          period_date: '2027-02-01',
-          period_date_source: 'hosting_cycle',
+          ...duplicateDraftPeriod,
           // Counted from the original's 2026-02-01, so the operator can
           // override the proposal without working the date out by hand.
           cycle_options: [
@@ -463,6 +477,67 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(created.body.period_date).toBeUndefined();
   });
 
+  test('duplicating an income with no recorded window counts from the original', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // The everyday case until every hosting income carries its window: the
+    // original has none and its client holds several hostings, so the catalog
+    // cannot decide either. The draft proposes nothing, but it still says what
+    // to count from — the original's own date — and the form chains on that
+    // instead of opening the window on today, which continues nothing.
+    const calls = [];
+    const rows = [incomeRow({
+      kind: 'liquid', kind_label: 'Líquido', origin: 'hosting',
+      concept: 'Kore - Hosting',
+    })];
+    await mockApi(page, buildHandler({
+      rows,
+      calls,
+      duplicateDraftPeriod: {
+        period_date: null,
+        period_date_source: null,
+        period_anchor: {
+          source: 'original_date',
+          start: null,
+          origin_start: null,
+          origin_end: null,
+          origin_date: '2026-02-01',
+        },
+      },
+    }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+
+    await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
+    // Nothing to prefill: only the cadence can say how long that period was.
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('');
+    const notice = page.getByTestId('income-form-anchor-notice');
+    await expect(notice).toContainText('1 feb 2026');
+    await expect(notice).toContainText('periodicidad');
+
+    // Counted from the original's date, not from today: three months after
+    // 1 feb 2026 the period it covered would have closed, so this one opens.
+    await page.getByTestId('income-form-period-cadence').selectOption('quarterly');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2026-05-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2026-07-31');
+
+    // With no recorded end, the length just chosen is what decides where the
+    // original's period closed, so the whole window moves with it.
+    await page.getByTestId('income-form-period-cadence').selectOption('annual');
+    await expect(page.getByTestId('income-form-period-start')).toHaveValue('2027-02-01');
+    await expect(page.getByTestId('income-form-period-end')).toHaveValue('2028-01-31');
+
+    await page.getByTestId('income-form-submit').click();
+
+    await expect(page.getByText('Ingreso duplicado')).toBeVisible();
+    const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
+    expect(created.body.period_start).toBe('2027-02-01');
+    expect(created.body.period_end).toBe('2028-01-31');
+    expect(created.body.period_cadence).toBe('annual');
+  });
+
   test('a hosting income asks for the period it covers and submits it', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -570,6 +645,27 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
     expect(created.body.period_date).toBe('2026-05-01');
+  });
+
+  // Antes el detalle sólo existía detrás del kebab y no tenía dirección: no se
+  // podía compartir, ni recargar dentro de él, ni — el motivo de fondo —
+  // publicarlo en el enlace de la fila.
+  test('el concepto enlaza al detalle y la dirección sobrevive una recarga', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls: [] }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('income-open-1')).toHaveAttribute('href', /income=1/);
+
+    await page.getByTestId('income-open-1').click();
+
+    await expect(page.getByTestId('income-detail-modal')).toBeVisible();
+    await expect(page).toHaveURL(/income=1/);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('income-detail-modal')).toBeVisible({ timeout: 25_000 });
   });
 
   test('duplicating from the detail modal opens the same seeded form', {
@@ -1447,10 +1543,13 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
 
     await expect(page.getByTestId('income-group-5')).toContainText('Ana Pérez');
     await expect(page.getByTestId('income-group-billed-5')).toContainText('1.160.000');
-    // Both amounts and the labelled share sit next to the client name, so the
-    // header reads as one sentence instead of two ends of the row.
+    // Every figure is its own labelled block spread across the row, so the
+    // header reads as the group's totals row rather than a decorative line.
     await expect(page.getByTestId('income-group-pending-5')).toContainText('1.160.000');
-    await expect(page.getByTestId('income-group-weight-5')).toContainText('de lo facturado');
+    await expect(page.getByTestId('income-group-5')).toContainText('Facturado');
+    await expect(page.getByTestId('income-group-5')).toContainText('Pendiente');
+    // The share still declares the base it is computed on.
+    await expect(page.getByTestId('income-group-5')).toContainText('% de lo facturado');
     // The unassigned bucket closes the list, flagged as completion work.
     await expect(page.getByTestId('income-group-none')).toContainText('por completar');
     await expect(page.getByTestId('income-grouped-billed-total')).toContainText('1.660.000');

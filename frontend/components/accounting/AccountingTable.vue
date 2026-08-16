@@ -314,6 +314,9 @@ function skeletonWidthClass(rowIndex, colIndex) {
 /** `col` here is already resolved, so alignment and padding come precomputed. */
 function cellClass(col) {
   const classes = [col.padClass, col.alignClass, col.nowrapClass, col.hideTableClass];
+  // `link: true` en la columna = acá va el enlace de la fila, y `relative` es
+  // el marco contra el que BaseRowLink se estira para cubrir toda la celda.
+  if (col.link) classes.push('relative');
   if (col.format === 'money') classes.push('tabular-nums text-text-muted');
   else if (col.format === 'percent') classes.push('tabular-nums text-text-subtle text-xs');
   else if (col.format === 'date') classes.push('text-text-muted text-xs');
