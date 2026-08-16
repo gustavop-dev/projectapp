@@ -139,7 +139,8 @@ describe('BulkAssignBar — the row holds its line', () => {
     await pickClient(wrapper);
     expect(hint().text()).toContain('Cliente enlazado: Ana Pérez (#5)');
 
-    // Escribir sobre el picker suelta el id sin re-emitir `select`.
+    // Desvincular (la X del picker) suelta el id sin re-emitir `select`.
+    // Escribir encima ya NO lo suelta: buscar no es desvincular.
     await wrapper.findComponent(ClientAutocompleteStub).vm.$emit('update:modelValue', null);
     await flushPromises();
     expect(hint().text()).toContain('Elige un cliente para poder asignar');
