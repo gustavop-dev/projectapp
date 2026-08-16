@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.40.0
+> **Version:** 2.41.0
 > **Last updated:** 2026-08-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -3793,6 +3793,25 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-unsaved-guard.spec.js`
 
+#### FLOW: `admin-panel-unsaved-guard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails`, y el mismo criterio en `/panel/blog/*`, `/panel/portfolio/*`, `/panel/linktrees/:id/edit`, `/panel/hour-packages/*`, `/panel/diagnostics/create`, `/panel/accounting/settings`
+- **Description:** El mismo aviso de cambios sin guardar, extendido a los editores de página completa del panel. Se cubre con `/panel/emails` porque es el caso representativo del formato difícil: su estado vive en refs sueltos, no en un objeto `form`. Fija además el límite que importa en páginas con pestañas — cambiar de pestaña es un `router.replace({ query })` sobre la misma ruta y **no** debe disparar el guard de salida; si lo hiciera, cualquier página con pestañas quedaría bloqueada por un modal apenas su formulario tuviera algo pendiente.
+- **Steps:**
+  1. Admin abre `/panel/emails?tab=defaults`.
+  2. Edita el saludo por defecto.
+  3. Aparece el aviso nombrando el campo ("Saludo sin guardar").
+  4. Al salir de la página, el diálogo ofrece guardar, salir sin guardar o seguir editando.
+- **Branches:**
+  - [Branch A — Cambio de pestaña] Pasar a Redactar no abre ningún modal y no descarta lo pendiente; al volver, el valor editado sigue ahí. La URL suelta el `?tab=` del modo por defecto a propósito.
+  - [Branch B — Guardar y salir] El botón primario dispara el PUT de `emails/defaults/` y recién entonces navega.
+  - [Branch C — Campos sin guardado propio] El borrador de la pestaña Redactar (destinatario, asunto, secciones, adjuntos) queda **fuera** del aviso: ese contenido no se guarda, se envía. Es "sin enviar", no "sin guardar", y mezclarlos confundiría las dos cosas.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-panel-unsaved-guard.spec.js`
+
 #### FLOW: `admin-document-folders`
 
 - **Module:** admin
@@ -4092,6 +4111,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-unsaved-guard.spec.js` |
+| `admin-panel-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-panel-unsaved-guard.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |

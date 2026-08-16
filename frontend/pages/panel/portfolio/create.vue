@@ -19,6 +19,19 @@
       </button>
     </div>
 
+    <!-- Fuera de los dos modos: lo pendiente puede estar en el que no se está
+         mirando, y cambiar de pestaña no lo descarta. -->
+    <UnsavedChangesNotice
+      v-if="hasChanges"
+      class="mb-6 max-w-3xl"
+      :title="unsavedTitle"
+      :detail="unsavedDetail"
+      message="Este proyecto todavía no existe. Si sales de esta página, se pierde."
+      :can-save="false"
+      :can-discard="false"
+      testid="portfolio-create-unsaved-notice"
+    />
+
     <!-- MANUAL MODE -->
     <form v-if="mode === 'manual'" class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
       <!-- Español -->
@@ -150,12 +163,32 @@
         </div>
       </form>
     </div>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
 <script setup>
 import { reactive, ref } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 const localePath = useLocalePath();
 
@@ -181,6 +214,8 @@ async function handleSubmit() {
 
   const result = await portfolioStore.createWork(payload);
   if (result.success) {
+    // Ya está persistido: desarma el guard antes de ir al editor.
+    commitBaseline();
     navigateTo(localePath(`/panel/portfolio/${result.data.id}/edit`));
   } else {
     errorMsg.value = 'Error al crear el proyecto. Revisa los campos.';
@@ -194,6 +229,41 @@ const jsonError = ref('');
 const uploadedFileName = ref('');
 const isDownloading = ref(false);
 const jsonPublishMode = ref('draft');
+
+// Después de declarar TODO lo que mira: el snapshot se lee ya en commitBaseline
+// y una const posterior estaría en zona muerta temporal.
+// El modo JSON y la decisión de publicación viven FUERA de `form`: un guard que
+// mirara sólo el formulario no vería la mitad del trabajo pendiente.
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    ...form,
+    publishMode: publishMode.value,
+    jsonRaw: jsonRaw.value,
+    jsonPublishMode: jsonPublishMode.value,
+  }),
+  labels: {
+    title_es: 'título (ES)',
+    title_en: 'título (EN)',
+    excerpt_es: 'resumen (ES)',
+    excerpt_en: 'resumen (EN)',
+    project_url: 'URL del proyecto',
+    cover_image_url: 'imagen de portada',
+    order: 'orden',
+    publishMode: 'publicación',
+    jsonRaw: 'JSON',
+    jsonPublishMode: 'publicación (JSON)',
+  },
+});
+commitBaseline();
 
 function parseJson() {
   jsonError.value = '';
@@ -252,6 +322,8 @@ async function handleJsonSubmit() {
   };
   const result = await portfolioStore.createWorkFromJSON(payload);
   if (result.success) {
+    // Ya está persistido: desarma el guard antes de ir al editor.
+    commitBaseline();
     navigateTo(localePath(`/panel/portfolio/${result.data.id}/edit`));
   } else {
     errorMsg.value = 'Error al crear desde JSON. Revisa los campos.';

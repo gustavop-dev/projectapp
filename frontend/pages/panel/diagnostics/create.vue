@@ -15,6 +15,16 @@
       class="bg-surface rounded-2xl shadow-sm border border-border-muted p-6 space-y-6"
       @submit.prevent="submit"
     >
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        message="Este diagnóstico todavía no existe. Si sales de esta página, se pierde."
+        :can-save="false"
+        :can-discard="false"
+        testid="diagnostic-create-unsaved-notice"
+      />
+
       <BaseFormField
         label="Cliente"
         hint="Busca por nombre, email o empresa. Solo clientes existentes pueden recibir un diagnóstico."
@@ -58,6 +68,24 @@
         </BaseButton>
       </div>
     </form>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -65,6 +93,8 @@
 import { ref } from 'vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -78,6 +108,27 @@ const title = ref('');
 const errorMsg = ref('');
 
 const FALLBACK_ERROR = 'No se pudo crear el diagnóstico. Verifica tu sesión e inténtalo de nuevo.';
+
+// Refs sueltos, sin objeto `form`: por eso el snapshot los junta a mano.
+// `save` en null porque submit navega al editor del diagnóstico creado.
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    client: selectedClientId.value,
+    language: language.value,
+    title: title.value,
+  }),
+  labels: { client: 'cliente', language: 'idioma', title: 'título' },
+});
+commitBaseline();
 
 function onClientSelected(client) {
   errorMsg.value = '';
@@ -102,6 +153,8 @@ async function submit() {
     errorMsg.value = result.message || FALLBACK_ERROR;
     return;
   }
+  // Ya está creado: desarma el guard antes de ir al editor.
+  commitBaseline();
   router.push(localePath(`/panel/diagnostics/${result.data.id}/edit`));
 }
 </script>

@@ -180,6 +180,17 @@
       <div v-if="emailStore.isLoadingDefaults" class="text-xs text-text-subtle py-4 text-center">Cargando valores...</div>
 
       <div v-else class="space-y-4 max-w-xl">
+        <UnsavedChangesNotice
+          v-if="hasChanges"
+          :title="unsavedTitle"
+          :detail="unsavedDetail"
+          :can-save="canSaveNow"
+          :saving="emailStore.isSavingDefaults"
+          testid="emails-defaults-unsaved-notice"
+          @save="handleSaveDefaults"
+          @discard="discardChanges"
+        />
+
         <div>
           <label class="block text-xs text-text-muted mb-1">Saludo por defecto</label>
           <BaseInput v-model="cfgGreeting" placeholder="Hola {client_name}" />
@@ -293,6 +304,23 @@
       </div>
     </section>
 
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -304,6 +332,8 @@ import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { vAutoResize } from '~/utils/autoResizeDirective';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { formatDateTime } from '~/utils/formatDate';
 
@@ -428,6 +458,36 @@ const cfgGreeting = ref('');
 const cfgFooter = ref('');
 const cfgSigner = ref('');
 
+/**
+ * Sólo los valores por defecto: son los que tienen "Guardar valores".
+ *
+ * El borrador de la pestaña Redactar (destinatario, asunto, secciones,
+ * adjuntos) también se pierde al salir, pero ese no se guarda: se envía. Es
+ * "sin enviar", no "sin guardar", y mezclarlos confundiría las dos cosas.
+ * Queda anotado como pendiente aparte.
+ */
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  discardChanges,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    greeting: cfgGreeting.value,
+    footer: cfgFooter.value,
+    signer: cfgSigner.value,
+  }),
+  labels: { greeting: 'saludo', footer: 'cierre', signer: 'firmante' },
+  save: handleSaveDefaults,
+  reload: loadDefaults,
+});
+
 const availableVariables = computed(() => emailStore.defaults?.available_variables || []);
 // Built in script: the literal "}}" inside a template interpolation would
 // close the interpolation early and break the SFC compiler.
@@ -457,6 +517,9 @@ function applyDefaults(data) {
   cfgGreeting.value = cfg.greeting || '';
   cfgFooter.value = cfg.footer || '';
   cfgSigner.value = cfg.signer || '';
+  // Único punto de hidratación de los valores por defecto: sirve para la carga
+  // y para el eco posterior a guardar.
+  commitBaseline();
 }
 
 async function loadDefaults() {
@@ -473,14 +536,17 @@ async function handleSaveDefaults() {
     signer: cfgSigner.value,
   });
   if (result.success && result.data) {
+    // applyDefaults re-fija la baseline con el eco del servidor.
     applyDefaults(result.data);
     notify.success({ title: 'Valores por defecto guardados' });
-  } else {
-    notify.error({
-      title: 'No se pudieron guardar los valores por defecto',
-      detail: result.error || 'Intenta de nuevo.',
-    });
+    return true;
   }
+  notify.error({
+    title: 'No se pudieron guardar los valores por defecto',
+    detail: result.error || 'Intenta de nuevo.',
+  });
+  // Sin re-baseline: un guardado fallido deja el aviso puesto.
+  return false;
 }
 
 async function handleRestoreDefaults() {

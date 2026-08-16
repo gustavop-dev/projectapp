@@ -208,6 +208,7 @@ export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:
 export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
+export const ADMIN_PANEL_UNSAVED_GUARD = ['@flow:admin-panel-unsaved-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_FOLDER_HIERARCHY = ['@flow:admin-document-folder-hierarchy', '@module:admin', '@priority:P2'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
