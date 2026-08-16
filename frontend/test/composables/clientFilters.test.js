@@ -53,6 +53,7 @@ import {
   CLIENT_MODULES,
   CLIENT_SUBFILTERS,
   clientSubfiltersFor,
+  matchDocumentsStatus,
   matchesSubfilter,
   normalizeLegacyPreset,
   subfilterOptionsFor,
@@ -265,6 +266,35 @@ describe('taxonomy', () => {
       { value: 'any', label: 'Con hosting (histórico)' },
       { value: 'none', label: 'Sin hosting' },
     ]);
+  });
+
+  it('offers every documents subfilter as a panel option too', () => {
+    expect(subfilterOptionsFor('documents', 'documentsStatus')).toEqual([
+      { value: 'with', label: 'Con documentos' },
+      { value: 'none', label: 'Sin documentos' },
+      { value: 'no-project', label: 'Con documentos sin proyecto' },
+    ]);
+  });
+});
+
+describe('documents module', () => {
+  it('matchDocumentsStatus reads the association aggregates for its three cuts', () => {
+    const withDocs = baseClient({ documents_count: 3, documents_no_project_count: 1 });
+    const without = baseClient({ documents_count: 0, documents_no_project_count: 0 });
+
+    expect(matchDocumentsStatus(withDocs, 'with')).toBe(true);
+    expect(matchDocumentsStatus(without, 'with')).toBe(false);
+    expect(matchDocumentsStatus(without, 'none')).toBe(true);
+    expect(matchDocumentsStatus(withDocs, 'none')).toBe(false);
+    expect(matchDocumentsStatus(withDocs, 'no-project')).toBe(true);
+    expect(matchDocumentsStatus(without, 'no-project')).toBe(false);
+  });
+
+  it('level 2 lists the documents subfilters under their module', () => {
+    const { currentFilters, displayTabs } = useClientFilters();
+    currentFilters.module = 'documents';
+    expect(displayTabs.value.map((t) => t.id))
+      .toEqual(['docs-with', 'docs-none', 'docs-no-project']);
   });
 });
 
