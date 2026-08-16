@@ -95,7 +95,7 @@ function archivedContentCount(folder) {
       :dragging="draggingDocId === doc.id"
       :newly-created="newlyCreatedId === doc.id"
       :archived="!!doc.is_archived"
-      @open="emit('open', doc)"
+      @open="(event) => emit('open', doc, event)"
       @action="emit('action', doc)"
       @dragstart="emit('doc-dragstart', $event, doc)"
       @dragend="emit('doc-dragend')"

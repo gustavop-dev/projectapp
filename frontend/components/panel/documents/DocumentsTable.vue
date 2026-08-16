@@ -118,24 +118,29 @@ function archivedContentCount(folder) {
             { 'bg-primary-soft transition-colors duration-1000': doc.id === newlyCreatedId }
           ]"
           :draggable="!doc.is_archived"
-          @click="emit('open', doc)"
+          :data-testid="`document-row-${doc.id}`"
+          @click="emit('open', doc, $event)"
+          @auxclick.middle="emit('open', doc, $event)"
           @dragstart="emit('doc-dragstart', $event, doc)"
           @dragend="emit('doc-dragend')"
         >
-          <td class="px-6 py-4">
+          <!-- `relative` es el marco contra el que se estira el enlace del
+               título: así toda la celda es el enlace, no sólo las letras. -->
+          <td class="relative px-6 py-4">
             <div class="flex items-center gap-2">
-              <component
-                :is="editToFor(doc) ? 'NuxtLink' : 'span'"
-                :to="editToFor(doc) || undefined"
+              <BaseRowLink
+                :to="editToFor(doc)"
+                stretch
+                :data-testid="`document-open-${doc.id}`"
                 class="text-sm font-medium text-text-default truncate
-                       outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40 rounded"
-                @click.stop
+                       hover:text-text-brand transition-colors"
               >
                 {{ doc.title }}
-              </component>
+              </BaseRowLink>
+              <!-- Por encima del área estirada para no perder su tooltip. -->
               <span
                 v-if="doc.folder_name"
-                class="inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-surface-raised text-text-muted flex-shrink-0"
+                class="relative z-10 inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-surface-raised text-text-muted flex-shrink-0"
                 :title="`Carpeta: ${doc.folder_name}`"
               >
                 📁 {{ doc.folder_name }}

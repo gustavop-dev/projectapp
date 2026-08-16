@@ -434,8 +434,10 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
 import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
+import { useRowNavigation } from '~/composables/useRowNavigation';
 
 const localePath = useLocalePath();
+const { openRow } = useRowNavigation();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
@@ -1003,17 +1005,20 @@ function handleMoved() {
   return refreshView();
 }
 
-function handleEditDoc(doc) {
-  if (!doc) return;
-  navigateTo(localePath(`/panel/documents/${doc.id}/edit`));
-}
-
-function openDocument(doc) {
-  handleEditDoc(doc);
-}
-
+// Fuente única de la dirección: la lee el <a> del título de cada fila/tarjeta
+// y la lee el atajo de clic, así que no pueden apuntar a lugares distintos.
 function editToFor(doc) {
-  return localePath(`/panel/documents/${doc.id}/edit`);
+  return doc ? localePath(`/panel/documents/${doc.id}/edit`) : null;
+}
+
+function handleEditDoc(doc) {
+  openRow(editToFor(doc));
+}
+
+// El evento decide: clic simple navega acá, ctrl/cmd o rueda abren pestaña
+// nueva, y un clic nacido en un control de la fila no navega en absoluto.
+function openDocument(doc, event) {
+  openRow(editToFor(doc), event);
 }
 
 function handleRenameDoc(doc) {
