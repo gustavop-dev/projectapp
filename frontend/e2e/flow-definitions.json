@@ -1,6 +1,6 @@
 {
-  "version": "2.73.0",
-  "lastUpdated": "2026-08-15",
+  "version": "2.74.0",
+  "lastUpdated": "2026-08-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -4353,6 +4353,60 @@
         "display",
         "success",
         "error"
+      ]
+    },
+    "admin-accounting-project-bulk-assign": {
+      "name": "Admin Accounting Project Bulk Assign",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "The bulk bar on the hostings and incomes tables gains an \"Asignar: Cliente | Proyecto\" toggle. The Proyecto target opens a catalog-wide combobox (every project, searched by name or client, actives first) and the confirmation shows the exact plan before anything runs: who gains the project, who changes project (origins named), who is already there, and - the bucket the client flavour does not have - the rows of ANOTHER client the ownership rule refuses to touch (blocked, never in the payload; the backend enforces the same rule with 409 client_mismatch/mismatched_ids and the page drops exactly those ids). Quitar proyecto is its own destructive action, clearing is allowed across clients (removing a link needs no owner), and the response rows rebuild the table in place - cascaded liquid children included on incomes. The client bulk preview now also announces which rows will lose their project when the client changes hands.",
+      "expectedSpecs": 3,
+      "outcomes": [
+        "success",
+        "failure"
+      ]
+    },
+    "admin-accounting-project-coherence": {
+      "name": "Admin Accounting Client/Project Coherence",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P1",
+      "description": "Requisito 14 of the coherence ticket, verified end to end over a stateful mock backend: changing the client of a hosting announces the project side effect in the preview (the project belonged to the previous client, so the move clears it), rebuilds the row in place from the mutation response (client cell, \"sin proyecto\" marker), moves the per-project counters that /panel/projects reads, and - after a full page.reload() - serves the exact same truth from the backend state: the database is the source of coherence and the reload never was what fixed the view.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
+    },
+    "admin-project-inline-assign-offer": {
+      "name": "Admin Project Inline Create Assign Offer",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "The gap the Vastago case exposed: a project created inline from an accounting form picker (crear al vuelo) used to discard the annotated create response, so the operator was never told the client had older records without a project. Now the created event carries the unlinked_* counters and, when the form closes (saved OR cancelled - the project is a record of its own), the PA-51 assign modal opens with the server-fresh backlog; confirming assigns the checked ids and the response rows (cascaded liquid children included) fill the Proyecto cells of the open table without any reload.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "success"
+      ]
+    },
+    "admin-project-change-client": {
+      "name": "Admin Project Change Client Cascade",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "A project changes owner through ONE guided path (the form field stays immutable; a ghost \"Cambiar cliente...\" entry on the edit modal opens the cascade). The preview names the full impact before anything runs: records that move, incomes an active cuenta blocks (they detach and keep their client - anular y reemitir is the path for a wrong cuenta), draft cuentas that ride along, issued documents nothing may touch, and clientless rows left for the completion tools. The mode - Mover al nuevo cliente | Desvincular del proyecto - is chosen EVERY time (no preselection; confirm stays disabled until picked) and the apply carries the preview hosting/income ids as a staleness token: 409 records_not_found / records_changed reload the preview instead of guessing. Every touched record leaves an audit row.",
+      "expectedSpecs": 2,
+      "outcomes": [
+        "display",
+        "success"
       ]
     }
   }

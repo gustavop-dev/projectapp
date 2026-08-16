@@ -1,7 +1,7 @@
 # User Flow Map
 
-> **Version:** 2.38.0
-> **Last updated:** 2026-08-15
+> **Version:** 2.39.0
+> **Last updated:** 2026-08-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
 
@@ -2873,6 +2873,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-proposal-actions-modal` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-proposal-actions-modal.spec.js` |
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
+| `admin-accounting-project-bulk-assign` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-bulk-assign.spec.js` |
+| `admin-accounting-project-coherence` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-coherence.spec.js` |
+| `admin-project-inline-assign-offer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-inline-assign-offer.spec.js` |
+| `admin-project-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-change-client.spec.js` |
 | `proposal-comment-from-closing` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-comment-flow.spec.js` |
 | `proposal-rejection-smart-recovery` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
 | `proposal-schedule-followup-reminder` | proposal | guest | P2 | ✅ Covered | `e2e/proposal/proposal-rejection-recovery.spec.js` |
@@ -6532,3 +6536,64 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 |---------|--------|------|----------|--------|------|
 | `admin-panel-projects` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-panel-projects.spec.js` |
 | `admin-project-fly-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-fly-create.spec.js` |
+
+## Section 28 — Client/Project Coherence (Aug 16, 2026)
+
+The coherence ticket's rule made executable: cliente y proyecto se registran una sola vez y valen en todo el sistema. Relations are FKs everywhere (the frozen `customer_*` snapshots of ISSUED cuentas are the deliberate exception — an emitted document is a fact), every reassignment shows its exact scope before running, the mutation response rebuilds the open views, and every touched record leaves an `AccountingChangeLog` row queryable by client and project from Historial → Cambios.
+
+### FLOW: `admin-accounting-project-bulk-assign`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/accounting/hostings/bulk-assign-project/`, `POST /api/accounting/incomes/bulk-assign-project/`, `GET /api/projects/?scope=all`
+- **Description:** The bulk bar gains an "Asignar: Cliente | Proyecto" toggle. The Proyecto target uses a catalog-wide combobox (every project, searched by name or client, actives first) and confirms against the full plan: toAssign, toReassign (origins named), unchanged, and the blocked bucket — rows of ANOTHER client the ownership rule refuses to touch, listed apart and never in the payload (the backend answers 409 `client_mismatch`/`mismatched_ids` on a stale plan and the page drops exactly those ids). Quitar proyecto is its own destructive action; clearing works across clients. `results` carries the cascaded liquid children so the in-place rebuild misses nothing. The CLIENT preview now also announces which rows will lose their project when the client changes hands (`projectCleared`), matching the server rule that clears a now-foreign project on every client move — bulk included.
+- **Steps:** select rows → toggle Proyecto → pick the project → read the plan (blocked bucket included) → confirm → rows update in place.
+- **Branches:** no project picked keeps the action off with the reason inline; every row already on target blocks with its own message; 409 drops the named ids and reloads.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-bulk-assign.spec.js`
+
+### FLOW: `admin-accounting-project-coherence`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/projects`
+- **API:** `POST /api/accounting/hostings/bulk-assign-client/`, `GET /api/accounting/hostings/`, `GET /api/projects/`
+- **Description:** Requisito 14 of the ticket verified over a stateful mock: one client reassignment propagates to every module without a reload (row rebuilt from the response, project cleared and announced beforehand, per-project counters moved on /panel/projects) and a full `page.reload()` serves the same truth — the database is the source of coherence, the reload never was the fix.
+- **Steps:** reassign a hosting's client → verify hostings in place → verify /panel/projects counters → reload → verify both again.
+- **Branches:** none — the flow IS the invariant.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-coherence.spec.js`
+
+### FLOW: `admin-project-inline-assign-offer`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/projects/create/`, `GET /api/projects/<id>/unlinked-records/`, `POST /api/projects/<id>/assign-unlinked/`
+- **Description:** The Vástago gap closed: the inline create keeps the annotated row (unlinked_* counters travel with the `created` event) and, when the form closes — saved or cancelled — the PA-51 assign modal opens with the client's server-fresh backlog. Confirming assigns the checked ids; `assign-unlinked` now returns the updated rows (cascaded liquid children included) and the open accounting table rebuilds without a reload.
+- **Steps:** new hosting/income → pick client → create project inline → close the form → the offer opens → confirm → Proyecto cells fill.
+- **Branches:** zero backlog never offers; dismissing the offer leaves the counters visible on /panel/projects; 409 reloads the preview.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-inline-assign-offer.spec.js`
+
+### FLOW: `admin-project-change-client`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/projects`
+- **API:** `GET /api/projects/<id>/change-client/preview/?client_profile_id=`, `POST /api/projects/<id>/change-client/`, `DELETE /api/accounts/projects/<id>/?force=1` (guarded)
+- **Description:** A project changes owner through ONE guided path — the form field stays immutable (`client_immutable`) and a ghost "Cambiar cliente…" entry opens the cascade. The preview names everything: movable records, incomes an active (non-cancelled) cuenta blocks (they detach and keep their client; anular y reemitir is the path for a wrong cuenta), draft cuentas that follow the project (fresh provisional snapshot) or their blocked income, ISSUED documents nothing touches, clientless rows left to the completion tools, and other documents that ride along. The mode — Mover | Desvincular — is chosen EVERY time (no preselection). The apply carries the preview's hosting/income ids as a staleness token (409 `records_not_found`/`records_changed` reload the preview) and runs in one transaction with an audit row per touched record. Hard-deleting a project now refuses with 409 `project_has_records` while anything is linked.
+- **Steps:** edit project → Cambiar cliente… → pick destination → read the impact → choose the mode → confirm → row and accounting lists refresh.
+- **Branches:** same client / unknown client / archived project answer 400 with their codes; missing mode keeps confirm disabled; 409 reloads the preview and drops the chosen mode.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-change-client.spec.js`
+
+### Section 28 Coverage Index
+
+| Flow ID | Module | Role | Priority | Status | Spec |
+|---------|--------|------|----------|--------|------|
+| `admin-accounting-project-bulk-assign` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-bulk-assign.spec.js` |
+| `admin-accounting-project-coherence` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-coherence.spec.js` |
+| `admin-project-inline-assign-offer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-inline-assign-offer.spec.js` |
+| `admin-project-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-change-client.spec.js` |

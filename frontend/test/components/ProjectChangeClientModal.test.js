@@ -124,7 +124,7 @@ describe('ProjectChangeClientModal', () => {
     const wrapper = mountModal();
 
     await openAndPickClient(wrapper);
-    expect(confirmButton(wrapper).attributes('disabled')).toBeDefined();
+    expect(confirmButton(wrapper).attributes('disabled')).toBe('');
 
     await pickMode(wrapper, 'Mover al nuevo cliente');
 
@@ -184,7 +184,7 @@ describe('ProjectChangeClientModal', () => {
       .toContain('cambiaron mientras confirmabas');
     // Two preview loads: the pick and the reload after the conflict.
     expect(get_request).toHaveBeenCalledTimes(2);
-    expect(confirmButton(wrapper).attributes('disabled')).toBeDefined();
+    expect(confirmButton(wrapper).attributes('disabled')).toBe('');
     expect(wrapper.emitted('changed')).toBeUndefined();
   });
 });
