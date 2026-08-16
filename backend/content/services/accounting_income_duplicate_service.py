@@ -20,8 +20,14 @@ can be resolved the draft proposes it; otherwise the date comes back empty and
 ``cycle_options`` gives the form the candidate dates to fill it with in one
 click. Neither path ever guesses silently — a wrong date already filled in is
 worse than an empty one the operator is forced to complete.
+
+Empty is not the same as ungrounded, though. ``period_anchor`` always states
+what this duplicate counts from — the original's recorded window, its hosting
+cycle, or failing both its own date — so a form that cannot prefill can still
+chain the instant a cadence is picked, and can say on screen why the dates
+landed where they did. Today is never the answer: it chains with nothing.
 """
-from datetime import timedelta
+from datetime import date, timedelta
 
 from content.models import HostingRecord, IncomeRecord, RecurringPayment
 from content.serializers.accounting import money_str
@@ -29,6 +35,7 @@ from content.utils import add_months, today_bogota
 
 HOSTING_CYCLE = 'hosting_cycle'
 INCOME_PERIOD = 'income_period'
+ORIGINAL_DATE = 'original_date'
 
 # Cadences the form offers so the next period is one click away when the
 # hosting lookup below cannot resolve one on its own — which is the normal
@@ -116,6 +123,61 @@ def next_period_range(income):
     return start, end
 
 
+def build_period_anchor(income):
+    """Where the duplicate's window opens, and what that was read off.
+
+    Duplicating exists to open the period that follows, so the count starts at
+    the original — never at today, which chains with nothing. Three grounds, in
+    descending order of how much the original actually attests:
+
+    * ``income_period`` — the recorded window. The next one opens the day after
+      it closed, and that start is FIXED: changing the cadence in the form
+      lengthens the window without moving where it begins.
+    * ``hosting_cycle`` — no window, but the client's hosting resolves without
+      ambiguity, so the catalog states the length. Also a fixed start.
+    * ``original_date`` — neither of the above, which is the normal case until
+      the book is completed. The original's own date is read as the START of
+      the period that charge covered, so this one opens where that would have
+      closed. ``start`` deliberately stays ``None``: only the cadence the
+      operator picks can state that length, and the form computes it from
+      ``origin_date`` the instant it is picked.
+
+    ``source`` is ``None`` only when the original carries no date at all — not
+    reachable through the model today (``period_date`` is NOT NULL), but the
+    form still says so rather than opening a window on today in silence.
+
+    No origin guard here: ``next_period_range`` and
+    ``resolve_hosting_cycle_months`` already require hosting, so an original of
+    another origin lands on ``original_date`` with its date — which is exactly
+    what the form needs when the operator switches the origin to Hosting after
+    the draft opened.
+    """
+    origin_date = income.period_date
+    anchor = {
+        'source': None,
+        'start': None,
+        'origin_start': None,
+        'origin_end': None,
+        'origin_date': origin_date.isoformat() if origin_date else None,
+    }
+    period_range = next_period_range(income)
+    if period_range:
+        anchor['source'] = INCOME_PERIOD
+        anchor['start'] = period_range[0].isoformat()
+        anchor['origin_start'] = income.period_start.isoformat()
+        anchor['origin_end'] = income.period_end.isoformat()
+        return anchor
+    if not origin_date:
+        return anchor
+    months = resolve_hosting_cycle_months(income)
+    if months:
+        anchor['source'] = HOSTING_CYCLE
+        anchor['start'] = add_months(origin_date, months).isoformat()
+        return anchor
+    anchor['source'] = ORIGINAL_DATE
+    return anchor
+
+
 def suggest_next_period_start(client_id, project_id=None):
     """``(previous end, proposed start)`` for a client's next hosting window.
 
@@ -160,17 +222,24 @@ def build_income_duplicate_draft(income):
         build_client_display_name,
     )
 
-    period_range = next_period_range(income)
-    if period_range:
+    # One resolution for both: what the form prefills and what it says the
+    # prefill was read off are the same decision, and `resolve_hosting_cycle_months`
+    # hits the database, so it is not made twice.
+    anchor = build_period_anchor(income)
+    period_start = period_end = period_date = None
+    period_date_source = None
+    if anchor['source'] == INCOME_PERIOD:
         # The recorded window beats the hosting lookup: it is first-hand data
         # on this very charge, while the lookup infers from the catalog.
-        period_start, period_end = period_range
+        period_start, period_end = next_period_range(income)
         period_date = period_start
         period_date_source = INCOME_PERIOD
-    else:
-        period_start = period_end = None
-        period_date = next_period_date(income)
-        period_date_source = HOSTING_CYCLE if period_date else None
+    elif anchor['source'] == HOSTING_CYCLE:
+        period_date = date.fromisoformat(anchor['start'])
+        period_date_source = HOSTING_CYCLE
+    # `original_date` proposes nothing to prefill on purpose: its length is the
+    # cadence the operator has not picked yet. The anchor travels all the same,
+    # so the form can chain the moment they do.
     return {
         'concept': income.concept,
         # Always pending, whatever the original was. Pocket is a liquid-only
@@ -186,6 +255,11 @@ def build_income_duplicate_draft(income):
         # date: the operator may well disagree with it, and these count from
         # the original's date, never from the proposal.
         'cycle_options': build_cycle_options(income),
+        # Where the window this duplicate opens is counted from, and off what.
+        # The form anchors its own arithmetic here instead of on today, and
+        # says so on screen: dates that appear on their own are dates nobody
+        # can tell apart from a guess.
+        'period_anchor': anchor,
         'ledger': income.ledger,
         'client': income.client_id,
         # Same shape as the list rows: the form shows this as the label of the
