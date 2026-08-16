@@ -374,6 +374,7 @@
       v-model="showActionsSheet"
       :document="actionDoc"
       :archived="!!actionDoc?.is_archived"
+      :edit-to="editToFor(actionDoc)"
       @archive="handleArchiveDoc(actionDoc)"
       @unarchive="handleUnarchiveDoc(actionDoc)"
       @edit="handleEditDoc(actionDoc)"

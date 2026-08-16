@@ -18,6 +18,9 @@ function mountSheet(props = {}) {
       stubs: {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
+        // BaseButton se registra global en jest.setup y declara NuxtLink como
+        // variante; sin este stub Vue avisa que no la resuelve.
+        NuxtLink: { template: '<a :href="to" v-bind="$attrs"><slot /></a>', props: ['to'] },
       },
     },
   });
@@ -192,5 +195,54 @@ describe('DocumentActionsSheet', () => {
 
       expect(wrapper.emitted('unarchive')).toEqual([[]]);
     });
+  });
+});
+
+describe('DocumentActionsSheet — abrir en pestaña nueva', () => {
+  // El enlace es lo que hace la acción alcanzable en pantallas táctiles, donde
+  // ctrl+clic no existe. Por eso es un <a> de verdad y no un botón que llame a
+  // window.open: así también se puede copiar y abrir con el menú contextual.
+  function newTabLink(wrapper) {
+    return wrapper.find('[data-testid="document-open-new-tab"]');
+  }
+
+  it('offers the editor in another tab as a real link', () => {
+    const wrapper = mountSheet({ editTo: '/es-co/panel/documents/7/edit' });
+
+    const link = newTabLink(wrapper);
+    expect(link.attributes('href')).toBe('/es-co/panel/documents/7/edit');
+    expect(link.attributes('target')).toBe('_blank');
+    expect(link.attributes('rel')).toBe('noopener noreferrer');
+    expect(link.text()).toContain('Abrir en pestaña nueva');
+  });
+
+  it('places it right after Editar contenido', () => {
+    const wrapper = mountSheet({ editTo: '/es-co/panel/documents/7/edit' });
+
+    const labels = wrapper.findAll('[data-testid="document-actions-list"] > *').map((el) => el.text());
+    expect(labels[0]).toContain('Editar contenido');
+    expect(labels[1]).toContain('Abrir en pestaña nueva');
+  });
+
+  it('closes the sheet once the other tab is on its way', async () => {
+    const wrapper = mountSheet({ editTo: '/es-co/panel/documents/7/edit' });
+
+    await newTabLink(wrapper).trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
+  });
+
+  it('leaves it out when the sheet was given no address', () => {
+    const wrapper = mountSheet();
+
+    expect(newTabLink(wrapper).exists()).toBe(false);
+    expect(actionByLabel(wrapper, 'Editar contenido')).toBeDefined();
+  });
+
+  it('leaves it out for an archived document, which has no editor', () => {
+    const wrapper = mountSheet({ archived: true, editTo: '/es-co/panel/documents/7/edit' });
+
+    expect(newTabLink(wrapper).exists()).toBe(false);
+    expect(actionByLabel(wrapper, 'Restaurar')).toBeDefined();
   });
 });
