@@ -40,9 +40,22 @@
 
     <div v-else class="lg:flex lg:items-start lg:gap-6">
       <div class="flex-1 min-w-0 space-y-6">
-      <BaseAlert v-if="buttonsError" variant="error" data-testid="linktree-buttons-error">
+      <!-- "error" no es una variante de BaseAlert: caía en `info` sin avisar y
+           pintaba de azul un error de los botones. -->
+      <BaseAlert v-if="buttonsError" variant="danger" data-testid="linktree-buttons-error">
         {{ buttonsError }}
       </BaseAlert>
+
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        :can-save="canSaveNow"
+        :saving="store.isUpdating"
+        :can-discard="false"
+        testid="linktree-unsaved-notice"
+        @save="onSave"
+      />
 
       <!-- Identity -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
@@ -313,6 +326,24 @@
         </div>
       </aside>
     </div>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -326,6 +357,8 @@ import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseFormRow from '~/components/base/BaseFormRow.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseAlert from '~/components/base/BaseAlert.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
@@ -407,6 +440,50 @@ const form = reactive({
   vcard_email: '', vcard_tel: '', vcard_url: '',
   is_active: true,
   buttons: [],
+});
+
+// `avatarUrl` es un ref aparte, fuera de `form`: la foto se sube y se borra
+// contra el servidor al instante, así que no es trabajo pendiente y queda
+// naturalmente fuera del snapshot.
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({ ...form }),
+  labels: {
+    handle: 'handle',
+    name: 'nombre interno',
+    kind: 'tipo',
+    display_name: 'nombre visible',
+    role: 'rol',
+    bio: 'bio',
+    claim_line_1: 'claim 1',
+    claim_line_2: 'claim 2',
+    badge_text: 'badge',
+    footer_tagline: 'pie',
+    show_brand_header: 'cabecera de marca',
+    pwa_enabled: 'PWA',
+    pwa_title: 'título PWA',
+    pwa_description: 'descripción PWA',
+    vcard_first_name: 'nombre (vCard)',
+    vcard_last_name: 'apellido (vCard)',
+    vcard_org: 'empresa (vCard)',
+    vcard_email: 'email (vCard)',
+    vcard_tel: 'teléfono (vCard)',
+    vcard_url: 'sitio (vCard)',
+    is_active: 'estado',
+    // Nombrar el botón concreto exigiría rastrear la fila; el grupo alcanza
+    // para saber dónde mirar.
+    buttons: 'botones',
+  },
+  save: onSave,
 });
 
 function needsHref(button) {
@@ -498,6 +575,9 @@ onMounted(async () => {
     is_active: button.is_active,
   }));
   loaded.value = true;
+  // La página no tenía baseline ni re-baseline: sin esto no hay contra qué
+  // comparar y el aviso nunca podría distinguir lo cargado de lo editado.
+  commitBaseline();
 });
 
 async function onSave() {
@@ -516,9 +596,12 @@ async function onSave() {
       if (key !== 'buttons') fieldErrors[key] = Array.isArray(value) ? value[0] : String(value);
     }
     if (!result.errors) notify.error({ title: 'No se pudo guardar el linktree' });
-    return;
+    // Sin re-baseline: un guardado fallido deja el aviso puesto.
+    return false;
   }
   notify.success({ title: 'Linktree guardado' });
+  commitBaseline();
+  return true;
 }
 </script>
 

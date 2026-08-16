@@ -101,6 +101,11 @@ const isHosting = computed(() => form.value.origin === 'hosting')
 const cadenceOptions = FREQUENCY_OPTIONS
 
 const {
+  anchorStart,
+  anchorSource,
+  anchorOriginDate,
+  anchorOriginStart,
+  anchorOriginEnd,
   previousPeriodEnd,
   beginHydration,
   cycleOptions,
@@ -173,6 +178,42 @@ const cadenceHint = 'Al elegirla se calcula la fecha de fin del período.'
 const HOSTING_CYCLE_HINT = 'Siguiente ciclo del hosting. Ajústala si no corresponde.'
 
 const periodDateHint = computed(() => (showsCycleHint.value ? HOSTING_CYCLE_HINT : ''))
+
+/**
+ * Where this duplicate's window is counted from, said out loud. Duplicating
+ * exists to continue the previous period, so the dates have to be traceable to
+ * the record they continue — otherwise they show up alone and the operator has
+ * no way to tell a chained date from a guess. Only while duplicating a
+ * hosting: creating has no original to point at, and editing is not opening a
+ * period at all.
+ */
+const duplicateAnchorNotice = computed(() => {
+  if (!isDuplicate.value || !isHosting.value) return ''
+  if (anchorSource.value === 'income_period') {
+    return `El ingreso original cubre del ${formatDate(anchorOriginStart.value)}`
+      + ` al ${formatDate(anchorOriginEnd.value)}, así que este duplicado`
+      + ` arranca el ${formatDate(anchorStart.value)}.`
+  }
+  if (anchorSource.value === 'hosting_cycle') {
+    return 'El ingreso original no tiene período registrado: se cuenta desde su'
+      + ` fecha (${formatDate(anchorOriginDate.value)}) con el ciclo del hosting,`
+      + ` así que este duplicado arranca el ${formatDate(anchorStart.value)}.`
+  }
+  if (anchorSource.value === 'original_date') {
+    return 'El ingreso original no tiene período registrado: el cálculo parte de'
+      + ` su fecha (${formatDate(anchorOriginDate.value)}) y de la periodicidad`
+      + ' que elijas.'
+  }
+  if (anchorSource.value === 'none') {
+    // Nothing to chain with, and saying so is the point: an unexplained window
+    // opening on today reads exactly like one that continues something.
+    return 'El ingreso original no tiene período ni fecha registrada, así que'
+      + ' este rango arranca hoy y no encadena con nada.'
+  }
+  // A draft from before the anchor travelled. Better silent than asserting a
+  // provenance nobody sent.
+  return ''
+})
 
 const periodStartHint = computed(() => {
   if (showsPeriodHint.value) {
@@ -421,6 +462,16 @@ function onSubmit() {
           @update:model-value="onOriginChange"
         />
       </BaseFormField>
+
+      <!-- Above the block it explains, and outside the rows: a wrapper inside
+           a BaseFormRow would break its subgrid alignment. -->
+      <BaseAlert
+        v-if="duplicateAnchorNotice"
+        variant="info"
+        data-testid="income-form-anchor-notice"
+      >
+        {{ duplicateAnchorNotice }}
+      </BaseAlert>
 
       <!-- How often first, then the window it produces: the periodicity sits
            beside Tipo because it is chosen before the dates it proposes. -->

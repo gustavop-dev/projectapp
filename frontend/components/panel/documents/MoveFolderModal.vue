@@ -96,6 +96,45 @@
             </div>
           </div>
 
+          <!--
+            La carpeta destino es de otro cliente. No se decide por el
+            operador: un documento PUEDE pertenecer a un cliente distinto al de
+            su carpeta (una cuenta de cobro emitida no puede cambiar de dueño y
+            aun así tiene que poder guardarse donde corresponda), así que
+            conservar es el default y adoptar es una respuesta explícita.
+          -->
+          <div
+            v-if="pendingMove"
+            class="px-4 pb-3 space-y-2"
+            data-testid="move-folder-client-choice"
+          >
+            <p class="text-xs text-text-muted">
+              "{{ pendingMove.folderName }}" es de
+              <strong>{{ pendingMove.folderClientName }}</strong>, y este
+              documento es de otro cliente. ¿Qué hacemos?
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <BaseButton
+                variant="primary"
+                size="sm"
+                :loading="isMoving"
+                data-testid="move-folder-keep-client"
+                @click="commitPendingMove(false)"
+              >
+                Conservar su cliente
+              </BaseButton>
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :loading="isMoving"
+                data-testid="move-folder-adopt-client"
+                @click="commitPendingMove(true)"
+              >
+                Adoptar el de la carpeta
+              </BaseButton>
+            </div>
+          </div>
+
           <!-- Error -->
           <div v-if="errorMsg" class="px-4 pb-2">
             <p class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg">{{ errorMsg }}</p>
@@ -127,6 +166,8 @@ const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
 const isMoving = ref(false);
 const errorMsg = ref('');
+// Movimiento a la espera de que el operador decida qué pasa con el cliente.
+const pendingMove = ref(null);
 
 // Carpetas aplanadas en orden depth-first, con su nivel de profundidad.
 const orderedFolders = computed(() => {
@@ -151,10 +192,36 @@ async function moveToFolder(folderId) {
     close();
     return;
   }
+  const target = folderId == null ? null : folderStore.folderById?.(folderId)
+    ?? orderedFolders.value.find((folder) => folder.id === folderId);
+  const docClient = props.document.client ?? null;
+  // Sólo hay algo que preguntar cuando adoptar PISARÍA un cliente ya elegido.
+  // Sin cliente propio, heredar el de la carpeta no le quita nada a nadie y lo
+  // resuelve el backend por su cuenta.
+  if (target?.client && docClient && docClient !== target.client) {
+    pendingMove.value = {
+      folderId,
+      folderName: target.name,
+      folderClientName: target.client_display_name || 'otro cliente',
+    };
+    return;
+  }
+  await sendMove(folderId, false);
+}
+
+function commitPendingMove(adopt) {
+  const { folderId } = pendingMove.value;
+  return sendMove(folderId, adopt);
+}
+
+async function sendMove(folderId, adopt) {
   isMoving.value = true;
   errorMsg.value = '';
-  const result = await documentStore.updateDocument(props.document.id, { folder_id: folderId });
+  const payload = { folder_id: folderId };
+  if (adopt) payload.adopt_folder_client = true;
+  const result = await documentStore.updateDocument(props.document.id, payload);
   isMoving.value = false;
+  pendingMove.value = null;
   if (result.success) {
     emit('changed');
     close();

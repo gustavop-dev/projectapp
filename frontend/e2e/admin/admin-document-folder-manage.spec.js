@@ -60,7 +60,7 @@ test.describe('Admin Document Folder Manage', () => {
     expect(createBody.name).toBe('Propuestas 2026');
   });
 
-  test('renames a folder through the inline edit panel', {
+  test('renames a folder through the shared folder form', {
     tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let patchBody = null;
@@ -73,14 +73,60 @@ test.describe('Admin Document Folder Manage', () => {
     });
     await openFolderManager(page);
 
+    // El panel inline se retiró: el lápiz abre el formulario compartido, el
+    // mismo que se abre desde la fila del panel lateral y desde la cabecera.
     await page.locator('button[title="Editar carpeta"]').first().click();
-    const editInput = page.getByPlaceholder('Nombre de la carpeta');
+    const editInput = page.getByTestId('folder-form-name');
     await expect(editInput).toHaveValue('Contratos');
     await editInput.fill('Contratos firmados');
-    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByTestId('folder-form-save').click();
 
     await expect.poll(() => patchBody).not.toBeNull();
     expect(patchBody.name).toBe('Contratos firmados');
+  });
+
+  test('edits a folder from its sidebar row, without opening the manager', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let patchBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'document-folders/10/update/' && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...emptyFolder, name: patchBody.name }) };
+      }
+      return baseRoutes(apiPath, [emptyFolder]);
+    });
+    await page.goto('/panel/documents');
+
+    await page.getByTestId('folder-edit').first().click();
+    await expect(page.getByTestId('folder-form-name')).toHaveValue('Contratos');
+    await page.getByTestId('folder-form-name').fill('Contratos 2026');
+    await page.getByTestId('folder-form-save').click();
+
+    await expect.poll(() => patchBody).not.toBeNull();
+    expect(patchBody.name).toBe('Contratos 2026');
+  });
+
+  test('edits the folder you are standing in, from its header', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const ownedFolder = {
+      ...emptyFolder,
+      client: 7,
+      client_display_name: 'Kore SAS',
+      project_name: 'Kore rediseño',
+    };
+    await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, [ownedFolder]));
+    await page.goto('/panel/documents');
+
+    await page.getByTestId('folder-list').getByText('Contratos').first().click();
+
+    // La cabecera dice de quién es la carpeta y ofrece editarla ahí mismo.
+    await expect(page.getByTestId('folder-header-name')).toHaveText('Contratos');
+    await expect(page.getByTestId('folder-header-client')).toContainText('Kore SAS');
+    await page.getByTestId('folder-header-edit').click();
+
+    await expect(page.getByTestId('folder-form-name')).toHaveValue('Contratos');
   });
 
   test('deletes an empty folder after the destructive confirmation', {

@@ -35,6 +35,10 @@ class AccountingChangeLog(models.Model):
         # deliberately matches the EmailLogTarget string.
         PROJECT = 'project', 'Proyecto'
         COLLECTION_ACCOUNT = 'collection_account', 'Cuenta de cobro'
+        # Idem para el gestor de documentos: reasignar una carpeta mueve de
+        # cliente todo lo que guarda, y quién lo hizo tiene que quedar escrito.
+        DOCUMENT_FOLDER = 'document_folder', 'Carpeta de documentos'
+        DOCUMENT = 'document', 'Documento'
 
     class Action(models.TextChoices):
         CREATED = 'created', 'Creado'

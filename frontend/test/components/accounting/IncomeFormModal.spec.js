@@ -1,6 +1,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import IncomeFormModal from '../../../components/accounting/IncomeFormModal.vue';
+import BaseAlert from '../../../components/base/BaseAlert.vue';
 import { get_request } from '../../../stores/services/request_http';
 
 jest.mock('../../../stores/services/request_http', () => ({
@@ -40,6 +41,9 @@ function mountModal(props = {}) {
       ...props,
     },
     global: {
+      // The real alert, not a stub: the copy it renders is what the operator
+      // reads to tell a chained date from a guess.
+      components: { BaseAlert },
       stubs: {
         ClientAutocomplete: ClientAutocompleteStub,
         Teleport: { template: '<div><slot /></div>' },
@@ -695,6 +699,197 @@ describe('IncomeFormModal', () => {
       expect(wrapper.get('[data-testid="form-field-error"]').text())
         .toContain('posterior a la de inicio');
       expect(wrapper.emitted('submit')).toBeUndefined();
+    });
+  });
+
+  describe('duplicate period anchor', () => {
+    /**
+     * Every case here runs on a system clock far away from the dates asserted.
+     * That is the point of the block: a duplicate must count from the record
+     * it copies, and today is the answer these tests exist to rule out.
+     */
+    const CLOCK = '2026-11-20T09:00:00';
+
+    function seedWithAnchor(anchor, overrides = {}) {
+      return {
+        ...DUPLICATE_SEED,
+        period_date: null,
+        period_date_source: null,
+        period_start: null,
+        period_end: null,
+        period_cadence: '',
+        cycle_options: CYCLE_OPTIONS,
+        period_anchor: {
+          source: 'original_date',
+          start: null,
+          origin_start: null,
+          origin_end: null,
+          origin_date: '2026-02-01',
+          ...anchor,
+        },
+        ...overrides,
+      };
+    }
+
+    /** Mount a duplicate with the clock pinned away from every expectation. */
+    function mountDuplicate(seed) {
+      jest.useFakeTimers().setSystemTime(new Date(CLOCK));
+      return mountModal({ seed });
+    }
+
+    const notice = (wrapper) => wrapper
+      .find('[data-testid="income-form-anchor-notice"]');
+    const startOf = (wrapper) => wrapper
+      .find('[data-testid="income-form-period-start"]').element.value;
+    const endOf = (wrapper) => wrapper
+      .find('[data-testid="income-form-period-end"]').element.value;
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('counts an original with no window from its own date, not from today', async () => {
+      // The everyday case: the original predates the window block and its
+      // client holds several hostings, so the catalog cannot decide either.
+      const wrapper = mountDuplicate(seedWithAnchor());
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+
+      expect(startOf(wrapper)).toBe('2026-05-01');
+      expect(endOf(wrapper)).toBe('2026-07-31');
+    });
+
+    it('re-reads the whole window when the periodicity changes on that anchor', async () => {
+      // With no recorded end, the length just chosen is what decides where the
+      // original's period closed — so the start moves with it.
+      const wrapper = mountDuplicate(seedWithAnchor());
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('annual');
+
+      expect(startOf(wrapper)).toBe('2027-02-01');
+      expect(endOf(wrapper)).toBe('2028-01-31');
+    });
+
+    it('chains a shortcut from the original date too', async () => {
+      const wrapper = mountDuplicate(seedWithAnchor());
+
+      await wrapper.get('[data-testid="income-form-cycle-3"]').trigger('click');
+
+      expect(startOf(wrapper)).toBe('2026-05-01');
+      expect(endOf(wrapper)).toBe('2026-07-31');
+      expect(wrapper.find('[data-testid="income-form-period-cadence"]').element.value)
+        .toBe('quarterly');
+    });
+
+    it('keeps a recorded window pinned while the periodicity only moves the end', async () => {
+      // The opposite half of the rule: here the original DOES state where its
+      // period closed, so no cadence may move where the next one opens.
+      const wrapper = mountDuplicate(seedWithAnchor({
+        source: 'income_period',
+        start: '2026-08-01',
+        origin_start: '2026-02-01',
+        origin_end: '2026-07-31',
+      }, { period_start: '2026-08-01', period_cadence: 'semiannual' }));
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+      expect(startOf(wrapper)).toBe('2026-08-01');
+      expect(endOf(wrapper)).toBe('2026-10-31');
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('annual');
+      expect(startOf(wrapper)).toBe('2026-08-01');
+      expect(endOf(wrapper)).toBe('2027-07-31');
+    });
+
+    it('leaves a start written by hand where the operator put it', async () => {
+      const wrapper = mountDuplicate(seedWithAnchor());
+
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('quarterly');
+      await wrapper.find('[data-testid="income-form-period-start"]').setValue('2026-06-10');
+      await wrapper.find('[data-testid="income-form-period-cadence"]').setValue('annual');
+
+      expect(startOf(wrapper)).toBe('2026-06-10');
+      expect(endOf(wrapper)).toBe('2027-06-09');
+    });
+
+    it('says the duplicate continues the window the original recorded', () => {
+      const wrapper = mountDuplicate(seedWithAnchor({
+        source: 'income_period',
+        start: '2026-08-01',
+        origin_start: '2026-02-01',
+        origin_end: '2026-07-31',
+      }, { period_start: '2026-08-01' }));
+
+      const text = notice(wrapper).text();
+      expect(text).toContain('cubre del');
+      expect(text).toContain('1 feb 2026');
+      expect(text).toContain('31 jul 2026');
+      expect(text).toContain('1 ago 2026');
+    });
+
+    it('says the count came from the hosting cycle over the original date', () => {
+      const wrapper = mountDuplicate(seedWithAnchor({
+        source: 'hosting_cycle',
+        start: '2026-05-01',
+      }, { period_date: '2026-05-01' }));
+
+      const text = notice(wrapper).text();
+      expect(text).toContain('ciclo del hosting');
+      expect(text).toContain('1 feb 2026');
+      expect(text).toContain('1 may 2026');
+    });
+
+    it('says the calculation waits on the periodicity when only a date is known', () => {
+      const wrapper = mountDuplicate(seedWithAnchor());
+
+      const text = notice(wrapper).text();
+      expect(text).toContain('1 feb 2026');
+      expect(text).toContain('periodicidad');
+    });
+
+    it('admits when there is nothing at all to chain with', () => {
+      // Reached only when the original carries no date either. Saying so is
+      // the whole point: a window opening on today looks exactly like one
+      // that continues something.
+      const wrapper = mountDuplicate(seedWithAnchor({
+        source: null, origin_date: null,
+      }));
+
+      expect(notice(wrapper).text()).toContain('no encadena con nada');
+    });
+
+    it('claims no provenance for a draft that carries no anchor', () => {
+      // A draft built before the anchor travelled still opens and still works;
+      // it just does not get to assert where its dates came from.
+      const wrapper = mountDuplicate({ ...DUPLICATE_SEED });
+
+      expect(notice(wrapper).exists()).toBe(false);
+      expect(startOf(wrapper)).toBe('2027-03-01');
+    });
+
+    it('explains nothing when no period is being opened', async () => {
+      // Real timers here: nothing below asserts a date, and mountHostingCreate
+      // awaits a request the fake clock would leave hanging.
+      const duplicatedDevelopment = mountModal({
+        seed: seedWithAnchor({}, { origin: 'development' }),
+      });
+      expect(notice(duplicatedDevelopment).exists()).toBe(false);
+
+      const created = await mountHostingCreate();
+      expect(notice(created).exists()).toBe(false);
+
+      const edited = mountModal({
+        record: {
+          ...EDIT_RECORD,
+          origin: 'hosting',
+          period_start: '2026-05-01',
+          period_end: '2026-07-31',
+          period_cadence: 'quarterly',
+        },
+        seed: seedWithAnchor(),
+      });
+      await flushPromises();
+      expect(notice(edited).exists()).toBe(false);
     });
   });
 

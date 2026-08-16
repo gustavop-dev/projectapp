@@ -1,7 +1,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useAccountingStore } from '~/stores/accounting'
-import { nextPeriodEnd, todayISO } from '~/utils/periodDates'
-import { CUSTOM_FREQUENCY } from '~/utils/recurring'
+import { addMonths, nextPeriodEnd, todayISO } from '~/utils/periodDates'
+import { CUSTOM_FREQUENCY, FREQUENCY_MONTHS } from '~/utils/recurring'
 
 /**
  * The covered-period block of a hosting income: start, end and cadence kept
@@ -13,13 +13,22 @@ import { CUSTOM_FREQUENCY } from '~/utils/recurring'
  * `+1 mes` re-lengthens the same period instead of walking two periods into
  * the future. Where the anchor comes from depends on how the form was opened:
  *
- * * duplicating — the start the draft arrived with, which the backend already
- *   computed as the original's end plus a day;
+ * * duplicating — `period_anchor` on the draft, which states what the count
+ *   starts from: the original's recorded window (fixed at its end plus a day),
+ *   its hosting cycle (fixed too), or — when the original has neither, the
+ *   normal case until the book is completed — the original's own DATE, which
+ *   only implies a start once a cadence states how long that period lasted.
+ *   That last anchor floats: picking another cadence moves the whole window,
+ *   because the end it is counting from is precisely what was never recorded;
  * * creating — the day after the last window recorded for that client, or
  *   today when it is their first charge (resolved server-side, since the form
  *   has no list of the client's incomes to look it up in);
  * * editing — none: the record already opened its period, and a shortcut has
  *   no business moving a charge that is already on the book.
+ *
+ * Today is the last resort and nothing else: a window opened on today chains
+ * with nothing, so it is reached only when the original carries no date at
+ * all, and the form says as much when it happens.
  *
  * The dates are computed here rather than server-side, `add_months` clamp
  * included (see `~/utils/periodDates`), because the requirement is that they
@@ -29,10 +38,23 @@ import { CUSTOM_FREQUENCY } from '~/utils/recurring'
 export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed }) {
   const store = useAccountingStore()
 
-  /** Start of the next period not yet recorded. '' while unknown. */
+  /** Start of the next period not yet recorded, when it is already fixed. */
   const anchorStart = ref('')
+  /** What that start was read off, for the notice. '' outside a duplicate. */
+  const anchorSource = ref('')
+  /** The original's own date: the floating anchor's ground. */
+  const anchorOriginDate = ref('')
+  /** The original's recorded window, so the notice can name it. */
+  const anchorOriginStart = ref('')
+  const anchorOriginEnd = ref('')
   /** End of the last recorded period, for the hint. '' when there is none. */
   const previousPeriodEnd = ref('')
+  /**
+   * The last start this composable proposed. What tells apart a start the
+   * anchor put there — which a new cadence may move — from one the operator
+   * wrote, which it may not.
+   */
+  const proposedStart = ref('')
 
   // Hydration writes start, end and cadence as one batch out of a stored
   // record. Recomputing in the middle of that would overwrite the end that was
@@ -42,9 +64,33 @@ export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed })
 
   function beginHydration() {
     hydrating.value = true
+    // A fresh form has nothing proposed by us yet: whatever start it opens
+    // with came from the record or the draft, so a cadence must not move it.
+    proposedStart.value = ''
     nextTick(() => {
       hydrating.value = false
     })
+  }
+
+  /**
+   * The start this window opens on under `cadence`. A recorded antecedent
+   * fixes it and the cadence changes nothing; an original with only a date
+   * implies its own length from the cadence, so the window opens where that
+   * period would have closed. Today only when there is neither.
+   */
+  function anchorFor(cadence) {
+    if (anchorStart.value) return anchorStart.value
+    const months = FREQUENCY_MONTHS[cadence]
+    if (anchorOriginDate.value && months) {
+      return addMonths(anchorOriginDate.value, months)
+    }
+    return todayISO()
+  }
+
+  /** Propose a start, remembering it was us and not the operator. */
+  function writeStart(value) {
+    form.value.period_start = value
+    proposedStart.value = value
   }
 
   function proposedEnd() {
@@ -64,8 +110,12 @@ export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed })
       // `custom` is the escape hatch: both dates are written by hand and
       // nothing is proposed over them.
       if (!cadence || cadence === CUSTOM_FREQUENCY) return
-      if (!form.value.period_start) {
-        form.value.period_start = anchorStart.value || todayISO()
+      // A start the anchor proposed is still the anchor's to move: under a
+      // floating anchor the whole window slides, since the length just chosen
+      // is what decides where the original's period closed. One the operator
+      // wrote stays put — the cadence recomputes the end around it.
+      if (!form.value.period_start || form.value.period_start === proposedStart.value) {
+        writeStart(anchorFor(cadence))
       }
       applyProposedEnd()
     },
@@ -114,15 +164,16 @@ export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed })
     if (!isHosting.value) return false
     // Both halves, so a window the operator has since moved does not keep
     // claiming to be the one this button opens.
-    return form.value.period_cadence === MONTHS_TO_CADENCE[option.months]
+    const cadence = MONTHS_TO_CADENCE[option.months]
+    return form.value.period_cadence === cadence
       && !!form.value.period_start
-      && form.value.period_start === (anchorStart.value || todayISO())
+      && form.value.period_start === anchorFor(cadence)
   }
 
   function applyCycle(option) {
     const cadence = MONTHS_TO_CADENCE[option.months]
     if (!cadence) return
-    form.value.period_start = anchorStart.value || todayISO()
+    writeStart(anchorFor(cadence))
     form.value.period_cadence = cadence
     // The watchers cover every path except the one where neither value
     // actually changed (clicking the active shortcut twice).
@@ -142,20 +193,39 @@ export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed })
    * Resolve the anchor for the way this form was opened. Duplicating already
    * carries it; creating has to ask. Editing keeps none on purpose.
    */
+  function clearAnchor() {
+    anchorStart.value = ''
+    anchorSource.value = ''
+    anchorOriginDate.value = ''
+    anchorOriginStart.value = ''
+    anchorOriginEnd.value = ''
+    previousPeriodEnd.value = ''
+  }
+
   async function resolveAnchor() {
     if (!isHosting.value || isEdit.value) {
-      anchorStart.value = ''
-      previousPeriodEnd.value = ''
+      clearAnchor()
       return
     }
     if (isDuplicate.value) {
-      // The draft already opened on the period after the original — including
-      // the legacy path where that start was derived from a bare date. Read it
-      // off the form, which is where the prefill landed, and never re-resolve
-      // it: the anchor is where this duplicate STARTED, so moving the dates
-      // afterwards must not move what the shortcuts count from.
-      anchorStart.value = form.value.period_start || ''
-      previousPeriodEnd.value = ''
+      // Read off the draft, not off the form: the form only shows a start when
+      // the backend had one to propose, and the case this exists for is the
+      // one where it did not. `period_anchor` still says what to count from —
+      // the original's date — so the window opens on the original rather than
+      // on today. The form's own start is the fallback for a draft built
+      // before this contract, and never re-resolved afterwards: the anchor is
+      // where this duplicate STARTED, so moving the dates by hand must not
+      // move what the shortcuts count from.
+      const anchor = seed.value?.period_anchor || null
+      clearAnchor()
+      // '' and 'none' are different answers: the first is a draft built before
+      // this contract, the second is one that looked and found nothing to
+      // chain with. Only the second is worth telling the operator about.
+      if (anchor) anchorSource.value = anchor.source || 'none'
+      anchorStart.value = anchor?.start || form.value.period_start || ''
+      anchorOriginDate.value = anchor?.origin_date || ''
+      anchorOriginStart.value = anchor?.origin_start || ''
+      anchorOriginEnd.value = anchor?.origin_end || ''
       return
     }
     const requestedFor = form.value.client
@@ -177,6 +247,10 @@ export function useHostingPeriod(form, { isHosting, isEdit, isDuplicate, seed })
 
   return {
     anchorStart,
+    anchorSource,
+    anchorOriginDate,
+    anchorOriginStart,
+    anchorOriginEnd,
     previousPeriodEnd,
     beginHydration,
     cycleOptions,

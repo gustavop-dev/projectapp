@@ -468,3 +468,137 @@ class TestRecordedPeriod:
 
         assert response.data['period_start'] is None
         assert response.data['period_date_source'] is None
+
+
+class TestPeriodAnchor:
+    """What the duplicate's window is counted from, and off what.
+
+    Duplicating opens the period that follows, so the count starts at the
+    original. The draft cannot always prefill a window, but it can always say
+    what to count from — which is what keeps the form off today, a date that
+    continues nothing.
+    """
+
+    def test_a_recorded_window_anchors_the_day_after_it_closes(
+        self, super_client, make_income,
+    ):
+        income = make_income(
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 2, 1),
+            period_start=date(2026, 2, 1),
+            period_end=date(2026, 7, 31),
+            period_cadence='semiannual',
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_anchor'] == {
+            'source': 'income_period',
+            'start': '2026-08-01',
+            'origin_start': '2026-02-01',
+            'origin_end': '2026-07-31',
+            'origin_date': '2026-02-01',
+        }
+
+    def test_the_hosting_cycle_anchors_on_the_original_date_plus_the_cycle(
+        self, super_client, make_income, make_client_profile,
+    ):
+        profile = make_client_profile()
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.QUARTERLY)
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 3, 1),
+        )
+
+        response = super_client.get(url(income))
+
+        anchor = response.data['period_anchor']
+        assert anchor['source'] == 'hosting_cycle'
+        assert anchor['start'] == '2026-06-01'
+        assert anchor['origin_date'] == '2026-03-01'
+        assert anchor['origin_start'] is None
+
+    def test_the_day_is_clamped_on_the_hosting_cycle_anchor(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Jan 31 plus a month lands on Feb 28, not on March 3."""
+        profile = make_client_profile()
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 1, 31),
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_anchor']['start'] == '2026-02-28'
+
+    def test_without_a_window_or_a_resolvable_hosting_the_date_is_the_ground(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Two active hostings and no project: the catalog cannot decide.
+
+        This is the case the whole anchor exists for — the majority of the book
+        until every hosting income carries its window. Nothing is prefilled,
+        because only the cadence the operator picks can say how long the
+        original's period lasted, but the date it is counted from travels.
+        """
+        profile = make_client_profile()
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
+        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        income = make_income(
+            client=profile,
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 2, 1),
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_date'] is None
+        assert response.data['period_anchor'] == {
+            'source': 'original_date',
+            'start': None,
+            'origin_start': None,
+            'origin_end': None,
+            'origin_date': '2026-02-01',
+        }
+
+    def test_a_non_hosting_original_still_carries_its_date(
+        self, super_client, make_income,
+    ):
+        """The operator may switch the origin to Hosting inside the modal.
+
+        The window then has to chain with the record being duplicated just the
+        same, so the anchor is built for every origin — not only for hosting.
+        """
+        income = make_income(
+            origin=IncomeRecord.Origin.DEVELOPMENT,
+            period_date=date(2026, 5, 20),
+        )
+
+        response = super_client.get(url(income))
+
+        assert response.data['period_anchor']['source'] == 'original_date'
+        assert response.data['period_anchor']['origin_date'] == '2026-05-20'
+
+    def test_the_anchor_agrees_with_what_the_draft_prefills(
+        self, super_client, make_income,
+    ):
+        """One resolution, so the dates and the explanation cannot disagree."""
+        income = make_income(
+            origin=IncomeRecord.Origin.HOSTING,
+            period_date=date(2026, 2, 1),
+            period_start=date(2026, 2, 1),
+            period_end=date(2026, 7, 31),
+            period_cadence='semiannual',
+        )
+
+        response = super_client.get(url(income))
+
+        assert (
+            response.data['period_anchor']['start']
+            == response.data['period_start']
+            == response.data['period_date']
+        )

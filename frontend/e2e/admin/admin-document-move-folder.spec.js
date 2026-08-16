@@ -155,4 +155,44 @@ test.describe('Admin Document Move Folder', () => {
     await expect(() => expect(patchBody).not.toBeNull()).toPass({ timeout: 5000 });
     expect(patchBody.folder_id).toBeNull();
   });
+
+  test('asks before overwriting the client of a document moved to another owner folder', {
+    tag: [...ADMIN_DOCUMENT_MOVE_FOLDER, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // La carpeta organiza, no es dueña: mover no decide por el operador.
+    const ownedFolder = {
+      ...FOLDER_DEV, client: 7, client_display_name: 'Kore SAS',
+    };
+    const ownedDoc = { ...DOC, client: 9, client_display_name: 'Ana Pérez' };
+    let patchBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return jsonOk([ownedDoc]);
+      if (apiPath === 'document-folders/') return jsonOk([FOLDER_DISENO, ownedFolder]);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath === 'documents/5/update/' && method === 'PATCH') {
+        patchBody = route.request().postDataJSON();
+        return jsonOk({ ...ownedDoc, folder: ownedFolder.id });
+      }
+      return null;
+    });
+
+    await page.goto('/panel/documents');
+    await expect(page.getByText('Brief de Proyecto').first()).toBeVisible({ timeout: 15000 });
+    await page.getByRole('row', { name: /Brief de Proyecto/i }).locator('button[title="Acciones"]').click();
+    await page.getByRole('button', { name: 'Mover a carpeta' }).click();
+
+    const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
+    await modal.getByRole('button', { name: /^Dev/ }).click();
+
+    // Nada se movió todavía: primero la pregunta.
+    await expect(page.getByTestId('move-folder-client-choice')).toBeVisible();
+    expect(patchBody).toBeNull();
+
+    await page.getByTestId('move-folder-adopt-client').click();
+
+    await expect.poll(() => patchBody).not.toBeNull();
+    expect(patchBody.adopt_folder_client).toBe(true);
+    expect(patchBody.folder_id).toBe(11);
+  });
 });

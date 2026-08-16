@@ -219,14 +219,14 @@
                  esta misma página. -->
             <!-- design-tokens: allow-raw-button -->
             <button
-              v-if="showsDocumentsCount(client)"
+              v-if="documentsPillFor(client)"
               type="button"
-              :data-testid="`client-documents-${client.id}`"
+              :data-testid="`${documentsPillFor(client).testid}-${client.id}`"
               class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
               :title="`Ver los documentos de ${client.name}`"
               @click.stop="goToClientDocuments(client)"
             >
-              {{ client.documents_count }} doc{{ client.documents_count !== 1 ? 's' : '' }}<span v-if="client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
+              {{ documentsPillFor(client).label }}<span v-if="documentsPillFor(client).showsDate && client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
             </button>
 
             <!-- Emails: the count plus when we last wrote, which is what turns
@@ -784,6 +784,7 @@ import { useAccountingFilters } from '~/composables/useAccountingFilters';
 import {
   CLIENT_FILTERS_CONFIG,
   clientSubfiltersFor,
+  documentsPill,
   findClientSubfilter,
   matchesSubfilter,
 } from '~/constants/clientFilters';
@@ -907,10 +908,12 @@ function goToClientHostings(client) {
 
 /**
  * A diferencia del pill de hostings, sin guard de superuser: /panel/documents
- * comparte el gate admin de esta misma página.
+ * comparte el gate admin de esta misma página. Qué contador muestra depende
+ * del CORTE activo, no sólo del módulo (ver `documentsPill`).
  */
-function showsDocumentsCount(client) {
-  return activeModule.value === 'documents' && Number(client.documents_count || 0) > 0;
+function documentsPillFor(client) {
+  if (activeModule.value !== 'documents') return null;
+  return documentsPill(client, filterTabId.value);
 }
 
 function goToClientDocuments(client) {

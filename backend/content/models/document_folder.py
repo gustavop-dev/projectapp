@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 from content.utils import safe_slug
@@ -8,6 +9,13 @@ class DocumentFolder(models.Model):
 
     Soporta anidación ilimitada vía la self-FK `parent`: las carpetas sin
     padre son raíces; las demás son subcarpetas.
+
+    La carpeta dice de qué cliente y proyecto es con los MISMOS campos que el
+    documento (`client_user` es auth.User, `project` es accounts.Project), así
+    que la regla de asociación y el mapeo a UserProfile que habla el panel se
+    reusan tal cual desde los serializers de documento. Lo que se hereda hacia
+    el contenido se COPIA al crear, nunca se calcula al vuelo: el portal del
+    cliente filtra por estos campos y un valor derivado lo dejaría invisible.
     """
 
     name = models.CharField(max_length=120)
@@ -22,6 +30,23 @@ class DocumentFolder(models.Model):
     order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Asociación. SET_NULL como en Document: borrar un cliente o un proyecto
+    # no puede llevarse por delante la organización del gestor.
+    project = models.ForeignKey(
+        'accounts.Project',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='document_folders',
+    )
+    client_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='client_document_folders',
+    )
 
     # Archivado: saca la carpeta de la vista sin destruirla. A diferencia de
     # borrar, archivar SÍ está permitido con contenido: la cascada arrastra

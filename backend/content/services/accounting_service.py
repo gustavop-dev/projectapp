@@ -136,6 +136,16 @@ TRACKED_FIELDS = {
         ('project', 'Proyecto'),
         ('commercial_status', 'Estado comercial'),
     ],
+    EntityType.DOCUMENT_FOLDER: [
+        ('name', 'Nombre'),
+        ('client_user', 'Cliente'),
+        ('project', 'Proyecto'),
+    ],
+    EntityType.DOCUMENT: [
+        ('title', 'Título'),
+        ('client_user', 'Cliente'),
+        ('project', 'Proyecto'),
+    ],
     EntityType.RECURRING: [
         ('name', 'Nombre'),
         ('price', 'Precio'),

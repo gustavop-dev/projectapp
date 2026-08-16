@@ -7,7 +7,7 @@ import pytest
 from accounts.models import Project, UserProfile
 from django.contrib.auth import get_user_model
 
-from content.models import Document
+from content.models import Document, DocumentFolder
 from content.serializers.document import (
     DocumentCreateUpdateSerializer,
     DocumentDetailSerializer,
@@ -339,3 +339,115 @@ class TestDocumentAssociation:
         assert data['project'] == project.pk
         assert data['project_name'] == 'Kore - Diseño'
         assert data['client_display_name']
+
+
+class TestMoveIntoAnAssociatedFolder:
+    """Mover a una carpeta con dueño: hereda si está suelto, conserva si no.
+
+    La carpeta organiza, no es dueña: un documento puede pertenecer a un
+    cliente distinto al de su carpeta (mover una cuenta de cobro emitida a
+    cualquier carpeta tiene que seguir siendo posible, y su cliente es
+    inmutable). Por eso el default al mover es CONSERVAR, y adoptar es una
+    decisión explícita — salvo cuando el documento no tiene cliente, donde
+    adoptar no pisa nada.
+    """
+
+    def test_a_clientless_document_adopts_the_folder_association(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore - Diseño', client=profile.user)
+        folder = DocumentFolder.objects.create(
+            name='Kore', client_user=profile.user, project=project,
+        )
+        document = Document.objects.create(title='Suelto')
+
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'folder_id': folder.pk}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user == profile.user
+        assert document.project == project
+
+    def test_a_document_of_another_client_keeps_its_own(self):
+        kore = make_client('kore@example.com', first='Kore', last='SAS')
+        ana = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(name='Kore', client_user=kore.user)
+        document = Document.objects.create(title='Contrato', client_user=ana.user)
+
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'folder_id': folder.pk}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user == ana.user
+        assert document.folder == folder
+
+    def test_adopt_folder_client_takes_the_folder_association(self):
+        kore = make_client('kore@example.com', first='Kore', last='SAS')
+        ana = make_client('ana@example.com')
+        project = Project.objects.create(name='Kore - Diseño', client=kore.user)
+        folder = DocumentFolder.objects.create(
+            name='Kore', client_user=kore.user, project=project,
+        )
+        document = Document.objects.create(title='Contrato', client_user=ana.user)
+
+        serializer = DocumentCreateUpdateSerializer(
+            document,
+            data={'folder_id': folder.pk, 'adopt_folder_client': True},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+        assert document.client_user == kore.user
+        assert document.project == project
+
+    def test_moving_into_a_folder_without_client_changes_nothing(self):
+        ana = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(name='Varios')
+        document = Document.objects.create(title='Contrato', client_user=ana.user)
+
+        serializer = DocumentCreateUpdateSerializer(
+            document, data={'folder_id': folder.pk}, partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().client_user == ana.user
+
+    def test_an_explicit_client_in_the_same_request_wins_over_the_folder(self):
+        """Elegir cliente y carpeta a la vez no es una herencia: es una decisión."""
+        kore = make_client('kore@example.com', first='Kore', last='SAS')
+        ana = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(name='Kore', client_user=kore.user)
+        document = Document.objects.create(title='Suelto')
+
+        serializer = DocumentCreateUpdateSerializer(
+            document,
+            data={'folder_id': folder.pk, 'client': ana.pk},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().client_user == ana.user
+
+    def test_an_explicit_null_client_survives_the_folder(self):
+        """Lo heredado es un default, no una atadura: vaciarlo tiene que pegar."""
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        folder = DocumentFolder.objects.create(name='Kore', client_user=profile.user)
+
+        serializer = DocumentCreateUpdateSerializer(
+            data={'title': 'Suelto', 'folder_id': folder.pk, 'client': None},
+        )
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.save().client_user is None
+
+    def test_adopt_folder_client_is_not_persisted_as_a_field(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        folder = DocumentFolder.objects.create(name='Kore', client_user=profile.user)
+        document = Document.objects.create(title='Suelto')
+
+        serializer = DocumentCreateUpdateSerializer(
+            document,
+            data={'folder_id': folder.pk, 'adopt_folder_client': True},
+            partial=True,
+        )
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+        assert not hasattr(Document, 'adopt_folder_client')

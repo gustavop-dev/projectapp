@@ -27,6 +27,19 @@
       </button>
     </div>
 
+    <!-- Fuera de los dos modos: lo pendiente puede estar en el que no se está
+         mirando, y cambiar de pestaña no lo descarta. -->
+    <UnsavedChangesNotice
+      v-if="hasChanges"
+      class="mb-6 max-w-3xl"
+      :title="unsavedTitle"
+      :detail="unsavedDetail"
+      message="Este post todavía no existe. Si sales de esta página, se pierde."
+      :can-save="false"
+      :can-discard="false"
+      testid="blog-create-unsaved-notice"
+    />
+
     <!-- ============================================================ -->
     <!-- MANUAL MODE -->
     <!-- ============================================================ -->
@@ -250,6 +263,24 @@
         </div>
       </form>
     </div>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -257,6 +288,8 @@
 import { onMounted, reactive, ref } from 'vue';
 import { useBlogStore } from '~/stores/blog';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 const localePath = useLocalePath();
 
@@ -324,6 +357,8 @@ async function handleSubmit() {
 
   const result = await blogStore.createPost(payload);
   if (result.success) {
+    // Ya está persistido: desarma el guard antes de navegar.
+    commitBaseline();
     navigateTo(localePath('/panel/blog'));
   } else {
     errorMsg.value = 'Error al crear el post. Revisa los campos.';
@@ -346,6 +381,73 @@ const jsonMeta = reactive({
 });
 const jsonPublishMode = ref('draft');
 const jsonScheduledDate = ref('');
+
+/**
+ * Después de declarar TODO lo que mira (una const posterior estaría en zona
+ * muerta temporal cuando commitBaseline lee el snapshot).
+ *
+ * Cubre los dos modos y los cuatro campos que viven fuera de ambos: quedarse
+ * sólo con `form` dejaría fuera la mitad del trabajo pendiente.
+ */
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    ...form,
+    publishMode: publishMode.value,
+    scheduledDate: scheduledDate.value,
+    jsonRaw: jsonRaw.value,
+    jsonCategory: jsonMeta.category,
+    jsonReadTime: jsonMeta.read_time_minutes,
+    jsonFeatured: jsonMeta.is_featured,
+    jsonPublishMode: jsonPublishMode.value,
+    jsonScheduledDate: jsonScheduledDate.value,
+  }),
+  labels: {
+    title_es: 'título (ES)',
+    title_en: 'título (EN)',
+    slug: 'slug',
+    excerpt_es: 'resumen (ES)',
+    excerpt_en: 'resumen (EN)',
+    content_es: 'contenido (ES)',
+    content_en: 'contenido (EN)',
+    content_json_es_raw: 'contenido JSON (ES)',
+    content_json_en_raw: 'contenido JSON (EN)',
+    cover_image_url: 'URL de portada',
+    cover_image_credit: 'crédito de portada',
+    cover_image_credit_url: 'URL del crédito',
+    sources: 'fuentes',
+    category: 'categoría',
+    author: 'autor',
+    read_time_minutes: 'tiempo de lectura',
+    is_featured: 'destacado',
+    is_published: 'publicación',
+    meta_title_es: 'meta título (ES)',
+    meta_title_en: 'meta título (EN)',
+    meta_description_es: 'meta descripción (ES)',
+    meta_description_en: 'meta descripción (EN)',
+    meta_keywords_es: 'meta keywords (ES)',
+    meta_keywords_en: 'meta keywords (EN)',
+    linkedin_summary_es: 'resumen LinkedIn (ES)',
+    linkedin_summary_en: 'resumen LinkedIn (EN)',
+    publishMode: 'publicación',
+    scheduledDate: 'fecha programada',
+    jsonRaw: 'JSON',
+    jsonCategory: 'categoría (JSON)',
+    jsonReadTime: 'tiempo de lectura (JSON)',
+    jsonFeatured: 'destacado (JSON)',
+    jsonPublishMode: 'publicación (JSON)',
+    jsonScheduledDate: 'fecha programada (JSON)',
+  },
+});
+commitBaseline();
 
 function parseJson() {
   jsonError.value = '';
@@ -445,6 +547,8 @@ async function handleJsonSubmit() {
 
   const result = await blogStore.createPostFromJSON(payload);
   if (result.success) {
+    // Ya está persistido: desarma el guard antes de navegar.
+    commitBaseline();
     navigateTo(localePath('/panel/blog'));
   } else {
     errorMsg.value = 'Error al crear el post desde JSON. Revisa los campos.';

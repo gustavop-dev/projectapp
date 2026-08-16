@@ -37,6 +37,17 @@
         :class="showPreview ? '' : 'max-w-3xl'"
         @submit.prevent="handleSubmit"
       >
+        <UnsavedChangesNotice
+          v-if="hasChanges"
+          :title="unsavedTitle"
+          :detail="unsavedDetail"
+          :can-save="canSaveNow"
+          :saving="blogStore.isUpdating"
+          testid="blog-unsaved-notice"
+          @save="handleSubmit"
+          @discard="discardChanges"
+        />
+
         <!-- Slug -->
         <div>
           <label for="slug" class="block text-sm font-medium text-text-default mb-1">Slug</label>
@@ -386,6 +397,24 @@
         </div>
       </Transition>
     </Teleport>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -398,6 +427,8 @@ const localePath = useLocalePath();
 import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import { resolveBlogPublishMode } from '~/utils/blogPublishMode.js';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -455,6 +486,66 @@ const form = reactive({
   linkedin_summary_en: '',
 });
 
+/**
+ * `cover_image` queda FUERA del seguimiento a propósito: handleCoverUpload lo
+ * escribe con lo que el servidor YA guardó, así que contarlo dejaría un
+ * "imagen de portada sin guardar" permanente después de cada subida. Lo que el
+ * operador edita a mano es `cover_image_url`, y ese sí se sigue.
+ *
+ * publishMode y scheduledDate viven fuera de `form` pero son trabajo pendiente
+ * igual, así que el snapshot los suma.
+ */
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  guardedReload,
+  discardChanges,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => {
+    const { cover_image: _serverOwned, ...tracked } = form;
+    return { ...tracked, publishMode: publishMode.value, scheduledDate: scheduledDate.value };
+  },
+  labels: {
+    title_es: 'título (ES)',
+    title_en: 'título (EN)',
+    slug: 'slug',
+    excerpt_es: 'resumen (ES)',
+    excerpt_en: 'resumen (EN)',
+    content_es: 'contenido (ES)',
+    content_en: 'contenido (EN)',
+    content_json_es_raw: 'contenido JSON (ES)',
+    content_json_en_raw: 'contenido JSON (EN)',
+    cover_image_url: 'URL de portada',
+    sources: 'fuentes',
+    category: 'categoría',
+    author: 'autor',
+    read_time_minutes: 'tiempo de lectura',
+    is_featured: 'destacado',
+    is_published: 'publicación',
+    meta_title_es: 'meta título (ES)',
+    meta_title_en: 'meta título (EN)',
+    meta_description_es: 'meta descripción (ES)',
+    meta_description_en: 'meta descripción (EN)',
+    meta_keywords_es: 'meta keywords (ES)',
+    meta_keywords_en: 'meta keywords (EN)',
+    cover_image_credit: 'crédito de portada',
+    cover_image_credit_url: 'URL del crédito',
+    linkedin_summary_es: 'resumen LinkedIn (ES)',
+    linkedin_summary_en: 'resumen LinkedIn (EN)',
+    publishMode: 'publicación',
+    scheduledDate: 'fecha programada',
+  },
+  save: handleSubmit,
+  reload: reloadPost,
+});
+
 // LinkedIn state
 const linkedinStatus = ref({ connected: false });
 // English default: LinkedIn content targets the US market.
@@ -476,7 +567,8 @@ async function reloadPost() {
   }
 }
 
-usePanelRefresh(reloadPost);
+// El refresh repuebla el formulario por encima: que pregunte antes.
+usePanelRefresh(guardedReload);
 
 onMounted(async () => {
   windowWidth.value = window.innerWidth;
@@ -549,6 +641,10 @@ function populateForm(data) {
   publishMode.value = resolved.mode;
   scheduledDate.value = resolved.scheduledIso || '';
   scheduledOverdue.value = resolved.overdue;
+
+  // Único punto de hidratación: cubre la carga inicial, el refresh y el
+  // repoblado posterior a guardar.
+  commitBaseline();
 }
 
 const previewTitle = computed(() => previewLang.value === 'en' ? form.title_en : form.title_es);
@@ -663,9 +759,12 @@ async function handleSubmit() {
   if (result.success) {
     successMsg.value = 'Post actualizado correctamente.';
     setTimeout(() => { successMsg.value = ''; }, 3000);
-  } else {
-    errorMsg.value = 'Error al actualizar el post. Revisa los campos.';
+    commitBaseline();
+    return true;
   }
+  errorMsg.value = 'Error al actualizar el post. Revisa los campos.';
+  // Sin re-baseline: un guardado fallido deja el aviso puesto.
+  return false;
 }
 </script>
 

@@ -71,7 +71,9 @@ test.describe('Admin Document Edit', () => {
 
     const titleInput = page.getByLabel(/T[ií]tulo/i);
     await titleInput.fill('Contrato Actualizado');
-    await page.getByRole('button', { name: /Guardar|Actualizar/i }).first().click();
+    // Por testid: el aviso de cambios sin guardar aporta su propio "Guardar
+    // ahora", así que un match por rol dejó de identificar un solo botón.
+    await page.getByTestId('doc-save-desktop').click();
 
     await page.waitForFunction(() => window._patchCalled || true, { timeout: 5000 }).catch(() => {});
     expect(patchCalled).toBe(true);
@@ -204,7 +206,23 @@ test.describe('Admin Document Edit', () => {
           }),
         };
       }
-      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      // El proyecto 11 tiene que estar en la lista de SU cliente: el backend
+      // valida esa pertenencia al escribir, así que un par ya persistido
+      // siempre aparece acá. Con la lista vacía el picker lo daba por ajeno y
+      // lo soltaba, y el documento quedaba con un cambio pendiente que nadie
+      // pidió — algo que ahora el aviso de cambios sin guardar hace visible.
+      if (apiPath === 'accounting/projects/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            results: [{
+              id: 11, name: 'Kore - Diseño', status: 'active', status_label: 'Activo',
+              client_profile_id: 7, client_display_name: 'Kore SAS',
+            }],
+          }),
+        };
+      }
       if (apiPath === 'document-folders/' || apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: '[]' };
       if (apiPath.startsWith('accounts/saved-filter-tabs')) return { status: 200, contentType: 'application/json', body: '[]' };
       if (apiPath === 'proposals/client-profiles/status-counts/') {
