@@ -226,6 +226,9 @@ const creating = ref(false);
 // A deliberate clear must stay cleared: without this flag the auto-select
 // would refill the field the moment the list reloads.
 const userCleared = ref(false);
+// El nombre del proyecto REALMENTE enlazado, separado de lo que se teclea
+// encima: es lo que se restaura al cerrar sin elegir.
+const committedName = ref('');
 
 const term = computed(() => inputText.value.trim());
 
@@ -289,8 +292,16 @@ function maybeAutoSelect() {
 }
 
 function syncInputToSelection() {
-  if (selectedProject.value) inputText.value = selectedProject.value.name;
-  else if (props.modelValue == null && !isOpen.value) inputText.value = '';
+  if (selectedProject.value) {
+    committedName.value = selectedProject.value.name;
+    inputText.value = selectedProject.value.name;
+  } else if (props.modelValue != null && committedName.value) {
+    // Con `allowNoClient` el id puede estar comprometido antes de que la lista
+    // resuelva: sin este tramo quedaría en pantalla lo tecleado.
+    inputText.value = committedName.value;
+  } else if (props.modelValue == null && !isOpen.value) {
+    inputText.value = '';
+  }
 }
 
 watch(
@@ -308,6 +319,7 @@ watch(
       if (!stillListed) {
         emit('update:modelValue', null);
         inputText.value = '';
+        committedName.value = '';
       }
     }
   },
@@ -332,11 +344,10 @@ function closeDropdown() {
 function onInput() {
   isOpen.value = true;
   inlineOpen.value = false;
-  // Typing clears any committed selection so the parent knows to re-pick.
-  if (props.modelValue !== null) {
-    userCleared.value = true;
-    emit('update:modelValue', null);
-  }
+  // Escribir filtra la lista, no desvincula: soltar el id acá ensuciaba el
+  // formulario por un caracter y, al guardar, desvinculaba el proyecto. Además
+  // marcaba `userCleared`, que sólo debe significar un borrado deliberado.
+  // Para desvincular está la X (`clearSelection`).
   highlightIndex.value = filteredProjects.value.length > 0 ? 0 : -1;
 }
 
@@ -346,6 +357,7 @@ function selectProject(project) {
   // (client_profile_id / client_display_name) para autocompletarlo.
   emit('select', project);
   inputText.value = project.name;
+  committedName.value = project.name;
   isOpen.value = false;
   inlineOpen.value = false;
   highlightIndex.value = -1;
@@ -356,6 +368,7 @@ function clearSelection() {
   emit('update:modelValue', null);
   emit('select', null);
   inputText.value = '';
+  committedName.value = '';
   inlineOpen.value = false;
   inputRef.value?.focus();
 }

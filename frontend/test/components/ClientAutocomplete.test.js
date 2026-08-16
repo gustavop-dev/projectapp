@@ -132,7 +132,10 @@ describe('ClientAutocomplete', () => {
     ]]);
   });
 
-  it('clears the committed selection when typing over an existing client', async () => {
+  // Escribir es buscar, no desvincular: desvincular tiene su propio botón (la X).
+  // Antes un solo caracter soltaba el id, y el form quedaba sucio —y al guardar
+  // desvinculaba al cliente— por un cambio que nadie pidió.
+  it('keeps the committed client while typing and restores its name when the dropdown closes', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,
       data: [],
@@ -143,7 +146,61 @@ describe('ClientAutocomplete', () => {
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('nuevo');
     await flushPromises();
 
-    expect(wrapper.emitted('update:modelValue')).toEqual([[null]]);
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    // El hint sigue nombrando al cliente enlazado, no lo que se está tecleando.
+    expect(wrapper.get('[data-testid="client-autocomplete-linked"]').text()).toContain('Cliente Actual');
+
+    clickOutsideHandler();
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Actual');
+  });
+
+  it('commits the new client when one is picked after typing over another', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({
+      success: true,
+      data: [
+        { id: 77, name: 'Otro Cliente', email: 'otro@example.com', phone: '', company: '', is_email_placeholder: false },
+      ],
+    });
+
+    const wrapper = mountAutocomplete({ modelValue: 42, initialLabel: 'Cliente Actual' });
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('otro');
+    await flushPromises();
+    await wrapper.get('[data-testid="client-autocomplete-option-77"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')).toEqual([[77]]);
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Otro Cliente');
+  });
+
+  it('leaves the typed text alone when closing without any committed client', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+
+    const wrapper = mountAutocomplete({ modelValue: null });
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('algo');
+    await flushPromises();
+    clickOutsideHandler();
+    await nextTick();
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('algo');
+  });
+
+  // El texto tecleado ES el nombre del cliente nuevo: restaurarlo acá borraría
+  // lo que el padre necesita para prellenar el formulario de creación.
+  it('keeps the typed name when create-new is chosen over a committed client', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+
+    const wrapper = mountAutocomplete({ modelValue: 42, initialLabel: 'Cliente Actual' });
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('Cliente Nuevo');
+    await flushPromises();
+    await wrapper.get('[data-testid="client-autocomplete-create-new"]').trigger('click');
+
+    expect(wrapper.emitted('create-new')).toEqual([['Cliente Nuevo']]);
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Nuevo');
   });
 
   it('searches on focus only when there is no committed selection', async () => {

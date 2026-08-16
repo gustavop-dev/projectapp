@@ -18,6 +18,17 @@
     </div>
 
     <form v-else-if="work" class="space-y-6 max-w-3xl" @submit.prevent="handleSave">
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        :can-save="canSaveNow"
+        :saving="portfolioStore.isUpdating"
+        testid="portfolio-unsaved-notice"
+        @save="handleSave"
+        @discard="discardChanges"
+      />
+
       <!-- Cover image upload -->
       <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-5">
         <h3 class="text-sm font-medium text-text-default mb-3">Imagen de portada</h3>
@@ -136,6 +147,24 @@
         <NuxtLink :to="localePath('/panel/portfolio')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Volver</NuxtLink>
       </div>
     </form>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -143,6 +172,8 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 const localePath = useLocalePath();
 
@@ -168,6 +199,48 @@ const form = reactive({
 const contentJsonEsRaw = ref('{}');
 const contentJsonEnRaw = ref('{}');
 
+// Acá handleSave NO navega, así que sí puede ofrecerse "Guardar y salir".
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  guardedReload,
+  discardChanges,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    ...form,
+    contentJsonEs: contentJsonEsRaw.value,
+    contentJsonEn: contentJsonEnRaw.value,
+  }),
+  labels: {
+    title_es: 'título (ES)',
+    title_en: 'título (EN)',
+    excerpt_es: 'resumen (ES)',
+    excerpt_en: 'resumen (EN)',
+    project_url: 'URL del proyecto',
+    cover_image_url: 'imagen de portada',
+    slug: 'slug',
+    order: 'orden',
+    is_published: 'publicación',
+    meta_title_es: 'meta título (ES)',
+    meta_title_en: 'meta título (EN)',
+    meta_description_es: 'meta descripción (ES)',
+    meta_description_en: 'meta descripción (EN)',
+    meta_keywords_es: 'meta keywords (ES)',
+    meta_keywords_en: 'meta keywords (EN)',
+    contentJsonEs: 'contenido (ES)',
+    contentJsonEn: 'contenido (EN)',
+  },
+  save: handleSave,
+  reload: reloadWork,
+});
+
 function populateForm(w) {
   if (!w) return;
   form.title_es = w.title_es || '';
@@ -189,6 +262,9 @@ function populateForm(w) {
     ? JSON.stringify(w.content_json_es, null, 2) : '{}';
   contentJsonEnRaw.value = w.content_json_en && Object.keys(w.content_json_en).length
     ? JSON.stringify(w.content_json_en, null, 2) : '{}';
+  // Único punto de hidratación de la página: cubre la carga, el refresh y el
+  // repoblado que dispara el watch tras guardar o subir la portada.
+  commitBaseline();
 }
 
 async function reloadWork() {
@@ -198,7 +274,8 @@ async function reloadWork() {
 }
 
 onMounted(reloadWork);
-usePanelRefresh(reloadWork);
+// El refresh repuebla el formulario por encima: que pregunte antes.
+usePanelRefresh(guardedReload);
 
 watch(work, (w) => { if (w) populateForm(w); });
 
@@ -209,9 +286,9 @@ async function handleSave() {
   let content_json_es = {};
   let content_json_en = {};
   try { content_json_es = JSON.parse(contentJsonEsRaw.value); }
-  catch { errorMsg.value = 'JSON inválido en contenido español.'; return; }
+  catch { errorMsg.value = 'JSON inválido en contenido español.'; return false; }
   try { content_json_en = JSON.parse(contentJsonEnRaw.value); }
-  catch { errorMsg.value = 'JSON inválido en contenido inglés.'; return; }
+  catch { errorMsg.value = 'JSON inválido en contenido inglés.'; return false; }
 
   const payload = {
     ...form,
@@ -223,9 +300,14 @@ async function handleSave() {
   if (result.success) {
     successMsg.value = 'Proyecto guardado correctamente.';
     setTimeout(() => { successMsg.value = ''; }, 3000);
-  } else {
-    errorMsg.value = 'Error al guardar. Revisa los campos.';
+    // El watch sobre `work` repuebla y re-baseliniza; esto cubre el caso en que
+    // la respuesta no cambie la referencia del store.
+    commitBaseline();
+    return true;
   }
+  errorMsg.value = 'Error al guardar. Revisa los campos.';
+  // Sin re-baseline: un guardado fallido deja el aviso puesto.
+  return false;
 }
 
 async function handleCoverUpload(event) {

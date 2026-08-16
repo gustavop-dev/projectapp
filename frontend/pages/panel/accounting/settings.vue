@@ -24,6 +24,18 @@
     </div>
 
     <div v-else class="max-w-2xl">
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        class="mb-4"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        :can-save="canSaveNow"
+        :saving="store.isUpdating"
+        testid="accounting-settings-unsaved-notice"
+        @save="save"
+        @discard="discardChanges"
+      />
+
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6">
         <h2 class="text-lg font-bold text-text-default mb-1">Notificaciones por correo</h2>
         <p class="text-sm text-text-muted mb-5">
@@ -260,6 +272,25 @@
       @confirm="doResetTabs"
       @cancel="pendingResetView = null"
     />
+
+    <!-- El del guard, independiente del de restablecer pestañas. -->
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -275,8 +306,10 @@ import BaseButton from '~/components/base/BaseButton.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import { useAccountingStore } from '~/stores/accounting';
 import { create_request } from '~/stores/services/request_http';
 
@@ -305,6 +338,50 @@ const OVERDUE_FREQUENCY_OPTIONS = [
   { value: 'biweekly', label: 'Quincenal' },
 ];
 
+/**
+ * Refs sueltos, sin objeto `form`: el snapshot los junta a mano.
+ *
+ * El <ConfirmModal> que ya existe en esta página usa estado local propio
+ * (`resetConfirmOpen`), no useConfirmModal, así que el guard monta el suyo sin
+ * pisarlo.
+ */
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  guardedReload,
+  discardChanges,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    notificationsEnabled: notificationsEnabled.value,
+    cardReminderEnabled: cardReminderEnabled.value,
+    statementReminderEnabled: statementReminderEnabled.value,
+    hostingExpiryReminderEnabled: hostingExpiryReminderEnabled.value,
+    paymentCalendarEnabled: paymentCalendarEnabled.value,
+    overdueReminderFrequency: overdueReminderFrequency.value,
+    usdExchangeRate: usdExchangeRate.value,
+    incomeDefaultViewMode: incomeDefaultViewMode.value,
+  }),
+  labels: {
+    notificationsEnabled: 'notificaciones',
+    cardReminderEnabled: 'recordatorio de tarjetas',
+    statementReminderEnabled: 'recordatorio de extractos',
+    hostingExpiryReminderEnabled: 'recordatorio de hostings',
+    paymentCalendarEnabled: 'calendario de pagos',
+    overdueReminderFrequency: 'frecuencia de recordatorios',
+    usdExchangeRate: 'tasa USD',
+    incomeDefaultViewMode: 'vista por defecto de ingresos',
+  },
+  save,
+  reload: loadSettings,
+});
+
 function syncFromSettings(settings) {
   notificationsEnabled.value = Boolean(settings?.notifications_enabled);
   cardReminderEnabled.value = Boolean(settings?.card_reminder_enabled);
@@ -321,6 +398,9 @@ function syncFromSettings(settings) {
     settings?.income_default_view_mode === 'classic' ? 'classic' : 'grouped';
   usdExchangeRate.value =
     settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
+  // Único punto de hidratación: sirve para la carga, el refresh y el eco
+  // posterior a guardar.
+  commitBaseline();
 }
 
 async function loadSettings() {
@@ -350,18 +430,21 @@ async function save() {
         title: 'Tasa USD inválida',
         detail: 'La tasa de cambio debe ser un número mayor o igual a 1.',
       });
-      return;
+      return false;
     }
     payload.usd_exchange_rate = usdExchangeRate.value;
   }
 
   const result = await store.updateSettings(payload);
   if (result.success) {
+    // syncFromSettings re-fija la baseline con el eco del servidor.
     syncFromSettings(result.data);
     notify.success('Configuración guardada');
-  } else {
-    notify.error({ title: 'No se pudo guardar la configuración', detail: result.message });
+    return true;
   }
+  notify.error({ title: 'No se pudo guardar la configuración', detail: result.message });
+  // Sin re-baseline: un guardado fallido deja el aviso puesto.
+  return false;
 }
 
 // -------------------------------------------------------------------
@@ -424,5 +507,6 @@ async function doResetTabs() {
 }
 
 onMounted(loadSettings);
-usePanelRefresh(loadSettings);
+// El refresh vuelve a traer la configuración por encima: que pregunte antes.
+usePanelRefresh(guardedReload);
 </script>

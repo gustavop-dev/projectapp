@@ -44,7 +44,7 @@
       class="text-xs text-text-subtle mt-1"
       data-testid="client-autocomplete-linked"
     >
-      Cliente enlazado: {{ inputText }} <span class="tabular-nums">(#{{ modelValue }})</span>
+      Cliente enlazado: {{ committedLabel }} <span class="tabular-nums">(#{{ modelValue }})</span>
     </p>
 
     <!-- Dropdown -->
@@ -173,6 +173,10 @@ const clientsStore = useProposalClientsStore();
 const wrapperRef = ref(null);
 const inputRef = ref(null);
 const inputText = ref(props.initialLabel || '');
+// El nombre del cliente que está REALMENTE enlazado, separado de lo que se
+// teclea encima: es lo que se restaura al cerrar sin elegir y lo que nombra el
+// hint mientras se busca.
+const committedLabel = ref(props.initialLabel || '');
 const isOpen = ref(false);
 const hasSearched = ref(false);
 const results = ref([]);
@@ -201,10 +205,9 @@ const debouncedSearch = useDebounceFn(runSearch, 200);
 const onInput = () => {
   isOpen.value = true;
   hasSearched.value = false;
-  // Typing clears any committed selection so the parent knows to re-pick.
-  if (props.modelValue !== null) {
-    emit('update:modelValue', null);
-  }
+  // Escribir es buscar, no desvincular. Soltar el id acá dejaba el formulario
+  // sucio por un caracter y, al guardar, desvinculaba al cliente de verdad.
+  // Para desvincular está la X (`clearSelection`).
   debouncedSearch(inputText.value.trim());
 };
 
@@ -225,6 +228,7 @@ const selectClient = (client) => {
   emit('update:modelValue', client.id);
   emit('select', client);
   inputText.value = client.name;
+  committedLabel.value = client.name;
   closeDropdown();
 };
 
@@ -232,15 +236,25 @@ const clearSelection = () => {
   emit('update:modelValue', null);
   emit('select', null);
   inputText.value = '';
+  committedLabel.value = '';
   results.value = [];
   hasSearched.value = false;
   highlightIndex.value = -1;
   inputRef.value?.focus();
 };
 
-const closeDropdown = () => {
+/**
+ * `opts` llega como Event desde esc y click-outside; sólo un objeto con
+ * `restore: false` explícito apaga la restauración (lo usa "Crear nuevo",
+ * donde el texto tecleado es el nombre del cliente por crear).
+ */
+const closeDropdown = (opts) => {
   isOpen.value = false;
   highlightIndex.value = -1;
+  const restore = !(opts && opts.restore === false);
+  if (restore && props.modelValue !== null && inputText.value !== committedLabel.value) {
+    inputText.value = committedLabel.value;
+  }
 };
 
 // -------------------------------------------------------------------
@@ -277,8 +291,12 @@ const onEnter = () => {
 // -------------------------------------------------------------------
 
 const emitCreateNew = () => {
-  emit('create-new', inputText.value.trim());
-  closeDropdown();
+  const typed = inputText.value.trim();
+  emit('create-new', typed);
+  // Lo tecleado ES el nombre del cliente nuevo: se vuelve la etiqueta enlazada
+  // en vez de perderse contra el cliente anterior.
+  committedLabel.value = typed;
+  closeDropdown({ restore: false });
 };
 
 // -------------------------------------------------------------------
@@ -298,6 +316,11 @@ watch(
     // cuando ya no lo tenía. Con un cliente elegido no se toca nada.
     if (!newLabel && props.modelValue == null) {
       inputText.value = '';
+    }
+    // El padre reetiqueta tras guardar; sincronizar sin pisar algo que el
+    // usuario esté tecleando encima en ese momento.
+    if (inputText.value === committedLabel.value || !committedLabel.value) {
+      committedLabel.value = newLabel || '';
     }
   },
 );

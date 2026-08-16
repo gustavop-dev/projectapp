@@ -280,6 +280,36 @@ describe('ProjectSelect', () => {
     expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([null]);
   });
 
+  // Escribir filtra la lista; desvincular es la X. Antes un caracter soltaba el
+  // id (y marcaba userCleared), así que rozar el campo ensuciaba el formulario
+  // y al guardar desvinculaba el proyecto.
+  it('keeps the committed project while typing and restores its name on close', async () => {
+    const wrapper = mountSelect({ modelValue: 11 });
+    await flushPromises();
+    expect(input(wrapper).element.value).toBe('Kore');
+
+    await input(wrapper).setValue('vasta');
+    await input(wrapper).trigger('input');
+
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined();
+
+    await input(wrapper).trigger('keydown.esc');
+
+    expect(input(wrapper).element.value).toBe('Kore');
+  });
+
+  it('commits the new project when one is picked after typing over another', async () => {
+    const wrapper = mountSelect({ modelValue: 11 });
+    await flushPromises();
+
+    await input(wrapper).setValue('vasta');
+    await input(wrapper).trigger('input');
+    await wrapper.find('[data-testid="project-select-option-12"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue').at(-1)).toEqual([12]);
+    expect(input(wrapper).element.value).toBe('Vástago');
+  });
+
   describe('allowNoClient (cascada inversa: proyecto primero)', () => {
     const OWNED = [
       {

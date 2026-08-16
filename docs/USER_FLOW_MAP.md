@@ -1,6 +1,6 @@
 # User Flow Map
 
-> **Version:** 2.39.0
+> **Version:** 2.41.0
 > **Last updated:** 2026-08-16
 > **Scope:** Complete map of end-to-end user navigation flows for projectapp, organized by role.
 > **Sources:** Frontend pages (`frontend/pages/`), backend API endpoints (`content/urls.py`, `accounts/urls.py`), route rules (`nuxt.config.ts`).
@@ -3769,6 +3769,50 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
 
+#### FLOW: `admin-document-unsaved-guard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/:id/edit`, `/panel/documents/create`
+- **Description:** Protección contra salir de un documento creyendo que se guardó algo que no se guardó. Antes, la única señal de trabajo pendiente era que el botón Guardar se habilitaba — y un botón habilitado se lee como "puedes guardar", no como "te falta guardar". Ahora, editar cualquier campo rastreado levanta un aviso permanente (`doc-unsaved-notice` / `doc-create-unsaved-notice`) cuyo título ES la lista de campos pendientes ("Cliente y proyecto sin guardar"); pasados tres campos los cuenta y los detalla en una línea aparte. En el `<aside>` fijo, título, cliente y proyecto llevan además una marca "Sin guardar" (`doc-field-dirty-title` / `-client` / `-project`). Salir de la página, o pulsar el botón global "Actualizar datos" —que antes recargaba encima del formulario sin avisar—, abre una confirmación de tres salidas.
+- **Steps:**
+  1. Admin abre `/panel/documents/:id/edit` con el documento ya cargado.
+  2. Modifica cliente y proyecto en el bloque Identificación.
+  3. El aviso aparece nombrando ambos campos y el botón pasa a "Guardar cambios".
+  4. Admin intenta salir (link "Volver a documentos", back del navegador o cerrar pestaña).
+  5. Se abre el diálogo con las tres salidas.
+  6. Al guardar, la confirmación nombra lo guardado ("Se guardó: cliente y proyecto.").
+- **Branches:**
+  - [Branch A — Guardar y salir] Botón primario: corre el PATCH y recién entonces navega. Si el guardado falla, la navegación se bloquea y el usuario se queda con el error y sus cambios intactos.
+  - [Branch B — Salir sin guardar] Botón secundario: navega descartando los cambios, sin PATCH.
+  - [Branch C — Seguir editando] Cancelar: misma URL, cambios y aviso intactos.
+  - [Branch D — Refresh guardado] "Actualizar datos" con cambios pendientes pregunta antes de recargar por encima.
+  - [Branch E — Cuenta emitida] Con una cuenta de cobro emitida (`collection_account_locked`) no se ofrece la salida de guardar: quedan dos, porque el backend rechazaría el PATCH.
+  - [Branch F — Crear] En `/panel/documents/create` no hay versión guardada a la que volver: el aviso no ofrece guardar ni descartar, y crear con éxito desarma el guard para que la redirección al editor no interrumpa. Llegar con `?folder=` no ensucia el formulario pese a la sugerencia de cliente por carpeta.
+  - [Branch G — Buscar no es editar] Escribir en el selector de cliente sin elegir nada no levanta aviso: la selección enlazada se restaura al cerrar.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-document-unsaved-guard.spec.js`
+
+#### FLOW: `admin-panel-unsaved-guard`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails`, y el mismo criterio en `/panel/blog/*`, `/panel/portfolio/*`, `/panel/linktrees/:id/edit`, `/panel/hour-packages/*`, `/panel/diagnostics/create`, `/panel/accounting/settings`
+- **Description:** El mismo aviso de cambios sin guardar, extendido a los editores de página completa del panel. Se cubre con `/panel/emails` porque es el caso representativo del formato difícil: su estado vive en refs sueltos, no en un objeto `form`. Fija además el límite que importa en páginas con pestañas — cambiar de pestaña es un `router.replace({ query })` sobre la misma ruta y **no** debe disparar el guard de salida; si lo hiciera, cualquier página con pestañas quedaría bloqueada por un modal apenas su formulario tuviera algo pendiente.
+- **Steps:**
+  1. Admin abre `/panel/emails?tab=defaults`.
+  2. Edita el saludo por defecto.
+  3. Aparece el aviso nombrando el campo ("Saludo sin guardar").
+  4. Al salir de la página, el diálogo ofrece guardar, salir sin guardar o seguir editando.
+- **Branches:**
+  - [Branch A — Cambio de pestaña] Pasar a Redactar no abre ningún modal y no descarta lo pendiente; al volver, el valor editado sigue ahí. La URL suelta el `?tab=` del modo por defecto a propósito.
+  - [Branch B — Guardar y salir] El botón primario dispara el PUT de `emails/defaults/` y recién entonces navega.
+  - [Branch C — Campos sin guardado propio] El borrador de la pestaña Redactar (destinatario, asunto, secciones, adjuntos) queda **fuera** del aviso: ese contenido no se guarda, se envía. Es "sin enviar", no "sin guardar", y mezclarlos confundiría las dos cosas.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-panel-unsaved-guard.spec.js`
+
 #### FLOW: `admin-document-folders`
 
 - **Module:** admin
@@ -4089,6 +4133,8 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
 | `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
 | `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
+| `admin-document-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-unsaved-guard.spec.js` |
+| `admin-panel-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-panel-unsaved-guard.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
 | `admin-document-folder-hierarchy` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-hierarchy.spec.js` |
 | `admin-document-pdf-download` | admin | admin | P2 | ⬜ Missing | — (spec not yet written) |

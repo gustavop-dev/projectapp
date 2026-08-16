@@ -33,8 +33,15 @@
             </BaseButton>
           </template>
         </BaseDropdown>
-        <BaseButton variant="primary" size="md" type="submit" form="doc-edit-form" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
-          {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
+        <BaseButton
+          variant="primary"
+          size="md"
+          type="submit"
+          form="doc-edit-form"
+          data-testid="doc-save-desktop"
+          :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
+        >
+          {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
         </BaseButton>
       </div>
     </div>
@@ -110,6 +117,24 @@
         Si hubo un error, anúlala y emite una nueva desde
         Contabilidad → Cuentas de cobro.
       </BaseAlert>
+
+      <!-- El botón Guardar habilitado se lee como "puedes guardar"; esto se
+           lee como "te falta guardar", y nombra qué falta. -->
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        class="lg:col-span-2"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        :message="lockedCuenta
+          ? 'Esta cuenta de cobro está emitida: estos cambios no se pueden guardar y se pierden al salir.'
+          : 'Si sales de esta página, se pierden. Guardar los deja registrados.'"
+        :can-save="canSaveNow"
+        :saving="documentStore.isUpdating"
+        testid="doc-unsaved-notice"
+        @save="handleSave"
+        @discard="discardChanges"
+      />
+
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
@@ -118,7 +143,19 @@
           <div class="space-y-4">
             <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Identificación</h2>
             <div>
-              <label for="edit-title" class="block text-sm font-medium text-text-default mb-1">Título</label>
+              <!-- La marca va FUERA del <label>: dentro se sumaba al nombre
+                   accesible del campo ("Título Sin guardar"). -->
+              <div class="flex items-center gap-2 mb-1">
+                <label for="edit-title" class="block text-sm font-medium text-text-default">Título</label>
+                <BaseBadge
+                  v-if="isFieldDirty('title')"
+                  variant="warning"
+                  size="sm"
+                  data-testid="doc-field-dirty-title"
+                >
+                  Sin guardar
+                </BaseBadge>
+              </div>
               <input
                 id="edit-title"
                 v-model="form.title"
@@ -129,7 +166,17 @@
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
+              <div class="flex items-center gap-2 mb-1">
+                <label class="block text-sm font-medium text-text-default">Cliente</label>
+                <BaseBadge
+                  v-if="isFieldDirty('client')"
+                  variant="warning"
+                  size="sm"
+                  data-testid="doc-field-dirty-client"
+                >
+                  Sin guardar
+                </BaseBadge>
+              </div>
               <ClientAutocomplete
                 v-model="form.client"
                 :initial-label="clientDisplayName"
@@ -198,14 +245,27 @@
               </div>
             </div>
 
-            <ProjectSelect
-              v-model="form.project"
-              :client-profile-id="form.client"
-              :client-label="clientDisplayName"
-              :allow-no-client="true"
-              testid="doc-project-select"
-              @select="onProjectSelect"
-            />
+            <div>
+              <ProjectSelect
+                v-model="form.project"
+                :client-profile-id="form.client"
+                :client-label="clientDisplayName"
+                :allow-no-client="true"
+                testid="doc-project-select"
+                @select="onProjectSelect"
+              />
+              <!-- ProjectSelect dibuja su propia etiqueta, así que la marca va
+                   debajo del campo en vez de al lado del rótulo. -->
+              <BaseBadge
+                v-if="isFieldDirty('project')"
+                variant="warning"
+                size="sm"
+                class="mt-1"
+                data-testid="doc-field-dirty-project"
+              >
+                Sin guardar
+              </BaseBadge>
+            </div>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Estado</label>
               <select
@@ -371,8 +431,15 @@
         </div>
 
         <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
-          <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta">
-            {{ documentStore.isUpdating ? 'Guardando...' : 'Guardar' }}
+          <BaseButton
+            variant="primary"
+            size="md"
+            type="submit"
+            class="sm:px-6"
+            data-testid="doc-save-mobile"
+            :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
+          >
+            {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
           </BaseButton>
           <BaseDropdown :items="downloadItems" align="right">
             <template #trigger>
@@ -406,6 +473,27 @@
         No hay contenido para mostrar.
       </div>
     </MarkdownPreviewModal>
+
+    <!-- Las tres salidas del guard: [Seguir editando] [Salir sin guardar]
+         [Guardar y salir]. Sin este modal el guard abriría un diálogo que
+         nadie renderiza y la navegación se bloquearía en silencio. -->
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -417,11 +505,14 @@ import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownB
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { useClientProjectCascade } from '~/composables/useClientProjectCascade';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import { joinEs } from '~/utils/spanishList';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -454,12 +545,6 @@ const copiedMarkdown = ref(false);
 const pastedMarkdown = ref(false);
 const markdownTextareaRef = ref(null);
 
-const savedForm = ref(null);
-const hasChanges = computed(() => {
-  if (!savedForm.value) return false;
-  return JSON.stringify({ ...form, tag_ids: [...form.tag_ids] }) !== JSON.stringify(savedForm.value);
-});
-
 const form = reactive({
   title: '',
   client: null,
@@ -473,6 +558,50 @@ const form = reactive({
   folder_id: null,
   tag_ids: [],
   template_style: 'professional',
+});
+
+// Nombres sin artículo: se encadenan como los encadenaría una persona
+// ("cliente y proyecto sin guardar").
+const FIELD_LABELS = {
+  title: 'título',
+  client: 'cliente',
+  project: 'proyecto',
+  language: 'idioma',
+  include_portada: 'portada',
+  include_subportada: 'subportada',
+  include_contraportada: 'contraportada',
+  status: 'estado',
+  content_markdown: 'contenido',
+  folder_id: 'carpeta',
+  tag_ids: 'etiquetas',
+  template_style: 'estilo de plantilla',
+};
+
+// Se desestructura para que los refs queden como bindings de primer nivel: a
+// través del objeto (`guard.hasChanges`) el template no los desenvuelve.
+const {
+  hasChanges,
+  isFieldDirty,
+  dirtyLabels,
+  unsavedTitle,
+  unsavedDetail,
+  canSaveNow,
+  commit: commitBaseline,
+  guardedReload,
+  discardChanges,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({ ...form, tag_ids: [...form.tag_ids] }),
+  labels: FIELD_LABELS,
+  save: handleSave,
+  // Una cuenta de cobro emitida no se guarda: el backend contesta 400
+  // collection_account_locked. Ofrecer "Guardar y salir" ahí sería mentir.
+  canSave: () => !lockedCuenta.value,
+  blockedReason: 'Esta cuenta de cobro ya fue emitida y no se puede modificar.',
+  reload: reloadDocument,
 });
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
@@ -604,14 +733,17 @@ async function reloadDocument() {
       result.data.document_type_code === 'collection_account'
       && result.data.commercial_status !== 'draft'
     );
-    savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
+    commitBaseline();
   } else {
     loadError.value = true;
   }
 }
 
 onMounted(reloadDocument);
-usePanelRefresh(reloadDocument);
+// El refresh global vuelve a pedir el documento y pisa el formulario sin
+// avisar: se registra la versión que pregunta primero. `onMounted` y el botón
+// "Reintentar" siguen llamando al crudo — ahí no hay nada que perder.
+usePanelRefresh(guardedReload);
 
 async function handleSave() {
   const payload = {
@@ -630,15 +762,26 @@ async function handleSave() {
     template_style: form.template_style,
   };
 
+  // Se capturan ANTES de guardar: guardar limpia la lista.
+  const savedLabels = [...dirtyLabels.value];
+
   const result = await documentStore.updateDocument(route.params.id, payload);
   if (result.success) {
-    savedForm.value = { ...form, tag_ids: [...form.tag_ids] };
+    commitBaseline();
     if (result.data) {
       applyAssociationSnapshot(result.data);
       clientDisplayName.value = result.data.client_display_name || clientDisplayName.value;
     }
-    notify.success({ title: 'Documento guardado' });
-  } else if (result.code === 'collection_account_locked') {
+    // Confirmar QUÉ se guardó, no sólo que algo se guardó: sin eso la duda
+    // pasa al otro lado —no se sabe si guardó o si el aviso sólo desapareció—.
+    notify.success({
+      title: 'Documento guardado',
+      detail: savedLabels.length ? `Se guardó: ${joinEs(savedLabels)}.` : '',
+      duration: 6000,
+    });
+    return true;
+  }
+  if (result.code === 'collection_account_locked') {
     // The server is the truth: the cuenta was issued (maybe from another
     // tab) after this form loaded. Lock the page to match.
     lockedCuenta.value = true;
@@ -652,6 +795,9 @@ async function handleSave() {
       detail: fieldDetail || result.message,
     });
   }
+  // Sin re-fijar la baseline a propósito: un guardado fallido deja el aviso
+  // puesto y, desde el guard de salida, bloquea la navegación.
+  return false;
 }
 
 const downloadItems = computed(() => [
