@@ -5,6 +5,7 @@ import {
   patch_request,
   delete_request,
 } from './services/request_http';
+import { normalizeApiError } from './services/normalize_api_error';
 
 /**
  * Store for the proposal admin panel's client management surface.
@@ -262,6 +263,64 @@ export const useProposalClientsStore = defineStore('proposalClients', {
           count: data?.count,
           errors: data,
         };
+      }
+    },
+
+    // -----------------------------------------------------------------
+    // Email history (Emails module + the client's ficha)
+    // -----------------------------------------------------------------
+
+    /**
+     * One page of a client's emails, newest first.
+     *
+     * Deliberately outside `isLoading`/`error`, like the accounting store's
+     * modal-scoped reads: opening the modal must not blank the client list
+     * behind it.
+     *
+     * @param {number} clientId
+     * @param {Object} [params]
+     * @param {'client'|'internal'} [params.audience] - which group to show.
+     * @param {number} [params.page]
+     */
+    async fetchClientEmails(clientId, { audience = '', page = 1 } = {}) {
+      try {
+        const query = new URLSearchParams();
+        if (audience) query.set('audience', audience);
+        if (page && page !== 1) query.set('page', String(page));
+        const suffix = query.toString() ? `?${query}` : '';
+        const response = await get_request(
+          `proposals/client-profiles/${clientId}/emails/${suffix}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching client emails:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /** The message as delivered, for the preview modal. */
+    async fetchClientEmailBody(clientId, logId) {
+      try {
+        const response = await get_request(
+          `proposals/client-profiles/${clientId}/emails/${logId}/body/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error fetching client email body:', error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    /** Re-send a failed notice to the address on that row, and only to it. */
+    async retryClientEmail(clientId, logId) {
+      try {
+        const response = await create_request(
+          `proposals/client-profiles/${clientId}/emails/${logId}/retry/`, {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error retrying client email:', error);
+        return { success: false, ...normalizeApiError(error) };
       }
     },
   },

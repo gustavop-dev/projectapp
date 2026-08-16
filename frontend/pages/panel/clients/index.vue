@@ -229,6 +229,22 @@
               {{ client.documents_count }} doc{{ client.documents_count !== 1 ? 's' : '' }}<span v-if="client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
             </button>
 
+            <!-- Emails: the count plus when we last wrote, which is what turns
+                 the list into a reading of contact and not just a filter.
+                 Opens the same modal the ficha does. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsEmailCount(client)"
+              type="button"
+              :data-testid="`client-emails-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los correos de ${client.name}`"
+              @click.stop="openEmails(client)"
+            >
+              {{ client.emails_sent_count }} correo{{ client.emails_sent_count !== 1 ? 's' : '' }}
+              <template v-if="client.last_email_at"> · {{ formatDate(client.last_email_at) }}</template>
+            </button>
+
             <button
               v-if="client.accepted_count > 0"
               type="button"
@@ -296,6 +312,20 @@
             Cargando...
           </div>
           <template v-else>
+            <!-- Reachable without going through the filter: filtering is for
+                 finding who, the ficha is where you already are when the
+                 question "what did we send them?" comes up. -->
+            <div class="px-5 pt-4 flex justify-end">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :data-testid="`client-view-emails-${client.id}`"
+                @click.stop="openEmails(client)"
+              >
+                Ver correos
+              </BaseButton>
+            </div>
+
             <!-- Proposals (drop target for proposal reassignment) -->
             <div
               :data-testid="`client-proposals-zone-${client.id}`"
@@ -681,6 +711,23 @@
       </div>
     </div>
 
+    <!-- The client's emails, and the viewer for one of them. Siblings rather
+         than nested: BaseModal has no stacking manager, so DOM order is what
+         decides which one paints on top. -->
+    <ClientEmailsModal
+      :open="emailsModalOpen"
+      :client="emailsClient"
+      :preview-open="emailBodyOpen"
+      @close="closeEmails"
+      @view-body="openEmailBody"
+    />
+    <EmailBodyModal
+      :open="emailBodyOpen"
+      :entry="emailBodyEntry"
+      :fetcher="fetchEmailBody"
+      @close="emailBodyOpen = false"
+    />
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -710,6 +757,8 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
+import ClientEmailsModal from '~/components/clients/ClientEmailsModal.vue';
+import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
@@ -794,6 +843,38 @@ const filteredClients = computed(() => applyFilters(clientsStore.clients));
  */
 function showsHostingCount(client) {
   return activeModule.value === 'hosting' && Number(client.hostings_count || 0) > 0;
+}
+
+function showsEmailCount(client) {
+  return activeModule.value === 'emails' && Number(client.emails_sent_count || 0) > 0;
+}
+
+// The emails modal, reachable two ways: the row pill while the Emails module
+// is being read, and the "Ver correos" button on the expanded card — filtering
+// is for finding who, the ficha is where you already are when the question
+// comes up. One modal serves both.
+const emailsClient = ref(null);
+const emailsModalOpen = ref(false);
+const emailBodyEntry = ref(null);
+const emailBodyOpen = ref(false);
+
+function openEmails(client) {
+  emailsClient.value = client;
+  emailsModalOpen.value = true;
+}
+
+function closeEmails() {
+  emailsModalOpen.value = false;
+  emailsClient.value = null;
+}
+
+function openEmailBody(entry) {
+  emailBodyEntry.value = entry;
+  emailBodyOpen.value = true;
+}
+
+function fetchEmailBody(logId) {
+  return clientsStore.fetchClientEmailBody(emailsClient.value?.id, logId);
 }
 
 /**
