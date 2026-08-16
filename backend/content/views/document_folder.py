@@ -5,9 +5,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from accounts.models import UserProfile
+
+from content.api_errors import error_response
 from content.models import DocumentFolder
-from content.serializers.document_folder import DocumentFolderSerializer
-from content.services import document_archive_service
+from content.serializers.document_folder import (
+    DocumentFolderChangeClientSerializer, DocumentFolderSerializer,
+)
+from content.services import document_archive_service, document_folder_service
 from content.views.document import (
     apply_archive_scope, archive_scope, archived_order_field, search_term,
 )
@@ -30,7 +35,12 @@ def _annotated_folders(scope):
     # (documents + children) multiplique los conteos entre sí; el `filter=`
     # acota el estado pero no elimina ese cruce. Los cuatro agregados reusan los
     # mismos dos JOINs, así que el riesgo no crece con ellos.
-    return apply_archive_scope(DocumentFolder.objects.all(), scope).annotate(
+    # El serializer lee `client_user.profile` y `project.name` en cada fila:
+    # sin el select_related el panel lateral paga tres consultas por carpeta.
+    queryset = DocumentFolder.objects.select_related(
+        'client_user__profile', 'project',
+    )
+    return apply_archive_scope(queryset, scope).annotate(
         active_document_count=Count(
             'documents', filter=Q(documents__is_archived=False), distinct=True,
         ),
@@ -88,10 +98,44 @@ def create_document_folder(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+def _changes_client(folder, request):
+    """¿El PATCH le pone a la carpeta un dueño distinto del que tiene?
+
+    Incluye la primera asignación —poner cliente a una carpeta que ya guarda
+    doce documentos es justo el caso donde importa decidir qué pasa con ellos—
+    pero NO el vaciado: la cascada existe para elegir a quién pasa el
+    contenido, y «a nadie» no es un destino que ese endpoint pueda expresar.
+    Quitarle el dueño a la carpeta la deja sin él y no toca lo que guarda.
+    """
+    if 'client' not in request.data:
+        return False
+    sent = request.data.get('client')
+    if sent in (None, ''):
+        return False
+    current_id = getattr(folder.client_user, 'profile', None)
+    current_id = current_id.pk if current_id else None
+    return int(sent) != current_id
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_document_folder(request, folder_id):
+    """Edita la carpeta. Cambiar de cliente con contenido va por la cascada.
+
+    Basta mirar los hijos DIRECTOS: si la rama guarda algo, o cuelga del propio
+    folder o cuelga de una subcarpeta suya, así que una de las dos existe.
+    """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    if _changes_client(folder, request) and (
+        folder.documents.exists() or folder.children.exists()
+    ):
+        return error_response(
+            'La carpeta tiene contenido: el cambio de cliente se hace desde '
+            '«Cambiar cliente…», que primero muestra a qué afecta.',
+            code='folder_has_content',
+            hint='Usa el endpoint change-client para elegir si se propaga.',
+            status=status.HTTP_409_CONFLICT,
+        )
     serializer = DocumentFolderSerializer(folder, data=request.data, partial=True)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -177,6 +221,126 @@ def unarchive_document_folder(request, folder_id):
             for ancestor in counts['restored_chain']
         ],
         'moved_to_root': counts['moved_to_root'],
+    })
+
+
+def _resolve_target_profile(folder, raw_profile_id):
+    """(profile, error_response) para el destino del cambio de cliente."""
+    try:
+        profile_id = int(raw_profile_id)
+    except (TypeError, ValueError):
+        return None, error_response(
+            'Indica el cliente destino.', code='client_not_found',
+        )
+    profile = UserProfile.objects.clients().filter(pk=profile_id).first()
+    if profile is None:
+        return None, error_response(
+            'Ese cliente no existe o no es un perfil de cliente.',
+            code='client_not_found',
+        )
+    if folder.client_user_id == profile.user_id:
+        return None, error_response(
+            'La carpeta ya pertenece a ese cliente.', code='same_client',
+        )
+    return profile, None
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def preview_document_folder_client_change(request, folder_id):
+    """Impacto de mover la carpeta a otro cliente. No escribe nada."""
+    folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    profile, error = _resolve_target_profile(
+        folder, request.query_params.get('client_profile_id'),
+    )
+    if error:
+        return error
+    return Response(
+        document_folder_service.change_client_preview(folder, profile),
+    )
+
+
+def _staleness_error(sent, current, *, subject):
+    """409 si el plan confirmado ya no es el que hay. Mismo contrato PA-51."""
+    missing = sorted(sent - current)
+    if missing:
+        count = len(missing)
+        noun = 'elemento' if count == 1 else 'elementos'
+        verb = 'está' if count == 1 else 'están'
+        return error_response(
+            f'{count} {noun} del plan ya no {verb} en la carpeta.',
+            code='records_not_found',
+            hint='La vista previa se actualizó. Revísala y vuelve a intentarlo.',
+            status=status.HTTP_409_CONFLICT,
+            errors={'missing_ids': missing},
+        )
+    changed = sorted(current - sent)
+    if changed:
+        count = len(changed)
+        noun = f'{subject}' if count == 1 else f'{subject}s'
+        verb = 'entró' if count == 1 else 'entraron'
+        return error_response(
+            f'{count} {noun} {verb} a la carpeta después de la vista previa.',
+            code='records_changed',
+            hint='La vista previa se actualizó. Revísala y vuelve a intentarlo.',
+            status=status.HTTP_409_CONFLICT,
+            errors={'changed_ids': changed},
+        )
+    return None
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def change_document_folder_client(request, folder_id):
+    """Mueve la carpeta a otro cliente, con la cascada del modo elegido.
+
+    El PATCH genérico se niega con `folder_has_content`: éste es el único
+    camino, así que un cambio de dueño siempre es explícito, previsto y
+    auditado. Los ids viajan como token — ambos chequeos corren ANTES del
+    servicio, así que su bloque atómico nunca se abre sobre un plan viejo.
+    """
+    folder = get_object_or_404(DocumentFolder, pk=folder_id)
+
+    serializer = DocumentFolderChangeClientSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    mode = serializer.validated_data['mode']
+    if mode not in document_folder_service.MODES:
+        return error_response(
+            "Elige qué hacer con el contenido: 'propagate' (seguir a la "
+            "carpeta) o 'folder_only' (sólo la carpeta).",
+            code='invalid_mode',
+        )
+    profile, error = _resolve_target_profile(
+        folder, serializer.validated_data['client_profile_id'],
+    )
+    if error:
+        return error
+
+    plan = document_folder_service.linked_sets(folder)
+    error = _staleness_error(
+        set(serializer.validated_data['document_ids']),
+        {document.pk for document in plan['documents_move']},
+        subject='documento',
+    )
+    if error:
+        return error
+    error = _staleness_error(
+        set(serializer.validated_data['folder_ids']),
+        {child.pk for child in plan['folders_move']},
+        subject='subcarpeta',
+    )
+    if error:
+        return error
+
+    result = document_folder_service.change_client_apply(
+        folder, profile, mode, request.user,
+    )
+    return Response({
+        'folder': _folder_payload(
+            folder, scope='archived' if folder.is_archived else 'active',
+        ),
+        **result,
     })
 
 

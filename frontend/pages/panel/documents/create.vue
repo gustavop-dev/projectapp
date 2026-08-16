@@ -63,7 +63,9 @@
                 class="text-xs text-text-subtle mt-1"
                 data-testid="doc-client-suggested-hint"
               >
-                Sugerido por la carpeta — puedes cambiarlo o quitarlo.
+                {{ inheritedFromFolder
+                  ? 'Heredado de la carpeta — puedes cambiarlo o quitarlo.'
+                  : 'Sugerido por la carpeta — puedes cambiarlo o quitarlo.' }}
               </p>
               <p v-else class="text-xs text-text-subtle mt-1">
                 Opcional. Las plantillas y notas pueden no tener dueño.
@@ -118,6 +120,7 @@
               <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
                 v-model="form.folder_id"
+                data-testid="doc-folder-select"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >
@@ -311,6 +314,7 @@ import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
+import { useClientProjectCascade } from '~/composables/useClientProjectCascade';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
@@ -333,6 +337,8 @@ const clientDisplayName = ref('');
 // sugerencia por carpeta para siempre en este form.
 const clientTouched = ref(false);
 const suggestedFromFolder = ref(false);
+// Distingue el dato firme (la carpeta lo dice) de la conjetura por mayoría.
+const inheritedFromFolder = ref(false);
 const inlineClientOpen = ref(false);
 const inlineClient = ref(emptyClientForm());
 const creatingClient = ref(false);
@@ -366,30 +372,18 @@ const canSubmit = computed(
   () => !documentStore.isUpdating && form.title.trim() && form.content_markdown.trim(),
 );
 
-function onClientSelect(client) {
-  clientTouched.value = true;
-  suggestedFromFolder.value = false;
-  if (!client) {
-    form.client = null;
-    clientDisplayName.value = '';
-    // Sin cliente el proyecto no se sostiene: el backend lo derivaría de
-    // vuelta desde el proyecto y la limpieza no habría limpiado nada.
-    form.project = null;
-    return;
-  }
-  form.client = client.id;
-  clientDisplayName.value = client.name || '';
-}
-
-/** Cascada inversa: elegir proyecto primero completa el cliente solo. */
-function onProjectSelect(row) {
-  if (row && row.client_profile_id && !form.client) {
-    form.client = row.client_profile_id;
-    clientDisplayName.value = row.client_display_name || '';
-    clientTouched.value = true;
-    suggestedFromFolder.value = false;
-  }
-}
+// Elegir cliente o proyecto es una decisión del operador: retira la
+// sugerencia de la carpeta y evita que vuelva a proponerse.
+const { onClientSelect, onProjectSelect } = useClientProjectCascade(
+  form,
+  clientDisplayName,
+  {
+    onOperatorChoice() {
+      clientTouched.value = true;
+      suggestedFromFolder.value = false;
+    },
+  },
+);
 
 function onCreateNewClient(typedName) {
   inlineClientOpen.value = true;
@@ -411,10 +405,12 @@ function clearSuggestedClient() {
   clientDisplayName.value = '';
   form.project = null;
   suggestedFromFolder.value = false;
+  inheritedFromFolder.value = false;
 }
 
 // La carpeta ya está diciendo de quién es: al fijarla (incluido ?folder= de
-// la URL) se propone su cliente mayoritario. Sólo prellenado — nunca pisa una
+// la URL) se propone su asociación —la propia si la tiene, si no la mayoritaria
+// de sus documentos. Sólo prellenado — nunca pisa una
 // decisión del operador, y cambiar de carpeta re-propone o retira lo sugerido.
 watch(() => form.folder_id, async (folderId) => {
   if (clientTouched.value) return;
@@ -423,12 +419,15 @@ watch(() => form.folder_id, async (folderId) => {
     if (suggestedFromFolder.value) clearSuggestedClient();
     return;
   }
-  const result = await documentStore.fetchFolderClientSuggestion(folderId);
+  const result = await documentStore.resolveFolderAssociation(folderId);
   if (clientTouched.value) return;
   if (result.success && result.data?.client) {
     form.client = result.data.client;
     clientDisplayName.value = result.data.client_display_name || '';
+    // La carpeta asociada trae también su proyecto; la heurística no.
+    if (result.data.project) form.project = result.data.project;
     suggestedFromFolder.value = true;
+    inheritedFromFolder.value = result.data.source === 'folder';
   } else if (suggestedFromFolder.value) {
     clearSuggestedClient();
   }

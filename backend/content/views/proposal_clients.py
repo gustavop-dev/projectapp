@@ -37,8 +37,8 @@ from accounts.services.billing_code import (
     normalize_billing_code,
 )
 from content.models import (
-    BusinessProposal, Document, EmailLog, HostingRecord, IncomeRecord,
-    WebAppDiagnostic,
+    BusinessProposal, Document, DocumentFolder, EmailLog, HostingRecord,
+    IncomeRecord, WebAppDiagnostic,
 )
 from content.serializers.accounting import (
     HostingRecordSerializer,
@@ -269,6 +269,22 @@ def _base_queryset():
                         is_archived=False,
                         project__isnull=True,
                     )
+                    .order_by()
+                    .values('client_user')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            # "Con carpeta": las carpetas que dicen ser de este cliente. Se
+            # cuenta la relación de la carpeta, no las carpetas donde tiene
+            # documentos — que una carpeta sea suya es ahora un dato, no una
+            # inferencia por el nombre.
+            document_folders_count=Coalesce(
+                Subquery(
+                    DocumentFolder.objects
+                    .filter(client_user=OuterRef('user_id'), is_archived=False)
                     .order_by()
                     .values('client_user')
                     .annotate(total=Count('id'))

@@ -185,6 +185,45 @@ export const useDocumentStore = defineStore('documents', {
     },
 
     /**
+     * Qué asociación propone una carpeta para lo que se cree dentro de ella.
+     *
+     * La carpeta ahora DICE de quién es, y cuando lo dice eso manda: es un
+     * dato, no una inferencia, y trae también el proyecto. La heurística del
+     * cliente mayoritario queda como respaldo para las carpetas que todavía no
+     * lo dicen — justo las que la pasada retroactiva va asociando.
+     *
+     * `source` distingue las dos para que el formulario pueda rotular la
+     * sugerencia sin prometer que es un dato firme.
+     */
+    async resolveFolderAssociation(folderId) {
+      const folderStore = useDocumentFolderStore();
+      const folder = folderStore.folderById(folderId);
+      if (folder?.client) {
+        return {
+          success: true,
+          data: {
+            client: folder.client,
+            client_display_name: folder.client_display_name || '',
+            project: folder.project ?? null,
+            source: 'folder',
+          },
+        };
+      }
+      const result = await this.fetchFolderClientSuggestion(folderId);
+      if (!result.success) return result;
+      const client = result.data?.client ?? null;
+      return {
+        success: true,
+        data: {
+          client,
+          client_display_name: result.data?.client_display_name || '',
+          project: null,
+          source: client ? 'suggestion' : null,
+        },
+      };
+    },
+
+    /**
      * Reconcilia una fila que cambió de estado con el scope que se está viendo.
      *
      * Bajo 'all' la fila se queda y sólo cambia su insignia; bajo un scope

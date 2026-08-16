@@ -320,6 +320,53 @@ export const useDocumentFolderStore = defineStore('documentFolders', {
       }
     },
 
+    /**
+     * Impacto de mover la carpeta a otro cliente. No toca el estado: es lo
+     * que el operador lee ANTES de elegir el modo.
+     */
+    async previewChangeClient(id, clientProfileId) {
+      try {
+        const response = await get_request(
+          `document-folders/${id}/change-client/preview/?client_profile_id=${clientProfileId}`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(error, 'No se pudo calcular el impacto.'),
+        };
+      }
+    },
+
+    /**
+     * Aplica el cambio de cliente con el plan ya confirmado. Un 409
+     * (`records_not_found` / `records_changed`) dice que el plan quedó viejo:
+     * el modal recarga el preview en vez de adivinar.
+     */
+    async changeClient(id, payload) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          `document-folders/${id}/change-client/`, payload,
+        );
+        const folder = response.data?.folder;
+        if (folder) {
+          const idx = this.folders.findIndex((f) => f.id === folder.id);
+          if (idx !== -1) this.folders.splice(idx, 1, folder);
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          ...normalizeApiError(
+            error, 'No se pudo cambiar el cliente de la carpeta.',
+          ),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
     async deleteFolder(id) {
       this.isUpdating = true;
       this.error = null;
