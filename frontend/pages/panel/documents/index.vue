@@ -293,6 +293,7 @@
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
+            :folder-to-for="folderToFor"
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
@@ -318,6 +319,7 @@
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
+            :folder-to-for="folderToFor"
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
@@ -391,6 +393,7 @@
       v-model="showActionsSheet"
       :document="actionDoc"
       :archived="!!actionDoc?.is_archived"
+      :edit-to="editToFor(actionDoc)"
       @archive="handleArchiveDoc(actionDoc)"
       @unarchive="handleUnarchiveDoc(actionDoc)"
       @edit="handleEditDoc(actionDoc)"
@@ -454,8 +457,11 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentViewMode } from '~/composables/useDocumentViewMode';
 import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
+import { useRowNavigation } from '~/composables/useRowNavigation';
 
 const localePath = useLocalePath();
+const route = useRoute();
+const { openRow } = useRowNavigation();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
@@ -1051,17 +1057,32 @@ function handleMoved() {
   return refreshView();
 }
 
-function handleEditDoc(doc) {
-  if (!doc) return;
-  navigateTo(localePath(`/panel/documents/${doc.id}/edit`));
-}
-
-function openDocument(doc) {
-  handleEditDoc(doc);
-}
-
+// Fuente única de la dirección: la lee el <a> del título de cada fila/tarjeta
+// y la lee el atajo de clic, así que no pueden apuntar a lugares distintos.
 function editToFor(doc) {
-  return localePath(`/panel/documents/${doc.id}/edit`);
+  return doc ? localePath(`/panel/documents/${doc.id}/edit`) : null;
+}
+
+/**
+ * Dirección de una subcarpeta. Existe desde antes — `?folder=` ya es deep link
+ * (useDocumentFilterQuery) —, sólo que ninguna fila la publicaba.
+ *
+ * Devuelve null durante una búsqueda: ahí entrar a una carpeta significa salir
+ * de la búsqueda hacia ella, y eso no lo puede expresar un cambio de query.
+ */
+function folderToFor(sub) {
+  if (!sub || isSearching.value) return null;
+  return localePath({ path: route.path, query: { ...route.query, folder: String(sub.id) } });
+}
+
+function handleEditDoc(doc) {
+  openRow(editToFor(doc));
+}
+
+// El evento decide: clic simple navega acá, ctrl/cmd o rueda abren pestaña
+// nueva, y un clic nacido en un control de la fila no navega en absoluto.
+function openDocument(doc, event) {
+  openRow(editToFor(doc), event);
 }
 
 function handleRenameDoc(doc) {

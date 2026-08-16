@@ -66,7 +66,11 @@
                     class="inline-block w-2 h-2 rounded-full flex-shrink-0"
                     :class="priorityDot(task.priority)"
                   />
-                  <span class="text-sm font-medium text-text-default truncate">{{ task.title }}</span>
+                  <BaseRowLink
+                    :to="taskDetailTo(task.id)"
+                    :data-testid="`task-open-${task.id}`"
+                    class="text-sm font-medium text-text-default truncate hover:text-text-brand transition-colors"
+                  >{{ task.title }}</BaseRowLink>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 ml-3">
                   <span v-if="task.due_date" class="text-xs" :class="task.is_overdue ? 'text-danger-strong' : 'text-text-subtle'">{{ task.due_date }}</span>
@@ -172,19 +176,40 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import TaskColumn from '~/components/Tasks/TaskColumn.vue';
 import TaskFormModal from '~/components/Tasks/TaskFormModal.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const taskStore = useTaskStore();
-const showModal = ref(false);
-const editingTask = ref(null);
+// Editar una tarea tiene dirección propia (`?task=`): así la fila puede
+// publicarla en un enlace y la URL se puede compartir o recargar. Crear no
+// tiene qué direccionar — todavía no hay entidad —, así que sigue siendo estado
+// local de la página.
+const {
+  openRow: editingTask,
+  isOpen: isEditingTask,
+  toFor: taskDetailTo,
+  open: openTaskById,
+  close: closeTaskDetail,
+} = useDetailQueryParam('task', { resolve: (id) => taskStore.getTaskById(id) });
+
+const creatingTask = ref(false);
+
+const showModal = computed({
+  get: () => creatingTask.value || isEditingTask.value,
+  set: (open) => {
+    if (open) return;
+    creatingTask.value = false;
+    if (isEditingTask.value) closeTaskDetail();
+  },
+});
 const defaultStatus = ref('todo');
 const activeBoardForCreate = ref('standard');
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
@@ -250,22 +275,19 @@ onMounted(loadTasks);
 usePanelRefresh(loadTasks);
 
 function openCreate(status) {
-  editingTask.value = null;
   defaultStatus.value = status || 'todo';
   activeBoardForCreate.value = 'standard';
-  showModal.value = true;
+  creatingTask.value = true;
 }
 
 function openCreateOnBoard(boardKey, status) {
-  editingTask.value = null;
   defaultStatus.value = status || 'todo';
   activeBoardForCreate.value = boardKey;
-  showModal.value = true;
+  creatingTask.value = true;
 }
 
 function openEdit(task) {
-  editingTask.value = task;
-  showModal.value = true;
+  openTaskById(task.id);
 }
 
 // Show the backend's normalized message when a task action fails.

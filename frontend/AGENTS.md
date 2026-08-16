@@ -43,6 +43,11 @@ You are an expert in TypeScript, Node.js, NuxtJS, Vue 3, Shadcn Vue, Radix Vue, 
 - Use Pinia for state management.
 - Optimize Web Vitals (LCP, CLS, FID).
 - Utilize Nuxt's auto-imports feature for components and composables.
+- A listing row that leads to a detail is a real link: `<BaseRowLink :to>` on
+  the title, the row's `@click` through `useRowNavigation`, and never a
+  `ctrlKey` branch of your own. The full contract — including what to do when
+  the detail has no address yet — is in `components/base/README.md` →
+  **Navigable rows**; `check-design-tokens.mjs` enforces it.
 
 ### Nuxt-specific Guidelines
 - Follow Nuxt 3 directory structure (pages/, components/, composables/).

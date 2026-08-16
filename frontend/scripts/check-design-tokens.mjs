@@ -20,6 +20,15 @@
  *      templates without a semantic background token. Bare inputs render
  *      white in dark mode. Panel-only; skips elements with `:class=` since
  *      dynamic bindings can't be statically traced.
+ *   5. MANUAL_MODIFIER_NAVIGATION — reading ctrlKey/metaKey next to a
+ *      window.open/router.push: an <a href> rewritten in JavaScript, which can
+ *      only ever answer one of the browser's gestures. Gates always; the only
+ *      exempt file is the shared primitive that owns the decision.
+ *   6. ROW_LINK_MISSING — a `v-for` row with `@click` and no link inside, so
+ *      the destination has no address the browser can use. Warn-only until
+ *      --strict-rows, because a row whose detail is a modal needs an address
+ *      invented before a link can exist. Opt out with
+ *      `design-tokens: allow-clickable-row` for rows that only expand in place.
  *
  * Behavior:
  *   - Scans pages/, components/, layouts/ (excluding allowlist).
@@ -434,6 +443,7 @@ function findFormControlsMissingBg(content) {
 const args = process.argv.slice(2);
 const strict = args.includes('--strict');
 const strictButtons = args.includes('--strict-buttons');
+const strictRows = args.includes('--strict-rows');
 const quiet = args.includes('--quiet');
 const filesIdx = args.indexOf('--files');
 const explicitFiles = filesIdx >= 0 ? args.slice(filesIdx + 1).filter((f) => !f.startsWith('--')) : null;
@@ -563,8 +573,9 @@ function readTag(content, from) {
   return content.slice(from);
 }
 
-function findRawStyledButtons(content) {
-  const found = [];
+// Índice de offsets → línea, compartido por las reglas que trabajan sobre el
+// contenido entero en vez de línea por línea.
+function buildLineIndex(content) {
   const lineStarts = [];
   let acc = 0;
   for (const l of content.split('\n')) {
@@ -581,6 +592,12 @@ function findRawStyledButtons(content) {
     }
     return lo + 1; // 1-indexed
   };
+  return { lineStarts, lineOf };
+}
+
+function findRawStyledButtons(content) {
+  const found = [];
+  const { lineStarts, lineOf } = buildLineIndex(content);
 
   const re = /<button\b/g;
   let m;
@@ -600,10 +617,117 @@ function findRawStyledButtons(content) {
   return found;
 }
 
+// ----------------------------------------------------------------------------
+// MANUAL_MODIFIER_NAVIGATION: a screen reading ctrlKey/metaKey to decide how to
+// navigate is reimplementing an <a href> in JavaScript.
+//
+// Why: every listing that did this reimplemented a different fraction of it.
+// Proposals and diagnostics branched to window.open on ctrl/cmd; documents had
+// no branch at all, so ctrl+click opened in the same tab. None of them could
+// serve middle click, "open in new tab" from the context menu, copying the
+// address or the keyboard, because none of that is reachable without an href.
+//
+// The fix is never a better branch — it is a real link. The ONE place allowed
+// to read modifiers is the shared primitive that decides what a row gesture
+// means; naming it here is also how that exception stays documented.
+const ALLOW_MANUAL_MODIFIER = 'design-tokens: allow-manual-modifier';
+const MODIFIER_NAV_EXEMPT = new Set(['utils/rowNavigation.js']);
+const MODIFIER_RE = /\b(?:ctrlKey|metaKey)\b/;
+const NAVIGATION_RE = /(?:window\.open\(|router\.push\(|navigateTo\(|location\.href)/;
+// Ancho de la ventana de coocurrencia. Una tecla modificadora sola no dice
+// nada — `metaKey` es también un nombre de variable razonable; lo que delata al
+// patrón es tenerla al lado de una navegación.
+const MODIFIER_NAV_PROXIMITY = 8;
+
+function findManualModifierNavigation(lines) {
+  const found = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!MODIFIER_RE.test(lines[i])) continue;
+    const from = Math.max(0, i - MODIFIER_NAV_PROXIMITY);
+    const to = Math.min(lines.length, i + MODIFIER_NAV_PROXIMITY + 1);
+    const window = lines.slice(from, to);
+    if (!window.some((l) => NAVIGATION_RE.test(l))) continue;
+    if (window.some((l) => l.includes(ALLOW_MANUAL_MODIFIER))) continue;
+    found.push({ line: i + 1 });
+  }
+  return found;
+}
+
+// ----------------------------------------------------------------------------
+// ROW_LINK_MISSING: a repeated row that navigates on click but holds no link.
+//
+// Why: a <tr>/<div> with @click is the convenience half of a link. Without an
+// <a href> inside, the row cannot be opened in another tab, cannot have its
+// address copied, does not preview in the status bar and is unreachable by
+// keyboard. See components/base/README.md → Navigable rows.
+//
+// The rule does NOT look at handler names: after the fix a row still reads
+// @click="navigateToProposal(...)", only guarded. A rule whose green state is
+// "everybody added the opt-out marker" teaches nothing — this one goes green
+// because a real link appeared.
+//
+// Deliberately narrow: only a tag carrying BOTH v-for and @click. Rows that
+// merely expand in place (the clients accordion, the accounting history tables)
+// are legitimate and mark themselves with the opt-out when they trip it.
+const ALLOW_CLICKABLE_ROW = 'design-tokens: allow-clickable-row';
+const ROW_TAG_RE = /<(tr|li|article|div)\b/g;
+const ROW_LINK_RE = /<(?:a\s|a>|NuxtLink\b|BaseRowLink\b|nuxt-link\b)/;
+// Un rol interactivo propio significa que la fila no es un destino sino un
+// control: una opción de autocompletado, una pestaña, un ítem de menú.
+const ROW_NON_DESTINATION_RE = /role="(?:option|tab|menuitem|menuitemradio|checkbox|radio)"/;
+
+// Devuelve el bloque completo del elemento abierto en `from`, contando anidados
+// del mismo tag. Si no cierra (markup raro), devuelve lo que quede.
+function readElementBlock(content, from, tag) {
+  const open = new RegExp(`<${tag}\\b`, 'g');
+  const close = new RegExp(`</${tag}\\s*>`, 'g');
+  open.lastIndex = from + 1;
+  close.lastIndex = from + 1;
+  let depth = 1;
+  let cursor = from + 1;
+  while (depth > 0) {
+    open.lastIndex = cursor;
+    close.lastIndex = cursor;
+    const nextOpen = open.exec(content);
+    const nextClose = close.exec(content);
+    if (!nextClose) return content.slice(from);
+    if (nextOpen && nextOpen.index < nextClose.index) {
+      depth += 1;
+      cursor = nextOpen.index + 1;
+    } else {
+      depth -= 1;
+      cursor = nextClose.index + 1;
+      if (depth === 0) return content.slice(from, nextClose.index + nextClose[0].length);
+    }
+  }
+  return content.slice(from);
+}
+
+function findRowsWithoutLink(content, lineOf, lineStarts) {
+  const found = [];
+  ROW_TAG_RE.lastIndex = 0;
+  let m;
+  while ((m = ROW_TAG_RE.exec(content)) !== null) {
+    const tag = readTag(content, m.index);
+    if (!/\bv-for\b/.test(tag)) continue;
+    if (!/@click(?![.\w-]*\bself\b)/.test(tag) || /@click\.self/.test(tag)) continue;
+    if (ROW_NON_DESTINATION_RE.test(tag)) continue;
+    const line = lineOf(m.index);
+    const contextStart = lineStarts[Math.max(0, line - 3)];
+    if (content.slice(contextStart, m.index + tag.length).includes(ALLOW_CLICKABLE_ROW)) continue;
+    const block = readElementBlock(content, m.index, m[1]);
+    if (ROW_LINK_RE.test(block)) continue;
+    found.push({ line, tag: m[1] });
+  }
+  return found;
+}
+
 const offenses = [];
 const invalidTokenOffenses = [];
 const formControlOffenses = [];
 const rawButtonOffenses = [];
+const modifierNavOffenses = [];
+const rowLinkOffenses = [];
 for (const file of targetFiles()) {
   const rel = path.relative(FRONTEND_ROOT, file);
   if (isAllowed(rel)) continue;
@@ -656,6 +780,17 @@ for (const file of targetFiles()) {
       rawButtonOffenses.push({ file: rel, line: rb.line, suggest: rb.suggest });
     }
   }
+  if (!MODIFIER_NAV_EXEMPT.has(rel)) {
+    for (const mn of findManualModifierNavigation(lines)) {
+      modifierNavOffenses.push({ file: rel, line: mn.line });
+    }
+  }
+  if (file.endsWith('.vue')) {
+    const { lineStarts, lineOf } = buildLineIndex(content);
+    for (const rl of findRowsWithoutLink(content, lineOf, lineStarts)) {
+      rowLinkOffenses.push({ file: rel, line: rl.line, tag: rl.tag });
+    }
+  }
 }
 
 // Raw buttons are reported but do not gate by default. 629 of them still live
@@ -663,12 +798,21 @@ for (const file of targetFiles()) {
 // one-line edit into a full button migration of that file — which is how a
 // useful rule gets deleted. Pass --strict-buttons to gate on it (do that once
 // the migration lands; the count is the progress bar until then).
+// MANUAL_MODIFIER_NAVIGATION gates unconditionally: it landed green (the only
+// two occurrences were removed by the change that introduced the rule), and the
+// anti-pattern has a unique fingerprint, so there is no migration to wait out.
+//
+// ROW_LINK_MISSING waits behind --strict-rows for the same reason raw buttons
+// wait behind --strict-buttons: rows whose detail has no address yet cannot be
+// fixed by adding a link, only by inventing the address first.
 const gatingOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
-  + (strictButtons ? rawButtonOffenses.length : 0);
+  + modifierNavOffenses.length
+  + (strictButtons ? rawButtonOffenses.length : 0)
+  + (strictRows ? rowLinkOffenses.length : 0);
 const totalOffenses = offenses.length + invalidTokenOffenses.length + formControlOffenses.length
-  + rawButtonOffenses.length;
+  + rawButtonOffenses.length + modifierNavOffenses.length + rowLinkOffenses.length;
 if (totalOffenses === 0) {
-  console.log(`✓ design-tokens: no forbidden literals, invalid tokens, unstyled form controls or raw styled buttons found (scope=${scope})`);
+  console.log(`✓ design-tokens: no forbidden literals, invalid tokens, unstyled form controls, raw styled buttons, hand-rolled modifier navigation or clickable rows without a link found (scope=${scope})`);
   process.exit(0);
 }
 
@@ -692,11 +836,23 @@ const groupedRawButtons = rawButtonOffenses.reduce((acc, o) => {
   return acc;
 }, {});
 
+const groupedModifierNav = modifierNavOffenses.reduce((acc, o) => {
+  (acc[o.file] = acc[o.file] || []).push(o);
+  return acc;
+}, {});
+
+const groupedRowLinks = rowLinkOffenses.reduce((acc, o) => {
+  (acc[o.file] = acc[o.file] || []).push(o);
+  return acc;
+}, {});
+
 const forbiddenSummary = `${offenses.length} forbidden literal${offenses.length === 1 ? '' : 's'} across ${Object.keys(grouped).length} file${Object.keys(grouped).length === 1 ? '' : 's'}`;
 const invalidSummary = `${invalidTokenOffenses.length} invalid token reference${invalidTokenOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedInvalid).length} file${Object.keys(groupedInvalid).length === 1 ? '' : 's'}`;
 const formControlSummary = `${formControlOffenses.length} form control${formControlOffenses.length === 1 ? '' : 's'} without semantic bg across ${Object.keys(groupedFormControls).length} file${Object.keys(groupedFormControls).length === 1 ? '' : 's'}`;
 const rawButtonSummary = `${rawButtonOffenses.length} raw styled button${rawButtonOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedRawButtons).length} file${Object.keys(groupedRawButtons).length === 1 ? '' : 's'}`;
-const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary}, ${formControlSummary}, ${rawButtonSummary} (scope=${scope})`;
+const modifierNavSummary = `${modifierNavOffenses.length} hand-rolled modifier navigation${modifierNavOffenses.length === 1 ? '' : 's'} across ${Object.keys(groupedModifierNav).length} file${Object.keys(groupedModifierNav).length === 1 ? '' : 's'}`;
+const rowLinkSummary = `${rowLinkOffenses.length} clickable row${rowLinkOffenses.length === 1 ? '' : 's'} without a link across ${Object.keys(groupedRowLinks).length} file${Object.keys(groupedRowLinks).length === 1 ? '' : 's'}`;
+const summary = `design-tokens: ${forbiddenSummary}, ${invalidSummary}, ${formControlSummary}, ${rawButtonSummary}, ${modifierNavSummary}, ${rowLinkSummary} (scope=${scope})`;
 
 if (quiet) {
   console.log(summary);
@@ -742,6 +898,33 @@ if (quiet) {
       console.log(`  ${file}`);
       for (const o of list) {
         console.log(`    L${o.line}  <${o.tag}>  ${o.snippet}`);
+      }
+    }
+  }
+  if (modifierNavOffenses.length) {
+    console.log('');
+    console.log(`MANUAL_MODIFIER_NAVIGATION — reading ctrlKey/metaKey to decide how to navigate:`);
+    console.log(`  That is an <a href> written in JavaScript, and it can only ever answer one`);
+    console.log(`  gesture. Give the row a real link (BaseRowLink) and let useRowNavigation`);
+    console.log(`  handle the click — see components/base/README.md → Navigable rows.`);
+    for (const [file, list] of Object.entries(groupedModifierNav)) {
+      console.log(`  ${file}`);
+      for (const o of list) {
+        console.log(`    L${o.line}  →  BaseRowLink + useRowNavigation`);
+      }
+    }
+  }
+  if (rowLinkOffenses.length) {
+    console.log('');
+    console.log(`ROW_LINK_MISSING — a repeated row with @click and no link inside:`);
+    console.log(`  Without an <a href> the row cannot be opened in another tab, copied, or`);
+    console.log(`  reached by keyboard. Put a <BaseRowLink :to> on its title.`);
+    console.log(`  A row that only expands in place is not a destination: mark it with a`);
+    console.log(`  "design-tokens: allow-clickable-row" comment on or above the tag.`);
+    for (const [file, list] of Object.entries(groupedRowLinks)) {
+      console.log(`  ${file}`);
+      for (const o of list) {
+        console.log(`    L${o.line}  <${o.tag} v-for @click>  →  add a <BaseRowLink :to>`);
       }
     }
   }

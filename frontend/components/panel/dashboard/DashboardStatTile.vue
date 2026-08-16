@@ -39,7 +39,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, resolveComponent } from 'vue';
 import AccountingSparkline from '~/components/accounting/AccountingSparkline.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { formatMoney } from '~/utils/formatMoney';
@@ -80,8 +80,14 @@ const props = defineProps({
 
 const emit = defineEmits(['click']);
 
+// Componente resuelto, no el string 'NuxtLink': Nuxt resuelve los componentes
+// en compilación, así que un nombre en `:is` se renderiza como el elemento
+// desconocido <nuxtlink> — sin href y sin navegar. Mismo camino que
+// components/base/BaseDropdown.vue.
+const NuxtLinkComponent = resolveComponent('NuxtLink');
+
 const rootTag = computed(() =>
-  props.to ? 'NuxtLink' : props.clickable ? 'button' : 'div',
+  props.to ? NuxtLinkComponent : props.clickable ? 'button' : 'div',
 );
 const isButton = computed(() => !props.to && props.clickable);
 

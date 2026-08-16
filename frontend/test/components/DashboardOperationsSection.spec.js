@@ -4,9 +4,14 @@ global.useLocalePath = jest.fn(() => (path) => path);
 
 import DashboardOperationsSection from '../../components/panel/dashboard/DashboardOperationsSection.vue';
 
+// Registrado como componente y no como stub: las tarjetas de esta sección
+// llevan `to`, así que DashboardStatTile las renderiza resolviendo NuxtLink con
+// `resolveComponent` (un string en `:is` no resuelve un auto-import de Nuxt), y
+// `resolveComponent` sólo encuentra lo que está registrado. Como stub, la
+// tarjeta se reemplazaba por una vacía y se perdía todo su contenido.
 const GLOBAL = {
-  stubs: {
-    NuxtLink: { template: '<a :href="to" v-bind="$attrs"><slot /></a>', props: ['to'] },
+  components: {
+    NuxtLink: { name: 'NuxtLink', props: ['to'], template: '<a :href="to" v-bind="$attrs"><slot /></a>' },
   },
 };
 

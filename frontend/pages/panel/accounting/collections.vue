@@ -127,10 +127,18 @@
         :highlight-id="highlightId"
         @sort="toggleSort"
       >
+        <!-- El número es la dirección del detalle: un enlace de verdad, no sólo
+             el ojo de la columna de acciones. -->
         <template #cell-public_number="{ row }">
-          <span class="font-medium text-text-default" :title="row.billing_concept">
+          <BaseRowLink
+            :to="accountDetailTo(row.id)"
+            stretch
+            :data-testid="`collection-open-${row.id}`"
+            class="block font-medium text-text-default hover:text-text-brand transition-colors"
+            :title="row.billing_concept"
+          >
             {{ row.public_number || `#${row.id}` }}
-          </span>
+          </BaseRowLink>
         </template>
         <template #cell-origin="{ row }">
           <span
@@ -305,7 +313,7 @@
     <CollectionAccountDetailModal
       :open="detailOpen"
       :record="detailRow"
-      @close="detailOpen = false"
+      @close="closeDetail"
       @download="downloadPdf"
       @go-to-income="goToIncome"
     />
@@ -356,6 +364,7 @@ import {
   matchNumberRange,
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
+import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { get_request } from '~/stores/services/request_http';
@@ -566,7 +575,7 @@ const overdueCount = computed(
 // shrinks to a badge: it used to smuggle the hosting's client / the income's
 // concept into its label, and both now have a column of their own.
 const columns = [
-  { key: 'public_number', label: 'Número', size: 'text', sortable: true },
+  { key: 'public_number', label: 'Número', size: 'text', sortable: true, link: true },
   { key: 'origin', label: 'Origen', size: 'badge', hideBelow: 'lg' },
   { key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true },
   { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md' },
@@ -695,12 +704,19 @@ function onCreated() {
 
 // ── Detalle de la cuenta (reemplaza el salto al tab de Ingresos) ──
 
-const detailOpen = ref(false);
-const detailRow = ref(null);
+// La cuenta de cobro tiene dirección propia (`?account=`): así el número de la
+// fila puede publicarla en un enlace, y recargar o compartir la URL reabre el
+// detalle. No es un ephemeralParam a propósito — esos se borran en el setup.
+const {
+  openRow: detailRow,
+  isOpen: detailOpen,
+  toFor: accountDetailTo,
+  open: openDetailById,
+  close: closeDetail,
+} = useDetailQueryParam('account', { rows: sortedRows });
 
 function openDetail(row) {
-  detailRow.value = row;
-  detailOpen.value = true;
+  openDetailById(row.id);
 }
 
 // ── Bidirectional navigation ──

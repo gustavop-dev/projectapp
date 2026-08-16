@@ -51,7 +51,8 @@ const meta = computed(() => {
     ]"
     :draggable="!archived"
     :data-testid="`document-card-${document.id}`"
-    @click="emit('open')"
+    @click="emit('open', $event)"
+    @auxclick.middle="emit('open', $event)"
     @dragstart="emit('dragstart', $event)"
     @dragend="emit('dragend', $event)"
   >
@@ -87,15 +88,15 @@ const meta = computed(() => {
 
     <!-- Info -->
     <div class="p-4">
-      <component
-        :is="editTo ? 'NuxtLink' : 'span'"
-        :to="editTo || undefined"
-        class="block text-sm font-semibold text-text-default leading-snug line-clamp-2
-               outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40 rounded"
-        @click.stop
+      <!-- Sin `stretch`: el kebab vive en esta misma tarjeta y quedaría
+           tapado. La tarjeta entera ya responde al clic simple. -->
+      <BaseRowLink
+        :to="editTo"
+        :data-testid="`document-card-open-${document.id}`"
+        class="block text-sm font-semibold text-text-default leading-snug line-clamp-2"
       >
         {{ document.title }}
-      </component>
+      </BaseRowLink>
       <p class="text-xs text-text-muted mt-1 tabular-nums truncate">{{ meta }}</p>
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">

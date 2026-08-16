@@ -647,6 +647,27 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(created.body.period_date).toBe('2026-05-01');
   });
 
+  // Antes el detalle sólo existía detrás del kebab y no tenía dirección: no se
+  // podía compartir, ni recargar dentro de él, ni — el motivo de fondo —
+  // publicarlo en el enlace de la fila.
+  test('el concepto enlaza al detalle y la dirección sobrevive una recarga', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({ rows: [incomeRow()], calls: [] }));
+    await gotoIncomes(page);
+
+    await expect(page.getByTestId('income-open-1')).toHaveAttribute('href', /income=1/);
+
+    await page.getByTestId('income-open-1').click();
+
+    await expect(page.getByTestId('income-detail-modal')).toBeVisible();
+    await expect(page).toHaveURL(/income=1/);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('income-detail-modal')).toBeVisible({ timeout: 25_000 });
+  });
+
   test('duplicating from the detail modal opens the same seeded form', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
