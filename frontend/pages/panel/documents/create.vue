@@ -30,6 +30,20 @@
       class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
       @submit.prevent="handleSubmit"
     >
+      <!-- En un formulario de creación no hay versión guardada a la que
+           volver, así que no se ofrece "Descartar cambios": la salida sin
+           guardar vive en el diálogo. -->
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        class="lg:col-span-2"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        message="Este documento todavía no existe. Si sales de esta página, se pierde."
+        :can-save="false"
+        :can-discard="false"
+        testid="doc-create-unsaved-notice"
+      />
+
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
                lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
@@ -299,20 +313,42 @@
         </div>
       </section>
     </form>
+
+    <!-- Sin este modal el guard abriría un diálogo que nadie renderiza y la
+         navegación quedaría bloqueada en silencio. -->
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, watch } from 'vue';
+import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -351,6 +387,39 @@ const form = reactive({
   template_style: 'professional',
 });
 
+const CREATE_FIELD_LABELS = {
+  title: 'título',
+  client: 'cliente',
+  project: 'proyecto',
+  language: 'idioma',
+  include_portada: 'portada',
+  include_subportada: 'subportada',
+  include_contraportada: 'contraportada',
+  content_markdown: 'contenido',
+  folder_id: 'carpeta',
+  tag_ids: 'etiquetas',
+  template_style: 'estilo de plantilla',
+};
+
+// `save` queda en null a propósito: handleSubmit navega al editor, y llamarlo
+// desde dentro del guard de navegación sería navegación reentrante. Quedan dos
+// salidas —seguir editando o salir sin guardar—, que es lo honesto acá.
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({ ...form, tag_ids: [...form.tag_ids] }),
+  labels: CREATE_FIELD_LABELS,
+});
+
+// El refresh acá sólo recarga carpetas y etiquetas: no pisa el formulario, así
+// que no necesita el guard.
 usePanelRefresh(() => Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]));
 
 onMounted(async () => {
@@ -360,6 +429,11 @@ onMounted(async () => {
     const numeric = Number(preselectFolder);
     if (!Number.isNaN(numeric)) form.folder_id = numeric;
   }
+  // Deja correr el watcher de carpeta y espera su sugerencia: recién con todo
+  // lo que puso el arranque en su sitio, la baseline representa "sin tocar".
+  await nextTick();
+  if (pendingFolderSuggestion) await pendingFolderSuggestion;
+  commitBaseline();
 });
 
 const canSubmit = computed(
@@ -416,7 +490,7 @@ function clearSuggestedClient() {
 // La carpeta ya está diciendo de quién es: al fijarla (incluido ?folder= de
 // la URL) se propone su cliente mayoritario. Sólo prellenado — nunca pisa una
 // decisión del operador, y cambiar de carpeta re-propone o retira lo sugerido.
-watch(() => form.folder_id, async (folderId) => {
+async function runFolderClientSuggestion(folderId) {
   if (clientTouched.value) return;
   if (form.client && !suggestedFromFolder.value) return;
   if (!Number.isInteger(folderId)) {
@@ -432,6 +506,15 @@ watch(() => form.folder_id, async (folderId) => {
   } else if (suggestedFromFolder.value) {
     clearSuggestedClient();
   }
+}
+
+// Se guarda la promesa en curso para que el arranque pueda esperarla antes de
+// fijar la baseline: la sugerencia llega DESPUÉS del mount y, sin esperarla,
+// entrar desde una carpeta dejaría el formulario "sucio" sin que nadie lo toque.
+let pendingFolderSuggestion = null;
+
+watch(() => form.folder_id, (folderId) => {
+  pendingFolderSuggestion = runFolderClientSuggestion(folderId);
 });
 
 const coverOptions = [
@@ -503,6 +586,9 @@ async function handleSubmit() {
   const result = await documentStore.createFromMarkdown(payload);
   if (result.success) {
     notify.success({ title: 'Documento creado' });
+    // Lo del formulario ya está persistido: re-fijar la baseline desarma el
+    // guard y la redirección al editor pasa sin preguntar nada.
+    commitBaseline();
     navigateTo(localePath(`/panel/documents/${result.data.id}/edit`));
   } else {
     const fieldDetail = result.fieldErrors

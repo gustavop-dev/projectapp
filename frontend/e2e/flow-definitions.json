@@ -1,5 +1,5 @@
 {
-  "version": "2.74.0",
+  "version": "2.75.0",
   "lastUpdated": "2026-08-16",
   "flows": {
     "layout-navbar-navigation": {
@@ -2241,6 +2241,21 @@
         "display",
         "success",
         "error"
+      ]
+    },
+    "admin-document-unsaved-guard": {
+      "name": "Admin Document Unsaved Changes Guard",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Unsaved-changes protection on the document editor and creator. Editing any tracked field raises a permanent warning (data-testid doc-unsaved-notice / doc-create-unsaved-notice) whose title names the pending fields — 'Cliente y proyecto sin guardar' — instead of saying only that something is pending; past three fields it counts them and lists them in a detail line. Per-field 'Sin guardar' badges mark título, cliente and proyecto inside the sticky aside (doc-field-dirty-title / -client / -project). Leaving the page, or pressing the global 'Actualizar datos' refresh button, opens a three-way confirmation: 'Guardar y salir' (primary, runs the PATCH and only then navigates — a failed save keeps the user on the page), 'Salir sin guardar' (secondary) and 'Seguir editando' (cancel). An issued cuenta de cobro drops the save exit, since the backend refuses it with collection_account_locked. A pristine form shows no warning and a disabled save button (doc-save-desktop / doc-save-mobile), a create form opened with ?folder= is not born dirty despite the folder's client suggestion, and typing in the client picker without committing a choice does not manufacture a warning.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
       ]
     },
     "admin-document-folders": {

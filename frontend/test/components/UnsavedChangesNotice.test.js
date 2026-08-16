@@ -67,10 +67,11 @@ describe('UnsavedChangesNotice', () => {
   });
 
   it('blocks discarding while a save is in flight', () => {
-    const wrapper = mountNotice({ saving: true });
+    const inFlight = mountNotice({ saving: true });
+    expect(inFlight.get('[data-testid="unsaved-changes-notice-discard"]').element.disabled).toBe(true);
 
-    expect(wrapper.get('[data-testid="unsaved-changes-notice-discard"]').attributes('disabled'))
-      .toBeDefined();
+    const idle = mountNotice({ saving: false });
+    expect(idle.get('[data-testid="unsaved-changes-notice-discard"]').element.disabled).toBe(false);
   });
 
   it('takes a page-specific testid so several notices stay addressable', () => {

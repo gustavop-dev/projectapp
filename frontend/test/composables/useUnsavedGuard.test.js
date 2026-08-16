@@ -251,13 +251,19 @@ describe('useUnsavedGuard — guarded refresh', () => {
 
   it('skips the refresh that would overwrite unsaved edits when cancelled', async () => {
     const reload = jest.fn().mockResolvedValue();
-    const { api, form } = setup({ outcome: 'cancel', reload });
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form, calls } = setup({ outcome: 'cancel', reload, save });
     api.commit();
     form.client = 2;
 
     await api.guardedReload();
 
+    // Preguntó antes de recargar, y al cancelar los cambios siguen ahí.
+    expect(calls[0].confirmText).toBe('Guardar y actualizar');
+    expect(api.hasChanges.value).toBe(true);
+    expect(form.client).toBe(2);
     expect(reload).not.toHaveBeenCalled();
+    expect(save).not.toHaveBeenCalled();
   });
 
   it('refreshes after the user discards the pending edits', async () => {
