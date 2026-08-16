@@ -322,11 +322,6 @@ watch(
     if (inputText.value === committedLabel.value || !committedLabel.value) {
       committedLabel.value = newLabel || '';
     }
-    // El padre reetiqueta tras guardar; sincronizar sin pisar algo que el
-    // usuario esté tecleando encima en ese momento.
-    if (inputText.value === committedLabel.value || !committedLabel.value) {
-      committedLabel.value = newLabel || '';
-    }
   },
 );
 
