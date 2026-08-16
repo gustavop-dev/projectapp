@@ -36,6 +36,26 @@
 export const ROW_INTERACTIVE_SELECTOR = 'a, button, input, label, select, textarea, summary,'
   + ' [role="button"], [role="link"], [role="menuitem"], [contenteditable="true"]';
 
+/**
+ * ¿Es este el clic que el navegador convertiría en «seguir el enlace acá
+ * mismo»? Sirve para el ancla que NO puede navegar sola: la fila de carpeta
+ * publica `?folder=` para que el navegador tenga a dónde apuntar, pero entrar a
+ * una carpeta pasa por el store (y en modo búsqueda hace algo distinto). El
+ * enlace se deja los gestos del navegador y le cede el clic simple a la página.
+ *
+ * A diferencia de `rowActivationIntent` no mira de dónde nació el clic: acá el
+ * oyente ES el enlace.
+ *
+ * @param {MouseEvent} [event]
+ * @returns {boolean}
+ */
+export function isPlainActivation(event) {
+  if (!event) return true;
+  const button = typeof event.button === 'number' ? event.button : 0;
+  if (button !== 0) return false;
+  return !(event.ctrlKey || event.metaKey || event.shiftKey || event.altKey);
+}
+
 /** @typedef {'ignore'|'same-tab'|'new-tab'} RowActivationIntent */
 
 /**

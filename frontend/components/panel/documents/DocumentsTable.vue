@@ -6,12 +6,17 @@ import {
 } from '~/utils/documentStatus'
 import { computed } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
+import { isPlainActivation } from '~/utils/rowNavigation'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 
 const props = defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
   editToFor: { type: Function, default: () => null },
+  // Dirección de una subcarpeta (`?folder=`). Devuelve null cuando entrar no es
+  // navegar por URL — en plena búsqueda, por ejemplo — y ahí el nombre deja de
+  // fingir que es un enlace.
+  folderToFor: { type: Function, default: () => null },
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
@@ -42,6 +47,18 @@ const dateHeader = computed(() => {
 
 function archivedContentCount(folder) {
   return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
+}
+
+/**
+ * El nombre de la carpeta es un enlace por los gestos del navegador —
+ * ctrl+clic, rueda, «copiar dirección» —, pero el clic simple se lo queda la
+ * página: entrar a una carpeta pasa por el store, que además tiene su propio
+ * camino cuando hay una búsqueda en curso.
+ */
+function onFolderLink(event, sub) {
+  if (!isPlainActivation(event)) return
+  event.preventDefault()
+  emit('select-folder', sub.id)
 }
 </script>
 
@@ -80,7 +97,12 @@ function archivedContentCount(folder) {
               <svg class="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
               </svg>
-              <span class="text-sm font-medium text-text-default truncate">{{ sub.name }}</span>
+              <BaseRowLink
+                :to="folderToFor(sub)"
+                :data-testid="`folder-open-${sub.id}`"
+                class="text-sm font-medium text-text-default truncate"
+                @click="onFolderLink($event, sub)"
+              >{{ sub.name }}</BaseRowLink>
               <FolderArchivedBadge
                 v-if="!sub.is_archived && archivedContentCount(sub)"
                 :count="archivedContentCount(sub)"

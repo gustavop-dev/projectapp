@@ -27,6 +27,13 @@ const documents = [{
   client_name: 'ACME Corp', created_at: '2026-03-01T10:00:00Z', tag_details: [],
 }];
 
+// Las filas de subcarpeta sólo existen DENTRO de una carpeta: en la cima el
+// listado sólo muestra documentos y la barra lateral lleva las carpetas.
+const folders = [
+  { id: 5, name: 'Clientes', parent: null, document_count: 0, children_count: 1 },
+  { id: 9, name: 'Contratos 2024', parent: 5, document_count: 0, children_count: 0 },
+];
+
 const proposals = [{
   id: 1, uuid: '11111111-1111-1111-1111-111111111111', title: 'Plataforma E2E',
   client_name: 'Cliente E2E', client_email: 'a@e2e.com', client_phone: '+573001234567',
@@ -45,7 +52,7 @@ const handlers = {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'documents/') return json(documents);
     if (apiPath === 'documents/1/') return json({ ...documents[0], content: '# Contrato' });
-    if (apiPath === 'document-folders/') return json([]);
+    if (apiPath === 'document-folders/') return json(folders);
     if (apiPath === 'document-tags/') return json([]);
     return null;
   },
@@ -169,6 +176,35 @@ for (const listing of LISTINGS) {
     });
   });
 }
+
+test.describe('Filas navegables · carpetas de Documentos', () => {
+  test.setTimeout(60_000);
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8800, role: 'admin', is_staff: true } });
+  });
+
+  // La dirección `?folder=` ya existía y era restaurable; lo que faltaba era
+  // que alguna fila la publicara.
+  test('Documentos: la carpeta publica su dirección y ctrl+clic la abre aparte', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:success'],
+  }, async ({ page, context }) => {
+    await mockApi(context, handlers.documents);
+    // Parado dentro de «Clientes», que es donde vive la fila de subcarpeta.
+    await page.goto('/panel/documents?folder=5', { waitUntil: 'domcontentloaded' });
+
+    const folder = page.getByTestId('folder-open-9').first();
+    await expect(folder).toHaveAttribute('href', /folder=9/, { timeout: 20_000 });
+
+    const popupPromise = context.waitForEvent('page');
+    await folder.click({ modifiers: ['ControlOrMeta'] });
+    const popup = await popupPromise;
+
+    await popup.waitForURL(/folder=9/, { timeout: 25_000 });
+    // El listado de origen se quedó donde estaba.
+    await expect(page).toHaveURL(/folder=5/);
+  });
+});
 
 test.describe('Filas navegables · menú de acciones', () => {
   test.setTimeout(60_000);

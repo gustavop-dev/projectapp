@@ -267,3 +267,42 @@ describe('DocumentsTable — fila navegable', () => {
     expect(wrapper.findAll('tbody tr')[0].attributes('draggable')).toBe('true');
   });
 });
+
+describe('DocumentsTable — fila de carpeta', () => {
+  const folderToFor = (sub) => `/panel/documents?folder=${sub.id}`;
+
+  it('publishes the folder address on its name', () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    const link = wrapper.get('[data-testid="folder-open-9"]');
+    expect(link.attributes('href')).toBe('/panel/documents?folder=9');
+    expect(link.text()).toBe('Contratos 2024');
+  });
+
+  it('keeps the plain click for the page, which owns how a folder is entered', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    await wrapper.get('[data-testid="folder-open-9"]').trigger('click');
+
+    // La página entra por el store — y en plena búsqueda hace algo distinto —,
+    // así que el enlace cede el clic simple en vez de navegar por su cuenta.
+    expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
+  });
+
+  it('hands a ctrl+click to the browser instead of entering the folder', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    await wrapper.get('[data-testid="folder-open-9"]').trigger('click', { ctrlKey: true });
+
+    expect(wrapper.emitted('select-folder')).toBeUndefined();
+  });
+
+  it('does not fake an address when the page says there is none', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder] });
+
+    expect(wrapper.find('a').exists()).toBe(false);
+    // La fila sigue entrando a la carpeta: lo que falta es la dirección.
+    await wrapper.findAll('tbody tr')[0].trigger('click');
+    expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
+  });
+});

@@ -6,7 +6,9 @@
  * en la misma pestaña: la fila se aparta y el `<a>` del título hace lo suyo.
  */
 
-import { ROW_INTERACTIVE_SELECTOR, rowActivationIntent } from '../../utils/rowNavigation';
+import {
+  ROW_INTERACTIVE_SELECTOR, isPlainActivation, rowActivationIntent,
+} from '../../utils/rowNavigation';
 
 /**
  * Dispara un clic real sobre `element` y devuelve el evento tal como lo recibe
@@ -114,5 +116,39 @@ describe('rowActivationIntent', () => {
       { hasTextSelection: () => true },
     );
     expect(intent).toBe('new-tab');
+  });
+});
+
+/**
+ * El caso del enlace que NO puede navegar solo: la fila de carpeta lleva
+ * `?folder=`, pero entrar a una carpeta pasa por el store (y en pleno modo
+ * búsqueda hace algo distinto). El ancla existe por los gestos del navegador;
+ * el clic simple se lo queda la página.
+ */
+describe('isPlainActivation', () => {
+  it('claims the unmodified primary click, which is the one the page handles', () => {
+    const { title } = buildRow();
+    expect(isPlainActivation(clickOn(title))).toBe(true);
+  });
+
+  it('leaves ctrl, cmd, shift and alt to the browser', () => {
+    const { title } = buildRow();
+    expect(isPlainActivation(clickOn(title, { ctrlKey: true }))).toBe(false);
+    expect(isPlainActivation(clickOn(title, { metaKey: true }))).toBe(false);
+    expect(isPlainActivation(clickOn(title, { shiftKey: true }))).toBe(false);
+    expect(isPlainActivation(clickOn(title, { altKey: true }))).toBe(false);
+  });
+
+  it('leaves the wheel and the right button to the browser', () => {
+    const { title } = buildRow();
+    expect(isPlainActivation(clickOn(title, { button: 1 }))).toBe(false);
+    expect(isPlainActivation(clickOn(title, { button: 2 }))).toBe(false);
+  });
+
+  it('does not care where the click was born, unlike the row guard', () => {
+    // Justo la diferencia con rowActivationIntent: acá el oyente ES el enlace.
+    const { title } = buildRow();
+    expect(rowActivationIntent(clickOn(title))).toBe('ignore');
+    expect(isPlainActivation(clickOn(title))).toBe(true);
   });
 });

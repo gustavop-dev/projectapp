@@ -290,6 +290,7 @@
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
+            :folder-to-for="folderToFor"
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
@@ -315,6 +316,7 @@
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
+            :folder-to-for="folderToFor"
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
@@ -438,6 +440,7 @@ import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useRowNavigation } from '~/composables/useRowNavigation';
 
 const localePath = useLocalePath();
+const route = useRoute();
 const { openRow } = useRowNavigation();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -1010,6 +1013,18 @@ function handleMoved() {
 // y la lee el atajo de clic, así que no pueden apuntar a lugares distintos.
 function editToFor(doc) {
   return doc ? localePath(`/panel/documents/${doc.id}/edit`) : null;
+}
+
+/**
+ * Dirección de una subcarpeta. Existe desde antes — `?folder=` ya es deep link
+ * (useDocumentFilterQuery) —, sólo que ninguna fila la publicaba.
+ *
+ * Devuelve null durante una búsqueda: ahí entrar a una carpeta significa salir
+ * de la búsqueda hacia ella, y eso no lo puede expresar un cambio de query.
+ */
+function folderToFor(sub) {
+  if (!sub || isSearching.value) return null;
+  return localePath({ path: route.path, query: { ...route.query, folder: String(sub.id) } });
 }
 
 function handleEditDoc(doc) {

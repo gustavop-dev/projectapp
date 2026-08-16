@@ -2,11 +2,15 @@
 import DocumentCard from '~/components/panel/documents/DocumentCard.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 import { folderRowSummary } from '~/utils/documentStatus'
+import { isPlainActivation } from '~/utils/rowNavigation'
 
 defineProps({
   documents: { type: Array, default: () => [] },
   subfolders: { type: Array, default: () => [] },
   editToFor: { type: Function, default: () => null },
+  // Igual que en la tabla: dirección de la subcarpeta, o null cuando entrar no
+  // es navegar por URL.
+  folderToFor: { type: Function, default: () => null },
   draggingDocId: { type: [Number, String], default: null },
   dragOverFolderId: { type: [Number, String], default: null },
   newlyCreatedId: { type: [Number, String], default: null },
@@ -24,6 +28,13 @@ const emit = defineEmits([
   'folder-dragstart', 'folder-dragend', 'folder-dragover', 'folder-dragleave',
   'drop-on-folder',
 ])
+
+/** Igual que en la tabla: el enlace se queda los gestos, la página el clic simple. */
+function onFolderLink(event, sub) {
+  if (!isPlainActivation(event)) return
+  event.preventDefault()
+  emit('select-folder', sub.id)
+}
 
 function archivedContentCount(folder) {
   return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
@@ -49,12 +60,9 @@ function archivedContentCount(folder) {
         'ring-2 ring-success-strong border-success-strong/60 motion-safe:scale-[1.02]':
           dragOverFolderId === sub.id,
       }"
-      role="button"
-      tabindex="0"
       :draggable="!sub.is_archived"
       :data-testid="`folder-card-${sub.id}`"
       @click="emit('select-folder', sub.id)"
-      @keydown.enter.prevent="emit('select-folder', sub.id)"
       @dragstart="emit('folder-dragstart', $event, sub)"
       @dragend="emit('folder-dragend')"
       @dragover="emit('folder-dragover', $event, sub.id)"
@@ -64,7 +72,15 @@ function archivedContentCount(folder) {
       <svg class="w-10 h-10 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
       </svg>
-      <span class="text-sm font-medium text-text-default truncate max-w-full">{{ sub.name }}</span>
+      <!-- El enlace del nombre reemplaza al role="button"/tabindex del contenedor:
+           es alcanzable con tabulador, se activa con enter, se anuncia como
+           enlace y no duplica la parada de tabulación. -->
+      <BaseRowLink
+        :to="folderToFor(sub)"
+        :data-testid="`folder-open-${sub.id}`"
+        class="text-sm font-medium text-text-default truncate max-w-full"
+        @click="onFolderLink($event, sub)"
+      >{{ sub.name }}</BaseRowLink>
       <span class="text-xs text-text-subtle">
         {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
       </span>
