@@ -87,6 +87,15 @@ const baseClient = (overrides = {}) => ({
   nit: '900123456',
   cedula: '',
   billing_code: 'ACME',
+  diagnostics_count: 0,
+  diagnostic_incomes_count: 0,
+  diagnostics_without_proposal_count: 0,
+  documents_count: 0,
+  documents_no_project_count: 0,
+  last_document_at: null,
+  emails_sent_count: 0,
+  emails_failed_count: 0,
+  last_email_at: null,
   ...overrides,
 });
 
@@ -275,6 +284,23 @@ describe('taxonomy', () => {
       { value: 'no-project', label: 'Con documentos sin proyecto' },
     ]);
   });
+
+  it('offers every diagnostic subfilter as a panel option too', () => {
+    expect(subfilterOptionsFor('diagnostics', 'diagnosticStatus')).toEqual([
+      { value: 'billed', label: 'Con diagnóstico facturado' },
+      { value: 'none', label: 'Sin diagnóstico' },
+      { value: 'unconverted', label: 'Diagnóstico sin propuesta posterior' },
+    ]);
+  });
+
+  it('offers every email subfilter as a panel option too', () => {
+    expect(subfilterOptionsFor('emails', 'emailStatus')).toEqual([
+      { value: 'any', label: 'Con correos enviados' },
+      { value: 'none', label: 'Sin ningún correo' },
+      { value: 'failed', label: 'Con envíos fallidos' },
+      { value: 'cold', label: 'Sin contacto en los últimos 30 días' },
+    ]);
+  });
 });
 
 describe('documents module', () => {
@@ -295,6 +321,70 @@ describe('documents module', () => {
     currentFilters.module = 'documents';
     expect(displayTabs.value.map((t) => t.id))
       .toEqual(['docs-with', 'docs-none', 'docs-no-project']);
+  });
+});
+
+describe('diagnostic subfilters', () => {
+  const sub = (id) => CLIENT_SUBFILTERS.find((s) => s.id === id);
+
+  it('reads the income for "facturado", not the diagnostic entity', () => {
+    // The decision the module rests on: a diagnostic charged for without its
+    // entity ever being created is still a billed one.
+    expect(matchesSubfilter(sub('diagnostic-billed'), baseClient({
+      diagnostic_incomes_count: 1, diagnostics_count: 0,
+    }))).toBe(true);
+    expect(matchesSubfilter(sub('diagnostic-billed'), baseClient({
+      diagnostics_count: 2, diagnostic_incomes_count: 0,
+    }))).toBe(false);
+  });
+
+  it('counts a draft as a diagnostic, so it is not "sin diagnóstico"', () => {
+    expect(matchesSubfilter(sub('no-diagnostic'), baseClient())).toBe(true);
+    expect(matchesSubfilter(sub('no-diagnostic'), baseClient({
+      diagnostics_count: 1, diagnostics_without_proposal_count: 0,
+    }))).toBe(false);
+  });
+
+  it('keeps only the diagnostics no proposal followed', () => {
+    expect(matchesSubfilter(sub('diagnostic-unconverted'), baseClient({
+      diagnostics_count: 1, diagnostics_without_proposal_count: 1,
+    }))).toBe(true);
+    expect(matchesSubfilter(sub('diagnostic-unconverted'), baseClient({
+      diagnostics_count: 2, diagnostics_without_proposal_count: 0,
+    }))).toBe(false);
+  });
+});
+
+describe('email subfilters', () => {
+  const sub = (id) => CLIENT_SUBFILTERS.find((s) => s.id === id);
+  const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
+  it('splits who has been written to from who has not', () => {
+    const contacted = baseClient({ emails_sent_count: 3, last_email_at: daysAgo(2) });
+    expect(matchesSubfilter(sub('emails-any'), contacted)).toBe(true);
+    expect(matchesSubfilter(sub('no-emails'), contacted)).toBe(false);
+    expect(matchesSubfilter(sub('no-emails'), baseClient())).toBe(true);
+  });
+
+  it('lists the clients whose notice may never have arrived', () => {
+    expect(matchesSubfilter(sub('emails-failed'), baseClient({
+      emails_sent_count: 2, emails_failed_count: 1, last_email_at: daysAgo(1),
+    }))).toBe(true);
+    expect(matchesSubfilter(sub('emails-failed'), baseClient({
+      emails_sent_count: 2, last_email_at: daysAgo(1),
+    }))).toBe(false);
+  });
+
+  it('counts never-contacted as cold, and a recent send as warm', () => {
+    // Deliberately a superset of "Sin ningún correo": the question is who we
+    // have not written to in a month, and never is the emptiest answer.
+    expect(matchesSubfilter(sub('emails-cold'), baseClient())).toBe(true);
+    expect(matchesSubfilter(sub('emails-cold'), baseClient({
+      emails_sent_count: 1, last_email_at: daysAgo(45),
+    }))).toBe(true);
+    expect(matchesSubfilter(sub('emails-cold'), baseClient({
+      emails_sent_count: 1, last_email_at: daysAgo(3),
+    }))).toBe(false);
   });
 });
 

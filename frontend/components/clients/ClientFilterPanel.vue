@@ -33,6 +33,18 @@
         />
       </div>
 
+      <!-- Diagnóstico -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Diagnóstico</span>
+        <ProposalFilterChoiceDropdown
+          label="Diagnóstico"
+          test-id="client-filter-diagnostic-status"
+          :options="diagnosticStatusOptions"
+          :model-value="modelValue.diagnosticStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, diagnosticStatus: $event })"
+        />
+      </div>
+
       <!-- Proyectos -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Proyectos</span>
@@ -90,6 +102,18 @@
           :options="documentsStatusOptions"
           :model-value="modelValue.documentsStatus || ''"
           @update:model-value="emit('update:modelValue', { ...modelValue, documentsStatus: $event })"
+        />
+      </div>
+
+      <!-- Emails -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Emails</span>
+        <ProposalFilterChoiceDropdown
+          label="Correos"
+          test-id="client-filter-email-status"
+          :options="emailStatusOptions"
+          :model-value="modelValue.emailStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, emailStatus: $event })"
         />
       </div>
 
@@ -161,6 +185,8 @@ const hostingStatusOptions = subfilterOptionsFor('hosting', 'hostingStatus');
 const projectStatusOptions = subfilterOptionsFor('projects', 'projectStatus');
 const billingDataOptions = subfilterOptionsFor('accounting', 'billingData');
 const documentsStatusOptions = subfilterOptionsFor('documents', 'documentsStatus');
+const diagnosticStatusOptions = subfilterOptionsFor('diagnostics', 'diagnosticStatus');
+const emailStatusOptions = subfilterOptionsFor('emails', 'emailStatus');
 
 /** Chip label prefixed with the module the cut belongs to. */
 function moduleLabel(moduleId, text) {
@@ -210,6 +236,9 @@ const activeChips = computed(() => {
   const accepted = formatRange(mv.acceptedMin, mv.acceptedMax);
   if (accepted) chips.push({ key: 'accepted', label: moduleLabel('proposals', `aceptadas ${accepted}`) });
 
+  if (mv.diagnosticStatus)
+    chips.push({ key: 'diagnosticStatus', label: moduleLabel('diagnostics', optionLabel(diagnosticStatusOptions, mv.diagnosticStatus)) });
+
   if (mv.projectStatus)
     chips.push({ key: 'projectStatus', label: moduleLabel('projects', optionLabel(projectStatusOptions, mv.projectStatus)) });
 
@@ -228,6 +257,9 @@ const activeChips = computed(() => {
   if (mv.documentsStatus)
     chips.push({ key: 'documentsStatus', label: moduleLabel('documents', optionLabel(documentsStatusOptions, mv.documentsStatus)) });
 
+  if (mv.emailStatus)
+    chips.push({ key: 'emailStatus', label: moduleLabel('emails', optionLabel(emailStatusOptions, mv.emailStatus)) });
+
   const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
   if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
 
@@ -245,6 +277,8 @@ const CHIP_RESET = {
   projectStatus:  (mv) => { mv.projectStatus = ''; },
   billingData:    (mv) => { mv.billingData = ''; },
   documentsStatus: (mv) => { mv.documentsStatus = ''; },
+  diagnosticStatus: (mv) => { mv.diagnosticStatus = ''; },
+  emailStatus:    (mv) => { mv.emailStatus = ''; },
 };
 
 function clearChip(key) {
