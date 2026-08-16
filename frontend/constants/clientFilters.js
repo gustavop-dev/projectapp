@@ -57,6 +57,7 @@ export const CLIENT_MODULES = [
   // records its period (PA-51).
   { id: 'hosting', name: 'Hosting' },
   { id: 'accounting', name: 'Contabilidad' },
+  { id: 'documents', name: 'Documentos' },
 ];
 
 const MODULE_BY_ID = new Map(CLIENT_MODULES.map((m) => [m.id, m]));
@@ -102,6 +103,13 @@ export const CLIENT_SUBFILTERS = [
   // Contabilidad — the smallest module today and the one that will grow most
   // (cuentas de cobro pendientes/vencidas land here).
   { id: 'no-billing', name: 'Sin datos de facturación', module: 'accounting', filters: { billingData: 'missing' } },
+
+  // Documentos — la pertenencia dejó de vivir en el nombre de una carpeta:
+  // estos cortes leen la relación documento→cliente/proyecto. El tercero es
+  // la lista de lo que quedó a medio asociar tras la pasada retroactiva.
+  { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: 'with' } },
+  { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: 'none' } },
+  { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: 'no-project' } },
 ];
 
 const SUBFILTER_BY_ID = new Map(CLIENT_SUBFILTERS.map((s) => [s.id, s]));
@@ -193,6 +201,19 @@ export function matchBillingData(record, value) {
 }
 matchBillingData.keys = ['billingData'];
 
+/**
+ * `documents_count` cuenta sólo documentos ACTIVOS (el archivado es el eje de
+ * visibilidad propio del módulo de documentos), así que el pill y el salto
+ * aterrizan en la misma lista que el gestor muestra por defecto.
+ */
+export function matchDocumentsStatus(record, value) {
+  if (value === 'with') return Number(record.documents_count || 0) > 0;
+  if (value === 'none') return Number(record.documents_count || 0) === 0;
+  if (value === 'no-project') return Number(record.documents_no_project_count || 0) > 0;
+  return true;
+}
+matchDocumentsStatus.keys = ['documentsStatus'];
+
 // ---------------------------------------------------------------------------
 // Legacy `preset` key
 // ---------------------------------------------------------------------------
@@ -254,6 +275,7 @@ export const CLIENT_FILTERS_CONFIG = {
     hostingStatus: '',
     projectStatus: '',
     billingData: '',
+    documentsStatus: '',
   },
   matchers: {
     lastStatuses: matchIncludes('last_status', 'lastStatuses'),
@@ -269,6 +291,7 @@ export const CLIENT_FILTERS_CONFIG = {
     hostingStatus: matchHostingStatus,
     projectStatus: matchProjectStatus,
     billingData: matchBillingData,
+    documentsStatus: matchDocumentsStatus,
   },
   builtinTabs: CLIENT_SUBFILTERS.map(({ id, name, module, filters }) => ({
     id, name, module, filters: { ...filters, module },

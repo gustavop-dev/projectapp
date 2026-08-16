@@ -70,6 +70,7 @@ describe('ClientFilterPanel', () => {
     expect(wrapper.find('[data-testid="client-filter-hosting-status"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="client-filter-project-status"]').exists()).toBe(true);
     expect(wrapper.find('[data-testid="client-filter-billing-data"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="client-filter-documents-status"]').exists()).toBe(true);
   });
 
   it('names the module each active chip comes from', () => {

@@ -213,6 +213,22 @@
               {{ client.hostings_count }} hosting{{ client.hostings_count !== 1 ? 's' : '' }}
             </span>
 
+            <!-- Documentos: cuántos tiene + fecha del último, sólo con el
+                 módulo activo. Salta al gestor ya filtrado por el cliente.
+                 Sin gate de superuser: documentos comparte el gate admin de
+                 esta misma página. -->
+            <!-- design-tokens: allow-raw-button -->
+            <button
+              v-if="showsDocumentsCount(client)"
+              type="button"
+              :data-testid="`client-documents-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-info-soft text-info-strong font-medium hover:bg-primary-soft transition-colors"
+              :title="`Ver los documentos de ${client.name}`"
+              @click.stop="goToClientDocuments(client)"
+            >
+              {{ client.documents_count }} doc{{ client.documents_count !== 1 ? 's' : '' }}<span v-if="client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
+            </button>
+
             <button
               v-if="client.accepted_count > 0"
               type="button"
@@ -530,6 +546,56 @@
                 </table>
               </div>
             </div>
+
+            <!-- Los últimos 5 documentos del cliente; "Ver todos" entra al
+                 módulo ya filtrado — la relación sirve en las dos direcciones. -->
+            <div v-if="detailCache[client.id]?.documents?.length">
+              <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2 flex items-center justify-between gap-3">
+                <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Documentos</p>
+                <!-- design-tokens: allow-raw-button -->
+                <button
+                  type="button"
+                  :data-testid="`client-documents-all-${client.id}`"
+                  class="text-xs text-text-brand hover:underline"
+                  @click.stop="goToClientDocuments(client)"
+                >
+                  Ver todos ({{ detailCache[client.id].documents_total }})
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full min-w-[500px] text-sm">
+                  <thead>
+                    <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+                      <th class="px-5 py-3">Documento</th>
+                      <th class="px-4 py-3">Proyecto</th>
+                      <th class="px-4 py-3">Estado</th>
+                      <th class="px-4 py-3">Creado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="doc in detailCache[client.id].documents"
+                      :key="doc.id"
+                      class="border-t border-border-muted"
+                      :data-testid="`client-document-row-${doc.id}`"
+                    >
+                      <td class="px-5 py-3">
+                        <NuxtLink
+                          :to="localePath(`/panel/documents/${doc.id}/edit`)"
+                          class="text-text-default hover:text-text-brand hover:underline"
+                          @click.stop
+                        >
+                          {{ doc.title }}
+                        </NuxtLink>
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ doc.project_name || '—' }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ documentStatusLabel(doc.status) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs">{{ formatDate(doc.created_at) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </template>
         </div>
       </div>
@@ -632,10 +698,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
+import { statusLabel as documentStatusLabel } from '~/utils/documentStatus';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';
@@ -739,6 +806,21 @@ const canOpenHostings = computed(() => proposalStore.isSuperuser);
 function goToClientHostings(client) {
   navigateTo({
     path: '/panel/accounting/hostings',
+    query: { client: String(client.id) },
+  });
+}
+
+/**
+ * A diferencia del pill de hostings, sin guard de superuser: /panel/documents
+ * comparte el gate admin de esta misma página.
+ */
+function showsDocumentsCount(client) {
+  return activeModule.value === 'documents' && Number(client.documents_count || 0) > 0;
+}
+
+function goToClientDocuments(client) {
+  navigateTo({
+    path: '/panel/documents',
     query: { client: String(client.id) },
   });
 }
@@ -958,10 +1040,32 @@ function handleEditEscape(e) {
   if (e.key === 'Escape' && editingClient.value) closeEditModal();
 }
 
-onMounted(() => {
-  loadClients();
+onMounted(async () => {
   document.addEventListener('keydown', handleEditEscape);
+  await loadClients();
+  applyHighlightFromQuery();
 });
+
+/**
+ * ?highlight=<profileId>: llega desde el enlace "Ver cliente" de un documento
+ * — expande la ficha y hace scroll a la fila. Param de un solo uso (espejo de
+ * ?highlight= en /panel/projects): se limpia de la URL y degrada sin ruido si
+ * el cliente no está entre las filas cargadas o quedó en otra página.
+ */
+function applyHighlightFromQuery() {
+  const targetId = Number.parseInt(route.query.highlight, 10);
+  if (!Number.isFinite(targetId)) return;
+  const query = { ...route.query };
+  delete query.highlight;
+  router.replace({ query });
+  const target = clientsStore.clients.find((c) => c.id === targetId);
+  if (!target) return;
+  toggleClient(target);
+  nextTick(() => {
+    document.querySelector(`[data-testid="client-row-${targetId}"]`)
+      ?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  });
+}
 
 usePanelRefresh(refreshAll);
 onBeforeUnmount(() => {

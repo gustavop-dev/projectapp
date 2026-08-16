@@ -81,6 +81,18 @@
         />
       </div>
 
+      <!-- Documentos -->
+      <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
+        <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Documentos</span>
+        <ProposalFilterChoiceDropdown
+          label="Documentos"
+          test-id="client-filter-documents-status"
+          :options="documentsStatusOptions"
+          :model-value="modelValue.documentsStatus || ''"
+          @update:model-value="emit('update:modelValue', { ...modelValue, documentsStatus: $event })"
+        />
+      </div>
+
       <!-- Fechas -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Fechas</span>
@@ -148,6 +160,7 @@ import { clientModuleName, subfilterOptionsFor } from '~/constants/clientFilters
 const hostingStatusOptions = subfilterOptionsFor('hosting', 'hostingStatus');
 const projectStatusOptions = subfilterOptionsFor('projects', 'projectStatus');
 const billingDataOptions = subfilterOptionsFor('accounting', 'billingData');
+const documentsStatusOptions = subfilterOptionsFor('documents', 'documentsStatus');
 
 /** Chip label prefixed with the module the cut belongs to. */
 function moduleLabel(moduleId, text) {
@@ -212,6 +225,9 @@ const activeChips = computed(() => {
   if (mv.billingData)
     chips.push({ key: 'billingData', label: moduleLabel('accounting', optionLabel(billingDataOptions, mv.billingData)) });
 
+  if (mv.documentsStatus)
+    chips.push({ key: 'documentsStatus', label: moduleLabel('documents', optionLabel(documentsStatusOptions, mv.documentsStatus)) });
+
   const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
   if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
 
@@ -228,6 +244,7 @@ const CHIP_RESET = {
   hostingStatus:  (mv) => { mv.hostingStatus = ''; },
   projectStatus:  (mv) => { mv.projectStatus = ''; },
   billingData:    (mv) => { mv.billingData = ''; },
+  documentsStatus: (mv) => { mv.documentsStatus = ''; },
 };
 
 function clearChip(key) {
