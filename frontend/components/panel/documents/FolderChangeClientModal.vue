@@ -2,10 +2,9 @@
   <BaseModal
     :model-value="open"
     size="xl"
-    data-testid="folder-change-client-modal"
     @update:model-value="$emit('close')"
   >
-    <div class="p-6 space-y-5">
+    <div class="p-6 space-y-5" data-testid="folder-change-client-modal">
       <div>
         <h3 class="text-base font-semibold text-text-default">
           Cambiar el cliente de "{{ folder?.name }}"

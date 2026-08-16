@@ -20,14 +20,14 @@ describe('useClientProjectCascade', () => {
   })
 
   it('clearing the client also drops the project', () => {
-    const { form, onClientSelect } = setup({ client: 7, project: 3 })
+    const { form, clientDisplayName, onClientSelect } = setup({ client: 7, project: 3 })
 
     onClientSelect(null)
 
-    expect(form.client).toBeNull()
     // Sin cliente el proyecto no se sostiene: el backend lo derivaría de
     // vuelta y la limpieza no habría limpiado nada.
-    expect(form.project).toBeNull()
+    expect({ ...form }).toEqual({ client: null, project: null })
+    expect(clientDisplayName.value).toBe('')
   })
 
   it('picking a project fills an empty client — the inverse cascade', () => {
@@ -48,11 +48,13 @@ describe('useClientProjectCascade', () => {
   })
 
   it('ignores a cleared project selection', () => {
-    const { form, onProjectSelect } = setup()
+    const { form, onProjectSelect, onOperatorChoice } = setup({ client: 9 })
 
     onProjectSelect(null)
 
-    expect(form.client).toBeNull()
+    // Nada se toca: quitar el proyecto no es una decisión sobre el cliente.
+    expect({ ...form }).toEqual({ client: 9, project: null })
+    expect(onOperatorChoice).not.toHaveBeenCalled()
   })
 
   it('reports every explicit choice so the caller can retract a suggestion', () => {
@@ -66,10 +68,13 @@ describe('useClientProjectCascade', () => {
   })
 
   it('does not report a choice when the inverse cascade did nothing', () => {
-    const { onProjectSelect, onOperatorChoice } = setup({ client: 9 })
+    const { form, onProjectSelect, onOperatorChoice } = setup({ client: 9 })
 
     onProjectSelect({ id: 3, client_profile_id: 7 })
 
+    // El cliente ya elegido sobrevive intacto, así que no hubo decisión que
+    // reportar: avisar acá retiraría una sugerencia que nadie tocó.
+    expect({ ...form }).toEqual({ client: 9, project: null })
     expect(onOperatorChoice).not.toHaveBeenCalled()
   })
 

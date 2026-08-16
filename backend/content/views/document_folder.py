@@ -99,19 +99,22 @@ def create_document_folder(request):
 
 
 def _changes_client(folder, request):
-    """¿El PATCH mueve la carpeta a otro cliente (o la deja sin uno)?
+    """¿El PATCH le pone a la carpeta un dueño distinto del que tiene?
 
-    Vale en las dos direcciones e incluye la primera asignación: poner cliente
-    a una carpeta que ya guarda doce documentos es justo el caso donde importa
-    decidir qué pasa con ellos.
+    Incluye la primera asignación —poner cliente a una carpeta que ya guarda
+    doce documentos es justo el caso donde importa decidir qué pasa con ellos—
+    pero NO el vaciado: la cascada existe para elegir a quién pasa el
+    contenido, y «a nadie» no es un destino que ese endpoint pueda expresar.
+    Quitarle el dueño a la carpeta la deja sin él y no toca lo que guarda.
     """
     if 'client' not in request.data:
         return False
     sent = request.data.get('client')
-    sent_id = None if sent in (None, '') else int(sent)
+    if sent in (None, ''):
+        return False
     current_id = getattr(folder.client_user, 'profile', None)
     current_id = current_id.pk if current_id else None
-    return sent_id != current_id
+    return int(sent) != current_id
 
 
 @api_view(['PATCH'])

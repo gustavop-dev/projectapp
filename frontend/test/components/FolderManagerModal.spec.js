@@ -214,8 +214,13 @@ describe('FolderManagerModal', () => {
       wrapper.findComponent({ name: 'FolderFormModal' }).vm.$emit('saved', baseFolder);
       await flushPromises();
 
-      expect(mockFolderStore.fetchFolders).toHaveBeenCalled();
-      expect(wrapper.emitted('changed')).toBeTruthy();
+      // El listado se recarga UNA vez y el padre se entera UNA vez: dos avisos
+      // por un guardado harían al gestor refrescar dos veces.
+      expect(mockFolderStore.fetchFolders).toHaveBeenCalledTimes(1);
+      expect(wrapper.emitted('changed')).toHaveLength(1);
+      // Y el formulario deja de apuntar a la carpeta que ya guardó.
+      expect(wrapper.findComponent({ name: 'FolderFormModal' }).props('folder'))
+        .toBeNull();
     });
 
     it('passes a folder_has_content conflict up to the cascade', async () => {

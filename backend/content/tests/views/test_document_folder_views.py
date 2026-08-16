@@ -174,6 +174,31 @@ class TestUpdateDocumentFolderAssociation:
 
         assert response.status_code == 409
 
+    def test_clearing_the_client_of_a_folder_with_content_is_a_plain_patch(
+        self, admin_client, folder,
+    ):
+        """Desasignar no reasigna nada: no hay a quién propagarle el contenido.
+
+        La cascada existe para decidir a quién pasa lo que la carpeta guarda, y
+        "a nadie" no es un destino — el endpoint de cambio de cliente exige uno.
+        Quitarle el dueño a la carpeta deja su contenido como está.
+        """
+        profile = make_client('ana@example.com')
+        folder.client_user = profile.user
+        folder.save(update_fields=['client_user'])
+        document = Document.objects.create(
+            title='Contrato', folder=folder, client_user=profile.user,
+        )
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': None}, format='json')
+
+        assert response.status_code == 200
+        folder.refresh_from_db()
+        document.refresh_from_db()
+        assert folder.client_user is None
+        assert document.client_user == profile.user
+
     def test_renaming_a_folder_with_content_still_works(self, admin_client, folder):
         """El guard mira el cliente, no el resto del formulario."""
         profile = make_client('ana@example.com')

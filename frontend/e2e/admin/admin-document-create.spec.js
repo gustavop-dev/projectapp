@@ -211,5 +211,47 @@ test.describe('Admin Document Create', () => {
     await expect(page.getByTestId('doc-client-suggested-hint')).toBeVisible();
     await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('Kore SAS');
   });
-});
 
+  test('a folder that states its client is inherited, without asking the heuristic', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let suggestionCalled = false;
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
+      }
+      if (apiPath === 'document-folders/') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify([{
+            id: 9, name: 'Kore - Diseño', parent: null, order: 0,
+            is_archived: false, document_count: 4, children_count: 0,
+            client: 7, client_display_name: 'Kore SAS', project: null,
+          }]),
+        };
+      }
+      if (apiPath === 'documents/folder-client-suggestion/') {
+        suggestionCalled = true;
+        return { status: 200, contentType: 'application/json', body: JSON.stringify({ client: null }) };
+      }
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: '[]' };
+      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      return null;
+    });
+    await page.goto('/panel/documents/create?folder=9');
+
+    // La carpeta lo dice: es un dato, no una conjetura por mayoría.
+    await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('Kore SAS');
+    await expect(page.getByTestId('doc-client-suggested-hint'))
+      .toContainText('Heredado de la carpeta');
+    expect(suggestionCalled).toBe(false);
+
+    // Y es un default, no una atadura: sacar el documento de la carpeta retira
+    // lo heredado en vez de dejarlo pegado.
+    await page.getByTestId('doc-folder-select').selectOption({ label: 'Sin carpeta' });
+
+    await expect(page.getByTestId('doc-client-autocomplete')).toHaveValue('');
+    await expect(page.getByTestId('doc-client-suggested-hint')).toHaveCount(0);
+  });
+});

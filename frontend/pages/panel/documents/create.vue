@@ -120,6 +120,7 @@
               <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
                 v-model="form.folder_id"
+                data-testid="doc-folder-select"
                 class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               >

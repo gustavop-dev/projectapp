@@ -2,10 +2,9 @@
   <BaseModal
     :model-value="modelValue"
     size="lg"
-    data-testid="folder-form-modal"
     @update:model-value="$emit('update:modelValue', $event)"
   >
-    <div class="p-6 space-y-5">
+    <div class="p-6 space-y-5" data-testid="folder-form-modal">
       <div>
         <h3 class="text-base font-semibold text-text-default">
           {{ isEdit ? `Editar "${folder.name}"` : 'Nueva carpeta' }}

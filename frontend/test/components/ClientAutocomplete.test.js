@@ -385,4 +385,35 @@ describe('ClientAutocomplete', () => {
 
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false);
   });
+
+  describe('external label sync', () => {
+    it('adopts a label that arrives after mount', async () => {
+      const wrapper = mountAutocomplete({ modelValue: null, initialLabel: '' });
+
+      await wrapper.setProps({ modelValue: 7, initialLabel: 'Kore SAS' });
+
+      expect(wrapper.find('input').element.value).toBe('Kore SAS');
+    });
+
+    it('clears the box when the parent retracts both the value and the label', async () => {
+      // Retirar una sugerencia (o resetear el form) dejaba el nombre anterior
+      // escrito mientras el valor ya era null: el input decía tener cliente y
+      // no lo tenía.
+      const wrapper = mountAutocomplete({ modelValue: 7, initialLabel: 'Kore SAS' });
+
+      await wrapper.setProps({ modelValue: null, initialLabel: '' });
+
+      expect(wrapper.find('input').element.value).toBe('');
+    });
+
+    it('leaves what the user typed alone', async () => {
+      mockStore.searchClients.mockResolvedValue({ cancelled: false, data: [] });
+      const wrapper = mountAutocomplete({ modelValue: null, initialLabel: '' });
+      await wrapper.find('input').setValue('Ana escribiendo');
+
+      await wrapper.setProps({ initialLabel: 'Kore SAS' });
+
+      expect(wrapper.find('input').element.value).toBe('Ana escribiendo');
+    });
+  });
 });

@@ -655,8 +655,12 @@ describe('useDocumentStore', () => {
 
       const result = await store.resolveFolderAssociation(3)
 
-      expect(result.data.client).toBeNull()
-      expect(result.data.source).toBeNull()
+      // Sigue siendo una respuesta exitosa con forma completa: "no hay dueño"
+      // no es un error, y el form la lee igual que a una con cliente.
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({
+        client: null, client_display_name: '', project: null, source: null,
+      })
     })
   })
 })

@@ -169,7 +169,9 @@ describe('FolderFormModal', () => {
       await saveButton(wrapper).trigger('click');
       await nextTick();
 
-      expect(wrapper.emitted('saved')).toBeTruthy();
+      // El payload guardado viaja con el evento: el caller refresca con él.
+      expect(wrapper.emitted('saved')[0]).toEqual([{ id: 5, name: 'Kore' }]);
+      expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
     });
 
     it('hands a folder_has_content conflict to the cascade instead of erroring', async () => {

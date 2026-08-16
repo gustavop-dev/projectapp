@@ -51,6 +51,7 @@ function client(overrides) {
     market_types: [],
     documents_count: 0,
     documents_no_project_count: 0,
+    document_folders_count: 0,
     last_document_at: null,
     nit: '900123456',
     cedula: '',
@@ -81,6 +82,7 @@ const CHARGED_ONE = client({
   // También el único con documentos: alimenta el módulo Documentos sin sumar
   // otra fila al fixture.
   documents_count: 3, documents_no_project_count: 1,
+  document_folders_count: 2,
   last_document_at: '2026-08-10T10:00:00Z',
   diagnostics_count: 1, diagnostic_incomes_count: 1,
   diagnostics_without_proposal_count: 1,
@@ -465,9 +467,31 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(page.getByTestId('filter-tabs-count-docs-with')).toHaveText('(1)');
     await expect(page.getByTestId('filter-tabs-count-docs-none')).toHaveText('(3)');
     await expect(page.getByTestId('filter-tabs-count-docs-no-project')).toHaveText('(1)');
+    await expect(page.getByTestId('filter-tabs-count-docs-with-folder')).toHaveText('(1)');
 
     await page.getByTestId('filter-tabs-tab-docs-with').click();
     await expect(rowsShown(page)).toHaveCount(1);
+  });
+
+  test('reading "Con carpeta" the row counts folders, and still jumps to Documentos', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+    await openModule(page, 'documents');
+
+    // Con el módulo abierto la píldora cuenta documentos…
+    await expect(page.getByTestId('client-documents-101')).toContainText('3 docs');
+
+    await page.getByTestId('filter-tabs-tab-docs-with-folder').click();
+
+    // …y bajo este corte cuenta lo que el corte mira: sus carpetas.
+    await expect(rowsShown(page)).toHaveCount(1);
+    await expect(page.getByTestId('client-folders-101')).toContainText('2 carpetas');
+
+    await page.getByTestId('client-folders-101').click();
+
+    await expect(page).toHaveURL(/\/panel\/documents\?client=101/);
   });
 
   test('the row doc count opens Documents already filtered by that client', {

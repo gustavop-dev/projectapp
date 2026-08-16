@@ -347,11 +347,15 @@ describe('documents module', () => {
   });
 
   it('the row pill says nothing when its own counter is zero', () => {
+    // Cada fila mira SU contador: el mismo cliente sí ofrece píldora bajo el
+    // otro corte, así que el null es del contador y no de la fila entera.
     const noFolders = baseClient({ documents_count: 4, document_folders_count: 0 });
     const noDocs = baseClient({ documents_count: 0, document_folders_count: 1 });
 
     expect(documentsPill(noFolders, 'docs-with-folder')).toBeNull();
+    expect(documentsPill(noFolders, 'docs-with').label).toBe('4 docs');
     expect(documentsPill(noDocs, 'docs-with')).toBeNull();
+    expect(documentsPill(noDocs, 'docs-with-folder').label).toBe('1 carpeta');
   });
 
   it('the row pill keeps the singular for one', () => {
