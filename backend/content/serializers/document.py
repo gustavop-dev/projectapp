@@ -20,7 +20,7 @@ def _archived_cause(obj):
     return 'folder' if obj.archived_via_folder_id else 'manual'
 
 
-def apply_client_project_association(attrs, instance=None):
+def apply_client_project_association(attrs, instance=None, *, snapshot_client_name=True):
     """Resuelve el trío client/project/client_name manteniendo el invariante.
 
     Regla única para todas las vías de escritura del panel: un documento con
@@ -32,6 +32,11 @@ def apply_client_project_association(attrs, instance=None):
     desvincula (patrón income). `client_name` se autocompleta con el display
     name sólo cuando el cliente cambia y no vino un valor propio: un texto
     personalizado sobrevive a los saves que no tocan la asociación.
+
+    Las CARPETAS usan la misma regla con `snapshot_client_name=False`: llevan
+    el par cliente/proyecto pero no el rótulo de texto libre, que existe sólo
+    para que un documento conserve a quién se le emitió aunque el cliente
+    cambie de nombre.
     """
     from accounts.services.proposal_client_service import build_client_display_name
     from content.serializers.accounting import validate_project_client_match
@@ -67,7 +72,8 @@ def apply_client_project_association(attrs, instance=None):
         or instance.client_user_id != getattr(new_client, 'pk', None)
     )
     if (
-        'client_user' in attrs
+        snapshot_client_name
+        and 'client_user' in attrs
         and new_client is not None
         and client_changed
         and not attrs.get('client_name')

@@ -5,6 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
+from content.api_errors import error_response
 from content.models import DocumentFolder
 from content.serializers.document_folder import DocumentFolderSerializer
 from content.services import document_archive_service
@@ -30,7 +31,12 @@ def _annotated_folders(scope):
     # (documents + children) multiplique los conteos entre sí; el `filter=`
     # acota el estado pero no elimina ese cruce. Los cuatro agregados reusan los
     # mismos dos JOINs, así que el riesgo no crece con ellos.
-    return apply_archive_scope(DocumentFolder.objects.all(), scope).annotate(
+    # El serializer lee `client_user.profile` y `project.name` en cada fila:
+    # sin el select_related el panel lateral paga tres consultas por carpeta.
+    queryset = DocumentFolder.objects.select_related(
+        'client_user__profile', 'project',
+    )
+    return apply_archive_scope(queryset, scope).annotate(
         active_document_count=Count(
             'documents', filter=Q(documents__is_archived=False), distinct=True,
         ),
@@ -88,10 +94,41 @@ def create_document_folder(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+def _changes_client(folder, request):
+    """¿El PATCH mueve la carpeta a otro cliente (o la deja sin uno)?
+
+    Vale en las dos direcciones e incluye la primera asignación: poner cliente
+    a una carpeta que ya guarda doce documentos es justo el caso donde importa
+    decidir qué pasa con ellos.
+    """
+    if 'client' not in request.data:
+        return False
+    sent = request.data.get('client')
+    sent_id = None if sent in (None, '') else int(sent)
+    current_id = getattr(folder.client_user, 'profile', None)
+    current_id = current_id.pk if current_id else None
+    return sent_id != current_id
+
+
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def update_document_folder(request, folder_id):
+    """Edita la carpeta. Cambiar de cliente con contenido va por la cascada.
+
+    Basta mirar los hijos DIRECTOS: si la rama guarda algo, o cuelga del propio
+    folder o cuelga de una subcarpeta suya, así que una de las dos existe.
+    """
     folder = get_object_or_404(DocumentFolder, pk=folder_id)
+    if _changes_client(folder, request) and (
+        folder.documents.exists() or folder.children.exists()
+    ):
+        return error_response(
+            'La carpeta tiene contenido: el cambio de cliente se hace desde '
+            '«Cambiar cliente…», que primero muestra a qué afecta.',
+            code='folder_has_content',
+            hint='Usa el endpoint change-client para elegir si se propaga.',
+            status=status.HTTP_409_CONFLICT,
+        )
     serializer = DocumentFolderSerializer(folder, data=request.data, partial=True)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

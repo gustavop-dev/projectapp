@@ -1,12 +1,16 @@
+from accounts.models import Project, UserProfile
 from rest_framework import serializers
 
 from content.models import DocumentFolder
+from content.serializers.document import (
+    ClientProjectReadMixin, apply_client_project_association,
+)
 from content.services.document_archive_service import (
     DocumentArchiveError, ensure_active_target,
 )
 
 
-class DocumentFolderSerializer(serializers.ModelSerializer):
+class DocumentFolderSerializer(ClientProjectReadMixin, serializers.ModelSerializer):
     """Serializer para carpetas de documentos (jerárquicas).
 
     Los contadores se leen de annotations del queryset cuando el caller las
@@ -33,11 +37,35 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    # `client` habla en pk de UserProfile como todo el panel; el modelo
+    # persiste `client_user` (auth.User). A diferencia de los documentos —que
+    # separan serializer de lectura y de escritura— acá uno solo sirve list,
+    # create y update, así que el campo se declara write_only y la lectura la
+    # devuelve `to_representation` con el mismo mapeo del mixin.
+    # Los dos querysets van sin acotar a propósito: que el proyecto sea del
+    # cliente es cosa de validate(), que ve ambos campos a la vez (mismo
+    # motivo que en DocumentCreateUpdateSerializer).
+    client = serializers.PrimaryKeyRelatedField(
+        queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+        write_only=True,
+    )
+    client_display_name = serializers.SerializerMethodField()
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+    project_name = serializers.CharField(
+        source='project.name', read_only=True, default=None,
+    )
 
     class Meta:
         model = DocumentFolder
         fields = (
             'id', 'name', 'slug', 'parent', 'order',
+            'client', 'client_display_name', 'project', 'project_name',
             'document_count', 'children_count',
             'active_document_count', 'active_children_count',
             'archived_document_count', 'archived_children_count',
@@ -96,6 +124,18 @@ class DocumentFolderSerializer(serializers.ModelSerializer):
         if not obj.is_archived:
             return None
         return 'folder' if obj.archived_via_folder_id else 'manual'
+
+    def to_representation(self, instance):
+        """Devuelve `client` como pk de UserProfile (el campo es write_only)."""
+        data = super().to_representation(instance)
+        data['client'] = self.get_client(instance)
+        return data
+
+    def validate(self, attrs):
+        """Misma regla de asociación que los documentos, sin `client_name`."""
+        return apply_client_project_association(
+            attrs, self.instance, snapshot_client_name=False,
+        )
 
     def validate_parent(self, value):
         """Impide que una carpeta sea su propio padre o descienda de sí misma."""
