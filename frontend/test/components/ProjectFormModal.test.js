@@ -74,6 +74,9 @@ function mountModal(props = {}) {
         },
         BaseButton: {
           props: ['variant', 'size', 'disabled', 'type'],
+          // `emits` declared so the parent's @click doesn't ALSO fall through
+          // as a native listener (it would double-fire every handler).
+          emits: ['click'],
           template:
             '<button :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
         },
@@ -177,5 +180,25 @@ describe('ProjectFormModal', () => {
     const payload = wrapper.emitted('submit')[0][0];
     expect(payload.client_profile_id).toBe(7);
     expect(payload.name).toBe('Vástago');
+  });
+
+  it('the edit form offers the guided change-client entry, the create form does not', async () => {
+    const editing = mountModal({ record: RECORD });
+    await flushPromises();
+
+    await editing
+      .find('[data-testid="project-form-change-client"]')
+      .trigger('click');
+
+    // The field itself stays immutable: the button only asks the page to
+    // open the guided cascade.
+    expect(editing.emitted('change-client')).toHaveLength(1);
+    expect(editing.emitted('submit')).toBeUndefined();
+
+    const creating = mountModal();
+    await flushPromises();
+    expect(
+      creating.find('[data-testid="project-form-change-client"]').exists(),
+    ).toBe(false);
   });
 });

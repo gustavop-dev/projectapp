@@ -16,7 +16,7 @@ const props = defineProps({
   existingProjects: { type: Array, default: () => [] },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'change-client'])
 
 const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
@@ -168,10 +168,25 @@ function onSubmit() {
           @create-new="onCreateNewClient"
         />
       </BaseFormField>
-      <BaseFormField v-else label="Cliente" hint="El cliente de un proyecto no se cambia desde el panel.">
-        <p class="text-sm text-text-default py-1.5" data-testid="project-form-client-readonly">
-          {{ form.client_display_name || '—' }}
-        </p>
+      <BaseFormField
+        v-else
+        label="Cliente"
+        hint="Cambiarlo es una operación guiada: muestra el impacto sobre hostings, ingresos y cuentas antes de aplicar."
+      >
+        <div class="flex items-center justify-between gap-2 py-1.5">
+          <p class="text-sm text-text-default" data-testid="project-form-client-readonly">
+            {{ form.client_display_name || '—' }}
+          </p>
+          <BaseButton
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid="project-form-change-client"
+            @click="emit('change-client')"
+          >
+            Cambiar cliente…
+          </BaseButton>
+        </div>
       </BaseFormField>
 
       <!-- Inline client creation: same escape hatch as hostings and incomes -->

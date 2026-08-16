@@ -877,12 +877,35 @@ def project_detail_view(request, project_id):
         )
 
     if request.method == 'DELETE':
+        from content.api_errors import error_response
+        from content.services import project_service
+
         force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
         if force:
+            # A hard delete SET_NULLs every accounting/document FK in
+            # silence — the exact blanking the coherence rules exist to
+            # stop. Reassign or detach first; PA-29 says archive otherwise.
+            blockers = project_service.deletion_blockers(project)
+            if any(blockers.values()):
+                return error_response(
+                    'El proyecto tiene registros contables o documentos vinculados.',
+                    code='project_has_records',
+                    hint='Archívalo, o reasigna/desvincula sus registros antes de eliminarlo.',
+                    status=status.HTTP_409_CONFLICT,
+                    errors={'counts': blockers},
+                )
+            snapshot = project_service.project_snapshot(project)
+            project_service.log_project_event(
+                project, project_service.Action.DELETED, snapshot, request.user,
+            )
             project.delete()
             return Response({'detail': 'Proyecto eliminado.'})
+        snapshot = project_service.project_snapshot(project)
         project.status = Project.STATUS_ARCHIVED
         project.save(update_fields=['status', 'updated_at'])
+        project_service.log_project_event(
+            project, project_service.Action.UPDATED, snapshot, request.user,
+        )
         return Response({'detail': 'Proyecto archivado.'})
 
     serializer = UpdateProjectSerializer(data=request.data)

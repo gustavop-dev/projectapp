@@ -18,6 +18,8 @@ Endpoints
 - ``PATCH /api/projects/<id>/unarchive/``         status -> active
 - ``GET   /api/projects/<id>/unlinked-records/``  assign preview (PA-51)
 - ``POST  /api/projects/<id>/assign-unlinked/``   assign confirmed ids (PA-51)
+- ``GET   /api/projects/<id>/change-client/preview/``  cascade preview
+- ``POST  /api/projects/<id>/change-client/``     move/detach cascade
 """
 
 import logging
@@ -44,9 +46,10 @@ from content.serializers.panel_projects import (
     CreatePanelProjectSerializer,
     PanelProjectSerializer,
     ProjectAssignUnlinkedSerializer,
+    ProjectChangeClientSerializer,
     UpdatePanelProjectSerializer,
 )
-from content.services import accounting_service
+from content.services import accounting_service, project_service
 
 EntityType = AccountingChangeLog.EntityType
 
@@ -414,3 +417,133 @@ def assign_project_unlinked_records(request, project_id):
         'incomes': IncomeRecordSerializer(income_rows, many=True).data,
         'project': _annotated_row(project.pk),
     })
+
+
+def _archived_change_client_error():
+    return error_response(
+        'Restaura el proyecto para cambiarle el cliente.',
+        code='project_archived',
+        hint='Usa Restaurar en la pestaña Archivados.',
+    )
+
+
+def _resolve_target_profile(project, raw_profile_id):
+    """(profile, error_response) for the change-client destination."""
+    try:
+        profile_id = int(raw_profile_id)
+    except (TypeError, ValueError):
+        return None, error_response(
+            'Indica el cliente destino.', code='client_not_found',
+        )
+    profile = UserProfile.objects.clients().filter(pk=profile_id).first()
+    if profile is None:
+        return None, error_response(
+            'Ese cliente no existe o no es un perfil de cliente.',
+            code='client_not_found',
+        )
+    if project.client_id == profile.user_id:
+        return None, error_response(
+            'El proyecto ya pertenece a ese cliente.', code='same_client',
+        )
+    return profile, None
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def preview_project_client_change(request, project_id):
+    """Impact preview of moving a project to another client.
+
+    Nothing here writes: the operator sees every record the cascade will
+    touch — and the ones it refuses to touch (issued cuentas, incomes with
+    an active cuenta) — before choosing a mode.
+    """
+    project = get_object_or_404(Project, pk=project_id)
+    if project.status == Project.STATUS_ARCHIVED:
+        return _archived_change_client_error()
+    profile, error = _resolve_target_profile(
+        project, request.query_params.get('client_profile_id'),
+    )
+    if error:
+        return error
+    return Response(project_service.change_client_preview(project, profile))
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def change_project_client(request, project_id):
+    """Move the project to another client, cascading per the chosen mode.
+
+    The generic update keeps refusing ``client`` (``client_immutable``):
+    this endpoint is the only path, so an ownership change is always
+    explicit, previewed and audited. The hosting/income ids are the
+    staleness token — same PA-51 contract: the plan that was shown is the
+    plan that runs, or nothing runs (both checks fire before the service,
+    so its atomic block never opens on a stale preview).
+    """
+    project = get_object_or_404(Project, pk=project_id)
+    if project.status == Project.STATUS_ARCHIVED:
+        return _archived_change_client_error()
+
+    serializer = ProjectChangeClientSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    mode = serializer.validated_data['mode']
+    if mode not in project_service.MODES:
+        return error_response(
+            "Elige qué hacer con los registros: 'move' (mover al nuevo "
+            "cliente) o 'detach' (desvincular del proyecto).",
+            code='invalid_mode',
+        )
+    profile, error = _resolve_target_profile(
+        project, serializer.validated_data['client_profile_id'],
+    )
+    if error:
+        return error
+
+    current_hostings = set(
+        HostingRecord.objects.filter(project=project)
+        .values_list('pk', flat=True),
+    )
+    current_incomes = set(
+        IncomeRecord.objects.filter(project=project)
+        .values_list('pk', flat=True),
+    )
+    sent_hostings = set(serializer.validated_data['hosting_ids'])
+    sent_incomes = set(serializer.validated_data['income_ids'])
+    missing = sorted(
+        (sent_hostings - current_hostings) | (sent_incomes - current_incomes),
+    )
+    if missing:
+        count = len(missing)
+        noun = 'registro' if count == 1 else 'registros'
+        verb = 'está' if count == 1 else 'están'
+        return error_response(
+            f'{count} {noun} del plan ya no {verb} vinculados al proyecto.',
+            code='records_not_found',
+            hint='La vista previa se actualizó. Revísala y vuelve a intentarlo.',
+            status=status.HTTP_409_CONFLICT,
+            errors={'missing_ids': missing},
+        )
+    changed = sorted(
+        (current_hostings - sent_hostings) | (current_incomes - sent_incomes),
+    )
+    if changed:
+        count = len(changed)
+        noun = 'registro' if count == 1 else 'registros'
+        verb = 'vinculó' if count == 1 else 'vincularon'
+        return error_response(
+            f'{count} {noun} se {verb} al proyecto después de la vista previa.',
+            code='records_changed',
+            hint='La vista previa se actualizó. Revísala y vuelve a intentarlo.',
+            status=status.HTTP_409_CONFLICT,
+            errors={'changed_ids': changed},
+        )
+
+    result = project_service.change_client_apply(
+        project, profile, mode, request.user,
+    )
+    logger.info(
+        'Panel project %s changed client to profile %s (mode=%s)',
+        project.pk, profile.pk, mode,
+    )
+    return Response({'project': _annotated_row(project.pk), **result})
