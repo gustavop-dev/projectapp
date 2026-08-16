@@ -64,10 +64,17 @@ function client(overrides) {
 // Two clients pay hosting today, a third only has an expired one, a fourth
 // none at all — so "cobrado" (2) and "histórico" (3) are visibly different.
 //
+// "Sin contacto en los últimos 30 días" is measured against the clock, so the
+// one client who counts as warm has to stay warm: a literal date would freeze
+// on the day it was written and silently flip the client to cold a month
+// later, which is the same reason the Historial's date tabs are builtin
+// rather than seeded.
+const daysAgo = (n) => new Date(Date.now() - n * 86400000).toISOString();
+
 // The diagnostic and email facts ride the same four rows: Kore was billed a
 // diagnostic that never turned into a proposal and has been written to twice
-// (once failed); Mimittos has a diagnostic with a proposal after it and one
-// send four months old; Senses has neither.
+// (once failed, and recently); Mimittos has a diagnostic with a proposal
+// after it and one send long enough ago to be cold; Senses has neither.
 const CHARGED_ONE = client({
   id: 101, name: 'Kore Healths', company: 'Kore',
   hostings_count: 2, active_hostings_count: 1,
@@ -78,14 +85,14 @@ const CHARGED_ONE = client({
   diagnostics_count: 1, diagnostic_incomes_count: 1,
   diagnostics_without_proposal_count: 1,
   emails_sent_count: 2, emails_failed_count: 1,
-  last_email_at: '2026-05-01T10:00:00Z',
+  last_email_at: daysAgo(2),
 });
 const CHARGED_TWO = client({
   id: 102, name: 'Mimittos SAS', company: 'Mimittos',
   hostings_count: 1, active_hostings_count: 1,
   diagnostics_count: 1,
   emails_sent_count: 1,
-  last_email_at: '2026-01-05T10:00:00Z',
+  last_email_at: daysAgo(120),
 });
 const EXPIRED_ONLY = client({
   id: 103, name: 'Senses Candles', company: 'Senses',
