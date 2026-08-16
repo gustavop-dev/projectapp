@@ -4163,7 +4163,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits.",
+      "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits. The page-level guard now runs on the shared useUnsavedGuard (same composable as admin-document-unsaved-guard) and renders a notice above the tab strip — outside every tab, since the pending work may sit in one the operator is not looking at — naming what is pending (\"Secciones y tarifa por hora sin guardar\") instead of only reporting that something is. It stays a two-exit dialog (salir sin guardar / seguir editando): the proposal has no atomic save, each SectionEditor saves its own block, so a \"Guardar y salir\" would promise something this page cannot yet deliver.",
       "expectedSpecs": 1,
       "outcomes": [
         "success"
