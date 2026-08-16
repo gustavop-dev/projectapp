@@ -192,6 +192,19 @@
             :data-testid="`hosting-no-project-${row.id}`"
           >—</span>
         </template>
+        <!-- El conteo de ciclos es la dirección del histórico: un enlace de
+             verdad, no sólo el botón de la columna de acciones. -->
+        <template #cell-cycles_count="{ row }">
+          <BaseRowLink
+            :to="hostingCyclesTo(row.id)"
+            stretch
+            :data-testid="`hosting-open-cycles-${row.id}`"
+            class="block tabular-nums hover:text-text-brand transition-colors"
+            :title="`Ciclos de pago de ${row.client_display_name || row.client_name || row.domain_url}`"
+          >
+            {{ row.cycles_count }}
+          </BaseRowLink>
+        </template>
         <template #cell-domain_url="{ row }">
           <AccountingInlineCell
             :value="row.domain_url"
@@ -360,7 +373,7 @@
     <HostingCyclesModal
       :open="cyclesModalOpen"
       :record="cyclesRecord"
-      @close="cyclesModalOpen = false"
+      @close="closeCyclesModal"
       @changed="onCyclesChanged"
     />
 
@@ -405,6 +418,7 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useRowSelection } from '~/composables/useRowSelection';
+import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -706,7 +720,9 @@ const columns = [
   { key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true },
   { key: 'payment_modality_label', label: 'Modalidad' },
   { key: 'validity', label: 'Vigencia' },
-  { key: 'cycles_count', label: 'Ciclos', align: 'center' },
+  // `link: true`: el conteo de ciclos ES lo que el detalle despliega, así que
+  // ahí va el enlace al histórico.
+  { key: 'cycles_count', label: 'Ciclos', align: 'center', link: true },
   { key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true },
   { key: 'is_active', label: 'Estado' },
 ];
@@ -853,12 +869,19 @@ async function saveInline(row, field, value) {
 // Cycle history modal
 // -------------------------------------------------------------------
 
-const cyclesModalOpen = ref(false);
-const cyclesRecord = ref(null);
+// El historial de ciclos es el detalle de un hosting, así que el parámetro
+// nombra al hosting (`?hosting=`) y no a un ciclo. Con dirección propia, el
+// dominio de la fila puede publicarla en un enlace y la URL se puede compartir.
+const {
+  openRow: cyclesRecord,
+  isOpen: cyclesModalOpen,
+  toFor: hostingCyclesTo,
+  open: openCyclesById,
+  close: closeCyclesModal,
+} = useDetailQueryParam('hosting', { rows: () => store.hostings });
 
 function openCyclesModal(row) {
-  cyclesRecord.value = row;
-  cyclesModalOpen.value = true;
+  openCyclesById(row.id);
 }
 
 function goToHostingEmails(row) {
@@ -866,12 +889,9 @@ function goToHostingEmails(row) {
 }
 
 async function onCyclesChanged() {
+  // Ya no hay que reponer la fila a mano: `cyclesRecord` es un computed sobre
+  // el store, así que recargar la lista la vuelve a resolver sola.
   await loadRecords();
-  if (cyclesRecord.value) {
-    cyclesRecord.value =
-      store.hostings.find((row) => row.id === cyclesRecord.value.id)
-      || cyclesRecord.value;
-  }
 }
 
 // -------------------------------------------------------------------

@@ -1,9 +1,13 @@
 import { mount } from '@vue/test-utils';
 import DashboardStatTile from '../../components/panel/dashboard/DashboardStatTile.vue';
 
+// Registrado como componente y no como stub: la tarjeta resuelve NuxtLink con
+// `resolveComponent` (un string en `:is` no resuelve un auto-import de Nuxt y
+// renderiza un <nuxtlink> muerto), y `resolveComponent` sólo encuentra lo que
+// está registrado. Mismo montaje que test/components/BaseDropdown.spec.js.
 const GLOBAL = {
-  stubs: {
-    NuxtLink: { template: '<a v-bind="$attrs"><slot /></a>' },
+  components: {
+    NuxtLink: { name: 'NuxtLink', props: ['to'], template: '<a :href="to" v-bind="$attrs"><slot /></a>' },
   },
 };
 

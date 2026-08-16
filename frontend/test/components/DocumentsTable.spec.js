@@ -9,12 +9,22 @@
 import { mount } from '@vue/test-utils';
 import DocumentsTable from '../../components/panel/documents/DocumentsTable.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
+import BaseRowLink from '../../components/base/BaseRowLink.vue';
 
 const BaseTooltipStub = {
   name: 'BaseTooltip',
   props: ['position', 'width', 'minWidth'],
   template: '<div><slot name="trigger" /><slot /></div>',
 };
+
+// Preserva el href: el contrato de la fila es justamente que el título tenga
+// dirección, y el auto-stub de NuxtLink no renderiza ninguna.
+const NuxtLinkStub = {
+  template: '<a :href="to" v-bind="$attrs"><slot /></a>',
+  props: ['to'],
+};
+
+const editToFor = (doc) => `/panel/documents/${doc.id}/edit`;
 
 const activeDoc = {
   id: 1,
@@ -51,8 +61,9 @@ function mountTable(props = {}) {
   return mount(DocumentsTable, {
     props: { documents: [activeDoc], subfolders: [], ...props },
     global: {
-      components: { BaseButton, BaseTooltip: BaseTooltipStub },
-      stubs: { NuxtLink: true },
+      // BaseRowLink va registrado a mano: en Jest no hay auto-import de Nuxt.
+      components: { BaseButton, BaseTooltip: BaseTooltipStub, BaseRowLink },
+      stubs: { NuxtLink: NuxtLinkStub },
     },
   });
 }
@@ -209,5 +220,89 @@ describe('DocumentsTable — asociación cliente/proyecto', () => {
 
     expect(wrapper.find('[data-testid="doc-client-cell-1"]').text()).toBe('—');
     expect(wrapper.find('[data-testid="doc-project-cell-1"]').text()).toBe('—');
+  });
+});
+
+describe('DocumentsTable — fila navegable', () => {
+  it('publishes the editor address on the title, not just on the row handler', () => {
+    const wrapper = mountTable({ editToFor });
+
+    const link = wrapper.get('[data-testid="document-open-1"]');
+    expect(link.attributes('href')).toBe('/panel/documents/1/edit');
+    expect(link.text()).toBe('Contrato de Servicios');
+  });
+
+  it('forwards the click so the page can tell a plain open from a new tab', async () => {
+    const wrapper = mountTable({ editToFor });
+
+    await wrapper.get('[data-testid="doc-client-cell-1"]').trigger('click');
+
+    const [doc, event] = wrapper.emitted('open')[0];
+    expect(doc.id).toBe(1);
+    expect(event).toBeInstanceOf(MouseEvent);
+  });
+
+  it('forwards a wheel click too, which is a different event entirely', async () => {
+    const wrapper = mountTable({ editToFor });
+
+    await wrapper.get('[data-testid="doc-client-cell-1"]').trigger('auxclick', { button: 1 });
+
+    expect(wrapper.emitted('open')).toHaveLength(1);
+    expect(wrapper.emitted('open')[0][1].button).toBe(1);
+  });
+
+  it('lets the title link navigate on its own instead of opening twice', async () => {
+    const wrapper = mountTable({ editToFor });
+
+    await wrapper.get('[data-testid="doc-client-cell-1"]').trigger('click');
+    await wrapper.get('[data-testid="document-open-1"]').trigger('click');
+
+    expect(wrapper.emitted('open')).toHaveLength(1);
+  });
+
+  it('opts the title out of the native link drag so the row keeps its own', () => {
+    const wrapper = mountTable({ editToFor });
+
+    expect(wrapper.get('[data-testid="document-open-1"]').attributes('draggable')).toBe('false');
+    expect(wrapper.findAll('tbody tr')[0].attributes('draggable')).toBe('true');
+  });
+});
+
+describe('DocumentsTable — fila de carpeta', () => {
+  const folderToFor = (sub) => `/panel/documents?folder=${sub.id}`;
+
+  it('publishes the folder address on its name', () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    const link = wrapper.get('[data-testid="folder-open-9"]');
+    expect(link.attributes('href')).toBe('/panel/documents?folder=9');
+    expect(link.text()).toBe('Contratos 2024');
+  });
+
+  it('keeps the plain click for the page, which owns how a folder is entered', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    await wrapper.get('[data-testid="folder-open-9"]').trigger('click');
+
+    // La página entra por el store — y en plena búsqueda hace algo distinto —,
+    // así que el enlace cede el clic simple en vez de navegar por su cuenta.
+    expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
+  });
+
+  it('hands a ctrl+click to the browser instead of entering the folder', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder], folderToFor });
+
+    await wrapper.get('[data-testid="folder-open-9"]').trigger('click', { ctrlKey: true });
+
+    expect(wrapper.emitted('select-folder')).toBeUndefined();
+  });
+
+  it('does not fake an address when the page says there is none', async () => {
+    const wrapper = mountTable({ documents: [], subfolders: [activeFolder] });
+
+    expect(wrapper.find('a').exists()).toBe(false);
+    // La fila sigue entrando a la carpeta: lo que falta es la dirección.
+    await wrapper.findAll('tbody tr')[0].trigger('click');
+    expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
   });
 });

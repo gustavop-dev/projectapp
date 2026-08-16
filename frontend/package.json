@@ -22,6 +22,7 @@
     "check:design-tokens": "node scripts/check-design-tokens.mjs",
     "check:design-tokens:panel": "node scripts/check-design-tokens.mjs --scope=panel",
     "check:design-tokens:strict": "node scripts/check-design-tokens.mjs --strict",
+    "check:design-tokens:rows": "node scripts/check-design-tokens.mjs --scope=panel --strict --strict-rows",
     "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs"
   },
   "dependencies": {

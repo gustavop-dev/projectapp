@@ -203,6 +203,17 @@
             @open="openActions"
           />
         </template>
+        <!-- Sin `stretch`: la celda de la grilla trunca (overflow hidden) y
+             recortaría el área estirada. El enlace cubre el texto. -->
+        <template #cell-concept="{ row }">
+          <BaseRowLink
+            :to="incomeDetailTo(row.id)"
+            :data-testid="`income-open-${row.id}`"
+            class="hover:text-text-brand transition-colors"
+          >
+            <HighlightText :text="row.concept" :query="currentFilters.search" />
+          </BaseRowLink>
+        </template>
         <template #cell-kind_label="{ row }">
           <span
             class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -255,6 +266,18 @@
               :busy="duplicatingId === row.id"
               @open="openActions"
             />
+          </template>
+          <!-- El concepto es la dirección del detalle: un enlace de verdad, no
+               sólo el ojo del kebab. -->
+          <template #cell-concept="{ row }">
+            <BaseRowLink
+              :to="incomeDetailTo(row.id)"
+              stretch
+              :data-testid="`income-open-${row.id}`"
+              class="block truncate hover:text-text-brand transition-colors"
+            >
+              <HighlightText :text="row.concept" :query="currentFilters.search" />
+            </BaseRowLink>
           </template>
           <template #cell-kind_label="{ row }">
             <span
@@ -377,7 +400,7 @@
     <IncomeDetailModal
       :open="detailOpen"
       :income-id="detailIncomeId"
-      @close="detailOpen = false"
+      @close="closeIncomeDetail"
       @duplicate="duplicateIncome"
     />
 
@@ -464,6 +487,7 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useIncomeViewMode } from '~/composables/useIncomeViewMode';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useRowSelection } from '~/composables/useRowSelection';
+import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -998,7 +1022,9 @@ function unmuteIncome(record) {
 // grid had no room left for what the operator actually scans by. The whole
 // split (Gustavo, Carlos and la empresa) lives in the income detail modal.
 const columns = [
-  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
+  // `link: true`: acá va el enlace al detalle, y la celda se vuelve `relative`
+  // para que se estire a todo su ancho.
+  { key: 'concept', label: 'Concepto', size: 'name', sortable: true, link: true },
   { key: 'client_name', label: 'Cliente', size: 'name', sortable: true, hideBelow: 'md' },
   { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'lg' },
   { key: 'kind_label', label: 'Tipo', size: 'badge' },
@@ -1159,12 +1185,20 @@ function openActions(row) {
   actionsOpen.value = true;
 }
 
-const detailOpen = ref(false);
-const detailIncomeId = ref(null);
+// El detalle del ingreso tiene dirección propia (`?income=`): así la fila puede
+// publicarla en un enlace, y recargar o compartir la URL reabre la capa.
+// Deliberadamente NO es un ephemeralParam — esos se borran en el setup, que es
+// por qué `?focus=` no sobrevive a una recarga.
+const {
+  openId: detailIncomeId,
+  isOpen: detailOpen,
+  toFor: incomeDetailTo,
+  open: openDetailById,
+  close: closeIncomeDetail,
+} = useDetailQueryParam('income');
 
 function openIncomeDetail(row) {
-  detailIncomeId.value = row.id;
-  detailOpen.value = true;
+  openDetailById(row.id);
 }
 
 /** Row whose duplicate prefill is being fetched, so its kebab can say so. */
@@ -1195,7 +1229,7 @@ async function duplicateIncome(row) {
     });
     return;
   }
-  detailOpen.value = false;
+  closeIncomeDetail();
   openSeededModal(result.data);
 }
 

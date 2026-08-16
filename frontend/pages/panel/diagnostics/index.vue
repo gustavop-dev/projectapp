@@ -254,6 +254,7 @@
             class="transition-colors cursor-pointer hover:bg-surface-muted"
             :data-testid="`diagnostic-row-${d.id}`"
             @click="navigateToDiagnostic(d.id, $event)"
+            @auxclick.middle="navigateToDiagnostic(d.id, $event)"
           >
             <td class="pl-4 pr-1 py-4" @click.stop>
               <BaseCheckbox
@@ -262,12 +263,19 @@
                 :aria-label="`Seleccionar ${d.title}`"
               />
             </td>
-            <td class="px-6 py-4">
+            <td class="px-6 py-4" :data-testid="`diagnostic-row-client-${d.id}`">
               <div class="text-sm font-medium text-text-default">{{ d.client?.name || '—' }}</div>
               <div v-if="d.client?.email" class="text-xs text-text-muted mt-0.5">{{ d.client.email }}</div>
             </td>
-            <td class="px-6 py-4 text-sm text-text-default">
-              <div class="truncate max-w-[22rem]" :title="d.title">{{ d.title }}</div>
+            <!-- `relative` es el marco contra el que se estira el enlace. -->
+            <td class="relative px-6 py-4 text-sm text-text-default">
+              <BaseRowLink
+                :to="diagnosticHref(d.id)"
+                stretch
+                :data-testid="`diagnostic-open-${d.id}`"
+                class="block truncate max-w-[22rem] hover:text-text-brand transition-colors"
+                :title="d.title"
+              >{{ d.title }}</BaseRowLink>
             </td>
             <td class="px-6 py-4">
               <div class="flex flex-col items-start gap-1">
@@ -366,9 +374,24 @@
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="actionsModalDiagnostic = null"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised">✏️</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised" aria-hidden="true">✏️</span>
                 <span class="text-sm font-medium text-text-default">Abrir editor</span>
               </NuxtLink>
+
+              <!-- Un <a target="_blank"> de verdad, no un botón que llame a
+                   window.open: la acción existe también en pantallas táctiles,
+                   donde ctrl+clic no está. -->
+              <a
+                :href="diagnosticHref(actionsModalDiagnostic.id)"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="diagnostic-open-new-tab"
+                class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
+                @click="actionsModalDiagnostic = null"
+              >
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised" aria-hidden="true">↗️</span>
+                <span class="text-sm font-medium text-text-default">Abrir en pestaña nueva</span>
+              </a>
 
               <a
                 v-if="actionsModalDiagnostic.public_url"
@@ -423,6 +446,7 @@ import { getDiagnosticAttention, ATTENTION_TONE_CLASSES } from '~/utils/diagnost
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDiagnosticFilters } from '~/composables/useDiagnosticFilters';
 import { useRowSelection } from '~/composables/useRowSelection';
+import { useRowNavigation } from '~/composables/useRowNavigation';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { formatDateTime } from '~/utils/formatDate';
@@ -444,7 +468,7 @@ const SortIcon = {
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
 const localePath = useLocalePath();
-const router = useRouter();
+const { openRow } = useRowNavigation();
 const store = useDiagnosticsStore();
 const notify = usePanelNotify();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
@@ -635,13 +659,14 @@ function toggleSort(key) {
 
 watch([searchQuery, currentFilters], () => { currentPage.value = 1; }, { deep: true });
 
+// Fuente única de la dirección: la leen el <a> del título de la fila, el ítem
+// «Abrir en pestaña nueva» del menú y el atajo de clic.
+function diagnosticHref(id) {
+  return localePath(`/panel/diagnostics/${id}/edit`);
+}
+
 function navigateToDiagnostic(id, event) {
-  const path = localePath(`/panel/diagnostics/${id}/edit`);
-  if (event?.ctrlKey || event?.metaKey) {
-    window.open(path, '_blank');
-  } else {
-    router.push(path);
-  }
+  openRow(diagnosticHref(id), event);
 }
 
 function handleCopyLink(d) {

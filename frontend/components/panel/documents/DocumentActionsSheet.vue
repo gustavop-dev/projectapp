@@ -28,10 +28,13 @@
 
           <!-- Actions list -->
           <div class="p-2" data-testid="document-actions-list">
-            <button
+            <component
+              :is="action.newTab ? 'a' : 'button'"
               v-for="action in actions"
               :key="action.template ? `${action.event}-${action.template}` : action.event"
-              type="button"
+              v-bind="action.newTab
+                ? { href: editTo, target: '_blank', rel: 'noopener noreferrer', 'data-testid': 'document-open-new-tab' }
+                : { type: 'button' }"
               class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition-all active:scale-[0.98] hover:bg-surface-muted"
               :class="action.danger ? 'text-danger-strong hover:bg-danger-soft' : 'text-text-default'"
               @click="trigger(action)"
@@ -48,7 +51,7 @@
                 <div class="text-sm font-medium">{{ action.label }}</div>
                 <div v-if="action.description" class="text-xs text-text-subtle mt-0.5">{{ action.description }}</div>
               </div>
-            </button>
+            </component>
           </div>
 
           <!-- Footer (mobile-only safe area + cancel) -->
@@ -70,6 +73,10 @@ const props = defineProps({
   modelValue: { type: Boolean, default: false },
   document: { type: Object, default: null },
   archived: { type: Boolean, default: false },
+  // Dirección del editor, ya resuelta por la página. Llega como prop y no se
+  // arma acá porque esta hoja es presentacional: sus specs la montan fuera del
+  // contexto de Nuxt, donde `useLocalePath` no existe.
+  editTo: { type: String, default: null },
 });
 const emit = defineEmits([
   'update:modelValue',
@@ -108,6 +115,16 @@ const BASE_ACTIONS = [
     label: 'Editar contenido',
     description: 'Abrir el editor del documento',
     icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+  },
+  // Un <a> de verdad, no un botón que llame a window.open: así la acción existe
+  // también en pantallas táctiles, donde ctrl+clic no está, y sigue siendo
+  // copiable y abrible desde el menú contextual.
+  {
+    event: 'open-new-tab',
+    newTab: true,
+    label: 'Abrir en pestaña nueva',
+    description: 'Abre el editor en otra pestaña, sin salir de la lista',
+    icon: 'M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25',
   },
   {
     event: 'rename',
@@ -165,11 +182,15 @@ const isArchived = computed(() => props.archived || !!props.document?.is_archive
 const ARCHIVED_EVENTS = new Set(['download-pdf', 'copy-markdown', 'delete']);
 
 const actions = computed(() => {
-  if (!isArchived.value) return BASE_ACTIONS;
-  return [
-    UNARCHIVE_ACTION,
-    ...BASE_ACTIONS.filter((a) => ARCHIVED_EVENTS.has(a.event)),
-  ];
+  if (isArchived.value) {
+    return [
+      UNARCHIVE_ACTION,
+      ...BASE_ACTIONS.filter((a) => ARCHIVED_EVENTS.has(a.event)),
+    ];
+  }
+  // Sin dirección no hay enlace: una acción que no lleva a ningún lado no se
+  // ofrece.
+  return BASE_ACTIONS.filter((a) => !a.newTab || props.editTo);
 });
 
 function close() {
@@ -177,7 +198,8 @@ function close() {
 }
 
 function trigger(action) {
-  emit(action.event, action.template);
+  // El enlace navega solo; la hoja únicamente se aparta.
+  if (!action.newTab) emit(action.event, action.template);
   close();
 }
 </script>

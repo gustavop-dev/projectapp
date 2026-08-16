@@ -1,5 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import DocumentCard from '../../components/panel/documents/DocumentCard.vue'
+import BaseRowLink from '../../components/base/BaseRowLink.vue'
 
 const NuxtLink = {
   name: 'NuxtLink',
@@ -30,7 +31,7 @@ const baseDocument = {
 async function mountCard(props = {}) {
   const wrapper = mount(DocumentCard, {
     props: { document: baseDocument, editTo: '/panel/documents/7/edit', ...props },
-    global: { components: { NuxtLink, BaseTooltip } },
+    global: { components: { NuxtLink, BaseTooltip, BaseRowLink } },
   })
   await flushPromises() // DOMPurify dynamic import inside DocumentMarkdownBody
   return wrapper
@@ -74,6 +75,30 @@ describe('DocumentCard', () => {
     expect(wrapper.emitted('action')).toHaveLength(1)
     // The kebab click must not also open the card.
     expect(wrapper.emitted('open')).toHaveLength(1)
+  })
+
+  it('forwards the click so the page can tell a plain open from a new tab', async () => {
+    const wrapper = await mountCard()
+
+    await wrapper.trigger('click')
+
+    expect(wrapper.emitted('open')[0][0]).toBeInstanceOf(MouseEvent)
+  })
+
+  it('forwards a wheel click too, which is a different event entirely', async () => {
+    const wrapper = await mountCard()
+
+    await wrapper.trigger('auxclick', { button: 1 })
+
+    expect(wrapper.emitted('open')).toHaveLength(1)
+    expect(wrapper.emitted('open')[0][0].button).toBe(1)
+  })
+
+  it('opts the title out of the native link drag so the card keeps its own', async () => {
+    const wrapper = await mountCard()
+
+    expect(wrapper.get('a[href="/panel/documents/7/edit"]').attributes('draggable')).toBe('false')
+    expect(wrapper.attributes('draggable')).toBe('true')
   })
 
   it('exposes an accessible name for the kebab', async () => {
