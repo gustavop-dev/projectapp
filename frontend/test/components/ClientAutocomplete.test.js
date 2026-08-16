@@ -360,6 +360,30 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Precargado');
   });
 
+  // La página real hidrata DESPUÉS del montaje: el documento se pide por red,
+  // así que el picker nace con `initialLabel` vacío y la etiqueta llega luego.
+  // Los demás tests montan con la etiqueta ya puesta, que inicializa
+  // `committedLabel` por constructor y nunca ejerce el watcher — por eso este
+  // camino podía romperse sin que ninguno se enterara.
+  it('adopts a late initialLabel as the committed one, so blur restores it', async () => {
+    mockStore.searchClients.mockResolvedValueOnce({ success: true, data: [] });
+
+    const wrapper = mountAutocomplete({ modelValue: null, initialLabel: '' });
+    await wrapper.setProps({ modelValue: 7, initialLabel: 'Kore SAS' });
+    await nextTick();
+
+    // El hint nombra al cliente enlazado: si `committedLabel` quedó vacío,
+    // acá se lee "Cliente enlazado: (#7)" sin nombre.
+    expect(wrapper.get('[data-testid="client-autocomplete-linked"]').text()).toContain('Kore SAS');
+
+    await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('otra');
+    await flushPromises();
+    clickOutsideHandler();
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Kore SAS');
+  });
+
   it('renders the client id beside the name in each option', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,
