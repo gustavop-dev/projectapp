@@ -1076,13 +1076,17 @@ export const useAccountingStore = defineStore('accounting', {
         return { success: true, data: response.data };
       } catch (error) {
         console.error('Error assigning client to incomes:', error);
-        // `records_not_found` names the rows that vanished between the
-        // confirmation opening and the submit, so the page can drop exactly
+        // `records_not_found` names rows that vanished under the open
+        // dialog; `records_with_collection_account` names rows whose client
+        // is frozen by an active cuenta. Either way the page drops exactly
         // those instead of clearing the whole selection.
         return {
           success: false,
           ...normalizeApiError(error),
-          missingIds: numericIdsFromError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'conflicting_ids'),
+          ],
         };
       } finally {
         this.isUpdating = false;

@@ -463,6 +463,28 @@ class IncomeRecordCreateUpdateSerializer(
                 'Este ingreso esperado ya tiene liquidaciones. Reduce su monto '
                 'y registra la diferencia como un ingreso perdido aparte.'
             )
+        # An active (non-cancelled) cuenta de cobro freezes an EXISTING
+        # client: the document went out in their name, and even a draft is a
+        # cuenta in flight. The path for a mistake is anular y reemitir.
+        # Completing a missing client stays allowed (the legacy backlog and
+        # the issue-time adoption both do exactly that), and hostings stay
+        # exempt on purpose — they accumulate issued cuentas for years and
+        # each one carries its own frozen snapshot.
+        if (
+            'client' in data
+            and self.instance is not None
+            and self.instance.client_id is not None
+            and data['client'] != self.instance.client
+            and self.instance.collection_documents.exclude(
+                commercial_status=Document.CommercialStatus.CANCELLED,
+            ).exists()
+        ):
+            raise serializers.ValidationError({
+                'client': (
+                    'Este ingreso tiene una cuenta de cobro activa. Anúlala '
+                    'y emite una nueva para reasignar el cliente.'
+                ),
+            })
         # Moving the record to another client orphans a project that belonged
         # to the previous one — not merely a stale value like the hosting
         # billing snapshot, but a record pointing at someone else's project.

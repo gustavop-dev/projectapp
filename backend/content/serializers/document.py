@@ -115,6 +115,10 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
     client = serializers.SerializerMethodField()
     client_display_name = serializers.SerializerMethodField()
     project_name = serializers.CharField(source='project.name', read_only=True, default=None)
+    # The documents UI locks issued cuentas; both fields feed that branch.
+    document_type_code = serializers.CharField(
+        source='document_type.code', read_only=True, default=None,
+    )
 
     EXCERPT_MAX_CHARS = 500
 
@@ -124,6 +128,7 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
             'id', 'uuid', 'title', 'slug', 'status',
             'client_name', 'client', 'client_display_name',
             'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_details', 'content_excerpt',
@@ -157,6 +162,10 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
     client = serializers.SerializerMethodField()
     client_display_name = serializers.SerializerMethodField()
     project_name = serializers.CharField(source='project.name', read_only=True, default=None)
+    # The edit page locks issued cuentas; both fields feed that branch.
+    document_type_code = serializers.CharField(
+        source='document_type.code', read_only=True, default=None,
+    )
     tag_details = _TagSummarySerializer(source='tags', many=True, read_only=True)
     tag_ids = serializers.PrimaryKeyRelatedField(
         source='tags', many=True, read_only=True,
@@ -170,6 +179,7 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'content_markdown', 'content_json',
             'client_name', 'client', 'client_display_name',
             'project', 'project_name',
+            'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',

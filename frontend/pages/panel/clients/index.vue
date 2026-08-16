@@ -459,6 +459,7 @@
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Hosting</th>
+                      <th class="px-4 py-3">Proyecto</th>
                       <th class="px-4 py-3">Valor/mes</th>
                       <th class="px-4 py-3">Vence</th>
                       <th class="px-4 py-3">Estado</th>
@@ -473,6 +474,12 @@
                     >
                       <td class="px-5 py-3 text-text-default">
                         {{ hosting.domain_url || hosting.client_name }}
+                      </td>
+                      <td
+                        class="px-4 py-3 text-text-muted text-xs"
+                        :data-testid="`client-hosting-project-${hosting.id}`"
+                      >
+                        {{ hosting.project_name || '—' }}
                       </td>
                       <td class="px-4 py-3 tabular-nums text-text-muted">
                         {{ formatMoney(hosting.monthly_value) }}
@@ -505,6 +512,7 @@
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Concepto</th>
+                      <th class="px-4 py-3">Proyecto</th>
                       <th class="px-4 py-3">Mes</th>
                       <th class="px-4 py-3">Total</th>
                       <th class="px-4 py-3">Cobro</th>
@@ -518,6 +526,12 @@
                       :data-testid="`client-income-${income.id}`"
                     >
                       <td class="px-5 py-3 text-text-default">{{ income.concept }}</td>
+                      <td
+                        class="px-4 py-3 text-text-muted text-xs"
+                        :data-testid="`client-income-project-${income.id}`"
+                      >
+                        {{ income.project_name || '—' }}
+                      </td>
                       <td class="px-4 py-3 text-text-muted text-xs">{{ income.period_label }}</td>
                       <td class="px-4 py-3 tabular-nums text-text-muted">
                         {{ formatMoney(income.total_amount) }}

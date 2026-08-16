@@ -474,6 +474,98 @@ class TestBulkClientAssignClearsForeignProject:
         assert liquid.project_id is None
         assert liquid.pk in {row['id'] for row in response.data['results']}
 
+    def test_an_active_cuenta_freezes_an_existing_client(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """Requisito 6: the cuenta went out in a client's name; that client
+        only changes by anular y reemitir. Single PATCH and bulk agree."""
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Con cuenta', client=kore)
+        Document.objects.create(
+            title='CC Kore',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.ISSUED,
+            income_record=income,
+        )
+
+        single = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'client': acme.pk}, format='json',
+        )
+        bulk = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk}, format='json',
+        )
+
+        assert single.status_code == 400
+        assert 'cuenta de cobro activa' in str(single.data['client'])
+        assert bulk.status_code == 409
+        assert bulk.data['code'] == 'records_with_collection_account'
+        assert bulk.data['conflicting_ids'] == [income.pk]
+        income.refresh_from_db()
+        assert income.client_id == kore.pk
+
+    def test_completing_a_missing_client_stays_allowed(
+        self, super_client, make_income, make_client_profile,
+    ):
+        """The legacy backlog: 92 of 115 cuenta-linked incomes had no client
+        when the link arrived. Completion is not a change of identity."""
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Legacy con cuenta')
+        Document.objects.create(
+            title='CC legacy',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.ISSUED,
+            income_record=income,
+        )
+
+        response = super_client.post(
+            BULK_URL,
+            {'income_ids': [income.pk], 'client': acme.pk}, format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+
+    def test_a_cancelled_cuenta_frees_the_income(
+        self, super_client, make_income, make_client_profile,
+    ):
+        from content.models import Document
+        from content.services.document_type_utils import (
+            get_collection_account_document_type,
+        )
+
+        kore = make_client_profile(company='Kore')
+        acme = make_client_profile(company='Acme SAS')
+        income = make_income(concept='Cuenta anulada', client=kore)
+        Document.objects.create(
+            title='CC anulada',
+            document_type=get_collection_account_document_type(),
+            commercial_status=Document.CommercialStatus.CANCELLED,
+            income_record=income,
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'client': acme.pk}, format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.client_id == acme.pk
+
     def test_a_project_already_owned_by_the_new_client_is_kept(
         self, super_client, make_income, make_client_profile,
     ):

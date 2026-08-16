@@ -494,6 +494,99 @@ class TestDeleteDocument:
         assert not Document.objects.filter(pk=document.id).exists()
 
 
+# ── collection-account lock (requisito 6) ──
+
+@pytest.fixture
+def make_cuenta(db):
+    from content.services.document_type_utils import (
+        get_collection_account_document_type,
+    )
+
+    def _make(status):
+        return Document.objects.create(
+            title='CC Kore',
+            document_type=get_collection_account_document_type(),
+            commercial_status=status,
+        )
+
+    return _make
+
+
+class TestCollectionAccountLock:
+    """An issued cuenta is a fact: the generic documents module can no
+    longer rewrite or delete it — the path is anular y reemitir. Drafts
+    stay editable: they are provisional by definition."""
+
+    def test_an_issued_cuenta_refuses_update_and_delete(
+        self, admin_client, make_cuenta,
+    ):
+        issued = make_cuenta(Document.CommercialStatus.ISSUED)
+
+        patched = admin_client.patch(
+            reverse('update-document', kwargs={'document_id': issued.pk}),
+            {'title': 'Otro'}, format='json',
+        )
+        deleted = admin_client.delete(
+            reverse('delete-document', kwargs={'document_id': issued.pk}),
+        )
+
+        assert patched.status_code == 400
+        assert patched.data['code'] == 'collection_account_locked'
+        assert deleted.status_code == 400
+        assert deleted.data['code'] == 'collection_account_locked'
+        issued.refresh_from_db()
+        assert issued.title == 'CC Kore'
+
+    def test_a_cancelled_cuenta_is_history_too(self, admin_client, make_cuenta):
+        cancelled = make_cuenta(Document.CommercialStatus.CANCELLED)
+
+        response = admin_client.patch(
+            reverse('update-document', kwargs={'document_id': cancelled.pk}),
+            {'title': 'Otro'}, format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['code'] == 'collection_account_locked'
+
+    def test_a_draft_cuenta_stays_editable_and_deletable(
+        self, admin_client, make_cuenta,
+    ):
+        draft = make_cuenta(Document.CommercialStatus.DRAFT)
+
+        patched = admin_client.patch(
+            reverse('update-document', kwargs={'document_id': draft.pk}),
+            {'title': 'Draft renombrado'}, format='json',
+        )
+
+        assert patched.status_code == 200, patched.data
+        draft.refresh_from_db()
+        assert draft.title == 'Draft renombrado'
+
+        deleted = admin_client.delete(
+            reverse('delete-document', kwargs={'document_id': draft.pk}),
+        )
+        assert deleted.status_code == 204
+
+    def test_the_serializers_expose_the_lock_fields(
+        self, admin_client, make_cuenta, document,
+    ):
+        issued = make_cuenta(Document.CommercialStatus.ISSUED)
+
+        detail = admin_client.get(
+            reverse('retrieve-document', kwargs={'document_id': issued.pk}),
+        )
+
+        assert detail.status_code == 200
+        assert detail.data['document_type_code'] == 'collection_account'
+        assert detail.data['commercial_status'] == 'issued'
+        # Markdown documents stay unlocked and say so.
+        markdown = admin_client.get(
+            reverse('retrieve-document', kwargs={'document_id': document.pk}),
+        )
+        assert markdown.data['document_type_code'] == 'markdown'
+        assert markdown.data['commercial_status'] is None
+
+
 # ── archived scope ──
 
 class TestListDocumentsArchivedFilter:

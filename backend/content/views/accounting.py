@@ -919,6 +919,45 @@ def _missing_records_error(entity_type, record_ids, *, noun):
     )
 
 
+def _collection_account_conflict_error(income_ids, client):
+    """409 naming incomes whose EXISTING client is frozen by an active cuenta.
+
+    The bulk mirror of the single-record serializer rule: an emitted (or
+    in-flight) cuenta went out in a client's name, so that client only
+    changes by anular y reemitir. Completing a missing client is not a
+    change — the legacy backlog and the issue-time adoption (which calls
+    the service directly) both stay untouched.
+    """
+    target_pk = client.pk if client else None
+    conflicting = sorted(
+        IncomeRecord.objects.filter(pk__in=income_ids)
+        .exclude(client_id=None)
+        .exclude(client_id=target_pk)
+        .filter(collection_documents__isnull=False)
+        .exclude(
+            collection_documents__commercial_status=(
+                Document.CommercialStatus.CANCELLED
+            ),
+        )
+        .values_list('pk', flat=True)
+        .distinct(),
+    )
+    if not conflicting:
+        return None
+    count = len(conflicting)
+    noun = 'ingreso' if count == 1 else 'ingresos'
+    verb = 'tiene' if count == 1 else 'tienen'
+    return error_response(
+        f'{count} de los {noun} seleccionados {verb} una cuenta de cobro '
+        'activa y no pueden cambiar de cliente.',
+        code='records_with_collection_account',
+        hint='Anula sus cuentas de cobro y vuelve a emitirlas para '
+             'reasignar el cliente.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'conflicting_ids': conflicting},
+    )
+
+
 def _with_liquid_children(updated):
     """The updated incomes plus the liquid children their cascade rewrote.
 
@@ -955,6 +994,11 @@ def bulk_assign_income_client(request):
     )
     if vanished:
         return vanished
+    conflict = _collection_account_conflict_error(
+        income_ids, serializer.validated_data.get('client'),
+    )
+    if conflict:
+        return conflict
     updated = accounting_service.bulk_assign_client(
         EntityType.INCOME,
         income_ids,
