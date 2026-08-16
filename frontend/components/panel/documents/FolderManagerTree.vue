@@ -36,6 +36,9 @@
             {{ folder.name }}
           </span>
 
+          <!-- Directo, a diferencia del panel lateral: acá el árbol se dibuja
+               anidado e indentado, así que un total del subárbol pondría 12 en
+               el padre y 12 en el hijo a la vez. El ojo ya hace la suma. -->
           <span class="flex-shrink-0 text-xs text-text-subtle">
             {{ folder.document_count }} doc
           </span>

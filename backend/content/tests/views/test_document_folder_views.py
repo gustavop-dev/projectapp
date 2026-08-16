@@ -494,3 +494,32 @@ class TestFolderHierarchy:
         assert entry['children_count'] == 1
         assert entry['archived_document_count'] == 1
         assert entry['archived_children_count'] == 1
+
+    def test_scope_all_returns_the_whole_tree_unpaginated(self, admin_client, folder):
+        """El panel suma el subárbol de cada carpeta con esta lista y nada más.
+
+        Los contadores recursivos de la fila (los documentos que una carpeta
+        guarda a cualquier profundidad) se derivan en el frontend a partir de
+        esta respuesta, y eso sólo es correcto mientras siga trayendo el árbol
+        COMPLETO de los dos estados en un solo pedido. Paginarla, o devolver un
+        sobre `{results: [...]}`, dejaría a las carpetas de las páginas que no se
+        pidieron fuera de la suma — sin error y sin test rojo. Este es ese test.
+        """
+        child = DocumentFolder.objects.create(name='Sub', parent=folder)
+        DocumentFolder.objects.create(name='Nieta', parent=child)
+        archived = DocumentFolder.objects.create(name='Vieja')
+        admin_client.patch(
+            reverse('archive-document-folder', kwargs={'folder_id': archived.id})
+        )
+
+        response = admin_client.get(reverse('list-document-folders'), {'scope': 'all'})
+
+        assert response.status_code == 200
+        body = response.json()
+        assert isinstance(body, list)
+        assert {f['id'] for f in body} == set(
+            DocumentFolder.objects.values_list('id', flat=True)
+        )
+        # El vínculo padre-hijo viaja en la propia fila: sin él no hay árbol que
+        # recorrer, por más completa que venga la lista.
+        assert next(f for f in body if f['id'] == child.id)['parent'] == folder.id

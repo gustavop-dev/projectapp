@@ -19,22 +19,37 @@ const authCheck = {
 };
 
 // Árbol: Raíz A (11) -> Subcarpeta (21) -> Sub-sub (31) ; Raíz B (12)
-const FOLDER_ROOT = {
+//
+// Los documentos se reparten 1 / 1 / 4 hacia abajo: cada carpeta guarda MENOS
+// de lo que su rama contiene, que es la forma exacta del bug (una carpeta
+// diciendo 1 mientras adentro hay 6).
+function activeFolder(base) {
+  return {
+    ...base,
+    is_archived: false,
+    active_document_count: base.document_count,
+    active_children_count: base.children_count,
+    archived_document_count: 0,
+    archived_children_count: 0,
+  };
+}
+
+const FOLDER_ROOT = activeFolder({
   id: 11, name: 'Raiz A', slug: 'raiz-a', parent: null,
   order: 0, document_count: 1, children_count: 1,
-};
-const FOLDER_OTHER_ROOT = {
+});
+const FOLDER_OTHER_ROOT = activeFolder({
   id: 12, name: 'Raiz B', slug: 'raiz-b', parent: null,
   order: 1, document_count: 0, children_count: 0,
-};
-const FOLDER_SUB = {
+});
+const FOLDER_SUB = activeFolder({
   id: 21, name: 'Subcarpeta Uno', slug: 'subcarpeta-uno', parent: 11,
   order: 0, document_count: 1, children_count: 1,
-};
-const FOLDER_SUBSUB = {
+});
+const FOLDER_SUBSUB = activeFolder({
   id: 31, name: 'Sub Sub', slug: 'sub-sub', parent: 21,
-  order: 0, document_count: 0, children_count: 0,
-};
+  order: 0, document_count: 4, children_count: 0,
+});
 
 const ALL_FOLDERS = [FOLDER_ROOT, FOLDER_OTHER_ROOT, FOLDER_SUB, FOLDER_SUBSUB];
 
@@ -53,11 +68,17 @@ function jsonOk(body) {
   return { status: 200, contentType: 'application/json', body: JSON.stringify(body) };
 }
 
+const DOCS_IN_SUBSUB = Array.from({ length: FOLDER_SUBSUB.document_count }, (_, i) => ({
+  id: 100 + i, title: `Doc Hondo ${i + 1}`, status: 'draft',
+  client_name: null, created_at: '2026-04-03T10:00:00Z',
+  folder: FOLDER_SUBSUB.id, folder_name: FOLDER_SUBSUB.name, tag_details: [],
+}));
+
 function documentsForFolder(folder) {
   if (folder === String(FOLDER_ROOT.id)) return [DOC_IN_ROOT];
   if (folder === String(FOLDER_SUB.id)) return [DOC_IN_SUB];
-  if (folder === String(FOLDER_SUBSUB.id)) return [];
-  return [DOC_IN_ROOT, DOC_IN_SUB];
+  if (folder === String(FOLDER_SUBSUB.id)) return DOCS_IN_SUBSUB;
+  return [DOC_IN_ROOT, DOC_IN_SUB, ...DOCS_IN_SUBSUB];
 }
 
 test.describe('Admin Document Folder Hierarchy', () => {
@@ -96,6 +117,43 @@ test.describe('Admin Document Folder Hierarchy', () => {
     await expect(bar.getByRole('button', { name: /^Raiz B/ })).toBeVisible();
     // La subcarpeta no debe listarse en el sidebar.
     await expect(bar.getByRole('button', { name: /^Subcarpeta Uno/ })).toHaveCount(0);
+  });
+
+  test('a folder that organises into subfolders reports everything it holds', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_HIERARCHY, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ apiPath, route }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'document-folders/') return jsonOk(ALL_FOLDERS);
+      if (apiPath === 'document-tags/') return jsonOk([]);
+      if (apiPath.startsWith('documents/')) {
+        const u = new URL(route.request().url());
+        return jsonOk(documentsForFolder(u.searchParams.get('folder')));
+      }
+      return null;
+    });
+
+    // quality: allow-deep-link (lo que se verifica es el contador de la fila y
+    // su desglose al entrar; la entrada por el sidebar la cubre el flujo del
+    // módulo de documentos, y repetirla acá no agregaría cobertura.)
+    await page.goto('/panel/documents');
+    await page.waitForLoadState('domcontentloaded');
+
+    // «Raiz A» sólo tiene 1 documento colgando directo, pero su rama guarda 6.
+    // El contador decía 1 y dejaba a los otros 5 sin ninguna señal de dónde
+    // estaban.
+    const row = sidebar(page).getByRole('listitem').filter({ hasText: 'Raiz A' });
+    await expect(row.getByTestId('folder-document-count')).toHaveText('6');
+    await expect(row.getByTestId('folder-subfolder-count')).toHaveText('1');
+
+    // Entrar es el desglose: el documento propio más la subcarpeta que declara
+    // los otros 5 — la suma se puede verificar a ojo.
+    await row.getByRole('button', { name: /^Raiz A/ }).click();
+
+    const table = page.getByRole('table');
+    await expect(table.getByText('Doc En Raiz')).toBeVisible();
+    await expect(table.getByRole('row', { name: /Subcarpeta Uno/ }))
+      .toContainText('5 documentos · 1 subcarpeta');
   });
 
   test('entering a folder reveals subfolder rows and the breadcrumb', {

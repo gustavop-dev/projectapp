@@ -40,3 +40,23 @@ export function isRootInScope(containerId, findContainer, scope) {
   if (!container) return true;
   return !matchesScope(container, scope);
 }
+
+/**
+ * Scope que define el ÁRBOL en que se mira, dado el scope que se está CONTANDO.
+ *
+ * Son dos ejes distintos y confundirlos es lo que rompe los contadores. El scope
+ * de conteo dice qué documentos se suman; éste dice por qué carpetas se puede
+ * bajar, y es el mismo con que `isRootInScope` decide qué fila queda en la cima.
+ * Vive pegado a esa función porque son las dos mitades de una sola regla.
+ *
+ * Sólo el modo activo se mira en su propio árbol. Los otros dos se miran en el
+ * árbol completo: una carpeta ACTIVA puede guardar documentos archivados (el
+ * estado mixto que deja una restauración por cadena), y recorrer sólo carpetas
+ * archivadas los dejaría sin contar en ninguna fila.
+ *
+ * El resultado es siempre superconjunto del scope de conteo — si no lo fuera,
+ * habría carpetas cuyo contenido se cuenta pero por las que no se puede bajar.
+ */
+export function treeScopeFor(scope) {
+  return normalizeScope(scope) === 'active' ? 'active' : 'all';
+}

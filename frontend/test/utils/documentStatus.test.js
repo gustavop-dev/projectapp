@@ -6,7 +6,7 @@
  */
 
 import {
-  archivedAgeLabel, folderRowSummary, scopedDocumentCount,
+  archivedAgeLabel, folderRowLabel, folderRowSummary, scopedCounts,
 } from '../../utils/documentStatus';
 
 const mixedFolder = {
@@ -18,37 +18,53 @@ const mixedFolder = {
   archived_children_count: 2,
 };
 
-describe('scopedDocumentCount', () => {
+describe('scopedCounts', () => {
   it('counts the active documents by default', () => {
-    expect(scopedDocumentCount(mixedFolder)).toBe(2);
+    expect(scopedCounts(mixedFolder).docs).toBe(2);
   });
 
   it('counts the archived documents in the archived scope', () => {
-    // Es el número de la fila del panel lateral: con el modo encendido tiene
+    // Es lo que alimenta la fila del panel lateral: con el modo encendido tiene
     // que contar archivados, o el contador contradice al listado.
-    expect(scopedDocumentCount(mixedFolder, 'archived')).toBe(3);
+    expect(scopedCounts(mixedFolder, 'archived').docs).toBe(3);
   });
 
   it('adds both states in the mixed scope', () => {
-    expect(scopedDocumentCount(mixedFolder, 'all')).toBe(5);
+    expect(scopedCounts(mixedFolder, 'all').docs).toBe(5);
   });
 
-  it('ignores subfolders — the row counts documents', () => {
-    expect(scopedDocumentCount({ ...mixedFolder, archived_children_count: 9 }, 'archived'))
-      .toBe(3);
+  it('keeps documents and subfolders on separate axes', () => {
+    const counts = scopedCounts({ ...mixedFolder, archived_children_count: 9 }, 'archived');
+    expect(counts.docs).toBe(3);
+    expect(counts.subs).toBe(9);
   });
 
   it('survives a missing folder', () => {
-    expect(scopedDocumentCount(null, 'archived')).toBe(0);
+    expect(scopedCounts(null, 'archived')).toEqual({ docs: 0, subs: 0 });
   });
 
   it('falls back to the legacy counter on either side', () => {
     // Payloads viejos (respuestas cacheadas, fixtures) sólo traen el relativo,
     // que en una carpeta archivada YA es el conteo archivado.
     const legacyArchived = { document_count: 4, is_archived: true };
-    expect(scopedDocumentCount(legacyArchived, 'archived')).toBe(4);
-    expect(scopedDocumentCount(legacyArchived)).toBe(0);
-    expect(scopedDocumentCount({ document_count: 4, is_archived: false })).toBe(4);
+    expect(scopedCounts(legacyArchived, 'archived').docs).toBe(4);
+    expect(scopedCounts(legacyArchived).docs).toBe(0);
+    expect(scopedCounts({ document_count: 4, is_archived: false }).docs).toBe(4);
+  });
+});
+
+describe('folderRowLabel', () => {
+  it('names both counters so two bare numbers mean something read aloud', () => {
+    expect(folderRowLabel('Familia', { docs: 12, subs: 1 }))
+      .toBe('Familia — 1 subcarpeta, 12 documentos');
+  });
+
+  it('drops the subfolder half when there are none', () => {
+    expect(folderRowLabel('Aaron', { docs: 6, subs: 0 })).toBe('Aaron — 6 documentos');
+  });
+
+  it('still announces an empty folder instead of going silent', () => {
+    expect(folderRowLabel('temporal', { docs: 0, subs: 0 })).toBe('temporal — 0 documentos');
   });
 });
 

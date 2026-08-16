@@ -737,9 +737,10 @@ test.describe('Admin Document Archive', () => {
     await page.goto('/panel/documents');
     const sidebar = page.getByTestId('folder-list');
     const unfiled = sidebar.getByRole('button', { name: /^Sin carpeta/ });
-    // Nombre + contador y nada más: en modo archivado aparece también
-    // «Contratos 2024», y un prefijo suelto casaría con las dos.
-    const contratos = sidebar.getByRole('button', { name: /^Contratos \d+$/ });
+    // La fila rotula su inventario después del nombre («Contratos — 3
+    // documentos»), así que el guion ancla el nombre exacto: en modo archivado
+    // aparece también «Contratos 2024» y un prefijo suelto casaría con las dos.
+    const contratos = sidebar.getByRole('button', { name: /^Contratos —/ });
 
     await expect(page.getByTestId('doc-scope-banner')).toHaveCount(0);
     await expect(unfiled).toContainText('1');

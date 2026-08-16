@@ -77,6 +77,9 @@
                 </svg>
               </div>
               <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ folder.name }}</span>
+              <!-- Directo: el selector lista muchos niveles a la vez e indentados
+                   (igual que el gestor), y para elegir destino «cuánto hay acá»
+                   significa esta carpeta, no su rama entera. -->
               <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
               <svg
                 v-if="document.folder === folder.id"
