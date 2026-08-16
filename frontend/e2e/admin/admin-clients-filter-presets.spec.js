@@ -44,6 +44,9 @@ function client(overrides) {
     last_sent_at: '2026-05-01T10:00:00Z',
     project_types: [],
     market_types: [],
+    documents_count: 0,
+    documents_no_project_count: 0,
+    last_document_at: null,
     nit: '900123456',
     cedula: '',
     billing_code: 'ACME',
@@ -58,6 +61,10 @@ function client(overrides) {
 const CHARGED_ONE = client({
   id: 101, name: 'Kore Healths', company: 'Kore',
   hostings_count: 2, active_hostings_count: 1,
+  // También el único con documentos: alimenta el módulo Documentos sin sumar
+  // otra fila al fixture.
+  documents_count: 3, documents_no_project_count: 1,
+  last_document_at: '2026-08-10T10:00:00Z',
 });
 const CHARGED_TWO = client({
   id: 102, name: 'Mimittos SAS', company: 'Mimittos',
@@ -115,6 +122,25 @@ function setupMock(page) {
         ? ALL_CLIENTS.filter((c) => c.name.toLowerCase().includes(search))
         : ALL_CLIENTS;
       return { status: 200, contentType: 'application/json', body: JSON.stringify(rows) };
+    }
+
+    // Destino del salto del pill de Documentos: el gestor monta lista,
+    // contadores, carpetas, etiquetas y el picker de proyectos del filtro.
+    if (apiPath === 'documents/counts/') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          documents: { active: 0, archived: 0, unfiled_active: 0, unfiled_archived: 0 },
+          folders: { active: 0, archived: 0 },
+        }),
+      };
+    }
+    if (apiPath === 'documents/') {
+      return { status: 200, contentType: 'application/json', body: '[]' };
+    }
+    if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+      return { status: 200, contentType: 'application/json', body: '[]' };
     }
 
     if (apiPath === 'accounting/hostings/') {
@@ -365,5 +391,42 @@ test.describe('Admin Clients Filter Presets', () => {
     await expect(page.getByRole('link', { name: 'https://korehealths.com/' }))
       .toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('accounting-filter-chip')).toHaveCount(1);
+  });
+
+  test('the Documentos module shows its three subfilters with honest counts', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as its siblings above)
+    await setupMock(page);
+    await gotoClients(page);
+
+    await openModule(page, 'documents');
+
+    // El módulo agrupa sin recortar; cada subfiltro anuncia su corte real.
+    await expect(rowsShown(page)).toHaveCount(4);
+    await expect(page.getByTestId('filter-tabs-count-docs-with')).toHaveText('(1)');
+    await expect(page.getByTestId('filter-tabs-count-docs-none')).toHaveText('(3)');
+    await expect(page.getByTestId('filter-tabs-count-docs-no-project')).toHaveText('(1)');
+
+    await page.getByTestId('filter-tabs-tab-docs-with').click();
+    await expect(rowsShown(page)).toHaveCount(1);
+  });
+
+  test('the row doc count opens Documents already filtered by that client', {
+    tag: [...ADMIN_CLIENTS_FILTER_PRESETS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await setupMock(page);
+    await gotoClients(page);
+
+    // El conteo (con la fecha del último) sólo aparece con el módulo activo.
+    await expect(page.getByTestId('client-documents-101')).toHaveCount(0);
+    await openModule(page, 'documents');
+    await expect(page.getByTestId('client-documents-101')).toContainText('3 docs');
+
+    await page.getByTestId('client-documents-101').click();
+
+    await expect(page).toHaveURL(/\/panel\/documents\?client=101/);
+    await expect(page.getByTestId('doc-association-filters'))
+      .toBeVisible({ timeout: 30_000 });
   });
 });

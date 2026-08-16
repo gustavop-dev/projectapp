@@ -23,6 +23,22 @@ const mockDocuments = [
   },
 ];
 
+// Uno vinculado de verdad (relación) y uno sólo con el nombre libre heredado:
+// las columnas deben distinguirlos.
+const associatedDocuments = [
+  {
+    id: 1, title: 'Entregable Kore', status: 'published',
+    client: 7, client_display_name: 'Kore SAS',
+    project: 11, project_name: 'Kore - Diseño',
+    client_name: 'Kore SAS', created_at: '2026-08-01T10:00:00Z',
+  },
+  {
+    id: 2, title: 'Contrato viejo', status: 'draft',
+    client: null, client_display_name: null, project: null, project_name: null,
+    client_name: 'ACME Corp', created_at: '2026-08-05T14:00:00Z',
+  },
+];
+
 test.describe('Admin Document List', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
@@ -112,5 +128,68 @@ test.describe('Admin Document List', () => {
     await page.getByRole('button', { name: /Editar contenido/i }).click();
 
     await expect(page).toHaveURL(/\/panel\/documents\/1\/edit/);
+  });
+
+  test('renders the linked client and project in their own columns', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same baseline as every list test in this spec)
+    // quality: allow-no-interaction (pure render contract: the concrete cell
+    // values distinguish a real link from the legacy free-text name)
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(associatedDocuments) };
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      return null;
+    });
+    await page.goto('/panel/documents');
+
+    await expect(page.getByRole('columnheader', { name: 'Cliente' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Proyecto' })).toBeVisible();
+    await expect(page.getByTestId('doc-client-cell-1')).toHaveText('Kore SAS');
+    await expect(page.getByTestId('doc-project-cell-1')).toHaveText('Kore - Diseño');
+    // El nombre libre heredado se muestra pero no es un vínculo.
+    await expect(page.getByTestId('doc-client-cell-2')).toHaveText('ACME Corp');
+    await expect(page.getByTestId('doc-project-cell-2')).toHaveText('—');
+  });
+
+  test('arriving with client=none narrows to unlinked docs and lights the chip', {
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (?client= IS the contract the jumps from
+    // /panel/clients use; the subject is honoring it on arrival)
+    const clientParams = [];
+    const projectParams = [];
+    await mockApi(page, async ({ route, apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        const params = new URL(route.request().url()).searchParams;
+        clientParams.push(params.get('client'));
+        projectParams.push(params.get('project'));
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([associatedDocuments[1]]) };
+      }
+      if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      if (apiPath === 'accounting/projects/') return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [] }) };
+      return null;
+    });
+    await page.goto('/panel/documents?client=none');
+
+    await expect(page.getByTestId('documents-filter-client-none'))
+      .toHaveAttribute('aria-pressed', 'true');
+    await expect(page.getByRole('table').getByText('Contrato viejo')).toBeVisible();
+    expect(clientParams).toContain('none');
+    await expect(page).toHaveURL(/client=none/);
+
+    // Y el otro recorte se apila desde su chip: refetch con project=none y
+    // el eje espejado en la URL junto al que ya estaba.
+    await page.getByTestId('documents-filter-project-none').click();
+    await expect(page).toHaveURL(/client=none/);
+    await expect(page).toHaveURL(/project=none/);
+    await expect
+      .poll(() => projectParams.includes('none'), { timeout: 10_000 })
+      .toBe(true);
   });
 });

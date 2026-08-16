@@ -1,6 +1,6 @@
 {
-  "version": "2.73.0",
-  "lastUpdated": "2026-08-15",
+  "version": "2.74.0",
+  "lastUpdated": "2026-08-16",
   "flows": {
     "layout-navbar-navigation": {
       "name": "Navbar Navigation",
@@ -2192,10 +2192,11 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "View the list of admin documents with title, status, client association. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages. Each document persists a template style (Amigable/Profesional, field template_style); the DocumentActionsSheet download action is split into two rows, 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional', so either PDF style can be generated without opening the editor.",
+      "description": "View the list of admin documents with title, status, client association. The table carries Cliente and Proyecto columns reading the FK-backed association (client_display_name / project_name); a legacy free-text client_name renders in italics as a not-yet-linked name and unlinked cells show a dash. Above the table, association filters (data-testid doc-association-filters) offer a client autocomplete, a project picker and the 'Sin cliente'/'Sin proyecto' chips; the axes travel in ?client= / ?project= (id or 'none'), so /panel/documents?client=<profileId> deep-links from /panel/clients land already filtered. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages. Each document persists a template style (Amigable/Profesional, field template_style); the DocumentActionsSheet download action is split into two rows, 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional', so either PDF style can be generated without opening the editor.",
       "expectedSpecs": 1,
       "outcomes": [
-        "display"
+        "display",
+        "success"
       ]
     },
     "admin-document-gallery": {
@@ -2218,7 +2219,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, optional client association, and live preview.",
+      "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and the OPTIONAL client/project association: ClientAutocomplete (doc-client-autocomplete, with inline client creation) plus ProjectSelect (doc-project-select) in allowNoClient mode — picking a project FIRST autofills its owner into the client field (inverse cascade), and the payload always carries client/project (null included). Creating inside a folder whose documents mostly belong to one client pre-fills that client (documents/folder-client-suggestion/, hint doc-client-suggested-hint) — a suggestion, never a lock.",
       "expectedSpecs": 1,
       "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit).",
       "outcomes": [
@@ -2234,7 +2235,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea. A 'Amigable'/'Profesional' segmented switch (data-testid doc-style-friendly / doc-style-professional) above the markdown preview selects the document's persisted template_style and re-themes the live preview (class markdown-preview--professional toggles on the preview root). The 'Descargar PDF' split button offers both 'Descargar · Amigable' and 'Descargar · Profesional' so either PDF style can be downloaded regardless of the switch's current position.",
+      "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea. The Identificación block carries the client/project association selectors (same pair as create, sin sugerencia por carpeta) and, once saved, backlinks to both sides: 'Ver cliente' → /panel/clients?highlight=<profileId> (expands the ficha) and 'Ver proyecto' → /panel/projects?highlight=<id> (data-testid document-client-link / document-project-link); a legacy free-text client_name shows as reference while the document has no relational client. A 'Amigable'/'Profesional' segmented switch (data-testid doc-style-friendly / doc-style-professional) above the markdown preview selects the document's persisted template_style and re-themes the live preview (class markdown-preview--professional toggles on the preview root). The 'Descargar PDF' split button offers both 'Descargar · Amigable' and 'Descargar · Profesional' so either PDF style can be downloaded regardless of the switch's current position.",
       "expectedSpecs": 1,
       "outcomes": [
         "display",
@@ -2775,8 +2776,22 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Admin reads /panel/clients by business module instead of a flat strip of filters. Level 1 is the module (Todos, Propuestas, Proyectos, Hosting, Contabilidad): picking one does NOT narrow the list, it decides which subfilters level 2 offers, which is what lets a module hold both a cut and its complement ('Con hosting cobrado' next to 'Sin hosting'). Level 2 holds the thirteen subfilters — the seven proposal-status cuts (code-level entries since migration 0049 dropped their seeded rows), 'Con proyecto activo'/'Sin proyecto', the three hosting ones and 'Sin datos de facturacion'. Each carries its match count in parentheses, always shown, (0) included, computed over the loaded rows after the status and search cuts, so the number equals what pressing it returns. The hosting and project cuts read the FK-backed aggregates from PA-25 (active_hostings_count / active_projects_count). Selecting a subfilter stamps ?clientTab=<id> and ?clientModule=<module> so the link survives a reload and can be shared; pressing it again clears the cut but stays in the module. Subfilters are values of the filter panel's own controls, so every one of them can also be rebuilt from the panel, combined with each other and with the panel's advanced filters, saved as a named tab under its module, and removed by its chip — which drops the tab highlight with it, since tab, chip and panel are one state. Chips name the module they come from. Whatever does not fit the row moves into a 'Más' menu rather than being clipped. The client status (Todos/Activos/Huerfanos/Inactivos) is transversal: it sits next to the search box, carries its own server-computed counts, travels in ?status= and combines with any module. Deactivated clients stay out by default (the endpoint hides them) even when they still hold live hostings. While the Hosting module is being read each row shows its hosting count, which for superusers doubles as the jump into /panel/accounting/hostings?client=<id>, landing there already filtered.",
-      "expectedSpecs": 11,
+      "description": "Admin reads /panel/clients by business module instead of a flat strip of filters. Level 1 is the module (Todos, Propuestas, Proyectos, Hosting, Contabilidad, Documentos): picking one does NOT narrow the list, it decides which subfilters level 2 offers, which is what lets a module hold both a cut and its complement ('Con hosting cobrado' next to 'Sin hosting'). Level 2 holds the sixteen subfilters — the seven proposal-status cuts (code-level entries since migration 0049 dropped their seeded rows), 'Con proyecto activo'/'Sin proyecto', the three hosting ones, 'Sin datos de facturacion', and the three Documentos cuts ('Con documentos', 'Sin documentos', 'Con documentos sin proyecto' — the review list the retroactive folder pass leaves behind). Each carries its match count in parentheses, always shown, (0) included, computed over the loaded rows after the status and search cuts, so the number equals what pressing it returns. The hosting and project cuts read the FK-backed aggregates from PA-25 (active_hostings_count / active_projects_count); the Documentos cuts read documents_count / documents_no_project_count (active documents linked via Document.client_user). Selecting a subfilter stamps ?clientTab=<id> and ?clientModule=<module> so the link survives a reload and can be shared; pressing it again clears the cut but stays in the module. Subfilters are values of the filter panel's own controls, so every one of them can also be rebuilt from the panel, combined with each other and with the panel's advanced filters, saved as a named tab under its module, and removed by its chip — which drops the tab highlight with it, since tab, chip and panel are one state. Chips name the module they come from. Whatever does not fit the row moves into a 'Más' menu rather than being clipped. The client status (Todos/Activos/Huerfanos/Inactivos) is transversal: it sits next to the search box, carries its own server-computed counts, travels in ?status= and combines with any module. Deactivated clients stay out by default (the endpoint hides them) even when they still hold live hostings. While the Hosting module is being read each row shows its hosting count, which for superusers doubles as the jump into /panel/accounting/hostings?client=<id>, landing there already filtered; while Documentos is active the row shows '<N> docs · <fecha del último>' (client-documents-<id>, no superuser gate) jumping into /panel/documents?client=<id>.",
+      "expectedSpecs": 13,
+      "outcomes": [
+        "display",
+        "success"
+      ]
+    },
+    "admin-clients-documents-section": {
+      "name": "Admin Clients Documents Section",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "The expanded client row (ficha) in /panel/clients lists the client's five most recent active documents — title linking into /panel/documents/<id>/edit, project, status, created date (client-document-row-<id>) — fed by the 'documents' + 'documents_total' keys of the client detail payload. 'Ver todos (N)' (client-documents-all-<id>) jumps into /panel/documents?client=<profileId>, so a client's documents are reachable from their ficha without touching the filters; the relation also works backwards via the document editor's 'Ver cliente' link, which lands here with ?highlight=<profileId> expanding that ficha.",
+      "expectedSpecs": 2,
       "outcomes": [
         "display",
         "success"
