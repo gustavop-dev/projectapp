@@ -7,7 +7,14 @@
       :confirm-text="confirmState.confirmText"
       :cancel-text="confirmState.cancelText"
       :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
       @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
     />
     <DiagnosticActionsModal
@@ -124,6 +131,19 @@
           />
         </div>
       </div>
+
+      <!-- Sobre las pestañas: lo pendiente puede estar en una que no se está
+           mirando. Las secciones no cuentan acá: se autoguardan. -->
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        class="mb-4"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        message="Los datos generales y la URL personalizada se guardan cada uno con su propio botón. Si sales de esta página, lo pendiente se pierde."
+        :can-save="false"
+        :can-discard="false"
+        testid="diagnostic-unsaved-notice"
+      />
 
       <!-- Tabs -->
       <BaseTabs :tabs="tabs" v-model="activeTab" />
@@ -623,6 +643,8 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { getDiagnosticNextAction } from '~/utils/diagnosticNextAction';
@@ -635,7 +657,9 @@ const route = useRoute();
 const router = useRouter();
 const localePath = useLocalePath();
 const store = useDiagnosticsStore();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const {
+  confirmState, requestConfirm, handleConfirmed, handleSecondaryAction, handleCancelled,
+} = useConfirmModal();
 const notify = usePanelNotify();
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
@@ -842,9 +866,60 @@ function syncFormGeneral() {
   form.duration_label = c.duration_label || '';
   // datetime-local wants "YYYY-MM-DDTHH:mm" (no seconds/zone)
   form.expires_at = c.expires_at ? c.expires_at.slice(0, 16) : '';
+  // El watcher del slug se declara ANTES que éste, así que para cuando corre
+  // esto `slugDraft` ya refleja lo guardado y la baseline sale consistente.
+  commitBaseline();
 }
 
 const isSavingGeneral = ref(false);
+
+/**
+ * Dos superficies con botón propio: los datos generales y la URL personalizada.
+ * Las secciones NO entran — se autoguardan (scheduleSectionUpdate, 600 ms), y
+ * avisar de algo que ya está en el servidor sería mentir.
+ *
+ * El slug entra como "null cuando está limpio" en vez de como su valor. Así
+ * guardarlo vuelve a dejarlo en null por sí solo, sin re-fijar la baseline
+ * completa —que se llevaría por delante ediciones pendientes de los datos
+ * generales, porque el baseline es uno solo para toda la página—.
+ */
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  guardedReload,
+} = useUnsavedGuard({
+  snapshot: () => ({
+    ...form,
+    slug: slugDraft.value === (store.current?.slug || '') ? null : slugDraft.value,
+  }),
+  labels: {
+    title: 'título',
+    client_id: 'cliente',
+    client_label: 'cliente',
+    client_name: 'nombre del cliente',
+    client_email: 'email del cliente',
+    client_phone: 'teléfono del cliente',
+    client_company: 'empresa del cliente',
+    propagate_client_updates: 'propagar datos al cliente',
+    language: 'idioma',
+    investment_amount: 'inversión',
+    currency: 'moneda',
+    payment_initial_pct: 'pago inicial',
+    payment_final_pct: 'pago final',
+    duration_label: 'duración',
+    expires_at: 'fecha de expiración',
+    slug: 'URL personalizada',
+  },
+  // Sin `save`: los datos generales y el slug se guardan por separado, cada uno
+  // con su botón. Un "Guardar y salir" tendría que decidir cuál, o los dos y
+  // contar una historia de fallo parcial.
+  reload: () => store.fetchDetail(id.value),
+  // La página ya monta su propio <ConfirmModal>: se inyecta ese requestConfirm
+  // en vez de crear un segundo confirmState que nadie renderizaría.
+  confirm: requestConfirm,
+});
 
 async function handleUpdate() {
   const payload = {
@@ -871,6 +946,10 @@ async function handleUpdate() {
   try {
     const result = await store.update(id.value, payload);
     notifyResult(result, 'Diagnóstico actualizado.', 'Error al actualizar.');
+    // syncFormGeneral no vuelve a correr acá (su watcher va por id), así que la
+    // baseline se re-fija a mano. Sólo en éxito: un guardado fallido deja el
+    // aviso puesto.
+    if (result?.success) commitBaseline();
   } finally {
     isSavingGeneral.value = false;
   }
@@ -1294,6 +1373,9 @@ function onDelete() {
     onConfirm: async () => {
       const r = await store.remove(id.value);
       if (r?.success) {
+        // El diagnóstico ya no existe: no queda nada que guardar, y sin esto el
+        // guard encadenaría un segundo modal sobre el de eliminar.
+        commitBaseline();
         router.push(localePath('/panel/diagnostics'));
       } else {
         notify.error({ title: r?.message || 'Error al eliminar.', detail: r?.hint || '' });
@@ -1303,7 +1385,10 @@ function onDelete() {
 }
 
 onMounted(() => store.fetchDetail(id.value));
-usePanelRefresh(() => store.fetchDetail(id.value));
+// El refresh pisa el borrador del slug (su watcher sigue a store.current.slug);
+// los datos generales sobreviven porque su watcher va por id. Se pregunta igual
+// antes de recargar.
+usePanelRefresh(guardedReload);
 onUnmounted(() => {
   if (urlCopiedTimer) clearTimeout(urlCopiedTimer);
   if (jsonCopiedTimer) clearTimeout(jsonCopiedTimer);
