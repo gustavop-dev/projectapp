@@ -147,6 +147,26 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       this.isUpdating = true;
       try {
         const response = await create_request(`projects/${id}/assign-unlinked/`, payload);
+        // The response carries the updated accounting rows (cascaded liquid
+        // children included). An accounting tab open in the SPA rebuilds
+        // from them — reloading is a symptom, not a fix.
+        const accounting = useAccountingStore();
+        const hostings = new Map(
+          (response.data.hostings ?? []).map((row) => [row.id, row]),
+        );
+        if (hostings.size && accounting.hostings.length) {
+          accounting.hostings = accounting.hostings.map(
+            (record) => hostings.get(record.id) ?? record,
+          );
+        }
+        const incomes = new Map(
+          (response.data.incomes ?? []).map((row) => [row.id, row]),
+        );
+        if (incomes.size && accounting.incomes.length) {
+          accounting.incomes = accounting.incomes.map(
+            (record) => incomes.get(record.id) ?? record,
+          );
+        }
         await this.fetchProjects();
         invalidatePickerCache();
         return { success: true, data: response.data };

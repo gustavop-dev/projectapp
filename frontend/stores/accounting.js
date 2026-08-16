@@ -964,7 +964,10 @@ export const useAccountingStore = defineStore('accounting', {
      * Create a project from a picker without leaving the form (crear al
      * vuelo). On success the memoized per-client list is updated in place —
      * and the 'all' key dropped — so every open picker sees the new project
-     * without waiting out the cache.
+     * without waiting out the cache. Returns the FULL annotated row: the
+     * caller decides whether to offer the client's backlog from its
+     * `unlinked_hostings_count`/`unlinked_incomes_count`; the picker cache
+     * keeps only the lean entry it lists.
      */
     async createProjectForClient(clientProfileId, { name }) {
       try {
@@ -985,7 +988,7 @@ export const useAccountingStore = defineStore('accounting', {
         const cache = { ...this.projectsByClient, [key]: next };
         if (key !== 'all') delete cache.all;
         this.projectsByClient = cache;
-        return { success: true, data: entry };
+        return { success: true, data: row };
       } catch (error) {
         return {
           success: false,
@@ -1112,6 +1115,79 @@ export const useAccountingStore = defineStore('accounting', {
           success: false,
           ...normalizeApiError(error),
           missingIds: numericIdsFromError(error),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignIncomeProject: link (or unlink, with project=null) several
+     * incomes to one project. `results` also carries the liquid children
+     * the cascade rewrote, so the in-place replacement misses nothing.
+     */
+    async bulkAssignIncomeProject(incomeIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-assign-project/',
+          { income_ids: incomeIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to incomes:', error);
+        // `records_not_found` / `client_mismatch` name the rows that fell
+        // out of the plan; the page drops exactly those from the selection.
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
+     * bulkAssignHostingProject: link (or unlink) several hostings to one
+     * project. Replaces the affected rows in place, like the incomes one.
+     */
+    async bulkAssignHostingProject(hostingIds, project) {
+      this.isUpdating = true;
+      try {
+        const response = await create_request(
+          'accounting/hostings/bulk-assign-project/',
+          { hosting_ids: hostingIds, project },
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.hostings = this.hostings.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error('Error assigning project to hostings:', error);
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: [
+            ...numericIdsFromError(error),
+            ...numericIdsFromError(error, 'mismatched_ids'),
+          ],
         };
       } finally {
         this.isUpdating = false;

@@ -23,7 +23,7 @@ Endpoints
 import logging
 
 from django.db.models import (
-    Count, Exists, IntegerField, OuterRef, Subquery, Value,
+    Count, Exists, IntegerField, OuterRef, Q, Subquery, Value,
 )
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
@@ -35,7 +35,11 @@ from rest_framework.response import Response
 from accounts.models import Project, UserProfile
 from content.api_errors import error_response
 from content.models import AccountingChangeLog, HostingRecord, IncomeRecord
-from content.serializers.accounting import month_label
+from content.serializers.accounting import (
+    HostingRecordSerializer,
+    IncomeRecordSerializer,
+    month_label,
+)
 from content.serializers.panel_projects import (
     CreatePanelProjectSerializer,
     PanelProjectSerializer,
@@ -388,8 +392,25 @@ def assign_project_unlinked_records(request, project_id):
         'Panel project %s assigned to %s hostings and %s incomes',
         project.pk, len(assigned_hostings), len(assigned_incomes),
     )
+    # The cascade also rewrites the liquid children of an assigned expected
+    # income; without them in the response the panel would map-replace the
+    # parent and keep a stale child row. The counts stay parents-only — they
+    # answer for the plan the operator confirmed.
+    expected_pks = [
+        record.pk for record in assigned_incomes
+        if record.kind == IncomeRecord.Kind.EXPECTED
+    ]
+    income_rows = IncomeRecord.objects.filter(
+        Q(pk__in=[record.pk for record in assigned_incomes])
+        | Q(expected_income_id__in=expected_pks),
+    )
     return Response({
         'assigned_hostings': len(assigned_hostings),
         'assigned_incomes': len(assigned_incomes),
+        # Full rows, not just counts: an accounting tab open in the SPA
+        # rebuilds from these instead of showing the stale "—" project cell.
+        # Bounded by construction — only the confirmed preview ids run.
+        'hostings': HostingRecordSerializer(assigned_hostings, many=True).data,
+        'incomes': IncomeRecordSerializer(income_rows, many=True).data,
         'project': _annotated_row(project.pk),
     })

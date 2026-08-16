@@ -42,6 +42,31 @@ describe('accounting store — projects picker cache', () => {
     expect(store.projectsByClient.all).toBeUndefined();
   });
 
+  it('createProjectForClient returns the full annotated row, cache stays lean', async () => {
+    const store = useAccountingStore();
+    store.projectsByClient = { 7: [] };
+    create_request.mockResolvedValueOnce({
+      data: {
+        id: 31,
+        name: 'Vastago',
+        status: 'active',
+        status_label: 'Activo',
+        unlinked_hostings_count: 2,
+        unlinked_incomes_count: 3,
+      },
+    });
+
+    const result = await store.createProjectForClient(7, { name: 'Vastago' });
+
+    // The caller decides the assign offer from these counters...
+    expect(result.data.unlinked_hostings_count).toBe(2);
+    expect(result.data.unlinked_incomes_count).toBe(3);
+    // ...while the picker cache lists only what the dropdown shows.
+    expect(store.projectsByClient[7]).toEqual([
+      { id: 31, name: 'Vastago', status: 'active', status_label: 'Activo' },
+    ]);
+  });
+
   it('a rejected create leaves the cache untouched and keeps the message', async () => {
     const store = useAccountingStore();
     store.projectsByClient = { 7: [] };

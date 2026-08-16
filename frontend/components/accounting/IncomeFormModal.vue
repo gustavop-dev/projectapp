@@ -30,7 +30,7 @@ const props = defineProps({
   seed: { type: Object, default: null },
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submit', 'project-created'])
 
 const clientsStore = useProposalClientsStore()
 const creatingClient = ref(false)
@@ -380,6 +380,7 @@ function onSubmit() {
         :client-label="form.client_name || lockedClient?.name || ''"
         :auto-select-single="!isEdit"
         testid="income-form-project"
+        @created="emit('project-created', $event)"
       />
 
       <!-- Inline client creation: the module de clientes without leaving the form -->

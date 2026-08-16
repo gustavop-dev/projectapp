@@ -357,6 +357,7 @@ import {
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useAccountingStore } from '~/stores/accounting';
+import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
@@ -366,6 +367,7 @@ import { originLabel, originTone, statusBadgeClass } from '~/utils/collectionSta
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
 
 const meta = computed(() => store.collectionAccountsMeta || {});
@@ -392,10 +394,16 @@ const matchClients = (record, value) => {
 };
 matchClients.keys = ['clients'];
 
+// The live FK is the filter key — same contract as hostings/incomes, so one
+// project id selects the same work everywhere. The frozen snapshot name only
+// answers for legacy rows whose project was deleted (SET_NULL); a row with
+// neither never had a project. The CELL keeps showing the snapshot: what the
+// issued document says is not up for reinterpretation.
 const matchProjects = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
-  if (!record.project_name) return value.includes(NO_PROJECT_KEY);
-  return value.includes(record.project_name);
+  if (record.project_id != null) return value.includes(record.project_id);
+  if (record.project_name) return value.includes(record.project_name);
+  return value.includes(NO_PROJECT_KEY);
 };
 matchProjects.keys = ['projects'];
 
@@ -482,17 +490,45 @@ const clientFilterOptions = computed(() => {
   return [{ value: NO_CLIENT_KEY, label: 'Sin cliente' }, ...options];
 });
 
-// Keyed by name, not id: `project_name` is the frozen snapshot the row
-// carries, so the document and the filter can never disagree.
+/**
+ * Catalog ids first (history.vue pattern) so a project with zero cuentas is
+ * still selectable, defensively unioned with row-derived ids the catalog no
+ * longer lists. Legacy snapshot-only rows (FK lost) keep their name entries,
+ * marked "(histórico)" — they no longer bucket under "Sin proyecto", because
+ * they never lacked one.
+ */
 const projectFilterOptions = computed(() => {
-  const seen = new Set();
-  store.collectionAccounts.forEach((row) => {
-    if (row.project_name) seen.add(row.project_name);
+  const catalog = projectsStore.records ?? [];
+  const nameCounts = new Map();
+  catalog.forEach((project) => {
+    nameCounts.set(project.name, (nameCounts.get(project.name) ?? 0) + 1);
   });
-  const options = [...seen]
-    .map((name) => ({ value: name, label: name }))
+  const seen = new Map();
+  catalog.forEach((project) => {
+    const ambiguous = (nameCounts.get(project.name) ?? 0) > 1
+      && project.client?.name;
+    seen.set(
+      project.id,
+      ambiguous ? `${project.name} — ${project.client.name}` : project.name,
+    );
+  });
+  const legacyNames = new Set();
+  store.collectionAccounts.forEach((row) => {
+    if (row.project_id != null) {
+      if (!seen.has(row.project_id)) {
+        seen.set(row.project_id, row.project_name || `Proyecto #${row.project_id}`);
+      }
+    } else if (row.project_name) {
+      legacyNames.add(row.project_name);
+    }
+  });
+  const options = [...seen.entries()]
+    .map(([value, label]) => ({ value, label }))
     .sort((a, b) => a.label.localeCompare(b.label));
-  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options];
+  const legacy = [...legacyNames]
+    .map((name) => ({ value: name, label: `${name} (histórico)` }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+  return [{ value: NO_PROJECT_KEY, label: 'Sin proyecto' }, ...options, ...legacy];
 });
 
 const filterFields = computed(() => [
@@ -768,6 +804,12 @@ async function handleConfirmed() {
   }
 }
 
-onMounted(loadRecords);
+onMounted(() => {
+  // Project filter options come from the full catalog (history.vue
+  // pattern); the store swallows failures, so an error just means a
+  // smaller dropdown, never a blocked page.
+  projectsStore.fetchProjects();
+  return loadRecords();
+});
 usePanelRefresh(loadRecords);
 </script>

@@ -517,10 +517,17 @@ def bulk_assign_client(entity_type, record_ids, client, user):
     the history is per record, and a single aggregate entry would make an
     individual timeline lie. Rows already pointing at the target client are
     skipped, so re-running the same assignment writes nothing.
+
+    A project that no longer belongs to the new client is cleared in the
+    same write — the bulk mirror of the single-record serializer rule: a
+    record must never point at someone else's project, and the operator
+    re-picks explicitly if the move was intentional.
     """
     model = ENTITY_MODELS[entity_type]
     records = list(
-        model.objects.select_related('client__user').filter(pk__in=record_ids),
+        model.objects
+        .select_related('client__user', 'project')
+        .filter(pk__in=record_ids),
     )
     updated = []
     for record in records:
@@ -529,6 +536,13 @@ def bulk_assign_client(entity_type, record_ids, client, user):
         old_values = snapshot_values(record, entity_type)
         record.client = client
         update_fields = ['client', 'updated_at']
+        project_cleared = False
+        if record.project_id is not None and (
+            client is None or record.project.client_id != client.user_id
+        ):
+            record.project = None
+            update_fields.append('project')
+            project_cleared = True
         if entity_type == EntityType.HOSTING:
             update_fields += _refresh_hosting_snapshot(record)
         record.save(update_fields=update_fields)
@@ -549,6 +563,11 @@ def bulk_assign_client(entity_type, record_ids, client, user):
             and record.kind == IncomeRecord.Kind.EXPECTED
         ):
             _cascade_client_to_liquid_children(record, user)
+            if project_cleared:
+                # The children follow the parent's client AND its cleared
+                # project: a liquid child must not keep pointing at the
+                # previous client's project either.
+                _cascade_project_to_liquid_children(record, user)
         updated.append(record)
     return updated
 
@@ -589,22 +608,24 @@ def _cascade_project_to_liquid_children(income, user):
 
 @transaction.atomic
 def bulk_assign_project(entity_type, record_ids, project, user):
-    """Assign one project to several records — the completion tool for rows
-    created before their project existed.
+    """Assign (or clear, with ``project=None``) the project of several
+    records — the completion tool for rows created before their project
+    existed, and the project mirror of :func:`bulk_assign_client`.
 
-    Mirror of :func:`bulk_assign_client`: one audit row per record, rows
-    already pointing at the target project are skipped so a re-run writes
-    nothing. Unlike the client flavour there is no clearing path (the caller
-    always has a concrete project in hand) and no hosting snapshot refresh —
-    the project never touches the billing snapshot.
+    One audit row per record; rows already pointing at the target are
+    skipped so a re-run writes nothing. No hosting snapshot refresh — the
+    project never touches the billing snapshot. Ownership (every record's
+    client must own the project) is the caller's pre-check: the ids arrive
+    validated and the service stays mechanical.
     """
     model = ENTITY_MODELS[entity_type]
     records = list(
         model.objects.select_related('project').filter(pk__in=record_ids),
     )
+    target_id = project.pk if project else None
     updated = []
     for record in records:
-        if record.project_id == project.pk:
+        if record.project_id == target_id:
             continue
         old_values = snapshot_values(record, entity_type)
         record.project = project

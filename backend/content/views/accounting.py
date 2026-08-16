@@ -56,11 +56,13 @@ from content.serializers.accounting import (
     HostingCycleCreateSerializer,
     HostingCycleSerializer,
     HostingClientBulkAssignSerializer,
+    HostingProjectBulkAssignSerializer,
     HostingRecordCreateUpdateSerializer,
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
     IncomeClientBulkAssignSerializer,
+    IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
     NotificationRecipientCreateUpdateSerializer,
@@ -156,6 +158,11 @@ def _income_meta(queryset, params):
         # Completion debt of the client link over the whole filtered set —
         # legacy rows live in past years, so the year window would hide them.
         'without_client_count': queryset.filter(client__isnull=True).count(),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        'without_project_count': queryset.filter(
+            client__isnull=False, project__isnull=True,
+        ).count(),
     }
 
 
@@ -219,6 +226,11 @@ def _hosting_meta(queryset, params):
             ),
         ),
         without_client_count=Count('id', filter=Q(client__isnull=True)),
+        # Same backlog definition as /panel/projects: only client-linked rows
+        # can be proposed a project, so both counters compose without overlap.
+        without_project_count=Count(
+            'id', filter=Q(client__isnull=False, project__isnull=True),
+        ),
     )
     return {
         'active_count': totals['active_count'] or 0,
@@ -226,6 +238,7 @@ def _hosting_meta(queryset, params):
         'total_paid': _money(totals['total_paid'] or 0),
         'expiring_soon_count': totals['expiring_soon_count'] or 0,
         'without_client_count': totals['without_client_count'] or 0,
+        'without_project_count': totals['without_project_count'] or 0,
     }
 
 
@@ -906,6 +919,24 @@ def _missing_records_error(entity_type, record_ids, *, noun):
     )
 
 
+def _with_liquid_children(updated):
+    """The updated incomes plus the liquid children their cascade rewrote.
+
+    The client/project cascades touch children the operator never selected;
+    without them in ``results`` the panel would map-replace the parents and
+    keep stale child rows. Children that were already aligned ride along
+    harmlessly — an identical replacement is a no-op.
+    """
+    expected_pks = [
+        record.pk for record in updated
+        if record.kind == IncomeRecord.Kind.EXPECTED
+    ]
+    return IncomeRecord.objects.filter(
+        Q(pk__in=[record.pk for record in updated])
+        | Q(expected_income_id__in=expected_pks),
+    )
+
+
 @api_view(['POST'])
 @permission_classes([IsSuperUser])
 def bulk_assign_income_client(request):
@@ -932,7 +963,9 @@ def bulk_assign_income_client(request):
     )
     return Response({
         'updated': len(updated),
-        'results': IncomeRecordSerializer(updated, many=True).data,
+        'results': IncomeRecordSerializer(
+            _with_liquid_children(updated), many=True,
+        ).data,
     })
 
 
@@ -958,6 +991,107 @@ def bulk_assign_hosting_client(request):
         hosting_ids,
         serializer.validated_data.get('client'),
         request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': HostingRecordSerializer(updated, many=True).data,
+    })
+
+
+def _project_mismatch_error(model, record_ids, project, *, noun):
+    """409 naming every id whose client does not own ``project``.
+
+    Same stale-plan philosophy as `_missing_records_error`: the panel builds
+    its plan from rows it already sees as the project's client's, so a
+    mismatch here means the selection changed under the open dialog — asking
+    the operator to look again beats writing a batch they never confirmed.
+    Client-less rows mismatch by definition: without a client there is no
+    ownership to satisfy (`validate_project_client_match` is the
+    single-record mirror of this rule). Clearing (project=None) skips the
+    check — removing a link needs no owner.
+    """
+    if project is None:
+        return None
+    mismatched = sorted(
+        pk for pk, client_user_id in model.objects.filter(
+            pk__in=record_ids,
+        ).values_list('pk', 'client__user_id')
+        if client_user_id != project.client_id
+    )
+    if not mismatched:
+        return None
+    count = len(mismatched)
+    verb = 'pertenece' if count == 1 else 'pertenecen'
+    return error_response(
+        f'{count} de los {noun} seleccionados no {verb} al cliente del '
+        'proyecto.',
+        code='client_mismatch',
+        hint='Asigna primero el cliente correcto: el proyecto debe ser suyo.',
+        status=status.HTTP_409_CONFLICT,
+        errors={'mismatched_ids': mismatched},
+    )
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_income_project(request):
+    """Assign one project to several incomes at once (or clear it with null).
+
+    The project-side completion tool (mirror of the client one): filter by
+    "sin proyecto", select the rows and assign in one step without leaving
+    the accounting list.
+    """
+    serializer = IncomeProjectBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = serializer.validated_data['income_ids']
+    project = serializer.validated_data.get('project')
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
+    mismatch = _project_mismatch_error(
+        IncomeRecord, income_ids, project, noun='ingresos',
+    )
+    if mismatch:
+        return mismatch
+    updated = accounting_service.bulk_assign_project(
+        EntityType.INCOME, income_ids, project, request.user,
+    )
+    return Response({
+        'updated': len(updated),
+        'results': IncomeRecordSerializer(
+            _with_liquid_children(updated), many=True,
+        ).data,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_assign_hosting_project(request):
+    """Assign one project to several hostings at once (or clear it with null).
+
+    Same completion path as incomes; hostings have no settlement children,
+    so ``results`` is exactly the updated rows.
+    """
+    serializer = HostingProjectBulkAssignSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    hosting_ids = serializer.validated_data['hosting_ids']
+    project = serializer.validated_data.get('project')
+    vanished = _missing_records_error(
+        EntityType.HOSTING, hosting_ids, noun='hostings',
+    )
+    if vanished:
+        return vanished
+    mismatch = _project_mismatch_error(
+        HostingRecord, hosting_ids, project, noun='hostings',
+    )
+    if mismatch:
+        return mismatch
+    updated = accounting_service.bulk_assign_project(
+        EntityType.HOSTING, hosting_ids, project, request.user,
     )
     return Response({
         'updated': len(updated),

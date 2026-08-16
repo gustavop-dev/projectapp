@@ -602,6 +602,22 @@ class IncomeClientBulkAssignSerializer(serializers.Serializer):
     )
 
 
+class IncomeProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several incomes; ``project: null`` unlinks them."""
+
+    income_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped on purpose, like the single-record field: the ownership rule
+    # (every record's client must own the project) needs the records in
+    # hand, so it lives in the view's pre-checks.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
+        required=False,
+        allow_null=True,
+    )
+
+
 class IncomeReminderMuteSerializer(serializers.Serializer):
     """Silence an expected income's notices, optionally until a given date."""
 
@@ -627,6 +643,21 @@ class HostingClientBulkAssignSerializer(serializers.Serializer):
     )
     client = serializers.PrimaryKeyRelatedField(
         queryset=UserProfile.objects.clients(),
+        required=False,
+        allow_null=True,
+    )
+
+
+class HostingProjectBulkAssignSerializer(serializers.Serializer):
+    """Assign one project to several hostings; ``project: null`` unlinks them."""
+
+    hosting_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False,
+    )
+    # Unscoped for the same reason as the income flavour: ownership is a
+    # cross-record rule, checked in the view against the loaded rows.
+    project = serializers.PrimaryKeyRelatedField(
+        queryset=Project.objects.all(),
         required=False,
         allow_null=True,
     )

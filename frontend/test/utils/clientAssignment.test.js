@@ -151,3 +151,41 @@ describe('describeAssignmentResult', () => {
     );
   });
 });
+
+describe('buildAssignmentPlan — the project side effect', () => {
+  it('counts the rows leaving a client that will also lose their project', () => {
+    const rows = [
+      hosting({ id: 3, client: 7, project: 40, project_name: 'Kore Web' }),
+      hosting({ id: 1, client: null, project: 40, project_name: 'Kore Web' }),
+      hosting({ id: 4, client: 7, project: null }),
+    ];
+
+    const plan = buildAssignmentPlan({
+      rows,
+      selectedIds: [3, 1, 4],
+      mode: 'assign',
+      targetClientId: 5,
+      targetClientLabel: 'Ana Pérez',
+    });
+
+    // Only rows CHANGING client lose it: a client-less row keeps a project
+    // its new client may already own — the server decides, the toast reports.
+    expect(plan.projectCleared.map((row) => row.id)).toEqual([3]);
+    const copy = describeAssignmentPlan(plan, { entity: ENTITY });
+    expect(copy.message).toContain(
+      '1 pierde también su proyecto (era del cliente anterior).',
+    );
+  });
+
+  it('unlinking the client clears the project too and the copy says so', () => {
+    const rows = [
+      hosting({ id: 3, client: 7, project: 40, project_name: 'Kore Web' }),
+    ];
+
+    const plan = buildAssignmentPlan({ rows, selectedIds: [3], mode: 'unlink' });
+
+    expect(plan.projectCleared.map((row) => row.id)).toEqual([3]);
+    expect(describeAssignmentPlan(plan, { entity: ENTITY }).message)
+      .toContain('1 pierde también su proyecto');
+  });
+});

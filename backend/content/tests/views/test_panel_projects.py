@@ -186,6 +186,22 @@ class TestCreatePanelProject:
         project = Project.objects.get(pk=response.data['id'])
         assert project.client_id == owner.user_id
 
+    def test_the_create_response_reports_the_clients_backlog(self, admin_client):
+        """The inline-create flow (crear al vuelo from an accounting picker)
+        decides whether to offer the assign modal from these two counters."""
+        owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
+        make_income(client=owner)
+        make_hosting(owner, None, name='Deivis - Vastago')
+
+        response = admin_client.post(CREATE_URL, {
+            'name': 'Vastago',
+            'client_profile_id': owner.pk,
+        }, format='json')
+
+        assert response.status_code == 201, response.data
+        assert response.data['unlinked_hostings_count'] == 1
+        assert response.data['unlinked_incomes_count'] == 1
+
     def test_name_is_required(self, admin_client):
         owner = make_client('deivis@example.com')
 

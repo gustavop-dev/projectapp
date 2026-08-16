@@ -13,6 +13,7 @@ jest.mock('../../stores/services/request_http', () => ({
 
 import { setActivePinia, createPinia } from 'pinia';
 import { usePanelProjectsStore } from '../../stores/panel_projects';
+import { useAccountingStore } from '../../stores/accounting';
 import {
   get_request,
   create_request,
@@ -173,6 +174,32 @@ describe('panel_projects store', () => {
     expect(get_request).toHaveBeenCalledWith('projects/?scope=all');
     expect(result.success).toBe(true);
     expect(result.data.assigned_incomes).toBe(2);
+  });
+
+  it('assignUnlinkedRecords rebuilds the open accounting tables from the response rows', async () => {
+    const store = usePanelProjectsStore();
+    const accounting = useAccountingStore();
+    accounting.hostings = [
+      { id: 4, project: null, project_name: null },
+      { id: 5, project: null, project_name: null },
+    ];
+    accounting.incomes = [{ id: 8, project: null, project_name: null }];
+    create_request.mockResolvedValueOnce({
+      data: {
+        assigned_hostings: 1,
+        assigned_incomes: 1,
+        hostings: [{ id: 4, project: 1, project_name: 'Vastago' }],
+        incomes: [{ id: 8, project: 1, project_name: 'Vastago' }],
+        project: { id: 1 },
+      },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    await store.assignUnlinkedRecords(1, { hosting_ids: [4], income_ids: [8] });
+
+    // The touched rows are replaced in place; untouched ones survive as-is.
+    expect(accounting.hostings.map((row) => row.project)).toEqual([1, null]);
+    expect(accounting.incomes[0].project_name).toBe('Vastago');
   });
 
   it('a 409 on assign keeps the code so the modal can reload its preview', async () => {
