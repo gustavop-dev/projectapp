@@ -607,4 +607,60 @@ describe('useDocumentStore', () => {
       expect(store.isLoading).toBe(false)
     })
   })
+
+  describe('resolveFolderAssociation', () => {
+    // La carpeta ahora DICE de quién es. Cuando lo dice, eso manda; la
+    // heurística de mayoría queda como respaldo para las que todavía no lo
+    // dicen (y es lo que la pasada retroactiva va apagando).
+    const folderStore = { folderById: jest.fn() }
+
+    beforeEach(() => {
+      folderStore.folderById.mockReset()
+      global.useDocumentFolderStore = jest.fn(() => folderStore)
+    })
+
+    it('takes the folder own client and project when it has them', async () => {
+      folderStore.folderById.mockReturnValue({
+        id: 3, client: 7, client_display_name: 'Kore SAS', project: 4,
+      })
+
+      const result = await store.resolveFolderAssociation(3)
+
+      expect(result.data).toMatchObject({
+        client: 7, client_display_name: 'Kore SAS', project: 4, source: 'folder',
+      })
+      expect(get_request).not.toHaveBeenCalled()
+    })
+
+    it('falls back to the majority suggestion when the folder says nothing', async () => {
+      folderStore.folderById.mockReturnValue({ id: 3, client: null })
+      get_request.mockResolvedValue({
+        data: { client: 9, client_display_name: 'Ana Pérez' },
+      })
+
+      const result = await store.resolveFolderAssociation(3)
+
+      expect(get_request).toHaveBeenCalledWith(
+        'documents/folder-client-suggestion/?folder=3',
+      )
+      expect(result.data).toMatchObject({
+        client: 9, client_display_name: 'Ana Pérez', project: null,
+        source: 'suggestion',
+      })
+    })
+
+    it('reports no association when neither the folder nor the majority says one', async () => {
+      folderStore.folderById.mockReturnValue(null)
+      get_request.mockResolvedValue({ data: { client: null } })
+
+      const result = await store.resolveFolderAssociation(3)
+
+      // Sigue siendo una respuesta exitosa con forma completa: "no hay dueño"
+      // no es un error, y el form la lee igual que a una con cliente.
+      expect(result.success).toBe(true)
+      expect(result.data).toEqual({
+        client: null, client_display_name: '', project: null, source: null,
+      })
+    })
+  })
 })

@@ -7,7 +7,14 @@
       :confirm-text="confirmState.confirmText"
       :cancel-text="confirmState.cancelText"
       :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
       @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
     />
     <ContractParamsModal
@@ -84,6 +91,20 @@
     </div>
 
     <template v-else-if="proposal">
+      <!-- Sobre las pestañas: lo pendiente puede estar en una que no se está
+           mirando, así que el aviso tiene que vivir fuera de todas. Nombra qué
+           quedó sin guardar en vez de decir sólo que hay algo. -->
+      <UnsavedChangesNotice
+        v-if="hasUnsavedEdits"
+        class="mb-4"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        message="Cada bloque se guarda por separado desde su propio botón. Si sales de esta página, lo pendiente se pierde."
+        :can-save="false"
+        :can-discard="false"
+        testid="proposal-unsaved-notice"
+      />
+
       <!-- Tabs -->
       <BaseTabs v-model="activeTab" :tabs="tabs" />
 
@@ -408,9 +429,10 @@ const ProposalDocumentsTab = lazyTab(() => import('~/components/BusinessProposal
 const ProposalEmailsTab = lazyTab(() => import('~/components/BusinessProposal/admin/ProposalEmailsTab.vue'));
 const ProjectScheduleEditor = lazyTab(() => import('~/components/BusinessProposal/admin/ProjectScheduleEditor.vue'));
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
-import { onBeforeRouteLeave } from 'vue-router';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 import { buildProposalItemLinkOptions, buildProposalModuleLinkOptions } from '~/utils/proposalModuleLinkOptions';
 import { getProposalNextAction } from '~/utils/proposalNextAction';
 import { JSON_TEXTAREA_ROWS, makeJsonStats } from '~/utils/proposalJsonStats';
@@ -427,7 +449,9 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const route = useRoute();
 const proposalStore = useProposalStore();
-const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const {
+  confirmState, requestConfirm, handleConfirmed, handleSecondaryAction, handleCancelled,
+} = useConfirmModal();
 // Fed by ProposalSectionsTab's dirty-state-change emit; drives the
 // route-leave / beforeunload / refresh guards below.
 const sectionsDirty = ref(false);
@@ -1094,7 +1118,6 @@ onMounted(async () => {
   const id = route.params.id;
   await proposalStore.fetchProposal(id);
   hydrateFormFromProposal();
-  window.addEventListener('beforeunload', warnUnsavedBeforeUnload);
   // Warm ONLY the technical editor's JS chunk during idle time — Det. técnico
   // is the heaviest tab and its data is already in the store, so the chunk is
   // the one first-open cost a prefetch can remove. The panel is deliberately
@@ -1107,37 +1130,39 @@ onMounted(async () => {
   }
 });
 
-const UNSAVED_CONFIRM = {
-  title: 'Cambios sin guardar',
-  message: 'Hay secciones con cambios sin guardar. Si continúas, se perderán.',
-  variant: 'warning',
-  confirmText: 'Continuar sin guardar',
-  cancelText: 'Seguir editando',
-};
-
-// Any tab holding unsaved edits arms the same guards.
-const hasUnsavedEdits = computed(() => sectionsDirty.value || hourRateDirty.value);
-
-function warnUnsavedBeforeUnload(e) {
-  if (hasUnsavedEdits.value) {
-    e.preventDefault();
-    e.returnValue = '';
-  }
-}
-
-onBeforeRouteLeave(async () => {
-  if (!hasUnsavedEdits.value) return true;
-  return await requestConfirm(UNSAVED_CONFIRM);
+/**
+ * Cualquier pestaña con ediciones pendientes arma los mismos guards.
+ *
+ * Vía `flags` y no `snapshot`: esta página no tiene un formulario propio que
+ * comparar — el estado sucio se lo reportan sus hijos por emit.
+ *
+ * Sin `save`: no existe un guardado atómico de la propuesta. Cada SectionEditor
+ * guarda el suyo (`defineExpose({ save, isDirty })`) y ProposalSectionsTab no
+ * guarda refs a ellos, así que un "guardar todo" necesita esas refs y una
+ * historia de fallo parcial. Quedan dos salidas, que es lo que esta página
+ * puede cumplir hoy.
+ */
+const {
+  hasChanges: hasUnsavedEdits,
+  unsavedTitle,
+  unsavedDetail,
+  guardedReload,
+} = useUnsavedGuard({
+  flags: {
+    sections: () => sectionsDirty.value,
+    hourRate: () => hourRateDirty.value,
+  },
+  labels: { sections: 'secciones', hourRate: 'tarifa por hora' },
+  reload: refreshData,
+  // El modal de esta página ya existe: inyectarlo evita un segundo
+  // confirmState que nadie renderiza.
+  confirm: requestConfirm,
 });
 
 async function refreshData() {
-  // fetchProposal re-hydrates every open SectionEditor via its deep watch,
-  // silently clobbering unsaved edits — confirm before refreshing. The
-  // refetch re-baselines the editors, which clears the flags organically.
-  if (hasUnsavedEdits.value) {
-    const ok = await requestConfirm(UNSAVED_CONFIRM);
-    if (!ok) return;
-  }
+  // fetchProposal re-hidrata cada SectionEditor abierto por su watch profundo y
+  // pisa las ediciones sin guardar; el guard pregunta antes. El refetch
+  // re-baseliniza los editores, así que las banderas se limpian solas.
   isRefreshing.value = true;
   try {
     await proposalStore.fetchProposal(route.params.id);
@@ -1147,11 +1172,10 @@ async function refreshData() {
   }
 }
 
-usePanelRefresh(refreshData);
+usePanelRefresh(guardedReload);
 
 onBeforeUnmount(() => {
   if (cancelOnboardingPoll) cancelOnboardingPoll();
-  window.removeEventListener('beforeunload', warnUnsavedBeforeUnload);
 });
 
 async function toggleAutomationsPaused() {

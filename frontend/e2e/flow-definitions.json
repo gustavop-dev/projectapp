@@ -1,5 +1,5 @@
 {
-  "version": "2.74.0",
+  "version": "2.76.0",
   "lastUpdated": "2026-08-16",
   "flows": {
     "layout-navbar-navigation": {
@@ -2243,6 +2243,36 @@
         "error"
       ]
     },
+    "admin-document-unsaved-guard": {
+      "name": "Admin Document Unsaved Changes Guard",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Unsaved-changes protection on the document editor and creator. Editing any tracked field raises a permanent warning (data-testid doc-unsaved-notice / doc-create-unsaved-notice) whose title names the pending fields — 'Cliente y proyecto sin guardar' — instead of saying only that something is pending; past three fields it counts them and lists them in a detail line. Per-field 'Sin guardar' badges mark título, cliente and proyecto inside the sticky aside (doc-field-dirty-title / -client / -project). Leaving the page, or pressing the global 'Actualizar datos' refresh button, opens a three-way confirmation: 'Guardar y salir' (primary, runs the PATCH and only then navigates — a failed save keeps the user on the page), 'Salir sin guardar' (secondary) and 'Seguir editando' (cancel). An issued cuenta de cobro drops the save exit, since the backend refuses it with collection_account_locked. A pristine form shows no warning and a disabled save button (doc-save-desktop / doc-save-mobile), a create form opened with ?folder= is not born dirty despite the folder's client suggestion, and typing in the client picker without committing a choice does not manufacture a warning.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
+    },
+    "admin-panel-unsaved-guard": {
+      "name": "Admin Panel Unsaved Changes Guard",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "The shared unsaved-changes guard as rolled out across the panel's full-page editors (blog, portfolio, linktrees, hour-packages, diagnostics/create, accounting/settings, emails), using /panel/emails as the representative case because its state lives in loose refs rather than a form object. Editing a default raises a warning naming the field (data-testid emails-defaults-unsaved-notice), and leaving the page opens the three-way dialog whose primary exit saves and only then navigates. Pins the boundary that matters for tabbed pages: switching tabs is a same-route router.replace({ query }), which must NOT trip the leave guard — otherwise every tabbed panel page would block on a modal as soon as its form had anything pending — and must not discard what is pending either.",
+      "expectedSpecs": 1,
+      "outcomes": [
+        "display",
+        "success",
+        "failure"
+      ]
+    },
     "admin-document-folders": {
       "name": "Admin Document Folders and Tags",
       "module": "admin",
@@ -2267,6 +2297,21 @@
       "expectedSpecs": 1,
       "outcomes": [
         "display"
+      ]
+    },
+    "admin-document-folder-change-client": {
+      "name": "Admin Document Folder Change Client",
+      "module": "admin",
+      "roles": [
+        "admin"
+      ],
+      "priority": "P2",
+      "description": "Reassigning a folder's client when it already holds content. The plain PATCH refuses with 409 `folder_has_content` and FolderFormModal raises the conflict instead of swallowing it, so the guided cascade takes over: GET /api/document-folders/:id/change-client/preview/?client_profile_id= names every bucket — the subfolders and documents that move, the issued cuentas de cobro that are never rewritten, and whatever was deliberately assigned to a third client (a subfolder of another client prunes its whole branch) — then the operator picks a mode EVERY time (Pasa también el contenido | Sólo la carpeta, no preselection) and POST /api/document-folders/:id/change-client/ carries the preview's document_ids/folder_ids back as a staleness token, so a 409 records_not_found/records_changed reloads the plan instead of guessing. Clearing the client is deliberately NOT routed here: \"nobody\" is not a destination the cascade can express, so unassigning a folder is a plain PATCH that leaves its content alone.",
+      "expectedSpecs": 1,
+      "knownGaps": "Spec added 2026-08-16 with the folder client/project feature: the 409 handoff, the preview buckets, the mode gate and the staleness token over a mocked API.",
+      "outcomes": [
+        "success",
+        "error"
       ]
     },
     "admin-admin-management": {
@@ -4148,7 +4193,7 @@
         "admin"
       ],
       "priority": "P2",
-      "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits.",
+      "description": "Unsaved-changes protection in the proposal section editor: editing a section shows a \"Sin guardar\" badge; collapsing a dirty section, navigating away, reloading or hitting the panel refresh button asks for confirmation before discarding edits. The page-level guard now runs on the shared useUnsavedGuard (same composable as admin-document-unsaved-guard) and renders a notice above the tab strip — outside every tab, since the pending work may sit in one the operator is not looking at — naming what is pending (\"Secciones y tarifa por hora sin guardar\") instead of only reporting that something is. It stays a two-exit dialog (salir sin guardar / seguir editando): the proposal has no atomic save, each SectionEditor saves its own block, so a \"Guardar y salir\" would promise something this page cannot yet deliver.",
       "expectedSpecs": 1,
       "outcomes": [
         "success"

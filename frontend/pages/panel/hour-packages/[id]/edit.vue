@@ -19,6 +19,15 @@
     </div>
 
     <form v-else class="space-y-6 max-w-3xl" @submit.prevent="handleSubmit">
+      <UnsavedChangesNotice
+        v-if="hasChanges"
+        :title="unsavedTitle"
+        :detail="unsavedDetail"
+        :can-save="false"
+        :can-discard="false"
+        testid="hour-package-unsaved-notice"
+      />
+
       <!-- Nationality + derived currency -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -111,6 +120,24 @@
         <NuxtLink :to="localePath('/panel/hour-packages')" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors">Cancelar</NuxtLink>
       </div>
     </form>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :require-type-text="confirmState.requireTypeText"
+      :hide-cancel="confirmState.hideCancel"
+      :secondary-text="confirmState.secondaryText"
+      :secondary-variant="confirmState.secondaryVariant"
+      :secondary-hint="confirmState.secondaryHint"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @secondary="handleSecondaryAction"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -118,6 +145,8 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useHourPackagesStore } from '~/stores/hour_packages';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -148,6 +177,33 @@ const form = reactive({
   is_active: true,
 });
 
+// `save` en null: handleSubmit navega al listado, y llamarlo desde dentro del
+// guard de navegación sería reentrante. Quedan dos salidas.
+const {
+  hasChanges,
+  unsavedTitle,
+  unsavedDetail,
+  commit: commitBaseline,
+  confirmState,
+  handleConfirmed,
+  handleSecondaryAction,
+  handleCancelled,
+} = useUnsavedGuard({
+  snapshot: () => ({ ...form }),
+  labels: {
+    nationality: 'nacionalidad',
+    name_es: 'nombre (ES)',
+    name_en: 'nombre (EN)',
+    note_es: 'nota (ES)',
+    note_en: 'nota (EN)',
+    hours: 'horas',
+    hourly_rate: 'tarifa por hora',
+    discount_percent: 'descuento',
+    order: 'orden',
+    is_active: 'estado',
+  },
+});
+
 const derivedCurrency = computed(() => CURRENCY_BY_NATIONALITY[form.nationality]);
 const effectiveRate = computed(() =>
   Number(form.hourly_rate || 0) * (1 - Number(form.discount_percent || 0) / 100));
@@ -170,6 +226,9 @@ onMounted(async () => {
   form.discount_percent = pkg.discount_percent;
   form.order = pkg.order;
   form.is_active = pkg.is_active;
+  // Con todo lo cargado en su sitio: de acá en más, lo que cambie es del
+  // operador. Si la carga falla no se fija baseline y el guard queda desarmado.
+  commitBaseline();
 });
 
 function formatMoney(value) {
@@ -194,6 +253,9 @@ async function handleSubmit() {
   const result = await hourPackagesStore.updatePackage(packageId, { ...form });
   if (result.success) {
     notify.success('Paquete actualizado.');
+    // Ya está persistido: re-fijar la baseline desarma el guard para que la
+    // vuelta al listado no pregunte nada.
+    commitBaseline();
     router.push(localePath('/panel/hour-packages'));
   } else {
     applyFieldErrors(result.errors);

@@ -1,0 +1,232 @@
+<template>
+  <BaseModal
+    :model-value="modelValue"
+    size="lg"
+    @update:model-value="$emit('update:modelValue', $event)"
+  >
+    <div class="p-6 space-y-5" data-testid="folder-form-modal">
+      <div>
+        <h3 class="text-base font-semibold text-text-default">
+          {{ isEdit ? `Editar "${folder.name}"` : 'Nueva carpeta' }}
+        </h3>
+        <p class="text-xs text-text-muted mt-0.5">
+          {{ isEdit
+            ? 'Cambia su nombre, dónde vive y de quién es.'
+            : 'De quién es la carpeta se hereda a lo que se cree dentro.' }}
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-medium text-text-muted" for="folder-form-name">
+          Nombre
+        </label>
+        <BaseInput
+          id="folder-form-name"
+          v-model="form.name"
+          type="text"
+          placeholder="Nombre de la carpeta"
+          data-testid="folder-form-name"
+          @keyup.enter="submit"
+        />
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-medium text-text-muted" for="folder-form-parent">
+          Dentro de
+        </label>
+        <select
+          id="folder-form-parent"
+          v-model="form.parent"
+          data-testid="folder-form-parent"
+          class="w-full px-2.5 py-2 border border-input-border rounded-lg text-sm bg-surface text-text-default focus:ring-2 focus:ring-focus-ring/30 outline-none"
+        >
+          <option :value="null">Ninguna (carpeta raíz)</option>
+          <option v-for="opt in parentOptions" :key="opt.id" :value="opt.id">
+            {{ opt.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-medium text-text-muted">Cliente</label>
+        <ClientAutocomplete
+          :model-value="form.client"
+          :initial-label="clientDisplayName"
+          test-id="folder-form-client"
+          @select="onClientSelect"
+        />
+        <p
+          v-if="inheritedNotice"
+          class="text-xs text-text-subtle"
+          data-testid="folder-form-inherited-hint"
+        >
+          {{ inheritedNotice }}
+        </p>
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-medium text-text-muted">Proyecto</label>
+        <ProjectSelect
+          v-model="form.project"
+          :client-profile-id="form.client"
+          :client-label="clientDisplayName"
+          :allow-no-client="true"
+          testid="folder-form-project"
+          @select="onProjectSelect"
+        />
+      </div>
+
+      <p
+        v-if="errorMsg"
+        class="text-xs text-danger-strong bg-danger-soft px-3 py-2 rounded-lg"
+        data-testid="folder-form-error"
+      >
+        {{ errorMsg }}
+      </p>
+
+      <div class="flex justify-end gap-2 pt-1">
+        <BaseButton variant="ghost" data-testid="folder-form-cancel" @click="close">
+          Cancelar
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          :disabled="!form.name.trim()"
+          :loading="folderStore.isUpdating"
+          data-testid="folder-form-save"
+          @click="submit"
+        >
+          {{ isEdit ? 'Guardar' : 'Crear carpeta' }}
+        </BaseButton>
+      </div>
+    </div>
+  </BaseModal>
+</template>
+
+<script setup>
+/**
+ * El único formulario de carpeta: crea y edita.
+ *
+ * Antes, editar una carpeta existente sólo se podía desde el modal de NUEVA
+ * carpeta — el último lugar donde alguien buscaría cambiar algo que ya existe.
+ * Ahora este modal se abre desde donde se usa la carpeta (su cabecera, su fila
+ * del panel lateral y el árbol del gestor) y el panel de edición inline del
+ * gestor desapareció.
+ *
+ * Al crear dentro de una carpeta con dueño, cliente y proyecto llegan
+ * precargados: es un valor por defecto, no una atadura — se pueden vaciar
+ * antes de guardar y nada los repone.
+ *
+ * Cambiar el cliente de una carpeta CON contenido no se resuelve acá: el
+ * backend responde 409 `folder_has_content` y este modal lo eleva como
+ * `change-client` para que decida la cascada, que sí sabe decir a qué afecta.
+ */
+import { computed, reactive, ref, watch } from 'vue';
+import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
+import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
+import { useClientProjectCascade } from '~/composables/useClientProjectCascade';
+import { buildFolderOptions } from '~/utils/folderOptions';
+
+const props = defineProps({
+  modelValue: { type: Boolean, default: false },
+  /** Carpeta a editar. `null` abre el formulario en modo creación. */
+  folder: { type: Object, default: null },
+  /** Carpeta padre preseleccionada al crear. */
+  initialParent: { type: Number, default: null },
+  /** Carpeta de la que se hereda la asociación al crear dentro de ella. */
+  inheritFrom: { type: Object, default: null },
+});
+
+const emit = defineEmits(['update:modelValue', 'saved', 'change-client']);
+
+const folderStore = useDocumentFolderStore();
+
+const form = reactive({ name: '', parent: null, client: null, project: null });
+const clientDisplayName = ref('');
+const errorMsg = ref('');
+const inheritedClient = ref(null);
+
+const isEdit = computed(() => Boolean(props.folder));
+
+const { onClientSelect, onProjectSelect } = useClientProjectCascade(
+  form,
+  clientDisplayName,
+  { onOperatorChoice: () => { inheritedClient.value = null; } },
+);
+
+const parentOptions = computed(() => buildFolderOptions(
+  folderStore, isEdit.value ? props.folder.id : null,
+));
+
+const inheritedNotice = computed(() => (
+  inheritedClient.value
+    ? `Heredado de "${inheritedClient.value}". Puedes cambiarlo.`
+    : ''
+));
+
+function reset() {
+  errorMsg.value = '';
+  inheritedClient.value = null;
+  if (isEdit.value) {
+    form.name = props.folder.name || '';
+    form.parent = props.folder.parent ?? null;
+    form.client = props.folder.client ?? null;
+    form.project = props.folder.project ?? null;
+    clientDisplayName.value = props.folder.client_display_name || '';
+    return;
+  }
+  form.name = '';
+  form.parent = props.initialParent ?? null;
+  form.client = props.inheritFrom?.client ?? null;
+  form.project = props.inheritFrom?.project ?? null;
+  clientDisplayName.value = props.inheritFrom?.client_display_name || '';
+  if (form.client) inheritedClient.value = props.inheritFrom?.name || '';
+}
+
+watch(() => props.modelValue, (open) => {
+  if (open) reset();
+}, { immediate: true });
+
+function close() {
+  emit('update:modelValue', false);
+}
+
+function formatErr(errors) {
+  if (!errors) return '';
+  if (typeof errors === 'string') return errors;
+  const parts = Object.entries(errors)
+    .filter(([key]) => key !== 'code')
+    .map(([, value]) => (Array.isArray(value) ? value.join(' ') : value));
+  return parts.join(' · ');
+}
+
+async function submit() {
+  const name = form.name.trim();
+  if (!name) return;
+  errorMsg.value = '';
+  const payload = {
+    name,
+    parent: form.parent,
+    client: form.client,
+    project: form.project,
+  };
+
+  const result = isEdit.value
+    ? await folderStore.updateFolder(props.folder.id, payload)
+    : await folderStore.createFolder(payload);
+
+  if (result.success) {
+    emit('saved', result.data);
+    close();
+    return;
+  }
+  if ((result.code || result.errors?.code) === 'folder_has_content') {
+    emit('change-client', {
+      folder: props.folder,
+      clientProfileId: form.client,
+    });
+    return;
+  }
+  errorMsg.value = formatErr(result.errors)
+    || (isEdit.value ? 'No se pudo guardar.' : 'No se pudo crear la carpeta.');
+}
+</script>

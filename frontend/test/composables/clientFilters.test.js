@@ -54,6 +54,7 @@ import {
   CLIENT_SUBFILTERS,
   clientSubfiltersFor,
   matchDocumentsStatus,
+  documentsPill,
   matchesSubfilter,
   normalizeLegacyPreset,
   subfilterOptionsFor,
@@ -282,6 +283,7 @@ describe('taxonomy', () => {
       { value: 'with', label: 'Con documentos' },
       { value: 'none', label: 'Sin documentos' },
       { value: 'no-project', label: 'Con documentos sin proyecto' },
+      { value: 'with-folder', label: 'Con carpeta' },
     ]);
   });
 
@@ -320,7 +322,55 @@ describe('documents module', () => {
     const { currentFilters, displayTabs } = useClientFilters();
     currentFilters.module = 'documents';
     expect(displayTabs.value.map((t) => t.id))
-      .toEqual(['docs-with', 'docs-none', 'docs-no-project']);
+      .toEqual(['docs-with', 'docs-none', 'docs-no-project', 'docs-with-folder']);
+  });
+
+  it('the row pill counts folders while "Con carpeta" is the active cut', () => {
+    const client = baseClient({
+      documents_count: 5, document_folders_count: 2, last_document_at: '2026-08-01',
+    });
+
+    expect(documentsPill(client, 'docs-with-folder')).toEqual({
+      label: '2 carpetas', testid: 'client-folders', showsDate: false,
+    });
+  });
+
+  it('the row pill counts documents under every other documents cut', () => {
+    const client = baseClient({ documents_count: 3, document_folders_count: 2 });
+
+    expect(documentsPill(client, 'docs-with')).toEqual({
+      label: '3 docs', testid: 'client-documents', showsDate: true,
+    });
+    expect(documentsPill(client, null)).toEqual({
+      label: '3 docs', testid: 'client-documents', showsDate: true,
+    });
+  });
+
+  it('the row pill says nothing when its own counter is zero', () => {
+    // Cada fila mira SU contador: el mismo cliente sí ofrece píldora bajo el
+    // otro corte, así que el null es del contador y no de la fila entera.
+    const noFolders = baseClient({ documents_count: 4, document_folders_count: 0 });
+    const noDocs = baseClient({ documents_count: 0, document_folders_count: 1 });
+
+    expect(documentsPill(noFolders, 'docs-with-folder')).toBeNull();
+    expect(documentsPill(noFolders, 'docs-with').label).toBe('4 docs');
+    expect(documentsPill(noDocs, 'docs-with')).toBeNull();
+    expect(documentsPill(noDocs, 'docs-with-folder').label).toBe('1 carpeta');
+  });
+
+  it('the row pill keeps the singular for one', () => {
+    const one = baseClient({ documents_count: 1, document_folders_count: 1 });
+
+    expect(documentsPill(one, 'docs-with-folder').label).toBe('1 carpeta');
+    expect(documentsPill(one, 'docs-with').label).toBe('1 doc');
+  });
+
+  it('"Con carpeta" reads the folder relation, not the documents', () => {
+    const foldered = baseClient({ documents_count: 0, document_folders_count: 2 });
+    const docsOnly = baseClient({ documents_count: 5, document_folders_count: 0 });
+
+    expect(matchDocumentsStatus(foldered, 'with-folder')).toBe(true);
+    expect(matchDocumentsStatus(docsOnly, 'with-folder')).toBe(false);
   });
 });
 

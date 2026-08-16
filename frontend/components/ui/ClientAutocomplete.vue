@@ -308,6 +308,19 @@ watch(
   (newLabel) => {
     if (!inputText.value && newLabel) {
       inputText.value = newLabel;
+      return;
+    }
+    // Retirar el rótulo con el valor ya vacío es el padre diciendo «esto se
+    // fue» — una sugerencia que se retracta, un formulario que se resetea. El
+    // input no puede seguir mostrando al cliente anterior: decía tener uno
+    // cuando ya no lo tenía. Con un cliente elegido no se toca nada.
+    if (!newLabel && props.modelValue == null) {
+      inputText.value = '';
+    }
+    // El padre reetiqueta tras guardar; sincronizar sin pisar algo que el
+    // usuario esté tecleando encima en ese momento.
+    if (inputText.value === committedLabel.value || !committedLabel.value) {
+      committedLabel.value = newLabel || '';
     }
     // El padre reetiqueta tras guardar; sincronizar sin pisar algo que el
     // usuario esté tecleando encima en ese momento.

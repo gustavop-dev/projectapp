@@ -51,6 +51,7 @@
         :dragging-folder-id="draggingFolder?.id ?? null"
         @select="handleSelectFolder"
         @manage="openFolderManager"
+        @edit="openFolderForm"
         @folder-drop="handleDropOnFolder"
         @delete="handleDeleteFolder"
         @archive="handleArchiveFolder"
@@ -82,6 +83,8 @@
           <span class="font-medium">{{ scopeNotice.label }}</span>
           <span class="text-text-muted">{{ scopeNotice.detail }}</span>
         </div>
+
+        <FolderHeader :folder="currentFolder" @edit="openFolderForm" />
 
         <FolderBreadcrumb
           v-if="showBreadcrumb"
@@ -361,6 +364,20 @@
       :initial-parent="typeof documentStore.activeFolderId === 'number' ? documentStore.activeFolderId : null"
       @changed="handleFoldersChanged"
       @archived="handleFolderArchived"
+      @change-client="openFolderCascade"
+    />
+    <FolderFormModal
+      v-model="showFolderForm"
+      :folder="editingFolder"
+      @saved="handleFoldersChanged"
+      @change-client="openFolderCascade"
+    />
+    <FolderChangeClientModal
+      :open="showFolderCascade"
+      :folder="cascadeFolder"
+      :initial-client-profile-id="cascadeClientId"
+      @close="showFolderCascade = false"
+      @changed="handleFolderClientChanged"
     />
     <DeleteFolderModal
       v-model="showDeleteFolderModal"
@@ -413,6 +430,9 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
+import FolderHeader from '~/components/panel/documents/FolderHeader.vue';
+import FolderFormModal from '~/components/panel/documents/FolderFormModal.vue';
+import FolderChangeClientModal from '~/components/panel/documents/FolderChangeClientModal.vue';
 import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
 import DocumentsAssociationFilters from '~/components/panel/documents/DocumentsAssociationFilters.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
@@ -671,6 +691,11 @@ onBeforeUnmount(() => {
 });
 
 const showFolderManager = ref(false);
+const showFolderForm = ref(false);
+const editingFolder = ref(null);
+const showFolderCascade = ref(false);
+const cascadeFolder = ref(null);
+const cascadeClientId = ref(null);
 const showTagManager = ref(false);
 const deletingFolder = ref(null);
 const movingDoc = ref(null);
@@ -965,6 +990,29 @@ const associationClientLabel = computed(() => {
   const row = documentStore.documents.find((d) => d.client === id);
   return row?.client_display_name || `Cliente #${id}`;
 });
+
+/** Editar la carpeta desde donde se la está usando: su fila o su cabecera. */
+function openFolderForm(folder) {
+  editingFolder.value = folder;
+  showFolderForm.value = true;
+}
+
+/**
+ * Cambiar de cliente una carpeta CON contenido no lo resuelve el formulario:
+ * el backend responde 409 y el camino es la cascada, que sí sabe decir a qué
+ * afecta antes de confirmar.
+ */
+function openFolderCascade({ folder, clientProfileId }) {
+  showFolderForm.value = false;
+  cascadeFolder.value = folder;
+  cascadeClientId.value = clientProfileId ?? null;
+  showFolderCascade.value = true;
+}
+
+async function handleFolderClientChanged() {
+  showFolderCascade.value = false;
+  await handleFoldersChanged();
+}
 
 function openFolderManager() {
   showFolderManager.value = true;

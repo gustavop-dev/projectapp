@@ -1,5 +1,7 @@
 """Tests for content/views/document_folder.py — folder CRUD + document filter."""
 import pytest
+from accounts.models import Project, UserProfile
+from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from content.models import Document, DocumentFolder
@@ -10,6 +12,14 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture
 def folder(db):
     return DocumentFolder.objects.create(name='Cuentas de cobro')
+
+
+def make_client(email, *, first='Ana', last='Pérez'):
+    user = get_user_model().objects.create_user(
+        username=email, email=email, password='pass12345',
+        first_name=first, last_name=last,
+    )
+    return UserProfile.objects.create(user=user, cedula='1049654583')
 
 
 class TestListDocumentFolders:
@@ -26,6 +36,33 @@ class TestListDocumentFolders:
         response = api_client.get(url)
 
         assert response.status_code == 401
+
+    def test_listing_associated_folders_does_not_query_per_row(
+        self, admin_client, django_assert_max_num_queries,
+    ):
+        """El panel lateral lista todas las carpetas raíz de una sola pasada.
+
+        Sin `select_related` cada fila cuesta tres consultas extra (el usuario,
+        su perfil y el proyecto), así que el costo crece con el número de
+        carpetas: diez carpetas ya son treinta consultas de más.
+        """
+        for index in range(5):
+            profile = make_client(f'cliente{index}@example.com')
+            project = Project.objects.create(
+                name=f'Proyecto {index}', client=profile.user,
+            )
+            DocumentFolder.objects.create(
+                name=f'Carpeta {index}',
+                client_user=profile.user,
+                project=project,
+            )
+
+        url = reverse('list-document-folders')
+        with django_assert_max_num_queries(10):
+            response = admin_client.get(url)
+
+        assert response.status_code == 200
+        assert all(entry['client_display_name'] for entry in response.json())
 
     def test_document_count_reflects_assigned_documents(self, admin_client, folder):
         Document.objects.create(title='A', folder=folder)
@@ -79,6 +116,104 @@ class TestUpdateDocumentFolder:
         response = admin_client.patch(url, {'name': 'x'}, format='json')
 
         assert response.status_code == 404
+
+
+class TestUpdateDocumentFolderAssociation:
+    """El PATCH plano asocia una carpeta vacía; con contenido remite a la cascada.
+
+    Una carpeta con contenido que cambia de cliente arrastra la pregunta de qué
+    pasa con lo que guarda, y esa pregunta sólo la responde el endpoint de
+    cambio de cliente (preview + modo). El PATCH plano se planta con 409 en vez
+    de reasignar la carpeta a espaldas de su contenido.
+    """
+
+    def test_associates_an_empty_folder(self, admin_client, folder):
+        profile = make_client('ana@example.com')
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': profile.pk}, format='json')
+
+        assert response.status_code == 200
+        assert response.json()['client'] == profile.pk
+        folder.refresh_from_db()
+        assert folder.client_user == profile.user
+
+    def test_client_change_with_documents_returns_409(self, admin_client, folder):
+        ana = make_client('ana@example.com')
+        nestor = make_client('nestor@example.com', first='Néstor')
+        folder.client_user = ana.user
+        folder.save(update_fields=['client_user'])
+        Document.objects.create(title='Contrato', folder=folder)
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': nestor.pk}, format='json')
+
+        assert response.status_code == 409
+        assert response.json()['code'] == 'folder_has_content'
+        folder.refresh_from_db()
+        assert folder.client_user == ana.user
+
+    def test_first_association_with_documents_also_returns_409(
+        self, admin_client, folder,
+    ):
+        """Poner cliente por primera vez es justo cuando la propagación importa."""
+        profile = make_client('ana@example.com')
+        Document.objects.create(title='Contrato', folder=folder)
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': profile.pk}, format='json')
+
+        assert response.status_code == 409
+        assert response.json()['code'] == 'folder_has_content'
+
+    def test_client_change_with_subfolders_returns_409(self, admin_client, folder):
+        profile = make_client('ana@example.com')
+        DocumentFolder.objects.create(name='Sub', parent=folder)
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': profile.pk}, format='json')
+
+        assert response.status_code == 409
+
+    def test_clearing_the_client_of_a_folder_with_content_is_a_plain_patch(
+        self, admin_client, folder,
+    ):
+        """Desasignar no reasigna nada: no hay a quién propagarle el contenido.
+
+        La cascada existe para decidir a quién pasa lo que la carpeta guarda, y
+        "a nadie" no es un destino — el endpoint de cambio de cliente exige uno.
+        Quitarle el dueño a la carpeta deja su contenido como está.
+        """
+        profile = make_client('ana@example.com')
+        folder.client_user = profile.user
+        folder.save(update_fields=['client_user'])
+        document = Document.objects.create(
+            title='Contrato', folder=folder, client_user=profile.user,
+        )
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(url, {'client': None}, format='json')
+
+        assert response.status_code == 200
+        folder.refresh_from_db()
+        document.refresh_from_db()
+        assert folder.client_user is None
+        assert document.client_user == profile.user
+
+    def test_renaming_a_folder_with_content_still_works(self, admin_client, folder):
+        """El guard mira el cliente, no el resto del formulario."""
+        profile = make_client('ana@example.com')
+        folder.client_user = profile.user
+        folder.save(update_fields=['client_user'])
+        Document.objects.create(title='Contrato', folder=folder)
+
+        url = reverse('update-document-folder', kwargs={'folder_id': folder.id})
+        response = admin_client.patch(
+            url, {'name': 'Facturas', 'client': profile.pk}, format='json',
+        )
+
+        assert response.status_code == 200
+        folder.refresh_from_db()
+        assert folder.name == 'Facturas'
 
 
 class TestDeleteDocumentFolder:

@@ -127,6 +127,9 @@ export const CLIENT_SUBFILTERS = [
   { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: 'with' } },
   { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: 'none' } },
   { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: 'no-project' } },
+  // El cuarto lee la relación de la CARPETA, no la de los documentos: una
+  // carpeta suya sin nada adentro todavía dice de quién es.
+  { id: 'docs-with-folder', name: 'Con carpeta', module: 'documents', filters: { documentsStatus: 'with-folder' } },
 
   // Emails — contact, not business. All four read what was addressed to the
   // client: the internal notices about their records show in the modal,
@@ -280,9 +283,38 @@ export function matchDocumentsStatus(record, value) {
   if (value === 'with') return Number(record.documents_count || 0) > 0;
   if (value === 'none') return Number(record.documents_count || 0) === 0;
   if (value === 'no-project') return Number(record.documents_no_project_count || 0) > 0;
+  if (value === 'with-folder') return Number(record.document_folders_count || 0) > 0;
   return true;
 }
 matchDocumentsStatus.keys = ['documentsStatus'];
+
+/**
+ * Qué contador muestra la píldora de la fila mientras se lee Documentos.
+ *
+ * La píldora sigue al CORTE, no sólo al módulo: leyendo «Con carpeta» el
+ * número que importa es cuántas carpetas tiene, y la fecha del último
+ * documento no dice nada de una carpeta vacía que sí es suya. Devuelve `null`
+ * cuando su propio contador está en cero — una fila no puede ofrecer un salto
+ * hacia nada.
+ */
+export function documentsPill(record, tabId) {
+  if (tabId === 'docs-with-folder') {
+    const count = Number(record.document_folders_count || 0);
+    if (count === 0) return null;
+    return {
+      label: `${count} carpeta${count === 1 ? '' : 's'}`,
+      testid: 'client-folders',
+      showsDate: false,
+    };
+  }
+  const count = Number(record.documents_count || 0);
+  if (count === 0) return null;
+  return {
+    label: `${count} doc${count === 1 ? '' : 's'}`,
+    testid: 'client-documents',
+    showsDate: true,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Legacy `preset` key

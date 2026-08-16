@@ -135,4 +135,111 @@ class TestLinkDocumentsFromFolders:
         run_command('--apply')
         output = run_command('--apply')
 
-        assert 'Aplicado: 0 documento(s)' in output
+        assert 'Aplicado: 0 carpeta(s) y 0 documento(s)' in output
+
+
+class TestFoldersAreMatchedFirst:
+    """La pasada asocia primero la CARPETA; los documentos heredan de ella.
+
+    Es el punto 12 del ticket: si la carpeta queda asociada, sus documentos
+    heredan en lugar de emparejarse uno por uno — y la carpeta asociada es
+    además lo que hace honesto al filtro «Con carpeta» de /panel/clients.
+    """
+
+    def test_the_folder_itself_gets_the_project_and_the_owner(self):
+        profile = make_client('deivis@example.com', first='Deivis', last='Ríos')
+        project = Project.objects.create(name='Vastago', client=profile.user)
+        folder = DocumentFolder.objects.create(name='Vastago Proj')
+
+        run_command('--apply')
+
+        folder.refresh_from_db()
+        assert folder.project == project
+        assert folder.client_user == profile.user
+
+    def test_a_client_only_match_associates_the_folder_too(self):
+        profile = make_client('carlos@example.com', first='Carlos', last='Ruiz')
+        folder = DocumentFolder.objects.create(name='Carlos')
+
+        run_command('--apply')
+
+        folder.refresh_from_db()
+        assert folder.client_user == profile.user
+        assert folder.project is None
+
+    def test_an_empty_folder_is_associated_anyway(self):
+        """Sin documentos no había nada que emparejar; la carpeta sí existe."""
+        profile = make_client('carlos@example.com', first='Carlos', last='Ruiz')
+        folder = DocumentFolder.objects.create(name='Carlos')
+
+        run_command('--apply')
+
+        folder.refresh_from_db()
+        assert folder.client_user == profile.user
+
+    def test_a_subfolder_materializes_the_ancestor_match(self):
+        profile = make_client('kore@example.com', first='Kore', last='SAS')
+        project = Project.objects.create(name='Kore', client=profile.user)
+        parent = DocumentFolder.objects.create(name='Kore - Diseño')
+        child = DocumentFolder.objects.create(name='Entregas', parent=parent)
+
+        output = run_command('--apply')
+
+        child.refresh_from_db()
+        assert child.project == project
+        assert child.client_user == profile.user
+        assert '[heredada]' in output
+
+    def test_a_folder_associated_by_hand_is_never_overwritten(self):
+        carlos = make_client('carlos@example.com', first='Carlos', last='Ruiz')
+        other = make_client('otra@example.com', first='Otra', last='Dueña')
+        folder = DocumentFolder.objects.create(
+            name='Carlos', client_user=other.user,
+        )
+
+        run_command('--apply')
+
+        folder.refresh_from_db()
+        assert folder.client_user == other.user
+        assert carlos.user != other.user
+
+    def test_documents_inherit_from_a_folder_associated_by_hand(self):
+        """Sin match por nombre: la carpeta ya lo dice, y con eso alcanza."""
+        profile = make_client('ana@example.com')
+        folder = DocumentFolder.objects.create(
+            name='Papeles varios', client_user=profile.user,
+        )
+        document = Document.objects.create(title='Acta', folder=folder)
+
+        run_command('--apply')
+
+        document.refresh_from_db()
+        assert document.client_user == profile.user
+
+    def test_an_ambiguous_folder_stays_untouched(self):
+        make_client('carlos1@example.com', first='Carlos', last='Ruiz')
+        make_client('carlos2@example.com', first='Carlos', last='Gómez')
+        folder = DocumentFolder.objects.create(name='Carlos')
+
+        run_command('--apply')
+
+        folder.refresh_from_db()
+        assert folder.client_user is None
+
+    def test_a_second_run_leaves_the_folders_alone(self):
+        make_client('carlos@example.com', first='Carlos', last='Ruiz')
+        DocumentFolder.objects.create(name='Carlos')
+
+        run_command('--apply')
+        output = run_command('--apply')
+
+        assert 'Aplicado: 0 carpeta(s)' in output
+
+    def test_dry_run_does_not_associate_folders(self):
+        make_client('carlos@example.com', first='Carlos', last='Ruiz')
+        folder = DocumentFolder.objects.create(name='Carlos')
+
+        run_command()
+
+        folder.refresh_from_db()
+        assert folder.client_user is None

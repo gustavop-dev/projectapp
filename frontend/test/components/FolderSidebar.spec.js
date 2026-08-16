@@ -296,7 +296,11 @@ describe('FolderSidebar', () => {
       const wrapper = mountSidebar({
         folders: [{ id: 9, name: longName, document_count: 3, children_count: 0 }],
       });
-      const nameSpan = folderNameButton(wrapper, longName).find('span');
+      // El nombre vive dentro de la columna que comparte con el cliente, así
+      // que se busca por su `title` —que sólo lleva él— y no por ser el primer
+      // span de la fila.
+      const nameSpan = folderNameButton(wrapper, longName)
+        .find(`span[title="${longName}"]`);
 
       expect(nameSpan.classes()).toContain('truncate');
     });
@@ -488,6 +492,38 @@ describe('FolderSidebar', () => {
       await sinCarpetaBtn.trigger('drop');
 
       expect(wrapper.emitted('folder-drop')).toEqual([[null]]);
+    });
+  });
+
+  // ── Row actions: editar ───────────────────────────────────────────────────
+
+  describe('edit action', () => {
+    const folders = [
+      { id: 1, name: 'Kore', client: 7, client_display_name: 'Kore SAS' },
+      { id: 2, name: 'Sin dueño' },
+    ];
+
+    it('offers editing right where archiving and deleting already are', async () => {
+      const wrapper = mountSidebar({ folders });
+
+      const edit = wrapper.find('[data-testid="folder-edit"]');
+      expect(edit.exists()).toBe(true);
+
+      await edit.trigger('click');
+      expect(wrapper.emitted('edit')[0][0].id).toBe(1);
+    });
+
+    it('names the client the folder belongs to under its name', () => {
+      const wrapper = mountSidebar({ folders });
+
+      expect(wrapper.find('[data-testid="folder-client-1"]').text())
+        .toContain('Kore SAS');
+    });
+
+    it('says nothing about the client when the folder has none', () => {
+      const wrapper = mountSidebar({ folders });
+
+      expect(wrapper.find('[data-testid="folder-client-2"]').exists()).toBe(false);
     });
   });
 });

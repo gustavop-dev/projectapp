@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.utils import timezone
 
-from content.models import Document, HostingRecord
+from content.models import Document, DocumentFolder, HostingRecord
 from content.models.business_proposal import BusinessProposal
 from content.serializers.proposal_clients import ProposalClientSerializer
 
@@ -351,7 +351,47 @@ class TestPresetAnnotations:
 
 
 class TestDocumentsModuleAnnotations:
-    """Los tres agregados detrás del módulo Documentos de /panel/clients."""
+    """Los agregados detrás del módulo Documentos de /panel/clients."""
+
+    def test_folders_count_reads_the_folders_of_the_client(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile(company='Carpetas SAS')
+        DocumentFolder.objects.create(name='Kore', client_user=profile.user)
+        DocumentFolder.objects.create(name='Kore - Diseño', client_user=profile.user)
+        DocumentFolder.objects.create(name='De nadie')
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['document_folders_count'] == 2
+
+    def test_folders_count_excludes_the_archived_ones(
+        self, admin_client, make_client_profile,
+    ):
+        """Espeja a documents_count: archivar es el eje de visibilidad del módulo."""
+        profile = make_client_profile(company='Archivo SAS')
+        DocumentFolder.objects.create(name='Viva', client_user=profile.user)
+        DocumentFolder.objects.create(
+            name='Guardada', client_user=profile.user, is_archived=True,
+        )
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+        row = _row_for(response, profile)
+
+        assert row['document_folders_count'] == 1
+
+    def test_folders_of_one_client_do_not_leak_into_another(
+        self, admin_client, make_client_profile,
+    ):
+        mine = make_client_profile(company='Mío SAS')
+        other = make_client_profile(company='Ajeno SAS')
+        DocumentFolder.objects.create(name='Ajena', client_user=other.user)
+
+        response = admin_client.get(reverse('list-proposal-clients'))
+
+        assert _row_for(response, mine)['document_folders_count'] == 0
+        assert _row_for(response, other)['document_folders_count'] == 1
 
     def test_documents_count_excludes_the_archived_ones(
         self, admin_client, make_client_profile,
@@ -439,12 +479,14 @@ class TestDocumentsModuleAnnotations:
     def test_serializer_falls_back_without_annotations(self, make_client_profile):
         profile = make_client_profile(company='Fallback Docs SAS')
         Document.objects.create(title='Suelto', client_user=profile.user)
+        DocumentFolder.objects.create(name='Suya', client_user=profile.user)
 
         raw = UserProfile.objects.get(pk=profile.pk)
         data = ProposalClientSerializer(raw).data
 
         assert data['documents_count'] == 1
         assert data['documents_no_project_count'] == 1
+        assert data['document_folders_count'] == 1
 
 
 # ---------------------------------------------------------------------------

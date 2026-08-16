@@ -7,6 +7,7 @@
  */
 
 const mockFolderStore = {
+  folderById: (id) => mockFolderStore.folders.find((f) => f.id === id) || null,
   folders: [],
   isUpdating: false,
   fetchFolders: jest.fn(),
@@ -60,6 +61,15 @@ const DraggableStub = {
   template: '<div data-testid="folder-draggable"><slot name="item" v-for="(el, i) in modelValue" :key="i" :element="el" /></div>',
 };
 
+// El formulario compartido tiene su propio spec; acá sólo importa a quién se
+// lo entrega este modal y qué hace con lo que le devuelve.
+const FolderFormModalStub = {
+  name: 'FolderFormModal',
+  props: ['modelValue', 'folder', 'initialParent', 'inheritFrom'],
+  emits: ['update:modelValue', 'saved', 'change-client'],
+  template: '<div class="folder-form-modal-stub" />',
+};
+
 const baseFolder = { id: 1, name: 'Design', parent: null, document_count: 3 };
 const emptyFolder = { id: 9, name: 'Empty', parent: null, document_count: 0 };
 
@@ -71,6 +81,7 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         draggable: DraggableStub,
+        FolderFormModal: FolderFormModalStub,
       },
     },
   });
@@ -132,7 +143,9 @@ describe('FolderManagerModal', () => {
       await wrapper.find('form').trigger('submit');
       await flushPromises();
 
-      expect(mockFolderStore.createFolder).toHaveBeenCalledWith({ name: 'My Folder', parent: null });
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'My Folder', parent: null }),
+      );
     });
 
     it('disables the Crear button when the input is empty', () => {
@@ -165,44 +178,92 @@ describe('FolderManagerModal', () => {
     });
   });
 
-  // ── Rename flow ───────────────────────────────────────────────────────────
+  // ── Edit flow ─────────────────────────────────────────────────────────────
 
-  describe('rename flow', () => {
-    it('shows the edit input when the rename button is clicked', async () => {
+  describe('edit flow', () => {
+    // El panel de edición inline se consolidó en FolderFormModal, igual que
+    // antes el de borrado en DeleteFolderModal: un solo formulario de carpeta,
+    // y este modal deja de ser el único camino para editar lo que ya existe.
+
+    it('opens the shared folder form with the folder when the pencil is clicked', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
+
       await wrapper.find('[title="Editar carpeta"]').trigger('click');
 
-      expect(wrapper.findAll('input[type="text"]').length).toBe(2);
+      const form = wrapper.findComponent({ name: 'FolderFormModal' });
+      expect(form.props('modelValue')).toBe(true);
+      expect(form.props('folder')).toMatchObject({ id: 1 });
     });
 
-    it('hides the edit input when Cancelar is clicked during rename', async () => {
+    it('no longer edits inline', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Editar carpeta"]').trigger('click');
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Cancelar').trigger('click');
 
+      await wrapper.find('[title="Editar carpeta"]').trigger('click');
+
+      // Sólo queda el input de crear: la edición vive en el modal compartido.
       expect(wrapper.findAll('input[type="text"]').length).toBe(1);
     });
 
-    it('calls updateFolder with the new name when Guardar is clicked', async () => {
+    it('refreshes and emits changed after the form saves', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Editar carpeta"]').trigger('click');
-      await wrapper.findAll('input[type="text"]').at(1).setValue('Renamed Folder');
-      await wrapper.findAll('button').find((btn) => btn.text() === 'Guardar').trigger('click');
+      mockFolderStore.fetchFolders.mockClear();
+
+      wrapper.findComponent({ name: 'FolderFormModal' }).vm.$emit('saved', baseFolder);
       await flushPromises();
 
-      expect(mockFolderStore.updateFolder).toHaveBeenCalledWith(1, { name: 'Renamed Folder', parent: null });
+      // El listado se recarga UNA vez y el padre se entera UNA vez: dos avisos
+      // por un guardado harían al gestor refrescar dos veces.
+      expect(mockFolderStore.fetchFolders).toHaveBeenCalledTimes(1);
+      expect(wrapper.emitted('changed')).toHaveLength(1);
+      // Y el formulario deja de apuntar a la carpeta que ya guardó.
+      expect(wrapper.findComponent({ name: 'FolderFormModal' }).props('folder'))
+        .toBeNull();
     });
 
-    it('cancels rename when Esc is pressed in the edit input', async () => {
+    it('passes a folder_has_content conflict up to the cascade', async () => {
       mockFolderStore.folders = [baseFolder];
       const wrapper = mountModal();
-      await wrapper.find('[title="Editar carpeta"]').trigger('click');
-      await wrapper.findAll('input[type="text"]').at(1).trigger('keyup', { key: 'Escape' });
 
-      expect(wrapper.findAll('input[type="text"]').length).toBe(1);
+      wrapper.findComponent({ name: 'FolderFormModal' })
+        .vm.$emit('change-client', { folder: baseFolder, clientProfileId: 9 });
+      await flushPromises();
+
+      expect(wrapper.emitted('change-client')[0][0]).toMatchObject({
+        clientProfileId: 9,
+      });
+    });
+  });
+
+  describe('create inherits from the parent folder', () => {
+    it('sends the parent folder client and project on create', async () => {
+      mockFolderStore.folders = [
+        { id: 4, name: 'Kore', parent: null, client: 7, project: 3 },
+      ];
+      const wrapper = mountModal({ modelValue: false, initialParent: 4 });
+      await wrapper.setProps({ modelValue: true });
+      await flushPromises();
+      await wrapper.find('input[type="text"]').setValue('Diseño');
+      await wrapper.find('form').trigger('submit');
+
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Diseño', parent: 4, client: 7, project: 3 }),
+      );
+    });
+
+    it('sends no association when the parent has none', async () => {
+      mockFolderStore.folders = [{ id: 4, name: 'Varios', parent: null }];
+      const wrapper = mountModal({ modelValue: false, initialParent: 4 });
+      await wrapper.setProps({ modelValue: true });
+      await flushPromises();
+      await wrapper.find('input[type="text"]').setValue('Sub');
+      await wrapper.find('form').trigger('submit');
+
+      expect(mockFolderStore.createFolder).toHaveBeenCalledWith(
+        expect.objectContaining({ client: null, project: null }),
+      );
     });
   });
 

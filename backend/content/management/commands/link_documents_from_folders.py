@@ -1,4 +1,4 @@
-"""Vincula los documentos existentes a cliente/proyecto desde su carpeta.
+"""Vincula carpetas y documentos a cliente/proyecto emparejando por nombre.
 
 La pertenencia vivía en el nombre de la carpeta (Carlos, Kore - Diseño,
 G&M Project…) y no como relación. Este comando propone el emparejamiento
@@ -6,11 +6,16 @@ carpeta→proyecto/cliente por nombre normalizado y lo aplica sólo cuando es
 inequívoco; lo demás queda reportado para revisión manual — el recorte
 «Sin cliente» del gestor de documentos es exactamente esa lista.
 
+El orden importa: primero se asocia la CARPETA y después sus documentos
+HEREDAN de ella, en vez de emparejarse uno por uno. Una carpeta sin match
+propio materializa el del ancestro más cercano (las subcarpetas de
+«Kore - Diseño» son de Kore), y una carpeta que ya tiene dueño —puesto a
+mano o por una corrida anterior— nunca se reescribe.
+
 Dry-run por defecto: imprime el plan completo sin escribir nada. Con --apply
-escribe en una transacción con update_fields explícitos. Idempotente: los
-documentos que ya tienen cliente se saltan siempre, así que una segunda
-corrida reporta 0. En producción requiere
-DJANGO_SETTINGS_MODULE=projectapp.settings_prod.
+escribe en una transacción con update_fields explícitos. Idempotente: lo que
+ya tiene cliente se salta siempre, así que una segunda corrida reporta 0. En
+producción requiere DJANGO_SETTINGS_MODULE=projectapp.settings_prod.
 """
 import re
 import unicodedata
@@ -105,7 +110,7 @@ class Command(BaseCommand):
 
         pending = []
         summary = {
-            'normalize': 0, 'project': 0, 'client': 0,
+            'normalize': 0, 'folders': 0, 'project': 0, 'client': 0,
             'ambiguous': 0, 'unmatched': 0,
         }
 
@@ -151,78 +156,115 @@ class Command(BaseCommand):
 
         folders = list(DocumentFolder.objects.all())
         own = {folder.pk: own_match(folder) for folder in folders}
+        by_id = {folder.pk: folder for folder in folders}
 
-        def effective_match(folder):
+        # ── Pass 1: la CARPETA primero ─────────────────────────────────────
+        # Emparejar la carpeta y no sus documentos uno por uno es lo que hace
+        # que el resto sea herencia: una carpeta asociada le da dueño a todo
+        # lo que guarda (y es lo que cuenta el filtro «Con carpeta»).
+        # resolved[pk] = (project|None, user|None), o None si no hay señal.
+        resolved = {}
+        folder_updates = []
+
+        def resolve(folder):
+            if folder.pk in resolved:
+                return resolved[folder.pk]
+            # Corta ciclos y sirve de centinela mientras sube por el árbol.
+            resolved[folder.pk] = None
+            # Una carpeta YA asociada manda: es una decisión de alguien (a
+            # mano o de una corrida anterior), no una conjetura por el nombre.
+            if folder.client_user_id or folder.project_id:
+                value = (folder.project, folder.client_user)
+                resolved[folder.pk] = value
+                return value
+
             match = own.get(folder.pk)
-            if match is not None:
-                return match
-            # Las subcarpetas de «Kore - Diseño» son de Kore: sin match propio
-            # se hereda el del ancestro más cercano que tenga uno.
-            for ancestor in reversed(folder.get_ancestors()):
-                match = own.get(ancestor.pk)
-                if match is not None:
-                    return match
-            return None
-
-        for folder in folders:
-            # Los docs con proyecto y sin cliente ya van en el pass 0; acá
-            # sólo los totalmente sueltos, para no pisar un proyecto real con
-            # el match de la carpeta.
-            unlinked = Document.objects.filter(
-                folder=folder, client_user__isnull=True, project__isnull=True,
-            )
-            unlinked_count = unlinked.count()
-            if unlinked_count == 0:
-                continue
-            match = effective_match(folder)
-            if match is None:
-                summary['unmatched'] += 1
-                self.stdout.write(
-                    f'[sin match] "{folder.name}" — {unlinked_count} '
-                    'documento(s), revisión manual',
-                )
-                continue
-            kind, matched = match
+            kind = match[0] if match else None
             if kind == 'ambiguous':
                 summary['ambiguous'] += 1
                 self.stdout.write(
-                    f'[ambigua] "{folder.name}" → {len(matched)} candidatos '
+                    f'[ambigua] "{folder.name}" → {len(match[1])} candidatos '
                     '— sin cambios',
                 )
-                continue
+                return None
+
             if kind == 'project':
-                project = projects[matched]
-                profile = getattr(project.client, 'profile', None)
-                display = build_client_display_name(profile) if profile else ''
-                docs = list(unlinked)
-                for document in docs:
-                    updates = {'project': project, 'client_user': project.client}
-                    if not document.client_name and display:
-                        updates['client_name'] = display
-                    pending.append((document, updates))
-                summary['project'] += len(docs)
+                project = projects[match[1]]
+                value, source = (project, project.client), 'own'
+            elif kind == 'client':
+                value, source = (None, profiles[match[1]].user), 'own'
+            else:
+                # Las subcarpetas de «Kore - Diseño» son de Kore: sin match
+                # propio se hereda el del ancestro más cercano que tenga uno.
+                parent = by_id.get(folder.parent_id)
+                value, source = (resolve(parent) if parent else None), 'inherited'
+
+            resolved[folder.pk] = value
+            if value is None:
+                summary['unmatched'] += 1
+                self.stdout.write(
+                    f'[sin match] "{folder.name}" — revisión manual',
+                )
+                return None
+
+            project, user = value
+            profile = getattr(user, 'profile', None) if user else None
+            display = build_client_display_name(profile) if profile else ''
+            folder_updates.append((folder, value))
+            summary['folders'] += 1
+            if source == 'inherited':
+                self.stdout.write(
+                    f'[heredada] "{folder.name}" → toma la asociación de su '
+                    f'carpeta contenedora (cliente: {display or "sin perfil"})',
+                )
+            elif project is not None:
                 self.stdout.write(
                     f'[carpeta→proyecto] "{folder.name}" → Proyecto '
                     f'#{project.pk} "{project.name}" (cliente: '
-                    f'{display or "sin perfil"}) — {len(docs)} documento(s)',
+                    f'{display or "sin perfil"})',
                 )
             else:
-                profile = profiles[matched]
-                display = build_client_display_name(profile)
-                docs = list(unlinked)
-                for document in docs:
-                    updates = {'client_user': profile.user}
-                    if not document.client_name:
-                        updates['client_name'] = display
-                    pending.append((document, updates))
-                summary['client'] += len(docs)
                 self.stdout.write(
                     f'[carpeta→cliente] "{folder.name}" → Cliente '
-                    f'#{profile.pk} "{display}" — {len(docs)} documento(s)',
+                    f'#{profile.pk} "{display}"',
                 )
+            return value
+
+        for folder in folders:
+            resolve(folder)
+
+        # ── Pass 2: los documentos heredan de su carpeta ya asociada ───────
+        for folder in folders:
+            # Los docs con proyecto y sin cliente ya van en el pass 0; acá
+            # sólo los totalmente sueltos, para no pisar un proyecto real con
+            # la asociación de la carpeta.
+            unlinked = list(Document.objects.filter(
+                folder=folder, client_user__isnull=True, project__isnull=True,
+            ))
+            if not unlinked:
+                continue
+            value = resolved.get(folder.pk)
+            if value is None:
+                continue
+            project, user = value
+            profile = getattr(user, 'profile', None) if user else None
+            display = build_client_display_name(profile) if profile else ''
+            for document in unlinked:
+                updates = {'client_user': user}
+                if project is not None:
+                    updates['project'] = project
+                if not document.client_name and display:
+                    updates['client_name'] = display
+                pending.append((document, updates))
+            summary['project' if project is not None else 'client'] += len(unlinked)
+            self.stdout.write(
+                f'[carpeta→documentos] "{folder.name}" — '
+                f'{len(unlinked)} documento(s) heredan su asociación',
+            )
 
         self.stdout.write(
-            f'Resumen: {summary["project"]} por proyecto, '
+            f'Resumen: {summary["folders"]} carpeta(s) asociadas, '
+            f'{summary["project"]} documentos por proyecto, '
             f'{summary["client"]} por cliente, '
             f'{summary["normalize"]} normalizados, '
             f'{summary["ambiguous"]} ambiguas, '
@@ -236,10 +278,15 @@ class Command(BaseCommand):
             return
 
         with transaction.atomic():
+            for folder, (project, user) in folder_updates:
+                folder.project = project
+                folder.client_user = user
+                folder.save(update_fields=['project', 'client_user', 'updated_at'])
             for document, updates in pending:
                 for field, value in updates.items():
                     setattr(document, field, value)
                 document.save(update_fields=[*updates.keys(), 'updated_at'])
         self.stdout.write(self.style.SUCCESS(
-            f'Aplicado: {len(pending)} documento(s) actualizados.',
+            f'Aplicado: {len(folder_updates)} carpeta(s) y '
+            f'{len(pending)} documento(s) actualizados.',
         ))
