@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-contract-generate",
+  "name": "Admin Proposal Contract Generate",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin generates a development contract from the proposal edit Documents tab. Two modes: 'Contrato por defecto' (fill contractor/client params form with auto-populated company settings) or 'Contrato personalizado' (paste/upload custom Markdown). Submit calls save-and-negotiate API. Visible only when proposal status is negotiating/accepted/rejected.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

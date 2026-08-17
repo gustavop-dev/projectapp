@@ -1,0 +1,14 @@
+{
+  "id": "proposal-countdown-realtime",
+  "name": "Proposal Countdown Realtime",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "HH:MM countdown timer when proposal expires within 48 hours.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

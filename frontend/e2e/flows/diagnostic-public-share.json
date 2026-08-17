@@ -1,0 +1,14 @@
+{
+  "id": "diagnostic-public-share",
+  "name": "Diagnostic Public Share",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client clicks the floating share button on the public diagnostic page; a modal opens with the current URL and a 'Copiar enlace' action. Optionally uses Web Share API if available.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

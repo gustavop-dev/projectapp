@@ -1,0 +1,14 @@
+{
+  "id": "admin-high-engagement-alert",
+  "name": "Admin High Engagement Alert",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "System creates high_engagement_today alert when client has 3+ view sessions in one day.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

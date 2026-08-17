@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-defaults-slug-pattern",
+  "name": "Admin Proposal Defaults — Slug Pattern",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin configures the default slug pattern used when new proposals are created (e.g. {client_name}, {client_name}-{year}). Live preview shows the slugified result. Saved to ProposalDefaultConfig.default_slug_pattern via PUT /api/proposals/defaults/.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

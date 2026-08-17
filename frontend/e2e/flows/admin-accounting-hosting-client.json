@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-hosting-client",
+  "name": "Admin Accounting Hosting Client Link",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Every hosting belongs to a client, so the hosting form carries a searchable client picker with inline creation and requires it on NEW records. Records saved before the relation kept the client as free text following the house convention \"Persona - Marca\": opening one searches that text and offers the matching registered client for confirmation (accent- and case-blind, both halves tried against name and company), while a still-unlinked record is flagged as pending and stays saveable — completing it is a separate step. The table shows the client with a \"sin vincular\" pill, the filter panel gains a Cliente filter with a \"Sin cliente\" sentinel, a builtin tab isolates the pending group, and a header card counts it. Rows are completed in bulk from the shared ClientBulkAssignBar, the same component /panel/accounting/incomes uses: TWO separate actions act on the selection. \"Asignar cliente\" stays disabled while no client is picked, with the reason inline — an empty picker no longer means unlink — and \"Desvincular cliente\" only appears when a selected row actually has a client. Either action opens a confirmation naming the scope before anything is written: how many rows gain a client, how many change one and from which client (a mixed selection is broken down instead of presented as a single operation), plus the full scrollable list of affected records. Only the rows that actually change travel in POST /api/accounting/hostings/bulk-assign-client/ (one audit entry per hosting), and the toast afterwards reports how many the server really wrote. Selecting a client seeds the billing snapshot without overwriting what the operator typed. The cuenta de cobro then inherits the client: the send action gates on the resolved recipient (hosting override, else the client address) instead of a hosting-only email, issues on that client's PA-{CODE}-{NNN} series and links the document to the client user. A client holding hostings can no longer be deleted, and the client card lists their hostings with the monthly total alongside their incomes. (Ago 2026) Selection reconciliation is shared with incomes: deleting a selected hosting drops its id alone, the bar hides itself when the selection empties, and a bulk assign naming a hosting that no longer exists is refused with 409 records_not_found instead of writing the surviving half of the batch.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

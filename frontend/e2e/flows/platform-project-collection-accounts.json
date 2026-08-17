@@ -1,0 +1,15 @@
+{
+  "id": "platform-project-collection-accounts",
+  "name": "Platform Project Collection Accounts",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "List collection accounts scoped to a project at /platform/projects/:id/collection-accounts with links to detail.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

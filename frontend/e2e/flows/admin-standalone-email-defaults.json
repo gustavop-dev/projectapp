@@ -1,0 +1,17 @@
+{
+  "id": "admin-standalone-email-defaults",
+  "name": "Admin Standalone Email Defaults Config",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin configures the standalone email composer defaults from the 'Valores por defecto' tab of /panel/emails (deep-linkable via ?tab=defaults): default greeting (with {client_name}/{title} variables), default footer and default signer. Saved via PUT /api/emails/defaults/ into EmailTemplateConfig('branded_email').content_overrides; 'Restaurar valores originales' submits registry/settings defaults which clears the overrides. The configured signer is used for standalone sends and previews (proposal emails keep their per-proposal signer).",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec does not exercise Branch A (\"Restaurar valores originales\") nor Branch B (invalid signer 400) (2026-07-16 audit).",
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

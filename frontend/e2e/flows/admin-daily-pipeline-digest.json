@@ -1,0 +1,14 @@
+{
+  "id": "admin-daily-pipeline-digest",
+  "name": "Admin Daily Pipeline Digest",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "Daily email digest with viewed yesterday, inactive, and expiring proposals.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

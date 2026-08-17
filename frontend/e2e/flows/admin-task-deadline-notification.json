@@ -1,0 +1,14 @@
+{
+  "id": "admin-task-deadline-notification",
+  "name": "Admin Task Deadline Notification",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "Huey periodic task sends email notifications to task assignees at 40%, 70%, 100% of deadline and for overdue tasks. Backend-only — no browser interaction.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only Huey periodic task. Covered by backend unit tests; no E2E spec applies."
+  ]
+}

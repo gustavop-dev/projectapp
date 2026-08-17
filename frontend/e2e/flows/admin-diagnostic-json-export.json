@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-json-export",
+  "name": "Admin Diagnostic JSON Export",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin opens the JSON tab of /panel/diagnostics/:id/edit. A read-only textarea renders the full diagnostic serialized as JSON (metadata + sections). Actualizar refetches /detail/ from the server; Copiar writes the current text to the clipboard; Descargar streams a {slug}.json Blob download. The string is lazy-computed from store.current so it rebuilds only when the tab is rendered.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

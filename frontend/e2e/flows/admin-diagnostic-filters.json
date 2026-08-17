@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-filters",
+  "name": "Admin Diagnostic Filters",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Filter diagnostics using saved tabs with localStorage persistence and URL sync (?tab=<tabId>). Filter dimensions: statuses (multi-select), investmentMin/Max, createdAfter/Before. Tab bar supports add/rename/delete (max 12 tabs).",
+  "expectedSpecs": 1,
+  "knownGaps": "Own-tag tests added 2026-07-23 (round 6): status dimension filtering, Limpiar todo reset and diagnosticTab URL sync, inside admin-diagnostic-advanced-filters.spec.js.",
+  "outcomes": [
+    "display"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "admin-blog-create-from-json",
+  "name": "Admin Blog Create (JSON Import)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a blog post by importing a structured JSON payload with content_json sections, template download, validation, and preview.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

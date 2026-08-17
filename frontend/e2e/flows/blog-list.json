@@ -1,0 +1,14 @@
+{
+  "id": "blog-list",
+  "name": "Blog Listing",
+  "module": "blog",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Browse the blog listing with search, category filters, featured hero post, and responsive grid/mobile cards.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

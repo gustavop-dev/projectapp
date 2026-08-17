@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-section-sync",
+  "name": "Admin Proposal Section Sync (Preview & Apply)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin uses the SyncPreviewModal on the proposal edit page to preview a server-computed diff between the current section's content_json and the canonical default, then applies the sync to overwrite. Backend endpoints: GET /api/proposals/sections/:id/sync-preview/ and POST /api/proposals/sections/:id/apply-sync/. UI lives at frontend/components/BusinessProposal/admin/SyncPreviewModal.vue (mounted in pages/panel/proposals/[id]/edit.vue).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

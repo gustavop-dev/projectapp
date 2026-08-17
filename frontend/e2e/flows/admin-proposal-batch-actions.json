@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-batch-actions",
+  "name": "Admin Proposal Batch Actions",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Select multiple proposals via checkboxes and perform batch actions (re-send, expire, delete) with sticky action bar. (Ago 2026) The selection is reconciled against the loaded proposals, so deleting a selected row drops it from the batch bar's count and the bar leaves on its own once the selection empties.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

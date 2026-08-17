@@ -1,0 +1,16 @@
+{
+  "id": "admin-send-branded-email",
+  "name": "Admin Send Branded Email (Negotiating)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin sends a branded marketing email from the Correos tab of a proposal in negotiating/accepted/rejected status. Composer with draggable sections (per-section Markdown toggle), file attachments, server-rendered preview of the real branded template (POST /api/emails/preview/ with proposal_id, sandboxed iframe), paginated history. Endpoints: POST /api/proposals/:id/branded-email/send/, GET /api/proposals/:id/branded-email/defaults/, GET /api/proposals/:id/branded-email/history/.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

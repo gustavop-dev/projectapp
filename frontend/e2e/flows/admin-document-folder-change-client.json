@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-folder-change-client",
+  "name": "Admin Document Folder Change Client",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Reassigning a folder's client when it already holds content. The plain PATCH refuses with 409 `folder_has_content` and FolderFormModal raises the conflict instead of swallowing it, so the guided cascade takes over: GET /api/document-folders/:id/change-client/preview/?client_profile_id= names every bucket — the subfolders and documents that move, the issued cuentas de cobro that are never rewritten, and whatever was deliberately assigned to a third client (a subfolder of another client prunes its whole branch) — then the operator picks a mode EVERY time (Pasa también el contenido | Sólo la carpeta, no preselection) and POST /api/document-folders/:id/change-client/ carries the preview's document_ids/folder_ids back as a staleness token, so a 409 records_not_found/records_changed reloads the plan instead of guessing. Clearing the client is deliberately NOT routed here: \"nobody\" is not a destination the cascade can express, so unassigning a folder is a plain PATCH that leaves its content alone.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-08-16 with the folder client/project feature: the 409 handoff, the preview buckets, the mode gate and the staleness token over a mocked API.",
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

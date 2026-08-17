@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-confidentiality-edit",
+  "name": "Admin Diagnostic NDA Edit Params",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin re-opens the ConfidentialityParamsModal via 'Editar parámetros' on a diagnostic that already has a generated NDA. Form pre-fills from diagnostic.confidentiality_params. Admin modifies one or more fields and submits — the existing DiagnosticAttachment file is replaced in place (same row id, file.delete + file.save, single .save() call). Section header still shows 'Generado el {fecha}' with the updated timestamp.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

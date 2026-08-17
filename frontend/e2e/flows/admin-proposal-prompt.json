@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-prompt",
+  "name": "Admin Proposal Prompt Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin copies, edits, downloads and resets the commercial and technical proposal-generation prompts from the Prompt tab (localStorage-persisted; parallel of admin-diagnostic-prompt).",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-23 (round 7): action bar, edit->save revealing the reset action, cancel discarding the draft.",
+  "outcomes": [
+    "success"
+  ]
+}

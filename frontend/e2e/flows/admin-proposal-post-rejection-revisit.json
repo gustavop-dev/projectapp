@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-post-rejection-revisit",
+  "name": "Admin Proposal Post-Rejection Revisit",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "System creates post_rejection_revisit alert when rejected proposal is revisited.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

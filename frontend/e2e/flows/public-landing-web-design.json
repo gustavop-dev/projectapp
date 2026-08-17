@@ -1,0 +1,14 @@
+{
+  "id": "public-landing-web-design",
+  "name": "Landing Web Design",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "View the web design landing page (marketing/conversion page).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "admin-kanban-tasks",
+  "name": "Admin Kanban Tasks",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Internal Kanban task board at /panel/tasks (alias /panel/tareas redirects here). Admin can create, edit, move across TO DO/In Progress/Blocked/Done columns, and delete tasks.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

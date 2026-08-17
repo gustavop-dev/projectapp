@@ -1,0 +1,16 @@
+{
+  "id": "platform-sidebar-navigation",
+  "name": "Platform Sidebar Navigation",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Left sidebar layout with collapsible navigation (Principal, Proyectos, Administración sections), mobile hamburger drawer, theme toggle (light/dark), profile link, and logout.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

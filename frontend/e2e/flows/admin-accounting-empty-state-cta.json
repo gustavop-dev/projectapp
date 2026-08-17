@@ -1,0 +1,14 @@
+{
+  "id": "admin-accounting-empty-state-cta",
+  "name": "Admin Accounting Lists — Empty State CTA",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P4",
+  "description": "With zero records, accounting lists render BaseEmptyState with a primary 'Nuevo <entidad>' action that opens the create modal; with active filters and zero matches the action becomes 'Limpiar filtros' and resets the filter panel.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display"
+  ]
+}

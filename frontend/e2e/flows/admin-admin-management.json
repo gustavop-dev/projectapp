@@ -1,0 +1,16 @@
+{
+  "id": "admin-admin-management",
+  "name": "Admin User Management",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Manage admin users: list with status filters (All/Active/Inactive), invite new admin via modal, view and deactivate existing admins.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

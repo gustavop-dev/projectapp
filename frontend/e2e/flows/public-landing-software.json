@@ -1,0 +1,14 @@
+{
+  "id": "public-landing-software",
+  "name": "Landing Software Development",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "View the custom software development landing page with hero, features, CTA, and contact form section.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

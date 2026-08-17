@@ -1,0 +1,16 @@
+{
+  "id": "admin-diagnostic-markdown-attachment",
+  "name": "Diagnostic Email — Markdown to PDF Attachment",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "When a diagnostic is in 'negotiating' status, admin sees a 'Crear documento desde markdown' button in the Correos tab. Clicking it opens MarkdownAttachmentModal, which takes a title, a markdown textarea, and three cover-toggle checkboxes. A 'Plantillas base' row provides three copy-to-clipboard buttons (Diagnóstico de Aplicación / Diagnóstico Técnico / Anexo) that fetch GET /api/diagnostic-templates/:slug/ on first click and write the markdown to the clipboard; subsequent clicks use an in-memory cache. The Vista previa button is disabled until both title and markdown are filled; clicking it POSTs to POST /api/diagnostics/:id/email/markdown-attachment/ (returns an inline PDF). The PDF is rendered in an iframe for review. Clicking Adjuntar converts the blob to a File and emits @attach — appending it to the email attachments list with a success toast.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

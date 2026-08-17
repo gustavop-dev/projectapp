@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-engagement-decay-alert",
+  "name": "Admin Proposal Engagement Decay Alert",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "System creates engagement_decay alert when client views fewer sections than average.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

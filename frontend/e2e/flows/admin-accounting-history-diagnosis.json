@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-history-diagnosis",
+  "name": "Admin Accounting History — Read and Retry a Send",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser diagnoses a send from its own row in the Envíos subtab. The row opens the message as it was delivered (GET accounting/email-log/<id>/body/, rendered in a sandboxed iframe via srcdoc like the branded-email composer); sends predating the feature say so instead of opening an empty modal. A failed send is retried from the row (POST accounting/email-log/<id>/retry/), reaching only the address on that row — the other recipients already got their copy. Only the notices tied to a single record (cambio contable, cuenta de cobro, pago de hosting) are retryable; the three digests show the button disabled carrying the reason, because re-running one would build today's summary rather than the message that failed. The retry lands as a new log row linked to the original through retry_of, so both attempts stay visible, and a retry that fails again reports its cause. The expanded row also names the records the email was about (EmailLogTarget).",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

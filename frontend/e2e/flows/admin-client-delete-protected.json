@@ -1,0 +1,14 @@
+{
+  "id": "admin-client-delete-protected",
+  "name": "Admin Client Delete Protected",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Verify that active clients (with proposals or projects) do not expose the delete trash icon.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "error"
+  ]
+}

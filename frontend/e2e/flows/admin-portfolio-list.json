@@ -1,0 +1,14 @@
+{
+  "id": "admin-portfolio-list",
+  "name": "Admin Portfolio List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View the list of all portfolio works with status, edit/duplicate/delete actions.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

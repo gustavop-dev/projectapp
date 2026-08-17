@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-discount-offer-send",
+  "name": "Admin Proposal Discount Offer Send",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "From /panel/proposals/:id/edit the seller opens the actions menu and picks 'Enviar oferta de descuento' — only shown when discount_percent > 0 and the client has an email. A modal renders the server-side email preview (POST /api/proposals/:id/email-preview/, template proposal_urgency); confirming sends the offer (POST /api/proposals/:id/discount-offer/send/ → ProposalEmailService.send_urgency_email force=True) and shows a success toast. Never auto-sent.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

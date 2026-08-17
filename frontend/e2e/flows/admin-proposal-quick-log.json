@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-quick-log",
+  "name": "Admin Proposal Quick Log Activity",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Register a seller activity (call, meeting, follow-up, note) directly from the proposals list via quick-log modal.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

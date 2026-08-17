@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-prompt",
+  "name": "Admin Diagnostic Prompt Editor",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin copies / edits / downloads the two diagnostic prompts (commercial and technical) from the Prompt tab. State is persisted in localStorage per browser via usePromptState({storageKey, defaultPrompt}).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

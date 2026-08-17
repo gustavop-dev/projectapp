@@ -1,0 +1,17 @@
+{
+  "id": "proposal-hosting-plan-terms",
+  "name": "Proposal Hosting Plan Terms",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "In the Investment section of the public proposal (/proposal/:uuid) the hosting plan shows three payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10%; month-to-month is not offered, minimum commitment is quarterly) and a '1 free month of hosting' gift bucket (billing starts on the 1st of the month, at least one free month). The tier cards match the width of the coverage cards above them. The renewal conditions (for each renewal year from the second year the cost grows by Colombian SMLMV increase % + a fixed 8% over the previous year) render ONLY in the downloadable PDF, NOT in the web view. Tiers and the free-month bucket render in both the web view and the PDF, in Spanish and English. Hosting numbers (80% default, tier discounts) come from the BusinessProposal model fields.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Documented-only (expectedSpecs 0): no dedicated Playwright spec yet. Suggested e2e/proposal/proposal-hosting-plan-terms.spec.js mocking GET /api/proposals/:uuid/ with a hostingPlan carrying the annual tier + renewalNote + freeMonths, asserting the three tiers (annual 40%), the free-month bucket render (ES and EN), and that the 'Renovaciones' block does NOT render in the web view (it is PDF-only). Unit coverage exists in frontend/test/components/Investment.test.js (hosting: annual tier, free month, renewal). PDF rendering (backend/content/services/proposal_pdf_service.py) has no automated assertion."
+  ],
+  "outcomes": [
+    "display"
+  ]
+}

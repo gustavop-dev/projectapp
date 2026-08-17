@@ -1,0 +1,16 @@
+{
+  "id": "admin-standalone-email-attachments",
+  "name": "Admin Standalone Email Attachments",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin attaches files to a standalone email from /panel/emails: multiple file input (.pdf/.doc/.docx/.xls/.xlsx/.png/.jpg), client-side type and size validation via validateEmailAttachments (~/utils/emailAttachments), per-file remove button, and multipart POST /api/emails/send/ including the attachments. Documented as Branch B of admin-standalone-email-composer but never exercised by its spec.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-22 (QA campaign round 3): valid upload sent in multipart POST, type-validation rejection and per-file remove over mocked API.",
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

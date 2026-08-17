@@ -1,0 +1,11 @@
+### FLOW: `admin-project-inline-assign-offer`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/projects/create/`, `GET /api/projects/<id>/unlinked-records/`, `POST /api/projects/<id>/assign-unlinked/`
+- **Description:** The Vástago gap closed: the inline create keeps the annotated row (unlinked_* counters travel with the `created` event) and, when the form closes — saved or cancelled — the PA-51 assign modal opens with the client's server-fresh backlog. Confirming assigns the checked ids; `assign-unlinked` now returns the updated rows (cascaded liquid children included) and the open accounting table rebuilds without a reload.
+- **Steps:** new hosting/income → pick client → create project inline → close the form → the offer opens → confirm → Proyecto cells fill.
+- **Branches:** zero backlog never offers; dismissing the offer leaves the counters visible on /panel/projects; 409 reloads the preview.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-project-inline-assign-offer.spec.js`

@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-diagnostic-templates",
+  "name": "Proposal — Documentos Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin views the 'Documentos' tab on the proposal edit page. Tab is visible for proposals in sent|viewed|negotiating|accepted|rejected status. Shows a unified document list (Contrato de desarrollo, Propuesta comercial PDF, Detalle técnico PDF) plus a 'Documentos adjuntos' section with upload form. Does NOT show 'Enviar documentos al cliente' (that section was removed Apr 22 2026 — sending is done from the Correos tab).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

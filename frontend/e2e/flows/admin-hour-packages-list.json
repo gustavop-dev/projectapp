@@ -1,0 +1,15 @@
+{
+  "id": "admin-hour-packages-list",
+  "name": "Admin Hour Packages List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View the hour-package catalog filtered by nationality tabs (COL/EXT/USA) with derived currency and computed totals.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec does not assert view-mode toggle (tracked in admin-hour-packages-view-modes), pagination, or the mobile card variant (2026-07-16 audit).",
+  "outcomes": [
+    "display"
+  ]
+}

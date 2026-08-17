@@ -1,0 +1,14 @@
+{
+  "id": "admin-auto-archive-zombie",
+  "name": "Admin Auto-Archive Zombie Proposals",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P3",
+  "description": "System auto-archives expired proposals with no activity in 30 days.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

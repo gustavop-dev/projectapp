@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-client-autocomplete",
+  "name": "Admin Proposal Client Autocomplete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Client picker autocomplete in proposal create/edit: type to search, select a client to auto-fill snapshot fields, fallback \"Crear nuevo\" when no match.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

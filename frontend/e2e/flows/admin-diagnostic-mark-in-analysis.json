@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-mark-in-analysis",
+  "name": "Admin Diagnostic Mark In Analysis",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin clicks 'Marcar en análisis' on a SENT diagnostic to acknowledge that the client authorized continuing — opens a ConfirmModal and POSTs /api/diagnostics/:id/mark-in-analysis/, transitioning SENT → NEGOTIATING. The button is only available after `initial_sent_at` is set; afterwards the 'Enviar diagnóstico final' action becomes the next user step.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

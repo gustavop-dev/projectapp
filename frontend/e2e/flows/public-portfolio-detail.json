@@ -1,0 +1,15 @@
+{
+  "id": "public-portfolio-detail",
+  "name": "Portfolio Case Study Detail",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "View a single portfolio case study with cover image, content sections, share button, and back navigation.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

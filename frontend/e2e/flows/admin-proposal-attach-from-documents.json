@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-attach-from-documents",
+  "name": "Admin Proposal — Adjuntar desde Documentos",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "From the Correos tab of the proposal edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing all available documents: contract PDF + draft (if contract exists), commercial PDF, technical PDF, and any uploaded proposal_documents. Admin selects one or more items and clicks 'Adjuntar (N)'. Selected refs appear as emerald badges below the attachments block. On send, the POST body includes a doc_refs JSON field with the resolved refs. Sending is handled by admin-send-branded-email / admin-send-proposal-email; this flow covers only the selection UX.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

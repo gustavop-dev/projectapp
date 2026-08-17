@@ -1,0 +1,14 @@
+{
+  "id": "diagnostic-public-dark-mode",
+  "name": "Diagnostic Public Dark Mode Toggle",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "Client toggles dark/light mode via the fixed bottom-left button; the [data-diagnostic-wrapper] element receives data-theme='dark'. Preference persists to localStorage['diagnostic-dark-mode'] and is restored on next page load.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

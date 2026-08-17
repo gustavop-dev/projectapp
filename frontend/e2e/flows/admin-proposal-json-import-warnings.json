@@ -1,0 +1,17 @@
+{
+  "id": "admin-proposal-json-import-warnings",
+  "name": "Admin Proposal JSON Import Warnings",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "JSON import returns warnings for unmapped section keys; warnings displayed in post-creation modal.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Covered within admin-proposal-create.spec.js"
+  ],
+  "outcomes": [
+    "success"
+  ]
+}

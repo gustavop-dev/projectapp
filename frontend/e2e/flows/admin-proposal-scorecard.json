@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-scorecard",
+  "name": "Admin Proposal Pre-Send Scorecard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View a 1-10 completeness scorecard with blockers before sending a proposal.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

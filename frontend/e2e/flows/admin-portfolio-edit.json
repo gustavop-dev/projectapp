@@ -1,0 +1,16 @@
+{
+  "id": "admin-portfolio-edit",
+  "name": "Admin Portfolio Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Edit an existing portfolio work including bilingual fields, cover image, content JSON, and SEO.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

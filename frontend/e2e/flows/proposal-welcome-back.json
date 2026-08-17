@@ -1,0 +1,15 @@
+{
+  "id": "proposal-welcome-back",
+  "name": "Proposal Welcome Back",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Returning client sees welcome-back overlay with name and last visited section.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

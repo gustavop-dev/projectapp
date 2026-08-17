@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-delete",
+  "name": "Admin Diagnostic Delete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin deletes an existing WebAppDiagnostic from the diagnostics list or edit page via confirm modal. DELETE /api/diagnostics/:id/delete/.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

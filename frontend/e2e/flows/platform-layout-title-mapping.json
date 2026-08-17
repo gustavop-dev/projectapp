@@ -1,0 +1,14 @@
+{
+  "id": "platform-layout-title-mapping",
+  "name": "Platform Layout Browser Tab Title",
+  "module": "platform",
+  "roles": [
+    "platform-admin"
+  ],
+  "priority": "P3",
+  "description": "Browser tab title in platform.vue updates reactively to show 'Project App (ViewName)'. Covers: static route (dashboard, projects), dynamic project base route (/platform/projects/:id → 'Proyecto'), and nested dynamic route ordering (/platform/projects/:id/board → 'Tablero' beats project base regex).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

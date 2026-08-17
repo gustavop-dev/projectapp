@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-send-email",
+  "name": "Admin Document Send Email",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin sends a branded email with document PDFs attached from the documents list: actions sheet -> 'Enviar por correo' opens SendDocumentEmailModal (recipient, subject, greeting, ordered sections, footer, extra document PDFs picker, Edit/Preview tabs) -> POST /api/emails/send/ with document_ids. Functional successor of the superseded admin-proposal-documents-send flow.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-22 (QA campaign): happy path, 429 rate-limited and generic-error branches over mocked API.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

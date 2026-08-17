@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-engagement-score",
+  "name": "Admin Proposal Engagement Score",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Engagement score (0-100) per proposal in analytics tab with color-coded level and recommendation.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

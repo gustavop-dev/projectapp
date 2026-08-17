@@ -1,0 +1,20 @@
+{
+  "id": "admin-diagnostic-documents",
+  "name": "Admin Diagnostic Attachment Management",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin uploads, manages, and sends file attachments (PDF, Word, Excel, images) from the Documentos tab of the diagnostic edit page. Checkbox selection enables the send-to-client button. The send section also exposes a checkbox for the system-generated Acuerdo de Confidencialidad (when present) which is appended to the email as a watermarked draft. System-generated attachments (is_generated=true) cannot be deleted — DELETE returns HTTP 400; this backend protection is defensive only since the UI filters generated NDAs out of the deletable list.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "is_generated delete-blocked branch is backend-only (UI offers no delete button for generated NDAs); covered by backend tests, not E2E."
+  ],
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

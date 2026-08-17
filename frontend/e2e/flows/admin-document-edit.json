@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-edit",
+  "name": "Admin Document Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Edit an existing admin document, change content, update status, download as PDF, and copy/paste the markdown content via the toolbar buttons above the textarea. The Identificación block carries the client/project association selectors (same pair as create, sin sugerencia por carpeta) and, once saved, backlinks to both sides: 'Ver cliente' → /panel/clients?highlight=<profileId> (expands the ficha) and 'Ver proyecto' → /panel/projects?highlight=<id> (data-testid document-client-link / document-project-link); a legacy free-text client_name shows as reference while the document has no relational client. A 'Amigable'/'Profesional' segmented switch (data-testid doc-style-friendly / doc-style-professional) above the markdown preview selects the document's persisted template_style and re-themes the live preview (class markdown-preview--professional toggles on the preview root). The 'Descargar PDF' split button offers both 'Descargar · Amigable' and 'Descargar · Profesional' so either PDF style can be downloaded regardless of the switch's current position.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

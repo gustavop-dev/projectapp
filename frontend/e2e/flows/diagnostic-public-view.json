@@ -1,0 +1,15 @@
+{
+  "id": "diagnostic-public-view",
+  "name": "Diagnostic Public View",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client accesses the public diagnostic page via UUID link and navigates the JSON-driven section components (Purpose/Radiography/Categories/DeliveryStructure/ExecutiveSummary/Cost/Timeline/Scope). Initial-phase view hides `final`-only sections. Per-section dwell time is tracked via /api/diagnostics/public/<uuid>/track-section/. Accept/Reject is a separate flow (`diagnostic-public-respond`). Since the Jul 2026 redesign the page opens with a personalized cover ('Comenzar recorrido' starts the tour) and sections swap with a directional slide.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-drag-organize",
+  "name": "Admin Document Drag Organize",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin organizes by drag-and-drop: dragging a document card/row onto a sidebar folder moves it (PATCH /api/documents/:id/update/ folder_id), and dragging a folder onto a breadcrumb/sidebar folder re-parents it (PATCH /api/document-folders/:id/update/). The modal-based move path is covered by admin-document-move-folder; the drag path is not.",
+  "expectedSpecs": 0,
+  "knownGaps": "Drag interactions untested (fragile in Playwright; needs dispatchEvent-based DnD). Registered 2026-07-16 audit.",
+  "outcomes": [
+    "success"
+  ]
+}

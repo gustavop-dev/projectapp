@@ -1,0 +1,16 @@
+{
+  "id": "admin-proposal-send",
+  "name": "Admin Proposal Send",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Send a proposal to a client via email from the proposals list (actions modal) or from the edit page. The email body now interpolates the editable email_intro field from the proposal and the commercial PDF is attached automatically. Backend returns email_delivery: {ok, reason, detail}; when ok=false, the panel surfaces a red toast with the reason (placeholder_email, template_disabled, send_failed) instead of generic success.",
+  "expectedSpecs": 1,
+  "knownGaps": "The server-side PDF-attachment side effect on send is backend-only and not asserted at the UI layer.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

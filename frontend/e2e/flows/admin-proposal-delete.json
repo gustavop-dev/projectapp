@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-delete",
+  "name": "Admin Proposal Delete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Delete an existing business proposal from /panel/proposals. A confirm modal requires typing 'DELETE'; on success the list refreshes and a success toast shows; on 409 (proposal linked to a launched project via ProjectPhase on_delete=PROTECT) the proposal stays and an error toast surfaces the backend message.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

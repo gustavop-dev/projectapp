@@ -1,0 +1,15 @@
+{
+  "id": "proposal-slug-access",
+  "name": "Proposal Slug Access",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client accesses a proposal via its human-friendly slug URL (/proposal/<slug>/). The store detects non-UUID identifiers and routes the request to the by-slug API endpoint. UUID-based access must still work for backward compatibility. Unknown slugs must render the 404/not-found state.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

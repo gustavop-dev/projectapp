@@ -1,0 +1,14 @@
+{
+  "id": "proposal-payment-plan-closing",
+  "name": "Proposal Payment Plan in Closing",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Display payment plan milestones near the accept button in the closing section.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

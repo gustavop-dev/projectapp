@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-zombie-segment",
+  "name": "Admin Proposal Zombie Segment",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Dark-themed collapsible zombie alerts section for stale draft/sent proposals.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

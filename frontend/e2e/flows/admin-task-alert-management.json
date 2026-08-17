@@ -1,0 +1,16 @@
+{
+  "id": "admin-task-alert-management",
+  "name": "Admin Task Alert Management",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin defines one or more manual date-based email alerts per task from the TaskFormModal Alertas section. Supports add (date + optional note), list with sent/pending badge, and delete. Alerts fire via Huey daily at 08:10.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

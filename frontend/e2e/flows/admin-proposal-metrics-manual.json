@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-metrics-manual",
+  "name": "Admin Proposal Metrics Manual",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Floating ? button opens slide-over with searchable metric definitions.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

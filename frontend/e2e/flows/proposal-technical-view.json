@@ -1,0 +1,15 @@
+{
+  "id": "proposal-technical-view",
+  "name": "Proposal Technical View Mode",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client opens public proposal with ?mode=technical to read the technical document (synthetic panels from technical_document) plus closing, and jumps to a section from the cover index.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

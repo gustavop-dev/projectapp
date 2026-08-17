@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-confidentiality-generate",
+  "name": "Admin Diagnostic NDA Generate",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin generates the Acuerdo de Confidencialidad (NDA) PDF from the Documentos tab of the diagnostic edit page. Section displays 'No generado' with a 'Generar acuerdo' CTA when no NDA exists. CTA opens ConfidentialityParamsModal with 13 fields (cliente: nombre/NIT/representante/email; consultor: nombre/NIT/cédula/email — defaults to Project App SAS / team@projectapp.co; acuerdo: ciudad — default Medellín, día/mes/año, cláusula penal — default 50 SMMLV). The consultor must be identified by NIT or cédula — at least one is required client-side and by ConfidentialityParamsSerializer; the NIT wins when both are present. Submit posts to POST /api/diagnostics/:id/confidentiality/params/, which validates via ConfidentialityParamsSerializer, persists to diagnostic.confidentiality_params, and creates a DiagnosticAttachment with document_type='confidentiality_agreement' and is_generated=true. Section then shows 'Generado el {fecha}' with Descargar / Borrador / Editar parámetros buttons.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

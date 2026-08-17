@@ -42,3 +42,4 @@ banned_tokens:
   - "coverage"
   - "cov"
   - "deep"
+flow_definitions_dir: flows

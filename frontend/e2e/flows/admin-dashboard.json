@@ -1,0 +1,14 @@
+{
+  "id": "admin-dashboard",
+  "name": "Admin Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View the redesigned global admin dashboard: pulse KPIs (liquid utility, active pipeline, attention count), attention radar, and finance / proposals / operations sections fed by GET /api/panel/dashboard/.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

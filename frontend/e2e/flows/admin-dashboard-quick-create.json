@@ -1,0 +1,15 @@
+{
+  "id": "admin-dashboard-quick-create",
+  "name": "Admin Dashboard Quick Create",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Dashboard header \"+ Crear\" dropdown navigates to create a proposal, document, task or expense.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

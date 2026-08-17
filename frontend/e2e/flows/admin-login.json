@@ -1,0 +1,14 @@
+{
+  "id": "admin-login",
+  "name": "Admin Login",
+  "module": "auth",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin authenticates to access the management panel.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

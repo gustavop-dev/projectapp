@@ -1,0 +1,14 @@
+{
+  "id": "admin-layout-title-mapping",
+  "name": "Admin Layout Browser Tab Title",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Browser tab title in admin.vue updates reactively to show 'Project App (ViewName)' based on the current route. Covers: exact match (dashboard), static prefix match, more-specific route priority, and dynamic regex routes (/panel/proposals/:id/edit → 'Edit. propuesta').",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

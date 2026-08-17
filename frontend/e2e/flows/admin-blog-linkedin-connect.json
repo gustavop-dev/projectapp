@@ -1,0 +1,19 @@
+{
+  "id": "admin-blog-linkedin-connect",
+  "name": "Admin Blog LinkedIn Connect",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin connects LinkedIn account from blog post edit page via OAuth 2.0 popup flow. Popup opens at authorization URL, user authenticates, /auth/linkedin/callback exchanges code via POST /api/linkedin/callback/, popup notifies opener via postMessage, edit page updates to show connected profile.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "OAuth popup requires real LinkedIn credentials — E2E should mock the callback URL and API endpoints"
+  ],
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

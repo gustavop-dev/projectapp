@@ -1,0 +1,15 @@
+{
+  "id": "admin-client-delete-orphan",
+  "name": "Admin Client Delete Orphan",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Delete an orphan client (zero proposals + zero projects) via the trash icon and confirm modal.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

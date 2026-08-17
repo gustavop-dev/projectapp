@@ -1,0 +1,17 @@
+{
+  "id": "proposal-resolved-notice-suppression",
+  "name": "Proposal Resolved Notice Suppression",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "When a proposal is in a resolved status (accepted, rejected or finished), the public view at /proposal/:uuid hides time-sensitive / urgency notices that no longer make sense after the client's decision is settled: the expiration countdown badge (ExpirationBadge), the limited-time discount banner (Investment.vue .discount-banner) and the hosting tier discount badges. While the proposal is still open (sent/viewed) those notices keep showing. The `expired` status is handled separately by the expired-state banner.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Documented-only (expectedSpecs 0): no dedicated Playwright spec yet. Suggested e2e/proposal/proposal-resolved-notice-suppression.spec.js mocking GET /api/proposals/:uuid/ with status 'accepted'/'finished' and an expires_at + discount_percent set, asserting the ExpirationBadge and .discount-banner are absent; and a control case with status 'sent' asserting they render. Unit-level coverage exists in frontend/test/components/Investment.test.js (resolved-status notice suppression)."
+  ],
+  "outcomes": [
+    "display"
+  ]
+}

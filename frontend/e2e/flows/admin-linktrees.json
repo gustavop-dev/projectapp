@@ -1,0 +1,15 @@
+{
+  "id": "admin-linktrees",
+  "name": "Admin Linktrees",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin creates linktrees (internal name + unique handle, personal/company kind), edits identity, tiered buttons (1 primary, <=1 featured, pairs of 2, <=6 rows), PWA block and vCard data from /panel/linktrees, and assigns a linktree as QR card destination. Public URL is /lk/@handle; the backend rejects handle collisions, reserved handles and tier cardinality violations.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

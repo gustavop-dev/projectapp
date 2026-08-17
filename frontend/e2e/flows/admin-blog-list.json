@@ -1,0 +1,14 @@
+{
+  "id": "admin-blog-list",
+  "name": "Admin Blog List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View the list of all blog posts (admin view with both languages).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

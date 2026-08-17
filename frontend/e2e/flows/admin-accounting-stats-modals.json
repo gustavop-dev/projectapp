@@ -1,0 +1,14 @@
+{
+  "id": "admin-accounting-stats-modals",
+  "name": "Admin Accounting Stats Modals",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser opens descriptive-statistics modals from the accounting Resumen: the Ingresos líquidos, Gastos {year} and Deuda tarjetas stat cards are clickable buttons and the hero Utilidad card exposes an Estadísticas button. Each modal is a StatsModal (BaseModal 5xl + BaseTabs) with tabbed ApexCharts views: Ingresos (evolución esperado vs líquido, % de cobro radial+mensual, top conceptos), Gastos (evolución con promedio, distribución Negocio/Personal, recurrente vs variable, top conceptos), Utilidad (evolución, márgenes, socios) and Tarjetas (evolución de deuda, uso del cupo por tarjeta, histórico de cortes). Income/expense tabs feed from GET /api/accounting/stats/?year= (lazy, cached per year in the accounting store, reset on year change); utility/cards tabs compute client-side from the dashboard summary and card snapshots.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

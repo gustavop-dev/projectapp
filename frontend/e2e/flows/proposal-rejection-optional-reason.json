@@ -1,0 +1,14 @@
+{
+  "id": "proposal-rejection-optional-reason",
+  "name": "Proposal Rejection Optional Reason",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Rejection reason is optional with nudge text encouraging feedback.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "proposal-comment-from-closing",
+  "name": "Proposal Comment from Closing",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client submits written comments from the closing panel via comment modal.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

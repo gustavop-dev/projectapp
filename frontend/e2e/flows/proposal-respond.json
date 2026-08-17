@@ -1,0 +1,14 @@
+{
+  "id": "proposal-respond",
+  "name": "Proposal Respond",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client responds to (accepts/rejects) a business proposal. Acceptance auto-provisions the client's platform project (scope items + Kanban cards) via async onboarding; see platform-proposal-auto-onboarding.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

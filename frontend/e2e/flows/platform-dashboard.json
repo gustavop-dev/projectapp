@@ -1,0 +1,12 @@
+{
+  "id": "platform-dashboard",
+  "name": "Platform Dashboard",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Admin dashboard shows KPI cards (active/pending/inactive clients), recent clients table, and upcoming modules. Client dashboard shows profile summary and upcoming modules.",
+  "expectedSpecs": 0
+}

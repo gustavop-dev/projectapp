@@ -1,0 +1,15 @@
+{
+  "id": "admin-accounting-history-filters",
+  "name": "Admin Accounting History — Filters and Predefined Tabs",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser narrows the send log at /panel/accounting/history without rebuilding the filter by hand. Each subtab runs its own useAccountingFilters instance (views accounting_history_sends / accounting_history_changes) over the server-paginated endpoints, so the filter row translates into query params through buildExportParams instead of filtering loaded rows. Envíos filters by aviso, estado, tipo de registro, cliente, proyecto, acción de origen, destinatario, rango de fechas and free text over the subject; Cambios by entidad, acción, usuario, fecha and free text over the record name. Under the filter row sits the predefined strip (ProposalFilterTabs, the PA-44 standard): \"Fallidos\", \"Hoy\" and \"Últimos 7 días\" are builtin — a stored date would freeze on the day it was seeded, and Fallidos has to sit second — while \"Recordatorios de cobro\", \"Cambios contables\" and \"Eliminaciones\" are seeded rows that Configuración can restore. Every tab carries its count, \"Todas\" included and the (0) included, fetched from POST accounting/history/tab-counts/ because there are no loaded rows to count; what does not fit collapses into a \"+N\" menu that always hoists the selected tab back into view. Tab, filter row and chips move together: selecting a tab lights the controls, editing the controls un-lights a builtin, and \"Limpiar filtros\" deselects. The applied filters ride in the URL (only the visible subtab owns it), so a query can be bookmarked, shared, and reached directly from a hosting, an income or a cuenta de cobro through their \"Ver correos de este registro\" action. The active combination can be saved as an own tab, and Configuración administers the strip (visibility, order, and a Restablecer that keeps the own tabs).",
+  "expectedSpecs": 7,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

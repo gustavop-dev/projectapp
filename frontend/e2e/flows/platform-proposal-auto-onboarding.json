@@ -1,0 +1,11 @@
+{
+  "id": "platform-proposal-auto-onboarding",
+  "name": "Proposal Acceptance Auto-Onboarding",
+  "module": "platform",
+  "roles": [
+    "system"
+  ],
+  "priority": "P1",
+  "description": "When a proposal becomes accepted (client response or admin inline), an async task provisions the client's platform project: creates the project/phase, mirrors the functional_requirements items as ProjectScopeItem rows, and upserts Kanban Requirement cards from the technical_document, linked to their scope item. Idempotent (runs once) and preserves client-owned Kanban state on re-sync. Backend-triggered; not a browser E2E journey.",
+  "expectedSpecs": 0
+}

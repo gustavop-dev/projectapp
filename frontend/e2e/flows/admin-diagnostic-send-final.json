@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-send-final",
+  "name": "Admin Diagnostic Send Final",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin sends the final-phase diagnostic from NEGOTIATING via 'Enviar diagnóstico final' (SENT again, final_sent_at stamped). Public view now also exposes sections with visibility ∈ {final}. Gated by the same pre-send scorecard modal as send-initial.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

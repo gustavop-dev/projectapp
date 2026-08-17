@@ -1,0 +1,12 @@
+{
+  "id": "admin-client-document-signed-notification",
+  "name": "Admin Client Document-Signed Notification",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "When a client click-to-accept signs a document (POST /api/accounts/documents/:uuid/sign/), notify_team_document_signed_task fires a team milestone alert (in-app to project admins + email) and the client receives a signature-confirmation email. Best-effort; idempotent re-signs do not re-notify.",
+  "expectedSpecs": 0,
+  "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope; may be asserted as a branch of platform-client-document-sign."
+}

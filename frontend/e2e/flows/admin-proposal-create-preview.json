@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-create-preview",
+  "name": "Admin Proposal Create Preview",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Post-creation interstitial modal with preview, send, and edit options.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

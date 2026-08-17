@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-analytics",
+  "name": "Admin Proposal Analytics",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View detailed analytics for a single proposal: funnel, heatmap, sessions, CSV export.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

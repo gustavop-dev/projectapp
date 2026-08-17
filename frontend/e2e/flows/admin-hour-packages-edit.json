@@ -1,0 +1,16 @@
+{
+  "id": "admin-hour-packages-edit",
+  "name": "Admin Hour Packages Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Edit an existing hour package and verify the computed effective rate/total preview.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

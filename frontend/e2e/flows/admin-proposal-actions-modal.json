@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-actions-modal",
+  "name": "Admin Proposal Actions Modal",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin opens actions modal from listing with edit, preview, send/resend, copy, WhatsApp, duplicate, toggle, delete actions.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

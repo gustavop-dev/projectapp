@@ -1,0 +1,16 @@
+{
+  "id": "admin-proposal-hour-rate",
+  "name": "Admin Proposal Hourly Rate (Auto/Manual)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Set a proposal's hour-package rate from the «Tarifa por hora» tab: automatic keeps syncing from the HourPackage catalog, manual overrides the base rate (and optionally a per-package rate) for that proposal only, with a live preview of the table the PDF prints.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display",
+    "failure"
+  ]
+}

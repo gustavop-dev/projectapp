@@ -1,0 +1,14 @@
+{
+  "id": "admin-email-deliverability",
+  "name": "Admin Email Deliverability Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Dashboard tracking email send/delivery/bounce rates for all proposal-related automated emails. Accessible from /panel/proposals/email-deliverability.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

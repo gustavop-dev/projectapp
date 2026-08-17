@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-folder-panel-resize",
+  "name": "Admin Document Folder Panel Resize",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Resize the /panel/documents folder sidebar: the default width (384px) fits the real longest folder names (22 characters, live inventory of 2026-08-16) untruncated even on the active font-medium row; a keyboard-accessible drag handle (role=separator) in the gap between the panel and the documents view resizes between 240px and 480px, persisting to localStorage (projectapp-documents-folder-width) on drag end; double-click resets to the default and clears the stored value; below lg the panel stacks full width, the handle does not render and the stored width does not apply.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

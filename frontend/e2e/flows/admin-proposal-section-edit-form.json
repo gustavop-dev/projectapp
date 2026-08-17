@@ -1,0 +1,18 @@
+{
+  "id": "admin-proposal-section-edit-form",
+  "name": "Admin Proposal Section Edit (Form)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Edit proposal sections using structured form fields for each of the 12 section types.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "value_added_modules section editor is not exercised; its money fields (min_price_usd/cop) use BaseCurrencyInput (2026-07). commercial_conditions covered 2026-07-28; its hour rates moved to the admin-proposal-hour-rate flow on 2026-07-28 and this spec now only asserts they round-trip untouched."
+  ],
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

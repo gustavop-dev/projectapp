@@ -1,0 +1,16 @@
+{
+  "id": "admin-diagnostic-sections",
+  "name": "Admin Diagnostic Sections Editor",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin edits the 8 JSON sections from the Secciones tab of the diagnostic edit page. Each section type has a typed form (paragraphs, severity levels, 14-category findings, radiography table, timeline rows, etc.). Changes are debounced and PATCHed to /sections/<id>/update/. The tab also exposes a completeness indicator (% + colored progress bar counting enabled sections with non-empty content_json) and a per-section 'Restaurar contenido por defecto' action (POST /sections/<id>/reset/). Raw-JSON read + bulk apply moved to the JSON tab — see admin-diagnostic-json-export / admin-diagnostic-json-import.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

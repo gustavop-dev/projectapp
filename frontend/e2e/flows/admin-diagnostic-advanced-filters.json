@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-advanced-filters",
+  "name": "Admin Diagnostic Advanced Filters",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin filters diagnostics from /panel/diagnostics via DiagnosticFilterPanel + ProposalFilterTabs. Default view shows all diagnostics. 'Filtros' toggle opens/closes the filter panel (Estados dimension visible). '+' button creates a named saved-filter tab (persisted to localStorage). Search input filters the card list by title client-side.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "proposal-section-onboarding",
+  "name": "Proposal Section Onboarding",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "Per-section spotlight onboarding tutorials (Investment, Requirements, Executive Investment) that trigger on first visit to each section.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

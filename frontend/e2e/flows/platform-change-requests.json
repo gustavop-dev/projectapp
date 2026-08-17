@@ -1,0 +1,16 @@
+{
+  "id": "platform-change-requests",
+  "name": "Platform Change Requests",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Client creates change requests for a project. Admin evaluates (approve/reject/needs clarification) with estimated cost and time. Both roles can comment. Per-project view at /platform/projects/:id/changes and unified cross-project view at /platform/changes.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

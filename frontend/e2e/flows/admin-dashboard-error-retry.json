@@ -1,0 +1,15 @@
+{
+  "id": "admin-dashboard-error-retry",
+  "name": "Admin Dashboard Error Retry",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "A failed panel/dashboard/ load shows the global error state; the Reintentar button refetches and restores the dashboard.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "failure",
+    "display"
+  ]
+}

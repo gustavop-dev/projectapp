@@ -1,0 +1,12 @@
+{
+  "id": "platform-collection-account-detail",
+  "name": "Platform Collection Account Detail",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "View a single collection account: amounts, line items, Download PDF; admin Issue / Mark paid / Cancel when applicable.",
+  "expectedSpecs": 0
+}

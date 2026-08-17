@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-collections",
+  "name": "Admin Accounting Cuentas de Cobro Center",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser manages all cuentas de cobro at /panel/accounting/collections (tab renamed from Cobros): status counters (emitidas/pagadas/vencidas/anuladas with totals), segmented status filter, table with numero/origen (hosting/proyecto/ingreso/otro)/cliente/total/emision/vence/estado (Vencida tint via is_overdue) and row actions: view linked income, download PDF, resend to client, mark paid (expected-linked accounts route through the Liquidar modal instead of a plain confirm), cancel (cancelling a hosting-linked account resumes its expiry notices; cancelling frees the linked income for a new cuenta). Since Aug 2026 Cliente and Proyecto are separate sortable, filterable columns and the row opens admin-accounting-collection-detail. Since Aug 2026 a cuenta issued with a zero-day payment term carries no due date at all: the Vence column stays empty and the row can never read as Vencida nor fall into that tab, because is_overdue derives from a date that no longer exists.",
+  "expectedSpecs": 5,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

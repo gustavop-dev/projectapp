@@ -1,0 +1,16 @@
+{
+  "id": "platform-verify-onboarding",
+  "name": "Platform Verify & Onboarding",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "First-login OTP verification with 6-digit code input, new password set, and role-aware redirect: clients land on /platform/documents, admins on the dashboard (via complete-profile when pending).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

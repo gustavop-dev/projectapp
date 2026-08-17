@@ -1,417 +1,359 @@
 /**
  * Flow tag constants for consistent E2E test tagging.
  *
+ * GENERATED FILE — do not edit by hand and do not resolve merge
+ * conflicts manually: regenerate with
+ *   python3 scripts/generate_flow_registry.py --repo-root .
+ * Source of truth: the flow registry (flow-definitions shards or
+ * flow-definitions.json). Authored extras live in flow-tags.extra.js.
+ *
  * Usage:
  *   import { ADMIN_LOGIN } from '../helpers/flow-tags.js';
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// ── Layout ──
-export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
-export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
-export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@module:layout', '@priority:P3'];
+// Registry version: 2.77.0
 
-// ── Public ──
-export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
-export const PUBLIC_PORTFOLIO = ['@flow:public-portfolio', '@module:public', '@priority:P2'];
-export const PUBLIC_PORTFOLIO_DETAIL = ['@flow:public-portfolio-detail', '@module:public', '@priority:P2'];
-export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
-export const PUBLIC_LANDING_WEB_DESIGN = ['@flow:public-landing-web-design', '@module:public', '@priority:P2'];
-export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
-
-// ── Blog ──
-export const BLOG_LIST = ['@flow:blog-list', '@module:blog', '@priority:P2'];
-export const BLOG_DETAIL = ['@flow:blog-detail', '@module:blog', '@priority:P2'];
-
-// ── Proposal ──
-export const PROPOSAL_VIEW = ['@flow:proposal-view', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_VIEW_PASTE_RENDERING = ['@flow:proposal-view-paste-rendering', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_VIEW_NAVIGATION = ['@flow:proposal-view-navigation', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_VIEW_ONBOARDING = ['@flow:proposal-view-onboarding', '@module:proposal', '@priority:P3'];
-export const PROPOSAL_RESPOND = ['@flow:proposal-respond', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_DOWNLOAD_PDF = ['@flow:proposal-download-pdf', '@module:proposal', '@priority:P2'];
-
-// ── Auth ──
-export const ADMIN_LOGIN = ['@flow:admin-login', '@module:auth', '@priority:P1'];
-export const ADMIN_PANEL_SESSION_EXPIRED = ['@flow:admin-panel-session-expired', '@module:auth', '@priority:P1'];
-
-// ── Admin ──
-export const ADMIN_IMPERSONATE_USER = ['@flow:admin-impersonate-user', '@module:admin', '@priority:P2'];
-export const ADMIN_DASHBOARD = ['@flow:admin-dashboard', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_LIST = ['@flow:admin-proposal-list', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_CREATE = ['@flow:admin-proposal-create', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_CREATE_FROM_JSON = ['@flow:admin-proposal-create-from-json', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_EDIT = ['@flow:admin-proposal-edit', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_DELETE = ['@flow:admin-proposal-delete', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SEND = ['@flow:admin-proposal-send', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_MULTI_SEND = ['@flow:admin-proposal-multi-send', '@module:admin', '@priority:P1'];
-export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_EDIT_FORM = ['@flow:admin-proposal-section-edit-form', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_SECTION_EDIT_PASTE = ['@flow:admin-proposal-section-edit-paste', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_HOUR_RATE = ['@flow:admin-proposal-hour-rate', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_SECTION_REORDER = ['@flow:admin-proposal-section-reorder', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_DIRTY_GUARD = ['@flow:admin-proposal-section-dirty-guard', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_ADD_DELETE = ['@flow:admin-proposal-section-add-delete', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM = ['@flow:admin-proposal-functional-requirements-form', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE = ['@flow:admin-proposal-functional-requirements-paste', '@module:admin', '@priority:P1'];
+// ── admin ──
+export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
+export const ADMIN_ACCOUNTING_CARD_CATALOG = ['@flow:admin-accounting-card-catalog', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_CARDS = ['@flow:admin-accounting-cards', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_COLLECTION_CREATE = ['@flow:admin-accounting-collection-create', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_COLLECTION_DETAIL = ['@flow:admin-accounting-collection-detail', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_COLLECTIONS = ['@flow:admin-accounting-collections', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_DASHBOARD = ['@flow:admin-accounting-dashboard', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];
+export const ADMIN_ACCOUNTING_EXPECTED_DETAIL = ['@flow:admin-accounting-expected-detail', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_EXPENSES_CRUD = ['@flow:admin-accounting-expenses-crud', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_EXPORT = ['@flow:admin-accounting-export', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_FILTERS = ['@flow:admin-accounting-filters', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_HISTORY = ['@flow:admin-accounting-history', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HISTORY_DIAGNOSIS = ['@flow:admin-accounting-history-diagnosis', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HISTORY_FILTERS = ['@flow:admin-accounting-history-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HOSTING_BILLING = ['@flow:admin-accounting-hosting-billing', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_HOSTING_CLIENT = ['@flow:admin-accounting-hosting-client', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_HOSTING_CYCLES = ['@flow:admin-accounting-hosting-cycles', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_HOSTING_INLINE_EDIT = ['@flow:admin-accounting-hosting-inline-edit', '@module:admin', '@priority:P3'];
+export const ADMIN_ACCOUNTING_HOSTINGS = ['@flow:admin-accounting-hostings', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_INCOME_CLIENT = ['@flow:admin-accounting-income-client', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_INCOME_CRUD = ['@flow:admin-accounting-income-crud', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_LIST_ERROR_RETRY = ['@flow:admin-accounting-list-error-retry', '@module:admin', '@priority:P3'];
+export const ADMIN_ACCOUNTING_POCKET = ['@flow:admin-accounting-pocket', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_PROJECT_BULK_ASSIGN = ['@flow:admin-accounting-project-bulk-assign', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_PROJECT_COHERENCE = ['@flow:admin-accounting-project-coherence', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_RECURRING = ['@flow:admin-accounting-recurring', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_SETTINGS = ['@flow:admin-accounting-settings', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_SETTINGS_RESET_TABS = ['@flow:admin-accounting-settings-reset-tabs', '@module:admin', '@priority:P3'];
+export const ADMIN_ACCOUNTING_STATEMENTS = ['@flow:admin-accounting-statements', '@module:admin', '@priority:P2'];
+export const ADMIN_ACCOUNTING_STATS_MODALS = ['@flow:admin-accounting-stats-modals', '@module:admin', '@priority:P2'];
+export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
+export const ADMIN_AUTO_ARCHIVE_ZOMBIE = ['@flow:admin-auto-archive-zombie', '@module:admin', '@priority:P3'];
+export const ADMIN_BLOG_CALENDAR = ['@flow:admin-blog-calendar', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_CREATE = ['@flow:admin-blog-create', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_CREATE_FROM_JSON = ['@flow:admin-blog-create-from-json', '@module:admin', '@priority:P2'];
-export const ADMIN_BLOG_EDIT = ['@flow:admin-blog-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_DELETE = ['@flow:admin-blog-delete', '@module:admin', '@priority:P3'];
-
-// ── Proposal (new) ──
-export const PROPOSAL_SHARE = ['@flow:proposal-share', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_ENGAGEMENT_TRACKING = ['@flow:proposal-engagement-tracking', '@module:proposal', '@priority:P2'];
-
-// ── Admin (new) ──
-export const ADMIN_PROPOSAL_DUPLICATE = ['@flow:admin-proposal-duplicate', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_PROMPT = ['@flow:admin-proposal-prompt', '@module:admin', '@priority:P3'];
-export const ADMIN_PROPOSAL_COMMENT = ['@flow:admin-proposal-comment', '@module:admin', '@priority:P3'];
-export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];
-export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];
-
-// ── Admin (latest features) ──
-export const ADMIN_BLOG_CALENDAR = ['@flow:admin-blog-calendar', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_MANUAL_ALERTS = ['@flow:admin-proposal-manual-alerts', '@module:admin', '@priority:P2'];
-
-// ── Admin Portfolio ──
-export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admin', '@priority:P2'];
-export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
-export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
-export const ADMIN_QR_CARDS = ['@flow:admin-qr-cards', '@module:admin', '@priority:P2'];
-export const ADMIN_LINKTREES = ['@flow:admin-linktrees', '@module:admin', '@priority:P2'];
-export const PUBLIC_LINKTREE_VIEW = ['@flow:public-linktree-view', '@module:public', '@priority:P2'];
-
-// ── Admin Hour Packages ──
-export const ADMIN_HOUR_PACKAGES_LIST = ['@flow:admin-hour-packages-list', '@module:admin', '@priority:P2'];
-export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];
-export const ADMIN_HOUR_PACKAGES_EDIT = ['@flow:admin-hour-packages-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_HOUR_PACKAGES_DELETE = ['@flow:admin-hour-packages-delete', '@module:admin', '@priority:P2'];
-export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P2'];
-
-// ── v1.6.0 features ──
-export const ADMIN_PROPOSAL_WIN_RATE_DASHBOARD = ['@flow:admin-proposal-win-rate-dashboard', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_ENGAGEMENT_SCORE = ['@flow:admin-proposal-engagement-score', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_METRICS_MANUAL = ['@flow:admin-proposal-metrics-manual', '@module:admin', '@priority:P3'];
-export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_PROCESS_METHODOLOGY = ['@flow:proposal-process-methodology', '@module:proposal', '@priority:P2'];
-export const ADMIN_PROPOSAL_ZOMBIE_SEGMENT = ['@flow:admin-proposal-zombie-segment', '@module:admin', '@priority:P2'];
-export const PROPOSAL_COUNTDOWN_REALTIME = ['@flow:proposal-countdown-realtime', '@module:proposal', '@priority:P3'];
-export const ADMIN_PROPOSAL_CREATE_AND_SEND = ['@flow:admin-proposal-create-and-send', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_CREATE_PREVIEW = ['@flow:admin-proposal-create-preview', '@module:admin', '@priority:P2'];
-export const ADMIN_DASHBOARD_PIPELINE_VALUE = ['@flow:admin-dashboard-pipeline-value', '@module:admin', '@priority:P2'];
-export const ADMIN_DASHBOARD_FINANCE_GATE = ['@flow:admin-dashboard-finance-gate', '@module:admin', '@priority:P1'];
-export const ADMIN_DASHBOARD_ATTENTION_RADAR = ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1'];
-export const ADMIN_DASHBOARD_ERROR_RETRY = ['@flow:admin-dashboard-error-retry', '@module:admin', '@priority:P1'];
-export const PROPOSAL_REJECTION_OPTIONAL_REASON = ['@flow:proposal-rejection-optional-reason', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_CALCULATOR_TIMELINE = ['@flow:proposal-calculator-timeline', '@module:proposal', '@priority:P1'];
-export const ADMIN_DISCOUNT_ANALYSIS_ENHANCED = ['@flow:admin-discount-analysis-enhanced', '@module:admin', '@priority:P3'];
-
-// ── Phase 2+ new flows ──
-export const PROPOSAL_NEGOTIATE = ['@flow:proposal-negotiate', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_INVESTMENT_CALCULATOR = ['@flow:proposal-investment-calculator', '@module:proposal', '@priority:P1'];
-export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal', '@module:admin', '@priority:P1'];
-export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER = ['@flow:proposal-schedule-followup-reminder', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
-export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
-
-// ── Calculator modules (PWA, AI, Reports & Alerts) ──
-export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_CALCULATOR_REOPEN_AFTER_NAV = ['@flow:proposal-calculator-reopen-after-nav', '@module:proposal', '@priority:P1'];
-
-// ── v1.7.0 new flows ──
-export const PROPOSAL_EXPIRED_GRACEFUL = ['@flow:proposal-expired-graceful', '@module:proposal', '@priority:P1'];
-export const ADMIN_PROPOSAL_BATCH_ACTIONS = ['@flow:admin-proposal-batch-actions', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_QUICK_SEND = ['@flow:admin-proposal-quick-send', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_QUICK_LOG = ['@flow:admin-proposal-quick-log', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_JSON_IMPORT_WARNINGS = ['@flow:admin-proposal-json-import-warnings', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_JSON_IMPORT_CLIENT_PICKER = ['@flow:admin-proposal-json-import-client-picker', '@module:admin', '@priority:P2'];
-export const PROPOSAL_SUMMARY_KPIS = ['@flow:proposal-summary-kpis', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_ROI_PROJECTION = ['@flow:proposal-roi-projection', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_CALCULATOR_NEW_MODULES = ['@flow:proposal-calculator-new-modules', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_CALCULATOR_INTEGRATIONS = ['@flow:proposal-calculator-integrations', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_DISCOUNT_MULTI_SECTION = ['@flow:proposal-discount-multi-section', '@module:proposal', '@priority:P2'];
-
-// ── v1.8.0 audit flows ──
-export const PROPOSAL_CALCULATOR_SELECTED_FIRST = ['@flow:proposal-calculator-selected-first', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_CALCULATOR_MICRO_FEEDBACK = ['@flow:proposal-calculator-micro-feedback', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_PAYMENT_PLAN_CLOSING = ['@flow:proposal-payment-plan-closing', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_POST_ACCEPTANCE_WELCOME = ['@flow:proposal-post-acceptance-welcome', '@module:proposal', '@priority:P1'];
-export const PROPOSAL_STRUCTURED_NEGOTIATION = ['@flow:proposal-structured-negotiation', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_CONDITIONAL_ACCEPTANCE = ['@flow:proposal-conditional-acceptance', '@module:proposal', '@priority:P2'];
-export const ADMIN_PROPOSAL_INLINE_STATUS_CHANGE = ['@flow:admin-proposal-inline-status-change', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SCORECARD = ['@flow:admin-proposal-scorecard', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-section-completeness', '@module:admin', '@priority:P3'];
-export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-config', '@module:admin', '@priority:P2'];
-export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
-// PROPOSAL_STICKY_BAR_ACCEPT removed — feature deleted (ProposalResponseButtons removed)
-export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-detailed', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_TECHNICAL_VIEW = ['@flow:proposal-technical-view', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
-
-// ── Biometric module (provider-billed, is_invite) ──
-export const PROPOSAL_CALCULATOR_BIOMETRIC_MODULE = ['@flow:proposal-calculator-biometric-module', '@module:proposal', '@priority:P2'];
-
-// ── Hosting plan terms & behavior tracking module ──
-export const PROPOSAL_HOSTING_PLAN_TERMS = ['@flow:proposal-hosting-plan-terms', '@module:proposal', '@priority:P2'];
-export const PROPOSAL_CALCULATOR_BEHAVIOR_TRACKING_MODULE = ['@flow:proposal-calculator-behavior-tracking-module', '@module:proposal', '@priority:P2'];
-
-// ── Platform ──
-export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
-export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];
-export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];
-export const PLATFORM_COMPLETE_PROFILE = ['@flow:platform-complete-profile', '@module:platform', '@priority:P1'];
-export const PLATFORM_KANBAN_BOARD = ['@flow:platform-kanban-board', '@module:platform', '@priority:P1'];
-export const PLATFORM_DASHBOARD = ['@flow:platform-dashboard', '@module:platform', '@priority:P2'];
-export const PLATFORM_SIDEBAR_NAVIGATION = ['@flow:platform-sidebar-navigation', '@module:platform', '@priority:P2'];
-export const PLATFORM_PROJECT_LIST = ['@flow:platform-project-list', '@module:platform', '@priority:P2'];
-export const PLATFORM_PROJECT_DETAIL = ['@flow:platform-project-detail', '@module:platform', '@priority:P2'];
-export const PLATFORM_UNIFIED_BOARD = ['@flow:platform-unified-board', '@module:platform', '@priority:P2'];
-export const PLATFORM_ADMIN_CLIENT_LIST = ['@flow:platform-admin-client-list', '@module:platform', '@priority:P2'];
-export const PLATFORM_ADMIN_CLIENT_DETAIL = ['@flow:platform-admin-client-detail', '@module:platform', '@priority:P2'];
-export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
-export const PLATFORM_ADMIN_PROJECT_CREATE = ['@flow:platform-admin-project-create', '@module:platform', '@priority:P3'];
-export const PLATFORM_KANBAN_CARD_COMMENTS = ['@flow:platform-kanban-card-comments', '@module:platform', '@priority:P3'];
-
-// ── Platform new flows (proposal integration + modules) ──
-export const PLATFORM_CHANGE_REQUESTS = ['@flow:platform-change-requests', '@module:platform', '@priority:P2'];
-export const PLATFORM_BUG_REPORTS = ['@flow:platform-bug-reports', '@module:platform', '@priority:P2'];
-export const PLATFORM_DELIVERABLES = ['@flow:platform-deliverables', '@module:platform', '@priority:P2'];
-export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscription', '@module:platform', '@priority:P1'];
-export const PLATFORM_HOSTING_CARD_SETUP = ['@flow:platform-hosting-card-setup', '@module:platform', '@priority:P1'];
-export const PLATFORM_HOSTING_CARD_DELETE = ['@flow:platform-hosting-card-delete', '@module:platform', '@priority:P2'];
-export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
-export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
-export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
-export const PLATFORM_COLLECTION_ACCOUNTS_LIST = ['@flow:platform-collection-accounts-list', '@module:platform', '@priority:P2'];
-export const PLATFORM_COLLECTION_ACCOUNT_DETAIL = ['@flow:platform-collection-account-detail', '@module:platform', '@priority:P2'];
-export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
-export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail', '@module:platform', '@priority:P2'];
-export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:platform', '@priority:P2'];
-
-// ── v2.7.0 new flows ──
-export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_SEND_EMAIL = ['@flow:admin-document-send-email', '@module:admin', '@priority:P1'];
-export const ADMIN_DOCUMENT_RENAME = ['@flow:admin-document-rename', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_DELETE = ['@flow:admin-document-delete', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_ARCHIVE = ['@flow:admin-document-archive', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_DUPLICATE = ['@flow:admin-document-duplicate', '@module:admin', '@priority:P3'];
-export const ADMIN_DOCUMENT_FOLDER_MANAGE = ['@flow:admin-document-folder-manage', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_TAGS_MANAGE = ['@flow:admin-document-tags-manage', '@module:admin', '@priority:P2'];
-export const ADMIN_STANDALONE_EMAIL_ATTACHMENTS = ['@flow:admin-standalone-email-attachments', '@module:admin', '@priority:P2'];
-export const ADMIN_BLOG_PUBLISH_MODE = ['@flow:admin-blog-publish-mode', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
-export const ADMIN_PANEL_UNSAVED_GUARD = ['@flow:admin-panel-unsaved-guard', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_FOLDER_HIERARCHY = ['@flow:admin-document-folder-hierarchy', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_FOLDER_CHANGE_CLIENT = ['@flow:admin-document-folder-change-client', '@module:admin', '@priority:P2'];
-export const ADMIN_DOCUMENT_FOLDER_PANEL_RESIZE = ['@flow:admin-document-folder-panel-resize', '@module:admin', '@priority:P3'];
-export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
-export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
-export const ADMIN_VIEW_MAP = ['@flow:admin-view-map', '@module:admin', '@priority:P4'];
-export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
-export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
-
-// ── v2.10.0 new flows ──
-export const PLATFORM_PROJECT_DATA_MODEL = ['@flow:platform-project-data-model', '@module:platform', '@priority:P2'];
-
-// ── v2.9.0 contract & documents flows ──
-export const ADMIN_PROPOSAL_CONTRACT_GENERATE = ['@flow:admin-proposal-contract-generate', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_CONTRACT_EDIT = ['@flow:admin-proposal-contract-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_CONTRACT_DOWNLOAD = ['@flow:admin-proposal-contract-download', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_DOCUMENTS_MANAGE = ['@flow:admin-proposal-documents-manage', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-send', '@module:admin', '@priority:P1'];
-
-// ── Composed email flows ──
-export const ADMIN_SEND_BRANDED_EMAIL = ['@flow:admin-send-branded-email', '@module:admin', '@priority:P2'];
-export const ADMIN_SEND_PROPOSAL_EMAIL = ['@flow:admin-send-proposal-email', '@module:admin', '@priority:P2'];
-
-// ── v2.12.0 LinkedIn flows ──
+export const ADMIN_BLOG_EDIT = ['@flow:admin-blog-edit', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_LINKEDIN_CONNECT = ['@flow:admin-blog-linkedin-connect', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_LINKEDIN_PUBLISH = ['@flow:admin-blog-linkedin-publish', '@module:admin', '@priority:P2'];
-
-// ── v2.13.0 Legal pages ──
-export const PUBLIC_PRIVACY_POLICY = ['@flow:public-privacy-policy', '@module:public', '@priority:P4'];
-export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@module:public', '@priority:P4'];
-
-// ── v2.14.0 Audit flows ──
-export const ADMIN_STANDALONE_EMAIL_COMPOSER = ['@flow:admin-standalone-email-composer', '@module:admin', '@priority:P2'];
-export const ADMIN_STANDALONE_EMAIL_DEFAULTS = ['@flow:admin-standalone-email-defaults', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3'];
-
-// ── Project schedule (Cronograma) ──
-export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-schedule', '@module:admin', '@priority:P1'];
-
-// ── Real client entity (proposal mini-CRM) ──
+export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@priority:P2'];
+export const ADMIN_BLOG_OVERDUE_DETECTION = ['@flow:admin-blog-overdue-detection', '@module:admin', '@priority:P2'];
+export const ADMIN_BLOG_PUBLISH_MODE = ['@flow:admin-blog-publish-mode', '@module:admin', '@priority:P2'];
+export const ADMIN_CALCULATOR_FOLLOWUP_ALERT = ['@flow:admin-calculator-followup-alert', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];
-export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];
-export const ADMIN_CLIENTS_FILTER_PRESETS = ['@flow:admin-clients-filter-presets', '@module:admin', '@priority:P2'];
-export const ADMIN_CLIENTS_DOCUMENTS_SECTION = ['@flow:admin-clients-documents-section', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_DOCUMENT_SIGNED_NOTIFICATION = ['@flow:admin-client-document-signed-notification', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DRAG_REASSIGN = ['@flow:admin-client-drag-reassign', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_EDIT = ['@flow:admin-client-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_EMAIL_VALIDATED_NOTIFICATION = ['@flow:admin-client-email-validated-notification', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_FIRST_LOGIN_NOTIFICATION = ['@flow:admin-client-first-login-notification', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENTS_CONFIG_TAB = ['@flow:admin-clients-config-tab', '@module:admin', '@priority:P3'];
+export const ADMIN_CLIENTS_DOCUMENTS_SECTION = ['@flow:admin-clients-documents-section', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENTS_FILTER_PRESETS = ['@flow:admin-clients-filter-presets', '@module:admin', '@priority:P2'];
+export const ADMIN_DAILY_PIPELINE_DIGEST = ['@flow:admin-daily-pipeline-digest', '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD = ['@flow:admin-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD_ATTENTION_RADAR = ['@flow:admin-dashboard-attention-radar', '@module:admin', '@priority:P1'];
+export const ADMIN_DASHBOARD_ERROR_RETRY = ['@flow:admin-dashboard-error-retry', '@module:admin', '@priority:P1'];
+export const ADMIN_DASHBOARD_FINANCE_GATE = ['@flow:admin-dashboard-finance-gate', '@module:admin', '@priority:P1'];
+export const ADMIN_DASHBOARD_PIPELINE_VALUE = ['@flow:admin-dashboard-pipeline-value', '@module:admin', '@priority:P2'];
+export const ADMIN_DASHBOARD_QUICK_CREATE = ['@flow:admin-dashboard-quick-create', '@module:admin', '@priority:P3'];
+export const ADMIN_DASHBOARD_STATS_MODALS = ['@flow:admin-dashboard-stats-modals', '@module:admin', '@priority:P2'];
+export const ADMIN_DEFAULTS_UNIFIED = ['@flow:admin-defaults-unified', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ACTIVITY = ['@flow:admin-diagnostic-activity', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ADVANCED_FILTERS = ['@flow:admin-diagnostic-advanced-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ANALYTICS = ['@flow:admin-diagnostic-analytics', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS = ['@flow:admin-diagnostic-attach-from-documents', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_BULK_ACTIONS = ['@flow:admin-diagnostic-bulk-actions', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD = ['@flow:admin-diagnostic-confidentiality-download', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT = ['@flow:admin-diagnostic-confidentiality-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE = ['@flow:admin-diagnostic-confidentiality-generate', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_CREATE = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG = ['@flow:admin-diagnostic-defaults-config', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_DELETE = ['@flow:admin-diagnostic-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_DOCUMENT_PREVIEW = ['@flow:admin-diagnostic-document-preview', '@module:admin', '@priority:P3'];
+export const ADMIN_DIAGNOSTIC_DOCUMENTS = ['@flow:admin-diagnostic-documents', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_EDIT = ['@flow:admin-diagnostic-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_EMAIL = ['@flow:admin-diagnostic-email', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE = ['@flow:admin-diagnostic-engagement-score', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_FILTERS = ['@flow:admin-diagnostic-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_JSON_EXPORT = ['@flow:admin-diagnostic-json-export', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_JSON_IMPORT = ['@flow:admin-diagnostic-json-import', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_LIST = ['@flow:admin-diagnostic-list', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY = ['@flow:admin-diagnostic-list-error-retry', '@module:admin', '@priority:P3'];
+export const ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS = ['@flow:admin-diagnostic-mark-in-analysis', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT = ['@flow:admin-diagnostic-markdown-attachment', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_PROMPT = ['@flow:admin-diagnostic-prompt', '@module:admin', '@priority:P2'];
+export const ADMIN_DIAGNOSTIC_SECTIONS = ['@flow:admin-diagnostic-sections', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_SEND_FINAL = ['@flow:admin-diagnostic-send-final', '@module:admin', '@priority:P1'];
+export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
+export const ADMIN_DISCOUNT_ANALYSIS_ENHANCED = ['@flow:admin-discount-analysis-enhanced', '@module:admin', '@priority:P3'];
+export const ADMIN_DOCUMENT_ARCHIVE = ['@flow:admin-document-archive', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_CREATE = ['@flow:admin-document-create', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_DELETE = ['@flow:admin-document-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_DRAG_ORGANIZE = ['@flow:admin-document-drag-organize', '@module:admin', '@priority:P3'];
+export const ADMIN_DOCUMENT_DUPLICATE = ['@flow:admin-document-duplicate', '@module:admin', '@priority:P3'];
+export const ADMIN_DOCUMENT_EDIT = ['@flow:admin-document-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_CHANGE_CLIENT = ['@flow:admin-document-folder-change-client', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_HIERARCHY = ['@flow:admin-document-folder-hierarchy', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_MANAGE = ['@flow:admin-document-folder-manage', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_PANEL_RESIZE = ['@flow:admin-document-folder-panel-resize', '@module:admin', '@priority:P3'];
+export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_GALLERY = ['@flow:admin-document-gallery', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_LIST = ['@flow:admin-document-list', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];
+export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_RENAME = ['@flow:admin-document-rename', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_SEND_EMAIL = ['@flow:admin-document-send-email', '@module:admin', '@priority:P1'];
+export const ADMIN_DOCUMENT_TAGS_MANAGE = ['@flow:admin-document-tags-manage', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
+export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
+export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];
+export const ADMIN_HIGH_ENGAGEMENT_ALERT = ['@flow:admin-high-engagement-alert', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_CONFIG = ['@flow:admin-hour-packages-config', '@module:admin', '@priority:P3'];
+export const ADMIN_HOUR_PACKAGES_CREATE = ['@flow:admin-hour-packages-create', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_DELETE = ['@flow:admin-hour-packages-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_EDIT = ['@flow:admin-hour-packages-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_LIST = ['@flow:admin-hour-packages-list', '@module:admin', '@priority:P2'];
+export const ADMIN_HOUR_PACKAGES_VIEW_MODES = ['@flow:admin-hour-packages-view-modes', '@module:admin', '@priority:P3'];
+export const ADMIN_IMPERSONATE_USER = ['@flow:admin-impersonate-user', '@module:admin', '@priority:P2'];
+export const ADMIN_KANBAN_TASKS = ['@flow:admin-kanban-tasks', '@module:admin', '@priority:P2'];
+export const ADMIN_LAYOUT_TITLE_MAPPING = ['@flow:admin-layout-title-mapping', '@module:admin', '@priority:P3'];
+export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:admin', '@priority:P2'];
+export const ADMIN_LINKTREES = ['@flow:admin-linktrees', '@module:admin', '@priority:P2'];
+export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];
+export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];
+export const ADMIN_PANEL_PROJECTS = ['@flow:admin-panel-projects', '@module:admin', '@priority:P1'];
+export const ADMIN_PANEL_UNSAVED_GUARD = ['@flow:admin-panel-unsaved-guard', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_DELETE = ['@flow:admin-portfolio-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_EDIT = ['@flow:admin-portfolio-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_PORTFOLIO_LIST = ['@flow:admin-portfolio-list', '@module:admin', '@priority:P2'];
+export const ADMIN_PROJECT_CHANGE_CLIENT = ['@flow:admin-project-change-client', '@module:admin', '@priority:P2'];
+export const ADMIN_PROJECT_FLY_CREATE = ['@flow:admin-project-fly-create', '@module:admin', '@priority:P2'];
+export const ADMIN_PROJECT_INLINE_ASSIGN_OFFER = ['@flow:admin-project-inline-assign-offer', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ACTIONS_MODAL = ['@flow:admin-proposal-actions-modal', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_ADVANCED_FILTERS = ['@flow:admin-proposal-advanced-filters', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ANALYTICS = ['@flow:admin-proposal-analytics', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ATTACH_FROM_DOCUMENTS = ['@flow:admin-proposal-attach-from-documents', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_BATCH_ACTIONS = ['@flow:admin-proposal-batch-actions', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_CLIENT_AUTOCOMPLETE = ['@flow:admin-proposal-client-autocomplete', '@module:admin', '@priority:P1'];
 export const ADMIN_PROPOSAL_CLIENT_NO_EMAIL = ['@flow:admin-proposal-client-no-email', '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];
-
-// ── Kanban tasks (internal panel) ──
-export const ADMIN_KANBAN_TASKS = ['@flow:admin-kanban-tasks', '@module:admin', '@priority:P2'];
-
-// ── v2.17.0 — document PDF + OG meta ──
-export const ADMIN_DOCUMENT_PDF_DOWNLOAD = ['@flow:admin-document-pdf-download', '@module:admin', '@priority:P2'];
-export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3'];
-
-// ── Web App Diagnostics ──
-export const ADMIN_DIAGNOSTIC_LIST         = ['@flow:admin-diagnostic-list', '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_BULK_ACTIONS = ['@flow:admin-diagnostic-bulk-actions', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_LIST_ERROR_RETRY = ['@flow:admin-diagnostic-list-error-retry', '@module:admin', '@priority:P3'];
-export const ADMIN_DIAGNOSTIC_FILTERS      = ['@flow:admin-diagnostic-filters', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_CREATE       = ['@flow:admin-diagnostic-create', '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_SEND_INITIAL = ['@flow:admin-diagnostic-send-initial', '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_SEND_FINAL   = ['@flow:admin-diagnostic-send-final', '@module:admin', '@priority:P1'];
-export const DIAGNOSTIC_PUBLIC_VIEW        = ['@flow:diagnostic-public-view', '@module:diagnostic', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_EMAIL        = ['@flow:admin-diagnostic-email', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_DOCUMENTS    = ['@flow:admin-diagnostic-documents', '@module:admin', '@priority:P2'];
-
-// ── Proposal — Mobile Onboarding ──
-export const PROPOSAL_ONBOARDING_MOBILE_SWIPE = ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3'];
-
-// ── Documents — Move Folder ──
-export const ADMIN_DOCUMENT_MOVE_FOLDER = ['@flow:admin-document-move-folder', '@module:admin', '@priority:P1'];
-export const ADMIN_DOCUMENT_DRAG_ORGANIZE = ['@flow:admin-document-drag-organize', '@module:admin', '@priority:P3'];
-
-// ── v2.21.0 — Task Alerts + Diagnostic lifecycle gaps ──
-export const ADMIN_TASK_ALERT_MANAGEMENT = ['@flow:admin-task-alert-management', '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_EDIT       = ['@flow:admin-diagnostic-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_DELETE     = ['@flow:admin-diagnostic-delete', '@module:admin', '@priority:P2'];
-
-// ── Diagnostic — JSON section rewrite (Apr 16, 2026) ──
-export const ADMIN_DIAGNOSTIC_SECTIONS  = ['@flow:admin-diagnostic-sections',  '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_ACTIVITY  = ['@flow:admin-diagnostic-activity',  '@module:admin', '@priority:P2'];
-
-// ── Proposal lifecycle gaps ──
-export const ADMIN_PROPOSAL_RESEND              = ['@flow:admin-proposal-resend',              '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED = ['@flow:admin-proposal-reopen-from-expired', '@module:admin', '@priority:P1'];
-export const ADMIN_PROPOSAL_UPDATE_FROM_JSON    = ['@flow:admin-proposal-update-from-json',    '@module:admin', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_SYNC        = ['@flow:admin-proposal-section-sync',        '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_ANALYTICS        = ['@flow:admin-diagnostic-analytics',        '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_ENGAGEMENT_SCORE = ['@flow:admin-diagnostic-engagement-score', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_PROMPT           = ['@flow:admin-diagnostic-prompt',           '@module:admin', '@priority:P2'];
-
-// ── Diagnostic — Acuerdo de Confidencialidad (NDA) ──
-export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_GENERATE = ['@flow:admin-diagnostic-confidentiality-generate', '@module:admin', '@priority:P1'];
-
-// ── Diagnostic — JSON import (Apr 17, 2026) ──
-export const ADMIN_DIAGNOSTIC_JSON_IMPORT = ['@flow:admin-diagnostic-json-import', '@module:admin', '@priority:P2'];
-
-// ── Diagnostic — Default Config (Apr 18, 2026) ──
-export const ADMIN_DIAGNOSTIC_DEFAULTS_CONFIG = ['@flow:admin-diagnostic-defaults-config', '@module:admin', '@priority:P2'];
-
-// ── Diagnostic — split bundled flows (Apr 18, 2026) ──
-export const ADMIN_DIAGNOSTIC_MARK_IN_ANALYSIS = ['@flow:admin-diagnostic-mark-in-analysis', '@module:admin', '@priority:P1'];
-export const DIAGNOSTIC_PUBLIC_RESPOND = ['@flow:diagnostic-public-respond', '@module:diagnostic', '@priority:P1'];
-
-// ── Diagnostic — Confidentiality & JSON Export (gaps registered Apr 19, 2026) ──
-export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_EDIT     = ['@flow:admin-diagnostic-confidentiality-edit', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_CONFIDENTIALITY_DOWNLOAD = ['@flow:admin-diagnostic-confidentiality-download', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_JSON_EXPORT              = ['@flow:admin-diagnostic-json-export', '@module:admin', '@priority:P2'];
-
-// ── Diagnostic Templates & Markdown Attachment (Apr 19, 2026) ──
-export const ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES  = ['@flow:admin-proposal-diagnostic-templates', '@module:admin', '@priority:P2'];
-export const ADMIN_DIAGNOSTIC_MARKDOWN_ATTACHMENT = ['@flow:admin-diagnostic-markdown-attachment', '@module:admin', '@priority:P2'];
-
-// ── Proposal — Value Added Modules (Apr 19, 2026) ──
-export const PROPOSAL_VALUE_ADDED_MODULES = ['@flow:proposal-value-added-modules', '@module:proposal', '@priority:P2'];
-
-// ── Diagnostic — Advanced Filters + Client Edit (Apr 20, 2026) ──
-export const ADMIN_DIAGNOSTIC_ADVANCED_FILTERS = ['@flow:admin-diagnostic-advanced-filters', '@module:admin', '@priority:P2'];
-export const ADMIN_CLIENT_EDIT                 = ['@flow:admin-client-edit', '@module:admin', '@priority:P2'];
-
-// ── Unified Defaults Shell (Apr 20, 2026) ──
-export const ADMIN_DEFAULTS_UNIFIED = ['@flow:admin-defaults-unified', '@module:admin', '@priority:P2'];
-
-// ── Diagnostic Public — Client Affordances (Apr 20, 2026) ──
-export const DIAGNOSTIC_PUBLIC_PDF_DOWNLOAD = ['@flow:diagnostic-public-pdf-download', '@module:diagnostic', '@priority:P2'];
-export const DIAGNOSTIC_PUBLIC_SHARE        = ['@flow:diagnostic-public-share',        '@module:diagnostic', '@priority:P2'];
-export const DIAGNOSTIC_PUBLIC_DARK_MODE    = ['@flow:diagnostic-public-dark-mode',    '@module:diagnostic', '@priority:P3'];
-
-// ── Layout — Dynamic tab title mapping (Apr 20, 2026) ──
-export const ADMIN_LAYOUT_TITLE_MAPPING    = ['@flow:admin-layout-title-mapping',    '@module:admin',    '@priority:P3'];
-export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mapping', '@module:platform', '@priority:P3'];
-
-// ── Flows Audit — Missing gaps registered (Apr 20, 2026) ──
-export const ADMIN_PROPOSAL_PLATFORM_HANDOFF      = ['@flow:admin-proposal-platform-handoff',      '@module:admin',      '@priority:P1'];
-export const PROPOSAL_MAGIC_LINK_REQUEST          = ['@flow:proposal-magic-link-request',          '@module:proposal',   '@priority:P1'];
-export const ADMIN_PROPOSAL_DOCUMENT_PREVIEW      = ['@flow:admin-proposal-document-preview',      '@module:admin',      '@priority:P3'];
-export const DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY   = ['@flow:diagnostic-public-phase-visibility',   '@module:diagnostic', '@priority:P2'];
-export const ADMIN_PROPOSAL_SECTION_DISABLE       = ['@flow:admin-proposal-section-disable',       '@module:admin',      '@priority:P2'];
-
-// ── Proposal Slug URL (Apr 21, 2026) ──
-export const PROPOSAL_SLUG_ACCESS               = ['@flow:proposal-slug-access',                    '@module:proposal', '@priority:P1'];
-export const ADMIN_PROPOSAL_SLUG_EDIT           = ['@flow:admin-proposal-slug-edit',                '@module:admin',    '@priority:P1'];
-export const ADMIN_PROPOSAL_DEFAULTS_SLUG_PATTERN = ['@flow:admin-proposal-defaults-slug-pattern', '@module:admin',    '@priority:P2'];
-
-// ── Documents Tab Reorganization — Adjuntar desde Documentos (Apr 22, 2026) ──
-export const ADMIN_PROPOSAL_ATTACH_FROM_DOCUMENTS   = ['@flow:admin-proposal-attach-from-documents',   '@module:admin', '@priority:P1'];
-export const ADMIN_DIAGNOSTIC_ATTACH_FROM_DOCUMENTS = ['@flow:admin-diagnostic-attach-from-documents', '@module:admin', '@priority:P2'];
-
-// ── Accounting module (superuser-only) (Jul 2, 2026) ──
-export const ADMIN_ACCOUNTING_DASHBOARD     = ['@flow:admin-accounting-dashboard',     '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_EXPECTED_DETAIL = ['@flow:admin-accounting-expected-detail', '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_STATS_MODALS  = ['@flow:admin-accounting-stats-modals',  '@module:admin', '@priority:P2'];
-export const ADMIN_DASHBOARD_STATS_MODALS   = ['@flow:admin-dashboard-stats-modals',   '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_INCOME_CRUD   = ['@flow:admin-accounting-income-crud',   '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_FILTERS       = ['@flow:admin-accounting-filters',       '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_EXPENSES_CRUD = ['@flow:admin-accounting-expenses-crud', '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_HOSTINGS      = ['@flow:admin-accounting-hostings',      '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_HOSTING_BILLING = ['@flow:admin-accounting-hosting-billing', '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_HOSTING_CYCLES  = ['@flow:admin-accounting-hosting-cycles',  '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_POCKET        = ['@flow:admin-accounting-pocket',        '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_RECURRING     = ['@flow:admin-accounting-recurring',     '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_HISTORY       = ['@flow:admin-accounting-history',       '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_HISTORY_FILTERS = ['@flow:admin-accounting-history-filters', '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_HISTORY_DIAGNOSIS = ['@flow:admin-accounting-history-diagnosis', '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_SETTINGS      = ['@flow:admin-accounting-settings',      '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_ADS           = ['@flow:admin-accounting-ads',           '@module:admin', '@priority:P3'];
-export const ADMIN_ACCOUNTING_CARDS         = ['@flow:admin-accounting-cards',         '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_STATEMENTS    = ['@flow:admin-accounting-statements',    '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_CARD_CATALOG  = ['@flow:admin-accounting-card-catalog',  '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_COLLECTIONS   = ['@flow:admin-accounting-collections',   '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_COLLECTION_CREATE = ['@flow:admin-accounting-collection-create', '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_COLLECTION_DETAIL = ['@flow:admin-accounting-collection-detail', '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_INCOME_CLIENT = ['@flow:admin-accounting-income-client', '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_HOSTING_CLIENT = ['@flow:admin-accounting-hosting-client', '@module:admin', '@priority:P1'];
-export const ADMIN_PANEL_PROJECTS           = ['@flow:admin-panel-projects',           '@module:admin', '@priority:P1'];
-export const ADMIN_PROJECT_FLY_CREATE       = ['@flow:admin-project-fly-create',       '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_PROJECT_BULK_ASSIGN = ['@flow:admin-accounting-project-bulk-assign', '@module:admin', '@priority:P1'];
-export const ADMIN_ACCOUNTING_PROJECT_COHERENCE   = ['@flow:admin-accounting-project-coherence',   '@module:admin', '@priority:P1'];
-export const ADMIN_PROJECT_INLINE_ASSIGN_OFFER    = ['@flow:admin-project-inline-assign-offer',    '@module:admin', '@priority:P2'];
-export const ADMIN_PROJECT_CHANGE_CLIENT          = ['@flow:admin-project-change-client',          '@module:admin', '@priority:P2'];
-export const ADMIN_DASHBOARD_QUICK_CREATE   = ['@flow:admin-dashboard-quick-create',   '@module:admin', '@priority:P3'];
-export const ADMIN_ACCOUNTING_EXPORT        = ['@flow:admin-accounting-export',        '@module:admin', '@priority:P2'];
-export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];
-export const ADMIN_ACCOUNTING_LIST_ERROR_RETRY = ['@flow:admin-accounting-list-error-retry', '@module:admin', '@priority:P3'];
-
-// ── MCP connectors panel (superuser-only) (Jul 2, 2026) ──
-export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];
-
-// ── Client document portal + discount offer (Jul 4, 2026) ──
-export const PLATFORM_CLIENT_DOCUMENT_PORTAL  = ['@flow:platform-client-document-portal',  '@module:platform', '@priority:P1'];
-export const PLATFORM_CLIENT_EMAIL_VALIDATION = ['@flow:platform-client-email-validation', '@module:platform', '@priority:P1'];
-export const PLATFORM_CLIENT_DOCUMENT_SIGN    = ['@flow:platform-client-document-sign',    '@module:platform', '@priority:P1'];
-export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discount-offer-send', '@module:admin', '@priority:P2'];
-
-// ── LinkedIn content module /panel/linkedin (Jul 4, 2026) ──
-export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:admin', '@priority:P2'];
-
-// ── Proposal — Resolved-status notice suppression + client-row proposal delete (Jul 25, 2026) ──
-export const PROPOSAL_RESOLVED_NOTICE_SUPPRESSION = ['@flow:proposal-resolved-notice-suppression', '@module:proposal', '@priority:P2'];
+export const ADMIN_PROPOSAL_COMMENT = ['@flow:admin-proposal-comment', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_CONTRACT_DOWNLOAD = ['@flow:admin-proposal-contract-download', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CONTRACT_EDIT = ['@flow:admin-proposal-contract-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CONTRACT_GENERATE = ['@flow:admin-proposal-contract-generate', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CREATE = ['@flow:admin-proposal-create', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CREATE_AND_SEND = ['@flow:admin-proposal-create-and-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_CREATE_FROM_JSON = ['@flow:admin-proposal-create-from-json', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_CREATE_PREVIEW = ['@flow:admin-proposal-create-preview', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DASHBOARD = ['@flow:admin-proposal-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DASHBOARD_AUTO_REFRESH = ['@flow:admin-proposal-dashboard-auto-refresh', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_DEFAULTS_CONFIG = ['@flow:admin-proposal-defaults-config', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DEFAULTS_SLUG_PATTERN = ['@flow:admin-proposal-defaults-slug-pattern', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DELETE = ['@flow:admin-proposal-delete', '@module:admin', '@priority:P2'];
 export const ADMIN_PROPOSAL_DELETE_FROM_CLIENT = ['@flow:admin-proposal-delete-from-client', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DEV_CHECKLIST = ['@flow:admin-proposal-dev-checklist', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_DIAGNOSTIC_TEMPLATES = ['@flow:admin-proposal-diagnostic-templates', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DISCOUNT_OFFER_SEND = ['@flow:admin-proposal-discount-offer-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DOCUMENT_PREVIEW = ['@flow:admin-proposal-document-preview', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_DOCUMENTS_MANAGE = ['@flow:admin-proposal-documents-manage', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_DOCUMENTS_SEND = ['@flow:admin-proposal-documents-send', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_DUPLICATE = ['@flow:admin-proposal-duplicate', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_EDIT = ['@flow:admin-proposal-edit', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_ENGAGEMENT_DECAY_ALERT = ['@flow:admin-proposal-engagement-decay-alert', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ENGAGEMENT_SCORE = ['@flow:admin-proposal-engagement-score', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_FORM = ['@flow:admin-proposal-functional-requirements-form', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_FUNCTIONAL_REQUIREMENTS_PASTE = ['@flow:admin-proposal-functional-requirements-paste', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_HOUR_RATE = ['@flow:admin-proposal-hour-rate', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_INLINE_STATUS_CHANGE = ['@flow:admin-proposal-inline-status-change', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_JSON_IMPORT_CLIENT_PICKER = ['@flow:admin-proposal-json-import-client-picker', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_JSON_IMPORT_WARNINGS = ['@flow:admin-proposal-json-import-warnings', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_LIST = ['@flow:admin-proposal-list', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_LOG_ACTIVITY = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_MANUAL_ALERTS = ['@flow:admin-proposal-manual-alerts', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_METRICS_MANUAL = ['@flow:admin-proposal-metrics-manual', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_MULTI_SEND = ['@flow:admin-proposal-multi-send', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_PLATFORM_HANDOFF = ['@flow:admin-proposal-platform-handoff', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_POST_REJECTION_REVISIT = ['@flow:admin-proposal-post-rejection-revisit', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_PROJECT_SCHEDULE = ['@flow:admin-proposal-project-schedule', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_PROMPT = ['@flow:admin-proposal-prompt', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_QUICK_LOG = ['@flow:admin-proposal-quick-log', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_QUICK_SEND = ['@flow:admin-proposal-quick-send', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_REOPEN_FROM_EXPIRED = ['@flow:admin-proposal-reopen-from-expired', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_RESEND = ['@flow:admin-proposal-resend', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SCORECARD = ['@flow:admin-proposal-scorecard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_ADD_DELETE = ['@flow:admin-proposal-section-add-delete', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_COMPLETENESS = ['@flow:admin-proposal-section-completeness', '@module:admin', '@priority:P3'];
+export const ADMIN_PROPOSAL_SECTION_DIRTY_GUARD = ['@flow:admin-proposal-section-dirty-guard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_DISABLE = ['@flow:admin-proposal-section-disable', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_EDIT_FORM = ['@flow:admin-proposal-section-edit-form', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_SECTION_EDIT_PASTE = ['@flow:admin-proposal-section-edit-paste', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_SECTION_REORDER = ['@flow:admin-proposal-section-reorder', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SECTION_SYNC = ['@flow:admin-proposal-section-sync', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_SEND = ['@flow:admin-proposal-send', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_SLUG_EDIT = ['@flow:admin-proposal-slug-edit', '@module:admin', '@priority:P1'];
+export const ADMIN_PROPOSAL_UPDATE_CLIENT = ['@flow:admin-proposal-update-client', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_UPDATE_FROM_JSON = ['@flow:admin-proposal-update-from-json', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_WIN_RATE_DASHBOARD = ['@flow:admin-proposal-win-rate-dashboard', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSAL_ZOMBIE_SEGMENT = ['@flow:admin-proposal-zombie-segment', '@module:admin', '@priority:P2'];
+export const ADMIN_PROPOSALS_CONFIG_TAB = ['@flow:admin-proposals-config-tab', '@module:admin', '@priority:P3'];
+export const ADMIN_QR_CARDS = ['@flow:admin-qr-cards', '@module:admin', '@priority:P2'];
+export const ADMIN_SELLER_INACTIVITY_ESCALATION = ['@flow:admin-seller-inactivity-escalation', '@module:admin', '@priority:P2'];
+export const ADMIN_SEND_BRANDED_EMAIL = ['@flow:admin-send-branded-email', '@module:admin', '@priority:P2'];
+export const ADMIN_SEND_PROPOSAL_EMAIL = ['@flow:admin-send-proposal-email', '@module:admin', '@priority:P2'];
+export const ADMIN_STANDALONE_EMAIL_ATTACHMENTS = ['@flow:admin-standalone-email-attachments', '@module:admin', '@priority:P2'];
+export const ADMIN_STANDALONE_EMAIL_COMPOSER = ['@flow:admin-standalone-email-composer', '@module:admin', '@priority:P2'];
+export const ADMIN_STANDALONE_EMAIL_DEFAULTS = ['@flow:admin-standalone-email-defaults', '@module:admin', '@priority:P2'];
+export const ADMIN_STYLEGUIDE = ['@flow:admin-styleguide', '@module:admin', '@priority:P3'];
+export const ADMIN_TASK_ALERT_MANAGEMENT = ['@flow:admin-task-alert-management', '@module:admin', '@priority:P1'];
+export const ADMIN_TASK_DEADLINE_NOTIFICATION = ['@flow:admin-task-deadline-notification', '@module:admin', '@priority:P2'];
+export const ADMIN_VIEW_MAP = ['@flow:admin-view-map', '@module:admin', '@priority:P4'];
+export const ADMIN_WHATSAPP_SUGGESTION = ['@flow:admin-whatsapp-suggestion', '@module:admin', '@priority:P2'];
+export const PROPOSAL_PRE_EXPIRATION_DISCOUNT_SUGGESTION = ['@flow:proposal-pre-expiration-discount-suggestion', '@module:admin', '@priority:P2'];
+
+// ── auth ──
+export const ADMIN_LOGIN = ['@flow:admin-login', '@module:auth', '@priority:P1'];
+export const ADMIN_PANEL_SESSION_EXPIRED = ['@flow:admin-panel-session-expired', '@module:auth', '@priority:P1'];
+
+// ── blog ──
+export const BLOG_DETAIL = ['@flow:blog-detail', '@module:blog', '@priority:P2'];
+export const BLOG_LIST = ['@flow:blog-list', '@module:blog', '@priority:P2'];
+
+// ── diagnostic ──
+export const DIAGNOSTIC_PUBLIC_DARK_MODE = ['@flow:diagnostic-public-dark-mode', '@module:diagnostic', '@priority:P3'];
+export const DIAGNOSTIC_PUBLIC_ONBOARDING = ['@flow:diagnostic-public-onboarding', '@module:diagnostic', '@priority:P3'];
+export const DIAGNOSTIC_PUBLIC_PDF_DOWNLOAD = ['@flow:diagnostic-public-pdf-download', '@module:diagnostic', '@priority:P2'];
+export const DIAGNOSTIC_PUBLIC_PHASE_VISIBILITY = ['@flow:diagnostic-public-phase-visibility', '@module:diagnostic', '@priority:P2'];
+export const DIAGNOSTIC_PUBLIC_RESPOND = ['@flow:diagnostic-public-respond', '@module:diagnostic', '@priority:P1'];
+export const DIAGNOSTIC_PUBLIC_SHARE = ['@flow:diagnostic-public-share', '@module:diagnostic', '@priority:P2'];
+export const DIAGNOSTIC_PUBLIC_VIEW = ['@flow:diagnostic-public-view', '@module:diagnostic', '@priority:P1'];
+
+// ── layout ──
+export const LAYOUT_FOOTER_NAVIGATION = ['@flow:layout-footer-navigation', '@module:layout', '@priority:P3'];
+export const LAYOUT_LOCALE_SWITCH = ['@flow:layout-locale-switch', '@module:layout', '@priority:P2'];
+export const LAYOUT_NAVBAR_NAVIGATION = ['@flow:layout-navbar-navigation', '@module:layout', '@priority:P2'];
+
+// ── platform ──
+export const PLATFORM_ACCESS_VIEW = ['@flow:platform-access-view', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_CLIENT_DETAIL = ['@flow:platform-admin-client-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_CLIENT_LIST = ['@flow:platform-admin-client-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_ADMIN_PROJECT_CREATE = ['@flow:platform-admin-project-create', '@module:platform', '@priority:P3'];
+export const PLATFORM_BUG_REPORTS = ['@flow:platform-bug-reports', '@module:platform', '@priority:P2'];
+export const PLATFORM_CHANGE_REQUESTS = ['@flow:platform-change-requests', '@module:platform', '@priority:P2'];
+export const PLATFORM_CLIENT_DOCUMENT_PORTAL = ['@flow:platform-client-document-portal', '@module:platform', '@priority:P1'];
+export const PLATFORM_CLIENT_DOCUMENT_SIGN = ['@flow:platform-client-document-sign', '@module:platform', '@priority:P1'];
+export const PLATFORM_CLIENT_EMAIL_VALIDATION = ['@flow:platform-client-email-validation', '@module:platform', '@priority:P1'];
+export const PLATFORM_COLLECTION_ACCOUNT_DETAIL = ['@flow:platform-collection-account-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_COLLECTION_ACCOUNTS_LIST = ['@flow:platform-collection-accounts-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_COMPLETE_PROFILE = ['@flow:platform-complete-profile', '@module:platform', '@priority:P1'];
+export const PLATFORM_DASHBOARD = ['@flow:platform-dashboard', '@module:platform', '@priority:P2'];
+export const PLATFORM_DELIVERABLE_DETAIL = ['@flow:platform-deliverable-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_DELIVERABLES = ['@flow:platform-deliverables', '@module:platform', '@priority:P2'];
+export const PLATFORM_HOSTING_CARD_DELETE = ['@flow:platform-hosting-card-delete', '@module:platform', '@priority:P2'];
+export const PLATFORM_HOSTING_CARD_SETUP = ['@flow:platform-hosting-card-setup', '@module:platform', '@priority:P1'];
+export const PLATFORM_HOSTING_SUBSCRIPTION = ['@flow:platform-hosting-subscription', '@module:platform', '@priority:P1'];
+export const PLATFORM_KANBAN_BOARD = ['@flow:platform-kanban-board', '@module:platform', '@priority:P1'];
+export const PLATFORM_KANBAN_CARD_COMMENTS = ['@flow:platform-kanban-card-comments', '@module:platform', '@priority:P3'];
+export const PLATFORM_KANBAN_JSON_UPLOAD = ['@flow:platform-kanban-json-upload', '@module:platform', '@priority:P2'];
+export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mapping', '@module:platform', '@priority:P3'];
+export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
+export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
+export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];
+export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_DATA_MODEL = ['@flow:platform-project-data-model', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_DETAIL = ['@flow:platform-project-detail', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROJECT_LIST = ['@flow:platform-project-list', '@module:platform', '@priority:P2'];
+export const PLATFORM_PROPOSAL_AUTO_ONBOARDING = ['@flow:platform-proposal-auto-onboarding', '@module:platform', '@priority:P1'];
+export const PLATFORM_REQUIREMENT_CLIENT_REVIEW = ['@flow:platform-requirement-client-review', '@module:platform', '@priority:P2'];
+export const PLATFORM_SIDEBAR_NAVIGATION = ['@flow:platform-sidebar-navigation', '@module:platform', '@priority:P2'];
+export const PLATFORM_UNIFIED_BOARD = ['@flow:platform-unified-board', '@module:platform', '@priority:P2'];
+export const PLATFORM_VERIFY_ONBOARDING = ['@flow:platform-verify-onboarding', '@module:platform', '@priority:P1'];
+
+// ── proposal ──
+export const PROPOSAL_CALCULATOR_ABANDONMENT_TRACKING = ['@flow:proposal-calculator-abandonment-tracking', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_BEHAVIOR_TRACKING_MODULE = ['@flow:proposal-calculator-behavior-tracking-module', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_BIOMETRIC_MODULE = ['@flow:proposal-calculator-biometric-module', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_INTEGRATIONS = ['@flow:proposal-calculator-integrations', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_MICRO_FEEDBACK = ['@flow:proposal-calculator-micro-feedback', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_MODULES = ['@flow:proposal-calculator-modules', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_CALCULATOR_NEW_MODULES = ['@flow:proposal-calculator-new-modules', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_REOPEN_AFTER_NAV = ['@flow:proposal-calculator-reopen-after-nav', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_CALCULATOR_SELECTED_FIRST = ['@flow:proposal-calculator-selected-first', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CALCULATOR_TIMELINE = ['@flow:proposal-calculator-timeline', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_COMMENT_FROM_CLOSING = ['@flow:proposal-comment-from-closing', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_CONDITIONAL_ACCEPTANCE = ['@flow:proposal-conditional-acceptance', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_COUNTDOWN_REALTIME = ['@flow:proposal-countdown-realtime', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_DISCOUNT_MULTI_SECTION = ['@flow:proposal-discount-multi-section', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_DOWNLOAD_PDF = ['@flow:proposal-download-pdf', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_ENGAGEMENT_TRACKING = ['@flow:proposal-engagement-tracking', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_EXECUTIVE_TO_DETAILED = ['@flow:proposal-executive-to-detailed', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_EXPIRED_GRACEFUL = ['@flow:proposal-expired-graceful', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_FUNCTIONAL_REQUIREMENTS_MODAL = ['@flow:proposal-functional-requirements-modal', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_HOSTING_PLAN_TERMS = ['@flow:proposal-hosting-plan-terms', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_INVESTMENT_CALCULATOR = ['@flow:proposal-investment-calculator', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_MAGIC_LINK_REQUEST = ['@flow:proposal-magic-link-request', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_NEGOTIATE = ['@flow:proposal-negotiate', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_OG_META_PERSONALIZED = ['@flow:proposal-og-meta-personalized', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_ONBOARDING_MOBILE_SWIPE = ['@flow:proposal-onboarding-mobile-swipe', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_PAYMENT_PLAN_CLOSING = ['@flow:proposal-payment-plan-closing', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_POST_ACCEPTANCE_WELCOME = ['@flow:proposal-post-acceptance-welcome', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_PROCESS_METHODOLOGY = ['@flow:proposal-process-methodology', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_REJECTION_OPTIONAL_REASON = ['@flow:proposal-rejection-optional-reason', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_REJECTION_SMART_RECOVERY = ['@flow:proposal-rejection-smart-recovery', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_RESOLVED_NOTICE_SUPPRESSION = ['@flow:proposal-resolved-notice-suppression', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_RESPOND = ['@flow:proposal-respond', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_ROI_PROJECTION = ['@flow:proposal-roi-projection', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_SCHEDULE_FOLLOWUP_REMINDER = ['@flow:proposal-schedule-followup-reminder', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SECTION_ONBOARDING = ['@flow:proposal-section-onboarding', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_SHARE = ['@flow:proposal-share', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SLUG_ACCESS = ['@flow:proposal-slug-access', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_STICKY_BAR_ACCEPT = ['@flow:proposal-sticky-bar-accept', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_STRUCTURED_NEGOTIATION = ['@flow:proposal-structured-negotiation', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_SUMMARY_KPIS = ['@flow:proposal-summary-kpis', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_TECHNICAL_VIEW = ['@flow:proposal-technical-view', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_VALUE_ADDED_MODULES = ['@flow:proposal-value-added-modules', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_VIEW = ['@flow:proposal-view', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_VIEW_NAVIGATION = ['@flow:proposal-view-navigation', '@module:proposal', '@priority:P1'];
+export const PROPOSAL_VIEW_ONBOARDING = ['@flow:proposal-view-onboarding', '@module:proposal', '@priority:P3'];
+export const PROPOSAL_VIEW_PASTE_RENDERING = ['@flow:proposal-view-paste-rendering', '@module:proposal', '@priority:P2'];
+export const PROPOSAL_WELCOME_BACK = ['@flow:proposal-welcome-back', '@module:proposal', '@priority:P2'];
+
+// ── public ──
+export const PUBLIC_ABOUT_US = ['@flow:public-about-us', '@module:public', '@priority:P3'];
+export const PUBLIC_CONTACT_SUBMIT = ['@flow:public-contact-submit', '@module:public', '@priority:P1'];
+export const PUBLIC_HOME = ['@flow:public-home', '@module:public', '@priority:P1'];
+export const PUBLIC_LANDING_APPS = ['@flow:public-landing-apps', '@module:public', '@priority:P3'];
+export const PUBLIC_LANDING_SOFTWARE = ['@flow:public-landing-software', '@module:public', '@priority:P3'];
+export const PUBLIC_LANDING_WEB_DESIGN = ['@flow:public-landing-web-design', '@module:public', '@priority:P2'];
+export const PUBLIC_LINKTREE_VIEW = ['@flow:public-linktree-view', '@module:public', '@priority:P2'];
+export const PUBLIC_PORTFOLIO = ['@flow:public-portfolio', '@module:public', '@priority:P2'];
+export const PUBLIC_PORTFOLIO_DETAIL = ['@flow:public-portfolio-detail', '@module:public', '@priority:P2'];
+export const PUBLIC_PRIVACY_POLICY = ['@flow:public-privacy-policy', '@module:public', '@priority:P4'];
+export const PUBLIC_TERMS_CONDITIONS = ['@flow:public-terms-conditions', '@module:public', '@priority:P4'];
+
+// ── authored extras (flow-tags.extra.js, appended verbatim) ──
+// Constantes autoradas NO derivables del registro — el generador las
+// appendea verbatim al final de flow-tags.js. Editá ESTE archivo.
+export const ADMIN_PROPOSAL_ACTIVITY_LOG = ['@flow:admin-proposal-log-activity', '@module:admin', '@priority:P2'];

@@ -1,0 +1,16 @@
+{
+  "id": "platform-login",
+  "name": "Platform Login",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "Client or admin authenticates via JWT login form. Routes to /platform/verify (first login), /platform/complete-profile (profile incomplete), or /platform/dashboard (onboarded).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "id": "platform-access-view",
+  "name": "Platform Access View",
+  "module": "platform",
+  "priority": "P2",
+  "roles": [
+    "platform-admin"
+  ],
+  "expectedSpecs": 0,
+  "description": "Admin-only quick-access hub at /platform/access: grid of project cards with clickable URLs (production, staging, Django admin, repository) and copy/reveal credential controls."
+}

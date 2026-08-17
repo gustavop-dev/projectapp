@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-rename",
+  "name": "Admin Document Rename",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin renames a document from the actions sheet: 'Renombrar' opens RenameDocumentModal with the current title, saving sends PATCH /api/documents/:id/update/ and the list refreshes with the new title.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

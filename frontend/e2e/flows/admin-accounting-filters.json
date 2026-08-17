@@ -1,0 +1,15 @@
+{
+  "id": "admin-accounting-filters",
+  "name": "Admin Accounting Filters",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Superuser filters the incomes list client-side: period date range, total amount min/max, kind segmented (Esperado/Líquido), collection segmented (\"Cobro\": Todos/Sin pagos/Parcial/Pagado, mirroring the row payment badge; its \"Sin pagos\" value also backs the builtin \"Solo esperados\" landing tab, next to the seeded \"Todos los esperados\"), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented (Todas/Empresa/Personal Gustavo/Personal Carlos), free-text search with debounce, active-filter count badge and reset. Powered by useAccountingFilters + AccountingFilterPanel. The revamped panel adds live-updating range dropdowns (debounced input), removable applied-filter chips, a filtered results counter and <mark> highlighting of search occurrences in the table. Saved tabs carry a base_filters restore point (all five panel views): filter edits under a tab still auto-save, but a drifted tab shows a '•' dot and its context menu offers 'Restaurar filtros' (back to the seeded/created definition) and 'Fijar como base' (re-baseline), so a seeded tab can always recover its meaning (the builtin tabs need none: they never drift).",
+  "expectedSpecs": 11,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

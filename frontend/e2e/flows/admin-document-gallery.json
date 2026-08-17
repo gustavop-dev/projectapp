@@ -1,0 +1,14 @@
+{
+  "id": "admin-document-gallery",
+  "name": "Admin Document Gallery View",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Toggle between list and gallery views on /panel/documents via the 'Lista'/'Galería' segmented control (data-testid doc-view-list / doc-view-grid). Gallery renders one card per document with a sanitized markdown mini-preview (content_excerpt), status badge overlay, client + date, up to 2 tag chips with a +N tooltip, and the same kebab 'Acciones' opening DocumentActionsSheet. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in localStorage (projectapp-documents-view-mode); default is 'list'. On mobile the gallery grid is always the view. Same as the list view, the DocumentActionsSheet 'Acciones' modal offers both 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional' rows, matching each document's persisted template style.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

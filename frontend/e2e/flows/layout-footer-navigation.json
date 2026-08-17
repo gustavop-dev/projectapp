@@ -1,0 +1,14 @@
+{
+  "id": "layout-footer-navigation",
+  "name": "Footer Navigation",
+  "module": "layout",
+  "roles": [
+    "shared"
+  ],
+  "priority": "P3",
+  "description": "Navigate using footer links and social media links.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "proposal-summary-kpis",
+  "name": "Proposal Summary KPIs",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

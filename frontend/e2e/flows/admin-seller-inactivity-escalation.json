@@ -1,0 +1,14 @@
+{
+  "id": "admin-seller-inactivity-escalation",
+  "name": "Admin Seller Inactivity Escalation",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "Periodic task sends escalation email for proposals with >=5 days no seller activity.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only periodic task, covered by backend unit tests"
+  ]
+}
