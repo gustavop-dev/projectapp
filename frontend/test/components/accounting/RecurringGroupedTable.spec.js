@@ -252,9 +252,11 @@ describe('RecurringGroupedTable', () => {
 
     expect(wrapper.find('[data-testid="recurring-group-weight-1"]').text()).toBe('95,5%');
     expect(wrapper.find('[data-testid="recurring-group-weight-2"]').text()).toBe('4,5%');
-    // The share names its own base instead of trailing the row unlabelled.
+    // The label says what the figure is — this group's share OF the active
+    // payments — instead of trailing the row unlabelled or reading as how
+    // much of the group is active.
     expect(wrapper.find('[data-testid="recurring-group-1"]').text())
-      .toContain('% de pagos activos');
+      .toContain('Participación en pagos activos');
   });
 
   it('omits the group weight when the page does not compute one', () => {

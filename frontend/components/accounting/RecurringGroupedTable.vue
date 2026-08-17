@@ -66,7 +66,8 @@
       <template v-else>
         <div v-for="group in localGroups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
-          <!-- Totals row spread over weighted tracks; see IncomeGroupedTable. -->
+          <!-- Totals row with the figures grouped next to the name; see
+               IncomeGroupedTable for why they are not spread across the row. -->
           <div
             role="row"
             class="accounting-grid-band accounting-group-header bg-surface-raised border-y border-border-muted px-4 py-2"
@@ -103,8 +104,10 @@
               v-if="group.groupWeightPct != null"
               class="text-xs leading-tight whitespace-nowrap"
             >
+              <!-- The share OF the active payments, not how much of this group
+                   is active — same wording fix as the incomes header. -->
               <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-                % de pagos activos
+                Participación en pagos activos
               </span>
               <span
                 class="block font-medium tabular-nums text-text-muted"
@@ -189,8 +192,8 @@
           </draggable>
         </div>
 
-        <!-- Grand total: same track list as the group headers, so the set's
-             figure sits under the per-category ones. -->
+        <!-- Grand total: same layout as the group headers, so the whole table
+             reads the same way — label first, figure grouped right after it. -->
         <div
           role="row"
           class="accounting-grid-band accounting-group-header bg-surface-raised border-t-2 border-border-muted px-4 py-2"
@@ -422,37 +425,43 @@ function onDragEnd() {
 }
 
 /* Group header and footer as totals rows — duplicated with IncomeGroupedTable
- * for the same reason the grid CSS above already is (see its file header).
- * One fewer figure than incomes, so one fewer track; the weights are the same:
- * the category name takes the slack, the amount gets a COP-wide floor and the
- * share closes narrower. */
+ * for the same reason the grid CSS above already is (see its file header), and
+ * that file carries the argument for grouping the figures next to the name
+ * instead of spreading them across the row. */
 .accounting-group-header {
-  display: grid;
-  /* Tracks floor at 0 so the spanning name ellipsizes inside the band instead
-   * of widening it — same reason as IncomeGroupedTable. */
-  grid-template-columns: repeat(2, minmax(0, auto));
-  justify-content: start;
-  column-gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  /* Name is one line, figure blocks are two: centre it against the block. */
+  align-items: center;
+  column-gap: 1.25rem;
   row-gap: 0.25rem;
+  /* Zero width so the band contributes nothing to the columns' track sizing,
+   * min-width to stretch it back over them: otherwise the longest category
+   * name widens the whole table and `truncate` never engages. See
+   * IncomeGroupedTable for the measurements. */
+  width: 0;
+  min-width: 100%;
 }
+
+/* Below sm the name owns its line and the figures ride together on the next. */
 .accounting-group-header > :first-child {
-  grid-column: 1 / -1;
+  flex: 0 1 100%;
   min-width: 0;
 }
 
+/* Amounts never compress: the name is what yields. */
+.accounting-group-header > :not(:first-child) {
+  flex: 0 0 auto;
+}
+
 @media (min-width: 640px) {
+  /* One line from sm up: wrapping would push the figures down instead of
+   * making the name yield to them — see IncomeGroupedTable. */
   .accounting-group-header {
-    grid-template-columns:
-      minmax(0, 2.5fr)
-      minmax(7rem, 1fr)
-      minmax(5rem, 0.7fr);
-    column-gap: 1.5rem;
-    /* Name is one line, figure blocks are two: centre it against the block. */
-    align-items: center;
+    flex-wrap: nowrap;
   }
   .accounting-group-header > :first-child {
-    grid-column: auto;
-    min-width: 0;
+    flex: 0 1 auto;
   }
 }
 

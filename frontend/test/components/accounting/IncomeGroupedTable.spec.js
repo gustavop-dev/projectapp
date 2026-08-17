@@ -65,23 +65,39 @@ describe('IncomeGroupedTable', () => {
       .toBe('$6.646.746 COP');
     expect(wrapper.find('[data-testid="income-group-weight-22"]').text())
       .toBe('88,4%');
-    // The share has to name the base it is computed on, or it is a bare
-    // percentage of nothing in particular.
+    // The label has to say what the figure IS — this group's share of the
+    // billed total — and not "% de lo facturado", which also reads as how
+    // much of this group is billed, a different question.
     expect(wrapper.find('[data-testid="income-group-22"]').text())
-      .toContain('% de lo facturado');
+      .toContain('Participación en lo facturado');
   });
 
   it('labels every figure in its own block instead of chaining them with middots', () => {
     const wrapper = mountTable();
 
     const header = wrapper.find('[data-testid="income-group-22"]');
-    // Each amount carries its own label, so the blocks can be spread across
-    // the row without the reader losing which figure is which.
+    // Each amount carries its own label above its value, so the reader never
+    // loses which figure is which.
     expect(header.text()).toContain('Facturado');
     expect(header.text()).toContain('Pendiente');
-    // The track spacing separates the blocks now, so the separators that used
-    // to chain name and figures into one sentence are gone.
+    // With every block labelled, the gap alone tells them apart: the middots
+    // that used to chain name and figures into one sentence are gone.
     expect(header.text()).not.toContain('·');
+  });
+
+  it('keeps the three figures as siblings right after the client name', () => {
+    const wrapper = mountTable();
+
+    // The figures are facts about the client they follow, so they stay
+    // contiguous to the name at the start of the band — one flat row of
+    // blocks, in reading order. Nesting or reordering them is what turned
+    // them back into columns of something else.
+    const blocks = wrapper.find('[data-testid="income-group-22"]').element.children;
+    expect(blocks.length).toBe(4);
+    expect(blocks[0].textContent).toContain('Deivis Rios');
+    expect(blocks[1].textContent).toContain('Facturado');
+    expect(blocks[2].textContent).toContain('Pendiente');
+    expect(blocks[3].textContent).toContain('Participación en lo facturado');
   });
 
   it('keeps the record count with the client name, not with the amounts', () => {
