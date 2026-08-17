@@ -360,22 +360,10 @@ describe('useAccountingStore', () => {
   })
 
   describe('getters', () => {
-    it('pocketWithRunningBalance orders chronologically with running sum', () => {
-      store.pocketMovements = [
-        {
-          id: 2, movement_date: '2026-05-06', created_at: '2026-05-06T10:00:00Z',
-          direction: 'out', amount: '40.00',
-        },
-        {
-          id: 1, movement_date: '2026-04-29', created_at: '2026-04-29T10:00:00Z',
-          direction: 'in', amount: '100.00',
-        },
-      ]
-      const ledger = store.pocketWithRunningBalance
-      expect(ledger.map((m) => m.id)).toEqual([1, 2])
-      expect(ledger[0].running_balance).toBe(100)
-      expect(ledger[1].running_balance).toBe(60)
-    })
+    // The pocket running balance moved out of the store to
+    // `utils/pocketRunningBalance`: the page accumulates over the rows its
+    // filters left, so the store no longer owns that view.
+    // See frontend/test/utils/pocketRunningBalance.test.js.
 
     it('recurringTotalsByFrequency sums active payments only', () => {
       store.recurringPayments = [

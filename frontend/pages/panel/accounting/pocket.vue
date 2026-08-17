@@ -4,8 +4,10 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
         <h1 class="text-2xl font-light text-text-default">Bolsillo ProjectApp</h1>
-        <p class="text-sm text-text-subtle mt-1">
-          Libro de movimientos del bolsillo compartido, con saldo corrido.
+        <p class="text-sm text-text-subtle mt-1" data-testid="pocket-subtitle">
+          {{ hasActiveFilters
+            ? 'Con filtros activos, la columna Acumulado suma sólo los movimientos visibles.'
+            : 'Libro de movimientos del bolsillo compartido, con saldo corrido.' }}
         </p>
       </div>
       <BaseButton
@@ -23,7 +25,14 @@
 
     <!-- Balance card -->
     <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-5 sm:p-6 mb-6">
-      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">Saldo del bolsillo</p>
+      <p class="text-xs text-text-muted uppercase tracking-wider mb-1">
+        Saldo del bolsillo
+        <!-- The server owns this figure and always aggregates every movement,
+             so it has to say so out loud once the rows below are a subset. -->
+        <span v-if="hasActiveFilters" class="normal-case tracking-normal">
+          (total, no refleja los filtros)
+        </span>
+      </p>
       <p
         class="text-3xl font-semibold tabular-nums"
         :class="pocketBalance >= 0 ? 'text-success-strong' : 'text-danger-strong'"
@@ -31,12 +40,23 @@
       >
         {{ formatMoney(pocketBalance) }}
       </p>
+      <p
+        v-if="hasActiveFilters"
+        class="text-sm text-text-muted mt-2 tabular-nums"
+        data-testid="pocket-filtered-net"
+      >
+        {{ filteredMovements.length }}
+        {{ filteredMovements.length === 1 ? 'movimiento' : 'movimientos' }}
+        filtrados · neto {{ formatMoney(filteredNet) }}
+      </p>
     </div>
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
       :tabs="savedTabs"
       :active-tab-id="filterTabId"
+      :counts="tabCounts"
+      :max-visible="MAX_VISIBLE_TABS"
       :is-tab-limit-reached="isTabLimitReached"
       @select="selectFilterTab"
       @create="handleCreateFilterTab"
@@ -51,7 +71,7 @@
       <BaseInput
         v-model="searchInput"
         type="text"
-        placeholder="Buscar por concepto..."
+        placeholder="Buscar por concepto o notas..."
         data-testid="pocket-search-input"
         class="w-full sm:max-w-xs"
       />
@@ -234,14 +254,20 @@ import {
   matchDateRange,
   matchNumberRange,
   matchEquals,
+  matchIncludes,
+  matchBoolean,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { formatMoney } from '~/utils/formatMoney';
+import { withRunningBalance } from '~/utils/pocketRunningBalance';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+
+// Todas + 6 seeded cuts no longer fit the strip; the rest collapse into "+N".
+const MAX_VISIBLE_TABS = 6;
 
 // -------------------------------------------------------------------
 // Filters
@@ -257,6 +283,7 @@ const {
   activeFilterCount,
   isTabLimitReached,
   applyFilters,
+  countTabs,
   resetFilters,
   selectTab: selectFilterTab,
   saveTab,
@@ -272,13 +299,21 @@ const {
     direction: '',
     amountMin: '',
     amountMax: '',
+    attribution: [],
+    linked: '',
   },
   matchers: {
     date: matchDateRange('movement_date', 'dateAfter', 'dateBefore'),
     direction: matchEquals('direction', 'direction'),
     amount: matchNumberRange('amount', 'amountMin', 'amountMax'),
+    // `linked_ledger` is null on movements that mirror nothing; the backend
+    // spells that case 'none' too, so export and panel share one vocabulary.
+    attribution: matchIncludes('linked_ledger', 'attribution', { nullAs: 'none' }),
+    linked: matchBoolean('is_auto_managed', 'linked'),
   },
-  searchFields: ['concept'],
+  // The backend `q` has always searched both; the panel used to search only
+  // the concept, so a note was captured and then unreachable.
+  searchFields: ['concept', 'notes'],
 });
 
 const filterFields = [
@@ -294,6 +329,30 @@ const filterFields = [
     ],
   },
   { kind: 'range', label: 'Valor', minKey: 'amountMin', maxKey: 'amountMax', type: 'money' },
+  {
+    // Same vocabulary as the modal's "Atribuir a": whatever the form captures
+    // is what the panel can cut by. "Sin vínculo" is deliberately absent — it
+    // is the same set as Vínculo → "Sin vincular", and offering both invites
+    // a guaranteed-empty combination.
+    kind: 'multi',
+    key: 'attribution',
+    label: 'Atribuir a',
+    options: [
+      { value: 'company', label: 'Empresa' },
+      { value: 'gustavo', label: 'Gustavo' },
+      { value: 'carlos', label: 'Carlos' },
+    ],
+  },
+  {
+    kind: 'segmented',
+    key: 'linked',
+    label: 'Vínculo',
+    options: [
+      { value: '', label: 'Todos' },
+      { value: 'true', label: 'Vinculados' },
+      { value: 'false', label: 'Sin vincular' },
+    ],
+  },
 ];
 
 const EXPORT_MAPPING = {
@@ -302,6 +361,8 @@ const EXPORT_MAPPING = {
   direction: 'direction',
   amountMin: 'amount_min',
   amountMax: 'amount_max',
+  attribution: 'attribution',
+  linked: 'linked',
   search: 'q',
 };
 
@@ -316,11 +377,24 @@ const exportParams = computed(() =>
 // Server meta is the single owner of the headline balance.
 const pocketBalance = computed(() => Number(store.metaFor('pocket').balance ?? 0));
 
-// Running balance is computed chronologically (oldest first) in the getter;
-// the default view shows the most recent movement first.
+// Filter first, accumulate second: the Saldo column has to add up to what the
+// reader is looking at. With no filter active `applyFilters` passes the array
+// straight through, so the figures are the same ones as before this split.
+// `withRunningBalance` always returns fresh rows in a fresh array, so reversing
+// it in place is safe and yields the newest-first default view.
 const filteredMovements = computed(() =>
-  applyFilters(store.pocketWithRunningBalance).slice().reverse(),
+  withRunningBalance(applyFilters(store.pocketMovements)).reverse(),
 );
+
+// Net of the visible cut = the last accumulated value, which the reversed array
+// carries in its first row.
+const filteredNet = computed(() =>
+  filteredMovements.value.length ? filteredMovements.value[0].running_balance : 0,
+);
+
+// Each tab counts its own cut of the whole ledger, not of the current one: the
+// badge answers "how many would I see there", so it must ignore live filters.
+const tabCounts = computed(() => countTabs(store.pocketMovements));
 
 const {
   isModalOpen,
@@ -388,13 +462,21 @@ const {
 
 // Value and running balance are the same number in two readings, so they group.
 // Date, concept and value are what a ledger is for; the rest can collapse.
-const columns = [
+const columns = computed(() => [
   { key: 'movement_date', label: 'Fecha', format: 'date', sortable: true },
   { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
   { key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
   { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
-  { key: 'running_balance', label: 'Saldo', format: 'money', group: 'money', hideBelow: 'md' },
-];
+  {
+    key: 'running_balance',
+    // Under a filter the column stops being the pocket's balance: it is the
+    // accumulation of the visible rows, starting from zero at the first one.
+    label: hasActiveFilters.value ? 'Acumulado' : 'Saldo',
+    format: 'money',
+    group: 'money',
+    hideBelow: 'md',
+  },
+]);
 
 // ── Reparto de un abono ──
 

@@ -6,7 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from content.models import (
-    AccountingChangeLog, HostingRecord, PocketMovement, RecurringPayment,
+    AccountingChangeLog, HostingRecord, IncomeRecord, PocketMovement,
+    RecurringPayment,
 )
 from content.services import accounting_service
 
@@ -288,6 +289,171 @@ class TestPocketEndpoints:
             f'/api/accounting/incomes/{income.data["id"]}/',
         )
         assert gone.status_code == 404
+
+
+def _seed_pocket_attribution_rows(client):
+    """One movement per attribution value the panel can filter by.
+
+    Linked rows go through the API so the mirror is built by the service (the
+    only thing that knows a partner draw is a company expense assigned 100% to
+    that partner); the unlinked one is written straight to the ORM because that
+    is what a historical movement is — nothing mirrors it.
+    """
+    draw = client.post(
+        '/api/accounting/pocket/create/',
+        {
+            'concept': 'Retiro Gustavo', 'movement_date': '2026-06-01',
+            'direction': 'out', 'amount': '300000.00', 'ledger': 'gustavo',
+        },
+        format='json',
+    )
+    assert draw.status_code == 201, draw.data
+
+    company_out = client.post(
+        '/api/accounting/pocket/create/',
+        {
+            'concept': 'Hosting anual', 'movement_date': '2026-06-02',
+            'direction': 'out', 'amount': '120000.00', 'ledger': 'company',
+        },
+        format='json',
+    )
+    assert company_out.status_code == 201, company_out.data
+
+    company_in = client.post(
+        '/api/accounting/pocket/create/',
+        {
+            'concept': 'Abono cliente', 'movement_date': '2026-06-03',
+            'direction': 'in', 'amount': '500000.00', 'ledger': 'company',
+        },
+        format='json',
+    )
+    assert company_in.status_code == 201, company_in.data
+
+    historical = PocketMovement.objects.create(
+        concept='Movimiento viejo', movement_date=date(2026, 6, 4),
+        direction='out', amount=Decimal('80000.00'),
+    )
+
+    # A shared abono movement (N income children) — the cardinality the
+    # singular rows cannot represent. Built through the real endpoint so the
+    # children ride the movement exactly like production rows; the parity
+    # test then guards property vs SQL where the plural link gets involved.
+    parents = [
+        IncomeRecord.objects.create(
+            concept=f'Abono demo {suffix}', kind=IncomeRecord.Kind.EXPECTED,
+            period_date=date(2026, 6, day), total_amount=Decimal(total),
+            gustavo_amount=Decimal(total) / 2, carlos_amount=Decimal(total) / 2,
+        )
+        for suffix, day, total in (('A', 1, '200000.00'), ('B', 2, '300000.00'))
+    ]
+    shared = client.post(
+        '/api/accounting/incomes/bulk-settle/',
+        {
+            'allocations': [
+                {'income_id': parents[0].pk, 'amount': '200000.00'},
+                {'income_id': parents[1].pk, 'amount': '300000.00'},
+            ],
+            'total_amount': '500000.00',
+            'period_date': '2026-06-05',
+            'notes': '',
+        },
+        format='json',
+    )
+    assert shared.status_code == 201, shared.data
+
+    return {
+        'gustavo': draw.data['id'],
+        'company_out': company_out.data['id'],
+        'company_in': company_in.data['id'],
+        'unlinked': historical.pk,
+        'abono': shared.data['movement']['id'],
+    }
+
+
+def _pocket_ids(client, query=''):
+    response = client.get(f'/api/accounting/pocket/{query}')
+    assert response.status_code == 200, response.data
+    return {row['id'] for row in response.data['results']}
+
+
+@pytest.mark.django_db
+class TestPocketAttributionAndLinkFilters:
+    """The two filters the panel's "Atribuir a" and "Vínculo" controls send.
+
+    They are the reason the export and the MCP tool can cut the same rows the
+    table shows: the attribution lives in the mirrored record, not in a column.
+    """
+
+    def test_attribution_isolates_the_partner_draw(self, super_client):
+        ids = _seed_pocket_attribution_rows(super_client)
+        assert _pocket_ids(super_client, '?attribution=gustavo') == {
+            ids['gustavo'],
+        }
+
+    def test_attribution_company_covers_both_directions(self, super_client):
+        ids = _seed_pocket_attribution_rows(super_client)
+        assert _pocket_ids(super_client, '?attribution=company') == {
+            ids['company_out'], ids['company_in'], ids['abono'],
+        }
+
+    def test_attribution_none_is_the_unlinked_movement(self, super_client):
+        ids = _seed_pocket_attribution_rows(super_client)
+        assert _pocket_ids(super_client, '?attribution=none') == {
+            ids['unlinked'],
+        }
+
+    def test_attribution_carlos_excludes_the_other_partners_draw(
+        self, super_client,
+    ):
+        _seed_pocket_attribution_rows(super_client)
+        assert _pocket_ids(super_client, '?attribution=carlos') == set()
+
+    def test_linked_splits_mirrored_from_historical(self, super_client):
+        ids = _seed_pocket_attribution_rows(super_client)
+        assert _pocket_ids(super_client, '?linked=true') == {
+            ids['gustavo'], ids['company_out'], ids['company_in'], ids['abono'],
+        }
+        assert _pocket_ids(super_client, '?linked=false') == {ids['unlinked']}
+
+    def test_attribution_filter_agrees_with_the_serialized_ledger(
+        self, super_client,
+    ):
+        """Guard against the SQL restatement drifting from the property.
+
+        `_POCKET_ATTRIBUTION_Q` and `PocketMovement.attribution` are two
+        spellings of one rule; this fails the moment they disagree on a row.
+        """
+        _seed_pocket_attribution_rows(super_client)
+        rows = super_client.get('/api/accounting/pocket/').data['results']
+        assert len(rows) == 5
+
+        for token in ('company', 'gustavo', 'carlos', 'none'):
+            expected = {
+                row['id'] for row in rows
+                if (row['linked_ledger'] or 'none') == token
+            }
+            assert _pocket_ids(super_client, f'?attribution={token}') == (
+                expected
+            ), f'attribution={token} disagrees with linked_ledger'
+
+    def test_a_shared_abono_movement_filters_once_and_reads_company(
+        self, super_client,
+    ):
+        """The plural link must not fan the movement out across its children.
+
+        The income branches of the Q filters go through EXISTS: a JOIN would
+        return the abono once per child, duplicating table rows and inflating
+        the client-side running balance.
+        """
+        ids = _seed_pocket_attribution_rows(super_client)
+        rows = super_client.get(
+            '/api/accounting/pocket/?attribution=company',
+        ).data['results']
+
+        occurrences = [row for row in rows if row['id'] == ids['abono']]
+        assert len(occurrences) == 1
+        assert occurrences[0]['linked_ledger'] == 'company'
+        assert len(occurrences[0]['allocations']) == 2
 
 
 @pytest.mark.django_db

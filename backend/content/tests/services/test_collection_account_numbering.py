@@ -12,7 +12,10 @@ from content.services.collection_account_numbering import (
     ensure_billing_code,
     peek_next_client_number,
 )
-from content.services.collection_account_service import CollectionAccountError
+from content.services.collection_account_service import (
+    CollectionAccountError,
+    delete_collection_account,
+)
 from content.services.document_type_utils import (
     get_collection_account_document_type,
 )
@@ -100,6 +103,26 @@ class TestAllocateClientNumber:
         )
         assert manual == 'PA-ACMESOLU-009'
         assert allocate_client_number(profile, issuer) == 'PA-ACMESOLU-010'
+
+    def test_deleting_a_cuenta_leaves_a_hole_instead_of_reusing_its_number(
+        self, issuer,
+    ):
+        """A hole in the series can be explained; two documents sharing a
+        number cannot. The sequence only moves forward, so removing the row
+        that held 002 must not hand 002 to the next cuenta."""
+        profile = make_profile()
+        allocate_client_number(profile, issuer)
+        second = Document.objects.create(
+            document_type=get_collection_account_document_type(),
+            title='Por error',
+            public_number=allocate_client_number(profile, issuer),
+            total=Decimal('1'),
+        )
+        assert second.public_number == 'PA-ACMESOLU-002'
+
+        delete_collection_account(second)
+
+        assert allocate_client_number(profile, issuer) == 'PA-ACMESOLU-003'
 
     def test_peek_suggests_without_consuming(self, issuer):
         profile = make_profile()

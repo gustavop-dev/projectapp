@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from .accounting_base import AccountingRecordBase
+from .accounting_base import AccountingRecordBase, Ledger
 
 
 class PocketMovement(AccountingRecordBase):
@@ -84,3 +84,30 @@ class PocketMovement(AccountingRecordBase):
         return bool(self.income_children) or (
             getattr(self, 'expense_record', None) is not None
         )
+
+    @property
+    def attribution(self):
+        """Party this movement is effectively attributed to, or None.
+
+        OUT mirrors are company expenses whose split says whose draw it was,
+        so the answer there is the expense's `partner_attribution`. IN mirrors
+        derive from their income children's ledger: the children of a valid
+        movement are unanimous (pocket incomes are company by the write rules,
+        and an abono's N children doubly so), so the unanimous ledger is the
+        answer; a mixed set is only reachable through invalid direct writes
+        and falls to COMPANY, mirroring what the SQL's company branch matches.
+        Unlinked historical movements mirror nothing and have no attribution.
+
+        `_POCKET_ATTRIBUTION_Q` in `content.views.accounting` restates this rule
+        in SQL so the table, the CSV export and the MCP tool cut the same rows.
+        Keep both sides in sync.
+        """
+        expense = getattr(self, 'expense_record', None)
+        if expense is not None:
+            return expense.partner_attribution
+        ledgers = {child.ledger for child in self.income_children}
+        if len(ledgers) == 1:
+            return next(iter(ledgers))
+        if ledgers:
+            return Ledger.COMPANY
+        return None

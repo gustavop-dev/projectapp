@@ -78,13 +78,10 @@ def _make_list(key):
     def handler(arguments):
         config = _ENTITIES[key]
         # base_queryset applies the entity's read annotations (e.g. income's
-        # paid_amount): without them a payment_status filter raises FieldError
-        # and the serializer falls back to one aggregate per row.
+        # paid_amount) and its select/prefetch joins: without the annotations a
+        # payment_status filter raises FieldError and the serializer falls back
+        # to one aggregate per row.
         queryset = base_queryset(config)
-        if config.get('select_related'):
-            queryset = queryset.select_related(*config['select_related'])
-        if config.get('prefetch_related'):
-            queryset = queryset.prefetch_related(*config['prefetch_related'])
         params = _str_params(arguments)
         try:
             queryset = _apply_filters(queryset, params, config)
@@ -548,6 +545,17 @@ def _list_schema(key):
             'description': (
                 "'none' para los registros sin asignar, 'all' para no "
                 'filtrar, o uno o varios ids separados por coma.'
+            ),
+        }
+    for field, conditions in config.get('q_filters', {}).items():
+        # `string` rather than `boolean` even for the true/false tokens: the
+        # knob parses comma-separated tokens uniformly, and `_str_params`
+        # coerces a real boolean to 'true'/'false' anyway.
+        props[field] = {
+            'type': 'string',
+            'description': (
+                'Uno o varios valores separados por coma: '
+                + ', '.join(sorted(conditions)) + '.'
             ),
         }
     if config.get('has_split'):

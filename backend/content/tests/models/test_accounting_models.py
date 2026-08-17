@@ -132,6 +132,45 @@ class TestPocketMovement:
         assert movement.is_auto_managed is True
         assert movement.linked_record == expense
 
+    def _movement(self):
+        return PocketMovement.objects.create(
+            concept='Movimiento',
+            movement_date=date(2026, 3, 1),
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('80000.00'),
+        )
+
+    def test_attribution_is_none_without_a_mirror(self):
+        assert self._movement().attribution is None
+
+    def test_attribution_of_a_partner_draw_is_that_partner(self, make_expense):
+        """A draw is a company expense assigned 100% to one partner."""
+        movement = self._movement()
+        make_expense(
+            pocket_movement=movement,
+            category='personal',
+            gustavo_amount=Decimal('800000.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        assert movement.attribution == 'gustavo'
+
+    def test_attribution_of_a_split_expense_is_the_company(self, make_expense):
+        movement = self._movement()
+        make_expense(pocket_movement=movement)
+        assert movement.attribution == 'company'
+
+    def test_attribution_of_an_income_mirror_reads_its_ledger(
+        self, make_income,
+    ):
+        movement = PocketMovement.objects.create(
+            concept='Abono',
+            movement_date=date(2026, 3, 1),
+            direction=PocketMovement.Direction.IN,
+            amount=Decimal('80000.00'),
+        )
+        make_income(pocket_movement=movement)
+        assert movement.attribution == 'company'
+
 
 @pytest.mark.django_db
 class TestRecurringPayment:

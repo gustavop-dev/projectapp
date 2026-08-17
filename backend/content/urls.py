@@ -42,6 +42,7 @@ from content.views.collection_accounts_panel import (
     collection_account_pdf,
     collection_account_preview_pdf_view,
     create_collection_account_view,
+    delete_collection_account_view,
     list_collection_accounts,
     mark_collection_account_paid_view,
     preview_collection_account_view,
@@ -609,6 +610,7 @@ urlpatterns = [
     path('accounting/collection-accounts/<int:doc_id>/resend/', resend_collection_account, name='resend-collection-account'),
     path('accounting/collection-accounts/<int:doc_id>/mark-paid/', mark_collection_account_paid_view, name='mark-collection-account-paid'),
     path('accounting/collection-accounts/<int:doc_id>/cancel/', cancel_collection_account_view, name='cancel-collection-account'),
+    path('accounting/collection-accounts/<int:doc_id>/delete/', delete_collection_account_view, name='delete-collection-account'),
 
     path('accounting/pocket/', list_pocket_movements, name='list-pocket-movements'),
     path('accounting/pocket/create/', create_pocket_movement, name='create-pocket-movement'),
