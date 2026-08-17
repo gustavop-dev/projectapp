@@ -86,16 +86,41 @@ class TestAccountingMcpCrud:
             'kind': 'liquid',
             'period_date': '2026-04',
             'total_amount': '1000000',
+            # Required since Aug 2026 — creating from the chat classifies a new
+            # record just like the panel form does.
+            'origin': 'development',
         })
         assert response.data['result']['isError'] is False
         record = IncomeRecord.objects.get(concept='Kore v2 anticipo')
         assert record.created_by_id == mcp_superuser.id
+
+    def test_create_income_without_a_business_line_errors(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        """Creating from the chat classifies, so it is held to the same rule.
+
+        Only settling is exempt, and for a reason that does not apply here:
+        its children copy the origin of a parent that may predate the field,
+        while this creates a record with nothing to copy from.
+        """
+        _, token = accounting_connector
+        response = _call(api_client, token, 'create_income', {
+            'concept': 'Sin línea', 'kind': 'liquid',
+            'period_date': '2026-04', 'total_amount': '1000',
+        })
+        result = response.data['result']
+        assert result['isError'] is True
+        assert 'origin' in result['content'][0]['text']
+        assert not IncomeRecord.objects.filter(concept='Sin línea').exists()
 
     def test_create_income_without_superuser_errors(self, api_client, accounting_connector):
         _, token = accounting_connector
         response = _call(api_client, token, 'create_income', {
             'concept': 'Sin actor', 'kind': 'liquid',
             'period_date': '2026-04', 'total_amount': '1000',
+            # Complete on purpose: the refusal under test is the missing
+            # superuser, not a payload the serializer would reject anyway.
+            'origin': 'development',
         })
         assert response.data['result']['isError'] is True
 
@@ -165,6 +190,9 @@ class TestAccountingMcpHandlerBranches:
         response = _call(api_client, token, 'create_income', {
             'concept': 'Malo', 'kind': 'liquid',
             'period_date': '2026-04', 'total_amount': 'no-numero',
+            # The invalid field under test is the amount; the rest is valid so
+            # the assertion cannot pass on a different rejection.
+            'origin': 'development',
         })
         result = response.data['result']
         assert result['isError'] is True
@@ -234,6 +262,7 @@ class TestAccountingMcpHandlerBranches:
         _call(api_client, token := accounting_connector[1], 'create_income', {
             'concept': 'Log gen', 'kind': 'liquid',
             'period_date': '2026-04', 'total_amount': '5000',
+            'origin': 'development',
         })
         response = _call(api_client, token, 'list_change_logs', {
             'entity_type': 'income', 'action': 'created', 'page': 1,
@@ -324,6 +353,7 @@ class TestAccountingMcpPocketGuardrails:
             'destination': 'pocket',
             'period_date': '2026-04',
             'total_amount': '250000',
+            'origin': 'development',
         })
         assert response.data['result']['isError'] is False
         record = IncomeRecord.objects.get(concept='Pago bolsillo directo')

@@ -510,9 +510,14 @@ class IncomeRecordCreateUpdateSerializer(
         # relies on — while a partial PATCH that does not touch it leaves the
         # record as unclassified as it already was.
         #
-        # Settling is exempt: its children copy the parent's origin instead of
-        # classifying anything, and the parent may well predate the field.
-        # Same escape `deduction_type` takes on the expense side.
+        # Every creation path a person drives is included, the MCP tool
+        # `create_income` among them — creating from the chat classifies a new
+        # record exactly like the panel form does, and its schema declares
+        # `origin` required so the caller is told rather than refused.
+        #
+        # Settling is the one exemption: its children copy the parent's origin
+        # instead of classifying anything, and the parent may well predate the
+        # field. Same escape `deduction_type` takes on the expense side.
         if not self.context.get('settlement'):
             if (self.instance is None or 'origin' in data) and not data.get('origin'):
                 raise serializers.ValidationError({
