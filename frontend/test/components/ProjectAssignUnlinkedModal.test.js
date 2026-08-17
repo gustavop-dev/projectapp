@@ -97,10 +97,12 @@ describe('ProjectAssignUnlinkedModal', () => {
     expect(wrapper.emitted('assigned')).toHaveLength(1);
   });
 
-  it('a preview without documents renders no documents section', async () => {
+  it('a preview without documents renders the other sections and no documents one', async () => {
     const wrapper = mountModal();
     await openModal(wrapper);
 
+    expect(wrapper.text()).toContain('Hostings (1)');
+    expect(wrapper.text()).toContain('Ingresos (2)');
     expect(wrapper.text()).not.toContain('Documentos (');
   });
 

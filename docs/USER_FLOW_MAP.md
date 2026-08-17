@@ -5816,9 +5816,9 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-ads` | admin | P3 | display,success,error | 2 |
 | `admin-accounting-card-catalog` | admin | P2 | display,success,error | 4 |
 | `admin-accounting-cards` | admin | P2 | display,success,error | 5 |
-| `admin-accounting-collection-create` | admin | P1 | display,failure,error,success | 8 |
+| `admin-accounting-collection-create` | admin | P1 | display,failure,error,success | 9 |
 | `admin-accounting-collection-detail` | admin | P1 | display,success | — |
-| `admin-accounting-collections` | admin | P2 | display,success,failure | 5 |
+| `admin-accounting-collections` | admin | P2 | display,success,failure | 6 |
 | `admin-accounting-dashboard` | admin | P1 | display | 7 |
 | `admin-accounting-empty-state-cta` | admin | P4 | display | 2 |
 | `admin-accounting-expected-detail` | admin | P2 | display | 1 |

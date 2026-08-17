@@ -134,7 +134,9 @@ async function mockWithLinkedIncome(page, calls = []) {
   });
 }
 
-/** Already assigned to Acme (client 5): the "De {cliente}" group. */
+/** Already assigned to Acme (client 5): the "De {cliente}" group. It also
+ *  carries Acme's project, so the create flow can pin that the cuenta
+ *  inherits it (F7). */
 const OWN_INCOME = {
   ...ELIGIBLE_INCOME,
   id: 21,
@@ -144,6 +146,8 @@ const OWN_INCOME = {
   kind: 'liquid',
   kind_label: 'Líquido',
   payment_status: null,
+  project: 7,
+  project_name: 'Vastago',
 };
 
 /** Someone else's money: reachable only from the "Todos" alcance. */
@@ -315,7 +319,11 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
       };
     }
     if (apiPath === 'accounting/collection-accounts/create/' && method === 'POST') {
-      calls.push({ apiPath, method, body: route.request().postDataJSON() });
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      // The cuenta inherits the income's project and the column reads the
+      // live FK (F7) — the response mirrors what the backend answers.
+      const fromOwnIncome = body.income_record_id === OWN_INCOME.id;
       const created = {
         id: 9,
         public_number: 'PA-ACME-001',
@@ -324,15 +332,16 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
         customer_name: 'Acme Soluciones',
         client: 110,
         client_display_name: 'Ana Pérez',
-        project_name: '',
+        project_id: fromOwnIncome ? OWN_INCOME.project : null,
+        project_name: fromOwnIncome ? OWN_INCOME.project_name : '',
         total: '1490000.00',
         issue_date: '2026-08-05',
         due_date: '2026-08-13',
         commercial_status: 'issued',
         commercial_status_label: 'Emitida',
         is_overdue: false,
-        income_record_id: 8,
-        income_kind: 'expected',
+        income_record_id: body.income_record_id,
+        income_kind: fromOwnIncome ? 'liquid' : 'expected',
       };
       state.rows = [created, ...state.rows];
       return {
@@ -626,6 +635,29 @@ test.describe('Admin Accounting Collections', () => {
     expect(createCall.body.notes).toBe('Cobrar antes del 15');
   });
 
+  test('a cuenta raised from a project-linked income lands showing that project', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collection-create-button').click();
+    await page.getByTestId('collection-form-client').fill('Acme');
+    await page.getByTestId('client-autocomplete-option-5').click();
+    await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-option-21').click();
+    await page.getByTestId('collection-form-preview').click();
+    await page.getByTestId('collection-form-confirm').click();
+
+    await expect(page.getByText('Cuenta de cobro enviada')).toBeVisible();
+    // The draft inherited the income's project and the column reads the
+    // live FK (F7): the new row lands with its project visible, no reload.
+    const newRow = page.getByTestId('accounting-row-9');
+    await expect(newRow).toContainText('Vastago');
+    await expect(page.getByTestId('collection-project-space-9')).toBeVisible();
+  });
+
   test('the income list follows the chosen client through to the send', {
     tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
@@ -907,6 +939,66 @@ test.describe('Admin Accounting Collections', () => {
     const projects = page.locator('[data-testid^="accounting-row-"]');
     await expect(projects.first()).toContainText('Kore');
     await expect(projects.last()).toContainText('Xpandia');
+  });
+
+  test('two cuentas of one client each tell their own project truth, also after reload', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the coherence
+    // under test is exercised by clicking the Proyecto filter below)
+    // The reported evidence case: same client, one cuenta with the live
+    // relation and one with neither FK nor snapshot. The cell answers the
+    // live FK (snapshot only as fallback), the filter agrees with the cell,
+    // and a reload tells the same truth.
+    const rows = makeRows();
+    rows[1] = {
+      ...rows[1],
+      customer_name: 'Daniel Felipe Corredor',
+      client_display_name: 'Daniel Felipe Corredor',
+      project_id: 9,
+      project_name: 'Mimittos',
+    };
+    rows[2] = {
+      ...rows[2],
+      public_number: 'PA-DEIVISRI-001',
+      customer_name: 'Daniel Felipe Corredor',
+      client: rows[1].client,
+      client_display_name: 'Daniel Felipe Corredor',
+      project_id: null,
+      project_name: '',
+      commercial_status: 'issued',
+      commercial_status_label: 'Emitida',
+    };
+    const handler = buildHandler({ calls: [] });
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ results: rows, meta: META }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    await expect(page.getByTestId('accounting-row-2')).toContainText('Mimittos');
+    await expect(page.getByTestId('collection-no-project-3')).toHaveText('—');
+
+    // The filter keys off the same live FK the cell shows: picking the
+    // project keeps the linked cuenta and drops the blank sibling.
+    await page.getByRole('button', { name: /Filtros/ }).click();
+    await page.getByTestId('accounting-filter-panel')
+      .getByRole('button', { name: /^Proyecto/ }).click();
+    await page.getByLabel('Mimittos').check();
+    await expect(page.locator('[data-testid^="accounting-row-"]')).toHaveCount(1);
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
+
+    // Requisito 18: the same truth after a reload (filters are ephemeral,
+    // both rows return, each with its own cell).
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('accounting-row-2')).toContainText('Mimittos');
+    await expect(page.getByTestId('collection-no-project-3')).toHaveText('—');
   });
 
   test('opening the detail shows the linked income and its settlement history', {
