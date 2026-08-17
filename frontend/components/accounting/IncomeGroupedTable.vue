@@ -63,15 +63,15 @@
         <div v-for="group in groups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
           <!--
-            Name and subtotals read as one sentence, so they sit next to each
-            other instead of at opposite ends of the row. Below sm the figures
-            drop to their own line under the name rather than wrapping mid
-            amount — the break is a breakpoint and not flex-wrap so the leading
-            separator can be hidden with it.
+            This row IS the group's totals row, so its blocks spread across the
+            band on weighted tracks instead of bunching at one end: the name
+            keeps the slack and the figures land on the same verticals as the
+            footer. Below sm they drop together to a second line under the name
+            rather than wrapping mid amount.
           -->
           <div
             role="row"
-            class="accounting-grid-band flex flex-col items-start gap-y-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 bg-surface-raised border-y border-border-muted px-4 py-2"
+            class="accounting-grid-band accounting-group-header bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`income-group-${group.id}`"
           >
             <div class="flex items-center gap-2 min-w-0">
@@ -126,28 +126,42 @@
               Both amounts always render, zero included, so every group states
               the same facts in the same order — the footer row and the totals
               modal already spell out their zeros.
+
+              Each figure is its own grid cell with the label above the value:
+              the track spacing separates them, so the middots that used to
+              chain them into one sentence are gone. The labels borrow the
+              column headers' own formula (uppercase, tracked, subtle) because
+              that is what makes the row read as totals and not as decoration.
             -->
-            <span class="text-xs tabular-nums text-text-muted whitespace-nowrap">
-              <span class="hidden sm:inline text-text-subtle"> · </span>
-              <span class="text-text-subtle">Facturado </span>
-              <span class="font-medium" :data-testid="`income-group-billed-${group.id}`">
-                {{ money(group.billed) }}
+            <div class="text-xs leading-tight whitespace-nowrap">
+              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+                Facturado
               </span>
-              <span class="text-text-subtle"> · Pendiente </span>
               <span
-                class="font-medium text-warning-strong"
+                class="block font-medium tabular-nums text-text-muted"
+                :data-testid="`income-group-billed-${group.id}`"
+              >{{ money(group.billed) }}</span>
+            </div>
+            <div class="text-xs leading-tight whitespace-nowrap">
+              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+                Pendiente
+              </span>
+              <span
+                class="block font-medium tabular-nums text-warning-strong"
                 :data-testid="`income-group-pending-${group.id}`"
-              >
-                {{ money(group.pending) }}
+              >{{ money(group.pending) }}</span>
+            </div>
+            <!-- The label states the base the share is computed on, so the
+                 figure is not a bare percentage of nothing in particular. -->
+            <div v-if="group.weightPct != null" class="text-xs leading-tight whitespace-nowrap">
+              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+                % de lo facturado
               </span>
               <span
-                v-if="group.weightPct != null"
-                class="text-text-subtle tabular-nums"
+                class="block font-medium tabular-nums text-text-muted"
                 :data-testid="`income-group-weight-${group.id}`"
-              >
-                · {{ formatPercent(group.weightPct) }} de lo facturado
-              </span>
-            </span>
+              >{{ formatPercent(group.weightPct) }}</span>
+            </div>
           </div>
 
           <!-- Rows -->
@@ -225,28 +239,47 @@
         </div>
 
         <!-- Grand totals: billed vs collected are separate ledger rows, so
-             they read side by side instead of summing into one number. -->
+             they read side by side instead of summing into one number.
+
+             Shares the group headers' track list, so the set's figures sit
+             directly under the per-client ones instead of drifting. That is
+             why Pendiente comes before Cobrado here: those two are the columns
+             the groups also carry, and Cobrado — which has no group-level
+             counterpart — takes the share track. -->
         <div
           role="row"
-          class="accounting-grid-band flex flex-wrap items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-2"
+          class="accounting-grid-band accounting-group-header bg-surface-raised border-t-2 border-border-muted px-4 py-2"
         >
           <span role="cell" class="text-xs uppercase tracking-wider text-text-muted">
             Total del conjunto filtrado
           </span>
-          <span role="cell" class="text-sm tabular-nums whitespace-nowrap">
-            <span class="text-xs text-text-subtle">Facturado </span>
-            <span class="font-medium text-text-default" data-testid="income-grouped-billed-total">
-              {{ money(totals.billed) }}
+          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
+            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+              Facturado
             </span>
-            <span class="text-xs text-text-subtle"> · Cobrado </span>
-            <span class="font-medium text-success-strong" data-testid="income-grouped-collected-total">
-              {{ money(totals.collected) }}
+            <span
+              class="block text-sm font-medium tabular-nums text-text-default"
+              data-testid="income-grouped-billed-total"
+            >{{ money(totals.billed) }}</span>
+          </div>
+          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
+            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+              Pendiente
             </span>
-            <span class="text-xs text-text-subtle"> · Pendiente </span>
-            <span class="font-medium text-warning-strong" data-testid="income-grouped-pending-total">
-              {{ money(totals.pending) }}
+            <span
+              class="block text-sm font-medium tabular-nums text-warning-strong"
+              data-testid="income-grouped-pending-total"
+            >{{ money(totals.pending) }}</span>
+          </div>
+          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
+            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+              Cobrado
             </span>
-          </span>
+            <span
+              class="block text-sm font-medium tabular-nums text-success-strong"
+              data-testid="income-grouped-collected-total"
+            >{{ money(totals.collected) }}</span>
+          </div>
         </div>
       </template>
     </div>
@@ -451,6 +484,52 @@ function cellClass(col) {
  * single column (client header, totals, loading skeleton). */
 .accounting-grid-band {
   grid-column: 1 / -1;
+}
+
+/* The group header and the footer are totals rows, so their blocks spread over
+ * the band they span instead of piling up at one end and leaving the rest of a
+ * wide row empty.
+ *
+ * The tracks are deliberately NOT equal: the client name is the longest and
+ * most variable value and takes all the slack (minmax(0,…) is what lets it
+ * truncate instead of pushing the figures out), while the amounts only need a
+ * floor the width of a COP figure and the share closes narrower. Even quarters
+ * would cramp the name and leave the numbers swimming.
+ *
+ * Both rows share this list on purpose: that is what puts each group's
+ * Facturado and Pendiente on the same vertical as the set's own. */
+.accounting-group-header {
+  display: grid;
+  /* Base: the name owns its line and the figures ride together on a second one
+   * — grouped, not one per row, and never stretched to fill a narrow screen.
+   * The tracks floor at 0 (not min-content) so the spanning name can ellipsize
+   * inside the band instead of widening it and adding horizontal scroll. */
+  grid-template-columns: repeat(3, minmax(0, auto));
+  justify-content: start;
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+}
+.accounting-group-header > :first-child {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .accounting-group-header {
+    grid-template-columns:
+      minmax(0, 2.5fr)
+      minmax(7rem, 1fr)
+      minmax(7rem, 1fr)
+      minmax(5rem, 0.7fr);
+    column-gap: 1.5rem;
+    /* The name is one line and the figure blocks are two: centring keeps it
+     * against the block as a whole instead of stranding it up on the label. */
+    align-items: center;
+  }
+  .accounting-group-header > :first-child {
+    grid-column: auto;
+    min-width: 0;
+  }
 }
 
 /* Same feedback flash as AccountingTable for the row just created or edited. */

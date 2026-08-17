@@ -64,16 +64,33 @@ describe('IncomeGroupedTable', () => {
     expect(wrapper.find('[data-testid="income-group-pending-22"]').text())
       .toBe('$6.646.746 COP');
     expect(wrapper.find('[data-testid="income-group-weight-22"]').text())
-      .toContain('88,4% de lo facturado');
+      .toBe('88,4%');
+    // The share has to name the base it is computed on, or it is a bare
+    // percentage of nothing in particular.
+    expect(wrapper.find('[data-testid="income-group-22"]').text())
+      .toContain('% de lo facturado');
   });
 
-  it('keeps the client name, its count and both subtotals on one line', () => {
+  it('labels every figure in its own block instead of chaining them with middots', () => {
     const wrapper = mountTable();
 
-    // The header reads as a sentence, so the figures follow the name instead
-    // of sitting at the opposite end of the row.
-    expect(wrapper.find('[data-testid="income-group-22"]').text().replace(/\s+/g, ' '))
-      .toContain('Deivis Rios(2) · Facturado $7.646.746 COP · Pendiente $6.646.746 COP');
+    const header = wrapper.find('[data-testid="income-group-22"]');
+    // Each amount carries its own label, so the blocks can be spread across
+    // the row without the reader losing which figure is which.
+    expect(header.text()).toContain('Facturado');
+    expect(header.text()).toContain('Pendiente');
+    // The track spacing separates the blocks now, so the separators that used
+    // to chain name and figures into one sentence are gone.
+    expect(header.text()).not.toContain('·');
+  });
+
+  it('keeps the record count with the client name, not with the amounts', () => {
+    const wrapper = mountTable();
+
+    // The count belongs to the client, so it stays inside the name's toggle
+    // rather than drifting into the figures.
+    expect(wrapper.find('[data-testid="income-group-toggle-22"]').text().replace(/\s+/g, ' '))
+      .toContain('Deivis Rios(2)');
   });
 
   it('spells out a zero subtotal instead of dropping the term', () => {

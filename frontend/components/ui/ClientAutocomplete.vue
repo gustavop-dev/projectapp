@@ -306,19 +306,26 @@ const emitCreateNew = () => {
 watch(
   () => props.initialLabel,
   (newLabel) => {
+    // Los dos casos del input son excluyentes (uno exige rótulo, el otro que no
+    // lo haya), pero NINGUNO puede cortar el watcher: la sincronización de
+    // `committedLabel` de más abajo tiene que correr siempre.
     if (!inputText.value && newLabel) {
       inputText.value = newLabel;
-      return;
-    }
-    // Retirar el rótulo con el valor ya vacío es el padre diciendo «esto se
-    // fue» — una sugerencia que se retracta, un formulario que se resetea. El
-    // input no puede seguir mostrando al cliente anterior: decía tener uno
-    // cuando ya no lo tenía. Con un cliente elegido no se toca nada.
-    if (!newLabel && props.modelValue == null) {
+    } else if (!newLabel && props.modelValue == null) {
+      // Retirar el rótulo con el valor ya vacío es el padre diciendo «esto se
+      // fue» — una sugerencia que se retracta, un formulario que se resetea. El
+      // input no puede seguir mostrando al cliente anterior: decía tener uno
+      // cuando ya no lo tenía. Con un cliente elegido no se toca nada.
       inputText.value = '';
     }
     // El padre reetiqueta tras guardar; sincronizar sin pisar algo que el
     // usuario esté tecleando encima en ese momento.
+    //
+    // Va SIEMPRE, y ahí estuvo el bug: la hidratación de la página real entra
+    // por la primera rama (el documento llega por red, así que el picker nace
+    // sin rótulo), y cortar el watcher ahí dejaba `committedLabel` vacío para
+    // siempre. Después, al salir del campo, el restore escribía ese vacío y
+    // borraba el cliente de la pantalla.
     if (inputText.value === committedLabel.value || !committedLabel.value) {
       committedLabel.value = newLabel || '';
     }

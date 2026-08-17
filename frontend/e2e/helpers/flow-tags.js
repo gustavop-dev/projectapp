@@ -212,6 +212,7 @@ export const ADMIN_PANEL_UNSAVED_GUARD = ['@flow:admin-panel-unsaved-guard', '@m
 export const ADMIN_DOCUMENT_FOLDERS = ['@flow:admin-document-folders', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_FOLDER_HIERARCHY = ['@flow:admin-document-folder-hierarchy', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_FOLDER_CHANGE_CLIENT = ['@flow:admin-document-folder-change-client', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_FOLDER_PANEL_RESIZE = ['@flow:admin-document-folder-panel-resize', '@module:admin', '@priority:P3'];
 export const ADMIN_ADMIN_MANAGEMENT = ['@flow:admin-admin-management', '@module:admin', '@priority:P3'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
 export const ADMIN_VIEW_MAP = ['@flow:admin-view-map', '@module:admin', '@priority:P4'];

@@ -66,42 +66,51 @@
       <template v-else>
         <div v-for="group in localGroups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
-          <!-- Name and total read as one sentence; see IncomeGroupedTable. -->
+          <!-- Totals row spread over weighted tracks; see IncomeGroupedTable. -->
           <div
             role="row"
-            class="accounting-grid-band flex flex-col items-start gap-y-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 bg-surface-raised border-y border-border-muted px-4 py-2"
+            class="accounting-grid-band accounting-group-header bg-surface-raised border-y border-border-muted px-4 py-2"
             :data-testid="`recurring-group-${group.id}`"
           >
+            <!-- min-w-0 down the chain is what lets a long category name
+                 ellipsize instead of pushing the figures out of the row. -->
             <button
               type="button"
               role="columnheader"
-              class="inline-flex items-center gap-2 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+              class="inline-flex items-center gap-2 min-w-0 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               :aria-expanded="!isCollapsed(group.id)"
               :aria-controls="`recurring-group-body-${group.id}`"
               :data-testid="`recurring-group-toggle-${group.id}`"
               @click="emit('toggle-group', group.id)"
             >
               <ChevronDownIcon
-                class="w-4 h-4 text-text-subtle transition-transform"
+                class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
                 :class="isCollapsed(group.id) ? '-rotate-90' : ''"
               />
-              <span>{{ group.name }}</span>
+              <span class="truncate">{{ group.name }}</span>
               <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
             </button>
-            <span class="text-xs tabular-nums text-text-muted whitespace-nowrap">
-              <span class="hidden sm:inline text-text-subtle"> · </span>
-              <span class="font-medium" :data-testid="`recurring-group-total-${group.id}`">
-                {{ formatMonthlyCop(group.monthlyCopTotal) }}
+            <div class="text-xs leading-tight whitespace-nowrap">
+              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+                Mensual
               </span>
-              <span class="text-text-subtle"> /mes</span>
               <span
-                v-if="group.groupWeightPct != null"
-                class="text-text-subtle tabular-nums"
-                :data-testid="`recurring-group-weight-${group.id}`"
-              >
-                · {{ formatPercent(group.groupWeightPct) }} de los pagos activos
+                class="block font-medium tabular-nums text-text-muted"
+                :data-testid="`recurring-group-total-${group.id}`"
+              >{{ formatMonthlyCop(group.monthlyCopTotal) }}</span>
+            </div>
+            <div
+              v-if="group.groupWeightPct != null"
+              class="text-xs leading-tight whitespace-nowrap"
+            >
+              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+                % de pagos activos
               </span>
-            </span>
+              <span
+                class="block font-medium tabular-nums text-text-muted"
+                :data-testid="`recurring-group-weight-${group.id}`"
+              >{{ formatPercent(group.groupWeightPct) }}</span>
+            </div>
           </div>
 
           <!-- Rows -->
@@ -180,21 +189,24 @@
           </draggable>
         </div>
 
-        <!-- Grand total -->
+        <!-- Grand total: same track list as the group headers, so the set's
+             figure sits under the per-category ones. -->
         <div
           role="row"
-          class="accounting-grid-band flex items-center justify-between gap-3 bg-surface-raised border-t-2 border-border-muted px-4 py-2"
+          class="accounting-grid-band accounting-group-header bg-surface-raised border-t-2 border-border-muted px-4 py-2"
         >
           <span role="cell" class="text-xs uppercase tracking-wider text-text-muted">
             Total mensual (COP)
           </span>
-          <span
-            role="cell"
-            class="tabular-nums font-medium text-text-default whitespace-nowrap"
-            data-testid="recurring-monthly-grand-total"
-          >
-            {{ formatMonthlyCop(grandTotal) }}
-          </span>
+          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
+            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
+              Mensual
+            </span>
+            <span
+              class="block text-sm font-medium tabular-nums text-text-default"
+              data-testid="recurring-monthly-grand-total"
+            >{{ formatMonthlyCop(grandTotal) }}</span>
+          </div>
         </div>
       </template>
     </div>
@@ -407,6 +419,41 @@ function onDragEnd() {
  * single column (category header, monthly total, loading skeleton). */
 .accounting-grid-band {
   grid-column: 1 / -1;
+}
+
+/* Group header and footer as totals rows — duplicated with IncomeGroupedTable
+ * for the same reason the grid CSS above already is (see its file header).
+ * One fewer figure than incomes, so one fewer track; the weights are the same:
+ * the category name takes the slack, the amount gets a COP-wide floor and the
+ * share closes narrower. */
+.accounting-group-header {
+  display: grid;
+  /* Tracks floor at 0 so the spanning name ellipsizes inside the band instead
+   * of widening it — same reason as IncomeGroupedTable. */
+  grid-template-columns: repeat(2, minmax(0, auto));
+  justify-content: start;
+  column-gap: 1rem;
+  row-gap: 0.25rem;
+}
+.accounting-group-header > :first-child {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  .accounting-group-header {
+    grid-template-columns:
+      minmax(0, 2.5fr)
+      minmax(7rem, 1fr)
+      minmax(5rem, 0.7fr);
+    column-gap: 1.5rem;
+    /* Name is one line, figure blocks are two: centre it against the block. */
+    align-items: center;
+  }
+  .accounting-group-header > :first-child {
+    grid-column: auto;
+    min-width: 0;
+  }
 }
 
 /* Same feedback flash as AccountingTable for the row just created or edited. */
