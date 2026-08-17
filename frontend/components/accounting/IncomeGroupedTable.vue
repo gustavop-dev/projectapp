@@ -63,11 +63,13 @@
         <div v-for="group in groups" :key="group.id" role="rowgroup" class="accounting-grid-subgrid">
           <!-- Group header -->
           <!--
-            This row IS the group's totals row, so its blocks spread across the
-            band on weighted tracks instead of bunching at one end: the name
-            keeps the slack and the figures land on the same verticals as the
-            footer. Below sm they drop together to a second line under the name
-            rather than wrapping mid amount.
+            This row IS the group's totals row, but its figures are facts about
+            the client they follow, so they sit CONTIGUOUS to the name at the
+            start of the band. Spreading them over the row's width was tried and
+            rejected: on a wide table the amounts landed so far from the name
+            that they read as columns of something else again. Below sm they
+            drop together to a second line under the name rather than wrapping
+            mid amount.
           -->
           <div
             role="row"
@@ -127,11 +129,13 @@
               the same facts in the same order — the footer row and the totals
               modal already spell out their zeros.
 
-              Each figure is its own grid cell with the label above the value:
-              the track spacing separates them, so the middots that used to
-              chain them into one sentence are gone. The labels borrow the
-              column headers' own formula (uppercase, tracked, subtle) because
-              that is what makes the row read as totals and not as decoration.
+              Each figure is its own block with the label above the value —
+              that two-line shape is what made the row legible, and it is also
+              what removes the need for separators between the blocks: the gap
+              alone tells them apart, so the middots that used to chain them
+              into one sentence are gone. The labels borrow the column headers'
+              own formula (uppercase, tracked, subtle) because that is what
+              makes the row read as totals and not as decoration.
             -->
             <div class="text-xs leading-tight whitespace-nowrap">
               <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
@@ -151,11 +155,13 @@
                 :data-testid="`income-group-pending-${group.id}`"
               >{{ money(group.pending) }}</span>
             </div>
-            <!-- The label states the base the share is computed on, so the
-                 figure is not a bare percentage of nothing in particular. -->
+            <!-- The label states what the figure actually is: the group's share
+                 OF the billed total (weightPct = group billed / Σ billed). "% de
+                 lo facturado" also read as "how much of this group is billed",
+                 which is a different question and not the one answered here. -->
             <div v-if="group.weightPct != null" class="text-xs leading-tight whitespace-nowrap">
               <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-                % de lo facturado
+                Participación en lo facturado
               </span>
               <span
                 class="block font-medium tabular-nums text-text-muted"
@@ -241,11 +247,11 @@
         <!-- Grand totals: billed vs collected are separate ledger rows, so
              they read side by side instead of summing into one number.
 
-             Shares the group headers' track list, so the set's figures sit
-             directly under the per-client ones instead of drifting. That is
-             why Pendiente comes before Cobrado here: those two are the columns
-             the groups also carry, and Cobrado — which has no group-level
-             counterpart — takes the share track. -->
+             Shares the group headers' layout, so the whole table reads the same
+             way top to bottom: the label first and the figures grouped right
+             after it. Pendiente keeps coming before Cobrado because those first
+             two are the columns the groups also carry, and Cobrado — which has
+             no group-level counterpart — closes the set. -->
         <div
           role="row"
           class="accounting-grid-band accounting-group-header bg-surface-raised border-t-2 border-border-muted px-4 py-2"
@@ -486,49 +492,63 @@ function cellClass(col) {
   grid-column: 1 / -1;
 }
 
-/* The group header and the footer are totals rows, so their blocks spread over
- * the band they span instead of piling up at one end and leaving the rest of a
- * wide row empty.
+/* The group header and the footer are totals rows, but their figures belong to
+ * the name they follow: they sit CONTIGUOUS to it at the start of the band, not
+ * spread to the far edge. Both ends were tried on the real table — pinned apart
+ * and spread over weighted tracks — and both put the amounts far enough from the
+ * name to read as columns of some other thing. What carries the reading is the
+ * two-line block (label over value), not the distance between blocks.
  *
- * The tracks are deliberately NOT equal: the client name is the longest and
- * most variable value and takes all the slack (minmax(0,…) is what lets it
- * truncate instead of pushing the figures out), while the amounts only need a
- * floor the width of a COP figure and the share closes narrower. Even quarters
- * would cramp the name and leave the numbers swimming.
+ * Flex and not grid: a grid track list would have to choose a width for the name
+ * up front, and the name is the one value that cannot be sized in advance. Here
+ * it is the only flexible item (min-width:0 → it ellipsizes) while every figure
+ * block keeps its natural width (flex:none), so a long name gives up space
+ * instead of pushing a figure out of the row or breaking one in half.
  *
- * Both rows share this list on purpose: that is what puts each group's
- * Facturado and Pendiente on the same vertical as the set's own. */
+ * The gap is uniform: with each figure carrying its own label there is nothing
+ * left for a separator to disambiguate. */
 .accounting-group-header {
-  display: grid;
-  /* Base: the name owns its line and the figures ride together on a second one
-   * — grouped, not one per row, and never stretched to fill a narrow screen.
-   * The tracks floor at 0 (not min-content) so the spanning name can ellipsize
-   * inside the band instead of widening it and adding horizontal scroll. */
-  grid-template-columns: repeat(3, minmax(0, auto));
-  justify-content: start;
-  column-gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  /* The name is one line and the figure blocks are two: centring keeps it
+   * against the block as a whole instead of stranding it up on the label. */
+  align-items: center;
+  column-gap: 1.25rem;
   row-gap: 0.25rem;
+  /* The band spans every column, so track sizing asks it how wide it wants to
+   * be — and a flex row answers with the sum of its children, i.e. the full
+   * length of the longest client name. That widened the WHOLE table (measured:
+   * a 2518px name grew a 1294px grid to 3057px) and, because the band had
+   * grown to fit, `truncate` never engaged. Declaring a zero width makes the
+   * contribution zero; min-width then stretches the band back over the tracks
+   * the COLUMNS sized. The name ellipsizes only when it actually runs out of
+   * room, which is what the flex rules below assume. */
+  width: 0;
+  min-width: 100%;
 }
+
+/* Below sm the name owns its line and the figures ride together on the next one
+ * — grouped, not one per row, and never stretched to fill a narrow screen. */
 .accounting-group-header > :first-child {
-  grid-column: 1 / -1;
+  flex: 0 1 100%;
   min-width: 0;
 }
 
+/* Amounts never compress: the name is what yields. */
+.accounting-group-header > :not(:first-child) {
+  flex: 0 0 auto;
+}
+
 @media (min-width: 640px) {
+  /* From sm up the header is ONE line: flex wraps before it shrinks, so with
+   * wrapping still allowed a long client name pushed the figures down to a
+   * line of their own instead of yielding to them. The name is what gives way
+   * — that is the whole contract — so wrapping is off and the name shrinks. */
   .accounting-group-header {
-    grid-template-columns:
-      minmax(0, 2.5fr)
-      minmax(7rem, 1fr)
-      minmax(7rem, 1fr)
-      minmax(5rem, 0.7fr);
-    column-gap: 1.5rem;
-    /* The name is one line and the figure blocks are two: centring keeps it
-     * against the block as a whole instead of stranding it up on the label. */
-    align-items: center;
+    flex-wrap: nowrap;
   }
   .accounting-group-header > :first-child {
-    grid-column: auto;
-    min-width: 0;
+    flex: 0 1 auto;
   }
 }
 
