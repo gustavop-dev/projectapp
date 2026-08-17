@@ -43,30 +43,9 @@ describe('useAccountingStore — error paths', () => {
     jest.restoreAllMocks()
   })
 
-  describe('pocket running balance', () => {
-    it('breaks same-day ties by created_at', () => {
-      store.pocketMovements = [
-        {
-          id: 2,
-          movement_date: '2026-03-10',
-          created_at: '2026-03-10T12:00:00Z',
-          direction: 'out',
-          amount: '30000.00',
-        },
-        {
-          id: 1,
-          movement_date: '2026-03-10',
-          created_at: '2026-03-10T08:00:00Z',
-          direction: 'in',
-          amount: '100000.00',
-        },
-      ]
-
-      const rows = store.pocketWithRunningBalance
-
-      expect(rows.map((row) => row.id)).toEqual([1, 2])
-    })
-  })
+  // The same-day tiebreak moved with the running balance itself, out of the
+  // store and into `utils/pocketRunningBalance` (it never belonged in an
+  // error-paths file either). See frontend/test/utils/pocketRunningBalance.test.js.
 
   describe('generic record actions', () => {
     it('updateRecord reports update_failed', async () => {
