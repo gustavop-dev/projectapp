@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { get_request, create_request, patch_request } from './services/request_http';
 import { normalizeApiError } from './services/normalize_api_error';
 import { useAccountingStore } from './accounting';
+import { useDocumentStore } from './documents';
 
 /**
  * The accounting pickers memoize projects per client forever; any module
@@ -165,6 +166,17 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
         if (incomes.size && accounting.incomes.length) {
           accounting.incomes = accounting.incomes.map(
             (record) => incomes.get(record.id) ?? record,
+          );
+        }
+        // Documents follow the same rule (F7). The cuentas list needs no
+        // map here: it refetches on every mount and on the global refresh.
+        const documents = new Map(
+          (response.data.documents ?? []).map((row) => [row.id, row]),
+        );
+        const documentStore = useDocumentStore();
+        if (documents.size && documentStore.documents.length) {
+          documentStore.documents = documentStore.documents.map(
+            (record) => documents.get(record.id) ?? record,
           );
         }
         await this.fetchProjects();

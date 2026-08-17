@@ -14,8 +14,17 @@ from django.contrib.auth import get_user_model
 
 from content.mcp.accounting_tools import _resolve_project_reference
 from content.mcp.protocol import ToolError
-from content.models import AccountingChangeLog, HostingRecord, IncomeRecord
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    DocumentCollectionAccount,
+    HostingRecord,
+    IncomeRecord,
+)
 from content.services import accounting_service
+from content.services.document_type_utils import (
+    get_collection_account_document_type,
+)
 
 User = get_user_model()
 pytestmark = pytest.mark.django_db
@@ -356,3 +365,131 @@ class TestMcpProjectNameAlias:
     def test_the_alias_without_a_client_errors(self):
         with pytest.raises(ToolError, match='client'):
             _resolve_project_reference('hosting', {'project_name': 'Vastago'})
+
+
+def make_document(profile, *, title='Contrato F7', archived=False):
+    return Document.objects.create(
+        title=title, client_user=profile.user, is_archived=archived,
+    )
+
+
+def make_issued_cuenta(profile, *, number='PA-ACME-001'):
+    document = Document.objects.create(
+        title='CC F7',
+        document_type=get_collection_account_document_type(),
+        commercial_status=Document.CommercialStatus.ISSUED,
+        client_user=profile.user,
+        public_number=number,
+    )
+    DocumentCollectionAccount.objects.create(
+        document=document, customer_name='Ana Cliente',
+        customer_project_name='',
+    )
+    return document
+
+
+class TestDocumentsInTheAssignFlow:
+    """F7: the offer also covers the client's documents — cuentas included.
+
+    An issued cuenta with no project has NO other write path (the generic
+    PATCH refuses non-drafts), so this confirmed-list flow and the
+    retroactive command are how its organisational FK gets filled. The
+    frozen snapshot and the lifecycle never move.
+    """
+
+    def test_preview_lists_the_documents_with_their_identity(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = make_project(profile)
+        document = make_document(profile)
+        cuenta = make_issued_cuenta(profile)
+
+        response = admin_client.get(preview_url(project.pk))
+
+        assert response.status_code == 200
+        rows = {row['id']: row for row in response.data['documents']}
+        assert rows[document.pk]['label'] == 'Contrato F7'
+        assert rows[cuenta.pk]['number'] == 'PA-ACME-001'
+        assert rows[cuenta.pk]['type_label']
+        assert response.data['total'] == 2
+
+    def test_apply_fills_both_kinds_and_keeps_the_issued_facts(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = make_project(profile)
+        document = make_document(profile)
+        cuenta = make_issued_cuenta(profile)
+
+        response = admin_client.post(
+            apply_url(project.pk),
+            {'document_ids': [document.pk, cuenta.pk]},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['assigned_documents'] == 2
+        document.refresh_from_db()
+        cuenta.refresh_from_db()
+        assert document.project_id == project.pk
+        assert cuenta.project_id == project.pk
+        assert cuenta.commercial_status == Document.CommercialStatus.ISSUED
+        extension = DocumentCollectionAccount.objects.get(document=cuenta)
+        assert extension.customer_project_name == ''
+        assert audit_rows(EntityType.DOCUMENT, document.pk).count() == 1
+        assert audit_rows(EntityType.COLLECTION_ACCOUNT, cuenta.pk).count() == 1
+        row_names = {
+            row['id']: row['project_name']
+            for row in response.data['documents']
+        }
+        assert row_names == {document.pk: 'Vastago', cuenta.pk: 'Vastago'}
+        assert response.data['project']['unlinked_documents_count'] == 0
+
+    def test_archived_documents_stay_out_of_the_offer(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = make_project(profile)
+        make_document(profile, archived=True)
+
+        response = admin_client.get(preview_url(project.pk))
+
+        assert response.data['documents'] == []
+        assert response.data['total'] == 0
+
+    def test_a_document_of_another_client_answers_409(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        stranger = make_client_profile(company='Otra SAS')
+        project = make_project(profile)
+        foreign = make_document(stranger)
+
+        response = admin_client.post(
+            apply_url(project.pk),
+            {'document_ids': [foreign.pk]},
+            format='json',
+        )
+
+        assert response.status_code == 409
+        assert response.data['code'] == 'records_changed'
+        foreign.refresh_from_db()
+        assert foreign.project_id is None
+
+    def test_a_documents_only_plan_is_a_valid_plan(
+        self, admin_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = make_project(profile)
+        document = make_document(profile)
+
+        response = admin_client.post(
+            apply_url(project.pk),
+            {'document_ids': [document.pk]},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['assigned_hostings'] == 0
+        assert response.data['assigned_documents'] == 1
