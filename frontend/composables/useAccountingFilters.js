@@ -77,13 +77,22 @@ export function matchNumberRange(field, minKey, maxKey) {
   return fn;
 }
 
-/** Multi-select: record field (scalar or array) intersects the selected array. */
-export function matchIncludes(field, key) {
+/**
+ * Multi-select: record field (scalar or array) intersects the selected array.
+ *
+ * `nullAs` maps a null/undefined field onto a sentinel token, so a multi-select
+ * can offer an "unassigned" option using the same vocabulary the server does
+ * (the pocket's `attribution` is null on movements that mirror nothing).
+ */
+export function matchIncludes(field, key, { nullAs = null } = {}) {
   const fn = (record, _value, filters) => {
     const selected = filters[key];
     if (!Array.isArray(selected) || selected.length === 0) return true;
     const recordValue = record[field];
     if (Array.isArray(recordValue)) return recordValue.some((v) => selected.includes(v));
+    if (nullAs !== null && (recordValue === null || recordValue === undefined)) {
+      return selected.includes(nullAs);
+    }
     return selected.includes(recordValue);
   };
   fn.keys = [key];
@@ -436,9 +445,9 @@ export function useAccountingFilters({
     return Array.isArray(fn.keys) && fn.keys.length ? fn.keys : [key];
   }
 
-  function isMatcherActive(key, fn) {
+  function isMatcherActive(key, fn, filters = currentFilters) {
     return matcherKeys(key, fn).some((k) =>
-      isValueActive(currentFilters[k], DEFAULT_FILTERS[k]),
+      isValueActive(filters[k], DEFAULT_FILTERS[k]),
     );
   }
 
@@ -455,11 +464,19 @@ export function useAccountingFilters({
 
   const hasActiveFilters = computed(() => activeFilterCount.value > 0);
 
-  function applyFilters(records) {
-    if (!hasActiveFilters.value) return records;
-
-    const query = searchQuery.value;
-    const activeMatchers = matcherEntries.filter(([key, fn]) => isMatcherActive(key, fn));
+  /**
+   * Filter `records` by an explicit filter object.
+   *
+   * Split out of `applyFilters` so counting a saved tab runs the very same
+   * predicates instead of a second copy of them: a tab whose badge disagreed
+   * with what selecting it shows would be worse than no badge.
+   */
+  function filterWith(records, filters) {
+    const query = String(filters.search || '').trim().toLowerCase();
+    const activeMatchers = matcherEntries.filter(
+      ([key, fn]) => isMatcherActive(key, fn, filters),
+    );
+    if (!activeMatchers.length && !query) return records;
 
     return records.filter((record) => {
       if (query && searchFields.length) {
@@ -468,10 +485,27 @@ export function useAccountingFilters({
         );
         if (!hit) return false;
       }
-      return activeMatchers.every(([key, fn]) =>
-        fn(record, currentFilters[key], currentFilters),
-      );
+      return activeMatchers.every(([key, fn]) => fn(record, filters[key], filters));
     });
+  }
+
+  function applyFilters(records) {
+    if (!hasActiveFilters.value) return records;
+    return filterWith(records, currentFilters);
+  }
+
+  /**
+   * How many of `records` each tab would show, keyed the way the strip reads
+   * them: `all` plus one entry per tab id. Stored tab filters are partial, so
+   * they are merged over fresh defaults exactly like `loadTabFilters` does.
+   */
+  function countTabs(records, tabList = savedTabs.value) {
+    const counts = { all: records.length };
+    for (const tab of tabList) {
+      const filters = { ...freshFilters(), ...(tab.filters || {}) };
+      counts[String(tab.id)] = filterWith(records, filters).length;
+    }
+    return counts;
   }
 
   function resetFilters() {
@@ -550,6 +584,7 @@ export function useAccountingFilters({
     activeFilterCount,
     isTabLimitReached,
     applyFilters,
+    countTabs,
     resetFilters,
     clearFilterKeys,
     selectTab,

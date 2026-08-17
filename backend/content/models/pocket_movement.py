@@ -51,3 +51,22 @@ class PocketMovement(AccountingRecordBase):
     def is_auto_managed(self):
         """True when linked to an income or expense (name kept for API compat)."""
         return self.linked_record is not None
+
+    @property
+    def attribution(self):
+        """Party this movement is effectively attributed to, or None.
+
+        OUT mirrors are company expenses whose split says whose draw it was,
+        so the answer there is the expense's `partner_attribution`. IN mirrors
+        are always company incomes, so the plain ledger is the answer. Unlinked
+        historical movements mirror nothing and have no attribution.
+
+        `_POCKET_ATTRIBUTION_Q` in `content.views.accounting` restates this rule
+        in SQL so the table, the CSV export and the MCP tool cut the same rows.
+        Keep both sides in sync.
+        """
+        expense = getattr(self, 'expense_record', None)
+        if expense is not None:
+            return expense.partner_attribution
+        linked = self.linked_record
+        return linked.ledger if linked else None
