@@ -56,7 +56,6 @@
       :tabs="savedTabs"
       :active-tab-id="filterTabId"
       :counts="tabCounts"
-      :max-visible="MAX_VISIBLE_TABS"
       :is-tab-limit-reached="isTabLimitReached"
       @select="selectFilterTab"
       @create="handleCreateFilterTab"
@@ -244,9 +243,6 @@ import { withRunningBalance } from '~/utils/pocketRunningBalance';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
-
-// Todas + 6 seeded cuts no longer fit the strip; the rest collapse into "+N".
-const MAX_VISIBLE_TABS = 6;
 
 // -------------------------------------------------------------------
 // Filters
