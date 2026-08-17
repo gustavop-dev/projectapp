@@ -10,19 +10,25 @@ from django.contrib.auth import get_user_model
 from freezegun import freeze_time
 
 from content.models import (
+    AccountingChangeLog,
     CompanySettings,
     Document,
     DocumentCollectionAccount,
     DocumentItem,
     DocumentPaymentMethod,
+    EmailLog,
+    EmailLogTarget,
+    IncomeRecord,
     IssuerProfile,
 )
 from content.services.collection_account_service import (
     CollectionAccountError,
     allocate_public_number,
     assert_draft_for_mutation,
+    collection_account_was_delivered,
     commercial_is_overdue,
     default_payment_methods_config,
+    delete_collection_account,
     is_collection_account,
     issue_collection_account,
     mark_collection_account_cancelled,
@@ -482,6 +488,176 @@ def test_mark_collection_account_cancelled_raises_for_unsupported_commercial_sta
     with pytest.raises(CollectionAccountError, match='Only draft or issued') as exc_info:
         mark_collection_account_cancelled(doc)
     assert isinstance(exc_info.value, CollectionAccountError)
+
+
+# ── Eliminar (delete_collection_account) ──
+#
+# Eliminar is not anular: it is for the cuenta created by mistake, and only
+# when nobody outside can still be treating it as live.
+
+def _delivered_email(doc, status=EmailLog.Status.SENT):
+    """An EmailLog target row for this cuenta, the way the send service writes it."""
+    log = EmailLog.objects.create(
+        template_key='collection_account',
+        recipient='client@example.com',
+        status=status,
+    )
+    EmailLogTarget.objects.create(
+        email_log=log,
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=doc.pk,
+        object_repr=doc.public_number or '',
+    )
+    return log
+
+
+def test_delete_removes_a_draft_that_never_reached_anyone(admin_actor, project, client_user):
+    doc = _ca_document(project=project, client_user=client_user)
+    DocumentCollectionAccount.objects.create(document=doc)
+
+    delete_collection_account(doc, acting_user=admin_actor)
+
+    assert not Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_delete_removes_an_issued_cuenta_whose_email_failed(admin_actor, project, client_user):
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.ISSUED,
+        public_number='ZZ-2026-0001',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    _delivered_email(doc, status=EmailLog.Status.FAILED)
+
+    delete_collection_account(doc, acting_user=admin_actor)
+
+    assert not Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_delete_refuses_an_issued_cuenta_the_client_already_received(
+    admin_actor, project, client_user,
+):
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.ISSUED,
+        public_number='ZZ-2026-0002',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    _delivered_email(doc)
+
+    with pytest.raises(CollectionAccountError, match='ya se envió al cliente'):
+        delete_collection_account(doc, acting_user=admin_actor)
+    assert Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_delete_removes_a_cancelled_cuenta_even_when_it_was_delivered(
+    admin_actor, project, client_user,
+):
+    """Anular is what told the client it stopped counting; the row can go."""
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.CANCELLED,
+        public_number='ZZ-2026-0003',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    _delivered_email(doc)
+
+    delete_collection_account(doc, acting_user=admin_actor)
+
+    assert not Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_a_bounced_send_still_counts_as_delivered(project, client_user):
+    """A bounce cannot prove the client never got it; the bias is not to delete."""
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.ISSUED,
+        public_number='ZZ-2026-0007',
+        project=project,
+        client_user=client_user,
+    )
+    _delivered_email(doc, status=EmailLog.Status.BOUNCED)
+
+    assert collection_account_was_delivered(doc) is True
+
+
+def test_delete_refuses_a_paid_cuenta(admin_actor, project, client_user):
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.PAID,
+        public_number='ZZ-2026-0004',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+
+    with pytest.raises(CollectionAccountError, match='pagada no se puede eliminar'):
+        delete_collection_account(doc, acting_user=admin_actor)
+    assert Document.objects.filter(pk=doc.pk).exists()
+
+
+def test_delete_refuses_a_document_that_is_not_a_collection_account(admin_actor, project):
+    doc = Document.objects.create(
+        title='X',
+        document_type=get_markdown_document_type(),
+        project=project,
+    )
+
+    with pytest.raises(CollectionAccountError, match='not a collection account'):
+        delete_collection_account(doc, acting_user=admin_actor)
+
+
+def test_delete_leaves_the_consecutivo_in_the_history_after_the_row_is_gone(
+    admin_actor, project, client_user,
+):
+    """The trail has no FK precisely so it can outlive the document."""
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.CANCELLED,
+        public_number='ZZ-2026-0005',
+        project=project,
+        client_user=client_user,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    doc_id = doc.pk
+
+    delete_collection_account(doc, acting_user=admin_actor)
+
+    entry = AccountingChangeLog.objects.get(
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=doc_id,
+        action=AccountingChangeLog.Action.DELETED,
+    )
+    assert entry.object_repr == 'ZZ-2026-0005'
+    assert entry.actor_username == admin_actor.username
+
+
+def test_delete_frees_the_linked_income_to_be_billed_again(
+    admin_actor, project, client_user,
+):
+    income = IncomeRecord.objects.create(
+        concept='Anticipo',
+        kind=IncomeRecord.Kind.EXPECTED,
+        period_date=date(2026, 8, 1),
+        total_amount=Decimal('1000'),
+    )
+    doc = _ca_document(
+        commercial_status=Document.CommercialStatus.ISSUED,
+        public_number='ZZ-2026-0006',
+        project=project,
+        client_user=client_user,
+        income_record=income,
+    )
+    DocumentCollectionAccount.objects.create(document=doc)
+    assert income.collection_documents.exclude(
+        commercial_status=Document.CommercialStatus.CANCELLED,
+    ).exists()
+
+    delete_collection_account(doc, acting_user=admin_actor)
+
+    assert not income.collection_documents.exclude(
+        commercial_status=Document.CommercialStatus.CANCELLED,
+    ).exists()
 
 
 def test_assert_draft_for_mutation_raises_when_document_is_not_collection_account(project, client_user):

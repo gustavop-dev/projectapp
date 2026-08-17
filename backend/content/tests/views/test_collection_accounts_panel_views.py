@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 
 from content.models import Document, HostingRecord, IncomeRecord, IssuerProfile
 from content.services.hosting_billing_service import (
@@ -167,6 +168,84 @@ class TestLifecycleActions:
             f'/api/accounting/collection-accounts/{document.pk}/cancel/',
         )
         assert response.status_code == 400
+
+
+class TestDeleteEndpoint:
+    """Eliminar: only for the cuenta nobody outside can still be holding."""
+
+    def test_delete_refuses_a_cuenta_the_client_received(self, super_client):
+        # The hosting flow issues AND emails, so this one did reach the client.
+        document = issue_for(make_hosting())
+        response = super_client.delete(
+            f'/api/accounting/collection-accounts/{document.pk}/delete/',
+        )
+        assert response.status_code == 400
+        assert 'Anúlala' in response.data['error']
+        assert Document.objects.filter(pk=document.pk).exists()
+
+    def test_delete_removes_a_cancelled_cuenta_and_updates_the_counters(
+        self, super_client,
+    ):
+        document = issue_for(make_hosting())
+        super_client.post(
+            f'/api/accounting/collection-accounts/{document.pk}/cancel/',
+        )
+        listed = super_client.get('/api/accounting/collection-accounts/')
+        assert listed.data['meta']['cancelled_count'] == 1
+
+        response = super_client.delete(
+            f'/api/accounting/collection-accounts/{document.pk}/delete/',
+        )
+
+        assert response.status_code == 204
+        assert not Document.objects.filter(pk=document.pk).exists()
+        listed = super_client.get('/api/accounting/collection-accounts/')
+        assert listed.data['meta']['cancelled_count'] == 0
+        assert listed.data['results'] == []
+
+    def test_delete_resumes_the_hosting_expiry_cadence(self, super_client):
+        """Same debt anular pays: a cuenta that stops being pending unmutes it."""
+        hosting = make_hosting()
+        document = issue_for(hosting)
+        Document.objects.filter(pk=document.pk).update(
+            commercial_status=Document.CommercialStatus.CANCELLED,
+        )
+        hosting.refresh_from_db()
+        hosting.billing_requested_at = timezone.now()
+        hosting.save(update_fields=['billing_requested_at'])
+
+        response = super_client.delete(
+            f'/api/accounting/collection-accounts/{document.pk}/delete/',
+        )
+
+        assert response.status_code == 204
+        hosting.refresh_from_db()
+        assert hosting.billing_requested_at is None
+
+    def test_delete_requires_superuser(self, admin_client):
+        document = issue_for(make_hosting())
+        response = admin_client.delete(
+            f'/api/accounting/collection-accounts/{document.pk}/delete/',
+        )
+        assert response.status_code == 403
+        assert Document.objects.filter(pk=document.pk).exists()
+
+    def test_list_marks_which_rows_can_be_deleted(self, super_client):
+        delivered = issue_for(make_hosting())
+        cancelled = issue_for(make_hosting(
+            client_name='Nestor - Xpandia',
+            client_email='nestor@xpandia.global',
+            domain_url='https://xpandia.global/',
+        ))
+        super_client.post(
+            f'/api/accounting/collection-accounts/{cancelled.pk}/cancel/',
+        )
+
+        response = super_client.get('/api/accounting/collection-accounts/')
+
+        flags = {row['id']: row['can_delete'] for row in response.data['results']}
+        assert flags[delivered.pk] is False
+        assert flags[cancelled.pk] is True
 
 
 def make_income(**overrides):

@@ -757,7 +757,7 @@ def delete_record(entity_type, instance, user):
             _log_pocket_removal(linked_movement, user)
             linked_movement.delete()
         if linked_record is not None:
-            _log_record_removal(linked_record_type, linked_record, user)
+            log_entity_removal(linked_record_type, linked_record, user)
             linked_record.delete()
 
     change_log = log_accounting_change(
@@ -1019,8 +1019,14 @@ def _log_pocket_removal(movement, user):
     )
 
 
-def _log_record_removal(entity_type, record, user):
-    """Silent DELETED audit row for a record cascaded from its movement."""
+def log_entity_removal(entity_type, record, user):
+    """Silent DELETED audit row for a record deleted outside the pipeline.
+
+    The deletion counterpart of ``log_entity_diff``: entities that never enter
+    the generic create/update/delete pipeline (cuentas de cobro) still owe the
+    trail a row saying they existed and who removed them. Call it BEFORE the
+    delete — it reads the pk and the repr off the live instance.
+    """
     old_values = snapshot_values(record, entity_type)
     log_accounting_change(
         entity_type=entity_type,
