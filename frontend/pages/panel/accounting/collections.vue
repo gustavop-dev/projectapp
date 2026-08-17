@@ -445,8 +445,10 @@ matchClients.keys = ['clients'];
 // The live FK is the filter key — same contract as hostings/incomes, so one
 // project id selects the same work everywhere. The frozen snapshot name only
 // answers for legacy rows whose project was deleted (SET_NULL); a row with
-// neither never had a project. The CELL keeps showing the snapshot: what the
-// issued document says is not up for reinterpretation.
+// neither never had a project. The CELL follows the same rule since F7:
+// `project_name` arrives live from the FK (snapshot only as FK-null
+// fallback), so cell and filter can no longer contradict each other. The
+// frozen snapshot stays the PDF's truth, untouched.
 const matchProjects = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
   if (record.project_id != null) return value.includes(record.project_id);

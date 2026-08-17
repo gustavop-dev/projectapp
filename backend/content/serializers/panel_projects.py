@@ -30,6 +30,7 @@ class PanelProjectSerializer(serializers.ModelSerializer):
     # repeated on every project row of the same client on purpose.
     unlinked_hostings_count = serializers.IntegerField(read_only=True, default=0)
     unlinked_incomes_count = serializers.IntegerField(read_only=True, default=0)
+    unlinked_documents_count = serializers.IntegerField(read_only=True, default=0)
 
     class Meta:
         model = Project
@@ -37,6 +38,7 @@ class PanelProjectSerializer(serializers.ModelSerializer):
             'id', 'name', 'description', 'status', 'status_label',
             'created_at', 'client', 'hostings_count', 'incomes_count',
             'unlinked_hostings_count', 'unlinked_incomes_count',
+            'unlinked_documents_count',
         ]
         read_only_fields = fields
 
@@ -110,9 +112,16 @@ class ProjectAssignUnlinkedSerializer(serializers.Serializer):
     income_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list,
     )
+    document_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )
 
     def validate(self, attrs):
-        if not attrs.get('hosting_ids') and not attrs.get('income_ids'):
+        if (
+            not attrs.get('hosting_ids')
+            and not attrs.get('income_ids')
+            and not attrs.get('document_ids')
+        ):
             raise serializers.ValidationError(
                 'Selecciona al menos un registro para asignar.'
             )

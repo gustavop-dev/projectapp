@@ -55,7 +55,7 @@
           </ul>
         </section>
 
-        <section v-if="incomes.length">
+        <section v-if="incomes.length" class="mb-4">
           <h4 class="text-xs font-semibold uppercase tracking-wide text-text-subtle mb-2">
             Ingresos ({{ incomes.length }})
           </h4>
@@ -69,6 +69,26 @@
                 {{ record.label }}
                 <span class="text-xs text-text-subtle">
                   · {{ record.kind_label }} · {{ record.period_label }}
+                </span>
+              </BaseCheckbox>
+            </li>
+          </ul>
+        </section>
+
+        <section v-if="documents.length">
+          <h4 class="text-xs font-semibold uppercase tracking-wide text-text-subtle mb-2">
+            Documentos ({{ documents.length }})
+          </h4>
+          <ul class="space-y-1.5">
+            <li v-for="record in documents" :key="`document-${record.id}`">
+              <BaseCheckbox
+                v-model="selectedDocumentIds"
+                :value="record.id"
+                :data-testid="`project-assign-unlinked-document-${record.id}`"
+              >
+                {{ record.number || record.label }}
+                <span v-if="record.type_label" class="text-xs text-text-subtle">
+                  · {{ record.type_label }}
                 </span>
               </BaseCheckbox>
             </li>
@@ -130,15 +150,21 @@ const isLoadingPreview = ref(false);
 const errorMessage = ref('');
 const hostings = ref([]);
 const incomes = ref([]);
+const documents = ref([]);
 const clientName = ref('');
 const selectedHostingIds = ref([]);
 const selectedIncomeIds = ref([]);
+const selectedDocumentIds = ref([]);
 
 const selectedCount = computed(
-  () => selectedHostingIds.value.length + selectedIncomeIds.value.length,
+  () => selectedHostingIds.value.length
+    + selectedIncomeIds.value.length
+    + selectedDocumentIds.value.length,
 );
 const isEmpty = computed(
-  () => hostings.value.length === 0 && incomes.value.length === 0,
+  () => hostings.value.length === 0
+    && incomes.value.length === 0
+    && documents.value.length === 0,
 );
 
 async function loadPreview() {
@@ -148,16 +174,19 @@ async function loadPreview() {
   if (!result.success) {
     hostings.value = [];
     incomes.value = [];
+    documents.value = [];
     errorMessage.value = result.message;
     return;
   }
   hostings.value = result.data.hostings;
   incomes.value = result.data.incomes;
+  documents.value = result.data.documents ?? [];
   clientName.value = result.data.client?.name || '';
   // Everything checked by default: the common case is "yes, all of it",
   // and unchecking is the deliberate exception.
   selectedHostingIds.value = result.data.hostings.map((record) => record.id);
   selectedIncomeIds.value = result.data.incomes.map((record) => record.id);
+  selectedDocumentIds.value = documents.value.map((record) => record.id);
 }
 
 watch(() => props.open, (open) => {
@@ -172,11 +201,14 @@ async function confirmAssign() {
   const result = await store.assignUnlinkedRecords(props.project.id, {
     hosting_ids: selectedHostingIds.value,
     income_ids: selectedIncomeIds.value,
+    document_ids: selectedDocumentIds.value,
   });
   if (result.success) {
     notify.success({
       title: `Registros asignados a "${props.project.name}"`,
-      detail: `${result.data.assigned_hostings} hostings y ${result.data.assigned_incomes} ingresos.`,
+      detail: `${result.data.assigned_hostings} hostings, `
+        + `${result.data.assigned_incomes} ingresos y `
+        + `${result.data.assigned_documents ?? 0} documentos.`,
     });
     emit('assigned', result.data);
     return;
