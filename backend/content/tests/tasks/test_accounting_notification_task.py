@@ -125,6 +125,7 @@ class TestEndToEndFromService:
             'kind': 'expected',
             'period_date': '2026-02',
             'total_amount': '960000.00',
+            'origin': 'development',
         })
         assert serializer.is_valid(), serializer.errors
         with patch('content.tasks.send_accounting_change_email') as task:

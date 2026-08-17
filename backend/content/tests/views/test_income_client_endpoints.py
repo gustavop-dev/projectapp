@@ -347,6 +347,7 @@ class TestSerializerWrites:
                 'period_date': '2026-08',
                 'total_amount': '1000000.00',
                 'client': admin_profile.pk,
+                'origin': 'development',
             },
             format='json',
         )

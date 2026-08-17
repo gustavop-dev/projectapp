@@ -336,6 +336,8 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
     await page.getByTestId('income-form-concept').fill('Vastago (Fase 1) - Inicio 40%');
+    // Required: the line of business is what decides the shape of the record.
+    await page.getByRole('tab', { name: 'Desarrollo' }).click();
     // The period asks for the exact date by default.
     await page.getByTestId('income-form-period').fill('2026-04-15');
     await page.getByTestId('partner-split-total').fill('2123000');
@@ -357,6 +359,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await page.getByTestId('incomes-new-button').click();
     await page.getByTestId('income-form-concept').fill('Hosting Acme, Abril');
+    await page.getByRole('tab', { name: 'Otro' }).click();
     // Only the month is known: downgrade the exact-date default.
     await page.getByTestId('income-form-exact-date').click();
     await page.getByTestId('income-form-period').fill('2026-04');
@@ -379,6 +382,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByRole('heading', { name: 'Nuevo ingreso' })).toBeVisible();
 
     await page.getByTestId('income-form-concept').fill('Universidad Nacional');
+    await page.getByRole('tab', { name: 'Diagnóstico' }).click();
     await page.getByTestId('income-form-period').fill('2026-02-10');
     await page.getByRole('tab', { name: 'Personal Gustavo' }).click();
 
@@ -424,12 +428,16 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     await expect(page.getByTestId('income-form-concept')).toHaveValue('Kore - Inicio 40%');
 
     await page.getByTestId('partner-split-total').fill('2000000');
+    // The row predates the origin, and the form asks for it before saving:
+    // that is how the book gets classified, one edited record at a time.
+    await page.getByRole('tab', { name: 'Desarrollo' }).click();
     await page.getByTestId('income-form-submit').click();
 
     await expect(page.getByText('Ingreso actualizado')).toBeVisible();
     expect(calls).toHaveLength(1);
     expect(calls[0].method).toBe('PATCH');
     expect(Number(calls[0].body.total_amount)).toBe(2000000);
+    expect(calls[0].body.origin).toBe('development');
   });
 
   test('duplicating a collected income opens the next period and POSTs it', {
@@ -475,6 +483,54 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     expect(created.body.period_end).toBe('2028-01-31');
     expect(created.body.period_cadence).toBe('annual');
     expect(created.body.period_date).toBeUndefined();
+  });
+
+  test('a duplicate opens on the original business line, date block included', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the list is reached from the sidebar, covered by
+    // the navigation flow; every test in this file opens it through gotoIncomes)
+    //
+    // The origin is not one more copied field: it decides whether the form
+    // asks for a covered window or a single date. A duplicate that lost it
+    // would open configured as a different kind of income than the original.
+    const rows = [incomeRow({ origin: 'hosting', concept: 'Kore - Hosting anual' })];
+    await mockApi(page, buildHandler({ rows, calls: [] }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+
+    await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
+    await expect(
+      page.getByTestId('income-form-origin').getByRole('tab', { name: 'Hosting' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    // The window block, which only a hosting origin brings up.
+    await expect(page.getByTestId('income-form-period-cadence')).toBeVisible();
+    await expect(page.getByTestId('income-form-origin-notice')).toHaveCount(0);
+  });
+
+  test('duplicating an unclassified income says so and refuses to save', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    // Most of the book predates the field. The copy is faithful — it carries
+    // the blank — and saying so is what keeps it from reading as a copy that
+    // failed, which is how it was reported.
+    const calls = [];
+    await mockApi(page, buildHandler({ rows: [incomeRow({ origin: '' })], calls }));
+    await gotoIncomes(page);
+
+    await page.getByTestId('income-actions-1').click();
+    await page.getByTestId('income-action-duplicate-1').click();
+
+    await expect(page.getByRole('heading', { name: 'Duplicar ingreso' })).toBeVisible();
+    await expect(page.getByTestId('income-form-origin-notice'))
+      .toContainText('El ingreso original no tiene origen registrado');
+    // And it is not a suggestion: saving without one is refused in the form.
+    await page.getByTestId('income-form-submit').click();
+    await expect(page.getByText('Elige la línea de negocio del ingreso.')).toBeVisible();
+    expect(calls.some((call) => call.apiPath === 'accounting/incomes/create/'))
+      .toBe(false);
   });
 
   test('duplicating an income with no recorded window counts from the original', {
@@ -641,6 +697,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
     // Picking a date the hosting cycle did not produce retires its hint.
     await expect(page.getByTestId('income-form-period-hint')).toHaveCount(0);
 
+    await page.getByRole('tab', { name: 'Otro' }).click();
     await page.getByTestId('income-form-submit').click();
 
     const created = calls.find((call) => call.apiPath === 'accounting/incomes/create/');
@@ -745,6 +802,7 @@ test.describe('Admin Accounting Incomes CRUD', () => {
 
     await page.getByTestId('incomes-new-button').click();
     await page.getByTestId('income-form-concept').fill('Ingreso inválido');
+    await page.getByRole('tab', { name: 'Desarrollo' }).click();
     await page.getByTestId('income-form-period').fill('2026-04-15');
     await page.getByTestId('partner-split-total').fill('100');
     await page.getByTestId('income-form-submit').click();

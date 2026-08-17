@@ -215,6 +215,39 @@ const duplicateAnchorNotice = computed(() => {
   return ''
 })
 
+/**
+ * The origin travels with the duplicate; when the original has none, what
+ * travels is the blank. Saying so is the whole point: an empty Origen that
+ * explains itself is a field left to fill, and one that does not is
+ * indistinguishable from a copy that failed — which is exactly how it was read
+ * when this was reported. Most of the book predates the field, so this is the
+ * common case, not the exception.
+ *
+ * Mutually exclusive with `duplicateAnchorNotice`, which needs origin
+ * `hosting`: the two never stack.
+ */
+const duplicateOriginNotice = computed(() => (
+  isDuplicate.value && !form.value.origin
+    ? 'El ingreso original no tiene origen registrado: elige la línea de negocio,'
+      + ' porque de ella depende el bloque de fechas.'
+    : ''
+))
+
+/**
+ * Origen decides which date block the form shows, so leaving it unset is not a
+ * blank field but an unanswered question. `BaseSegmented` is not a native
+ * control and cannot carry `required`, so the refusal lives here — held back
+ * until the first attempt, since a form that opens already complaining teaches
+ * the operator to ignore it.
+ */
+const submitAttempted = ref(false)
+
+const originError = computed(() => (
+  submitAttempted.value && !form.value.origin
+    ? 'Elige la línea de negocio del ingreso.'
+    : ''
+))
+
 const periodStartHint = computed(() => {
   if (showsPeriodHint.value) {
     return 'Siguiente período según la periodicidad registrada. Ajústalo si no corresponde.'
@@ -294,6 +327,9 @@ watch(
     // must not treat that batch as the operator choosing a cadence and
     // recompute an end the record already stated.
     beginHydration()
+    // Every opening starts without a refusal on screen: the previous one
+    // belonged to the record that was being saved, not to this one.
+    submitAttempted.value = false
     const source = props.record || props.seed
     // A stored date is an answer, not boilerplate.
     periodDateTouched.value = !!source
@@ -341,9 +377,10 @@ async function createInlineClient() {
 }
 
 function onSubmit() {
-  // The serializer rejects it too, but a 400 round trip to say what the form
+  submitAttempted.value = true
+  // The serializer rejects both too, but a 400 round trip to say what the form
   // already knows is a worse way to find out.
-  if (periodEndError.value) return
+  if (originError.value || periodEndError.value) return
   const payload = {
     concept: form.value.concept,
     kind: form.value.kind,
@@ -453,7 +490,12 @@ function onSubmit() {
         </div>
       </div>
 
-      <BaseFormField label="Origen" hint="Línea de negocio que genera el ingreso.">
+      <BaseFormField
+        label="Origen"
+        required
+        hint="Línea de negocio que genera el ingreso."
+        :error="originError"
+      >
         <BaseSegmented
           v-model="form.origin"
           :options="originOptions"
@@ -462,6 +504,16 @@ function onSubmit() {
           @update:model-value="onOriginChange"
         />
       </BaseFormField>
+
+      <!-- Right under the field it is about, and above the date block it
+           explains the shape of. -->
+      <BaseAlert
+        v-if="duplicateOriginNotice"
+        variant="info"
+        data-testid="income-form-origin-notice"
+      >
+        {{ duplicateOriginNotice }}
+      </BaseAlert>
 
       <!-- Above the block it explains, and outside the rows: a wrapper inside
            a BaseFormRow would break its subgrid alignment. -->

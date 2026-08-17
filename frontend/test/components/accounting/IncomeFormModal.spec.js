@@ -235,6 +235,8 @@ describe('IncomeFormModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('input[type="text"]').setValue('Anticipo cliente');
+    // The business line is required: nothing new lands unclassified.
+    await segmentedButton(wrapper, 'Otro').trigger('click');
     // Month-only entry is still possible through the toggle.
     await wrapper.find('[data-testid="income-form-exact-date"]').trigger('click');
     await wrapper.find('[data-testid="income-form-period"]').setValue('2026-06');
@@ -259,7 +261,7 @@ describe('IncomeFormModal', () => {
       carlos_amount: '600',
       client: null,
       project: null,
-      origin: '',
+      origin: 'other',
       // Nulls on purpose: an edit away from hosting clears its window.
       period_start: null,
       period_end: null,
@@ -924,6 +926,7 @@ describe('IncomeFormModal', () => {
     await wrapper.find('input[type="text"]').setValue('Ingreso personal');
     await wrapper.find('[data-testid="income-form-period"]').setValue('2026-06-15');
     await wrapper.find('input[inputmode="numeric"]').setValue('54099');
+    await segmentedButton(wrapper, 'Otro').trigger('click');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -961,6 +964,7 @@ describe('IncomeFormModal', () => {
     const wrapper = mountModal();
 
     await wrapper.find('input[type="text"]').setValue('Sin nota');
+    await segmentedButton(wrapper, 'Otro').trigger('click');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -982,6 +986,7 @@ describe('IncomeFormModal', () => {
 
     await wrapper.find('input[type="text"]').setValue('Ingreso esperado');
     await wrapper.find('[data-testid="income-form-period"]').setValue('2026-07-15');
+    await segmentedButton(wrapper, 'Otro').trigger('click');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -1007,6 +1012,7 @@ describe('IncomeFormModal', () => {
 
     await wrapper.find('input[type="text"]').setValue('Catherine Ruiz Candles');
     await wrapper.find('[data-testid="income-form-period"]').setValue('2026-07-15');
+    await segmentedButton(wrapper, 'Otro').trigger('click');
     await wrapper.find('form').trigger('submit');
 
     const payload = wrapper.emitted('submit')[0][0];
@@ -1043,5 +1049,95 @@ describe('IncomeFormModal', () => {
     expect(
       editing.findComponent({ name: 'ProjectSelect' }).props('autoSelectSingle'),
     ).toBe(false);
+  });
+
+  describe('business line', () => {
+    /** The origin the control is currently showing as chosen. */
+    function selectedOrigin(wrapper) {
+      const chosen = wrapper
+        .find('[data-testid="income-form-origin"]')
+        .findAll('button')
+        .find((button) => button.attributes('aria-selected') === 'true');
+      return chosen ? chosen.text() : '';
+    }
+
+    // Each line of business with the date block it governs. Hosting is the
+    // one that covers a window; the other three are point payments.
+    const LINES = [
+      { origin: 'development', label: 'Desarrollo', hosting: false },
+      { origin: 'hosting', label: 'Hosting', hosting: true },
+      { origin: 'diagnostic', label: 'Diagnóstico', hosting: false },
+      { origin: 'other', label: 'Otro', hosting: false },
+    ];
+
+    it.each(LINES)(
+      'opens a $origin duplicate already on $label, with its own date block',
+      async ({ origin, label, hosting }) => {
+        const wrapper = mountModal({
+          seed: { ...DUPLICATE_SEED, origin, period_date: '2027-03-01' },
+        });
+        await flushPromises();
+
+        expect(selectedOrigin(wrapper)).toBe(label);
+        // The origin is what decides this, which is why losing it opens the
+        // form configured as a different kind of income than the original.
+        expect(wrapper.find('[data-testid="income-form-period-cadence"]').exists())
+          .toBe(hosting);
+        expect(wrapper.find('[data-testid="income-form-period-start"]').exists())
+          .toBe(hosting);
+        expect(wrapper.find('[data-testid="income-form-period"]').exists())
+          .toBe(!hosting);
+      },
+    );
+
+    it('says so when the original carried no business line', async () => {
+      const wrapper = mountModal({
+        seed: { ...DUPLICATE_SEED, origin: '', period_anchor: null },
+      });
+      await flushPromises();
+
+      expect(selectedOrigin(wrapper)).toBe('');
+      // Without this the blank reads as a copy that failed, which is exactly
+      // how it was reported.
+      expect(wrapper.find('[data-testid="income-form-origin-notice"]').text())
+        .toContain('El ingreso original no tiene origen registrado');
+    });
+
+    it('stays quiet when the original carried one', async () => {
+      const wrapper = mountModal({ seed: { ...DUPLICATE_SEED } });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="income-form-origin-notice"]').exists())
+        .toBe(false);
+    });
+
+    it('does not explain itself on a plain create', async () => {
+      const wrapper = mountModal();
+      await flushPromises();
+
+      // Nothing was copied, so there is no original to report on.
+      expect(wrapper.find('[data-testid="income-form-origin-notice"]').exists())
+        .toBe(false);
+    });
+
+    it('refuses to save without one, and only after the first attempt', async () => {
+      const wrapper = mountModal();
+      await wrapper.find('input[type="text"]').setValue('Anticipo cliente');
+
+      // A form that opens already complaining teaches the operator to ignore it.
+      expect(wrapper.find('[data-testid="form-field-error"]').exists()).toBe(false);
+
+      await wrapper.find('form').trigger('submit');
+
+      expect(wrapper.emitted('submit')).toBeUndefined();
+      expect(wrapper.find('[data-testid="form-field-error"]').text())
+        .toBe('Elige la línea de negocio del ingreso.');
+
+      await segmentedButton(wrapper, 'Diagnóstico').trigger('click');
+      await wrapper.find('form').trigger('submit');
+
+      expect(wrapper.emitted('submit')).toHaveLength(1);
+      expect(wrapper.emitted('submit')[0][0].origin).toBe('diagnostic');
+    });
   });
 });
