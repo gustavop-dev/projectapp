@@ -5833,6 +5833,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-hosting-cycles` | admin | P2 | display,success,error,failure | 3 |
 | `admin-accounting-hosting-inline-edit` | admin | P3 | — | 0 |
 | `admin-accounting-hostings` | admin | P2 | display,success,error | 3 |
+| `admin-accounting-income-bulk-settle` | admin | P1 | success,error,failure,display | 7 |
 | `admin-accounting-income-client` | admin | P1 | display,success,failure,error | 10 |
 | `admin-accounting-income-crud` | admin | P1 | display,success,error,failure | 27 |
 | `admin-accounting-list-error-retry` | admin | P3 | failure,display | 1 |
@@ -6246,6 +6247,18 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
   - [Branch K] (Ago 2026) Una mutación **refresca en sitio**. Al eliminar, la fila deja su grupo de inmediato y el contador del grupo, el conteo de resultados y los totales de la cabecera (Total esperado / líquido / perdido) se recalculan solos, porque derivan del set filtrado. Dos cosas que hacían que eso *pareciera* una recarga se corrigieron con el mismo cambio, y valen para las seis vistas de contabilidad: las tablas pintan skeleton **sólo cuando todavía no hay nada en pantalla**, no encima de datos ya visibles, y la paginación vuelve a la página 1 cuando cambian los **filtros**, no cada vez que se reconstruyen las filas — borrar una fila desde la página 3 ya no deja al lector en la 1.
 - **Coverage:** ✅ Covered — all four outcome classes, including the settlement's deduction, follow-up income, over-allocation block and backend rejection, y el borrado recalculando totales sin recargar ni mover la página.
 - **E2E Spec:** `e2e/admin/admin-accounting-incomes.spec.js`
+
+### FLOW: `admin-accounting-income-bulk-settle`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes`, `/panel/accounting/pocket`
+- **API:** `POST /api/accounting/incomes/bulk-settle/`, `GET /api/accounting/incomes/`, `GET /api/accounting/pocket/`
+- **Description:** Un abono: un solo pago del cliente que cubre varios ingresos esperados con UN único movimiento del bolsillo. Desde la selección múltiple de Ingresos, la barra inferior ofrece "Registrar abono" (solo esperados de la empresa con saldo pendiente; sin elegibles el botón queda apagado con la razón en la línea de estado, y una selección parcialmente elegible abre el modal anunciando cuántos quedaron fuera). El modal lista los ingresos del más antiguo al más reciente con su pendiente y el total, prellena el valor con la suma de pendientes, propone el reparto (cada pendiente completo hasta agotar el valor; el último queda parcial) y lo recalcula en vivo hasta la primera edición manual — desde ahí "Recalcular reparto" es el camino de vuelta. El excedente se acepta como saldo a favor del cliente (hijo liquid sin padre sobre el mismo movimiento; se aplica después re-apuntando su `expected_income`), por lo que un excedente con clientes mezclados bloquea. Al confirmar, el backend crea UN `PocketMovement` + un hijo liquid por imputación compartiéndolo — el hijo ES el valor imputado por par, así que la columna Cobro, el filtro `payment_status` y los KPIs siguen derivando igual. Borrar el movimiento revierte el abono completo; borrar o redimensionar un hijo compartido se rechaza. En el Bolsillo, el movimiento de un abono muestra "Abono · N ingresos" y abre el reparto read-only.
+- **Steps:** seleccionar esperados → Registrar abono → revisar/ajustar el reparto → confirmar → filas Pagado/Parcial en la lista, un movimiento en el bolsillo.
+- **Branches:** valor menor deja el último parcial; valor exacto cubre todo sin tipear; excedente anuncia el saldo a favor; excedente con mezcla de clientes bloquea; 400 del backend deja el modal abierto; el reparto se consulta desde el movimiento del bolsillo.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-income-bulk-settle.spec.js`
 
 ### FLOW: `admin-accounting-filters`
 

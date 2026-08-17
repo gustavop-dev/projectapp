@@ -124,8 +124,20 @@
         <template #cell-concept="{ row }">
           <span class="inline-flex items-center gap-2">
             <span>{{ row.concept }}</span>
+            <!-- Un abono cubre varios ingresos: el badge genérico se vuelve
+                 la puerta al reparto. El guard de Array degrada al badge de
+                 siempre si el serializer aún no manda allocations. -->
+            <BaseButton
+              v-if="Array.isArray(row.allocations) && row.allocations.length > 1"
+              variant="ghost"
+              size="sm"
+              :data-testid="`pocket-allocations-${row.id}`"
+              @click="openAllocations(row)"
+            >
+              Abono · {{ row.allocations.length }} ingresos
+            </BaseButton>
             <span
-              v-if="row.is_auto_managed"
+              v-else-if="row.is_auto_managed"
               class="text-[10px] px-1.5 py-0.5 rounded-full bg-surface-raised text-text-muted font-medium uppercase tracking-wide"
               title="Sincronizado con el ingreso o gasto vinculado"
             >
@@ -176,6 +188,13 @@
       @submit="handleSubmit"
     />
 
+    <!-- Reparto de un abono: qué ingresos cubrió este movimiento -->
+    <PocketMovementAllocationsModal
+      :open="allocationsOpen"
+      :movement="allocationsMovement"
+      @close="closeAllocations"
+    />
+
     <!-- Confirm modal for delete -->
     <ConfirmModal
       v-model="confirmState.open"
@@ -194,11 +213,13 @@
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import BaseButton from '~/components/base/BaseButton.vue';
+import PocketMovementAllocationsModal from '~/components/accounting/PocketMovementAllocationsModal.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
@@ -340,12 +361,18 @@ const {
     saveErrorTitle: 'No se pudo guardar',
     deleteErrorTitle: 'No se pudo eliminar',
     deleteTitle: 'Eliminar movimiento',
-    deleteMessage: (record) =>
-      `Esto eliminará el movimiento "${record.concept}" de forma permanente. ` +
-      (record.is_auto_managed
-        ? 'También se eliminará el ingreso/gasto vinculado. '
-        : '') +
-      'Esta acción no se puede deshacer.',
+    deleteMessage: (record) => {
+      const isAbono = Array.isArray(record.allocations)
+        && record.allocations.length > 1;
+      const cascade = isAbono
+        ? `Se revertirá el abono completo: sus ${record.allocations.length} ingresos vinculados vuelven a quedar pendientes. `
+        : (record.is_auto_managed
+          ? 'También se eliminará el ingreso/gasto vinculado. '
+          : '');
+      return `Esto eliminará el movimiento "${record.concept}" de forma permanente. `
+        + cascade
+        + 'Esta acción no se puede deshacer.';
+    },
   },
   onAfterMutation: async () => {
     // Refresh meta.balance + link fields, and drop the sibling caches so
@@ -368,6 +395,21 @@ const columns = [
   { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
   { key: 'running_balance', label: 'Saldo', format: 'money', group: 'money', hideBelow: 'md' },
 ];
+
+// ── Reparto de un abono ──
+
+const allocationsOpen = ref(false);
+const allocationsMovement = ref(null);
+
+function openAllocations(row) {
+  allocationsMovement.value = row;
+  allocationsOpen.value = true;
+}
+
+function closeAllocations() {
+  allocationsOpen.value = false;
+  allocationsMovement.value = null;
+}
 
 async function loadRecords() {
   await store.fetchRecords('pocket');

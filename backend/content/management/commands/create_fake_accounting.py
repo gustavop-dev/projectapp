@@ -218,6 +218,62 @@ class Command(BaseCommand):
             )
             created += 1
 
+        # One abono: a single pocket movement covering three expected
+        # incomes (two in full, the third partially), the state the bulk
+        # settle flow produces. Appended AFTER the loop on purpose — the
+        # loop's rng stream and index arithmetic are load-bearing for
+        # existing assertions. Amounts are fixed for the same reason.
+        abono_client = client_profiles[0] if client_profiles else None
+        abono_day = _month_start(0) + timedelta(days=5)
+        abono_movement = PocketMovement.objects.create(
+            concept=(
+                f'Abono {abono_client.company_name}'.strip()
+                if abono_client else 'Abono 3 ingresos'
+            ),
+            movement_date=abono_day,
+            direction=PocketMovement.Direction.IN,
+            amount=Decimal('1000000'),
+            source_ref=FAKE_REF,
+        )
+        created += 1
+        abono_slices = [
+            (Decimal('500000'), Decimal('500000'), _month_start(3)),
+            (Decimal('300000'), Decimal('300000'), _month_start(2)),
+            (Decimal('400000'), Decimal('200000'), _month_start(1)),
+        ]
+        for offset, (expected_total, paid_slice, period) in enumerate(
+            abono_slices,
+        ):
+            slice_concept = f'Abono demo - Fase {offset + 1}'
+            gustavo, carlos = split_half(expected_total)
+            parent = IncomeRecord.objects.create(
+                concept=slice_concept,
+                kind=IncomeRecord.Kind.EXPECTED,
+                period_date=period,
+                total_amount=expected_total,
+                gustavo_amount=gustavo,
+                carlos_amount=carlos,
+                client=abono_client,
+                origin=IncomeRecord.Origin.DEVELOPMENT,
+                source_ref=FAKE_REF,
+            )
+            paid_gustavo, paid_carlos = split_half(paid_slice)
+            IncomeRecord.objects.create(
+                concept=slice_concept,
+                kind=IncomeRecord.Kind.LIQUID,
+                period_date=abono_day,
+                destination=IncomeRecord.Destination.POCKET,
+                total_amount=paid_slice,
+                gustavo_amount=paid_gustavo,
+                carlos_amount=paid_carlos,
+                expected_income=parent,
+                pocket_movement=abono_movement,
+                client=abono_client,
+                origin=IncomeRecord.Origin.DEVELOPMENT,
+                source_ref=FAKE_REF,
+            )
+            created += 2
+
         for index in range(count):
             concept, category = EXPENSE_CONCEPTS[index % len(EXPENSE_CONCEPTS)]
             total = Decimal(rng.randrange(20_000, 1_200_000, 1_000))

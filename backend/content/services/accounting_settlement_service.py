@@ -35,7 +35,14 @@ from decimal import ROUND_DOWN, Decimal
 from django.db import transaction
 from django.db.models import Sum
 
-from content.models import AccountingChangeLog, Document, ExpenseRecord, IncomeRecord
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    ExpenseRecord,
+    IncomeRecord,
+    Ledger,
+    PocketMovement,
+)
 from content.serializers.accounting import (
     ExpenseRecordCreateUpdateSerializer,
     IncomeRecordCreateUpdateSerializer,
@@ -316,3 +323,224 @@ def _reduce_parent(income, new_total, user):
     return accounting_service.update_record(
         EntityType.INCOME, income, serializer, user, notify=False,
     )
+
+
+# ── Abono: one payment covering several expected incomes ──
+
+def _abono_concept(parents):
+    """'Abono <distinct clients in selection order>', or the count fallback.
+
+    The movement is the only row the pocket ledger shows for the whole
+    abono, so its concept has to say who paid without opening anything.
+    """
+    from accounts.services.proposal_client_service import (
+        build_client_display_name,
+    )
+
+    seen = set()
+    names = []
+    for income in parents:
+        if income.client_id and income.client_id not in seen:
+            seen.add(income.client_id)
+            names.append(build_client_display_name(income.client))
+    if not names:
+        suffix = 'ingreso' if len(parents) == 1 else 'ingresos'
+        return f'Abono {len(parents)} {suffix}'[:255]
+    return f'Abono {", ".join(names)}'[:255]
+
+
+def _create_abono_child(income, amount, data, movement, user):
+    """One allocation slice: a liquid child riding the shared movement.
+
+    The child keeps the parent's concept so the incomes list reads naturally;
+    the operator's note lives once, on the movement. No partner amounts on
+    purpose: the write serializer applies split_half, exactly what settling
+    to the pocket produces today.
+    """
+    serializer = IncomeRecordCreateUpdateSerializer(
+        data={
+            'concept': income.concept,
+            'kind': IncomeRecord.Kind.LIQUID,
+            'period_date': data['period_date'],
+            'destination': IncomeRecord.Destination.POCKET,
+            'ledger': income.ledger,
+            'total_amount': amount,
+            'expected_income': income.pk,
+            'client': income.client_id,
+            'project': income.project_id,
+            'origin': income.origin,
+            'notes': '',
+        },
+        context={'settlement': True},
+    )
+    serializer.is_valid(raise_exception=True)
+    return accounting_service.create_record(
+        EntityType.INCOME, serializer, user,
+        notify=False, shared_pocket_movement=movement,
+    )
+
+
+def _create_credit_child(excess, client, data, movement, user):
+    """The client's saldo a favor: a parentless liquid child on the movement.
+
+    Money that DID enter but covers no expected income yet. Keeping it as a
+    child of the same movement preserves movement.amount == Σ children, and
+    applying it later is just re-pointing its `expected_income` at the next
+    expected record — the edit the shared-child guard leaves open on purpose.
+    """
+    from accounts.services.proposal_client_service import (
+        build_client_display_name,
+    )
+
+    concept = 'Saldo a favor'
+    if client is not None:
+        concept = f'Saldo a favor {build_client_display_name(client)}'[:255]
+    serializer = IncomeRecordCreateUpdateSerializer(
+        data={
+            'concept': concept,
+            'kind': IncomeRecord.Kind.LIQUID,
+            'period_date': data['period_date'],
+            'destination': IncomeRecord.Destination.POCKET,
+            'ledger': Ledger.COMPANY,
+            'total_amount': excess,
+            'client': client.pk if client is not None else None,
+            'notes': '',
+        },
+        context={'settlement': True},
+    )
+    serializer.is_valid(raise_exception=True)
+    return accounting_service.create_record(
+        EntityType.INCOME, serializer, user,
+        notify=False, shared_pocket_movement=movement,
+    )
+
+
+def _stamp_abono_ref(movement, children):
+    """Trace the movement and every child back to the same abono."""
+    source_ref = f'abono:{movement.pk}'
+    PocketMovement.objects.filter(pk=movement.pk).update(source_ref=source_ref)
+    movement.source_ref = source_ref
+    IncomeRecord.objects.filter(
+        pk__in=[child.pk for child in children],
+    ).update(source_ref=source_ref)
+    for child in children:
+        child.source_ref = source_ref
+
+
+@transaction.atomic
+def bulk_settle_expected_incomes(data, user):
+    """Register one payment that covers several expected incomes.
+
+    ONE pocket movement for the money that entered (that is the whole point:
+    the pocket reflects reality, not the bookkeeping of the split) plus one
+    liquid child per allocation sharing it — the child IS the per-income
+    imputed amount, so every payment derivation keeps working untouched.
+    Whatever the allocations leave of ``total_amount`` becomes the client's
+    saldo a favor as a parentless child on the same movement.
+
+    ``data`` comes from a validated ``IncomeBulkSettlementSerializer``.
+    Raises ``ValueError`` with a Spanish message on any business-rule
+    breach; the view turns it into a 400.
+    """
+    allocations = data['allocations']
+    ids = [entry['income_id'] for entry in allocations]
+    amounts = {entry['income_id']: entry['amount'] for entry in allocations}
+    incomes = {
+        income.pk: income
+        for income in IncomeRecord.objects
+        .select_for_update()
+        .select_related('client__user')
+        .filter(pk__in=ids)
+    }
+    # Defensive re-check behind the view's 409: an abono is all-or-nothing,
+    # silently skipping a vanished id would misdistribute the money.
+    if len(incomes) != len(ids):
+        raise ValueError(
+            'Alguno de los ingresos seleccionados ya no existe. '
+            'Actualiza la lista e inténtalo de nuevo.'
+        )
+    parents = [incomes[pk] for pk in ids]
+
+    for income in parents:
+        if income.kind != IncomeRecord.Kind.EXPECTED:
+            raise ValueError(
+                f'Solo se pueden abonar ingresos esperados '
+                f'("{income.concept}" no lo es).'
+            )
+        if income.ledger != Ledger.COMPANY:
+            raise ValueError(
+                'Los ingresos de contabilidad personal no pueden recibir '
+                'abonos: el Bolsillo ProjectApp solo maneja dinero de la '
+                'empresa.'
+            )
+        pending = income.total_amount - _paid_total(income)
+        if pending <= 0:
+            raise ValueError(
+                f'El ingreso "{income.concept}" ya está completamente pagado.'
+            )
+        if amounts[income.pk] > pending:
+            raise ValueError(
+                f'La imputación a "{income.concept}" supera su saldo '
+                f'pendiente (${pending:,.2f}).'
+            )
+
+    allocated = sum(amounts.values(), Decimal('0'))
+    excess = data['total_amount'] - allocated
+    credit_client = None
+    if excess > 0:
+        client_ids = {income.client_id for income in parents}
+        if len(client_ids) > 1:
+            raise ValueError(
+                'Con clientes mezclados el excedente no se puede asignar '
+                'como saldo a favor: ajusta el valor o registra el '
+                'excedente aparte.'
+            )
+        owner_id = client_ids.pop()
+        if owner_id is not None:
+            credit_client = parents[0].client
+
+    movement = PocketMovement.objects.create(
+        concept=_abono_concept(parents),
+        movement_date=data['period_date'],
+        direction=PocketMovement.Direction.IN,
+        amount=data['total_amount'],
+        notes=data.get('notes', ''),
+        created_by=user if getattr(user, 'is_authenticated', False) else None,
+    )
+    movement_log = accounting_service.log_accounting_change(
+        entity_type=EntityType.POCKET,
+        object_id=movement.pk,
+        object_repr=movement.concept,
+        action=AccountingChangeLog.Action.CREATED,
+        changes=accounting_service.compute_changes(
+            EntityType.POCKET, {},
+            accounting_service.snapshot_values(movement, EntityType.POCKET),
+        ),
+        actor=user,
+    )
+
+    children = [
+        _create_abono_child(income, amounts[income.pk], data, movement, user)
+        for income in parents
+    ]
+    credit = None
+    if excess > 0:
+        credit = _create_credit_child(excess, credit_client, data, movement, user)
+        children.append(credit)
+
+    _stamp_abono_ref(movement, children)
+
+    for income in parents:
+        income.refresh_from_db()
+        _sync_linked_collection_accounts(income, user)
+
+    # Exactly ONE email for the whole abono — the movement is the money
+    # event; N child emails would read as N payments in the inbox.
+    accounting_service._notify(movement_log)
+
+    return {
+        'movement': movement,
+        'incomes': parents,
+        'liquids': children,
+        'credit': credit,
+    }

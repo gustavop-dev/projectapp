@@ -334,7 +334,7 @@ class TestPocketToRecordSync:
             superuser, direction='in', concept='Anticipo cliente',
             amount='1000000.00',
         )
-        income = movement.income_record
+        income = movement.income_records.get()
         assert income is not None
         assert income.kind == IncomeRecord.Kind.LIQUID
         assert income.destination == IncomeRecord.Destination.POCKET
@@ -347,7 +347,7 @@ class TestPocketToRecordSync:
             superuser, direction='in', concept='Anticipo cliente',
             amount='1000000.00',
         )
-        income = movement.income_record
+        income = movement.income_records.get()
         assert income.gustavo_amount == Decimal('500000.00')
         assert income.carlos_amount == Decimal('500000.00')
         assert income.source_ref == f'pocket:{movement.pk}'

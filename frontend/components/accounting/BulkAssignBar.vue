@@ -79,6 +79,23 @@
           Cancelar
         </BaseButton>
         <!--
+          Registrar abono vive fuera del segmented Cliente/Proyecto: no es un
+          "target" (no usa el picker — abre su propio modal, que ES la
+          confirmación) y meterlo como tercer segmento dejaría vacía la celda
+          del picker. Siempre presente cuando la página lo habilita, sólo
+          cambia `disabled`, así la fila no refluye entre selecciones.
+        -->
+        <BaseButton
+          v-if="settleEnabled"
+          variant="secondary"
+          size="sm"
+          :disabled="settleEligibleIds.length === 0 || busy"
+          :data-testid="`${testidPrefix}-bulk-settle`"
+          @click="emitSettle"
+        >
+          Registrar abono
+        </BaseButton>
+        <!--
           Desvincular es su propio botón, no el mismo con el selector vacío:
           sólo aparece cuando hay algo que desvincular, así que su presencia
           ya dice que la selección tiene cliente (o proyecto).
@@ -184,6 +201,7 @@ import ProjectCatalogSelect from '~/components/accounting/ProjectCatalogSelect.v
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
+import { isSettleEligible } from '~/utils/settleAllocation';
 import { buildAssignmentPlan, describeAssignmentPlan } from '~/utils/clientAssignment';
 import {
   buildProjectAssignmentPlan,
@@ -227,9 +245,13 @@ const props = defineProps({
   busy: { type: Boolean, default: false },
   /** Offer the Proyecto target (pages whose rows carry a project link). */
   projectEnabled: { type: Boolean, default: false },
+  /** Offer "Registrar abono" (incomes only: bulk-settle needs expected rows). */
+  settleEnabled: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:selected', 'submit', 'submit-project']);
+const emit = defineEmits([
+  'update:selected', 'submit', 'submit-project', 'submit-settle',
+]);
 
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
@@ -286,6 +308,19 @@ const canUnlinkProject = computed(
   () => unlinkProjectPlan.value.toUnlink.length > 0,
 );
 
+/** Selected ids that can take an abono: company expected rows with pending. */
+const settleEligibleIds = computed(() => {
+  if (!props.settleEnabled) return [];
+  const byId = new Map(props.rows.map((row) => [row.id, row]));
+  return props.selected.filter((id) => isSettleEligible(byId.get(id)));
+});
+
+/** Empty string = the abono button is live. */
+const settleBlockedReason = computed(() => {
+  if (!props.settleEnabled || settleEligibleIds.value.length > 0) return '';
+  return 'Para abonar se necesitan esperados con saldo pendiente.';
+});
+
 /** Empty string = the assign button is live. */
 const assignBlockedReason = computed(() => {
   if (!clientId.value) return 'Elige un cliente para poder asignar.';
@@ -313,30 +348,56 @@ const projectBlockedReason = computed(() => {
  * eso la barra no cambia de alto entre estados ni entre targets.
  */
 const statusLine = computed(() => {
+  // La razón del abono viaja como sufijo `·` de la misma línea única (el
+  // precedente es el sufijo de mismatch del target proyecto): una segunda
+  // línea rompería el alto fijo de la barra.
+  const settleSuffix = settleBlockedReason.value
+    ? ` · ${settleBlockedReason.value}`
+    : '';
   if (target.value === 'project') {
     if (projectBlockedReason.value) {
-      return { text: projectBlockedReason.value, icon: InformationCircleIcon };
+      return {
+        text: `${projectBlockedReason.value}${settleSuffix}`,
+        icon: InformationCircleIcon,
+      };
     }
     const blocked = assignProjectPlan.value.blockedClientMismatch.length;
     const suffix = blocked > 0
       ? ` · ${blocked} de otro cliente no se ${blocked === 1 ? 'toca' : 'tocan'}`
       : '';
     return {
-      text: `Proyecto enlazado: ${assignProjectPlan.value.targetProjectLabel} (#${projectId.value})${suffix}`,
+      text: `Proyecto enlazado: ${assignProjectPlan.value.targetProjectLabel} (#${projectId.value})${suffix}${settleSuffix}`,
       icon: LinkIcon,
     };
   }
   if (assignBlockedReason.value) {
-    return { text: assignBlockedReason.value, icon: InformationCircleIcon };
+    return {
+      text: `${assignBlockedReason.value}${settleSuffix}`,
+      icon: InformationCircleIcon,
+    };
   }
   return {
-    text: `Cliente enlazado: ${clientLabel.value} (#${clientId.value})`,
+    text: `Cliente enlazado: ${clientLabel.value} (#${clientId.value})${settleSuffix}`,
     icon: LinkIcon,
   };
 });
 
 function selectAllFiltered() {
   emit('update:selected', [...props.filteredIds]);
+}
+
+/**
+ * Sin ConfirmModal propio: el modal de abono lista cada ingreso y los
+ * totales antes de escribir nada — es la misma garantía que el plan de los
+ * assigns, con la distribución además. Sólo viajan los elegibles; el modal
+ * anuncia cuántos seleccionados quedaron fuera.
+ */
+function emitSettle() {
+  if (settleEligibleIds.value.length === 0) return;
+  emit('submit-settle', {
+    ids: settleEligibleIds.value,
+    excludedCount: props.selected.length - settleEligibleIds.value.length,
+  });
 }
 
 function clearSelection() {

@@ -99,12 +99,15 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         limit_choices_to={'kind': 'expected'},
     )
     # Auto-managed by accounting_service when kind=liquid and destination=pocket.
-    pocket_movement = models.OneToOneField(
+    # A ForeignKey (not OneToOne) since the abono flow: one pocket movement may
+    # cover several expected incomes, materialized as N liquid children sharing
+    # the same movement — each child's total_amount IS the per-income allocation.
+    pocket_movement = models.ForeignKey(
         'PocketMovement',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='income_record',
+        related_name='income_records',
     )
 
     # Payment calendar: an expected income is announced 15 and 7 days before

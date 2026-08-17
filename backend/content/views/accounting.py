@@ -61,6 +61,7 @@ from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
+    IncomeBulkSettlementSerializer,
     IncomeClientBulkAssignSerializer,
     IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
@@ -343,7 +344,10 @@ _ENTITIES = {
         'amount_field': 'amount',
         'search_fields': ('concept', 'notes'),
         'choice_filters': ('direction',),
-        'select_related': ('income_record', 'expense_record'),
+        'select_related': ('expense_record',),
+        # Reverse FK since the abono (N liquid children per movement): one
+        # extra query for the whole list instead of one per row.
+        'prefetch_related': ('income_records',),
         'meta': _pocket_meta,
     },
     'recurring': {
@@ -584,6 +588,8 @@ def _list_records(request, key):
     queryset = base_queryset(config)
     if config.get('select_related'):
         queryset = queryset.select_related(*config['select_related'])
+    if config.get('prefetch_related'):
+        queryset = queryset.prefetch_related(*config['prefetch_related'])
     try:
         queryset = _apply_filters(queryset, request.query_params, config)
         meta = config.get('meta', lambda qs, params: {})(
@@ -1011,6 +1017,44 @@ def bulk_assign_income_client(request):
             _with_liquid_children(updated), many=True,
         ).data,
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_settle_income_records(request):
+    """Register one payment (abono) distributed across several expected incomes.
+
+    One pocket movement for the money that entered, one liquid child per
+    allocation sharing it. Whatever the allocations leave of the total
+    becomes the client's saldo a favor on the same movement.
+    """
+    serializer = IncomeBulkSettlementSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = [
+        entry['income_id']
+        for entry in serializer.validated_data['allocations']
+    ]
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
+    try:
+        result = accounting_settlement_service.bulk_settle_expected_incomes(
+            serializer.validated_data, request.user,
+        )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+    results = list(_with_liquid_children(result['incomes']))
+    if result['credit'] is not None:
+        # Parentless, so _with_liquid_children can't pick it up.
+        results.append(result['credit'])
+    return Response({
+        'updated': len(result['incomes']),
+        'results': IncomeRecordSerializer(results, many=True).data,
+        'movement': PocketMovementSerializer(result['movement']).data,
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

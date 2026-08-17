@@ -40,14 +40,47 @@ class PocketMovement(AccountingRecordBase):
         return f'{self.concept} ({sign}{self.amount})'
 
     @property
+    def income_children(self):
+        """Liquid incomes covered by this movement (an abono may hold several).
+
+        Memoized on the instance because the serializer reads it more than
+        once per row; `self.income_records.all()` reuses a prefetch cache
+        when the queryset provided one.
+        """
+        cache = getattr(self, '_income_children_cache', None)
+        if cache is None:
+            # Sorted in Python (pk == creation == allocation order): an
+            # order_by() here would bypass the prefetch cache and pay one
+            # query per row on the pocket list.
+            cache = sorted(
+                self.income_records.all(), key=lambda record: record.pk,
+            )
+            self._income_children_cache = cache
+        return cache
+
+    @property
+    def is_shared(self):
+        """True when this movement is an abono covering more than one income."""
+        return len(self.income_children) > 1
+
+    @property
     def linked_record(self):
-        """The income or expense record this movement mirrors, if any."""
-        return (
-            getattr(self, 'income_record', None)
-            or getattr(self, 'expense_record', None)
-        )
+        """The single record this movement mirrors, if any.
+
+        Deliberately None for a shared (abono) movement: it mirrors no single
+        record, so every mirror/edit path that keys on this property treats it
+        like a historical unlinked movement and touches no child.
+        """
+        children = self.income_children
+        if len(children) == 1:
+            return children[0]
+        if children:
+            return None
+        return getattr(self, 'expense_record', None)
 
     @property
     def is_auto_managed(self):
-        """True when linked to an income or expense (name kept for API compat)."""
-        return self.linked_record is not None
+        """True when linked to incomes or an expense (name kept for API compat)."""
+        return bool(self.income_children) or (
+            getattr(self, 'expense_record', None) is not None
+        )

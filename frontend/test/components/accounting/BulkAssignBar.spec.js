@@ -444,3 +444,71 @@ describe('BulkAssignBar — a deleted record is not a filtered one', () => {
     expect(wrapper.emitted('submit')[0][0].ids).toEqual([1]);
   });
 });
+
+describe('BulkAssignBar — Registrar abono behind settleEnabled', () => {
+  const INCOME_ROWS = [
+    {
+      id: 11, kind: 'expected', ledger: 'company', client: 7,
+      pending_amount: '500000.00', period_date: '2026-05-01',
+      client_display_name: 'Kore SAS', domain_url: 'a.com',
+    },
+    {
+      id: 12, kind: 'expected', ledger: 'company', client: 7,
+      pending_amount: '300000.00', period_date: '2026-06-01',
+      client_display_name: 'Kore SAS', domain_url: 'b.com',
+    },
+    {
+      id: 13, kind: 'liquid', ledger: 'company', client: 7,
+      pending_amount: null, period_date: '2026-06-10',
+      client_display_name: 'Kore SAS', domain_url: 'c.com',
+    },
+    {
+      id: 14, kind: 'expected', ledger: 'company', client: 7,
+      pending_amount: '0.00', period_date: '2026-04-01',
+      client_display_name: 'Kore SAS', domain_url: 'd.com',
+    },
+  ];
+
+  it('offers the button only behind the prop, so Hostings stays untouched', () => {
+    const withoutProp = mountBar();
+    expect(withoutProp.find('[data-testid="hostings-bulk-settle"]').exists())
+      .toBe(false);
+
+    const withProp = mountBar({ settleEnabled: true });
+    expect(withProp.find('[data-testid="hostings-bulk-settle"]').exists())
+      .toBe(true);
+  });
+
+  it('emits submit-settle with only the eligible ids and the excluded count', async () => {
+    const wrapper = mountBar({
+      settleEnabled: true,
+      rows: INCOME_ROWS,
+      selected: [11, 12, 13, 14],
+      filteredIds: [11, 12, 13, 14],
+    });
+
+    await wrapper.find('[data-testid="hostings-bulk-settle"]').trigger('click');
+
+    expect(wrapper.emitted('submit-settle')[0][0]).toEqual({
+      ids: [11, 12],
+      excludedCount: 2,
+    });
+  });
+
+  it('disables the abono and appends the reason to the single status line', () => {
+    // Only the liquid and the fully paid rows are selected: nothing to abonar.
+    const wrapper = mountBar({
+      settleEnabled: true,
+      rows: INCOME_ROWS,
+      selected: [13, 14],
+      filteredIds: [11, 12, 13, 14],
+    });
+
+    expect(
+      wrapper.find('[data-testid="hostings-bulk-settle"]').element.disabled,
+    ).toBe(true);
+    const hint = wrapper.find('[data-testid="hostings-bulk-hint"]').text();
+    expect(hint).toContain('Elige un cliente para poder asignar.');
+    expect(hint).toContain('Para abonar se necesitan esperados con saldo pendiente.');
+  });
+});

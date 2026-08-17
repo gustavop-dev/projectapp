@@ -401,6 +401,52 @@ def _ensure_pocket_update_allowed(entity_type, instance, serializer):
             code='linked_direction_locked',
             hint='Elimina el movimiento y créalo de nuevo con la otra dirección.',
         )
+    new_amount = serializer.validated_data.get('amount')
+    if (
+        instance.is_shared
+        and new_amount is not None
+        and new_amount != instance.amount
+    ):
+        # The invariant movement.amount == Σ children has no DB constraint;
+        # this guard and the _sync_movement one are its only keepers.
+        raise ProposalActionError(
+            'El valor de un abono no se puede editar: es la suma de los '
+            'ingresos que cubre.',
+            code='abono_amount_locked',
+            hint='Elimina el movimiento para deshacer el abono y regístralo '
+                 'de nuevo.',
+        )
+
+
+def _ensure_shared_child_update_allowed(entity_type, instance, serializer):
+    """A liquid child of an abono keeps its money fields frozen.
+
+    Its total_amount is one slice of the shared movement's amount: resizing
+    it (or flipping destination/kind, which would detach the movement) breaks
+    movement.amount == Σ children silently. Concept, notes, dates, split and
+    expected_income stay editable — re-pointing expected_income is on purpose
+    the correction tool for a mis-imputed allocation and the way a saldo a
+    favor gets applied to a future expected income.
+    """
+    if entity_type != EntityType.INCOME:
+        return
+    movement = instance.pocket_movement
+    if movement is None or not movement.is_shared:
+        return
+    data = serializer.validated_data
+    changed = (
+        ('total_amount' in data and data['total_amount'] != instance.total_amount)
+        or ('destination' in data and data['destination'] != instance.destination)
+        or ('kind' in data and data['kind'] != instance.kind)
+    )
+    if changed:
+        raise ProposalActionError(
+            'Este ingreso hace parte de un abono: su monto, destino y tipo '
+            'no se pueden editar.',
+            code='abono_child_locked',
+            hint='Elimina el movimiento del bolsillo para deshacer el abono '
+                 'completo.',
+        )
 
 
 def _pop_mirror_ledger(entity_type, serializer):
@@ -417,24 +463,35 @@ def _pop_register_in_pocket(entity_type, serializer):
     return serializer.validated_data.pop('register_in_pocket', None)
 
 
-def create_record(entity_type, serializer, user, notify=True):
+def create_record(entity_type, serializer, user, notify=True, *,
+                  shared_pocket_movement=None):
     """Persist a validated write serializer, audit it and notify.
 
     ``notify=False`` still writes the audit row but skips the email. It exists
     for flows that compose several records in one user action (an income
     settlement creates the liquid child plus its deductions and follow-up
     expected incomes) and should read as a single event in the inbox.
+
+    ``shared_pocket_movement`` attaches the record to a movement the abono
+    flow already created and audited. The per-record pocket sync is skipped
+    entirely on purpose: letting it run would either spawn a second movement
+    or mirror the shared one down to a single child's amount and concept.
     """
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     with transaction.atomic():
-        instance = serializer.save(created_by=user)
-        _sync_pocket(
-            entity_type, instance, user,
-            register_in_pocket=register_in_pocket,
-        )
-        if entity_type == EntityType.POCKET:
-            _sync_from_pocket(instance, mirror_ledger, user, is_create=True)
+        if shared_pocket_movement is not None:
+            instance = serializer.save(
+                created_by=user, pocket_movement=shared_pocket_movement,
+            )
+        else:
+            instance = serializer.save(created_by=user)
+            _sync_pocket(
+                entity_type, instance, user,
+                register_in_pocket=register_in_pocket,
+            )
+            if entity_type == EntityType.POCKET:
+                _sync_from_pocket(instance, mirror_ledger, user, is_create=True)
     new_values = snapshot_values(instance, entity_type)
     changes = compute_changes(entity_type, {}, new_values)
     change_log = log_accounting_change(
@@ -456,6 +513,7 @@ def update_record(entity_type, instance, serializer, user, notify=True):
     See ``create_record`` for why ``notify=False`` exists.
     """
     _ensure_pocket_update_allowed(entity_type, instance, serializer)
+    _ensure_shared_child_update_allowed(entity_type, instance, serializer)
     mirror_ledger = _pop_mirror_ledger(entity_type, serializer)
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     old_values = snapshot_values(instance, entity_type)
@@ -725,11 +783,15 @@ def _deletion_changes(entity_type, old_values):
 
 
 def delete_record(entity_type, instance, user):
-    """Delete a record and its linked counterpart, audit and notify.
+    """Delete a record and its linked counterpart(s), audit and notify.
 
     A linked pocket movement and its income/expense are one money event:
     deleting either side hard-deletes the other (an orphan would silently
-    diverge the pocket balance from the records).
+    diverge the pocket balance from the records). An abono movement spans
+    several income children, so deleting it reverses the whole abono; the
+    inverse direction — deleting one child of a shared movement — is
+    rejected instead of cascading, because the movement's amount is the sum
+    of its children and must not shrink over a partial delete.
     """
     deleted_id = instance.pk
     deleted_repr = object_repr(entity_type, instance)
@@ -737,26 +799,42 @@ def delete_record(entity_type, instance, user):
     changes = _deletion_changes(entity_type, old_values)
 
     linked_movement = None
-    linked_record = None
-    linked_record_type = None
+    linked_records = []
     if entity_type in (EntityType.INCOME, EntityType.EXPENSE):
         linked_movement = instance.pocket_movement
-    elif entity_type == EntityType.POCKET:
-        # Capture before deleting: the record FK is SET_NULL on delete.
-        linked_record = instance.linked_record
-        if linked_record is not None:
-            linked_record_type = (
-                EntityType.INCOME
-                if isinstance(linked_record, IncomeRecord)
-                else EntityType.EXPENSE
+        if (
+            entity_type == EntityType.INCOME
+            and linked_movement is not None
+            and linked_movement.is_shared
+        ):
+            # One child of an abono cannot fall alone: the movement's amount
+            # is the sum of its children, and shrinking the movement here
+            # would rewrite a money event that DID happen. The abono
+            # reverses as a unit, from the pocket side.
+            raise ValueError(
+                'Este ingreso hace parte de un abono que cubre varios '
+                'ingresos. Para deshacerlo elimina el movimiento del '
+                'bolsillo: se revertirá el abono completo.'
             )
+    elif entity_type == EntityType.POCKET:
+        # Capture before deleting: the record FKs are SET_NULL on delete.
+        # An abono movement carries several income children — deleting the
+        # movement undoes the whole abono, and each parent's payment state
+        # reverts by derivation the moment its child rows disappear.
+        linked_records = [
+            (EntityType.INCOME, record)
+            for record in instance.income_children
+        ]
+        expense = getattr(instance, 'expense_record', None)
+        if expense is not None:
+            linked_records.append((EntityType.EXPENSE, expense))
 
     with transaction.atomic():
         instance.delete()
         if linked_movement is not None:
             _log_pocket_removal(linked_movement, user)
             linked_movement.delete()
-        if linked_record is not None:
+        for linked_record_type, linked_record in linked_records:
             _log_record_removal(linked_record_type, linked_record, user)
             linked_record.delete()
 
@@ -813,6 +891,20 @@ def _sync_movement(record, *, wants_movement, direction, source_ref, user):
     stay invertible from the pocket side.
     """
     movement = record.pocket_movement
+
+    if movement is not None and movement.is_shared:
+        # An abono movement mirrors no single child: letting the mirror run
+        # would clobber its amount/concept with one child's values, and the
+        # removal branch would delete the whole abono over one child's edit.
+        # Defense in depth with _ensure_shared_child_update_allowed — a
+        # future caller must not be able to desync movement.amount == Σ
+        # children silently.
+        if not wants_movement:
+            raise ValueError(
+                'Este ingreso hace parte de un abono; su destino y tipo no '
+                'se pueden cambiar.'
+            )
+        return
 
     if wants_movement and movement is None:
         movement = PocketMovement.objects.create(

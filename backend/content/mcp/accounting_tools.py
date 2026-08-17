@@ -81,6 +81,10 @@ def _make_list(key):
         # paid_amount): without them a payment_status filter raises FieldError
         # and the serializer falls back to one aggregate per row.
         queryset = base_queryset(config)
+        if config.get('select_related'):
+            queryset = queryset.select_related(*config['select_related'])
+        if config.get('prefetch_related'):
+            queryset = queryset.prefetch_related(*config['prefetch_related'])
         params = _str_params(arguments)
         try:
             queryset = _apply_filters(queryset, params, config)

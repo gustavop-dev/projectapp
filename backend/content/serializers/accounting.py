@@ -637,6 +637,53 @@ class IncomeSettlementSerializer(serializers.Serializer):
     expected_incomes = SettlementFollowUpSerializer(many=True, required=False)
 
 
+class SettlementAllocationSerializer(serializers.Serializer):
+    """How much of one abono lands on one expected income."""
+
+    income_id = serializers.IntegerField(min_value=1)
+    amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+
+
+class IncomeBulkSettlementSerializer(serializers.Serializer):
+    """One client payment distributed across several expected incomes.
+
+    The panel computes the distribution (oldest first, hand-adjustable) and
+    the backend only validates it — hidden re-computation here would betray
+    the reparto the operator just confirmed on screen. Anything that needs
+    the records themselves (pendings, ledgers, the excess owner) lives in
+    ``accounting_settlement_service.bulk_settle_expected_incomes``.
+    """
+
+    allocations = SettlementAllocationSerializer(many=True, allow_empty=False)
+    total_amount = serializers.DecimalField(
+        max_digits=14, decimal_places=2, min_value=Decimal('0.01'),
+    )
+    period_date = FlexiblePeriodField()
+    notes = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        ids = [entry['income_id'] for entry in data['allocations']]
+        if len(ids) != len(set(ids)):
+            raise serializers.ValidationError({
+                'allocations': 'Hay ingresos repetidos en la distribución.',
+            })
+        allocated = sum(
+            (entry['amount'] for entry in data['allocations']), Decimal('0'),
+        )
+        # Less than the total is legal: the difference becomes the client's
+        # saldo a favor (a parentless liquid child on the same movement).
+        if allocated > data['total_amount']:
+            raise serializers.ValidationError({
+                'total_amount': (
+                    'La suma de la distribución no puede superar el monto '
+                    'recibido.'
+                ),
+            })
+        return data
+
+
 class IncomeClientBulkAssignSerializer(serializers.Serializer):
     """Assign one client to several incomes; ``client: null`` unlinks them."""
 
@@ -1054,6 +1101,7 @@ class PocketMovementSerializer(serializers.ModelSerializer):
     linked_income_id = serializers.SerializerMethodField()
     linked_expense_id = serializers.SerializerMethodField()
     linked_ledger = serializers.SerializerMethodField()
+    allocations = serializers.SerializerMethodField()
 
     class Meta:
         model = PocketMovement
@@ -1061,12 +1109,19 @@ class PocketMovementSerializer(serializers.ModelSerializer):
             'id', 'concept', 'movement_date',
             'direction', 'direction_label', 'amount', 'is_auto_managed',
             'linked_income_id', 'linked_expense_id', 'linked_ledger',
+            'allocations',
             'notes', 'created_at', 'updated_at',
         )
 
     def get_linked_income_id(self, obj):
-        income = getattr(obj, 'income_record', None)
-        return income.pk if income else None
+        """Pk of the single covered income; None for a shared abono movement.
+
+        A shared movement is represented by `allocations` — a single id would
+        pick one child arbitrarily and every consumer of this field assumes
+        a 1:1 mirror.
+        """
+        children = obj.income_children
+        return children[0].pk if len(children) == 1 else None
 
     def get_linked_expense_id(self, obj):
         expense = getattr(obj, 'expense_record', None)
@@ -1077,13 +1132,30 @@ class PocketMovementSerializer(serializers.ModelSerializer):
 
         Draws are stored as company-ledger expenses fully assigned to one
         partner, so the expense side reports its `partner_attribution`.
-        Incomes report the plain ledger: pocket IN is always company.
+        Incomes report the plain ledger: pocket IN is always company —
+        which is also the only ledger an abono's children may live on.
         """
         expense = getattr(obj, 'expense_record', None)
         if expense is not None:
             return expense.partner_attribution
-        linked = obj.linked_record
-        return linked.ledger if linked else None
+        children = obj.income_children
+        if len(children) > 1:
+            return Ledger.COMPANY
+        return children[0].ledger if children else None
+
+    def get_allocations(self, obj):
+        """Per-income breakdown of an abono: how much of this movement went
+        where. One entry for ordinary linked movements, [] when unlinked, so
+        the panel renders a single structure either way."""
+        return [
+            {
+                'income_id': child.pk,
+                'expected_income_id': child.expected_income_id,
+                'concept': child.concept,
+                'amount': str(child.total_amount),
+            }
+            for child in obj.income_children
+        ]
 
 
 class PocketMovementCreateUpdateSerializer(serializers.ModelSerializer):
