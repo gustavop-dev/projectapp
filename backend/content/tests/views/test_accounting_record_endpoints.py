@@ -288,6 +288,35 @@ class TestListFilterBranches:
         response = super_client.get('/api/accounting/pocket/?date_to=2026-03-31')
         assert response.data['meta']['balance'] == '100.00'
 
+    def test_q_filter_multi_value_filters_as_or(self, super_client):
+        """`attribution` shares the comma-OR vocabulary of `choice_filters`."""
+        make_pocket(concept='Sin espejo')
+        response = super_client.get(
+            '/api/accounting/pocket/?attribution=none,gustavo',
+        )
+        concepts = [row['concept'] for row in response.data['results']]
+        assert concepts == ['Sin espejo']
+
+    def test_q_filter_all_does_not_filter(self, super_client):
+        make_pocket(concept='Sin espejo')
+        response = super_client.get('/api/accounting/pocket/?attribution=all')
+        assert len(response.data['results']) == 1
+
+    def test_invalid_q_filter_token_returns_400(self, super_client):
+        make_pocket()
+        response = super_client.get(
+            '/api/accounting/pocket/?attribution=socio',
+        )
+        assert response.status_code == 400
+        # The message enumerates the accepted tokens, so a bad param is
+        # self-correcting for an MCP caller.
+        assert 'gustavo' in str(response.data)
+
+    def test_invalid_linked_token_returns_400(self, super_client):
+        make_pocket()
+        response = super_client.get('/api/accounting/pocket/?linked=maybe')
+        assert response.status_code == 400
+
 
 @pytest.mark.django_db
 class TestRecurringAndCatalogEndpoints:

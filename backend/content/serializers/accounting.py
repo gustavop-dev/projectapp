@@ -1075,15 +1075,11 @@ class PocketMovementSerializer(serializers.ModelSerializer):
     def get_linked_ledger(self, obj):
         """Attribution shown by the pocket modal's Contabilidad control.
 
-        Draws are stored as company-ledger expenses fully assigned to one
-        partner, so the expense side reports its `partner_attribution`.
-        Incomes report the plain ledger: pocket IN is always company.
+        Field name kept for API compatibility; the rule itself lives on the
+        model so the `attribution` filter and the CSV export cannot drift from
+        what this field reports.
         """
-        expense = getattr(obj, 'expense_record', None)
-        if expense is not None:
-            return expense.partner_attribution
-        linked = obj.linked_record
-        return linked.ledger if linked else None
+        return obj.attribution
 
 
 class PocketMovementCreateUpdateSerializer(serializers.ModelSerializer):
