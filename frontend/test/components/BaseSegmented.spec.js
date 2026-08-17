@@ -39,15 +39,18 @@ describe('BaseSegmented', () => {
     expect(wrapper.find('[role="tablist"]').classes()).not.toContain('overflow-x-auto')
   })
 
-  it('keeps labels on a single line when nowrap is set, scrolling instead of breaking', () => {
+  it('keeps labels on a single line when nowrap is set, wrapping instead of breaking', () => {
     const wrapper = mount(BaseSegmented, {
       props: { modelValue: 'COL', options: [{ value: 'COL', label: 'Colombia (COP)' }], nowrap: true },
     })
     expect(wrapper.findAll('button')[0].classes()).toContain('whitespace-nowrap')
-    // The container absorbs the extra width so the page never gains a scrollbar.
+    // El control crece en alto en vez de scrollear: un scroll horizontal sin
+    // indicador esconde las opciones del final detrás de un corte que se lee
+    // como el final de la lista, y ninguna opción puede quedar inalcanzable.
     expect(wrapper.find('[role="tablist"]').classes()).toEqual(
-      expect.arrayContaining(['max-w-full', 'overflow-x-auto']),
+      expect.arrayContaining(['max-w-full', 'flex-wrap']),
     )
+    expect(wrapper.find('[role="tablist"]').classes()).not.toContain('overflow-x-auto')
   })
 
   it('locks a single option without touching the others', async () => {

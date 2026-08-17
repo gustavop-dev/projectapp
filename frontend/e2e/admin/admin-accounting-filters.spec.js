@@ -393,4 +393,50 @@ test.describe('Admin Accounting Filters', () => {
     // Live (debounced) emission: rows shrink without leaving the input.
     await expect(visibleRows(page)).toHaveCount(2, { timeout: 10_000 });
   });
+
+  // La tira de predefinidos se desbordaba a la derecha y el
+  // `body { overflow-x: hidden }` de app.vue la recortaba SIN barra de scroll:
+  // los últimos filtros quedaban inalcanzables y el corte se leía como el final
+  // de la lista. 1024px está por encima del breakpoint `md`, que es donde vive
+  // la tira de escritorio y donde se veía el defecto.
+  test('ningún filtro predefinido queda recortado en una ventana angosta', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (el defecto se manifiesta al pintar: los
+    // filtros del final ya están recortados antes de que el usuario toque nada,
+    // y cualquier clic previo taparía justo lo que se quiere medir. El uso del
+    // último predefinido lo cubre el test de al lado.)
+    // quality: allow-deep-link (medimos el ancho de la tira al entrar, que es
+    // cuando el corte engaña; la ruta de navegación la cubren los demás tests.)
+    await page.setViewportSize({ width: 1024, height: 720 });
+    await gotoIncomes(page, { tabs: SAVED_TABS });
+
+    const tabs = page.locator('[data-testid^="filter-tabs-tab-"]');
+    await expect(tabs).toHaveCount(7);
+    await expect(tabs.last()).toContainText('Esperados sin cobrar');
+
+    // El veredicto: si la tira desbordara, scrollWidth superaría a clientWidth
+    // y lo que sobra estaría recortado sin que nada lo anuncie.
+    const strip = page.getByTestId('filter-tabs-strip');
+    const { scrollWidth, clientWidth } = await strip.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(
+      scrollWidth,
+      `la tira desborda su contenedor (scrollWidth=${scrollWidth}, clientWidth=${clientWidth})`,
+    ).toBeLessThanOrEqual(clientWidth + 1);
+  });
+
+  test('el último filtro predefinido se puede usar en una ventana angosta', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 720 });
+    await gotoIncomes(page, { tabs: SAVED_TABS });
+
+    await page.locator('[data-testid^="filter-tabs-tab-"]').last().click();
+
+    await expect(visibleRows(page)).toHaveCount(2);
+    await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toHaveCount(0);
+  });
 });

@@ -261,40 +261,51 @@ describe('ProposalFilterTabs restorable base', () => {
     expect(wrapper.find('[data-testid="filter-tabs-tab-tab-2"]').exists()).toBe(false);
   });
 
+  // Ningún filtro predefinido puede quedar inalcanzable. El mecanismo es
+  // envolver en varias líneas: nada se manda a un menú ni se recorta, así que
+  // el activo tampoco necesita que lo traigan a la vista. jsdom no hace layout
+  // —todo boundingClientRect da cero—, así que acá se asserta la clase que
+  // decide el mecanismo; que efectivamente no se corte lo prueba el E2E
+  // admin-accounting-filter-strip-wrap.spec.js midiendo scrollWidth.
   describe('overflow', () => {
-    const manyTabs = Array.from({ length: 5 }, (_, i) => ({
+    const manyTabs = Array.from({ length: 12 }, (_, i) => ({
       id: `tab-${i + 1}`, name: `Tab ${i + 1}`,
     }));
 
-    it('renders every tab inline while no limit is set', () => {
+    it('renders every tab inline, however many there are', () => {
+      const wrapper = mountTabs({ tabs: manyTabs });
+
+      expect(wrapper.findAll('[data-testid^="filter-tabs-tab-"]')).toHaveLength(12);
+      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-12"]').exists()).toBe(true);
+    });
+
+    it('hides nothing behind a "+N" menu', () => {
       const wrapper = mountTabs({ tabs: manyTabs });
 
       expect(wrapper.find('[data-testid="filter-tabs-overflow"]').exists()).toBe(false);
-      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-5"]').exists()).toBe(true);
     });
 
-    it('moves what does not fit into a "+N" menu', () => {
-      const wrapper = mountTabs({ tabs: manyTabs, maxVisible: 3 });
+    it('wraps the strip onto several lines instead of clipping it', () => {
+      const wrapper = mountTabs({ tabs: manyTabs });
+      const strip = wrapper.find('.md\\:flex');
 
-      expect(wrapper.get('[data-testid="filter-tabs-overflow"]').text()).toBe('+2');
-      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-3"]').exists()).toBe(true);
-      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-4"]').exists()).toBe(false);
+      expect(strip.classes()).toEqual(
+        expect.arrayContaining(['flex-wrap', 'md:flex']),
+      );
+      expect(strip.classes()).not.toContain('overflow-x-auto');
     });
 
-    it('keeps the selected tab visible even when it belongs to the overflow', () => {
-      const wrapper = mountTabs({
-        tabs: manyTabs, maxVisible: 3, activeTabId: 'tab-5',
-      });
+    it('keeps the selected tab rendered wherever it falls in the strip', () => {
+      const wrapper = mountTabs({ tabs: manyTabs, activeTabId: 'tab-12' });
 
-      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-5"]').exists()).toBe(true);
-      expect(wrapper.find('[data-testid="filter-tabs-tab-tab-3"]').exists()).toBe(false);
-      expect(wrapper.get('[data-testid="filter-tabs-overflow"]').text()).toBe('+2');
+      expect(wrapper.get('[data-testid="filter-tabs-tab-tab-12"]').classes())
+        .toContain('border-emerald-600');
     });
 
     it('still lists every tab in the mobile dropdown', () => {
-      const wrapper = mountTabs({ tabs: manyTabs, maxVisible: 3 });
+      const wrapper = mountTabs({ tabs: manyTabs });
 
-      expect(wrapper.get('select').findAll('option')).toHaveLength(6);
+      expect(wrapper.get('select').findAll('option')).toHaveLength(13);
     });
   });
 });
