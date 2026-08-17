@@ -39,13 +39,14 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     # issued before this rule, and the panel shows that rather than hiding it.
     client = serializers.SerializerMethodField()
     client_display_name = serializers.SerializerMethodField()
-    # Read from the snapshot, not from `project.name`, so the column can
-    # never disagree with the emitted document.
-    project_name = serializers.CharField(
-        source='collection_account.customer_project_name',
-        read_only=True,
-        default='',
-    )
+    # Same contract as the Cliente column above: the LIVE relation answers —
+    # it is what the project filter already matches on, so cell and filter
+    # can no longer contradict each other. The frozen
+    # `customer_project_name` snapshot remains the PDF's truth and the
+    # fallback for FK-null rows (project deleted, or issued before the
+    # relation existed). Reading only the snapshot kept every draft blank
+    # and froze issued rows to whatever was true at issue time.
+    project_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Document
@@ -88,6 +89,12 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
         )
 
         return build_client_display_name(profile)
+
+    def get_project_name(self, obj):
+        if obj.project_id:
+            return obj.project.name
+        extension = getattr(obj, 'collection_account', None)
+        return extension.customer_project_name if extension else ''
 
     def get_commercial_status_label(self, obj):
         return STATUS_LABELS.get(obj.commercial_status, obj.commercial_status)

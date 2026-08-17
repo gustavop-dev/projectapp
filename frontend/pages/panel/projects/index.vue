@@ -501,7 +501,9 @@ const assignOpen = ref(false);
 const assignProject = ref(null);
 
 function unlinkedTotal(row) {
-  return (row.unlinked_hostings_count ?? 0) + (row.unlinked_incomes_count ?? 0);
+  return (row.unlinked_hostings_count ?? 0)
+    + (row.unlinked_incomes_count ?? 0)
+    + (row.unlinked_documents_count ?? 0);
 }
 
 function openAssign(row) {

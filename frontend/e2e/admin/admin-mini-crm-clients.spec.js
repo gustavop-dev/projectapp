@@ -615,6 +615,10 @@ test.describe('Admin Clients — Delete proposal/diagnostic from a client row', 
     await page.getByTestId('confirm-type-input').fill('DELETE');
     await confirmBtn.click();
 
+    // The ConfirmModal message interpolates the diagnostic title, so while
+    // the modal unmounts the text exists TWICE (row + message) and the bare
+    // getByText below trips strict mode. Wait for the dialog to be gone.
+    await expect(page.getByTestId('confirm-type-input')).toHaveCount(0);
     await expect(page.getByText('Diagnóstico Web Carlos')).not.toBeVisible({ timeout: 5_000 });
     // Sibling diagnostic remains.
     await expect(page.getByText('Diagnóstico SEO Carlos')).toBeVisible();

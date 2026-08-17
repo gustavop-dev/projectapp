@@ -64,6 +64,7 @@ function annotatedProject(overrides = {}) {
     incomes_count: 0,
     unlinked_hostings_count: 1,
     unlinked_incomes_count: 0,
+    unlinked_documents_count: 1,
     ...overrides,
   };
 }
@@ -121,7 +122,15 @@ function buildHandler({ state, calls }) {
           client: { profile_id: 5, name: 'Germán Franco' },
           hostings: [{ id: 21, label: 'Germán Franco — korehealths.com' }],
           incomes: [],
-          total: 1,
+          // The client's documents ride in the same offer (F7) — the issued
+          // cuenta is identified by its number, the fill-not-edit case.
+          documents: [{
+            id: 33,
+            label: 'CC Kore',
+            type_label: 'Cuenta de cobro',
+            number: 'PA-KORE-001',
+          }],
+          total: 2,
         }),
       };
     }
@@ -135,11 +144,14 @@ function buildHandler({ state, calls }) {
         body: JSON.stringify({
           assigned_hostings: 1,
           assigned_incomes: 0,
+          assigned_documents: 1,
           hostings: [state.hosting],
           incomes: [],
+          documents: [{ id: 33, project: 40, project_name: 'Kore Web' }],
           project: annotatedProject({
             hostings_count: 1,
             unlinked_hostings_count: 0,
+            unlinked_documents_count: 0,
           }),
         }),
       };
@@ -204,6 +216,9 @@ test.describe('Admin Projects — inline create offers the client backlog', () =
     await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
     await expect(page.getByTestId('project-assign-unlinked-modal')).toBeVisible();
     await expect(page.getByTestId('project-assign-unlinked-hosting-21')).toBeVisible();
+    // The client's documents ride in the same offer (F7), cuentas by number.
+    const cuentaRow = page.getByTestId('project-assign-unlinked-document-33');
+    await expect(cuentaRow).toContainText('PA-KORE-001');
 
     await page.getByTestId('project-assign-unlinked-confirm').click();
 
@@ -212,6 +227,10 @@ test.describe('Admin Projects — inline create offers the client backlog', () =
     await expect(page.getByTestId('accounting-row-21')).toContainText('Kore Web');
     await expect(page.getByTestId('hosting-no-project-21')).toHaveCount(0);
     const assign = calls.find((c) => c.apiPath === 'projects/40/assign-unlinked/');
-    expect(assign.body).toEqual({ hosting_ids: [21], income_ids: [] });
+    expect(assign.body).toEqual({
+      hosting_ids: [21],
+      income_ids: [],
+      document_ids: [33],
+    });
   });
 });
