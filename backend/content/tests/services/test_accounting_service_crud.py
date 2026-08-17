@@ -169,7 +169,7 @@ class TestLinkedMovementEditing:
             accounting_service.update_record(
                 EntityType.POCKET, movement, serializer, superuser,
             )
-        income = movement.income_record
+        income = movement.income_records.get()
         income.refresh_from_db()
         assert income.total_amount == Decimal('999000.00')
 
@@ -187,7 +187,7 @@ class TestLinkedMovementEditing:
 
     def test_linked_movement_delete_cascades_to_income(self, superuser):
         movement = self._linked_movement(superuser)
-        income_pk = movement.income_record.pk
+        income_pk = movement.income_records.get().pk
         with patch.object(accounting_service, '_notify'):
             accounting_service.delete_record(
                 EntityType.POCKET, movement, superuser,

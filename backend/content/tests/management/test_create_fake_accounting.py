@@ -131,7 +131,7 @@ class TestCreateFakeAccounting:
         assert linked_business.count() > 0
         historical = PocketMovement.objects.filter(
             source_ref='fake:accounting',
-            income_record__isnull=True,
+            income_records__isnull=True,
             expense_record__isnull=True,
         )
         assert historical.count() > 0
@@ -146,6 +146,31 @@ class TestCreateFakeAccounting:
             destination=IncomeRecord.Destination.POCKET,
         ).exclude(period_date__day=1)
         assert exact.count() > 0
+
+    def test_seeds_a_shared_abono_movement(self):
+        """One movement covering three expected incomes (two paid, one
+        partial) — the state the bulk settle flow produces, so the pocket's
+        reparto UI and the Cobro column have a demo row."""
+        call_command('create_fake_accounting', '--count', '6')
+        movement = PocketMovement.objects.get(
+            source_ref='fake:accounting', concept__startswith='Abono',
+        )
+        children = list(movement.income_records.order_by('pk'))
+        assert len(children) == 3
+        assert movement.amount == sum(
+            child.total_amount for child in children
+        )
+        states = []
+        for child in children:
+            parent = child.expected_income
+            paid = sum(
+                sibling.total_amount
+                for sibling in parent.liquid_records.filter(kind='liquid')
+            )
+            states.append(
+                'paid' if paid >= parent.total_amount else 'partial',
+            )
+        assert states == ['paid', 'paid', 'partial']
 
     def test_delete_fake_data_removes_only_fake_rows(self, make_income):
         real_income = make_income(concept='Ingreso real')

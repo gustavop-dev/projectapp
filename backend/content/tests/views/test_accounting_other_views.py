@@ -6,7 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from content.models import (
-    AccountingChangeLog, HostingRecord, PocketMovement, RecurringPayment,
+    AccountingChangeLog, HostingRecord, IncomeRecord, PocketMovement,
+    RecurringPayment,
 )
 from content.services import accounting_service
 
@@ -332,11 +333,40 @@ def _seed_pocket_attribution_rows(client):
         concept='Movimiento viejo', movement_date=date(2026, 6, 4),
         direction='out', amount=Decimal('80000.00'),
     )
+
+    # A shared abono movement (N income children) — the cardinality the
+    # singular rows cannot represent. Built through the real endpoint so the
+    # children ride the movement exactly like production rows; the parity
+    # test then guards property vs SQL where the plural link gets involved.
+    parents = [
+        IncomeRecord.objects.create(
+            concept=f'Abono demo {suffix}', kind=IncomeRecord.Kind.EXPECTED,
+            period_date=date(2026, 6, day), total_amount=Decimal(total),
+            gustavo_amount=Decimal(total) / 2, carlos_amount=Decimal(total) / 2,
+        )
+        for suffix, day, total in (('A', 1, '200000.00'), ('B', 2, '300000.00'))
+    ]
+    shared = client.post(
+        '/api/accounting/incomes/bulk-settle/',
+        {
+            'allocations': [
+                {'income_id': parents[0].pk, 'amount': '200000.00'},
+                {'income_id': parents[1].pk, 'amount': '300000.00'},
+            ],
+            'total_amount': '500000.00',
+            'period_date': '2026-06-05',
+            'notes': '',
+        },
+        format='json',
+    )
+    assert shared.status_code == 201, shared.data
+
     return {
         'gustavo': draw.data['id'],
         'company_out': company_out.data['id'],
         'company_in': company_in.data['id'],
         'unlinked': historical.pk,
+        'abono': shared.data['movement']['id'],
     }
 
 
@@ -363,7 +393,7 @@ class TestPocketAttributionAndLinkFilters:
     def test_attribution_company_covers_both_directions(self, super_client):
         ids = _seed_pocket_attribution_rows(super_client)
         assert _pocket_ids(super_client, '?attribution=company') == {
-            ids['company_out'], ids['company_in'],
+            ids['company_out'], ids['company_in'], ids['abono'],
         }
 
     def test_attribution_none_is_the_unlinked_movement(self, super_client):
@@ -381,7 +411,7 @@ class TestPocketAttributionAndLinkFilters:
     def test_linked_splits_mirrored_from_historical(self, super_client):
         ids = _seed_pocket_attribution_rows(super_client)
         assert _pocket_ids(super_client, '?linked=true') == {
-            ids['gustavo'], ids['company_out'], ids['company_in'],
+            ids['gustavo'], ids['company_out'], ids['company_in'], ids['abono'],
         }
         assert _pocket_ids(super_client, '?linked=false') == {ids['unlinked']}
 
@@ -395,7 +425,7 @@ class TestPocketAttributionAndLinkFilters:
         """
         _seed_pocket_attribution_rows(super_client)
         rows = super_client.get('/api/accounting/pocket/').data['results']
-        assert len(rows) == 4
+        assert len(rows) == 5
 
         for token in ('company', 'gustavo', 'carlos', 'none'):
             expected = {
@@ -405,6 +435,25 @@ class TestPocketAttributionAndLinkFilters:
             assert _pocket_ids(super_client, f'?attribution={token}') == (
                 expected
             ), f'attribution={token} disagrees with linked_ledger'
+
+    def test_a_shared_abono_movement_filters_once_and_reads_company(
+        self, super_client,
+    ):
+        """The plural link must not fan the movement out across its children.
+
+        The income branches of the Q filters go through EXISTS: a JOIN would
+        return the abono once per child, duplicating table rows and inflating
+        the client-side running balance.
+        """
+        ids = _seed_pocket_attribution_rows(super_client)
+        rows = super_client.get(
+            '/api/accounting/pocket/?attribution=company',
+        ).data['results']
+
+        occurrences = [row for row in rows if row['id'] == ids['abono']]
+        assert len(occurrences) == 1
+        assert occurrences[0]['linked_ledger'] == 'company'
+        assert len(occurrences[0]['allocations']) == 2
 
 
 @pytest.mark.django_db

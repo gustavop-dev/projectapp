@@ -21,6 +21,7 @@ from content.serializers.accounting import (
     IncomeRecordSerializer,
     NotificationRecipientCreateUpdateSerializer,
     PocketMovementCreateUpdateSerializer,
+    PocketMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
     month_label,
 )
@@ -733,3 +734,76 @@ class TestDeductionReadFields:
 
         assert data['source_income'] is None
         assert data['source_income_concept'] is None
+
+
+@pytest.mark.django_db
+class TestPocketMovementAllocations:
+    """The reparto of an abono, read from the movement side."""
+
+    def _movement(self, amount='800000.00'):
+        return PocketMovement.objects.create(
+            concept='Abono Kore',
+            movement_date=date(2026, 8, 15),
+            direction=PocketMovement.Direction.IN,
+            amount=Decimal(amount),
+        )
+
+    def _child(self, movement, make_income, concept, amount, parent=None):
+        return make_income(
+            concept=concept, kind=IncomeRecord.Kind.LIQUID,
+            destination=IncomeRecord.Destination.POCKET,
+            total_amount=Decimal(amount),
+            gustavo_amount=Decimal('0'), carlos_amount=Decimal('0'),
+            expected_income=parent, pocket_movement=movement,
+        )
+
+    def test_a_shared_movement_lists_every_allocation(self, make_income):
+        movement = self._movement()
+        parent = make_income(concept='Kore - Fase 2')
+        self._child(movement, make_income, 'Kore - Fase 2', '500000.00', parent)
+        self._child(movement, make_income, 'Kore - Fase 3', '300000.00')
+
+        data = PocketMovementSerializer(movement).data
+
+        assert data['linked_income_id'] is None
+        assert data['linked_ledger'] == 'company'
+        assert data['is_auto_managed'] is True
+        assert [entry['amount'] for entry in data['allocations']] == [
+            '500000.00', '300000.00',
+        ]
+        assert data['allocations'][0]['expected_income_id'] == parent.pk
+
+    def test_a_single_child_movement_keeps_the_linked_id(self, make_income):
+        movement = self._movement(amount='500000.00')
+        child = self._child(movement, make_income, 'Kore', '500000.00')
+
+        data = PocketMovementSerializer(movement).data
+
+        assert data['linked_income_id'] == child.pk
+        assert len(data['allocations']) == 1
+
+    def test_an_unlinked_movement_has_an_empty_reparto(self):
+        data = PocketMovementSerializer(self._movement()).data
+
+        assert data['allocations'] == []
+        assert data['linked_income_id'] is None
+
+    def test_the_list_prefetch_keeps_the_queries_flat(
+        self, make_income, django_assert_num_queries,
+    ):
+        for index in range(3):
+            movement = self._movement()
+            self._child(
+                movement, make_income, f'Kore {index}', '100000.00',
+            )
+            self._child(
+                movement, make_income, f'Kore bis {index}', '700000.00',
+            )
+
+        queryset = PocketMovement.objects.select_related(
+            'expense_record',
+        ).prefetch_related('income_records')
+        with django_assert_num_queries(2):
+            data = PocketMovementSerializer(queryset, many=True).data
+        assert len(data) == 3
+        assert all(len(row['allocations']) == 2 for row in data)

@@ -78,8 +78,9 @@ def _make_list(key):
     def handler(arguments):
         config = _ENTITIES[key]
         # base_queryset applies the entity's read annotations (e.g. income's
-        # paid_amount): without them a payment_status filter raises FieldError
-        # and the serializer falls back to one aggregate per row.
+        # paid_amount) and its select/prefetch joins: without the annotations a
+        # payment_status filter raises FieldError and the serializer falls back
+        # to one aggregate per row.
         queryset = base_queryset(config)
         params = _str_params(arguments)
         try:

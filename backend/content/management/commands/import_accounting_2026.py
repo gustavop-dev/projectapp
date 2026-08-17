@@ -360,7 +360,7 @@ class Command(BaseCommand):
                 .filter(
                     direction=PocketMovement.Direction.IN,
                     amount=income.total_amount,
-                    income_record__isnull=True,
+                    income_records__isnull=True,
                     source_ref__startswith='import:',
                 )
                 .filter(concept__iexact=income.concept)

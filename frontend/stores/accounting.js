@@ -581,6 +581,42 @@ export const useAccountingStore = defineStore('accounting', {
     },
 
     /**
+     * bulkSettleIncomes: register one abono distributed across several
+     * expected incomes — one pocket movement, one liquid child per
+     * allocation. Replaces the refreshed rows in place; the page still
+     * refetches (children and the credit row are new rows the map cannot
+     * insert, and the header meta is server-computed).
+     */
+    async bulkSettleIncomes(payload) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          'accounting/incomes/bulk-settle/', payload,
+        );
+        const updated = new Map(
+          (response.data.results ?? []).map((row) => [row.id, row]),
+        );
+        if (updated.size) {
+          this.incomes = this.incomes.map(
+            (record) => updated.get(record.id) ?? record,
+          );
+        }
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'settle_failed';
+        console.error('Error registering the abono:', error);
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: numericIdsFromError(error),
+        };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    /**
      * muteIncomeReminders: silence (or resume) one income's calendar notices.
      *
      * Its own endpoint rather than a plain field PATCH: the generic update path

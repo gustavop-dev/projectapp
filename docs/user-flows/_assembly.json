@@ -176,6 +176,7 @@
         "admin-accounting-stats-modals",
         "admin-accounting-income-client",
         "admin-accounting-income-crud",
+        "admin-accounting-income-bulk-settle",
         "admin-accounting-filters",
         "admin-accounting-expenses-crud",
         "admin-accounting-hostings",

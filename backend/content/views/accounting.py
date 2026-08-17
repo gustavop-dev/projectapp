@@ -10,7 +10,7 @@ from datetime import date, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import Count, F, Q, Sum
+from django.db.models import Count, Exists, F, OuterRef, Q, Sum
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -62,6 +62,7 @@ from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordCreateUpdateSerializer,
     IncomeRecordSerializer,
+    IncomeBulkSettlementSerializer,
     IncomeClientBulkAssignSerializer,
     IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
@@ -294,18 +295,37 @@ def _pocket_partner_draw_q(amount_field):
     })
 
 
-# Known divergences from the property, both only reachable by writing invalid
-# splits straight through the ORM (the serializer and `clean()` reject them):
-# a partner amount ABOVE the total matches no branch, and a row with both
-# partner amounts equal to the total matches gustavo and carlos at once.
+def _pocket_children_q(**child_filters):
+    """EXISTS over the movement's income children matching the filters.
+
+    Exists() rather than a `income_records__...` JOIN lookup on purpose: since
+    the abono, income↔movement is a plural reverse FK, and a JOIN would fan a
+    movement out once per child — duplicated rows in the table, the count and
+    the CSV, and an inflated running balance client-side. (The header balance
+    is immune either way: `_pocket_meta` re-aggregates from `objects.all()`.)
+    EXISTS matches without multiplying, so no `.distinct()` is needed.
+    """
+    return Exists(
+        IncomeRecord.objects.filter(
+            pocket_movement=OuterRef('pk'), **child_filters,
+        ),
+    )
+
+
+# Known divergences from the property, all only reachable by writing invalid
+# rows straight through the ORM (the serializer and `clean()` reject them):
+# a partner amount ABOVE the total matches no branch, a row with both partner
+# amounts equal to the total matches gustavo and carlos at once, and a
+# movement whose children mix ledgers matches one branch per child ledger
+# while the property collapses the mix to COMPANY.
 _POCKET_ATTRIBUTION_Q = {
     'gustavo': (
-        Q(income_record__ledger=Ledger.GUSTAVO)
+        Q(_pocket_children_q(ledger=Ledger.GUSTAVO))
         | Q(expense_record__ledger=Ledger.GUSTAVO)
         | _pocket_partner_draw_q('gustavo_amount')
     ),
     'carlos': (
-        Q(income_record__ledger=Ledger.CARLOS)
+        Q(_pocket_children_q(ledger=Ledger.CARLOS))
         | Q(expense_record__ledger=Ledger.CARLOS)
         | _pocket_partner_draw_q('carlos_amount')
     ),
@@ -313,9 +333,11 @@ _POCKET_ATTRIBUTION_Q = {
     # assigned to a single partner. Spelled `< total` rather than `!= total`
     # (the split validation caps each partner amount at the total) to keep the
     # condition positive; `lte=0` covers the zero-total row the property
-    # short-circuits to COMPANY.
+    # short-circuits to COMPANY. The income side needs no cardinality test:
+    # an abono's children are company-ledger by construction, so any company
+    # child marks the movement company — same answer the property derives.
     'company': (
-        Q(income_record__ledger=Ledger.COMPANY)
+        Q(_pocket_children_q(ledger=Ledger.COMPANY))
         | (
             Q(expense_record__ledger=Ledger.COMPANY)
             & (
@@ -332,14 +354,15 @@ _POCKET_ATTRIBUTION_Q = {
         )
     ),
     # `attribution` is None when the movement mirrors nothing.
-    'none': Q(income_record__isnull=True, expense_record__isnull=True),
+    'none': Q(expense_record__isnull=True) & ~Q(_pocket_children_q()),
 }
 
 _POCKET_LINKED_Q = {
-    'true': Q(income_record__isnull=False) | Q(expense_record__isnull=False),
-    # Positive rather than an exclude(): a negated lookup spanning two nullable
-    # reverse one-to-ones is where this kind of filter goes wrong.
-    'false': Q(income_record__isnull=True, expense_record__isnull=True),
+    'true': Q(_pocket_children_q()) | Q(expense_record__isnull=False),
+    # The expense side stays a positive isnull (a negated lookup over a
+    # nullable reverse one-to-one is where this kind of filter goes wrong);
+    # the income side is NOT EXISTS, which never joins and cannot fan out.
+    'false': Q(expense_record__isnull=True) & ~Q(_pocket_children_q()),
 }
 
 
@@ -423,7 +446,10 @@ _ENTITIES = {
             'attribution': _POCKET_ATTRIBUTION_Q,
             'linked': _POCKET_LINKED_Q,
         },
-        'select_related': ('income_record', 'expense_record'),
+        'select_related': ('expense_record',),
+        # Reverse FK since the abono (N liquid children per movement): one
+        # extra query for the whole list instead of one per row.
+        'prefetch_related': ('income_records',),
         'meta': _pocket_meta,
     },
     'recurring': {
@@ -519,6 +545,11 @@ def base_queryset(config):
         queryset = queryset.annotate(**annotations)
     if config.get('select_related'):
         queryset = queryset.select_related(*config['select_related'])
+    if config.get('prefetch_related'):
+        # Same export rationale as select_related — and doubly so for the
+        # pocket: its "Atribución" column reads a property over the income
+        # children, which with an abono's N rows would be a query per row.
+        queryset = queryset.prefetch_related(*config['prefetch_related'])
     return queryset
 
 
@@ -1115,6 +1146,44 @@ def bulk_assign_income_client(request):
             _with_liquid_children(updated), many=True,
         ).data,
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsSuperUser])
+def bulk_settle_income_records(request):
+    """Register one payment (abono) distributed across several expected incomes.
+
+    One pocket movement for the money that entered, one liquid child per
+    allocation sharing it. Whatever the allocations leave of the total
+    becomes the client's saldo a favor on the same movement.
+    """
+    serializer = IncomeBulkSettlementSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    income_ids = [
+        entry['income_id']
+        for entry in serializer.validated_data['allocations']
+    ]
+    vanished = _missing_records_error(
+        EntityType.INCOME, income_ids, noun='ingresos',
+    )
+    if vanished:
+        return vanished
+    try:
+        result = accounting_settlement_service.bulk_settle_expected_incomes(
+            serializer.validated_data, request.user,
+        )
+    except ValueError as exc:
+        return error_response_from_exc(exc)
+    results = list(_with_liquid_children(result['incomes']))
+    if result['credit'] is not None:
+        # Parentless, so _with_liquid_children can't pick it up.
+        results.append(result['credit'])
+    return Response({
+        'updated': len(result['incomes']),
+        'results': IncomeRecordSerializer(results, many=True).data,
+        'movement': PocketMovementSerializer(result['movement']).data,
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])

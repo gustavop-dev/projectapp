@@ -355,8 +355,10 @@
       :record-label="incomeLabel"
       :busy="store.isUpdating"
       project-enabled
+      settle-enabled
       @submit="applyClientToSelection"
       @submit-project="applyProjectToSelection"
+      @submit-settle="openBulkSettle"
     />
 
     <!-- Create/edit modal (also the duplicate form, seeded and creating) -->
@@ -411,6 +413,16 @@
       :saving="store.isUpdating"
       @close="closeLiquidateModal"
       @submit="handleLiquidateSubmit"
+    />
+
+    <!-- Abono: one payment distributed across the selected expected incomes -->
+    <IncomeBulkSettleModal
+      :open="bulkSettleOpen"
+      :records="bulkSettleRecords"
+      :excluded-count="bulkSettleExcluded"
+      :saving="store.isUpdating"
+      @close="closeBulkSettle"
+      @submit="handleBulkSettleSubmit"
     />
 
     <IncomeMuteModal
@@ -476,6 +488,7 @@ import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import IncomeClientTotalsModal from '~/components/accounting/IncomeClientTotalsModal.vue';
 import IncomeGroupedTable from '~/components/accounting/IncomeGroupedTable.vue';
 import BulkAssignBar from '~/components/accounting/BulkAssignBar.vue';
+import IncomeBulkSettleModal from '~/components/accounting/IncomeBulkSettleModal.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
@@ -499,6 +512,7 @@ import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { buildExportParams } from '~/utils/accountingExportParams';
 import { describeAssignmentResult } from '~/utils/clientAssignment';
+import { describeBulkSettleResult } from '~/utils/settleAllocation';
 import { describeProjectAssignmentResult } from '~/utils/projectAssignment';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
@@ -849,6 +863,10 @@ const {
   // also book deductions, so the cached expenses list is dropped too.
   onAfterMutation: () => {
     store.expenses = [];
+    // A settlement into the pocket books a movement: drop the cached ledger
+    // so /panel/accounting/pocket refetches (the mirror of what that page
+    // does to store.incomes after its own mutations).
+    store.pocketMovements = [];
     return store.fetchRecords('incomes');
   },
   // The month column shows the localized label but sorts by the ISO date.
@@ -1132,6 +1150,59 @@ async function applyProjectToSelection({ ids, project, mode, plan }) {
   // them, keep the rest of the selection, and rebuild the view.
   if (result.missingIds?.length) {
     dropIds(result.missingIds);
+    await loadRecords();
+  }
+}
+
+// ── Abono sobre la selección (bulk settle) ──
+
+const bulkSettleOpen = ref(false);
+const bulkSettleRecords = ref([]);
+const bulkSettleExcluded = ref(0);
+
+function openBulkSettle({ ids, excludedCount }) {
+  const byId = new Map(store.incomes.map((row) => [row.id, row]));
+  bulkSettleRecords.value = ids.map((id) => byId.get(id)).filter(Boolean);
+  bulkSettleExcluded.value = excludedCount;
+  bulkSettleOpen.value = true;
+}
+
+function closeBulkSettle() {
+  bulkSettleOpen.value = false;
+  bulkSettleRecords.value = [];
+  bulkSettleExcluded.value = 0;
+}
+
+async function handleBulkSettleSubmit(payload) {
+  // markMutated takes ONE static id, so the flash goes to the row whose
+  // state is the least obvious afterwards: the partial one, predictable
+  // from the payload. Full covers flash nothing — flashing one of N
+  // equally-changed rows would mislead.
+  const byId = new Map(bulkSettleRecords.value.map((row) => [row.id, row]));
+  const partial = payload.allocations.find((entry) => {
+    const row = byId.get(entry.income_id);
+    return row && entry.amount < Number(row.pending_amount);
+  });
+  const result = await runMutation(
+    () => store.bulkSettleIncomes(payload),
+    {
+      successTitle: 'Abono registrado',
+      successDetail: (r) => describeBulkSettleResult(r.data?.results ?? []),
+      errorTitle: 'No se pudo registrar el abono',
+      flashId: partial?.income_id,
+    },
+  );
+  if (result.success) {
+    closeBulkSettle();
+    clearSelection();
+    return;
+  }
+  // A stale selection names its ids: drop exactly those, close (their rows
+  // are gone) and rebuild. An ordinary 400 keeps the modal open with the
+  // backend message in the error toast.
+  if (result.missingIds?.length) {
+    dropIds(result.missingIds);
+    closeBulkSettle();
     await loadRecords();
   }
 }
