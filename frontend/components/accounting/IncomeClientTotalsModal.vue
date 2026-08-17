@@ -38,28 +38,35 @@
               class="border-t border-border-muted"
               :data-testid="`income-client-row-${group.id}`"
             >
+              <!-- Capping the name is what keeps a long client from widening
+                   its column and wrapping the amounts mid figure; the badge
+                   stays out of the cap so it never gets clipped. -->
               <td class="px-3 py-2 text-text-default">
-                {{ group.name }}
-                <span
-                  v-if="group.id === NO_CLIENT_KEY"
-                  class="ml-1 text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong"
-                >
-                  por completar
-                </span>
+                <div class="flex items-center gap-1">
+                  <span class="max-w-[220px] truncate">{{ group.name }}</span>
+                  <span
+                    v-if="group.id === NO_CLIENT_KEY"
+                    class="flex-shrink-0 text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong"
+                  >
+                    por completar
+                  </span>
+                </div>
               </td>
-              <td class="px-3 py-2 text-right tabular-nums text-text-muted">
+              <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-text-muted">
                 {{ group.count }}
               </td>
-              <td class="px-3 py-2 text-right tabular-nums text-text-default">
+              <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-text-default">
                 {{ money(group.billed) }}
               </td>
-              <td class="px-3 py-2 text-right tabular-nums text-success-strong">
+              <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-success-strong">
                 {{ money(group.collected) }}
               </td>
-              <td class="px-3 py-2 text-right tabular-nums font-semibold text-warning-strong">
+              <td
+                class="px-3 py-2 text-right tabular-nums whitespace-nowrap font-semibold text-warning-strong"
+              >
                 {{ money(group.pending) }}
               </td>
-              <td class="px-3 py-2 text-right tabular-nums text-text-muted">
+              <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap text-text-muted">
                 {{ formatPercent(group.weightPct) }}
               </td>
             </tr>
