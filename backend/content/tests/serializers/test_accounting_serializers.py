@@ -37,6 +37,8 @@ def income_payload(**overrides):
         'kind': 'expected',
         'period_date': '2026-01',
         'total_amount': '1280000.00',
+        # Required since Aug 2026: nothing new lands unclassified.
+        'origin': 'development',
     }
     payload.update(overrides)
     return payload

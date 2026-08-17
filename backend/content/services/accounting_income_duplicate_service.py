@@ -5,14 +5,31 @@ date or the amount can be adjusted before confirming, and the record is then
 created through the ordinary create endpoint: that is what keeps the audit
 row, the pocket sync and the notification identical to any other income.
 
-Two rules carry the intent of the action:
+Three rules carry the intent of the action:
 
 * the draft is always ``expected``, whatever the original was — duplicating a
   collected hosting to open its next cycle is the whole use case;
 * nothing belonging to the original occurrence travels. Its settlement links,
   its cuenta de cobro, its deductions, its silenced calendar and its history
   all stay behind. Most of that is free (they are reverse relations, or fields
-  the write serializer cannot set), so the draft simply omits them.
+  the write serializer cannot set), so the draft simply omits them;
+* **the fields that govern the shape of the form are always inherited**, unless
+  the intent of the action overrides them — and then the override is declared
+  where it happens. They are the ones that go unnoticed when the copied fields
+  are listed out, and the ones that break the loudest when they are missing:
+  the form opens configured for a different kind of income than the one being
+  copied, and every date it then proposes is answering the wrong question.
+
+  Here that is ``origin`` (single date or covered window), ``ledger``
+  (partner split or a single value) and ``period_cadence`` (the length of the
+  window). ``kind`` and ``destination`` govern the form too and are the two
+  declared overrides: a duplicate is born pending, and pocket is a
+  liquid-only destination that resets along with it.
+
+  Copying is faithful, not helpful: an original with no ``origin`` — most of
+  the book, which predates the field — duplicates into a form with no origin,
+  and it is the form that says so rather than this service guessing a line of
+  business out of the concept text.
 
 The date is the one field that cannot simply be copied, and it is the reason
 duplicating opens the form instead of writing the row. When the hosting cycle

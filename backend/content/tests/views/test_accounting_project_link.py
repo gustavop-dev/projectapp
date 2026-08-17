@@ -48,6 +48,7 @@ class TestProjectOwnershipRule:
             'kind': 'expected',
             'period_date': '2026-08',
             'total_amount': '233280.00',
+            'origin': 'development',
             'client': other.pk,
             'project': project.pk,
         }, format='json')
@@ -64,6 +65,7 @@ class TestProjectOwnershipRule:
             'kind': 'expected',
             'period_date': '2026-08',
             'total_amount': '233280.00',
+            'origin': 'development',
             'project': project.pk,
         }, format='json')
 
@@ -79,6 +81,7 @@ class TestProjectOwnershipRule:
             'kind': 'expected',
             'period_date': '2026-08',
             'total_amount': '233280.00',
+            'origin': 'development',
             'client': owner.pk,
             'project': project.pk,
         }, format='json')
