@@ -10,11 +10,14 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from content.models import (
+    AccountingChangeLog,
     CompanySettings,
     Document,
     DocumentCollectionAccount,
     DocumentNumberSequence,
     DocumentPaymentMethod,
+    EmailLog,
+    EmailLogTarget,
     IssuerProfile,
 )
 from content.services.document_type_codes import COLLECTION_ACCOUNT
@@ -337,6 +340,71 @@ def mark_collection_account_cancelled(document, *, acting_user=None):
     document.save(update_fields=['commercial_status', 'updated_by', 'updated_at'])
     _log_status_transition(document, old_values, acting_user)
     return document
+
+
+def collection_account_was_delivered(document):
+    """True when a client email carrying this cuenta actually left the system.
+
+    There is no "enviada" status to read: creating a cuenta issues and emails it
+    in the same act, so the only record of the send is ``EmailLogTarget`` — a
+    table deliberately keyed by ``entity_type`` + ``object_id`` with no FK, so
+    the trail outlives the document it describes.
+
+    Anything that is not an outright send FAILURE counts as delivered. A bounce
+    cannot prove the client never got it, and for a document carrying a
+    consecutivo the bias belongs on the side of NOT deleting.
+    """
+    return EmailLogTarget.objects.filter(
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=document.pk,
+    ).exclude(email_log__status=EmailLog.Status.FAILED).exists()
+
+
+@transaction.atomic
+def delete_collection_account(document, *, acting_user=None):
+    """Physically remove a cuenta that never should have existed.
+
+    Eliminar is not anular. Anular says the document stopped being valid and
+    keeps it in the list, which is what a document the client already holds
+    deserves. Eliminar is for the one created by mistake — wrong client,
+    duplicated, wrong amount — and it is only allowed when nobody outside can
+    still be treating it as live: either the cuenta never reached the client,
+    or it was already annulled, which is what told the client it no longer
+    counts. A paid cuenta is a closed road: it cannot be deleted, and the
+    cancel rule already refuses to annul it.
+
+    The row goes; the trail stays. ``AccountingChangeLog`` and
+    ``EmailLogTarget`` keep ``object_id`` + ``object_repr`` with no FK, so the
+    history can still name the consecutivo that was removed. The number itself
+    is never reclaimed — ``last_value`` only moves forward — so the series
+    keeps an explainable hole instead of two documents sharing a number.
+
+    Nothing has to be done about the linked income: "already billed" is derived
+    from the existence of a non-cancelled cuenta, so the row's disappearance is
+    what frees it.
+    """
+    if not is_collection_account(document):
+        raise CollectionAccountError('Document is not a collection account.')
+    if document.commercial_status == Document.CommercialStatus.PAID:
+        raise CollectionAccountError('Una cuenta pagada no se puede eliminar.')
+    if (
+        document.commercial_status != Document.CommercialStatus.CANCELLED
+        and collection_account_was_delivered(document)
+    ):
+        raise CollectionAccountError(
+            'Esta cuenta de cobro ya se envió al cliente. Anúlala en vez de '
+            'eliminarla.',
+        )
+
+    from content.services import accounting_service
+
+    # Before the delete: the helper reads the pk and the repr off the instance.
+    accounting_service.log_entity_removal(
+        accounting_service.EntityType.COLLECTION_ACCOUNT,
+        document,
+        acting_user,
+    )
+    document.delete()
 
 
 def assert_draft_for_mutation(document):

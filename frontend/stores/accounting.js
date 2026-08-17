@@ -1330,5 +1330,28 @@ export const useAccountingStore = defineStore('accounting', {
     async cancelCollectionAccount(id) {
       return this._collectionAccountAction(id, 'cancel');
     },
+
+    /**
+     * deleteCollectionAccount: remove a cuenta created by mistake. Not a
+     * sibling of the three above — those POST and get the updated row back,
+     * this one DELETEs and the row stops existing, so it drops it locally
+     * instead of swapping it. The page still refetches afterwards to bring
+     * the header counters back in line.
+     */
+    async deleteCollectionAccount(id) {
+      this.isUpdating = true;
+      try {
+        await delete_request(`accounting/collection-accounts/${id}/delete/`);
+        this.collectionAccounts = this.collectionAccounts.filter(
+          (doc) => doc.id !== id,
+        );
+        return { success: true };
+      } catch (error) {
+        console.error(`Error deleting collection account ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
   },
 });
