@@ -4,7 +4,18 @@ from decimal import Decimal
 
 import pytest
 
-from content.models import Document, HostingRecord, IncomeRecord, IssuerProfile
+from accounts.models import Project
+
+from content.models import (
+    Document,
+    DocumentCollectionAccount,
+    HostingRecord,
+    IncomeRecord,
+    IssuerProfile,
+)
+from content.services.document_type_utils import (
+    get_collection_account_document_type,
+)
 from content.services.hosting_billing_service import (
     send_hosting_collection_account,
 )
@@ -292,3 +303,103 @@ class TestIncomeLinkedAccounts:
 
         assert response.status_code == 200
         assert response.data['commercial_status'] == 'paid'
+
+
+class TestProjectColumnLiveFk:
+    """The Proyecto column answers with the live FK; the snapshot is only
+    the FK-null fallback (F7). The frozen ``customer_project_name`` keeps
+    being what the PDF printed — the column and the PDF may honestly differ.
+    """
+
+    def make_cuenta(self, profile, *, project=None, snapshot='',
+                    with_extension=True, title='CC F7',
+                    status=Document.CommercialStatus.DRAFT):
+        document = Document.objects.create(
+            title=title,
+            document_type=get_collection_account_document_type(),
+            commercial_status=status,
+            client_user=profile.user,
+            project=project,
+        )
+        if with_extension:
+            DocumentCollectionAccount.objects.create(
+                document=document,
+                customer_name='Ana Cliente',
+                customer_project_name=snapshot,
+            )
+        return document
+
+    def rows_by_id(self, super_client):
+        response = super_client.get('/api/accounting/collection-accounts/')
+        assert response.status_code == 200
+        return {row['id']: row for row in response.data['results']}
+
+    def test_draft_with_fk_shows_the_live_name(
+        self, super_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = Project.objects.create(name='Vastago', client=profile.user)
+        draft = self.make_cuenta(profile, project=project)
+
+        row = self.rows_by_id(super_client)[draft.pk]
+
+        assert row['project_name'] == 'Vastago'
+        assert row['project_id'] == project.pk
+
+    def test_fk_null_row_falls_back_to_the_frozen_snapshot(
+        self, super_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        cuenta = self.make_cuenta(
+            profile, snapshot='Kore Web',
+            status=Document.CommercialStatus.ISSUED,
+        )
+
+        row = self.rows_by_id(super_client)[cuenta.pk]
+
+        assert row['project_name'] == 'Kore Web'
+        assert row['project_id'] is None
+
+    def test_mixed_same_client_rows_disagree_honestly(
+        self, super_client, make_client_profile,
+    ):
+        """The reported evidence: two cuentas of one client, one with the
+        relation and one with nothing — each cell tells its own truth."""
+        profile = make_client_profile()
+        project = Project.objects.create(name='Mimittos', client=profile.user)
+        linked = self.make_cuenta(profile, project=project)
+        blank = self.make_cuenta(profile, title='CC sin proyecto')
+
+        rows = self.rows_by_id(super_client)
+
+        assert rows[linked.pk]['project_name'] == 'Mimittos'
+        assert rows[blank.pk]['project_name'] == ''
+
+    def test_rename_shows_live_while_the_snapshot_stays(
+        self, super_client, make_client_profile,
+    ):
+        profile = make_client_profile()
+        project = Project.objects.create(name='Vastago', client=profile.user)
+        cuenta = self.make_cuenta(
+            profile, project=project, snapshot='Vastago',
+            status=Document.CommercialStatus.ISSUED,
+        )
+        project.name = 'Vastago 2.0'
+        project.save(update_fields=['name'])
+
+        row = self.rows_by_id(super_client)[cuenta.pk]
+
+        assert row['project_name'] == 'Vastago 2.0'
+        extension = DocumentCollectionAccount.objects.get(document=cuenta)
+        assert extension.customer_project_name == 'Vastago'
+
+    def test_row_without_extension_answers_empty_not_500(
+        self, super_client, make_client_profile,
+    ):
+        # Platform drafts can exist without the extension until first PATCH.
+        profile = make_client_profile()
+        cuenta = self.make_cuenta(profile, with_extension=False)
+
+        row = self.rows_by_id(super_client)[cuenta.pk]
+
+        assert row['project_name'] == ''
