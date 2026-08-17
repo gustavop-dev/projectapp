@@ -52,6 +52,18 @@ def _record_project(record):
     return record.project.name if record.project_id else ''
 
 
+_POCKET_ATTRIBUTION_LABELS = {
+    'company': 'Empresa',
+    'gustavo': 'Gustavo',
+    'carlos': 'Carlos',
+}
+
+
+def _pocket_attribution(record):
+    """Same value the panel's "Atribuir a" shows; blank when unlinked."""
+    return _POCKET_ATTRIBUTION_LABELS.get(record.attribution, '')
+
+
 def _income_client(record):
     """Client display name; blank for the unassigned rows."""
     if not record.client_id:
@@ -203,6 +215,10 @@ EXPORT_SECTIONS = {
             ('Tipo', lambda r: r.get_direction_display()),
             ('Valor', 'amount'),
             ('Notas', 'notes'),
+            # Appended, never inserted. Both are filterable in the panel, so
+            # the file has to show why the exported rows are the ones there.
+            ('Atribución', _pocket_attribution),
+            ('Vinculado', lambda r: 'Sí' if r.is_auto_managed else 'No'),
         ],
     },
     'recurring': {

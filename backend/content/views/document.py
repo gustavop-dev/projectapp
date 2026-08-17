@@ -19,6 +19,11 @@ from content.serializers.document import (
     DocumentFromMarkdownSerializer,
 )
 from content.services import document_archive_service
+from content.services.collection_account_service import (
+    CollectionAccountError,
+    delete_collection_account,
+    is_collection_account,
+)
 from content.services.document_content import build_content_json, resolve_blocks
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from content.services.document_type_utils import get_markdown_document_type
@@ -385,6 +390,18 @@ def delete_document(request, document_id):
     locked = _locked_collection_account_error(document)
     if locked:
         return locked
+    # A draft cuenta reaching this far is still a cuenta de cobro: route it
+    # through the accounting service so it leaves the same audit row a delete
+    # from the Cuentas de cobro tab would. Deleting it here used to be the one
+    # way to make one disappear with no trace in the historial.
+    if is_collection_account(document):
+        try:
+            delete_collection_account(document, acting_user=request.user)
+        except CollectionAccountError as exc:
+            # Unreachable through the lock above today, but a 500 is the wrong
+            # way to say "this cuenta is not deletable".
+            return error_response(str(exc))
+        return Response(status=status.HTTP_204_NO_CONTENT)
     document.delete()
     return Response(status=status.HTTP_204_NO_CONTENT)
 

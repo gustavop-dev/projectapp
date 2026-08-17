@@ -11,8 +11,11 @@ const props = defineProps({
   },
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   fullWidth: { type: Boolean, default: false },
-  // Options whose labels must stay on one line (e.g. "Colombia (COP)"), at the
-  // cost of an internal horizontal scroll when the control cannot fit.
+  // Options whose labels must stay on one line (e.g. "Colombia (COP)"). Cuando
+  // el control no cabe, crece en alto envolviendo en varias líneas. Antes
+  // scrolleaba en horizontal sin ningún indicador, y ahí las opciones del final
+  // quedaban escondidas detrás de un corte que se leía como el final de la
+  // lista: ninguna opción puede quedar inalcanzable.
   nowrap: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
 })
@@ -42,7 +45,7 @@ const sizeClass = computed(() =>
 <template>
   <div
     class="inline-flex gap-1 bg-surface-raised rounded-xl p-1"
-    :class="[{ 'w-full': fullWidth }, nowrap ? 'max-w-full overflow-x-auto' : '']"
+    :class="[{ 'w-full': fullWidth }, nowrap ? 'max-w-full flex-wrap' : '']"
     role="tablist"
   >
     <button

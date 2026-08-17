@@ -38,6 +38,9 @@ function makeRows() {
       commercial_status: 'issued',
       commercial_status_label: 'Emitida',
       is_overdue: true,
+      // The backend resolves the delete rule: these three left for the client,
+      // so none of them can be removed until they are annulled.
+      can_delete: false,
       // Internal: written in the create form, never sent to the client.
       notes: 'Acordado por WhatsApp\nPagan el 15, no antes.',
     },
@@ -58,6 +61,7 @@ function makeRows() {
       commercial_status: 'issued',
       commercial_status_label: 'Emitida',
       is_overdue: false,
+      can_delete: false,
     },
     {
       id: 3,
@@ -76,17 +80,33 @@ function makeRows() {
       commercial_status: 'paid',
       commercial_status_label: 'Pagada',
       is_overdue: false,
+      can_delete: false,
     },
   ];
 }
 
-const META = {
-  issued_count: 2,
-  issued_total: '1100004.00',
-  paid_count: 1,
-  paid_total: '550002.00',
-  cancelled_count: 0,
-};
+/**
+ * The list endpoint's meta, derived from the rows the way the backend derives
+ * it. Computed rather than frozen so the counters keep telling the truth after
+ * a row is deleted — a constant would have hidden exactly that.
+ */
+function computeMeta(rows) {
+  const sum = (status) => rows
+    .filter((row) => row.commercial_status === status)
+    .reduce((acc, row) => acc + Number(row.total), 0)
+    .toFixed(2);
+  const count = (status) => rows
+    .filter((row) => row.commercial_status === status).length;
+  return {
+    issued_count: count('issued'),
+    issued_total: sum('issued'),
+    paid_count: count('paid'),
+    paid_total: sum('paid'),
+    cancelled_count: count('cancelled'),
+  };
+}
+
+const META = computeMeta(makeRows());
 
 const CLIENT_SEARCH_RESULT = [{
   id: 5,
@@ -370,6 +390,9 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
             commercial_status: 'cancelled',
             commercial_status_label: 'Anulada',
             is_overdue: false,
+            // Anular is what opens the door to eliminar: the client has been
+            // told it stopped counting, so the row can now be removed.
+            can_delete: true,
           });
         }
         return {
@@ -379,11 +402,26 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
         };
       }
     }
+    if (apiPath.startsWith('accounting/collection-accounts/') && method === 'DELETE') {
+      const match = apiPath.match(
+        /^accounting\/collection-accounts\/(\d+)\/delete\/$/,
+      );
+      if (match) {
+        calls.push({ apiPath, method });
+        state.rows = state.rows.filter(
+          (item) => item.id !== Number(match[1]),
+        );
+        return { status: 204, contentType: 'application/json', body: '' };
+      }
+    }
     if (apiPath.startsWith('accounting/collection-accounts/') && method === 'GET') {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ results: state.rows, meta: META }),
+        body: JSON.stringify({
+          results: state.rows,
+          meta: computeMeta(state.rows),
+        }),
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -509,6 +547,95 @@ test.describe('Admin Accounting Collections', () => {
       apiPath: 'accounting/collection-accounts/2/cancel/',
       method: 'POST',
     });
+  });
+
+  test('a cuenta the client already received offers no delete, only anular', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (the subject IS the absence of an action — clicking anything would only prove a different row's affordance)
+    // quality: allow-deep-link (the tab's own entry navigation is covered by the counters test; this one asserts which affordances the rows carry)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await gotoCollections(page);
+
+    // Emitida y enviada: borrarla del sistema no la borra de su bandeja.
+    await expect(page.getByTestId('collection-delete-1')).toHaveCount(0);
+    await expect(
+      page.getByTestId('accounting-row-1').getByLabel('Anular'),
+    ).toBeVisible();
+    // Pagada: callejón cerrado, ni anular ni eliminar.
+    await expect(page.getByTestId('collection-delete-3')).toHaveCount(0);
+  });
+
+  test('an annulled cuenta is deleted after typing ELIMINAR and the counters drop', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await gotoCollections(page);
+
+    await page.getByTestId('accounting-row-2').getByLabel('Anular').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+    await expect(
+      page.getByTestId('accounting-row-2').getByText('Anulada', { exact: true }),
+    ).toBeVisible();
+
+    await page.getByTestId('collection-delete-2').click();
+
+    // The confirmation names the document before asking for the word.
+    const detail = page.getByTestId('confirm-modal-detail');
+    await expect(detail).toContainText('PA-2026-0002');
+    await expect(detail).toContainText('Néstor Franco');
+    await expect(detail).toContainText('$550.002');
+
+    // Irreversible: the button stays shut until the word is typed.
+    await expect(page.getByTestId('confirm-modal-confirm')).toBeDisabled();
+    await page.getByTestId('confirm-type-input').fill('ELIMINAR');
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    expect(calls).toContainEqual({
+      apiPath: 'accounting/collection-accounts/2/delete/',
+      method: 'DELETE',
+    });
+    // Emitidas 2→1 and Anuladas back to 0, without a reload.
+    await expect(page.getByTestId('accounting-stat-value')).toHaveText([
+      '1', '1', '1', '0',
+    ]);
+  });
+
+  test('a refused delete keeps the row and says to anular instead', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTIONS, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    // The race the hidden button cannot prevent: the cuenta leaves for the
+    // client from somewhere else while this tab still shows it as deletable.
+    const handler = buildHandler({ calls: [] });
+    await mockApi(page, async (ctx) => {
+      if (/^accounting\/collection-accounts\/\d+\/delete\/$/.test(ctx.apiPath)) {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            error: 'Esta cuenta de cobro ya se envió al cliente. Anúlala en vez de eliminarla.',
+          }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    await page.getByTestId('accounting-row-2').getByLabel('Anular').click();
+    await page.getByTestId('confirm-modal-confirm').click();
+    await expect(
+      page.getByTestId('accounting-row-2').getByText('Anulada', { exact: true }),
+    ).toBeVisible();
+
+    await page.getByTestId('collection-delete-2').click();
+    await page.getByTestId('confirm-type-input').fill('ELIMINAR');
+    await page.getByTestId('confirm-modal-confirm').click();
+
+    await expect(page.getByText('ya se envió al cliente')).toBeVisible();
+    // The row survives its own failed deletion.
+    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
   });
 
   test('resending a paid account asks for confirmation naming the recipient', {

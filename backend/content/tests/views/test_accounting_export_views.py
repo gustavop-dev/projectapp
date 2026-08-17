@@ -64,6 +64,62 @@ class TestExportRecords:
         assert len(lines) == 2  # header + 1 row
         assert 'Personal Tavo' in lines[1]
 
+    def test_pocket_csv_carries_attribution_and_link(
+        self, super_client, make_expense,
+    ):
+        """The two new panel filters must be visible in the file they cut."""
+        from content.models import PocketMovement
+
+        movement = PocketMovement.objects.create(
+            concept='Retiro Gustavo', movement_date=date(2026, 6, 1),
+            direction=PocketMovement.Direction.OUT, amount=Decimal('300000.00'),
+        )
+        make_expense(
+            pocket_movement=movement, category='personal',
+            gustavo_amount=Decimal('800000.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        PocketMovement.objects.create(
+            concept='Movimiento viejo', movement_date=date(2026, 6, 2),
+            direction=PocketMovement.Direction.OUT, amount=Decimal('80000.00'),
+        )
+
+        response = super_client.get('/api/accounting/export/?section=pocket')
+        lines = csv_lines(response)
+        assert lines[0].split(',')[-2:] == ['Atribución', 'Vinculado']
+
+        rows = {line.split(',')[0]: line for line in lines[1:]}
+        assert rows['Retiro Gustavo'].endswith('Gustavo,Sí')
+        # Unlinked: no mirror to read an attribution from.
+        assert rows['Movimiento viejo'].endswith(',No')
+
+    def test_pocket_csv_respects_the_attribution_filter(
+        self, super_client, make_expense,
+    ):
+        """Without this the export button would ignore the panel's filter."""
+        from content.models import PocketMovement
+
+        movement = PocketMovement.objects.create(
+            concept='Retiro Gustavo', movement_date=date(2026, 6, 1),
+            direction=PocketMovement.Direction.OUT, amount=Decimal('300000.00'),
+        )
+        make_expense(
+            pocket_movement=movement, category='personal',
+            gustavo_amount=Decimal('800000.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        PocketMovement.objects.create(
+            concept='Movimiento viejo', movement_date=date(2026, 6, 2),
+            direction=PocketMovement.Direction.OUT, amount=Decimal('80000.00'),
+        )
+
+        response = super_client.get(
+            '/api/accounting/export/?section=pocket&attribution=gustavo',
+        )
+        lines = csv_lines(response)
+        assert len(lines) == 2  # header + 1 row
+        assert 'Retiro Gustavo' in lines[1]
+
     def test_choice_filter_accepts_comma_multi(self, super_client, make_income):
         make_income(concept='A', kind=IncomeRecord.Kind.LIQUID)
         make_income(

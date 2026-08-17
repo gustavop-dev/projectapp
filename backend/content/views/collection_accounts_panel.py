@@ -10,7 +10,7 @@ from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, Exists, OuterRef, Q, Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -22,7 +22,14 @@ from rest_framework.response import Response
 
 from accounts.models import UserProfile
 from content.api_errors import error_response
-from content.models import Document, HostingRecord, IncomeRecord
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    EmailLog,
+    EmailLogTarget,
+    HostingRecord,
+    IncomeRecord,
+)
 from content.permissions import IsSuperUser
 from content.serializers.collection_accounts_panel import (
     CollectionAccountCreateSerializer,
@@ -47,6 +54,7 @@ from content.services.collection_account_preview_pdf import (
 )
 from content.services.collection_account_service import (
     CollectionAccountError,
+    delete_collection_account,
     get_default_issuer,
     mark_collection_account_cancelled,
     mark_collection_account_paid,
@@ -65,6 +73,21 @@ def _base_qs():
         )
         .prefetch_related('items', 'payment_methods')
     )
+
+
+def _with_delivery_flag(queryset):
+    """Annotate "a client email for this cuenta left the system".
+
+    What `can_delete` needs to answer per row. As an Exists subquery rather
+    than the serializer's fallback query so a hundred-row listing stays one
+    round trip; the FAILED exclusion keeps the same meaning as
+    ``collection_account_was_delivered``.
+    """
+    delivered = EmailLogTarget.objects.filter(
+        entity_type=AccountingChangeLog.EntityType.COLLECTION_ACCOUNT,
+        object_id=OuterRef('pk'),
+    ).exclude(email_log__status=EmailLog.Status.FAILED)
+    return queryset.annotate(was_delivered=Exists(delivered))
 
 
 def _get_document(doc_id):
@@ -301,7 +324,12 @@ def list_collection_accounts(request):
         )
         for key, value in totals.items()
     }
-    serializer = CollectionAccountPanelListSerializer(qs, many=True)
+    # Annotated only for the rows, never for the aggregate above: the counters
+    # ask about status, and dragging an Exists subquery through the aggregate
+    # buys nothing.
+    serializer = CollectionAccountPanelListSerializer(
+        _with_delivery_flag(qs), many=True,
+    )
     return Response({'results': serializer.data, 'meta': meta})
 
 
@@ -388,11 +416,34 @@ def cancel_collection_account_view(request, doc_id):
         mark_collection_account_cancelled(document, acting_user=request.user)
     except CollectionAccountError as exc:
         return error_response(str(exc))
-    # Cancelling the current period's cuenta de cobro resumes the expiry
-    # notice cadence for the linked hosting.
-    hosting = document.hosting_record
+    _resume_hosting_expiry_notices(document.hosting_record)
+    return Response(CollectionAccountPanelDetailSerializer(document).data)
+
+
+def _resume_hosting_expiry_notices(hosting):
+    """Undo the "billing already requested" mute on the linked hosting.
+
+    Both ways out of a live cuenta owe the hosting this: the flag is what
+    silences the expiry cadence while a cuenta is pending, so a cuenta that
+    stops being pending — annulled or deleted — must hand the reminders back.
+    Without it the hosting goes quiet forever behind a cuenta nobody can see.
+    """
     if hosting is not None and hosting.billing_requested_at is not None:
         HostingRecord.objects.filter(pk=hosting.pk).update(
             billing_requested_at=None,
         )
-    return Response(CollectionAccountPanelDetailSerializer(document).data)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsSuperUser])
+def delete_collection_account_view(request, doc_id):
+    """Remove a cuenta created by mistake. Anular is the path for the rest."""
+    document = _get_document(doc_id)
+    # Captured before the delete: the FK is gone once the row is.
+    hosting = document.hosting_record
+    try:
+        delete_collection_account(document, acting_user=request.user)
+    except CollectionAccountError as exc:
+        return error_response(str(exc))
+    _resume_hosting_expiry_notices(hosting)
+    return Response(status=status.HTTP_204_NO_CONTENT)

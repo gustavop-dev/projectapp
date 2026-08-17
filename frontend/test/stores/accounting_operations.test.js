@@ -241,6 +241,39 @@ describe('useAccountingStore — operations', () => {
       expect(store.collectionAccounts[1]).toEqual({ id: 4, status: 'issued' })
     })
 
+    it('deleteCollectionAccount drops the row instead of swapping it', async () => {
+      store.collectionAccounts = [
+        { id: 3, public_number: 'PA-ACME-001' },
+        { id: 4, public_number: 'PA-ACME-002' },
+      ]
+      delete_request.mockResolvedValue({ status: 204 })
+
+      const result = await store.deleteCollectionAccount(3)
+
+      expect(delete_request).toHaveBeenCalledWith(
+        'accounting/collection-accounts/3/delete/',
+      )
+      expect(result.success).toBe(true)
+      expect(store.collectionAccounts).toEqual([
+        { id: 4, public_number: 'PA-ACME-002' },
+      ])
+    })
+
+    it('deleteCollectionAccount keeps the row and surfaces the refusal', async () => {
+      store.collectionAccounts = [{ id: 3, public_number: 'PA-ACME-001' }]
+      delete_request.mockRejectedValue(apiError(400, {
+        error: 'Esta cuenta de cobro ya se envió al cliente. Anúlala en vez de eliminarla.',
+      }))
+
+      const result = await store.deleteCollectionAccount(3)
+
+      expect(result.success).toBe(false)
+      expect(result.message).toContain('ya se envió al cliente')
+      expect(store.collectionAccounts).toEqual([
+        { id: 3, public_number: 'PA-ACME-001' },
+      ])
+    })
+
     it('createCollectionAccount posts and prepends the created document', async () => {
       store.collectionAccounts = [{ id: 3 }]
       create_request.mockResolvedValue({

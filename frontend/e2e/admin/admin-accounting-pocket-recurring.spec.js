@@ -301,6 +301,47 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(page.getByText('Pago T.C Rappi')).toBeVisible();
   });
 
+  test('filtering by link relabels the saldo column to the visible cut', {
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (reaching pocket through the subnav is covered by
+    // the display specs above; this one pins the filter behaviour itself)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByRole('button', { name: /Filtros/ }).click();
+    await page.getByRole('tab', { name: 'Sin vincular', exact: true }).click();
+
+    // Only the movement with no mirrored record survives.
+    await expect(page.locator('[data-testid^="accounting-row-"]')).toHaveCount(1);
+    await expect(page.getByText('Pago T.C Rappi')).toBeVisible();
+
+    // The column stops claiming to be the pocket's balance, and the card says
+    // out loud that its own figure is still the untouched total.
+    await expect(page.getByRole('columnheader', { name: 'Acumulado' })).toBeVisible();
+    await expect(page.getByRole('columnheader', { name: 'Saldo' })).toHaveCount(0);
+    await expect(page.getByTestId('pocket-filtered-net')).toContainText('1 movimiento');
+  });
+
+  test('attribution filter cuts the ledger by partner', {
+    tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (same rationale as the test above)
+    await mockApi(page, buildHandler({ calls: [] }));
+    await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
+
+    await page.getByRole('button', { name: /Filtros/ }).click();
+    await page.getByRole('button', { name: /Atribuir a/ }).click();
+    await page.getByRole('checkbox', { name: 'Empresa' }).check();
+
+    // The company-attributed income stays; the unlinked egreso has no
+    // attribution to match.
+    await expect(page.locator('[data-testid^="accounting-row-"]')).toHaveCount(1);
+    await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
+  });
+
   test('linked movements open the edit modal with direction locked', {
     tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {

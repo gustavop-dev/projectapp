@@ -4,7 +4,10 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from content.models import Document, DocumentItem, DocumentPaymentMethod
-from content.services.collection_account_service import commercial_is_overdue
+from content.services.collection_account_service import (
+    collection_account_was_delivered,
+    commercial_is_overdue,
+)
 
 STATUS_LABELS = {
     'draft': 'Borrador',
@@ -26,6 +29,7 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
     )
     commercial_status_label = serializers.SerializerMethodField()
     is_overdue = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
     origin = serializers.SerializerMethodField()
     origin_label = serializers.SerializerMethodField()
     income_kind = serializers.SerializerMethodField()
@@ -55,6 +59,9 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
             'subtotal', 'tax_total', 'total', 'currency',
             'issue_date', 'due_date',
             'commercial_status', 'commercial_status_label', 'is_overdue',
+            # The delete rule, resolved server-side: the panel must not have to
+            # re-derive "did this ever reach the client" from data it cannot see.
+            'can_delete',
             # Internal-only: the operator's own note about the cuenta, never
             # rendered in the PDF nor the client email. It travels in the list
             # so the monitor can show it back without a detail round trip —
@@ -94,6 +101,23 @@ class CollectionAccountPanelListSerializer(serializers.ModelSerializer):
 
     def get_is_overdue(self, obj):
         return commercial_is_overdue(obj)
+
+    def get_can_delete(self, obj):
+        """Mirrors ``delete_collection_account``'s guards, one row at a time.
+
+        Reads the ``was_delivered`` annotation the list view attaches, falling
+        back to the per-object query for the detail endpoint (same technique as
+        the income serializer's collection-account block): one row does not
+        justify a second query, a hundred rows do.
+        """
+        if obj.commercial_status == Document.CommercialStatus.PAID:
+            return False
+        if obj.commercial_status == Document.CommercialStatus.CANCELLED:
+            return True
+        delivered = obj.__dict__.get('was_delivered')
+        if delivered is None:
+            delivered = collection_account_was_delivered(obj)
+        return not delivered
 
     def get_income_kind(self, obj):
         if obj.income_record_id and obj.income_record:

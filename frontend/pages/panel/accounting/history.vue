@@ -58,7 +58,6 @@
       :active-tab-id="activeTabId"
       :counts="activeCounts"
       :count-title="isChanges ? 'Cambios que cumplen este filtro' : 'Envíos que cumplen este filtro'"
-      :max-visible="MAX_VISIBLE_TABS"
       :is-tab-limit-reached="isTabLimitReached"
       @select="onSelectTab"
       @create="onCreateTab"
@@ -166,10 +165,6 @@ const TAB_OPTIONS = [
   { value: 'changes', label: 'Cambios', testId: 'history-tab-changes' },
   { value: 'sends', label: 'Envíos', testId: 'history-tab-sends' },
 ];
-
-// Enough for "Todas" plus the seeded cuts without the strip wrapping on a
-// laptop; the rest go into the "+N" menu.
-const MAX_VISIBLE_TABS = 6;
 
 // Both subtabs write the same query string, so whichever is on screen clears
 // the whole union before writing its own — otherwise switching would leave

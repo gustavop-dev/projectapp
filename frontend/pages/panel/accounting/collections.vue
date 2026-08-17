@@ -265,6 +265,21 @@
             <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'" aria-label="Anular" title="Anular" :disabled="busyId === row.id" @click="askCancel(row)">
               <NoSymbolIcon class="w-5 h-5" />
             </BaseButton>
+            <!-- Sólo lo que nunca salió al cliente, o lo ya anulado: el
+                 backend resuelve la regla y la manda en `can_delete`. -->
+            <BaseButton
+              v-if="row.can_delete"
+              variant="danger-ghost"
+              icon-only
+              size="sm"
+              aria-label="Eliminar"
+              title="Eliminar"
+              :disabled="busyId === row.id"
+              :data-testid="`collection-delete-${row.id}`"
+              @click="askDelete(row)"
+            >
+              <TrashIcon class="w-5 h-5" />
+            </BaseButton>
           </div>
         </template>
       </AccountingTable>
@@ -277,9 +292,32 @@
       :confirm-text="confirmText"
       cancel-text="Cancelar"
       :variant="confirmVariant"
+      :require-type-text="confirmTypeText"
       @confirm="handleConfirmed"
       @cancel="pendingAction = null"
-    />
+    >
+      <!-- Eliminar es el único irreversible: nombra el documento que se va
+           antes de pedir la palabra, para que el consecutivo, el cliente y el
+           monto se puedan contrastar sin cerrar el modal. -->
+      <dl v-if="deletingRow" class="text-sm space-y-1">
+        <div class="flex justify-between gap-4">
+          <dt class="text-text-muted">Consecutivo</dt>
+          <dd class="font-mono font-semibold text-text-default">
+            {{ deletingRow.public_number || `#${deletingRow.id}` }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-text-muted">Cliente</dt>
+          <dd class="text-text-default">
+            {{ deletingRow.client_display_name || deletingRow.customer_name || 'Sin cliente' }}
+          </dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-text-muted">Monto</dt>
+          <dd class="font-semibold text-text-default">{{ money(deletingRow.total) }}</dd>
+        </div>
+      </dl>
+    </ConfirmModal>
 
     <!-- Internal notes, read-only: written in the create form, never sent. -->
     <BaseModal v-model="notesOpen" size="lg" @close="notesRow = null">
@@ -341,6 +379,7 @@ import {
   EyeIcon,
   NoSymbolIcon,
   PaperAirplaneIcon,
+  TrashIcon,
 } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
@@ -667,7 +706,15 @@ const CONFIRM_COPY = {
   paid: { title: 'Marcar como pagada', text: 'Marcar pagada', variant: 'info' },
   resend: { title: 'Reenviar cuenta de cobro', text: 'Reenviar', variant: 'info' },
   cancel: { title: 'Anular cuenta de cobro', text: 'Anular', variant: 'danger' },
+  delete: { title: 'Eliminar cuenta de cobro', text: 'Eliminar', variant: 'danger' },
 };
+
+// El borrado es físico: es la única acción de la tabla que no se puede
+// deshacer, así que es la única que pide teclear la palabra.
+const deletingRow = computed(
+  () => (pendingAction.value?.kind === 'delete' ? pendingAction.value.row : null),
+);
+const confirmTypeText = computed(() => (deletingRow.value ? 'ELIMINAR' : ''));
 
 const confirmTitle = computed(
   () => CONFIRM_COPY[pendingAction.value?.kind]?.title ?? '',
@@ -687,6 +734,11 @@ const confirmMessage = computed(() => {
   if (action.kind === 'paid') return `Se marcará la cuenta ${number} como pagada.`;
   if (action.kind === 'resend') {
     return `Se reenviará ${number} con el PDF adjunto a ${action.row.customer_email || 'el cliente'}.`;
+  }
+  if (action.kind === 'delete') {
+    return 'Se eliminará permanentemente y no se puede deshacer. El consecutivo '
+      + 'no se reutiliza: queda un hueco en la numeración. Si la cuenta viene '
+      + 'de un ingreso, ese ingreso vuelve a quedar disponible para facturar.';
   }
   return `Se anulará la cuenta ${number}. Si viene de un hosting, los avisos de vencimiento se reactivan.`;
 });
@@ -799,6 +851,17 @@ function askCancel(row) {
   confirmOpen.value = true;
 }
 
+function askDelete(row) {
+  pendingAction.value = { kind: 'delete', row };
+  confirmOpen.value = true;
+}
+
+const MUTATIONS = {
+  paid: { call: (id) => store.markCollectionAccountPaid(id), title: 'Cuenta marcada como pagada' },
+  cancel: { call: (id) => store.cancelCollectionAccount(id), title: 'Cuenta anulada' },
+  delete: { call: (id) => store.deleteCollectionAccount(id), title: 'Cuenta de cobro eliminada' },
+};
+
 async function handleConfirmed() {
   const action = pendingAction.value;
   pendingAction.value = null;
@@ -807,15 +870,15 @@ async function handleConfirmed() {
     await resend(action.row);
     return;
   }
+  const mutation = MUTATIONS[action.kind];
+  if (!mutation) return;
   busyId.value = action.row.id;
-  const result = action.kind === 'paid'
-    ? await store.markCollectionAccountPaid(action.row.id)
-    : await store.cancelCollectionAccount(action.row.id);
+  const result = await mutation.call(action.row.id);
   busyId.value = null;
   if (result.success) {
-    notify.success({
-      title: action.kind === 'paid' ? 'Cuenta marcada como pagada' : 'Cuenta anulada',
-    });
+    notify.success({ title: mutation.title });
+    // Refetch, not just the local row drop: los contadores de cabecera y el
+    // conteo de resultados salen del mismo endpoint del listado.
     loadRecords();
   } else {
     notify.error({ title: 'No se pudo completar la acción', detail: result.message });

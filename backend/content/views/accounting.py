@@ -31,6 +31,7 @@ from content.models import (
     ExpenseRecord,
     HostingRecord,
     IncomeRecord,
+    Ledger,
     MerchantAlias,
     NotificationRecipient,
     PocketMovement,
@@ -267,6 +268,81 @@ def _recurring_meta(queryset, params):
     }
 
 
+# ── Pocket linkage + attribution (mirror-derived, not columns) ──────────────
+#
+# `PocketMovement` has no ledger of its own: the panel's "Atribuir a" reads
+# `PocketMovement.attribution`, a python property over the mirrored record.
+# These Q objects restate that property in SQL so the CSV export and the MCP
+# tool cut exactly the rows the table shows. Keep both sides in sync.
+#
+# Building them once at import time is safe: `filter()` combines copies of a Q
+# and never mutates it (same rationale as the `annotations` entries below).
+
+
+def _pocket_partner_draw_q(amount_field):
+    """OUT rows whose mirrored company expense is 100% one partner's.
+
+    The amount test in `PartnerSplitMixin.partner_attribution` only runs on
+    company-ledger rows with a truthy total, so both guards are reproduced
+    here. Without the ledger guard, a personal expense assigned to the other
+    partner would leak into this branch.
+    """
+    return Q(**{
+        'expense_record__ledger': Ledger.COMPANY,
+        'expense_record__total_amount__gt': 0,
+        f'expense_record__{amount_field}': F('expense_record__total_amount'),
+    })
+
+
+# Known divergences from the property, both only reachable by writing invalid
+# splits straight through the ORM (the serializer and `clean()` reject them):
+# a partner amount ABOVE the total matches no branch, and a row with both
+# partner amounts equal to the total matches gustavo and carlos at once.
+_POCKET_ATTRIBUTION_Q = {
+    'gustavo': (
+        Q(income_record__ledger=Ledger.GUSTAVO)
+        | Q(expense_record__ledger=Ledger.GUSTAVO)
+        | _pocket_partner_draw_q('gustavo_amount')
+    ),
+    'carlos': (
+        Q(income_record__ledger=Ledger.CARLOS)
+        | Q(expense_record__ledger=Ledger.CARLOS)
+        | _pocket_partner_draw_q('carlos_amount')
+    ),
+    # Company is the property's fallthrough: a company-ledger mirror NOT fully
+    # assigned to a single partner. Spelled `< total` rather than `!= total`
+    # (the split validation caps each partner amount at the total) to keep the
+    # condition positive; `lte=0` covers the zero-total row the property
+    # short-circuits to COMPANY.
+    'company': (
+        Q(income_record__ledger=Ledger.COMPANY)
+        | (
+            Q(expense_record__ledger=Ledger.COMPANY)
+            & (
+                Q(expense_record__total_amount__lte=0)
+                | Q(
+                    expense_record__gustavo_amount__lt=F(
+                        'expense_record__total_amount',
+                    ),
+                    expense_record__carlos_amount__lt=F(
+                        'expense_record__total_amount',
+                    ),
+                )
+            )
+        )
+    ),
+    # `attribution` is None when the movement mirrors nothing.
+    'none': Q(income_record__isnull=True, expense_record__isnull=True),
+}
+
+_POCKET_LINKED_Q = {
+    'true': Q(income_record__isnull=False) | Q(expense_record__isnull=False),
+    # Positive rather than an exclude(): a negated lookup spanning two nullable
+    # reverse one-to-ones is where this kind of filter goes wrong.
+    'false': Q(income_record__isnull=True, expense_record__isnull=True),
+}
+
+
 _ENTITIES = {
     'income': {
         'entity_type': EntityType.INCOME,
@@ -343,6 +419,10 @@ _ENTITIES = {
         'amount_field': 'amount',
         'search_fields': ('concept', 'notes'),
         'choice_filters': ('direction',),
+        'q_filters': {
+            'attribution': _POCKET_ATTRIBUTION_Q,
+            'linked': _POCKET_LINKED_Q,
+        },
         'select_related': ('income_record', 'expense_record'),
         'meta': _pocket_meta,
     },
@@ -426,15 +506,19 @@ _ENTITIES = {
 
 
 def base_queryset(config):
-    """Entity queryset with its read annotations applied.
+    """Entity queryset with its read annotations and joins applied.
 
     Shared with the export views so a column computed for the table can
-    never go missing from the CSV.
+    never go missing from the CSV. `select_related` belongs here rather than
+    in `_list_records`: the export columns read the same related rows, and
+    left out of the export path it was a query per row.
     """
     queryset = config['model'].objects.all()
     annotations = config.get('annotations')
     if annotations:
         queryset = queryset.annotate(**annotations)
+    if config.get('select_related'):
+        queryset = queryset.select_related(*config['select_related'])
     return queryset
 
 
@@ -523,6 +607,28 @@ def _apply_filters(queryset, params, config):
         if condition:
             queryset = queryset.filter(condition)
 
+    # Filters whose values are not columns: each param maps a value token to a
+    # ready-made Q, and comma-separated tokens filter as OR (same vocabulary as
+    # `choice_filters`). This is how the pocket exposes linkage and attribution,
+    # which live in the mirrored income/expense and not in PocketMovement.
+    for field, conditions in config.get('q_filters', {}).items():
+        value = (params.get(field) or '').strip()
+        if not value or value == 'all':
+            continue
+        tokens = [item for item in value.split(',') if item]
+        if any(token not in conditions for token in tokens):
+            raise ValueError(
+                f"El parámetro '{field}' debe ser 'all' o uno o varios de: "
+                + ', '.join(sorted(conditions)) + '.'
+            )
+        # Q() is the identity for `|`, so seeding the OR with it is safe.
+        condition = Q()
+        for token in tokens:
+            condition |= conditions[token]
+        # No .distinct() needed: every relation these Qs traverse is a reverse
+        # OneToOne, which cannot fan a row out across the join.
+        queryset = queryset.filter(condition)
+
     if config.get('has_split') and params.get('partner'):
         partner = params['partner']
         if partner == 'gustavo':
@@ -582,8 +688,6 @@ def _apply_filters(queryset, params, config):
 def _list_records(request, key):
     config = _ENTITIES[key]
     queryset = base_queryset(config)
-    if config.get('select_related'):
-        queryset = queryset.select_related(*config['select_related'])
     try:
         queryset = _apply_filters(queryset, request.query_params, config)
         meta = config.get('meta', lambda qs, params: {})(

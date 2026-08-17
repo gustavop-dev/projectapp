@@ -104,24 +104,6 @@ export const useAccountingStore = defineStore('accounting', {
     metaFor: (state) => (entity) => state.metas[entity] || {},
 
     /**
-     * pocketWithRunningBalance: movements sorted chronologically with a
-     * running_balance column (ledger view).
-     */
-    pocketWithRunningBalance: (state) => {
-      const sorted = [...state.pocketMovements].sort((a, b) =>
-        a.movement_date === b.movement_date
-          ? String(a.created_at).localeCompare(String(b.created_at))
-          : String(a.movement_date).localeCompare(String(b.movement_date)),
-      );
-      let running = 0;
-      return sorted.map((movement) => {
-        const amount = Number(movement.amount) || 0;
-        running += movement.direction === 'in' ? amount : -amount;
-        return { ...movement, running_balance: running };
-      });
-    },
-
-    /**
      * recurringMonthlyTotalsBy: monthly COP totals of active payments grouped
      * by any field, read from `<field>_label` when the API exposes one.
      *
@@ -1329,6 +1311,29 @@ export const useAccountingStore = defineStore('accounting', {
 
     async cancelCollectionAccount(id) {
       return this._collectionAccountAction(id, 'cancel');
+    },
+
+    /**
+     * deleteCollectionAccount: remove a cuenta created by mistake. Not a
+     * sibling of the three above — those POST and get the updated row back,
+     * this one DELETEs and the row stops existing, so it drops it locally
+     * instead of swapping it. The page still refetches afterwards to bring
+     * the header counters back in line.
+     */
+    async deleteCollectionAccount(id) {
+      this.isUpdating = true;
+      try {
+        await delete_request(`accounting/collection-accounts/${id}/delete/`);
+        this.collectionAccounts = this.collectionAccounts.filter(
+          (doc) => doc.id !== id,
+        );
+        return { success: true };
+      } catch (error) {
+        console.error(`Error deleting collection account ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
     },
   },
 });

@@ -68,7 +68,6 @@
       :counts="subfilterCounts"
       :is-tab-limit-reached="isTabLimitReached"
       count-title="Clientes que cumplen este filtro"
-      :max-visible="7"
       @select="onSelectFilterTab"
       @create="handleCreateFilterTab"
       @rename="renameFilterTab"
