@@ -498,6 +498,27 @@ class IncomeRecordCreateUpdateSerializer(
             data['project'] = None
         validate_project_client_match(effective('project'), effective('client'))
 
+        # --- Business line -----------------------------------------------
+        # The origin is not one more field: it decides whether the record
+        # covers a window or a single date, and duplicating an income can only
+        # carry a line of business the original recorded — an unclassified
+        # original opens its copy unclassified, which is how a faithful copy
+        # came to read as a broken one. So anything a person writes has to say
+        # it: always on create, and on update whenever the field is being
+        # written. The panel form always sends it, so editing a legacy record
+        # classifies it — the same gradual backfill the period block below
+        # relies on — while a partial PATCH that does not touch it leaves the
+        # record as unclassified as it already was.
+        #
+        # Settling is exempt: its children copy the parent's origin instead of
+        # classifying anything, and the parent may well predate the field.
+        # Same escape `deduction_type` takes on the expense side.
+        if not self.context.get('settlement'):
+            if (self.instance is None or 'origin' in data) and not data.get('origin'):
+                raise serializers.ValidationError({
+                    'origin': 'Elige la línea de negocio del ingreso.',
+                })
+
         # --- Covered period (hosting only) -------------------------------
         # A hosting income is a service window, not a point payment, so it
         # must say what window it covers; every other origin keeps the single

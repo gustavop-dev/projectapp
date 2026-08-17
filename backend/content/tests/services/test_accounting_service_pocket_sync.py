@@ -38,6 +38,8 @@ def create_pocket_income(user, **overrides):
         'destination': 'pocket',
         'period_date': '2026-04',
         'total_amount': '2123000.00',
+        # Required since Aug 2026: nothing new lands unclassified.
+        'origin': 'development',
     }
     data.update(overrides)
     with patch.object(accounting_service, '_notify'):
@@ -175,6 +177,7 @@ class TestIncomePocketSync:
                 'period_date': '2026-11',
                 'total_amount': '700000.00',
                 'expected_income': expected.pk,
+                'origin': 'development',
             },
         )
         with patch.object(accounting_service, '_notify'):

@@ -21,6 +21,8 @@ def income_payload(**overrides):
         'kind': 'expected',
         'period_date': '2026-02',
         'total_amount': '1160000.00',
+        # Required since Aug 2026: nothing new lands unclassified.
+        'origin': 'development',
     }
     payload.update(overrides)
     return payload
@@ -62,6 +64,68 @@ class TestIncomeCrud:
             format='json',
         )
         assert response.status_code == 400
+
+    def test_create_without_a_business_line_is_rejected(self, super_client):
+        """The origin decides the shape of the record, so it is not optional.
+
+        Leaving it open is what filled the book with rows nothing can
+        duplicate faithfully: a copy can only carry a line of business the
+        original recorded.
+        """
+        payload = income_payload()
+        del payload['origin']
+
+        response = super_client.post(
+            '/api/accounting/incomes/create/', payload, format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'origin' in response.data
+
+    def test_create_with_a_blank_business_line_is_rejected(self, super_client):
+        response = super_client.post(
+            '/api/accounting/incomes/create/',
+            income_payload(origin=''),
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'origin' in response.data
+
+    def test_blanking_the_business_line_on_an_edit_is_rejected(
+        self, super_client, make_income,
+    ):
+        income = make_income(origin=IncomeRecord.Origin.DEVELOPMENT)
+
+        response = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'origin': ''},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'origin' in response.data
+
+    def test_an_edit_that_does_not_touch_the_line_leaves_a_legacy_row_alone(
+        self, super_client, make_income,
+    ):
+        """The rule reaches what is being written, not what is already stored.
+
+        Most of the book predates the field; making every PATCH re-classify
+        its row would block editing the amount of an unclassified income. The
+        panel form always sends the origin, so classifying happens there.
+        """
+        income = make_income(origin='')
+
+        response = super_client.patch(
+            f'/api/accounting/incomes/{income.pk}/update/',
+            {'concept': 'Kore v2 (Fase 1) - Inicio 40% (ajustado)'},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        income.refresh_from_db()
+        assert income.origin == ''
 
     def test_list_returns_results_and_meta(self, super_client, make_income):
         make_income()
@@ -482,6 +546,28 @@ class TestIncomeSettlementEndpoint:
         }
         payload.update(overrides)
         return payload
+
+    def test_an_unclassified_expected_can_still_be_settled(self, super_client):
+        """Collecting money is not the moment to classify it.
+
+        `_expected()` builds the production case: a record from before the
+        origin existed. Its children copy that blank instead of being refused
+        — requiring a line of business here would block Liquidar on most of
+        the book, which is a far worse answer than a liquid that is exactly as
+        unclassified as what it collects.
+        """
+        income = self._expected()
+        assert income.origin == ''
+
+        response = super_client.post(
+            f'/api/accounting/incomes/{income.pk}/settle/',
+            self._payload(total_amount='1000000.00'),
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        liquid = IncomeRecord.objects.get(expected_income=income)
+        assert liquid.origin == ''
 
     def test_settles_with_a_gateway_fee(self, super_client):
         income = self._expected()

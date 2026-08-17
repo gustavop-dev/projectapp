@@ -161,6 +161,9 @@ class TestOtherOriginsKeepTheSingleDate:
                 'concept': 'Kore - Inicio 40%',
                 'kind': 'expected',
                 'total_amount': '1160000.00',
+                # Sent so the refusal under test is the date's and not the
+                # origin's, which is required on its own account.
+                'origin': 'development',
             },
             format='json',
         )

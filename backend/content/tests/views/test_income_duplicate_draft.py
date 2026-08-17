@@ -81,6 +81,37 @@ class TestCopiedFields:
         assert response.data['carlos_amount'] == '0.00'
         assert response.data['notes'] == 'Renovar antes del corte'
 
+    @pytest.mark.parametrize('origin', [
+        IncomeRecord.Origin.DEVELOPMENT,
+        IncomeRecord.Origin.HOSTING,
+        IncomeRecord.Origin.DIAGNOSTIC,
+        IncomeRecord.Origin.OTHER,
+    ])
+    def test_every_business_line_travels(self, super_client, make_income, origin):
+        """The origin is not one more copied field.
+
+        It decides which date block the form opens with — single date or
+        covered window — so a duplicate that loses it opens configured as a
+        different kind of income than the one it copies.
+        """
+        response = super_client.get(url(make_income(origin=origin)))
+
+        assert response.data['origin'] == origin
+
+    def test_an_unclassified_original_copies_its_blank(
+        self, super_client, make_income,
+    ):
+        """Faithful, not helpful: guessing the line of business would be worse.
+
+        Most of the book predates the field. The draft says what the original
+        says, and the form is what tells the operator the original carried no
+        origin — a blank that explains itself instead of one that reads as a
+        copy that failed.
+        """
+        response = super_client.get(url(make_income(origin='')))
+
+        assert response.data['origin'] == ''
+
     def test_concept_is_copied_verbatim_without_a_copy_suffix(
         self, super_client, make_income,
     ):

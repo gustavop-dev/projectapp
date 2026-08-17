@@ -354,7 +354,7 @@ _ENTITY_FIELDS = {
             'carlos_amount': {'type': ['number', 'string']},
             'notes': {'type': 'string'},
         },
-        'required': ['concept', 'kind', 'period_date', 'total_amount'],
+        'required': ['concept', 'kind', 'period_date', 'total_amount', 'origin'],
     },
     'expense': {
         'props': {

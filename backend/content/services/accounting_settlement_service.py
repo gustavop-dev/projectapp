@@ -221,7 +221,13 @@ def _create_liquid_child(income, data, user):
         payload['gustavo_amount'] = data['gustavo_amount']
     if data.get('carlos_amount') is not None:
         payload['carlos_amount'] = data['carlos_amount']
-    serializer = IncomeRecordCreateUpdateSerializer(data=payload)
+    # The child copies the parent's origin rather than classifying anything, so
+    # it may be as blank as the parent — most of the book predates the field,
+    # and refusing to settle those would be a far worse answer than a liquid
+    # that is exactly as unclassified as what it collects.
+    serializer = IncomeRecordCreateUpdateSerializer(
+        data=payload, context={'settlement': True},
+    )
     serializer.is_valid(raise_exception=True)
     return accounting_service.create_record(
         EntityType.INCOME, serializer, user,
@@ -266,18 +272,23 @@ def _create_deduction(income, data, deduction, user):
 def _create_follow_up(income, follow_up, user):
     """A balance that WILL be collected, rescheduled as its own expected."""
     gustavo, carlos = _proportional_split(income, follow_up['amount'])
-    serializer = IncomeRecordCreateUpdateSerializer(data={
-        'concept': follow_up['concept'],
-        'kind': IncomeRecord.Kind.EXPECTED,
-        'period_date': follow_up['period_date'],
-        'destination': income.destination,
-        'ledger': income.ledger,
-        'total_amount': follow_up['amount'],
-        'gustavo_amount': gustavo,
-        'carlos_amount': carlos,
-        'client': income.client_id,
-        'origin': income.origin,
-    })
+    serializer = IncomeRecordCreateUpdateSerializer(
+        data={
+            'concept': follow_up['concept'],
+            'kind': IncomeRecord.Kind.EXPECTED,
+            'period_date': follow_up['period_date'],
+            'destination': income.destination,
+            'ledger': income.ledger,
+            'total_amount': follow_up['amount'],
+            'gustavo_amount': gustavo,
+            'carlos_amount': carlos,
+            'client': income.client_id,
+            'origin': income.origin,
+        },
+        # Same as the liquid child: the rescheduled balance inherits the
+        # parent's line of business, blank included.
+        context={'settlement': True},
+    )
     serializer.is_valid(raise_exception=True)
     return accounting_service.create_record(
         EntityType.INCOME, serializer, user, notify=False,
