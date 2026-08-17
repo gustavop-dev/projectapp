@@ -474,6 +474,70 @@ class TestAccountingMcpPaymentStatusFilter:
 
 
 @pytest.mark.django_db
+class TestAccountingMcpPocketFilters:
+    """list_pocket exposes the attribution + linkage cuts the panel has.
+
+    They ride the shared filter layer, so the tool inherits them; the schema
+    branch is what makes them discoverable.
+    """
+
+    def _seed(self, make_expense):
+        from datetime import date
+        from decimal import Decimal
+
+        from content.models import PocketMovement
+
+        draw = PocketMovement.objects.create(
+            concept='Retiro Gustavo', movement_date=date(2026, 6, 1),
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('300000.00'),
+        )
+        make_expense(
+            pocket_movement=draw, category='personal',
+            gustavo_amount=Decimal('800000.00'),
+            carlos_amount=Decimal('0.00'),
+        )
+        PocketMovement.objects.create(
+            concept='Movimiento viejo', movement_date=date(2026, 6, 2),
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('80000.00'),
+        )
+
+    def test_list_pocket_filters_by_attribution(
+        self, api_client, accounting_connector, make_expense,
+    ):
+        self._seed(make_expense)
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_pocket', {'attribution': 'gustavo'})
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Retiro Gustavo']
+
+    def test_list_pocket_filters_the_unlinked_movements(
+        self, api_client, accounting_connector, make_expense,
+    ):
+        self._seed(make_expense)
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_pocket', {'linked': 'false'})
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert [row['concept'] for row in payload['results']] == ['Movimiento viejo']
+
+    def test_list_pocket_rejects_an_unknown_attribution(
+        self, api_client, accounting_connector,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'list_pocket', {'attribution': 'socio'})
+        assert response.data['result']['isError'] is True
+
+    def test_schema_gates_the_pocket_filters_to_pocket_only(self):
+        pocket_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_pocket')
+        income_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_income')
+        props = pocket_tool['input_schema']['properties']
+        assert 'gustavo' in props['attribution']['description']
+        assert 'linked' in props
+        assert 'attribution' not in income_tool['input_schema']['properties']
+
+
+@pytest.mark.django_db
 class TestAccountingMcpDeductions:
     """The expense tools see deductions but can never create them."""
 

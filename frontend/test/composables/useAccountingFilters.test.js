@@ -217,6 +217,97 @@ describe('applyFilters', () => {
   });
 });
 
+describe('matchIncludes nullAs', () => {
+  function makeNullableFilters() {
+    return useAccountingFilters({
+      viewName: 'accounting_pocket',
+      defaults: { ledger: [] },
+      matchers: {
+        ledger: matchIncludes('linked_ledger', 'ledger', { nullAs: 'none' }),
+      },
+    });
+  }
+
+  const rows = [
+    { id: 1, linked_ledger: 'gustavo' },
+    { id: 2, linked_ledger: 'company' },
+    { id: 3, linked_ledger: null },
+  ];
+
+  it('maps a null field onto the sentinel token', () => {
+    const { currentFilters, applyFilters } = makeNullableFilters();
+    currentFilters.ledger = ['none'];
+    expect(applyFilters(rows).map((r) => r.id)).toEqual([3]);
+  });
+
+  it('leaves null rows out of a real value cut', () => {
+    const { currentFilters, applyFilters } = makeNullableFilters();
+    currentFilters.ledger = ['company'];
+    expect(applyFilters(rows).map((r) => r.id)).toEqual([2]);
+  });
+
+  it('combines the sentinel with real values as OR', () => {
+    const { currentFilters, applyFilters } = makeNullableFilters();
+    currentFilters.ledger = ['gustavo', 'none'];
+    expect(applyFilters(rows).map((r) => r.id)).toEqual([1, 3]);
+  });
+
+  it('does not map nulls without the option', () => {
+    const plain = useAccountingFilters({
+      viewName: 'accounting_pocket',
+      defaults: { ledger: [] },
+      matchers: { ledger: matchIncludes('linked_ledger', 'ledger') },
+    });
+
+    // Real values still match, so the sentinel finding nothing is the opt-in
+    // behaviour and not a matcher that silently rejects everything.
+    plain.currentFilters.ledger = ['gustavo'];
+    expect(plain.applyFilters(rows).map((r) => r.id)).toEqual([1]);
+
+    plain.currentFilters.ledger = ['none'];
+    expect(plain.applyFilters(rows)).toHaveLength(0);
+  });
+});
+
+describe('countTabs', () => {
+  const list = [
+    baseRecord({ status: 'paid' }),
+    baseRecord({ status: 'paid' }),
+    baseRecord({ status: 'pending' }),
+  ];
+
+  it('counts each tab cut plus the honest total', () => {
+    const { countTabs } = makeFilters();
+    const counts = countTabs(list, [
+      { id: 7, filters: { statuses: ['paid'] } },
+      { id: 8, filters: { statuses: ['pending'] } },
+    ]);
+    expect(counts).toEqual({ all: 3, 7: 2, 8: 1 });
+  });
+
+  it('reports a zero rather than hiding an empty tab', () => {
+    const { countTabs } = makeFilters();
+    const counts = countTabs(list, [{ id: 9, filters: { statuses: ['lost'] } }]);
+    expect(counts[9]).toBe(0);
+  });
+
+  it('merges a partial stored filter over the defaults', () => {
+    // Stored tabs only carry the keys that differ, so a tab that says nothing
+    // about the amount must not inherit the live range.
+    const { currentFilters, countTabs } = makeFilters();
+    currentFilters.amountMin = 999999999;
+    const counts = countTabs(list, [{ id: 7, filters: { statuses: ['paid'] } }]);
+    expect(counts[7]).toBe(2);
+  });
+
+  it('ignores the live filters entirely', () => {
+    const { currentFilters, countTabs } = makeFilters();
+    currentFilters.statuses = ['pending'];
+    const counts = countTabs(list, [{ id: 7, filters: { statuses: ['paid'] } }]);
+    expect(counts).toEqual({ all: 3, 7: 2 });
+  });
+});
+
 describe('resetFilters', () => {
   it('restores defaults and returns to the "all" tab', () => {
     const { currentFilters, activeTabId, resetFilters, activeFilterCount } = makeFilters();

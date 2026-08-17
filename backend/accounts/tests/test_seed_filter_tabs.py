@@ -354,6 +354,121 @@ class TestIncomeExpectedTabMigration:
         ) == [0, 1, 2]
 
 
+class TestPocketAttributionTabsMigration:
+    """Migration 0050 adds the pocket attribution + unlinked cuts.
+
+    Users who already have "Entradas"/"Salidas" are invisible to the registry
+    (`seed_default_tabs` is a no-op once a view has any tab), so the four new
+    ones have to be inserted per user.
+    """
+
+    VIEW = 'accounting_pocket'
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module(
+            'accounts.migrations.0050_pocket_attribution_filter_tabs',
+        )
+
+    def _legacy_tabs(self, user):
+        for order, (name, filters) in enumerate((
+            ('Entradas', {'direction': 'in'}),
+            ('Salidas', {'direction': 'out'}),
+        )):
+            SavedFilterTab.objects.create(
+                user=user, view=self.VIEW, name=name,
+                filters=filters, base_filters=filters, order=order,
+            )
+
+    def _names_in_order(self, user):
+        return list(
+            SavedFilterTab.objects.filter(user=user, view=self.VIEW)
+            .order_by('order', 'created_at').values_list('name', flat=True)
+        )
+
+    def test_forward_appends_the_four_new_cuts(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+
+        self._migration().add_attribution_tabs(apps, None)
+
+        assert self._names_in_order(admin_a) == [
+            'Entradas', 'Salidas', 'Gustavo', 'Carlos', 'Empresa',
+            'Sin vincular',
+        ]
+
+    def test_forward_seeds_a_restore_point(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+
+        self._migration().add_attribution_tabs(apps, None)
+
+        tab = SavedFilterTab.objects.get(
+            user=admin_a, view=self.VIEW, name='Gustavo',
+        )
+        assert tab.filters == {'attribution': ['gustavo']}
+        # Without this, "Restaurar filtros" would have nothing to return to.
+        assert tab.base_filters == {'attribution': ['gustavo']}
+        assert tab.is_seeded is True
+
+    def test_forward_is_idempotent(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        migration = self._migration()
+
+        migration.add_attribution_tabs(apps, None)
+        migration.add_attribution_tabs(apps, None)
+
+        assert self._names_in_order(admin_a) == [
+            'Entradas', 'Salidas', 'Gustavo', 'Carlos', 'Empresa',
+            'Sin vincular',
+        ]
+
+    def test_forward_appends_after_a_custom_tab(self, admin_a):
+        """A reordered strip and the user's own tabs keep their place."""
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        SavedFilterTab.objects.create(
+            user=admin_a, view=self.VIEW, name='Kore',
+            filters={'search': 'kore'}, order=2,
+        )
+
+        self._migration().add_attribution_tabs(apps, None)
+
+        assert self._names_in_order(admin_a)[:3] == [
+            'Entradas', 'Salidas', 'Kore',
+        ]
+
+    def test_forward_skips_users_without_the_view(self, admin_a):
+        """A user with no pocket tab gets the full set from the registry."""
+        from django.apps import apps
+
+        self._migration().add_attribution_tabs(apps, None)
+
+        assert self._names_in_order(admin_a) == []
+
+    def test_reverse_restores_the_previous_layout(self, admin_a):
+        from django.apps import apps
+
+        self._legacy_tabs(admin_a)
+        migration = self._migration()
+
+        migration.add_attribution_tabs(apps, None)
+        migration.drop_attribution_tabs(apps, None)
+
+        assert self._names_in_order(admin_a) == ['Entradas', 'Salidas']
+        assert list(
+            SavedFilterTab.objects.filter(user=admin_a, view=self.VIEW)
+            .order_by('order').values_list('order', flat=True)
+        ) == [0, 1]
+
+
 class TestBaseFiltersBackfillMigration:
     """Migration 0042 gives pre-existing tabs their restore point.
 

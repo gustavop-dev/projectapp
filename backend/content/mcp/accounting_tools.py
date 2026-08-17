@@ -546,6 +546,17 @@ def _list_schema(key):
                 'filtrar, o uno o varios ids separados por coma.'
             ),
         }
+    for field, conditions in config.get('q_filters', {}).items():
+        # `string` rather than `boolean` even for the true/false tokens: the
+        # knob parses comma-separated tokens uniformly, and `_str_params`
+        # coerces a real boolean to 'true'/'false' anyway.
+        props[field] = {
+            'type': 'string',
+            'description': (
+                'Uno o varios valores separados por coma: '
+                + ', '.join(sorted(conditions)) + '.'
+            ),
+        }
     if config.get('has_split'):
         props['partner'] = {'type': 'string', 'enum': ['gustavo', 'carlos', 'projectapp', 'all']}
     if config.get('payment_status_filter'):

@@ -60,9 +60,16 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Mensuales', 'filters': {'modalities': ['monthly']}},
         {'name': 'Anuales', 'filters': {'modalities': ['annual']}},
     ],
+    # The three attribution cuts are the consulta that repeats ("what came out
+    # of Gustavo's pocket"); "Sin vincular" is the repair queue: movements that
+    # never got their mirror in Ingresos or Gastos.
     'accounting_pocket': [
         {'name': 'Entradas', 'filters': {'direction': 'in'}},
         {'name': 'Salidas', 'filters': {'direction': 'out'}},
+        {'name': 'Gustavo', 'filters': {'attribution': ['gustavo']}},
+        {'name': 'Carlos', 'filters': {'attribution': ['carlos']}},
+        {'name': 'Empresa', 'filters': {'attribution': ['company']}},
+        {'name': 'Sin vincular', 'filters': {'linked': 'false'}},
     ],
     'accounting_recurring': [
         {'name': 'Activos', 'filters': {'is_active': 'true'}},
