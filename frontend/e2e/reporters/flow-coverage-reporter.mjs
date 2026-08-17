@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadFlowRegistry } from '../../scripts/lib/flow-registry.mjs';
 
 const _file = fileURLToPath(import.meta.url);
 const _dir = path.dirname(_file);
@@ -14,12 +15,10 @@ class FlowCoverageReporter {
   constructor(options = {}) {
     this.outputDir = options.outputDir || 'e2e-results';
 
-    const definitionsPath = path.resolve(_dir, '..', 'flow-definitions.json');
-    if (fs.existsSync(definitionsPath)) {
-      this.flowDefinitions = JSON.parse(fs.readFileSync(definitionsPath, 'utf-8'));
-    } else {
-      this.flowDefinitions = { version: '0.0.0', lastUpdated: '', flows: {} };
-      console.warn('\n  ⚠️  flow-definitions.json not found.\n');
+    // Flow registry: sharded e2e/flows/*.json with monolith fallback (F46).
+    this.flowDefinitions = loadFlowRegistry(path.resolve(_dir, '..'));
+    if (!Object.keys(this.flowDefinitions.flows || {}).length) {
+      console.warn('\n  ⚠️  flow registry not found (e2e/flows/ or flow-definitions.json).\n');
     }
 
     for (const [flowId, definition] of Object.entries(this.flowDefinitions.flows)) {

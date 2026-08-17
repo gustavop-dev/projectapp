@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-move-folder",
+  "name": "Admin Document Move Folder",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin moves a document to a different folder (or removes it from any folder) via MoveFolderModal from the documents page. PATCHes documents/{id}/update/ with folder_id.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

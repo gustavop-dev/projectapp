@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-activity",
+  "name": "Admin Diagnostic Activity Timeline",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin records notes / call / meeting / followup events from the Actividad tab (POST /activity/create/). Timeline shows auto-logged events (created, status change, section updated, email sent, accepted, rejected) alongside manual notes.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-contract-download",
+  "name": "Admin Proposal Contract Download",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin downloads contract PDF (final version) or draft PDF from the Documents tab. Download links visible only when contract has been generated.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

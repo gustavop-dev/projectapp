@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-create-and-send",
+  "name": "Admin Proposal Create & Send",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create and send proposal in one step when client data is complete.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

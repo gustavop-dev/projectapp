@@ -1,0 +1,14 @@
+{
+  "id": "public-privacy-policy",
+  "name": "Privacy Policy Page",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P4",
+  "description": "View the public privacy policy page with localized content (ES/EN).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

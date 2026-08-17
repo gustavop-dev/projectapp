@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-dev-checklist",
+  "name": "Admin Proposal Dev Checklist Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin generates, copies and downloads the Markdown developer checklist from the Desarrollo tab of an accepted proposal (client-side markdown build).",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "No spec yet (2026-07 audit): tab only appears for accepted proposals; refresh/copy/download untested."
+  ]
+}

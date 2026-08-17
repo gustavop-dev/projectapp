@@ -1,0 +1,14 @@
+{
+  "id": "proposal-conditional-acceptance",
+  "name": "Proposal Conditional Acceptance",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Accept with an optional condition note (Acepto, pero...).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

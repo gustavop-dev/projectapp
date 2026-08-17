@@ -1,0 +1,14 @@
+{
+  "id": "admin-blog-calendar",
+  "name": "Admin Blog Calendar",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Weekly calendar view showing scheduled, published, and draft blog posts.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

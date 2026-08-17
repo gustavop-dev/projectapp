@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-platform-handoff",
+  "name": "Admin Proposal → Platform Handoff",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "After a proposal is accepted, admin clicks 'Lanzar a plataforma' from the actions modal — POST /api/proposals/:id/launch-to-platform/ — which creates a PlatformProject linked to the proposal and sends the client a platform invitation email with an OTP. Admin sees a 'Ver en plataforma' action in the proposal actions panel. Client then starts the platform onboarding flow (platform-login → platform-verify-onboarding → platform-complete-profile).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

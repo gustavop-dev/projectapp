@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-section-reorder",
+  "name": "Admin Proposal Section Reorder",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Reorder commercial sections via drag & drop in the Secciones tab (vuedraggable handle per row); the permuted order slots POST to /api/proposals/:id/reorder-sections/ with snap-back on failure.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

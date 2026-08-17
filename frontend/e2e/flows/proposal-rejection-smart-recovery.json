@@ -1,0 +1,14 @@
+{
+  "id": "proposal-rejection-smart-recovery",
+  "name": "Proposal Rejection Smart Recovery",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "After rejection, context-specific recovery cards render based on rejection reason with appropriate CTAs.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

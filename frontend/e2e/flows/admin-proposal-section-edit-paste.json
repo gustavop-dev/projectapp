@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-section-edit-paste",
+  "name": "Admin Proposal Section Edit (Paste Content)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Bulk-fill proposal section fields by pasting text and processing it into structured form data.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

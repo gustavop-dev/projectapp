@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-dashboard-auto-refresh",
+  "name": "Admin Proposal Dashboard Auto-Refresh",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Dashboard KPI panel auto-refreshes every 60s with manual refresh button and last-updated label.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

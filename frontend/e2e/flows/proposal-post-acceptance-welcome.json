@@ -1,0 +1,14 @@
+{
+  "id": "proposal-post-acceptance-welcome",
+  "name": "Proposal Post-Acceptance Welcome Kit",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "After acceptance: PDF download, onboarding timeline, and PM WhatsApp contact.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

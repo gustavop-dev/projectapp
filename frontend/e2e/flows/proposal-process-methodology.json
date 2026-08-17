@@ -1,0 +1,14 @@
+{
+  "id": "proposal-process-methodology",
+  "name": "Proposal Process & Methodology",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "5-step visual pipeline section (Discovery → Diseño → Desarrollo → QA → Lanzamiento).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

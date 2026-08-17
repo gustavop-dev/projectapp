@@ -1,0 +1,16 @@
+{
+  "id": "admin-client-edit",
+  "name": "Admin Client Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin edits an existing client profile from /panel/clients by clicking the edit (pencil) icon on a client row. The edit modal opens pre-filled with the client's name, email, phone, and company. Admin modifies fields and submits — PUT /api/proposals/client-profiles/:id/update/ — modal closes on success. A 400 response surfaces validation errors and keeps the modal open.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

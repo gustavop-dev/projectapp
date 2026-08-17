@@ -1,0 +1,14 @@
+{
+  "id": "proposal-view-paste-rendering",
+  "name": "Proposal View Paste Mode Rendering",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client views paste-mode sections rendered as RawContentSection with markdown in a styled card, while form-mode sections render structured Vue components.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

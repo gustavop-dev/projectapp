@@ -1,0 +1,16 @@
+{
+  "id": "admin-blog-create",
+  "name": "Admin Blog Create (Manual)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a new bilingual blog post via manual form with category, readTime, featured, SEO fields.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

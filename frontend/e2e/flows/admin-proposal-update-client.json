@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-update-client",
+  "name": "Admin Proposal Update Client",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Change the linked client on an existing proposal from the proposal edit page (/panel/proposals/:id/edit). Admin selects a different client via the autocomplete and saves; snapshot fields update to reflect the new client.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

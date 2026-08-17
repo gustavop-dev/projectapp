@@ -1,0 +1,15 @@
+{
+  "id": "admin-project-change-client",
+  "name": "Admin Project Change Client Cascade",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "A project changes owner through ONE guided path (the form field stays immutable; a ghost \"Cambiar cliente...\" entry on the edit modal opens the cascade). The preview names the full impact before anything runs: records that move, incomes an active cuenta blocks (they detach and keep their client - anular y reemitir is the path for a wrong cuenta), draft cuentas that ride along, issued documents nothing may touch, and clientless rows left for the completion tools. The mode - Mover al nuevo cliente | Desvincular del proyecto - is chosen EVERY time (no preselection; confirm stays disabled until picked) and the apply carries the preview hosting/income ids as a staleness token: 409 records_not_found / records_changed reload the preview instead of guessing. Every touched record leaves an audit row.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

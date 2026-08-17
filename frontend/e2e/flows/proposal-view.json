@@ -1,0 +1,15 @@
+{
+  "id": "proposal-view",
+  "name": "Proposal View",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "View a business proposal shared via unique UUID link with horizontal scroll.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

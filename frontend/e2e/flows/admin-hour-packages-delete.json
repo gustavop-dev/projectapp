@@ -1,0 +1,15 @@
+{
+  "id": "admin-hour-packages-delete",
+  "name": "Admin Hour Packages Delete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Delete an hour package with confirmation modal.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

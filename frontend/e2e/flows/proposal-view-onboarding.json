@@ -1,0 +1,14 @@
+{
+  "id": "proposal-view-onboarding",
+  "name": "Proposal View Onboarding",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "First-visit tutorial overlay with step-by-step tooltips and reading time popup.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

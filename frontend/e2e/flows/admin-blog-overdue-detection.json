@@ -1,0 +1,14 @@
+{
+  "id": "admin-blog-overdue-detection",
+  "name": "Admin Blog Overdue Schedule Safety-Net",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "Backend Huey periodic task scans BlogPost rows where publish_scheduled_for is in the past but the post is still unpublished, then publishes them automatically (and triggers the LinkedIn auto-publish if connected). The management command publish_blog_post.py is a manual escape hatch for the same logic. No browser interaction.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only safety-net for missed schedules. Covered by backend/content/tests/tasks/test_blog_publish_guards.py; no E2E spec applies."
+  ]
+}

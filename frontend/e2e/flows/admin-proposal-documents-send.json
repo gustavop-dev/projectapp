@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-documents-send",
+  "name": "Admin Proposal Documents Send (SUPERSEDED)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "SUPERSEDED Apr 22 2026: The 'Enviar al cliente' section was removed from the Documents tab. Documents are now attached from the Correos tab via 'Adjuntar desde Documentos' (see admin-proposal-attach-from-documents). The spec admin-proposal-documents-send.spec.js was deleted. This flow entry is kept for historical traceability only.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Flow superseded — 'Enviar al cliente' section removed from the Documents tab on 2026-04-22; replaced by admin-proposal-attach-from-documents via the Correos tab. Entry retained for historical traceability."
+  ]
+}

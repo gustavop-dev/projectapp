@@ -1,0 +1,17 @@
+{
+  "id": "proposal-share",
+  "name": "Proposal Share",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client shares the proposal with a stakeholder via tracked share link.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Only asserts button visibility + modal open; tracked share-link creation POST/copied URL unasserted (2026-07 audit)."
+  ],
+  "outcomes": [
+    "success"
+  ]
+}

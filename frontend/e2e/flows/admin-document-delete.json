@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-delete",
+  "name": "Admin Document Delete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin deletes a document from the actions sheet: 'Eliminar' opens ConfirmModal; confirming sends DELETE /api/documents/:id/delete/ and removes the row/card; cancelling keeps it. Current list spec only asserts the button is visible.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-22 (QA campaign round 2): happy path + cancel/error branches over mocked API.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

@@ -1,0 +1,11 @@
+### FLOW: `admin-accounting-project-coherence`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/projects`
+- **API:** `POST /api/accounting/hostings/bulk-assign-client/`, `GET /api/accounting/hostings/`, `GET /api/projects/`
+- **Description:** Requisito 14 of the ticket verified over a stateful mock: one client reassignment propagates to every module without a reload (row rebuilt from the response, project cleared and announced beforehand, per-project counters moved on /panel/projects) and a full `page.reload()` serves the same truth — the database is the source of coherence, the reload never was the fix.
+- **Steps:** reassign a hosting's client → verify hostings in place → verify /panel/projects counters → reload → verify both again.
+- **Branches:** none — the flow IS the invariant.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-coherence.spec.js`

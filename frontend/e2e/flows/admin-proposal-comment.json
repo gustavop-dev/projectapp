@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-comment",
+  "name": "Admin Proposal Comment",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Add internal comments to a proposal for team collaboration.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

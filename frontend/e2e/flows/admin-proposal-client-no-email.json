@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-client-no-email",
+  "name": "Admin Proposal Client No Email",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a proposal without a client email — backend generates a placeholder email and all automations are paused for that client.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

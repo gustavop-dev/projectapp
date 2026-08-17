@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-duplicate",
+  "name": "Admin Document Duplicate",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin duplicates a document from the actions sheet: 'Duplicar' sends POST /api/documents/:id/duplicate/ and the copy appears in the list.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec added 2026-07-23 (round 7): duplicate POST with the copy appearing in the refreshed list, plus the error-toast branch.",
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "admin-hour-packages-create",
+  "name": "Admin Hour Packages Create",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create an hour package with nationality, bilingual names, hours, rate and discount; currency derives from nationality.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

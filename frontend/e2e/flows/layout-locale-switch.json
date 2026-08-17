@@ -1,0 +1,14 @@
+{
+  "id": "layout-locale-switch",
+  "name": "Locale Switch",
+  "module": "layout",
+  "roles": [
+    "shared"
+  ],
+  "priority": "P2",
+  "description": "Switch the application language between English and Spanish.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

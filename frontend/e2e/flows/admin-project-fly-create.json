@@ -1,0 +1,15 @@
+{
+  "id": "admin-project-fly-create",
+  "name": "Admin Project Fly Create From Selectors",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Every project selector creates on the fly (mirror of the client selector, PA-24/PA-25): ProjectSelect is now a combobox over the client's already-fetched projects (local filtering, no server search) and when nothing matches it offers Crear proyecto with the typed term (Enter included). The inline panel lives inside the component itself — one reusable selector, not a per-modal solution, so the hosting and income modals gain the flow without changes and the cuenta de cobro inherits it through its stacked income modal. The panel pre-fills the name, shows the inherited client read-only, warns without blocking on a same-name collision, keeps itself open on a 400 with the backend message, and on success the new project is auto-selected and appended to the per-client picker cache (the all bucket dropped). Cancelling the outer form leaves the project standing: it is a record of its own, visible immediately in /panel/projects.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

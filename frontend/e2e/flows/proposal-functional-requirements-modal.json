@@ -1,0 +1,14 @@
+{
+  "id": "proposal-functional-requirements-modal",
+  "name": "Proposal Functional Requirements Modal",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client clicks requirement group card to open detail modal showing items with icons and descriptions. Items with linked technical requirements show a 'Ver requerimientos (N)' link that opens a nested modal listing each requirement title, priority and description (detailed and executive modes; hidden on legacy proposals without item ids).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-delete-from-client",
+  "name": "Admin Proposal Delete From Client",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "From /panel/clients, expand a client row and delete a specific linked proposal. A confirm modal requires typing 'DELETE'; on success the client detail is refetched (proposal disappears) and a success toast shows; on 409 (linked to a launched project) the proposal stays and an error toast shows.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

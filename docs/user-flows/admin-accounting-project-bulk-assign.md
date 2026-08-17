@@ -1,0 +1,11 @@
+### FLOW: `admin-accounting-project-bulk-assign`
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/hostings`, `/panel/accounting/incomes`
+- **API:** `POST /api/accounting/hostings/bulk-assign-project/`, `POST /api/accounting/incomes/bulk-assign-project/`, `GET /api/projects/?scope=all`
+- **Description:** The bulk bar gains an "Asignar: Cliente | Proyecto" toggle. The Proyecto target uses a catalog-wide combobox (every project, searched by name or client, actives first) and confirms against the full plan: toAssign, toReassign (origins named), unchanged, and the blocked bucket — rows of ANOTHER client the ownership rule refuses to touch, listed apart and never in the payload (the backend answers 409 `client_mismatch`/`mismatched_ids` on a stale plan and the page drops exactly those ids). Quitar proyecto is its own destructive action; clearing works across clients. `results` carries the cascaded liquid children so the in-place rebuild misses nothing. The CLIENT preview now also announces which rows will lose their project when the client changes hands (`projectCleared`), matching the server rule that clears a now-foreign project on every client move — bulk included.
+- **Steps:** select rows → toggle Proyecto → pick the project → read the plan (blocked bucket included) → confirm → rows update in place.
+- **Branches:** no project picked keeps the action off with the reason inline; every row already on target blocks with its own message; 409 drops the named ids and reloads.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-project-bulk-assign.spec.js`

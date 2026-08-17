@@ -1,0 +1,16 @@
+{
+  "id": "admin-diagnostic-email",
+  "name": "Admin Diagnostic Email Composer",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin sends a follow-up branded email from the Correos tab of the diagnostic edit page. Composer includes recipient, subject, draggable body sections (per-section Markdown toggle), footer, optional attachments, and a server-rendered preview of the real branded template (POST /api/emails/preview/). NDA branch: checking 'Adjuntar acuerdo de confidencialidad' appends attach_confidentiality:1 to the FormData and the backend generates and attaches the confidentiality PDF. History lists previous sends (sections stored as legacy strings or {text, markdown} objects).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

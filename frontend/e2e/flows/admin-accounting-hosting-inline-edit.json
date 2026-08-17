@@ -1,0 +1,11 @@
+{
+  "id": "admin-accounting-hosting-inline-edit",
+  "name": "Admin Accounting Hosting Inline Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Superuser edits hosting cells without opening the modal at /panel/accounting/hostings: double-click on cliente, dominio or valor/mes swaps the cell for an input (money cells use BaseCurrencyInput), Enter/blur PATCHes only when the value changed, Esc cancels; a failed PATCH leaves the row untouched. The estado column is an inline select that PATCHes is_active with snap-back and spinner.",
+  "expectedSpecs": 0
+}

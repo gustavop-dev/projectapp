@@ -1,0 +1,14 @@
+{
+  "id": "admin-styleguide",
+  "name": "Admin Styleguide",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Visual regression tests for the design system styleguide page (light and dark mode snapshots).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

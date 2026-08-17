@@ -23,7 +23,9 @@
     "check:design-tokens:panel": "node scripts/check-design-tokens.mjs --scope=panel",
     "check:design-tokens:strict": "node scripts/check-design-tokens.mjs --strict",
     "check:design-tokens:rows": "node scripts/check-design-tokens.mjs --scope=panel --strict --strict-rows",
-    "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs"
+    "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs",
+    "flow:registry": "python3 ../scripts/generate_flow_registry.py --repo-root ..",
+    "flow:registry:check": "python3 ../scripts/generate_flow_registry.py --repo-root .. --check"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",

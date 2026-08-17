@@ -1,0 +1,12 @@
+{
+  "id": "admin-client-first-login-notification",
+  "name": "Admin Client First-Login Notification",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "When a platform client sets their password and logs in for the first time (POST /api/accounts/verify/, only when was_onboarded was False), client_flow_notifications fires a team milestone alert: an in-app notification to the project admins plus an email to the notification recipients. Best-effort; never blocks onboarding.",
+  "expectedSpecs": 0,
+  "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope, consistent with the other system-triggered flows; may be asserted as a branch of platform-verify-onboarding."
+}

@@ -1,0 +1,16 @@
+{
+  "id": "platform-admin-client-list",
+  "name": "Platform Admin Client List",
+  "module": "platform",
+  "roles": [
+    "platform-admin"
+  ],
+  "priority": "P2",
+  "description": "Admin-only client management table with invite modal (create + send credentials), status filters (Todos/Onboarded/Pendientes/Inactivos), search, resend invite, and deactivate actions.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error",
+    "display"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "admin-dashboard-pipeline-value",
+  "name": "Admin Dashboard Pipeline Value",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Pipeline pulse tile on /panel showing the active pipeline value and count from the consolidated panel/dashboard/ payload; shows a dash when null.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display"
+  ]
+}

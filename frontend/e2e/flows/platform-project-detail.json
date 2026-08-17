@@ -1,0 +1,16 @@
+{
+  "id": "platform-project-detail",
+  "name": "Platform Project Detail",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Project detail hub with stats row (progress, client, dates), module cards (Tablero active, others 'Próximamente'), and admin edit modal for name, description, status, dates.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

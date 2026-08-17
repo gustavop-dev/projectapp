@@ -1,0 +1,14 @@
+{
+  "id": "admin-dashboard-attention-radar",
+  "name": "Admin Dashboard Attention Radar",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Cross-module attention radar on /panel: overdue collection accounts, failed emails, overdue tasks, stale proposals and upcoming recurring payments with severity accents and deep-links; positive empty state when clear.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display"
+  ]
+}

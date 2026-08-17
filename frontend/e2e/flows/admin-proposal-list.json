@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-list",
+  "name": "Admin Proposal List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "View the list of all business proposals.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

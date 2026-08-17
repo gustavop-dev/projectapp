@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-document-preview",
+  "name": "Admin Diagnostic Document Preview",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "From the Documentos tab of the diagnostic edit page, admin clicks the eye icon next to an attachment. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (canPreviewFile). Non-previewable files keep only the existing download action. Replaces the previous inline template-expand behavior on DiagnosticDocumentsTab.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Eye-icon preview modal replaced inline template-expand in DiagnosticDocumentsTab.vue on 2026-04-26 (commit 9877df24). Component-level unit test exists (DiagnosticDocumentsTab.spec.js); E2E spec pending."
+  ]
+}

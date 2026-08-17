@@ -1,0 +1,15 @@
+{
+  "id": "platform-client-document-sign",
+  "name": "Platform Client Document Sign",
+  "module": "platform",
+  "roles": [
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "Client accepts/signs the main document via click-to-accept (gated on a verified email); the signature is recorded and the team is notified.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

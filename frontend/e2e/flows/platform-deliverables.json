@@ -1,0 +1,17 @@
+{
+  "id": "platform-deliverables",
+  "name": "Platform Deliverables",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Admin uploads deliverables (designs, documents, APKs, credentials) with version history. Client downloads files. Per-project view at /platform/projects/:id/deliverables and unified cross-project view at /platform/deliverables.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error",
+    "display"
+  ]
+}

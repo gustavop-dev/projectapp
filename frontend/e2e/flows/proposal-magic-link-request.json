@@ -1,0 +1,14 @@
+{
+  "id": "proposal-magic-link-request",
+  "name": "Proposal Magic Link Request (Expired)",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Guest who lands on an expired proposal submits their email to receive a fresh magic-link via the form in ProposalExpired.vue. Calls POST /api/proposals/request-link/ with { email } and shows a neutral confirmation message ('Si tenemos propuestas asociadas a ese email, recibirás un enlace en breve.') regardless of backend outcome to avoid leaking which emails are clients. Out of scope of proposal-expired-graceful (which covers the expired-state UI).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

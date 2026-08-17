@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-reopen-from-expired",
+  "name": "Admin Proposal Reopen From Expired",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Recover an expired proposal by extending expires_at to a future date from /panel/proposals/:id/edit (General tab) or via the JSON re-import panel. The serializer no longer blocks re-saving when expires_at is unchanged, and ProposalService.reopen_if_unexpired auto-reverts status from 'expired' to 'viewed' (when view_count > 0) or 'sent', logging an 'Auto-reopened from expired…' entry in ProposalChangeLog. Covers both PATCH /proposals/:id/update/ and PUT /proposals/:id/update-from-json/ paths.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

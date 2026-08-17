@@ -1,0 +1,14 @@
+{
+  "id": "proposal-onboarding-mobile-swipe",
+  "name": "Proposal Onboarding Mobile Viewport",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "Onboarding tooltip steps render correctly on mobile viewport with navigation buttons.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

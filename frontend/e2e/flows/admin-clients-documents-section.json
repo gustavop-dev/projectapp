@@ -1,0 +1,15 @@
+{
+  "id": "admin-clients-documents-section",
+  "name": "Admin Clients Documents Section",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The expanded client row (ficha) in /panel/clients lists the client's five most recent active documents — title linking into /panel/documents/<id>/edit, project, status, created date (client-document-row-<id>) — fed by the 'documents' + 'documents_total' keys of the client detail payload. 'Ver todos (N)' (client-documents-all-<id>) jumps into /panel/documents?client=<profileId>, so a client's documents are reachable from their ficha without touching the filters; the relation also works backwards via the document editor's 'Ver cliente' link, which lands here with ?highlight=<profileId> expanding that ficha.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

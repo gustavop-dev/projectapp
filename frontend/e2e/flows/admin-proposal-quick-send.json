@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-quick-send",
+  "name": "Admin Proposal Quick Send",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Send or re-send a proposal directly from the proposals list without entering edit page.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

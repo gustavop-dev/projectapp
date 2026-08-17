@@ -1,0 +1,16 @@
+{
+  "id": "platform-complete-profile",
+  "name": "Platform Complete Profile",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "Mandatory profile completion form with company, phone, cedula, date of birth, gender, education level, and optional avatar upload. Middleware gates dashboard access until completed.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

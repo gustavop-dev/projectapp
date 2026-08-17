@@ -1,0 +1,14 @@
+{
+  "id": "admin-whatsapp-suggestion",
+  "name": "Admin WhatsApp Suggestion",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "System creates whatsapp_suggestion alert with pre-drafted message based on top viewed section.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only, covered by backend unit tests"
+  ]
+}

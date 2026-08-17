@@ -1,0 +1,14 @@
+{
+  "id": "proposal-executive-to-detailed",
+  "name": "Proposal Executive to Detailed View Switch",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client switches from executive view to full detailed proposal via 'Ver Propuesta Completa' button with branded transition overlay.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

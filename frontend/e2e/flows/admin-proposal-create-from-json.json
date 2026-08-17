@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-create-from-json",
+  "name": "Admin Proposal Create (JSON Import)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Create a proposal by importing a pre-filled JSON payload with all 12 section content_json values.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

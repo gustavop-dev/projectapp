@@ -1,0 +1,16 @@
+{
+  "id": "admin-blog-edit",
+  "name": "Admin Blog Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Edit an existing blog post including new fields: category, readTime, isFeatured, content_json, SEO meta.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "admin-dashboard-finance-gate",
+  "name": "Admin Dashboard Finance Gate",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Finance pulse tile and section render only when the payload carries finance data (superuser); staff receive finance: null and see no financial KPIs.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

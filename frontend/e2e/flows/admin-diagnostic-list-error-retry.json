@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-list-error-retry",
+  "name": "Admin Diagnostic List — Load Error & Retry",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "When GET /api/diagnostics/ fails, the list page shows a dedicated error state (data-testid=diagnostics-error-state) with the normalized Spanish error message and a 'Reintentar' button that re-fires the fetch; an error notification is also raised via usePanelNotify. Distinct from the empty state. Covered by e2e/admin/admin-diagnostic-list-error-retry.spec.js.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "failure",
+    "display"
+  ]
+}

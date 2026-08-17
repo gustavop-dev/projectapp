@@ -1,0 +1,16 @@
+{
+  "id": "admin-client-inactive-tab",
+  "name": "Admin Client Inactive Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The Inactivos option of the transversal client-status selector (next to the search box, labelled with its own match count, mirrored in ?status=) lists only manually deactivated clients (inactive=true), and the pause/play toggle marks a client inactive or reactivates it.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "proposal-og-meta-personalized",
+  "name": "Proposal OG Meta Personalized",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "Personalized Open Graph meta tags for WhatsApp/social media previews.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "blog-detail",
+  "name": "Blog Post Detail",
+  "module": "blog",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Read a blog post with structured JSON content (sections, timelines, lists, subsections) or HTML fallback, sources, share, related posts.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

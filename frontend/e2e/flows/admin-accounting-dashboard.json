@@ -1,0 +1,14 @@
+{
+  "id": "admin-accounting-dashboard",
+  "name": "Admin Accounting Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Superuser opens /panel/accounting and sees the financial overview fed by GET /api/accounting/dashboard/?year=: expected vs liquid income, expenses, utilities and monthly breakdown computed from the company ledger only (personal-ledger records excluded), pocket balance, per-partner cards (Gustavo/Carlos combine company participation + personal ledger; ProjectApp (Empresa) shows the full company ledger totals), operative cost cards and latest card snapshots. The hero Utilidad líquida card embeds a full-width 'Utilidad por mes' ApexCharts line with axes and money tooltips (replaced the corner sparkline). The subnav orders Bolsillo second, after Resumen. Includes the superuser gate: staff non-superusers are redirected to /panel and the Accounting sidebar section is hidden. Includes the Evolución section: two ApexCharts (expected vs liquid vs expenses per month, and card-debt evolution from snapshots) driven by the year selector plus a client-side month-range filter, a link to the cards history and the year persisted as a query param.",
+  "expectedSpecs": 7,
+  "outcomes": [
+    "display"
+  ]
+}

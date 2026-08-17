@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-section-add-delete",
+  "name": "Admin Proposal Section Add/Delete",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin adds a missing section type from the \"Agregar sección\" modal (seeded server-side from language defaults via POST /api/proposals/:id/sections/create/) and deletes sections via the per-row trash action (DELETE /api/proposals/sections/:id/delete/), including the backend guard for functional requirements with a confirmed calculator selection.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

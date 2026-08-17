@@ -1,0 +1,14 @@
+{
+  "id": "proposal-sticky-bar-accept",
+  "name": "Proposal Sticky Bar Accept (ARCHIVED)",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "ARCHIVED — ProposalResponseButtons component removed from production. Acceptance handled via ProposalClosing section buttons.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Feature removed from production. Flow archived."
+  ]
+}

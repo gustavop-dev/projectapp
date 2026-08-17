@@ -1,0 +1,14 @@
+{
+  "id": "diagnostic-public-onboarding",
+  "name": "Diagnostic Public Onboarding",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "First-visit tutorial overlay on the public diagnostic page (DiagnosticOnboarding.vue) that walks the client through the report's structure with step-by-step tooltips, scroll-to-section behavior, and a 'No volver a mostrar' option persisted to localStorage. Mirrors proposal-view-onboarding for the diagnostic module.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "DiagnosticOnboarding component (376 lines) shipped 2026-04-26 (commits 9877df24, e827bd38). Component-level unit tests exist (DiagnosticOnboarding.test.js); E2E spec pending."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "admin-proposal-log-activity",
+  "name": "Admin Proposal Log Activity (Edit Page)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin logs seller activity from proposal edit page Activity tab.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure",
+    "display"
+  ]
+}

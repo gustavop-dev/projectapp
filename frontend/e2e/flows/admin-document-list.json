@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-list",
+  "name": "Admin Document List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View the list of admin documents with title, status, client association. The table carries Cliente and Proyecto columns reading the FK-backed association (client_display_name / project_name); a legacy free-text client_name renders in italics as a not-yet-linked name and unlinked cells show a dash. Above the table, association filters (data-testid doc-association-filters) offer a client autocomplete, a project picker and the 'Sin cliente'/'Sin proyecto' chips; the axes travel in ?client= / ?project= (id or 'none'), so /panel/documents?client=<profileId> deep-links from /panel/clients land already filtered. Per-row actions are collapsed into a single 'Acciones' (kebab) icon that opens the DocumentActionsSheet modal listing each action with its own icon: edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete. The same single-icon + modal pattern is used on every breakpoint (centered modal on desktop, bottom-sheet on mobile). Navigate to create or edit pages. Each document persists a template style (Amigable/Profesional, field template_style); the DocumentActionsSheet download action is split into two rows, 'Descargar PDF · Amigable' and 'Descargar PDF · Profesional', so either PDF style can be generated without opening the editor.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

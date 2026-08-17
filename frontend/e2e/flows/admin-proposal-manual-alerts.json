@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-manual-alerts",
+  "name": "Admin Proposal Manual Alerts",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create, view, and dismiss manual seller alerts/reminders for proposals.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "admin-client-email-validated-notification",
+  "name": "Admin Client Email-Validated Notification",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "When a client confirms their email OTP from the documents portal (POST /api/accounts/email/verify/confirm/), client_flow_notifications fires a team milestone alert (in-app to project admins + email to recipients). Best-effort; already-verified confirmations do not re-notify.",
+  "expectedSpecs": 0,
+  "knownGaps": "Server-triggered side-effect (in-app + email). Out of browser-E2E scope; may be asserted as a branch of platform-client-email-validation."
+}

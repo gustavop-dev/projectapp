@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-win-rate-dashboard",
+  "name": "Admin Proposal Win Rate Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Dashboard win rate segmented by project type, market type, and combination.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

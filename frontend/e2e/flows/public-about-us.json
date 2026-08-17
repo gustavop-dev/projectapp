@@ -1,0 +1,12 @@
+{
+  "id": "public-about-us",
+  "name": "About Us (archived)",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P3",
+  "description": "ARCHIVED — page removed from navigation, no internal links. View the about us page with team and company information.",
+  "expectedSpecs": 0,
+  "knownGaps": "Page exists but is unreachable from navigation. Flow archived."
+}

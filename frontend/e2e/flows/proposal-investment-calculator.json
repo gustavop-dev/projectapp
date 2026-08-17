@@ -1,0 +1,14 @@
+{
+  "id": "proposal-investment-calculator",
+  "name": "Proposal Investment Calculator",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client opens calculator modal, toggles optional modules, sees dynamic total/timeline, confirms selection.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

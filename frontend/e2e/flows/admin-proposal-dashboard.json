@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-dashboard",
+  "name": "Admin Proposal Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "View global KPI dashboard for all proposals: conversion rate, trends, rejection reasons.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

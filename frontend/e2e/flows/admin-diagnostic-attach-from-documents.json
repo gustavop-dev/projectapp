@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-attach-from-documents",
+  "name": "Admin Diagnostic — Adjuntar desde Documentos",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "From the Correos tab of the diagnostic edit page, admin clicks 'Adjuntar desde Documentos'. A modal opens listing: NDA final + draft (if NDA generated), the 3 static MD templates fetched from GET /api/diagnostic-templates/, and any uploaded diagnostic attachments. Admin selects and confirms. Selected refs appear as emerald badges in the composer. On send, POST body includes doc_refs. This flow covers only the selection UX.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

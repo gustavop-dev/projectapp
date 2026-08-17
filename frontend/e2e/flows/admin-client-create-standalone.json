@@ -1,0 +1,15 @@
+{
+  "id": "admin-client-create-standalone",
+  "name": "Admin Client Create Standalone",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a new client profile from /panel/clients via the modal form, with and without email.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

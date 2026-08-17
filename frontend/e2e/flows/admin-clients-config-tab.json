@@ -1,0 +1,11 @@
+{
+  "id": "admin-clients-config-tab",
+  "name": "Admin Clients — Configuraciones Tab",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Admin activates the trailing 'Configuraciones' pill in the clients status-tab row: the list area swaps to the shared ViewSettingsPanel with the client saved-filter-tabs reset (ConfirmModal + POST accounts/saved-filter-tabs/reset/ with view=client, tabs reload on success) and a link to /panel/defaults.",
+  "expectedSpecs": 0
+}

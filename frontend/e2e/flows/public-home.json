@@ -1,0 +1,14 @@
+{
+  "id": "public-home",
+  "name": "Home Page",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "View the public home/landing page with hero, services, study cases and contact.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

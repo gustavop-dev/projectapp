@@ -1,0 +1,16 @@
+{
+  "id": "admin-panel-projects",
+  "name": "Admin Panel Projects Module",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "The Plataforma space in the panel sidebar (after Contabilidad, doubling the superuser-only Hostings entry) opens /panel/projects: the commercial face of accounts.Project, the entity hostings, incomes and cuentas de cobro reference. The listing loads every scope at once and filters client-side: search over project and client name (accent/case-blind), a BaseSegmented Activos/Archivados/Todos (archived is a status, PA-29: projects archive, they never delete), sortable columns for name/client/status/created plus per-project hosting and income counts that — for superusers — link into the accounting tabs pre-filtered via ?project=<id> (incomes also pins accounting_incomeTab=all so the landing tab cannot hide settled rows). Stat cards count active/archived plus clients without any project; that card opens a panel listing each uncovered client with a Crear proyecto CTA that seeds the create modal. Create asks the PA-38 minimum — name plus a required client through ClientAutocomplete (inline client creation included) — with description/status optional; a same-name project for the same client raises a warning strip that never blocks. Edit keeps the client immutable and archived rows out of circulation; archive asks confirmation explaining the records stay linked, restore returns the row to Activos.",
+  "expectedSpecs": 8,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

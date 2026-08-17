@@ -1,0 +1,11 @@
+{
+  "id": "admin-accounting-settings-reset-tabs",
+  "name": "Admin Accounting Settings — Reset Saved Filter Tabs",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Superuser restores the seeded default filter tabs per accounting view from /panel/accounting/settings: the 'Pestañas de filtros guardados' card lists the 6 views (Ingresos/Gastos/Hostings/Bolsillo/Recurrentes/Ads) each with a Restablecer button that, after a ConfirmModal warning about custom tabs, POSTs accounts/saved-filter-tabs/reset/ (delete + re-seed atomically) and toasts the result.",
+  "expectedSpecs": 0
+}

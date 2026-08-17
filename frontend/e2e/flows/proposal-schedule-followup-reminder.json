@@ -1,0 +1,14 @@
+{
+  "id": "proposal-schedule-followup-reminder",
+  "name": "Proposal Schedule Follow-up Reminder",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "After rejecting with \"not the right time\", the client clicks the reminder CTA which POSTs proposals/:uuid/schedule-followup/ and flips to a scheduled-confirmation state.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

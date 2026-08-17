@@ -1,0 +1,14 @@
+{
+  "id": "admin-accounting-export",
+  "name": "Admin Accounting Export",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser exports accounting data: every list view has an Exportar dropdown (CSV / Excel .xlsx) that calls GET /api/accounting/export/ with the active filters mapped to server query params, and the dashboard has an Exportar Excel button that downloads the full workbook (summary sheet + one sheet per section) from /api/accounting/export/workbook/?year=.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

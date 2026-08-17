@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-documents-manage",
+  "name": "Admin Proposal Documents Manage",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin uploads additional documents (otrosí, legal annex, client document, other with custom label) to a proposal via the Documents tab. Lists existing documents with type badges. Delete non-generated documents.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

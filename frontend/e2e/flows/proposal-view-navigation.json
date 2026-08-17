@@ -1,0 +1,14 @@
+{
+  "id": "proposal-view-navigation",
+  "name": "Proposal View Navigation",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Navigate between proposal sections using prev/next buttons and ProposalIndex panel.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

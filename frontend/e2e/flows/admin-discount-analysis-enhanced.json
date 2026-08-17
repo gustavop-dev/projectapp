@@ -1,0 +1,14 @@
+{
+  "id": "admin-discount-analysis-enhanced",
+  "name": "Admin Discount Analysis Enhanced",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Enhanced discount card with sample sizes, avg discount %, and delta warning.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

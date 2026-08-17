@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-analytics",
+  "name": "Admin Diagnostic Analytics Dashboard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin reviews full analytics parity with proposal analytics tab: engagement score (0–100 color-coded), summary KPIs (total views, unique sessions, first view, reading time, coverage, last visit), comparison with global averages, funnel with drop-off %, device breakdown (desktop/mobile/tablet), suggested actions, skipped sections, section heatmap, engagement table, activity timeline, sessions history, and CSV export button. Data sourced from DiagnosticViewEvent + DiagnosticSectionView + DiagnosticChangeLog.",
+  "expectedSpecs": 2,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

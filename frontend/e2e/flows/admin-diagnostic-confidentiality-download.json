@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-confidentiality-download",
+  "name": "Admin Diagnostic NDA Download",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin downloads the generated Acuerdo de Confidencialidad from the Documentos tab. 'Descargar' link → GET /api/diagnostics/:id/confidentiality/pdf/ (FileResponse, streams the saved PDF with placeholders filled from confidentiality_params). 'Borrador' link → GET /api/diagnostics/:id/confidentiality/draft-pdf/ (renders fresh with all placeholders forced to XXX-XXX-XXX and applies BORRADOR watermark). When no NDA exists, neither link is present and the section shows 'No generado' with 'Generar acuerdo' CTA.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

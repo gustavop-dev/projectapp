@@ -1,0 +1,14 @@
+{
+  "id": "admin-accounting-project-coherence",
+  "name": "Admin Accounting Client/Project Coherence",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Requisito 14 of the coherence ticket, verified end to end over a stateful mock backend: changing the client of a hosting announces the project side effect in the preview (the project belonged to the previous client, so the move clears it), rebuilds the row in place from the mutation response (client cell, \"sin proyecto\" marker), moves the per-project counters that /panel/projects reads, and - after a full page.reload() - serves the exact same truth from the backend state: the database is the source of coherence and the reload never was what fixed the view.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

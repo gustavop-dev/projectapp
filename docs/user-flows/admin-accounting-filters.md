@@ -1,0 +1,9 @@
+### FLOW: `admin-accounting-filters`
+
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P1
+- **Routes:** `/panel/accounting/incomes` (same pattern across subviews)
+- **Description:** Client-side dynamic filters via `useAccountingFilters`: period date range, amount min/max, kind segmented, collection segmented on incomes ("Cobro": Todos/Sin pagos/Parcial/Pagado, matching the row's payment badge), partner segmented (Gustavo/Carlos/ProjectApp), ledger segmented ("Contabilidad": Todas/Empresa/Personal Gustavo/Personal Carlos), debounced free search, active-count badge, reset and saved filter tabs per view (incomes ships "Todos los esperados" among its seeded defaults; the uncollected cut and its hosting variant are builtin tabs instead, the first of them the view's landing tab). The revamped panel adds live-updating range dropdowns (debounced typing, no blur needed), removable applied-filter chips (one per value, plus a search chip), a filtered results counter visible even with the panel closed, `<mark>` highlighting of search occurrences in table text cells, and column sorting (asc/desc/off) on key columns of every list. Since Aug 2026 every saved tab (all five panel views with tabs) carries a `base_filters` restore point: filter edits under an active tab still auto-save into the tab, but once its live filters drift from the base the tab shows a '•' dot (semantic comparison — inactive keys ignored) and its context menu adds "Restaurar filtros" (PATCH filters back to the definition; reloads the panel when the tab is active) and "Fijar como base" (re-baseline to the current filters). Migration `accounts/0042` backfilled bases from the seed registry, so a drifted saved tab recovers its seeded definition on restore.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-accounting-filters.spec.js`

@@ -1,0 +1,15 @@
+{
+  "id": "admin-client-drag-reassign",
+  "name": "Admin Client Drag Reassign",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Drag a proposal or diagnostic row from an expanded client and drop it on another client card header or its matching proposals/diagnostics zone to reassign it (PATCH client_id) with an undo notification; details and list refresh silently in place.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

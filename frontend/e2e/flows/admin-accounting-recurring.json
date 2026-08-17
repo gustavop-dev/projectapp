@@ -1,0 +1,17 @@
+{
+  "id": "admin-accounting-recurring",
+  "name": "Admin Accounting Recurring Payments",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser manages recurring operational costs at /panel/accounting/recurring: monthly COP total card, monthly USD cost card (computed with the configurable exchange rate from settings), a monthly breakdown card switchable by category/frequency/payment method, and modal CRUD where the COP-equivalent field only applies to USD payments. The default grouped view lists payments by category with per-group monthly COP subtotals, a grand total, drag-and-drop manual ordering (disabled while a filter is active) and an editable category catalog; a classic view keeps the sortable, paginated table. The frequency catalog runs from monthly through bimestral, trimestral, cuatrimestral, semestral, anual and the every-2/3-years options, plus a \"Personalizada\" cycle of N months whose form field only appears once it is picked. Every amount is normalized to its monthly equivalent, so a quarterly or custom charge is comparable with a monthly one. A \"Gráfico\" action beside the view toggle opens a wide charts modal over the same filtered rows — donut by category, ranked bars by item, composition by currency/method/cost type and a calendar of charges by day of month — with the table's active filters shown as chips, an inactive-payments toggle and PNG export. Picking a category (from the legend, a donut slice or the select) drills the whole modal into it: the donut stops splitting by category and splits by the payments inside that one, the legend swaps to those payments — each with its weight inside the category and, muted, its weight over the general total — the center total becomes the category's, and a header names the category and returns to the general view in one click. A category holding a single payment says so by name, so its 100% slice reads as the real breakdown.",
+  "expectedSpecs": 13,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

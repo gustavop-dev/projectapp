@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-inline-status-change",
+  "name": "Admin Proposal Inline Status Change",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Change proposal status directly from the proposals table via inline dropdown. The draft→sent transition is delegated to ProposalService.send_proposal so the client email is dispatched and Huey reminders are scheduled (defense-in-depth — same behavior as the dedicated 'Enviar al Cliente' button). Response includes email_delivery and the panel toast surfaces failures with the reason.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

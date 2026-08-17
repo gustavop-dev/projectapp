@@ -1,0 +1,14 @@
+{
+  "id": "proposal-expired-graceful",
+  "name": "Proposal Expired Graceful",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Expired proposal returns 410 with partial data; frontend renders ProposalExpired with client name, WhatsApp CTA, and email contact.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "failure"
+  ]
+}

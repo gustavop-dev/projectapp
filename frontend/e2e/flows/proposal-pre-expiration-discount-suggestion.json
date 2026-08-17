@@ -1,0 +1,14 @@
+{
+  "id": "proposal-pre-expiration-discount-suggestion",
+  "name": "Pre-Expiration Discount Suggestion",
+  "module": "admin",
+  "roles": [
+    "system"
+  ],
+  "priority": "P2",
+  "description": "Periodic task creates discount_suggestion alert for viewed proposals expiring within 5 days.",
+  "expectedSpecs": 0,
+  "knownGaps": [
+    "Backend-only periodic task, covered by backend unit tests"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-functional-requirements-paste",
+  "name": "Admin Functional Requirements (Paste Content)",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Bulk-fill requirement group items by pasting formatted text.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

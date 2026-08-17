@@ -1,0 +1,14 @@
+{
+  "id": "proposal-discount-multi-section",
+  "name": "Proposal Discount Multi-Section",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Discount badge visible in Investment banner, Calculator footer, and ProposalClosing special price badge.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

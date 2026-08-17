@@ -1,0 +1,17 @@
+{
+  "id": "admin-diagnostic-defaults-config",
+  "name": "Admin Diagnostic Defaults Config",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin manages the per-language default config applied to new WebAppDiagnostic rows from /panel/diagnostics/defaults/. The General tab edits language, currency, default investment amount, default duration label, payment percentages (auto-synced to sum 100, default 60/40), and reminder/urgency/expiration days. Save PUTs /api/diagnostics/defaults/?lang= and the response is applied directly (no refetch). Reset opens a ConfirmModal and POSTs /defaults/reset/ to delete the row, falling back to the hardcoded seed. Sections, Plantillas de Email (link), Prompt (placeholder) and JSON tabs render from the same config payload.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

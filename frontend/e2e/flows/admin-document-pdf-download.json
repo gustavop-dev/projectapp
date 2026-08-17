@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-pdf-download",
+  "name": "Admin Document PDF Download",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "diagnostic-public-respond",
+  "name": "Diagnostic Public Respond",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "On a final-phase SENT public diagnostic, the client clicks 'Aceptar propuesta' or 'Rechazar' in the footer — POST /api/diagnostics/public/<uuid>/respond/ with `decision` ('accept'|'reject'), the page swaps to the acceptance/rejection confirmation footer, and the backend transitions the diagnostic to ACCEPTED or REJECTED. The CTA only appears on the last section (or once the cost section was visited) and asks for confirmation before POSTing, with an explicit sending state.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

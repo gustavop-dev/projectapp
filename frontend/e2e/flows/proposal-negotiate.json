@@ -1,0 +1,14 @@
+{
+  "id": "proposal-negotiate",
+  "name": "Proposal Negotiate (Accept with Changes)",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client clicks 'Aceptar con cambios' → negotiate modal → required comment → submit → negotiating success state.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

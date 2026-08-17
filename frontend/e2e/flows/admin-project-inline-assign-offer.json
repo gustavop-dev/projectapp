@@ -1,0 +1,14 @@
+{
+  "id": "admin-project-inline-assign-offer",
+  "name": "Admin Project Inline Create Assign Offer",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The gap the Vastago case exposed: a project created inline from an accounting form picker (crear al vuelo) used to discard the annotated create response, so the operator was never told the client had older records without a project. Now the created event carries the unlinked_* counters and, when the form closes (saved OR cancelled - the project is a record of its own), the PA-51 assign modal opens with the server-fresh backlog; confirming assigns the checked ids and the response rows (cascaded liquid children included) fill the Proyecto cells of the open table without any reload.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

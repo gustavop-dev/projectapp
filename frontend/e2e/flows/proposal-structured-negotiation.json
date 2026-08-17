@@ -1,0 +1,14 @@
+{
+  "id": "proposal-structured-negotiation",
+  "name": "Proposal Structured Negotiation Modal",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Negotiate modal with structured checkbox reasons and tab toggle for adjust vs comment.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

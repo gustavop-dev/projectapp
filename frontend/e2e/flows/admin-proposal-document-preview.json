@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-document-preview",
+  "name": "Admin Proposal Document Preview",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "From the Documents tab of the proposal edit page, admin clicks the eye icon next to a document. A modal opens previewing the file inline — PDF (rendered in iframe) or image (via <img> tag), gated by frontend/utils/filePreview.js (isPdfUrl / isImageUrl / canPreviewFile). Non-previewable files (Word/Excel/etc.) keep only the existing download action. Modal is dismissed via close button or backdrop click.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

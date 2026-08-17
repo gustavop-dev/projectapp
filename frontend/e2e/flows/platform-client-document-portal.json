@@ -1,0 +1,15 @@
+{
+  "id": "platform-client-document-portal",
+  "name": "Platform Client Document Portal",
+  "module": "platform",
+  "roles": [
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "Client lands on /platform/documents after first login: main contract plus annexes render and each can be downloaded as PDF.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "display"
+  ]
+}

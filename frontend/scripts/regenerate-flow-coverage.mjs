@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Static flow-coverage regenerator.
- * Scans all E2E spec files for @flow: tags, cross-references with
- * flow-definitions.json, and produces an accurate flow-coverage.json
- * without needing to execute tests.
+ * Scans all E2E spec files for @flow: tags, cross-references with the flow
+ * registry (sharded e2e/flows/*.json with monolith fallback — F46), and
+ * produces an accurate flow-coverage.json without needing to execute tests.
  *
  * Usage: node frontend/scripts/regenerate-flow-coverage.mjs
  */
@@ -14,16 +14,16 @@ import {
   listE2eSpecFiles,
   parseFlowTagsConstantsToFlowIds,
 } from './lib/e2e-flow-refs.mjs';
+import { loadFlowRegistry } from './lib/flow-registry.mjs';
 
 const __file = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(__file), '..');
 
-const definitionsPath = path.join(ROOT, 'e2e', 'flow-definitions.json');
 const outputPath = path.join(ROOT, 'e2e-results', 'flow-coverage.json');
 const flowTagsPath = path.join(ROOT, 'e2e', 'helpers', 'flow-tags.js');
 
-// Load flow definitions
-const definitions = JSON.parse(fs.readFileSync(definitionsPath, 'utf-8'));
+// Load the flow registry (dual-layout)
+const definitions = loadFlowRegistry(path.join(ROOT, 'e2e'));
 
 // Initialize flow stats from definitions
 const flowStats = new Map();

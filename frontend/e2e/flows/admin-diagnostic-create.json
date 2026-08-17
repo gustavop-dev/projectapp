@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-create",
+  "name": "Admin Diagnostic Create",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin creates a new WebAppDiagnostic from /panel/diagnostics/create: searches for a client via autocomplete, selects language, submits → redirected to edit page with 8 JSON sections seeded from the default template.",
+  "expectedSpecs": 3,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

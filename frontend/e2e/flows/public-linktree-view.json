@@ -1,0 +1,15 @@
+{
+  "id": "public-linktree-view",
+  "name": "Public Linktree View",
+  "module": "public",
+  "roles": [
+    "visitor"
+  ],
+  "priority": "P2",
+  "description": "Visitor opens /lk/@handle (via the QR short link redirect or directly) and sees the brand-fixed linktree page: identity block per kind, tiered buttons in order (pairs side by side, pending buttons dashed and inert), PWA install block and footer tagline. Unknown or inactive handles show the not-available state.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "failure"
+  ]
+}

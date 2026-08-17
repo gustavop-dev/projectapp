@@ -1,0 +1,16 @@
+{
+  "id": "admin-panel-unsaved-guard",
+  "name": "Admin Panel Unsaved Changes Guard",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "The shared unsaved-changes guard as rolled out across the panel's full-page editors (blog, portfolio, linktrees, hour-packages, diagnostics/create, accounting/settings, emails), using /panel/emails as the representative case because its state lives in loose refs rather than a form object. Editing a default raises a warning naming the field (data-testid emails-defaults-unsaved-notice), and leaving the page opens the three-way dialog whose primary exit saves and only then navigates. Pins the boundary that matters for tabbed pages: switching tabs is a same-route router.replace({ query }), which must NOT trip the leave guard — otherwise every tabbed panel page would block on a modal as soon as its form had anything pending — and must not discard what is pending either.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

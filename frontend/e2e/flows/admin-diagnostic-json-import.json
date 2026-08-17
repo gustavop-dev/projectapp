@@ -1,0 +1,15 @@
+{
+  "id": "admin-diagnostic-json-import",
+  "name": "Admin Diagnostic JSON Import",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin imports a JSON blob from the JSON tab of /panel/diagnostics/:id/edit, either by pasting into the textarea or uploading a .json file (FileReader → textarea). Parse runs on every input; validation requires a root object with an array `sections`. A preview strip shows client name, section count, and formatted investment. Aplicar JSON runs PATCH /update/ for metadata first, then POST /sections/bulk-update/; success emits an inline toast and resyncs the pricing/radiography forms. Errors surface inline and abort the apply.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

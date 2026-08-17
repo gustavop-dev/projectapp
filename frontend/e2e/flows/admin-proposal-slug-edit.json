@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-slug-edit",
+  "name": "Admin Proposal Slug Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin sets or regenerates the human-friendly slug (URL personalizada) for a proposal from the General tab. Includes format validation (lowercase/numbers/hyphens), uniqueness error on 400, and one-click regeneration from client name. PATCH /api/proposals/:id/update/ with { slug }.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

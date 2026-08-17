@@ -1,0 +1,17 @@
+{
+  "id": "admin-proposal-section-disable",
+  "name": "Admin Proposal Section Disable/Enable Toggle",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin toggles section visibility (is_enabled) from the Secciones tab of the proposal edit page. Each section row has an enable/disable toggle; disabled sections are greyed out in the admin list and excluded from the public proposal view. PATCH /api/proposals/sections/:id/update/ with { is_enabled: false }. Complements admin-proposal-section-reorder — both operations can be combined in sequence.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Admin side covered; no assertion that a disabled section disappears from the public view (2026-07 audit)."
+  ],
+  "outcomes": [
+    "success"
+  ]
+}

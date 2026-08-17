@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-duplicate",
+  "name": "Admin Proposal Duplicate",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Duplicate an existing proposal to create a new draft copy.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

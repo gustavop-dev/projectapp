@@ -1,0 +1,15 @@
+{
+  "id": "admin-accounting-list-error-retry",
+  "name": "Admin Accounting Lists — Load Error & Retry",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "When a GET /api/accounting/<entity>/ (or dashboard/, change-logs/, settings/) fails, the page replaces the table/summary with AccountingErrorState (data-testid=accounting-error-retry): a Spanish danger alert plus a Reintentar button that re-fires the page's load function. CRUD errors keep using toasts and never hide the table. Mirrors admin-diagnostic-list-error-retry.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "failure",
+    "display"
+  ]
+}

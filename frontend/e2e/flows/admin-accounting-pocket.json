@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-pocket",
+  "name": "Admin Accounting Pocket Ledger",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser manages the ProjectApp pocket ledger at /panel/accounting/pocket: balance card from list meta, running-balance column (default view newest-first). The pocket is the money entry point: creating a movement also creates its linked income (IN) or expense (OUT). A new movement opens on Egreso, the common case, with every direction-dependent field already in its egreso variant; editing keeps the direction the record has. For IN the Contabilidad segmented is company-only; for OUT the selector is relabeled 'Atribuir a' (Empresa/Gustavo/Carlos) because pocket money is company money: every OUT mirrors a company-ledger expense that counts against liquid utility — Empresa splits 50/50, a partner option registers a draw fully assigned to that partner (category personal). Linked movements open the edit modal with the direction locked and the attribution prefilled (derived from the split); edits mirror into the linked record and deletes cascade both ways (confirm warns about the cascade). Unlinked historical movements keep plain CRUD.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

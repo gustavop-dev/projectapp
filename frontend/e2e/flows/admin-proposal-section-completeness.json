@@ -1,0 +1,17 @@
+{
+  "id": "admin-proposal-section-completeness",
+  "name": "Admin Proposal Section Completeness",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P3",
+  "description": "Progress bar showing percentage of enabled sections with content in the edit view.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Both tests assert only the label; percentage value and color-coding never asserted (2026-07 audit)."
+  ],
+  "outcomes": [
+    "display"
+  ]
+}

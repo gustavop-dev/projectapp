@@ -1,0 +1,16 @@
+{
+  "id": "admin-portfolio-create",
+  "name": "Admin Portfolio Create",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a new portfolio work via manual form or JSON import.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

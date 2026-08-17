@@ -1,0 +1,14 @@
+{
+  "id": "layout-navbar-navigation",
+  "name": "Navbar Navigation",
+  "module": "layout",
+  "roles": [
+    "shared"
+  ],
+  "priority": "P2",
+  "description": "Navigate between pages using the fixed top navbar.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

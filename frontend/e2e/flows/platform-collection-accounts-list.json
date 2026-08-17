@@ -1,0 +1,12 @@
+{
+  "id": "platform-collection-accounts-list",
+  "name": "Platform Collection Accounts List",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Browse collection accounts at /platform/collection-accounts: table, filters (admin), new draft (admin), Open links to detail.",
+  "expectedSpecs": 0
+}

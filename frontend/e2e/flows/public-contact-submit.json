@@ -1,0 +1,15 @@
+{
+  "id": "public-contact-submit",
+  "name": "Contact Form Submit",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Submit a contact form to reach the company. On API failure the page renders the localized contact-submit-error message and stays on the form (2026-08).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

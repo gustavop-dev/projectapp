@@ -1,0 +1,11 @@
+{
+  "id": "diagnostic-public-phase-visibility",
+  "name": "Diagnostic Public Phase Visibility",
+  "module": "diagnostic",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "The public diagnostic page renders different sections depending on the diagnostic phase. After admin sends initial phase (initial_sent_at set, status=SENT), only sections with visibility ∈ {initial, both} appear. After admin sends final phase (final_sent_at set), sections with visibility='final' (e.g. executive_summary, cost, timeline) are also returned by the API and appear in the sidebar. E2E should mock two API responses (initial-phase vs final-phase) and assert which section types render in each state.",
+  "expectedSpecs": 0
+}

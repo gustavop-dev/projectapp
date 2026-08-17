@@ -1,0 +1,14 @@
+{
+  "id": "public-portfolio",
+  "name": "Portfolio Works",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Browse portfolio works and project showcases.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

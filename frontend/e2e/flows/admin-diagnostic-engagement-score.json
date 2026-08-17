@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-engagement-score",
+  "name": "Admin Diagnostic Engagement Score",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Engagement score card renders with correct color-coded level label: Alto engagement (≥70), Engagement moderado (40–69), Bajo engagement (<40). Card hidden when engagement_score is null.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

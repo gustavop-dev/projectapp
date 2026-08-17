@@ -1,0 +1,15 @@
+{
+  "id": "platform-admin-project-create",
+  "name": "Platform Admin Project Create",
+  "module": "platform",
+  "roles": [
+    "platform-admin"
+  ],
+  "priority": "P3",
+  "description": "Admin creates a new project via modal form with name, description, client selector, start date, and estimated end date.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

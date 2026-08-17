@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-contract-edit",
+  "name": "Admin Proposal Contract Edit",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin edits an existing contract's parameters via 'Editar parámetros' button in the Documents tab. Modal opens pre-filled with saved params. Submit calls contract update API.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

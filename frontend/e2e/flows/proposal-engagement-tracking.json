@@ -1,0 +1,17 @@
+{
+  "id": "proposal-engagement-tracking",
+  "name": "Proposal Engagement Tracking",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Automatic section-level engagement tracking with stakeholder detection and follow-up alerts.",
+  "expectedSpecs": 1,
+  "knownGaps": [
+    "Only nav button visibility; the section engagement POST is never asserted (2026-07 audit)."
+  ],
+  "outcomes": [
+    "success"
+  ]
+}

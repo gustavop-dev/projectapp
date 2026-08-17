@@ -1,0 +1,16 @@
+{
+  "id": "admin-email-templates-config",
+  "name": "Admin Email Templates Config",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Manage email template text customization with category filter, inline editing, HTML preview, active toggle, and reset to defaults.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

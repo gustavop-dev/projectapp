@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-bulk-actions",
+  "name": "Admin Diagnostic Bulk Actions",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin selects diagnostics via row/header checkboxes in /panel/diagnostics; a batch bar appears with 'Finalizar aceptados' and 'Eliminar' (confirm modal), calling POST /api/diagnostics/bulk-action/ with {ids, action} and refreshing the list with a result notification. Covered by e2e/admin/admin-diagnostic-bulk-actions.spec.js. (Ago 2026) The selection is reconciled against the loaded diagnostics, so deleting a selected row drops it from the batch bar's count instead of leaving a record that no longer exists in it.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

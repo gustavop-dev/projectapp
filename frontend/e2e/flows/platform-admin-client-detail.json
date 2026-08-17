@@ -1,0 +1,17 @@
+{
+  "id": "platform-admin-client-detail",
+  "name": "Platform Admin Client Detail",
+  "module": "platform",
+  "roles": [
+    "platform-admin"
+  ],
+  "priority": "P2",
+  "description": "Admin-only client detail page with profile card, edit form (name, company, phone, active toggle), quick actions (resend invite, deactivate/reactivate).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error",
+    "failure",
+    "display"
+  ]
+}

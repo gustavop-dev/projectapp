@@ -1,0 +1,14 @@
+{
+  "id": "public-terms-conditions",
+  "name": "Terms and Conditions Page",
+  "module": "public",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P4",
+  "description": "View the public terms and conditions page with localized content (ES/EN).",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "admin-proposal-advanced-filters",
+  "name": "Admin Proposal Advanced Filters",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Filter proposals using custom saved tabs, status/type/market dropdowns, date range, and text search. Tab bar with add/rename/delete, URL deep-linking via ?tab=<tabId>.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

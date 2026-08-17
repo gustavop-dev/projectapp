@@ -1,0 +1,14 @@
+{
+  "id": "admin-diagnostic-list",
+  "name": "Admin Diagnostic List",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin views the list of all WebAppDiagnostics, searches by client name or title, and navigates to create or edit flows.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

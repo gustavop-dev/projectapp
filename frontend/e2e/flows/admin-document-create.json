@@ -1,0 +1,17 @@
+{
+  "id": "admin-document-create",
+  "name": "Admin Document Create",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and the OPTIONAL client/project association: ClientAutocomplete (doc-client-autocomplete, with inline client creation) plus ProjectSelect (doc-project-select) in allowNoClient mode — picking a project FIRST autofills its owner into the client field (inverse cascade), and the payload always carries client/project (null included). Creating inside a folder whose documents mostly belong to one client pre-fills that client (documents/folder-client-suggestion/, hint doc-client-suggested-hint) — a suggestion, never a lock.",
+  "expectedSpecs": 1,
+  "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit).",
+  "outcomes": [
+    "display",
+    "success",
+    "error"
+  ]
+}

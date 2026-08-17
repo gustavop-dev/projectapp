@@ -1,0 +1,15 @@
+{
+  "id": "platform-client-email-validation",
+  "name": "Platform Client Email Validation",
+  "module": "platform",
+  "roles": [
+    "platform-client"
+  ],
+  "priority": "P1",
+  "description": "Client validates their account email via a 6-digit OTP sent from the documents portal before signing is unlocked.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "error"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "id": "admin-blog-linkedin-publish",
+  "name": "Admin Blog LinkedIn Publish",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin fills LinkedIn summary (EN preferred or ES, ≤1300 chars), selects language (defaults to English — US market focus), clicks 'Publicar en LinkedIn' → POST /api/blog/admin/:id/publish-linkedin/. Success message renders. Publish button disabled when summary is empty. Last publish timestamp shown after success.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}
