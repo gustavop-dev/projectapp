@@ -92,8 +92,18 @@ describe('ProjectAssignUnlinkedModal', () => {
     expect(create_request).toHaveBeenCalledWith('projects/1/assign-unlinked/', {
       hosting_ids: [4],
       income_ids: [8],
+      document_ids: [],
     });
     expect(wrapper.emitted('assigned')).toHaveLength(1);
+  });
+
+  it('a preview without documents renders the other sections and no documents one', async () => {
+    const wrapper = mountModal();
+    await openModal(wrapper);
+
+    expect(wrapper.text()).toContain('Hostings (1)');
+    expect(wrapper.text()).toContain('Ingresos (2)');
+    expect(wrapper.text()).not.toContain('Documentos (');
   });
 
   it('a 409 reloads the preview instead of assigning blind', async () => {
@@ -113,6 +123,59 @@ describe('ProjectAssignUnlinkedModal', () => {
     expect(wrapper.find('[data-testid="project-assign-unlinked-error"]').text())
       .toContain('La lista cambió');
     expect(wrapper.emitted('assigned')).toBeUndefined();
+  });
+
+  describe('documents section (F7)', () => {
+    const DOCS_PREVIEW = {
+      data: {
+        ...PREVIEW.data,
+        documents: [
+          { id: 12, label: 'Contrato Vastago', type_label: 'Documento', number: '' },
+          { id: 13, label: 'CC F7', type_label: 'Cuenta de cobro', number: 'PA-DEIVISRI-001' },
+        ],
+        total: 5,
+      },
+    };
+
+    beforeEach(() => {
+      get_request.mockResolvedValue(DOCS_PREVIEW);
+    });
+
+    it('renders the documents checked by default, cuentas by their number', async () => {
+      const wrapper = mountModal();
+      await openModal(wrapper);
+
+      expect(wrapper.text()).toContain('Documentos (2)');
+      expect(checkbox(wrapper, 'project-assign-unlinked-document-12').element.checked).toBe(true);
+      const cuentaRow = wrapper.find('[data-testid="project-assign-unlinked-document-13"]');
+      expect(cuentaRow.text()).toContain('PA-DEIVISRI-001');
+      expect(wrapper.find('[data-testid="project-assign-unlinked-confirm"]').text())
+        .toContain('Asignar 5 registros');
+    });
+
+    it('sends only the document ids left checked', async () => {
+      create_request.mockResolvedValueOnce({
+        data: {
+          assigned_hostings: 1,
+          assigned_incomes: 2,
+          assigned_documents: 1,
+          project: PROJECT,
+        },
+      });
+      const wrapper = mountModal();
+      await openModal(wrapper);
+
+      await checkbox(wrapper, 'project-assign-unlinked-document-12').setValue(false);
+      await wrapper.find('[data-testid="project-assign-unlinked-confirm"]').trigger('click');
+      await flushPromises();
+
+      expect(create_request).toHaveBeenCalledWith('projects/1/assign-unlinked/', {
+        hosting_ids: [4],
+        income_ids: [8, 9],
+        document_ids: [13],
+      });
+      expect(wrapper.emitted('assigned')).toHaveLength(1);
+    });
   });
 
   it('an empty backlog says so and offers no confirm button', async () => {

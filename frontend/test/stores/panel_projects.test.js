@@ -14,6 +14,7 @@ jest.mock('../../stores/services/request_http', () => ({
 import { setActivePinia, createPinia } from 'pinia';
 import { usePanelProjectsStore } from '../../stores/panel_projects';
 import { useAccountingStore } from '../../stores/accounting';
+import { useDocumentStore } from '../../stores/documents';
 import {
   get_request,
   create_request,
@@ -200,6 +201,27 @@ describe('panel_projects store', () => {
     // The touched rows are replaced in place; untouched ones survive as-is.
     expect(accounting.hostings.map((row) => row.project)).toEqual([1, null]);
     expect(accounting.incomes[0].project_name).toBe('Vastago');
+  });
+
+  it('assignUnlinkedRecords rebuilds the open documents list from the response rows', async () => {
+    const store = usePanelProjectsStore();
+    const documentStore = useDocumentStore();
+    documentStore.documents = [
+      { id: 12, project: null, project_name: null },
+      { id: 20, project: null, project_name: null },
+    ];
+    create_request.mockResolvedValueOnce({
+      data: {
+        assigned_documents: 1,
+        documents: [{ id: 12, project: 1, project_name: 'Vastago' }],
+        project: { id: 1 },
+      },
+    });
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
+
+    await store.assignUnlinkedRecords(1, { document_ids: [12] });
+
+    expect(documentStore.documents.map((row) => row.project)).toEqual([1, null]);
   });
 
   it('a 409 on assign keeps the code so the modal can reload its preview', async () => {

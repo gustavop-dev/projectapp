@@ -209,7 +209,14 @@ test.describe('Admin Panel Projects — space link and assign flow', () => {
 
     await expect(page.getByText('Registros asignados a "Kore"')).toBeVisible();
     const assignCall = calls.find((c) => c.apiPath === 'projects/1/assign-unlinked/');
-    expect(assignCall.body).toEqual({ hosting_ids: [21], income_ids: [31] });
+    // document_ids rides along since F7 (empty here: this client's backlog
+    // has no documents in the fixture — the documents case lives in
+    // admin-project-inline-assign-offer).
+    expect(assignCall.body).toEqual({
+      hosting_ids: [21],
+      income_ids: [31],
+      document_ids: [],
+    });
     await expect(page.getByTestId('project-assign-unlinked-1')).toHaveCount(0);
     await expect(page.getByTestId('panel-projects-stat-unlinked')).toContainText('0');
   });

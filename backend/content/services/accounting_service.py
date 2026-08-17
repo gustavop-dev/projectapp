@@ -328,6 +328,10 @@ def object_repr(entity_type, instance):
     if entity_type == EntityType.COLLECTION_ACCOUNT:
         # The number survives the document; the title is the draft fallback.
         return instance.public_number or instance.title
+    if entity_type == EntityType.DOCUMENT:
+        return instance.title
+    if entity_type == EntityType.DOCUMENT_FOLDER:
+        return instance.name
     return 'Configuración contable'
 
 
@@ -460,6 +464,7 @@ def update_record(entity_type, instance, serializer, user, notify=True):
     register_in_pocket = _pop_register_in_pocket(entity_type, serializer)
     old_values = snapshot_values(instance, entity_type)
     old_client_id = getattr(instance, 'client_id', None)
+    old_project_id = getattr(instance, 'project_id', None)
     with transaction.atomic():
         instance = serializer.save()
         _sync_pocket(
@@ -474,6 +479,18 @@ def update_record(entity_type, instance, serializer, user, notify=True):
             and instance.client_id != old_client_id
         ):
             _cascade_client_to_liquid_children(instance, user)
+        if (
+            entity_type in (EntityType.INCOME, EntityType.HOSTING)
+            and instance.project_id != old_project_id
+        ):
+            if (
+                entity_type == EntityType.INCOME
+                and instance.kind == IncomeRecord.Kind.EXPECTED
+            ):
+                # Single-PATCH parity with bulk_assign_project: the liquids
+                # that settle this income follow its project too.
+                _cascade_project_to_liquid_children(instance, user)
+            _sync_project_to_draft_cuentas(instance, user)
     changes = compute_changes(
         entity_type, old_values, snapshot_values(instance, entity_type),
     )
@@ -632,6 +649,10 @@ def bulk_assign_client(entity_type, record_ids, client, user):
                 # project: a liquid child must not keep pointing at the
                 # previous client's project either.
                 _cascade_project_to_liquid_children(record, user)
+        if project_cleared:
+            # Same rule for the record's own draft cuenta: it must not keep
+            # pointing at the previous client's project.
+            _sync_project_to_draft_cuentas(record, user)
         updated.append(record)
     return updated
 
@@ -668,6 +689,32 @@ def _cascade_project_to_liquid_children(income, user):
                 changes=changes,
                 actor=user,
             )
+        # A liquid can carry its own cuenta (expected AND liquid incomes are
+        # cuenta-eligible), so the draft follows its record here too.
+        _sync_project_to_draft_cuentas(child, user)
+
+
+def _sync_project_to_draft_cuentas(record, user):
+    """Carry an income/hosting's project to its DRAFT cuentas de cobro.
+
+    A draft inherits the project once, at creation; when the record's project
+    is fixed later the draft keeps the stale value, and issue time reads
+    ``document.project`` for both the frozen ``customer_project_name``
+    snapshot and the numbering fallback (``resolve_client_user``) — a stale
+    draft freezes a blank project line into the emitted PDF and can land in
+    the wrong per-client series. Issued/paid/cancelled cuentas are facts and
+    are never rewritten. One audit row per document, same as the cascades.
+    """
+    drafts = record.collection_documents.filter(
+        commercial_status=Document.CommercialStatus.DRAFT,
+    ).exclude(project_id=record.project_id)
+    for document in drafts.select_related('project', 'client_user__profile'):
+        old_values = snapshot_values(document, EntityType.COLLECTION_ACCOUNT)
+        document.project = record.project
+        document.save(update_fields=['project', 'updated_at'])
+        log_entity_diff(
+            EntityType.COLLECTION_ACCOUNT, document, old_values, user,
+        )
 
 
 @transaction.atomic
@@ -711,7 +758,43 @@ def bulk_assign_project(entity_type, record_ids, project, user):
             and record.kind == IncomeRecord.Kind.EXPECTED
         ):
             _cascade_project_to_liquid_children(record, user)
+        _sync_project_to_draft_cuentas(record, user)
         updated.append(record)
+    return updated
+
+
+def assign_project_to_documents(document_ids, project, user):
+    """Documents flavour of :func:`bulk_assign_project` — cuentas included.
+
+    Deliberately service-level: the generic document PATCH refuses non-draft
+    cuentas (``collection_account_locked``), so an ISSUED cuenta with a
+    missing project has no HTTP write path — this writer is how the
+    assign-unlinked offer and the retroactive command fill it. It only moves
+    the organisational FK: the frozen ``customer_project_name`` snapshot,
+    the PDF, the client and the lifecycle are never touched (an issued
+    document stays the fact it is). One audit row per document, entity-typed
+    cuenta-vs-document the same way the folder cascade does.
+    """
+    documents = list(
+        Document.objects
+        .select_related('project', 'client_user__profile', 'document_type')
+        .filter(pk__in=document_ids),
+    )
+    target_id = project.pk if project else None
+    updated = []
+    for document in documents:
+        if document.project_id == target_id:
+            continue
+        entity_type = (
+            EntityType.COLLECTION_ACCOUNT
+            if getattr(document.document_type, 'code', None) == COLLECTION_ACCOUNT
+            else EntityType.DOCUMENT
+        )
+        old_values = snapshot_values(document, entity_type)
+        document.project = project
+        document.save(update_fields=['project', 'updated_at'])
+        log_entity_diff(entity_type, document, old_values, user)
+        updated.append(document)
     return updated
 
 

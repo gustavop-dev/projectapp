@@ -36,12 +36,18 @@ from rest_framework.response import Response
 
 from accounts.models import Project, UserProfile
 from content.api_errors import error_response
-from content.models import AccountingChangeLog, HostingRecord, IncomeRecord
+from content.models import (
+    AccountingChangeLog,
+    Document,
+    HostingRecord,
+    IncomeRecord,
+)
 from content.serializers.accounting import (
     HostingRecordSerializer,
     IncomeRecordSerializer,
     month_label,
 )
+from content.serializers.document import DocumentListSerializer
 from content.serializers.panel_projects import (
     CreatePanelProjectSerializer,
     PanelProjectSerializer,
@@ -101,6 +107,32 @@ def _unlinked_count_for(model):
     )
 
 
+def _unlinked_documents_count():
+    """Documents flavour of :func:`_unlinked_count_for`.
+
+    Separate because the join differs: ``Document.client_user`` points at the
+    User directly (same key space as ``Project.client``), with no profile in
+    between. The filters mirror ``documents_no_project_count`` in the clients
+    list, so both surfaces always show the same backlog.
+    """
+    return Coalesce(
+        Subquery(
+            Document.objects
+            .filter(
+                client_user_id=OuterRef('client_id'),
+                project__isnull=True,
+                is_archived=False,
+            )
+            .order_by()
+            .values('client_user_id')
+            .annotate(total=Count('id'))
+            .values('total')[:1],
+            output_field=IntegerField(),
+        ),
+        Value(0),
+    )
+
+
 def _annotated_queryset():
     """Projects with the counts the listing shows, ordered for the table."""
     return (
@@ -111,6 +143,7 @@ def _annotated_queryset():
             incomes_count=_count_for(IncomeRecord),
             unlinked_hostings_count=_unlinked_count_for(HostingRecord),
             unlinked_incomes_count=_unlinked_count_for(IncomeRecord),
+            unlinked_documents_count=_unlinked_documents_count(),
         )
         .order_by('name')
     )
@@ -135,6 +168,16 @@ def _unlinked_qs(model, project):
     """The project's assignable set: its client's rows with no project yet."""
     return model.objects.filter(
         client__user=project.client, project__isnull=True,
+    )
+
+
+def _unlinked_documents_qs(project):
+    """Documents flavour of :func:`_unlinked_qs` (direct User join, active
+    only — the mirror of ``documents_no_project_count``). Cuentas de cobro
+    of any commercial status qualify: filling a missing project is
+    organisational metadata, not a rewrite of the issued fact."""
+    return Document.objects.filter(
+        client_user=project.client, project__isnull=True, is_archived=False,
     )
 
 
@@ -317,11 +360,23 @@ def _unlinked_payload(project):
         }
         for record in _unlinked_qs(IncomeRecord, project)
     ]
+    documents = [
+        {
+            'id': record.pk,
+            'label': record.title,
+            'type_label': record.document_type.name if record.document_type_id else '',
+            # Issued cuentas show their number: it is how the operator knows
+            # them, and the visible hint that this one is a fill, not an edit.
+            'number': record.public_number,
+        }
+        for record in _unlinked_documents_qs(project).select_related('document_type')
+    ]
     return {
         'client': PanelProjectSerializer().get_client(project),
         'hostings': hostings,
         'incomes': incomes,
-        'total': len(hostings) + len(incomes),
+        'documents': documents,
+        'total': len(hostings) + len(incomes) + len(documents),
     }
 
 
@@ -360,10 +415,21 @@ def assign_project_unlinked_records(request, project_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     hosting_ids = serializer.validated_data['hosting_ids']
     income_ids = serializer.validated_data['income_ids']
+    document_ids = serializer.validated_data['document_ids']
 
+    # Document is deliberately not in ENTITY_MODELS (it never enters the
+    # generic accounting pipeline), so its existence check lives here.
+    missing_documents = sorted(
+        set(document_ids)
+        - set(
+            Document.objects
+            .filter(pk__in=document_ids).values_list('pk', flat=True),
+        ),
+    )
     missing = (
         accounting_service.missing_record_ids(EntityType.HOSTING, hosting_ids)
         + accounting_service.missing_record_ids(EntityType.INCOME, income_ids)
+        + missing_documents
     )
     if missing:
         count = len(missing)
@@ -387,6 +453,11 @@ def assign_project_unlinked_records(request, project_id):
             - set(_unlinked_qs(IncomeRecord, project)
                   .filter(pk__in=income_ids).values_list('pk', flat=True))
         )
+        | (
+            set(document_ids)
+            - set(_unlinked_documents_qs(project)
+                  .filter(pk__in=document_ids).values_list('pk', flat=True))
+        )
     )
     if changed:
         count = len(changed)
@@ -406,9 +477,13 @@ def assign_project_unlinked_records(request, project_id):
     assigned_incomes = accounting_service.bulk_assign_project(
         EntityType.INCOME, income_ids, project, request.user,
     ) if income_ids else []
+    assigned_documents = accounting_service.assign_project_to_documents(
+        document_ids, project, request.user,
+    ) if document_ids else []
     logger.info(
-        'Panel project %s assigned to %s hostings and %s incomes',
+        'Panel project %s assigned to %s hostings, %s incomes and %s documents',
         project.pk, len(assigned_hostings), len(assigned_incomes),
+        len(assigned_documents),
     )
     # The cascade also rewrites the liquid children of an assigned expected
     # income; without them in the response the panel would map-replace the
@@ -425,11 +500,13 @@ def assign_project_unlinked_records(request, project_id):
     return Response({
         'assigned_hostings': len(assigned_hostings),
         'assigned_incomes': len(assigned_incomes),
+        'assigned_documents': len(assigned_documents),
         # Full rows, not just counts: an accounting tab open in the SPA
         # rebuilds from these instead of showing the stale "—" project cell.
         # Bounded by construction — only the confirmed preview ids run.
         'hostings': HostingRecordSerializer(assigned_hostings, many=True).data,
         'incomes': IncomeRecordSerializer(income_rows, many=True).data,
+        'documents': DocumentListSerializer(assigned_documents, many=True).data,
         'project': _annotated_row(project.pk),
     })
 
