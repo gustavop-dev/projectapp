@@ -1,3 +1,7 @@
 interface:
   display_name: "View Map Audit"
-  short_description: "Audita que el Mapa de vistas (/panel/views) esté completo y actualizado frente a frontend/pages/"
+  short_description: "Auditoría del Mapa de vistas (`/panel/views`) — verifica que..."
+  default_prompt: "Use $view-map-audit to handle this task with its documented workflow."
+
+policy:
+  allow_implicit_invocation: true

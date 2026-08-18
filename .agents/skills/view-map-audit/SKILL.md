@@ -1,7 +1,6 @@
 ---
-name: view-map-audit
+name: "view-map-audit"
 description: "Auditoría del Mapa de vistas (`/panel/views`) — verifica que `frontend/config/viewCatalog.js` esté completo y actualizado contra las páginas reales bajo `frontend/pages/`, reportando páginas huérfanas, entradas obsoletas, metadata inválida y duplicados con prioridad."
-argument-hint: "[optional: section id como public-site, panel, platform, o all]"
 ---
 
 # View Map Audit — Catálogo de vistas
@@ -11,7 +10,7 @@ Verificar que el Mapa de vistas (`/panel/views`, `frontend/pages/panel/views.vue
 
 ## Cómo invocar este skill
 
-Gating ([[_output-protocol]] §4): con sección en `$ARGUMENTS` (`public-site`, `panel`, `platform`, `all`) → directo. Sin argumento → proponer `all` en una línea y esperar confirmación (regla 2 — no picker para un default obvio). Nunca en headless.
+Gating ($output-protocol §4): con sección en `$ARGUMENTS` (`public-site`, `panel`, `platform`, `all`) → directo. Sin argumento → proponer `all` en una línea y esperar confirmación (regla 2 — no picker para un default obvio). Nunca en headless.
 
 Sin picker por diseño: el único argumento es la sección; la auditoría es read-only.
 
@@ -93,11 +92,11 @@ done
 ## Acciones disponibles
 
 Tras el reporte, si la sesión es interactiva y NO hubo argumentos explícitos
-(reglas de gating de [[_output-protocol]] §4), ofrecer vía AskUserQuestion:
+(reglas de gating de $output-protocol §4), ofrecer vía AskUserQuestion:
 
 | Opción (label) | description (costo/efecto) | preview (comando exacto) |
 |---|---|---|
-| Re-auditar una sección | acota la auditoría a una sección con hallazgos | `/view-map-audit panel` |
+| Re-auditar una sección | acota la auditoría a una sección con hallazgos | `$view-map-audit panel` |
 | Correr los tests focalizados | valida filtros y panel del mapa (read-only) | `cd frontend && npm test -- test/composables/useViewMapFilters.test.js test/components/ViewMapFilterPanel.test.js` |
 
 ## Output Contract
