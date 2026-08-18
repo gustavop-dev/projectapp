@@ -1,6 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import { SELECT_ARROW_STYLE as selectArrowStyle } from '~/utils/selectArrowStyle'
 import { oneOf } from './propValidators'
 
 const props = defineProps({
@@ -8,6 +7,9 @@ const props = defineProps({
   tabs: { type: Array, required: true }, // [{ id, label, badge?, disabled? }]
   variant: { type: String, default: 'underline', validator: oneOf(['underline', 'pill']) },
   fullWidth: { type: Boolean, default: false },
+  // Nombra el control colapsado en móvil, donde el desplegable puede quedar
+  // pegado a otro y el rótulo cerrado no dice de qué es.
+  ariaLabel: { type: String, default: 'Secciones' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -16,6 +18,10 @@ const normalized = computed(() =>
   props.tabs.map((t) =>
     typeof t === 'object' ? t : { id: t, label: String(t) },
   ),
+)
+
+const selectOptions = computed(() =>
+  normalized.value.map((t) => ({ value: t.id, label: t.label, disabled: t.disabled })),
 )
 
 function select(id, disabled) {
@@ -41,18 +47,13 @@ function tabClass(tab) {
 <template>
   <div>
     <!-- Mobile: select fallback -->
-    <div class="md:hidden mb-6">
-      <select
-        :value="modelValue"
-        class="w-full px-4 py-2.5 border border-input-border bg-input-bg text-input-text rounded-xl text-sm font-medium focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none appearance-none cursor-pointer"
-        :style="selectArrowStyle"
-        @change="select($event.target.value, false)"
-      >
-        <option v-for="t in normalized" :key="t.id" :value="t.id" :disabled="t.disabled">
-          {{ t.label }}
-        </option>
-      </select>
-    </div>
+    <BaseMobileTabSelect
+      class="mb-6"
+      :model-value="modelValue"
+      :options="selectOptions"
+      :aria-label="ariaLabel"
+      @update:model-value="select($event, false)"
+    />
 
     <!-- Desktop: underline or pill -->
     <div

@@ -1,23 +1,22 @@
 <template>
   <div>
-    <!-- Mobile: select dropdown -->
-    <div class="md:hidden mb-4">
-      <select
-        :value="activeTabId"
-        class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm font-medium
-               text-text-default bg-surface
-               focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none
-               appearance-none cursor-pointer"
-        :style="selectArrowStyle"
-        @change="handleMobileSelect($event.target.value)"
-      >
-        <option value="all">Todas</option>
-        <option v-for="tab in visibleTabs" :key="tab.id" :value="tab.id">
-          {{ tab.name }}{{ countFor(tab) != null ? ` (${countFor(tab)})` : '' }}{{ isModified(tab) ? ' •' : '' }}
-        </option>
-        <option v-if="showConfigTab" value="__config__">⚙ Configuraciones</option>
-      </select>
-    </div>
+    <!--
+      Móvil: la tira colapsa en un selector.
+
+      Variante `filter` a propósito: en nueve de las doce vistas del contable
+      este control queda pegado al de navegación de sección, y los dos hacen
+      cosas distintas — uno cambia de tab del módulo, éste aplica un filtro
+      guardado. El de sección va sólido; éste, neutro como cualquier campo. El
+      `aria-label` sostiene la distinción para quien no ve el color.
+    -->
+    <BaseMobileTabSelect
+      class="mb-4"
+      test-id="filter-tabs-select"
+      aria-label="Filtro guardado"
+      :model-value="activeTabId"
+      :options="mobileOptions"
+      @update:model-value="handleMobileSelect"
+    />
 
     <!--
       Desktop: horizontal tab bar.
@@ -208,7 +207,6 @@
 <script setup>
 import { computed, nextTick, ref } from 'vue';
 import { sameFilters } from '~/composables/useSavedFilterTabs';
-import { SELECT_ARROW_STYLE as selectArrowStyle } from '~/utils/selectArrowStyle';
 
 const props = defineProps({
   tabs: { type: Array, default: () => [] },
@@ -266,6 +264,25 @@ const allCount = computed(() => {
  * lugar.
  */
 const visibleTabs = computed(() => props.tabs.filter((tab) => !tab.is_hidden));
+
+/**
+ * Las opciones del selector móvil, en el MISMO orden que la tira de escritorio:
+ * "Todas", las guardadas visibles y, si la vista la pide, Configuraciones. La
+ * etiqueta arrastra el contador y el punto de "filtros modificados" porque en
+ * móvil no hay una segunda línea donde ponerlos.
+ */
+const mobileOptions = computed(() => {
+  const options = [{ value: 'all', label: 'Todas' }];
+  for (const tab of visibleTabs.value) {
+    const count = countFor(tab);
+    options.push({
+      value: String(tab.id),
+      label: `${tab.name}${count != null ? ` (${count})` : ''}${isModified(tab) ? ' •' : ''}`,
+    });
+  }
+  if (props.showConfigTab) options.push({ value: '__config__', label: '⚙ Configuraciones' });
+  return options;
+});
 
 function handleMobileSelect(value) {
   if (value === '__config__') {

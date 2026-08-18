@@ -35,6 +35,11 @@ export const PANEL_BREADCRUMB_LABELS = {
   '/panel/accounting/recurring': 'Recurrentes',
   '/panel/accounting/collections': 'Cuentas de cobro',
   '/panel/accounting/cards': 'Tarjetas',
+  // Extractos no tiene ítem propio en panelNav y tampoco lo cubría ningún
+  // prefijo (Resumen es `matchExact`), así que resolvía a `null` y la vista se
+  // quedaba sin rótulo en la barra superior de móvil — la única de las doce.
+  // Con la miga oculta en celular, esa barra es la que orienta: tiene que estar.
+  '/panel/accounting/statements': 'Extractos',
   '/panel/accounting/history': 'Historial',
   '/panel/accounting/settings': 'Config. contable',
 }
