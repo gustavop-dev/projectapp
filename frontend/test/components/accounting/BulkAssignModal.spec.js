@@ -98,7 +98,7 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
   it('keeps Asignar disabled with the reason visible until a client is picked', () => {
     const wrapper = mountModal();
 
-    expect(confirmButton(wrapper).attributes('disabled')).toBeDefined();
+    expect(confirmButton(wrapper).element.disabled).toBe(true);
     expect(hint(wrapper)).toBe('Elige un cliente para poder asignar.');
   });
 
@@ -106,7 +106,7 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
     const wrapper = mountModal({ selectedIds: [3, 4] });
     await pickClient(wrapper, { id: 7, name: 'Kore SAS' });
 
-    expect(confirmButton(wrapper).attributes('disabled')).toBeDefined();
+    expect(confirmButton(wrapper).element.disabled).toBe(true);
     expect(hint(wrapper)).toBe('Todo lo seleccionado ya tiene a Kore SAS.');
   });
 
@@ -115,7 +115,7 @@ describe('BulkAssignModal — nothing is confirmable without a reason on screen'
     await pickClient(wrapper);
 
     expect(hint(wrapper)).toBe('Cliente enlazado: Ana Pérez (#5)');
-    expect(confirmButton(wrapper).attributes('disabled')).toBeUndefined();
+    expect(confirmButton(wrapper).element.disabled).toBe(false);
   });
 
   it('goes back to asking for a client when the picker is cleared', async () => {
@@ -149,7 +149,7 @@ describe('BulkAssignModal — the scope is visible before it runs', () => {
     const list = wrapper.find('[data-testid="client-bulk-summary-list"]').text();
     expect(list).toContain('kore.com.co');
     expect(list).toContain('tuhuella.co');
-    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.emitted('submit') ?? []).toHaveLength(0);
 
     await confirmButton(wrapper).trigger('click');
 
@@ -186,7 +186,7 @@ describe('BulkAssignModal — the scope is visible before it runs', () => {
     await wrapper.find('[data-testid="hostings-bulk-assign-cancel"]').trigger('click');
 
     expect(wrapper.emitted('close')).toHaveLength(1);
-    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.emitted('submit') ?? []).toHaveLength(0);
   });
 });
 
@@ -218,7 +218,7 @@ describe('BulkAssignModal — the Proyecto target', () => {
     const wrapper = mountModal({ target: 'project', selectedIds: [1, 2] });
     await pickProject(wrapper);
 
-    expect(confirmProject(wrapper).attributes('disabled')).toBeDefined();
+    expect(confirmProject(wrapper).element.disabled).toBe(true);
     expect(hint(wrapper)).toContain('La selección pertenece a otro cliente');
   });
 });

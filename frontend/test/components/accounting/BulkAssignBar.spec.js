@@ -85,6 +85,9 @@ const action = (wrapper, label) => wrapper
   .findAll('.hl-menu-item')
   .find((item) => item.text().includes(label));
 
+/** Whether the menu offers `label` at all. */
+const offers = (wrapper, label) => Boolean(action(wrapper, label));
+
 async function runAction(wrapper, label) {
   await action(wrapper, label).find('button').trigger('click');
   await flushPromises();
@@ -110,8 +113,8 @@ describe('BulkAssignBar — one control, and what hangs off it', () => {
   it('shuts the trigger while a mutation is in flight', () => {
     const wrapper = mountBar({ busy: true });
 
-    expect(wrapper.find('[data-testid="hostings-bulk-actions"]').attributes('disabled'))
-      .toBeDefined();
+    expect(wrapper.find('[data-testid="hostings-bulk-actions"]').element.disabled)
+      .toBe(true);
   });
 
   it('opens the assign modal on the target the chosen action names', async () => {
@@ -139,14 +142,14 @@ describe('BulkAssignBar — the menu only offers what the selection allows', () 
   it('hides Desvincular when nothing selected has a client to lose', () => {
     const wrapper = mountBar({ selected: [1, 2] });
 
-    expect(action(wrapper, 'Desvincular cliente')).toBeUndefined();
-    expect(action(wrapper, 'Asignar cliente')).toBeDefined();
+    expect(offers(wrapper, 'Desvincular cliente')).toBe(false);
+    expect(offers(wrapper, 'Asignar cliente')).toBe(true);
   });
 
   it('shows Desvincular as soon as a selected row is linked', () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
-    expect(action(wrapper, 'Desvincular cliente')).toBeDefined();
+    expect(offers(wrapper, 'Desvincular cliente')).toBe(true);
   });
 
   it('paints Desvincular as the destructive action it is', () => {
@@ -157,16 +160,16 @@ describe('BulkAssignBar — the menu only offers what the selection allows', () 
   });
 
   it('offers the project actions only where the page enables them', () => {
-    expect(action(mountBar(), 'Asignar proyecto')).toBeUndefined();
-    expect(action(mountBar({ projectEnabled: true }), 'Asignar proyecto')).toBeDefined();
+    expect(offers(mountBar(), 'Asignar proyecto')).toBe(false);
+    expect(offers(mountBar({ projectEnabled: true }), 'Asignar proyecto')).toBe(true);
   });
 
   it('offers Quitar proyecto only when the selection has one to lose', () => {
     const withProject = mountBar({ projectEnabled: true, selected: [4] });
     const without = mountBar({ projectEnabled: true, selected: [3] });
 
-    expect(action(withProject, 'Quitar proyecto')).toBeDefined();
-    expect(action(without, 'Quitar proyecto')).toBeUndefined();
+    expect(offers(withProject, 'Quitar proyecto')).toBe(true);
+    expect(offers(without, 'Quitar proyecto')).toBe(false);
   });
 
   it('never renders a divider with nothing under it', () => {
@@ -209,7 +212,10 @@ describe('BulkAssignBar — nothing runs without confirmation', () => {
     await wrapper.findAll('button').find((b) => b.text() === 'Cancelar').trigger('click');
     await flushPromises();
 
-    expect(wrapper.emitted('submit')).toBeUndefined();
+    expect(wrapper.emitted('submit') ?? []).toHaveLength(0);
+    // Backing out leaves the selection exactly where it was, ready to retry.
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
   });
 
   it('clears the project of the rows that have one, and only those', async () => {
@@ -330,8 +336,8 @@ describe('BulkAssignBar — Registrar abono behind settleEnabled', () => {
   }
 
   it('offers the action only behind the prop, so Hostings stays untouched', () => {
-    expect(action(mountIncomes(), 'Registrar abono')).toBeDefined();
-    expect(action(mountBar(), 'Registrar abono')).toBeUndefined();
+    expect(offers(mountIncomes(), 'Registrar abono')).toBe(true);
+    expect(offers(mountBar(), 'Registrar abono')).toBe(false);
   });
 
   it('emits submit-settle with only the eligible ids and the excluded count', async () => {
@@ -349,7 +355,7 @@ describe('BulkAssignBar — Registrar abono behind settleEnabled', () => {
     const wrapper = mountIncomes({ selected: [12, 13] });
     const item = action(wrapper, 'Registrar abono');
 
-    expect(item.find('button').attributes('disabled')).toBeDefined();
+    expect(item.find('button').element.disabled).toBe(true);
     // The reason rides on the item itself: a disabled Headless UI MenuItem
     // takes no focus and swallows the pointer, so a tooltip is unreachable.
     expect(item.text()).toContain('Para abonar se necesitan esperados con saldo pendiente.');

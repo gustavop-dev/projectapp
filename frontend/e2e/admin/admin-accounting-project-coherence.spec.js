@@ -15,6 +15,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { bulkAction } from '../helpers/bulk-actions.js';
 import { ADMIN_ACCOUNTING_PROJECT_COHERENCE } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -168,13 +169,13 @@ test.describe('Admin Accounting — client/project coherence across modules', ()
 
     // Reassign the client; the preview names the project side effect.
     await page.getByTestId('accounting-select-1').check();
+    await bulkAction(page, 'hostings', 'Asignar cliente');
     await page.getByTestId('hostings-bulk-client').fill('Ana');
     await page.getByTestId('client-autocomplete-option-9').click();
-    await page.getByTestId('hostings-bulk-assign').click();
-    await expect(page.getByRole('dialog')).toContainText(
-      '1 pierde también su proyecto (era del cliente anterior).',
+    await expect(page.getByTestId('client-bulk-summary-project-cleared')).toContainText(
+      '1 pierde también su proyecto (era del cliente anterior)',
     );
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('hostings-bulk-assign').click();
 
     // Same view, no reload: the row rebuilt from the mutation response.
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');

@@ -8,6 +8,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { bulkAction, bulkMenuItem, openBulkMenu } from '../helpers/bulk-actions.js';
 import {
   ADMIN_ACCOUNTING_EXPENSES_CRUD,
   ADMIN_ACCOUNTING_HOSTINGS,
@@ -490,18 +491,18 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
     await page.getByTestId('accounting-select-1').check();
     await expect(page.getByTestId('hostings-bulk-bar')).toContainText('1 seleccionado');
 
+    await bulkAction(page, 'hostings', 'Asignar cliente');
     await page.getByTestId('hostings-bulk-client').fill('Kore');
     await page.getByTestId('client-autocomplete-option-5').click();
-    await page.getByTestId('hostings-bulk-assign').click();
 
     // The mass edit names its scope before it runs, not after.
-    await expect(page.getByRole('dialog')).toContainText(
-      'Se asignará Germán Franco a 1 hosting sin cliente.',
+    await expect(page.getByTestId('hostings-bulk-hint')).toContainText(
+      'Cliente enlazado: Germán Franco',
     );
     await expect(page.getByTestId('client-bulk-summary-list')).toContainText('korehealths.com');
     expect(calls.some((c) => c.apiPath === 'accounting/hostings/bulk-assign-client/')).toBe(false);
 
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('hostings-bulk-assign').click();
 
     await expect(page.getByTestId('hostings-bulk-bar')).toHaveCount(0);
     const bulk = calls.find(
@@ -521,12 +522,17 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
 
     await page.getByTestId('accounting-select-1').check();
 
+    // Nothing selected has a client, so the menu does not offer to unlink one
+    // — and the menu has to be OPEN for that absence to mean anything.
+    await openBulkMenu(page, 'hostings');
+    await expect(bulkMenuItem(page, 'Desvincular cliente')).toHaveCount(0);
+    await bulkMenuItem(page, 'Asignar cliente').click();
+
     // An empty picker no longer means "unlink": the action is simply off.
     await expect(page.getByTestId('hostings-bulk-assign')).toBeDisabled();
     await expect(page.getByTestId('hostings-bulk-hint')).toContainText(
       'Elige un cliente para poder asignar',
     );
-    await expect(page.getByTestId('hostings-bulk-unlink')).toHaveCount(0);
   });
 
   test('unlinking is its own action and names the client the hostings are leaving', {
@@ -547,7 +553,7 @@ test.describe('Admin Accounting Hostings — cliente del hosting', () => {
 
     await page.getByTestId('accounting-select-1').check();
     await page.getByTestId('accounting-select-2').check();
-    await page.getByTestId('hostings-bulk-unlink').click();
+    await bulkAction(page, 'hostings', 'Desvincular cliente');
 
     await expect(page.getByRole('dialog')).toContainText(
       '1 hosting quedará sin cliente: 1 de Germán Franco.',
