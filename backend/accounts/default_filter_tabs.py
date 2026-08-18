@@ -13,8 +13,11 @@ Partial dicts are fine: the frontend merges stored filters over its own
 fresh defaults, so only the keys that differ need to be listed here.
 
 - ``accounting_*`` -> each page's ``useAccountingFilters`` defaults in
-  ``frontend/pages/panel/accounting/*.vue`` (bool tabs use the strings
-  ``'true'``/``'false'`` expected by ``matchBoolean``).
+  ``frontend/pages/panel/accounting/*.vue``. Every cut is a LIST since the
+  filter dimensions went multi-value: a dimension holds the values chosen
+  inside it, and the bool ones keep the ``'true'``/``'false'`` string tokens
+  ``matchBooleanIncludes`` expects. Migration ``accounts/0051`` converted the
+  scalars that predate that change.
 - ``view_map``  -> ``frontend/composables/useViewMapFilters.js`` (categories,
   audiences, viewTypes).
 
@@ -41,22 +44,22 @@ DEFAULT_FILTER_TABS = {
         # untouched). The uncollected-only cut ("Solo esperados") and its
         # hosting variant are builtin tabs in incomes.vue instead: the landing
         # tab must not be silently rewritten when a filter is tweaked.
-        {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
-        {'name': 'Líquidos', 'filters': {'kind': 'liquid'}},
-        {'name': 'Gustavo', 'filters': {'partner': 'gustavo'}},
-        {'name': 'Carlos', 'filters': {'partner': 'carlos'}},
-        {'name': 'ProjectApp', 'filters': {'partner': 'projectapp'}},
+        {'name': 'Todos los esperados', 'filters': {'kind': ['expected']}},
+        {'name': 'Líquidos', 'filters': {'kind': ['liquid']}},
+        {'name': 'Gustavo', 'filters': {'partner': ['gustavo']}},
+        {'name': 'Carlos', 'filters': {'partner': ['carlos']}},
+        {'name': 'ProjectApp', 'filters': {'partner': ['projectapp']}},
     ],
     'accounting_expense': [
         {'name': 'Negocio', 'filters': {'categories': ['business']}},
         {'name': 'Personales', 'filters': {'categories': ['personal']}},
-        {'name': 'Empresa', 'filters': {'ledger': 'company'}},
-        {'name': 'Personal Gustavo', 'filters': {'ledger': 'gustavo'}},
-        {'name': 'Personal Carlos', 'filters': {'ledger': 'carlos'}},
+        {'name': 'Empresa', 'filters': {'ledger': ['company']}},
+        {'name': 'Personal Gustavo', 'filters': {'ledger': ['gustavo']}},
+        {'name': 'Personal Carlos', 'filters': {'ledger': ['carlos']}},
     ],
     'accounting_hosting': [
-        {'name': 'Activos', 'filters': {'isActive': 'true'}},
-        {'name': 'Inactivos', 'filters': {'isActive': 'false'}},
+        {'name': 'Activos', 'filters': {'isActive': ['true']}},
+        {'name': 'Inactivos', 'filters': {'isActive': ['false']}},
         {'name': 'Mensuales', 'filters': {'modalities': ['monthly']}},
         {'name': 'Anuales', 'filters': {'modalities': ['annual']}},
     ],
@@ -64,19 +67,19 @@ DEFAULT_FILTER_TABS = {
     # of Gustavo's pocket"); "Sin vincular" is the repair queue: movements that
     # never got their mirror in Ingresos or Gastos.
     'accounting_pocket': [
-        {'name': 'Entradas', 'filters': {'direction': 'in'}},
-        {'name': 'Salidas', 'filters': {'direction': 'out'}},
+        {'name': 'Entradas', 'filters': {'direction': ['in']}},
+        {'name': 'Salidas', 'filters': {'direction': ['out']}},
         {'name': 'Gustavo', 'filters': {'attribution': ['gustavo']}},
         {'name': 'Carlos', 'filters': {'attribution': ['carlos']}},
         {'name': 'Empresa', 'filters': {'attribution': ['company']}},
-        {'name': 'Sin vincular', 'filters': {'linked': 'false'}},
+        {'name': 'Sin vincular', 'filters': {'linked': ['false']}},
     ],
     'accounting_recurring': [
-        {'name': 'Activos', 'filters': {'is_active': 'true'}},
-        {'name': 'Mensuales', 'filters': {'frequency': ['monthly'], 'is_active': 'true'}},
-        {'name': 'Anuales', 'filters': {'frequency': ['annual'], 'is_active': 'true'}},
-        {'name': 'USD', 'filters': {'currency': 'USD'}},
-        {'name': 'Variables', 'filters': {'cost_type': 'variable'}},
+        {'name': 'Activos', 'filters': {'is_active': ['true']}},
+        {'name': 'Mensuales', 'filters': {'frequency': ['monthly'], 'is_active': ['true']}},
+        {'name': 'Anuales', 'filters': {'frequency': ['annual'], 'is_active': ['true']}},
+        {'name': 'USD', 'filters': {'currency': ['USD']}},
+        {'name': 'Variables', 'filters': {'cost_type': ['variable']}},
     ],
     'view_map': [
         {'name': 'Admin', 'filters': {'audiences': ['admin']}},
@@ -115,5 +118,86 @@ DEFAULT_FILTER_TABS = {
         {'name': 'Ingresos', 'filters': {'entity_type': ['income']}},
         {'name': 'Gastos', 'filters': {'entity_type': ['expense']}},
         {'name': 'Hostings', 'filters': {'entity_type': ['hosting']}},
+    ],
+}
+
+
+# Builtin quick-filters: the ones the frontend defines in code and this file
+# deliberately does NOT seed (see the comments above about "Solo esperados",
+# "Hoy" and "Últimos 7 días"). Only `key` and `name` are listed — no filters,
+# ever. The definition stays in the frontend constant the key matches; what
+# the backend keeps is a placeholder row per (user, view, key) whose only job
+# is to carry the user's `order` and `is_hidden`, so a builtin can be dragged
+# and hidden alongside the saved tabs instead of being nailed to the front.
+#
+# The order here is the factory order — what "Restablecer" puts back — and it
+# must match the order of each page's `builtinTabs` array. The keys must match
+# their `id`s. Sources:
+#
+#   accounting_income          frontend/pages/panel/accounting/incomes.vue
+#   accounting_hosting         frontend/pages/panel/accounting/hostings.vue
+#   accounting_collections     frontend/pages/panel/accounting/collections.vue
+#   accounting_history_*       frontend/constants/historyFilters.js
+#   client                     frontend/constants/clientFilters.js (CLIENT_SUBFILTERS)
+#
+# Drift degrades gracefully in both directions: a placeholder with no matching
+# constant is dropped from the strip, and a constant with no placeholder keeps
+# its code position and simply cannot be dragged. Quiet, so
+# `test_builtin_registry_keys_exist_in_the_frontend_sources` pins the keys to
+# the frontend files listed above.
+BUILTIN_FILTER_TABS = {
+    'accounting_income': [
+        {'key': 'expected-pending', 'name': 'Solo esperados'},
+        {'key': 'hosting-expected', 'name': 'Hosting esperados'},
+        {'key': 'lost', 'name': 'Perdidos'},
+        {'key': 'no-client', 'name': 'Sin cliente'},
+        {'key': 'no-project', 'name': 'Sin proyecto'},
+    ],
+    'accounting_hosting': [
+        {'key': 'no-client', 'name': 'Sin cliente'},
+        {'key': 'no-project', 'name': 'Sin proyecto'},
+    ],
+    'accounting_collections': [
+        {'key': 'open', 'name': 'Por cobrar'},
+        {'key': 'overdue', 'name': 'Vencidas'},
+        {'key': 'no-project', 'name': 'Sin proyecto'},
+    ],
+    'accounting_history_sends': [
+        {'key': 'failed', 'name': 'Fallidos'},
+        {'key': 'today', 'name': 'Hoy'},
+        {'key': 'last7', 'name': 'Últimos 7 días'},
+    ],
+    'accounting_history_changes': [
+        {'key': 'today', 'name': 'Hoy'},
+        {'key': 'last7', 'name': 'Últimos 7 días'},
+    ],
+    # Grouped by module, in the same order as CLIENT_SUBFILTERS: the strip
+    # only ever shows one module at a time, so the position that matters is
+    # the one within its group.
+    'client': [
+        {'key': 'status-draft', 'name': 'Draft'},
+        {'key': 'status-sent-viewed', 'name': 'Sent/Viewed'},
+        {'key': 'status-negotiating', 'name': 'Negociación'},
+        {'key': 'status-accepted', 'name': 'Accepted'},
+        {'key': 'status-expired', 'name': 'Expired'},
+        {'key': 'status-rejected', 'name': 'Rejected'},
+        {'key': 'status-finished', 'name': 'Finished'},
+        {'key': 'diagnostic-billed', 'name': 'Con diagnóstico facturado'},
+        {'key': 'no-diagnostic', 'name': 'Sin diagnóstico'},
+        {'key': 'diagnostic-unconverted', 'name': 'Diagnóstico sin propuesta posterior'},
+        {'key': 'active-project', 'name': 'Con proyecto activo'},
+        {'key': 'no-project', 'name': 'Sin proyecto'},
+        {'key': 'hosting-charged', 'name': 'Con hosting cobrado'},
+        {'key': 'hosting-any', 'name': 'Con hosting (histórico)'},
+        {'key': 'no-hosting', 'name': 'Sin hosting'},
+        {'key': 'no-billing', 'name': 'Sin datos de facturación'},
+        {'key': 'docs-with', 'name': 'Con documentos'},
+        {'key': 'docs-none', 'name': 'Sin documentos'},
+        {'key': 'docs-no-project', 'name': 'Con documentos sin proyecto'},
+        {'key': 'docs-with-folder', 'name': 'Con carpeta'},
+        {'key': 'emails-any', 'name': 'Con correos enviados'},
+        {'key': 'no-emails', 'name': 'Sin ningún correo'},
+        {'key': 'emails-failed', 'name': 'Con envíos fallidos'},
+        {'key': 'emails-cold', 'name': 'Sin contacto en los últimos 30 días'},
     ],
 }

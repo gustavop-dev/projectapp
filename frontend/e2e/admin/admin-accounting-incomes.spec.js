@@ -872,7 +872,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
   });
 
-  test('lands on Solo esperados and drops the rows that already got paid', {
+  test('lands on Esperados por cobrar, keeping the partials and dropping the paid', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CRUD, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (reaching /panel/accounting/incomes through the
@@ -884,7 +884,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
       savedTabs: [
         {
           id: 501, view: 'accounting_income', name: 'Todos los esperados',
-          filters: { kind: 'expected' }, order: 0,
+          filters: { kind: ['expected'] }, order: 0,
         },
       ],
     }));
@@ -893,9 +893,15 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('accounting-row-10')).toHaveCount(0);
-    await expect(page.getByTestId('accounting-row-11')).toHaveCount(0);
+    // The partially paid one STAYS. This assertion used to read `toHaveCount(0)`
+    // and that was the bug: an esperado with an abono is still por cobrar, and
+    // hiding it here is what made a just-registered abono look like it had
+    // never been created.
+    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
+    await expect(page.getByTestId('income-payment-11')).toContainText('Parcial');
 
-    // The saved "Todos los esperados" tab widens it back to every expected row.
+    // The saved "Todos los esperados" tab widens it back to every expected row,
+    // the collected one included.
     await page.getByTestId('filter-tabs-tab-501').click();
     await expect(page.getByTestId('accounting-row-10')).toBeVisible();
     await expect(page.getByTestId('accounting-row-11')).toBeVisible();

@@ -369,10 +369,15 @@ test.describe('Admin Clients Filter Presets', () => {
     // reachable without going through its tab.
     await page.getByTestId('clients-filter-toggle').click();
     await page.getByTestId('client-filter-hosting-status').click();
-    await page.getByRole('radio', { name: 'Con hosting cobrado' }).check();
+    await page.getByRole('checkbox', { name: 'Con hosting cobrado' }).check();
 
     await expect(rowsShown(page)).toHaveCount(2);
     await expect(page.getByText('Kore Healths')).toBeVisible();
+
+    // Y ahora el eje admite varios valores: sumar "histórico" ensancha el
+    // corte en vez de reemplazarlo.
+    await page.getByRole('checkbox', { name: 'Con hosting (histórico)' }).check();
+    await expect(rowsShown(page)).toHaveCount(3);
   });
 
   test('the shared link reopens the list already filtered', {

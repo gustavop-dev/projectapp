@@ -451,12 +451,19 @@ async function save() {
 // Saved filter tabs reset (per accounting view)
 // -------------------------------------------------------------------
 
+// Every accounting view with a filter strip, so the order and visibility of
+// all of them are administrable from one place. Cuentas de cobro and Tarjetas
+// have no seeded tabs, but they do save their own and carry builtins, and
+// leaving them out was what made them the two views whose strip could not be
+// reordered, hidden or restored.
 const FILTER_VIEWS = [
   { value: 'accounting_income', label: 'Ingresos' },
   { value: 'accounting_expense', label: 'Gastos' },
   { value: 'accounting_hosting', label: 'Hostings' },
+  { value: 'accounting_collections', label: 'Cuentas de cobro' },
   { value: 'accounting_pocket', label: 'Bolsillo' },
   { value: 'accounting_recurring', label: 'Recurrentes' },
+  { value: 'accounting_cards', label: 'Tarjetas' },
   { value: 'accounting_ads', label: 'Ads' },
   { value: 'accounting_history_sends', label: 'Historial · Envíos' },
   { value: 'accounting_history_changes', label: 'Historial · Cambios' },

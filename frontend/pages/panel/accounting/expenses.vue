@@ -65,6 +65,7 @@
       @delete="deleteFilterTab"
       @restore="restoreFilterTab"
       @rebase="rebaseFilterTab"
+      @reorder="reorderFilterTabs"
     />
 
     <!-- Search + Filter toggle -->
@@ -262,7 +263,7 @@ import {
   matchDateRange,
   matchNumberRange,
   matchIncludes,
-  matchEquals,
+  matchAnyToken,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { DEDUCTION_TYPE_OPTIONS } from '~/utils/accountingDeductions';
@@ -300,6 +301,7 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  reorderTabs: reorderFilterTabs,
 } = useAccountingFilters({
   viewName: 'accounting_expense',
   defaults: {
@@ -308,22 +310,21 @@ const {
     amountMin: '',
     amountMax: '',
     categories: [],
-    ledger: '',
-    nature: '',
+    ledger: [],
+    nature: [],
     deductionTypes: [],
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
     categories: matchIncludes('category', 'categories'),
-    ledger: matchEquals('ledger', 'ledger'),
-    // Operational spending vs money discounted from an income. Only runs
-    // when the value differs from its '' default, so no guard is needed.
-    nature: (record, value) => (
-      value === 'deduction'
-        ? Boolean(record.deduction_type)
-        : !record.deduction_type
-    ),
+    ledger: matchIncludes('ledger', 'ledger'),
+    // Operational spending vs money discounted from an income — derived from
+    // `deduction_type`, not a column of its own, so each token is a predicate.
+    nature: matchAnyToken('nature', {
+      operational: (record) => !record.deduction_type,
+      deduction: (record) => Boolean(record.deduction_type),
+    }),
     deductionTypes: matchIncludes('deduction_type', 'deductionTypes'),
   },
   searchFields: ['concept', 'notes'],

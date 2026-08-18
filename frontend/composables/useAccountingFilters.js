@@ -121,6 +121,83 @@ export function matchBoolean(field, key) {
   return fn;
 }
 
+/**
+ * Multi-value twin of `matchBoolean`: the selection is an array of the same
+ * 'true'/'false' tokens. Marking both degenerates to "no cut", which is the
+ * honest reading — a two-option dimension with everything checked is "Todos".
+ */
+export function matchBooleanIncludes(field, key) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.includes(record[field] === true ? 'true' : 'false');
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Multi-value matcher for a DERIVED dimension: one predicate per token, OR'd.
+ *
+ * The dimensions that go through here (`partner`, the expense `nature`, the
+ * collection `status`) are not columns — they are read off several fields at
+ * once, and some of their tokens OVERLAP (an overdue account is also issued).
+ * A set union is therefore the only correct reading; an if/elif chain would
+ * silently return just the first match.
+ */
+export function matchAnyToken(key, predicates) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.some((token) => {
+      const predicate = predicates[token];
+      // An unknown token must not silently widen the cut to everything.
+      return typeof predicate === 'function' ? predicate(record) : false;
+    });
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Same union as `matchAnyToken`, for a dimension whose tokens are already
+ * served by one `(record, token) => boolean` function. Lets a scalar matcher
+ * that predates multi-select keep its single definition instead of being
+ * copied into a per-token dict.
+ */
+export function matchAnyValue(key, predicate) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.some((token) => predicate(record, token));
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Reconcile a stored filter dict with the shape its view expects today.
+ *
+ * Saved tabs are free-form JSON with no server-side validation, so rows written
+ * before a dimension became multi-value still hold `kind: 'expected'` where the
+ * matcher now wants `['expected']`. Loading one unconverted does not throw — it
+ * filters NOTHING, silently, which is the exact failure this whole feature
+ * exists to remove. The scalar branch is kept too so a rollback survives.
+ */
+export function coerceToDefaultShape(stored, defaults) {
+  const out = { ...stored };
+  for (const [key, fallback] of Object.entries(defaults)) {
+    if (!(key in out)) continue;
+    const value = out[key];
+    if (Array.isArray(fallback) && !Array.isArray(value)) {
+      out[key] = value === '' || value === null || value === undefined ? [] : [value];
+    } else if (!Array.isArray(fallback) && Array.isArray(value)) {
+      out[key] = value.length ? value[0] : '';
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -225,9 +302,20 @@ export function useAccountingFilters({
     return structuredClone(toRaw(filters));
   }
 
+  /**
+   * Stored filters -> live filters, in two steps that must stay in this order:
+   * the per-view `normalizeFilters` hook renames keys whose MEANING changed,
+   * then the shape pass fixes keys whose TYPE changed (scalar -> array). The
+   * hook runs first so it can keep emitting the shape it always emitted.
+   */
+  function readStoredFilters(filters) {
+    const stored = cloneFilters(filters || {});
+    const renamed = normalizeFilters ? normalizeFilters(stored) : stored;
+    return coerceToDefaultShape(renamed, DEFAULT_FILTERS);
+  }
+
   function loadTabFilters(target, tab) {
-    const stored = cloneFilters(tab.filters);
-    Object.assign(target, freshFilters(), normalizeFilters ? normalizeFilters(stored) : stored);
+    Object.assign(target, freshFilters(), readStoredFilters(tab.filters));
   }
 
   /** Read this instance's filters out of the query string. */
@@ -311,19 +399,63 @@ export function useAccountingFilters({
     (moduleKey ? String(currentFilters[moduleKey] ?? defaultModule) : defaultModule),
   );
 
+  /**
+   * The server's placeholder row for a builtin, keyed by `builtin_key`.
+   *
+   * A placeholder carries the user's `order` and `is_hidden` for a quick
+   * filter whose definition lives here in code — that is the whole point, so
+   * a date-based builtin like "Hoy" cannot freeze on a stored `date_from`.
+   */
+  const placeholderByKey = computed(() => new Map(
+    savedTabs.value
+      .filter((tab) => tab.builtin_key)
+      .map((tab) => [String(tab.builtin_key), tab]),
+  ));
+
+  // Builtins with no placeholder yet (the row is seeded on the first GET, and
+  // a view may have been dropped from the backend registry) sort ahead of
+  // everything: negative slots reproduce exactly the old "builtins first,
+  // then the saved ones" layout while nothing has been moved.
+  const UNPLACED_BUILTIN_BASE = -1000;
+
   // `filters` travels with the builtins too: a view that badges its tabs has
   // to be able to ask the server what each one is worth, and a builtin with
   // no definition attached would be counted as if it filtered nothing.
   const displayTabs = computed(() => {
+    const placeholders = placeholderByKey.value;
     const all = [
-      ...builtinTabs.map((t) => ({
-        id: t.id, name: t.name, filters: t.filters || {}, module: t.module, builtin: true,
-      })),
-      ...savedTabs.value,
+      ...builtinTabs.map((t, index) => {
+        const row = placeholders.get(String(t.id));
+        return {
+          id: t.id,
+          name: t.name,
+          filters: t.filters || {},
+          module: t.module,
+          builtin: true,
+          // The row contributes order and visibility and nothing else: its
+          // `filters` are empty by design and must never shadow these.
+          order: row ? row.order : UNPLACED_BUILTIN_BASE + index,
+          is_hidden: row ? row.is_hidden : false,
+        };
+      }),
+      // A placeholder whose constant is gone (builtin retired from the code)
+      // would render as a nameless chip that filters nothing — drop it.
+      ...savedTabs.value.filter((tab) => !tab.builtin_key),
     ];
+    all.sort((a, b) => (a.order || 0) - (b.order || 0));
     if (!moduleKey) return all;
     return all.filter((tab) => moduleOf(tab) === activeModule.value);
   });
+
+  /**
+   * Persist the strip's order after a drag, a menu move or a keyboard move.
+   *
+   * The strip only ever names what it shows — hidden tabs and, in a two-level
+   * view, the other modules stay out of the list. Weaving that back into the
+   * full order is `useSavedFilterTabs.reorderTabs`'s job; builtins travel by
+   * their string id and are matched to their placeholder row there.
+   */
+  const reorderTabs = tabs.reorderTabs;
 
   /**
    * Switching module never clears what is already applied: the panel and the
@@ -502,7 +634,9 @@ export function useAccountingFilters({
   function countTabs(records, tabList = savedTabs.value) {
     const counts = { all: records.length };
     for (const tab of tabList) {
-      const filters = { ...freshFilters(), ...(tab.filters || {}) };
+      // Same read path as loadTabFilters: a badge computed off a raw scalar tab
+      // would count it as unfiltered and disagree with what selecting it shows.
+      const filters = { ...freshFilters(), ...readStoredFilters(tab.filters) };
       counts[String(tab.id)] = filterWith(records, filters).length;
     }
     return counts;
@@ -593,6 +727,7 @@ export function useAccountingFilters({
     renameTab,
     restoreTab,
     rebaseTab,
+    reorderTabs,
     reloadTabs: tabs.loadTabs,
     consumeParam,
     // For a page with several instances: whichever becomes the visible one

@@ -32,6 +32,9 @@ def saved_filter_tabs_collection(request):
     if request.method == 'GET':
         view = request.query_params.get('view')
         if view:
+            # Builtins first: their placeholders hold the leading order slots
+            # that the factory seeding then counts from.
+            saved_filter_tab_service.seed_builtin_tabs(request.user, view)
             saved_filter_tab_service.seed_default_tabs(request.user, view)
         qs = SavedFilterTab.objects.filter(user=request.user)
         if view:
@@ -57,8 +60,10 @@ def _validated_view(request):
 def saved_filter_tabs_reset(request):
     """Restaurar los predefinidos de fábrica de una vista.
 
-    Sólo se borran y re-siembran las pestañas sembradas: las que el usuario
-    guardó son suyas y sobreviven al restablecimiento."""
+    Sólo se borran y re-siembran las pestañas sembradas y los placeholders de
+    los builtins — con lo que el orden y la visibilidad de toda la tira vuelven
+    a fábrica. Las que el usuario guardó son suyas y sobreviven al
+    restablecimiento."""
     view = _validated_view(request)
     if view is None:
         return Response(

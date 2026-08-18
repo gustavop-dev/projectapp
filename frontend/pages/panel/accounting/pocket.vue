@@ -63,6 +63,7 @@
       @delete="deleteFilterTab"
       @restore="restoreFilterTab"
       @rebase="rebaseFilterTab"
+      @reorder="reorderFilterTabs"
     />
 
     <!-- Search + Filter toggle -->
@@ -252,9 +253,8 @@ import {
   useAccountingFilters,
   matchDateRange,
   matchNumberRange,
-  matchEquals,
   matchIncludes,
-  matchBoolean,
+  matchBooleanIncludes,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { buildExportParams } from '~/utils/accountingExportParams';
@@ -287,25 +287,26 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  reorderTabs: reorderFilterTabs,
 } = useAccountingFilters({
   viewName: 'accounting_pocket',
   defaults: {
     dateAfter: '',
     dateBefore: '',
-    direction: '',
+    direction: [],
     amountMin: '',
     amountMax: '',
     attribution: [],
-    linked: '',
+    linked: [],
   },
   matchers: {
     date: matchDateRange('movement_date', 'dateAfter', 'dateBefore'),
-    direction: matchEquals('direction', 'direction'),
+    direction: matchIncludes('direction', 'direction'),
     amount: matchNumberRange('amount', 'amountMin', 'amountMax'),
     // `linked_ledger` is null on movements that mirror nothing; the backend
     // spells that case 'none' too, so export and panel share one vocabulary.
     attribution: matchIncludes('linked_ledger', 'attribution', { nullAs: 'none' }),
-    linked: matchBoolean('is_auto_managed', 'linked'),
+    linked: matchBooleanIncludes('is_auto_managed', 'linked'),
   },
   // The backend `q` has always searched both; the panel used to search only
   // the concept, so a note was captured and then unreachable.

@@ -52,6 +52,9 @@ import {
   matchNumberRange,
   matchIncludes,
   matchEquals,
+  matchBooleanIncludes,
+  matchAnyToken,
+  coerceToDefaultShape,
 } from '~/composables/useAccountingFilters';
 
 const tabsStub = savedFilterTabsModule.__stub;
@@ -419,6 +422,73 @@ describe('builtin tabs', () => {
   });
 });
 
+describe('orden de la tira con placeholders de builtins', () => {
+  function makeWithTwoBuiltins() {
+    return useAccountingFilters({
+      viewName: 'accounting_income',
+      defaults: DEFAULTS,
+      matchers: { statuses: matchIncludes('status', 'statuses') },
+      builtinTabs: [
+        { id: 'lost', name: 'Perdidos', filters: { statuses: ['lost'] } },
+        { id: 'no-client', name: 'Sin cliente', filters: { statuses: ['x'] } },
+      ],
+    });
+  }
+
+  it('un builtin toma el orden de su fila placeholder', () => {
+    // La fila lleva orden y visibilidad; los filtros siguen siendo los del
+    // código, que es lo que impide que un builtin de fecha se congele.
+    savedTabsRef.value = [
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 0 },
+      {
+        id: 51, view: 'accounting_income', name: 'Perdidos', filters: {},
+        order: 1, builtin_key: 'lost',
+      },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    // 'no-client' no tiene fila todavía: conserva su lugar de código, delante.
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['no-client', 50, 'lost']);
+    expect(displayTabs.value.find((t) => t.id === 'lost').filters)
+      .toEqual({ statuses: ['lost'] });
+  });
+
+  it('sin ninguna fila placeholder, los builtins siguen yendo primero', () => {
+    savedTabsRef.value = [
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 0 },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['lost', 'no-client', 50]);
+  });
+
+  it('una fila placeholder oculta esconde su chip', () => {
+    savedTabsRef.value = [
+      {
+        id: 51, view: 'accounting_income', name: 'Perdidos', filters: {},
+        order: 0, builtin_key: 'lost', is_hidden: true,
+      },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.find((t) => t.id === 'lost').is_hidden).toBe(true);
+  });
+
+  it('descarta la fila de un builtin que ya no existe en el código', () => {
+    // Si no, quedaría un chip sin nombre que no filtra nada.
+    savedTabsRef.value = [
+      {
+        id: 52, view: 'accounting_income', name: 'Retirado', filters: {},
+        order: 0, builtin_key: 'retirado',
+      },
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 1 },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['lost', 'no-client', 50]);
+  });
+});
+
 describe('default landing tab', () => {
   function makeWithDefaultTab() {
     return useAccountingFilters({
@@ -707,5 +777,79 @@ describe('filters in the URL', () => {
     // selectTab resets the filters, so both watchers fire in the same tick.
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+  });
+});
+
+describe('multi-value filter helpers', () => {
+  describe('matchBooleanIncludes', () => {
+    const match = matchBooleanIncludes('reminders_muted', 'muted');
+
+    it('is inactive with an empty selection', () => {
+      expect(match({ reminders_muted: true }, null, { muted: [] })).toBe(true);
+    });
+
+    it('cuts by one token', () => {
+      expect(match({ reminders_muted: true }, null, { muted: ['true'] })).toBe(true);
+      expect(match({ reminders_muted: false }, null, { muted: ['true'] })).toBe(false);
+    });
+
+    it('marking both tokens is the same as no cut', () => {
+      const both = { muted: ['true', 'false'] };
+      expect(match({ reminders_muted: true }, null, both)).toBe(true);
+      expect(match({ reminders_muted: false }, null, both)).toBe(true);
+    });
+  });
+
+  describe('matchAnyToken', () => {
+    const match = matchAnyToken('partner', {
+      gustavo: (r) => Number(r.gustavo_amount) > 0,
+      carlos: (r) => Number(r.carlos_amount) > 0,
+    });
+
+    it('unions the tokens instead of answering for the first one', () => {
+      const filters = { partner: ['gustavo', 'carlos'] };
+      expect(match({ gustavo_amount: 10, carlos_amount: 0 }, null, filters)).toBe(true);
+      expect(match({ gustavo_amount: 0, carlos_amount: 10 }, null, filters)).toBe(true);
+      expect(match({ gustavo_amount: 0, carlos_amount: 0 }, null, filters)).toBe(false);
+    });
+
+    it('counts a record once when several tokens hold at the same time', () => {
+      // Overlapping tokens are the point (an overdue account is also issued):
+      // the predicate answers yes, it does not answer twice.
+      const record = { gustavo_amount: 10, carlos_amount: 10 };
+      expect(match(record, null, { partner: ['gustavo', 'carlos'] })).toBe(true);
+    });
+
+    it('does not widen the cut on an unknown token', () => {
+      expect(match({ gustavo_amount: 10 }, null, { partner: ['nadie'] })).toBe(false);
+    });
+  });
+
+  describe('coerceToDefaultShape', () => {
+    const defaults = { kind: [], search: '', amountMin: '' };
+
+    it('wraps a scalar saved before the dimension went multi-valued', () => {
+      expect(coerceToDefaultShape({ kind: 'expected' }, defaults).kind)
+        .toEqual(['expected']);
+    });
+
+    it('reads an empty scalar as no cut, not as a cut on ""', () => {
+      expect(coerceToDefaultShape({ kind: '' }, defaults).kind).toEqual([]);
+    });
+
+    it('leaves arrays and unrelated keys alone', () => {
+      const out = coerceToDefaultShape(
+        { kind: ['liquid'], search: 'kore', amountMin: '10' }, defaults,
+      );
+      expect(out).toEqual({ kind: ['liquid'], search: 'kore', amountMin: '10' });
+    });
+
+    it('unwraps an array back to a scalar if a key ever moves back', () => {
+      expect(coerceToDefaultShape({ search: ['kore'] }, defaults).search).toBe('kore');
+    });
+
+    it('does not invent keys the stored dict never had', () => {
+      expect('kind' in coerceToDefaultShape({ search: 'x' }, defaults)).toBe(false);
+    });
   });
 });

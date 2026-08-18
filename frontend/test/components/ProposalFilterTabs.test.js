@@ -1,4 +1,21 @@
+// Sortable needs a real pointer to do anything, so the drag gesture itself
+// belongs to the E2E. Here the stub stands in for it and the test drives the
+// two events vuedraggable would emit: the reordered array, then `end`.
+// `emits` is declared on purpose — without it the listeners fall through to
+// the DOM and every handler fires twice.
+jest.mock('vuedraggable', () => ({
+  __esModule: true,
+  default: {
+    name: 'DraggableStub',
+    props: ['modelValue'],
+    emits: ['update:modelValue', 'start', 'end'],
+    template: '<div><template v-for="(element, index) in modelValue || []" :key="element.id ?? index"><slot name="item" :element="element" :index="index" /></template></div>',
+  },
+}));
+
+// eslint-disable-next-line import/first
 import { mount, flushPromises } from '@vue/test-utils';
+// eslint-disable-next-line import/first
 import ProposalFilterTabs from '../../components/proposals/ProposalFilterTabs.vue';
 
 function mountTabs(props = {}) {
@@ -306,6 +323,162 @@ describe('ProposalFilterTabs restorable base', () => {
       const wrapper = mountTabs({ tabs: manyTabs });
 
       expect(wrapper.get('select').findAll('option')).toHaveLength(13);
+    });
+  });
+  describe('reordenar la tira', () => {
+    const threeTabs = [
+      { id: 'lost', name: 'Perdidos', builtin: true },
+      { id: 7, name: 'Liquidos' },
+      { id: 8, name: 'Gustavo' },
+    ];
+
+    function draggable(wrapper) {
+      return wrapper.findComponent({ name: 'DraggableStub' });
+    }
+
+    /** The chips in the order the strip renders them. */
+    function chipIds(wrapper) {
+      return wrapper.findAll('[data-testid^="filter-tabs-tab-"]')
+        .map((el) => el.attributes('data-testid').replace('filter-tabs-tab-', ''));
+    }
+
+    /** What vuedraggable does on a drop: rewrite the array, then emit end. */
+    async function drop(wrapper, nextOrder) {
+      const drag = draggable(wrapper);
+      await drag.vm.$emit('start');
+      await drag.vm.$emit('update:modelValue', nextOrder);
+      await drag.vm.$emit('end');
+    }
+
+    it('emite el nuevo orden al soltar', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [threeTabs[1], threeTabs[0], threeTabs[2]]);
+
+      expect(wrapper.emitted('reorder')).toEqual([[[7, 'lost', 8]]]);
+    });
+
+    it('no emite nada si el arrastre termina donde empezo', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [...threeTabs]);
+
+      expect(wrapper.emitted('reorder')).toBeUndefined();
+    });
+
+    it('arrastrar no aplica el filtro', async () => {
+      // Punto 2 de la ficha: mover y seleccionar arrancan igual, y la tira
+      // cambia toda la vista. Un arrastre que vuelve a su sitio sigue
+      // llegando al navegador como un click sobre el chip.
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [threeTabs[1], threeTabs[0], threeTabs[2]]);
+      await wrapper.get('[data-testid="filter-tabs-tab-7"]').trigger('click');
+
+      expect(wrapper.emitted('select')).toBeUndefined();
+    });
+
+    it('vuelve a aceptar clicks cuando el arrastre quedo atras', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [threeTabs[1], threeTabs[0], threeTabs[2]]);
+      await new Promise((resolve) => { setTimeout(resolve, 0); });
+      await wrapper.get('[data-testid="filter-tabs-tab-7"]').trigger('click');
+
+      expect(wrapper.emitted('select')).toEqual([[7]]);
+    });
+
+    it('vuelve al orden real si el padre no adopta el movimiento', async () => {
+      // El rechazo del servidor llega como una lista nueva con el orden
+      // viejo. La tira tiene que releerla en vez de quedarse mostrando un
+      // orden que no se guardo.
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [threeTabs[1], threeTabs[0], threeTabs[2]]);
+      expect(chipIds(wrapper)).toEqual(['7', 'lost', '8']);
+
+      await wrapper.setProps({ tabs: [...threeTabs] });
+
+      expect(chipIds(wrapper)).toEqual(['lost', '7', '8']);
+    });
+
+    it('mueve a la derecha desde el menu del filtro', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-menu-7"]').trigger('click');
+      await wrapper.get('[data-testid="filter-tabs-move-right-7"]').trigger('click');
+
+      expect(wrapper.emitted('reorder')).toEqual([[['lost', 8, 7]]]);
+    });
+
+    it('un builtin tambien se mueve desde su menu', async () => {
+      // Punto 4: los de fabrica se reordenan junto a los propios.
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-menu-lost"]').trigger('click');
+      await wrapper.get('[data-testid="filter-tabs-move-right-lost"]').trigger('click');
+
+      expect(wrapper.emitted('reorder')).toEqual([[[7, 'lost', 8]]]);
+    });
+
+    it('el menu de un builtin no ofrece renombrar ni eliminar', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-menu-lost"]').trigger('click');
+
+      expect(wrapper.find('[data-testid="filter-tabs-rename"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="filter-tabs-delete"]').exists()).toBe(false);
+      expect(wrapper.find('[data-testid="filter-tabs-move-left-lost"]').exists()).toBe(true);
+    });
+
+    it('deshabilita mover en los extremos', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-menu-lost"]').trigger('click');
+
+      // 'lost' es el primero: a la izquierda no hay a dónde ir.
+      expect(wrapper.get('[data-testid="filter-tabs-move-left-lost"]').element.disabled)
+        .toBe(true);
+      expect(wrapper.get('[data-testid="filter-tabs-move-right-lost"]').element.disabled)
+        .toBe(false);
+
+      await wrapper.get('[data-testid="filter-tabs-move-left-lost"]').trigger('click');
+      expect(wrapper.emitted('reorder')).toBeUndefined();
+    });
+
+    it('mueve con Ctrl y las flechas, y anuncia donde quedo', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-tab-8"]')
+        .trigger('keydown', { key: 'ArrowLeft', ctrlKey: true });
+
+      expect(wrapper.emitted('reorder')).toEqual([[['lost', 8, 7]]]);
+      expect(wrapper.get('[data-testid="filter-tabs-live"]').text())
+        .toBe('\u00ABGustavo\u00BB movido a la posici\u00F3n 2 de 3');
+    });
+
+    it('ignora las flechas sin Ctrl, que son como se recorre la tira', async () => {
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await wrapper.get('[data-testid="filter-tabs-tab-8"]')
+        .trigger('keydown', { key: 'ArrowLeft' });
+
+      expect(wrapper.emitted('reorder')).toBeUndefined();
+    });
+
+    it('el orden emitido deja fuera las ocultas, que no se ven', async () => {
+      const wrapper = mountTabs({
+        tabs: [
+          { id: 7, name: 'Liquidos' },
+          { id: 9, name: 'Oculta', is_hidden: true },
+          { id: 8, name: 'Gustavo' },
+        ],
+      });
+
+      await wrapper.get('[data-testid="filter-tabs-menu-7"]').trigger('click');
+      await wrapper.get('[data-testid="filter-tabs-move-right-7"]').trigger('click');
+
+      expect(wrapper.emitted('reorder')).toEqual([[[8, 7]]]);
     });
   });
 });

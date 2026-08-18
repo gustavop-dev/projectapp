@@ -466,7 +466,8 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
 
-    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await page.getByRole('group', { name: 'Estado' })
+      .getByRole('button', { name: 'Vencidas', exact: true }).click();
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
@@ -507,7 +508,8 @@ test.describe('Admin Accounting Collections', () => {
     await expect(row.getByText('Emitida', { exact: true })).toBeVisible();
 
     // And the tab that used to sweep it up no longer does.
-    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await page.getByRole('group', { name: 'Estado' })
+      .getByRole('button', { name: 'Vencidas', exact: true }).click();
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 
@@ -1043,6 +1045,77 @@ test.describe('Admin Accounting Collections', () => {
     expect(calls.some(
       (call) => call.apiPath.endsWith('/mark-paid/'),
     )).toBe(false);
+  });
+
+  test('a hosting cuenta with no period completes it from the Liquidar modal', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the tab is a subnav entry; the flow under test
+    // starts at the row's Marcar pagada action, which IS clicked)
+    const handler = buildHandler({
+      calls: [],
+      incomeDetail: {
+        ...ELIGIBLE_INCOME,
+        concept: 'Vastago (Hosting) - Semestre 1',
+        origin: 'hosting',
+        // A charge from before the period fields existed: the block shows up
+        // for it, proposes the window on the charge's own date, and never
+        // holds up the settlement.
+        period_date: '2026-10-01',
+        period_start: null,
+        period_end: null,
+        period_cadence: '',
+      },
+    });
+    let settled = null;
+    await mockApi(page, async (ctx) => {
+      if (ctx.apiPath === 'accounting/incomes/8/settle/' && ctx.method === 'POST') {
+        settled = ctx.route.request().postDataJSON();
+        return {
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            income: ELIGIBLE_INCOME,
+            liquid: null,
+            expenses: [],
+            expected_incomes: [],
+          }),
+        };
+      }
+      if (ctx.apiPath === 'accounting/collection-accounts/' && ctx.method === 'GET') {
+        const rows = makeRows();
+        rows[1].income_record_id = 8;
+        rows[1].income_kind = 'expected';
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ results: rows, meta: META }),
+        };
+      }
+      return handler(ctx);
+    });
+    await gotoCollections(page);
+
+    await page.getByTestId('accounting-row-2').getByLabel('Marcar pagada').click();
+    await expect(page.getByTestId('income-liquidate-period-start'))
+      .toHaveValue('2026-10-01');
+
+    // One choice completes the window: the end follows from the periodicity.
+    await page.getByTestId('income-liquidate-period-cadence')
+      .selectOption('semiannual');
+    await expect(page.getByTestId('income-liquidate-period-end'))
+      .toHaveValue('2027-03-31');
+
+    await page.getByTestId('income-liquidate-submit').click();
+
+    await expect(
+      page.getByRole('heading', { name: 'Liquidar ingreso esperado' }),
+    ).toBeHidden();
+    expect(settled.period).toEqual({
+      period_start: '2026-10-01',
+      period_end: '2027-03-31',
+      period_cadence: 'semiannual',
+    });
   });
 
   test('Cliente and Proyecto are separate columns, each sortable on its own', {

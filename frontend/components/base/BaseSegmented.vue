@@ -1,6 +1,15 @@
 <script setup>
 import { computed } from 'vue'
 import { oneOf } from './propValidators'
+import {
+  SEGMENTED_WRAPPER,
+  SEGMENTED_SIZE,
+  SEGMENTED_ITEM_BASE,
+  SEGMENTED_ITEM_ON,
+  SEGMENTED_ITEM_OFF,
+  SEGMENTED_ITEM_DISABLED,
+  normalizeSegmentedOptions,
+} from './segmentedClasses'
 
 const props = defineProps({
   modelValue: { type: [String, Number, Boolean], default: '' },
@@ -22,30 +31,14 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-const normalized = computed(() =>
-  props.options.map((opt) =>
-    typeof opt === 'object' && opt !== null
-      ? {
-          value: opt.value,
-          label: opt.label ?? String(opt.value),
-          testId: opt.testId,
-          // Per-option lock, on top of the control-wide `disabled`: a filter can
-          // have one choice that does not apply yet while the rest stay live.
-          disabled: opt.disabled === true,
-        }
-      : { value: opt, label: String(opt), disabled: false },
-  ),
-)
+const normalized = computed(() => normalizeSegmentedOptions(props.options))
 
-const sizeClass = computed(() =>
-  props.size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-2 text-sm',
-)
+const sizeClass = computed(() => SEGMENTED_SIZE[props.size] || SEGMENTED_SIZE.md)
 </script>
 
 <template>
   <div
-    class="inline-flex gap-1 bg-surface-raised rounded-xl p-1"
-    :class="[{ 'w-full': fullWidth }, nowrap ? 'max-w-full flex-wrap' : '']"
+    :class="[SEGMENTED_WRAPPER, { 'w-full': fullWidth }, nowrap ? 'max-w-full flex-wrap' : '']"
     role="tablist"
   >
     <button
@@ -57,13 +50,11 @@ const sizeClass = computed(() =>
       :aria-selected="modelValue === opt.value"
       :disabled="disabled || opt.disabled"
       :class="[
-        'flex-1 rounded-lg transition-all outline-none focus:ring-2 focus:ring-focus-ring/40',
+        SEGMENTED_ITEM_BASE,
         sizeClass,
         nowrap ? 'whitespace-nowrap' : '',
-        modelValue === opt.value
-          ? 'bg-surface shadow-sm font-medium text-text-default'
-          : 'text-text-muted hover:text-text-default',
-        disabled || opt.disabled ? 'opacity-60 cursor-not-allowed' : '',
+        modelValue === opt.value ? SEGMENTED_ITEM_ON : SEGMENTED_ITEM_OFF,
+        disabled || opt.disabled ? SEGMENTED_ITEM_DISABLED : '',
       ]"
       @click="!(disabled || opt.disabled) && emit('update:modelValue', opt.value)"
     >

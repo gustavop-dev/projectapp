@@ -30,6 +30,13 @@ def _sample_registry(monkeypatch):
     monkeypatch.setattr(
         saved_filter_tab_service, 'DEFAULT_FILTER_TABS', SAMPLE_REGISTRY,
     )
+    # These tests are about seeding the DEFAULTS. Builtins are a second
+    # seeding that runs on the same GET and reserves the leading `order`
+    # slots for the code-level quick-filters, so leaving the real registry in
+    # would push every seeded tab of the `client` view down by 24 and add 24
+    # placeholder rows to what the endpoint gives back. That half is covered
+    # in `test_saved_filter_tabs.py`.
+    monkeypatch.setattr(saved_filter_tab_service, 'BUILTIN_FILTER_TABS', {})
 
 
 @pytest.fixture
@@ -218,8 +225,9 @@ class TestAccountingIncomeDefaultRegistry:
     def test_income_registry_ships_the_all_expected_tab_first(self):
         from accounts.default_filter_tabs import DEFAULT_FILTER_TABS
 
+        # Every dimension is a list since the filters went multi-value.
         assert DEFAULT_FILTER_TABS['accounting_income'][0] == {
-            'name': 'Todos los esperados', 'filters': {'kind': 'expected'},
+            'name': 'Todos los esperados', 'filters': {'kind': ['expected']},
         }
 
     def test_income_registry_no_longer_seeds_the_builtin_cut(self):
@@ -491,13 +499,14 @@ class TestBaseFiltersBackfillMigration:
 
         drifted = SavedFilterTab.objects.create(
             user=admin_a, view='accounting_income', name='Todos los esperados',
-            filters={'kind': 'expected', 'paymentStatus': 'pending'},
+            filters={'kind': ['expected'], 'paymentStatus': ['pending']},
         )
 
         self._migration().backfill_base_filters(apps, None)
 
         drifted.refresh_from_db()
-        assert drifted.base_filters == {'kind': 'expected'}
+        # The base comes from the registry, which now spells its cut as a list.
+        assert drifted.base_filters == {'kind': ['expected']}
 
     def test_backfill_copies_own_filters_for_custom_names(self, admin_a):
         from django.apps import apps
@@ -531,10 +540,10 @@ class TestDropOnlyExpectedTabMigration:
     @staticmethod
     def _seeded_tabs(user):
         for order, (name, filters) in enumerate((
-            ('Todos los esperados', {'kind': 'expected'}),
-            ('Solo esperados', {'kind': 'expected', 'paymentStatus': 'pending'}),
-            ('Líquidos', {'kind': 'liquid'}),
-            ('Gustavo', {'partner': 'gustavo'}),
+            ('Todos los esperados', {'kind': ['expected']}),
+            ('Solo esperados', {'kind': ['expected'], 'paymentStatus': ['pending']}),
+            ('Líquidos', {'kind': ['liquid']}),
+            ('Gustavo', {'partner': ['gustavo']}),
         )):
             SavedFilterTab.objects.create(
                 user=user, view='accounting_income', name=name,
@@ -694,3 +703,105 @@ class TestDropClientStatusTabsMigration:
         restored = SavedFilterTab.objects.get(user=admin_a, view='client', name='Accepted')
         assert restored.filters == {'lastStatuses': ['accepted']}
         assert restored.base_filters == restored.filters
+
+
+class TestMultiValueFilterTabsMigration:
+    """Migration 0051 wraps the scalar cuts of saved tabs into lists.
+
+    Every filter dimension of the accounting panels became multi-value, so a
+    row still holding a bare string reads as "no cut at all" — the matchers
+    expect an array. Both columns have to move: comparing a coerced
+    ``filters`` against a scalar ``base_filters`` is what would mark every
+    seeded tab as drifted.
+    """
+
+    @staticmethod
+    def _migration():
+        from importlib import import_module
+
+        return import_module('accounts.migrations.0051_multi_value_filter_tabs')
+
+    def test_it_wraps_both_columns_of_an_old_row(self, admin_a):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Gustavo',
+            filters={'partner': 'gustavo'},
+            base_filters={'partner': 'gustavo'},
+        )
+
+        self._migration().to_lists(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'partner': ['gustavo']}
+        assert tab.base_filters == {'partner': ['gustavo']}
+
+    def test_an_empty_cut_becomes_an_empty_list_not_a_list_of_blank(
+        self, admin_a,
+    ):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Vacío',
+            filters={'kind': '', 'paymentStatus': 'pending'},
+        )
+
+        self._migration().to_lists(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'kind': [], 'paymentStatus': ['pending']}
+
+    def test_it_leaves_keys_that_never_changed_shape_alone(self, admin_a):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Rango',
+            filters={'amountMin': '100', 'search': 'kore', 'clients': [7]},
+        )
+
+        self._migration().to_lists(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'amountMin': '100', 'search': 'kore', 'clients': [7]}
+
+    def test_it_is_idempotent(self, admin_a):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_pocket', name='Entradas',
+            filters={'direction': 'in'},
+        )
+
+        self._migration().to_lists(apps, None)
+        self._migration().to_lists(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'direction': ['in']}
+
+    def test_the_reverse_puts_the_scalars_back(self, admin_a):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='accounting_income', name='Gustavo',
+            filters={'partner': ['gustavo']},
+            base_filters={'partner': ['gustavo']},
+        )
+
+        self._migration().to_scalars(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'partner': 'gustavo'}
+        assert tab.base_filters == {'partner': 'gustavo'}
+
+    def test_it_does_not_touch_a_view_with_no_multi_value_keys(self, admin_a):
+        from django.apps import apps
+
+        tab = SavedFilterTab.objects.create(
+            user=admin_a, view='proposal', name='Draft',
+            filters={'statuses': ['draft']},
+        )
+
+        self._migration().to_lists(apps, None)
+
+        tab.refresh_from_db()
+        assert tab.filters == {'statuses': ['draft']}

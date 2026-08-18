@@ -78,6 +78,7 @@
     <!-- Quick + saved filter tabs -->
     <ProposalFilterTabs
       :tabs="displayTabs"
+      :counts="tabCounts"
       :active-tab-id="filterTabId"
       :is-tab-limit-reached="isTabLimitReached"
       @select="selectFilterTab"
@@ -86,6 +87,7 @@
       @delete="deleteFilterTab"
       @restore="restoreFilterTab"
       @rebase="rebaseFilterTab"
+      @reorder="reorderFilterTabs"
     />
 
     <!-- Search + Filter toggle -->
@@ -505,8 +507,9 @@ import {
   useAccountingFilters,
   matchDateRange,
   matchNumberRange,
-  matchEquals,
-  matchBoolean,
+  matchIncludes,
+  matchBooleanIncludes,
+  matchAnyToken,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
@@ -549,8 +552,13 @@ const NO_ORIGIN_KEY = 'none';
 
 const matchClients = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
-  if (record.client == null) return value.includes(NO_CLIENT_KEY);
-  return value.includes(record.client);
+  // Compared as strings on purpose: `clients` holds numeric ids in memory but
+  // arrives as text from the URL and from a saved tab's JSON. A number/string
+  // mismatch does not throw — it just returns nothing, which reads as "no hay
+  // datos" instead of "el filtro está roto".
+  const selected = new Set(value.map(String));
+  if (record.client == null) return selected.has(NO_CLIENT_KEY);
+  return selected.has(String(record.client));
 };
 matchClients.keys = ['clients'];
 
@@ -559,8 +567,9 @@ const NO_PROJECT_LABEL = 'Sin proyecto';
 
 const matchProjects = (record, value) => {
   if (!Array.isArray(value) || value.length === 0) return true;
-  if (record.project == null) return value.includes(NO_PROJECT_KEY);
-  return value.includes(record.project);
+  const selected = new Set(value.map(String));
+  if (record.project == null) return selected.has(NO_PROJECT_KEY);
+  return selected.has(String(record.project));
 };
 matchProjects.keys = ['projects'];
 
@@ -571,16 +580,20 @@ const matchOrigin = (record, value) => {
 };
 matchOrigin.keys = ['origin'];
 
-const matchPartner = (record, value) => {
-  if (!value) return true;
-  if (value === 'gustavo') return Number(record.gustavo_amount) > 0;
-  if (value === 'carlos') return Number(record.carlos_amount) > 0;
-  if (value === 'projectapp') {
-    return record.destination === 'pocket' || Number(record.company_amount) > 0;
-  }
-  return true;
+/**
+ * `partner` is not a column: each token reads a different field, and two
+ * tokens can hold at once on a record split between both socios. Marking
+ * Gustavo + Carlos therefore has to be a union, which is what matchAnyToken
+ * gives; the old if/elif could only ever answer for the first value.
+ */
+const PARTNER_PREDICATES = {
+  gustavo: (record) => Number(record.gustavo_amount) > 0,
+  carlos: (record) => Number(record.carlos_amount) > 0,
+  projectapp: (record) =>
+    record.destination === 'pocket' || Number(record.company_amount) > 0,
 };
-matchPartner.keys = ['partner'];
+
+const matchPartner = matchAnyToken('partner', PARTNER_PREDICATES);
 
 const {
   currentFilters,
@@ -591,6 +604,7 @@ const {
   hasActiveFilters,
   activeFilterCount,
   isTabLimitReached,
+  countTabs,
   applyFilters,
   resetFilters,
   selectTab: selectFilterTab,
@@ -599,6 +613,7 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  reorderTabs: reorderFilterTabs,
   consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_income',
@@ -609,16 +624,24 @@ const {
   // rewrites the tab, which is what the landing tab needs.
   builtinTabs: [
     {
+      // "Sin pagos" alone hid every expected record that had received an abono,
+      // even though a partially paid record is exactly what is still por cobrar
+      // — the tab that was supposed to answer "what do they owe me" was the one
+      // making the answer disappear. The id stays: it lives in the URL.
       id: 'expected-pending',
-      name: 'Solo esperados',
-      filters: { kind: 'expected', paymentStatus: 'pending' },
+      name: 'Esperados por cobrar',
+      filters: { kind: ['expected'], paymentStatus: ['pending', 'partial'] },
     },
     {
       id: 'hosting-expected',
       name: 'Hosting esperados',
-      filters: { kind: 'expected', paymentStatus: 'pending', search: 'hosting' },
+      filters: {
+        kind: ['expected'],
+        paymentStatus: ['pending', 'partial'],
+        search: 'hosting',
+      },
     },
-    { id: 'lost', name: 'Perdidos', filters: { kind: 'lost' } },
+    { id: 'lost', name: 'Perdidos', filters: { kind: ['lost'] } },
     {
       id: 'no-client',
       name: 'Sin cliente',
@@ -637,32 +660,36 @@ const {
     periodBefore: '',
     amountMin: '',
     amountMax: '',
-    kind: '',
-    paymentStatus: '',
-    partner: '',
-    ledger: '',
+    kind: [],
+    paymentStatus: [],
+    partner: [],
+    ledger: [],
     clients: [],
     projects: [],
     origin: [],
-    muted: '',
+    muted: [],
   },
   matchers: {
     period: matchDateRange('period_date', 'periodAfter', 'periodBefore'),
     amount: matchNumberRange('total_amount', 'amountMin', 'amountMax'),
-    kind: matchEquals('kind', 'kind'),
+    kind: matchIncludes('kind', 'kind'),
     // Liquid and lost rows carry `payment_status: null`, so any active
-    // value here already narrows the list down to expected records.
-    paymentStatus: matchEquals('payment_status', 'paymentStatus'),
+    // value here already narrows the list down to expected records —
+    // deliberately no `nullAs`, which would let them back in.
+    paymentStatus: matchIncludes('payment_status', 'paymentStatus'),
     partner: matchPartner,
-    ledger: matchEquals('ledger', 'ledger'),
+    ledger: matchIncludes('ledger', 'ledger'),
     clients: matchClients,
     projects: matchProjects,
     origin: matchOrigin,
-    muted: matchBoolean('reminders_muted', 'muted'),
+    muted: matchBooleanIncludes('reminders_muted', 'muted'),
   },
   // client_name mirrors the server-side q filter, which also reaches the
   // linked client's name — see the income entity's search_fields.
   searchFields: ['concept', 'notes', 'client_name', 'project_name'],
+  // A multi-value cut is worth sharing ("todo lo que le falta por cobrar a
+  // este cliente"), and it only survives a paste if it is in the URL.
+  syncFiltersToUrl: true,
 });
 
 const clientFilterOptions = computed(() => {
@@ -819,6 +846,15 @@ const exportParams = computed(() =>
 // -------------------------------------------------------------------
 
 const filteredRecords = computed(() => applyFilters(store.incomes));
+
+/**
+ * Each tab badges its own cut of the whole ledger, not of the current one: the
+ * number answers "how many would I see there", so it ignores the live filters.
+ * `displayTabs` rather than the default (saved tabs only) because the landing
+ * tab is a builtin — badging every tab except the one you are standing on
+ * would be the odd omission.
+ */
+const tabCounts = computed(() => countTabs(store.incomes, displayTabs.value));
 
 const {
   isModalOpen,

@@ -402,7 +402,12 @@ describe('administración de la tira', () => {
   });
 
   it('reorderTabs manda el orden y adopta la lista que vuelve', async () => {
-    get_request.mockResolvedValueOnce({ data: [] });
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 1, name: 'Uno', order: 0 },
+        { id: 2, name: 'Dos', order: 1 },
+      ],
+    });
     create_request.mockResolvedValueOnce({
       data: [
         { id: 2, name: 'Dos', order: 0 },
@@ -420,6 +425,71 @@ describe('administración de la tira', () => {
       { view: 'proposal', ids: [2, 1] },
     );
     expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Dos', 'Uno']);
+  });
+
+  it('reorderTabs devuelve la lista a su sitio si el servidor la rechaza', async () => {
+    // El arrastre ya movio el chip en pantalla. Si la lista vuelve identica,
+    // la tira no se entera y el orden rechazado se queda ahi como si se
+    // hubiera guardado.
+    const loaded = [
+      { id: 1, name: 'Uno', order: 0 },
+      { id: 2, name: 'Dos', order: 1 },
+    ];
+    get_request.mockResolvedValueOnce({ data: loaded });
+    create_request.mockRejectedValueOnce(new Error('boom'));
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+    const before = tabs.savedTabs.value;
+
+    const ok = await tabs.reorderTabs([2, 1]);
+
+    expect(ok).toBe(false);
+    expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Uno', 'Dos']);
+    // Otra identidad de array: es lo que hace que la tira vuelva a leer.
+    expect(tabs.savedTabs.value).not.toBe(before);
+  });
+
+  it('reorderTabs conserva el lugar de las ocultas que la tira no nombra', async () => {
+    // The strip only lists what it shows. Numbering from the visible list
+    // alone would hand the hidden tab an order it never asked for.
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 1, name: 'Uno', order: 0 },
+        { id: 2, name: 'Oculta', order: 1, is_hidden: true },
+        { id: 3, name: 'Tres', order: 2 },
+      ],
+    });
+    create_request.mockResolvedValueOnce({ data: [] });
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    await tabs.reorderTabs([3, 1]);
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reorder/',
+      { view: 'proposal', ids: [3, 2, 1] },
+    );
+  });
+
+  it('reorderTabs ubica un builtin por su builtin_key', async () => {
+    // The strip knows a builtin by its code-level string id; the row holding
+    // its order is reached through `builtin_key`.
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 10, name: 'Perdidos', order: 0, builtin_key: 'lost' },
+        { id: 11, name: 'Líquidos', order: 1 },
+      ],
+    });
+    create_request.mockResolvedValueOnce({ data: [] });
+    const tabs = useSavedFilterTabs('accounting_income');
+    await tabs.loadTabs();
+
+    await tabs.reorderTabs([11, 'lost']);
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reorder/',
+      { view: 'accounting_income', ids: [11, 10] },
+    );
   });
 
   it('resetTabs adopta lo que el servidor deja, propias incluidas', async () => {
@@ -441,5 +511,24 @@ describe('administración de la tira', () => {
       { view: 'accounting_history_sends' },
     );
     expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Fallidos', 'La mía']);
+  });
+});
+
+describe('sameFilters across the move to multi-value dimensions', () => {
+  it('reads a scalar and its one-element array as the same cut', () => {
+    // A tab saved before the dimension went multi-valued must not report drift
+    // against the very definition it was restored from.
+    expect(sameFilters({ kind: 'expected' }, { kind: ['expected'] })).toBe(true);
+  });
+
+  it('still sees a real difference when a second value was added', () => {
+    expect(sameFilters(
+      { paymentStatus: ['pending'] },
+      { paymentStatus: ['pending', 'partial'] },
+    )).toBe(false);
+  });
+
+  it('still sees a difference between two different single values', () => {
+    expect(sameFilters({ kind: 'expected' }, { kind: ['liquid'] })).toBe(false);
   });
 });

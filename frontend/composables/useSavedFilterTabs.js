@@ -18,16 +18,27 @@ function isInactiveValue(value) {
 }
 
 /**
- * Drop inactive keys (`''` / `null` / `[]`) from a filters dict.
+ * Drop inactive keys (`''` / `null` / `[]`) from a filters dict, and read a
+ * one-value dimension the same way however it was stored.
  *
  * Stored tabs carry the page's expanded default shape (every filter key plus
  * `search`) because the auto-save clones the whole `currentFilters`, while
  * seeded `base_filters` stay sparse — both spell the same active filters.
+ *
+ * The single-element unwrap is what keeps the "drifted" dot honest across the
+ * move to multi-value dimensions: a tab written before it holds
+ * `kind: 'expected'` and the live panel now holds `kind: ['expected']`. Those
+ * are the same cut, and comparing them raw would light the dot on every seeded
+ * tab and offer a "Restaurar filtros" that restores nothing.
  */
+function canonicalValue(value) {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
 export function normalizedFilters(filters) {
   const result = {};
   for (const [key, value] of Object.entries(filters || {})) {
-    if (!isInactiveValue(value)) result[key] = value;
+    if (!isInactiveValue(value)) result[key] = canonicalValue(value);
   }
   return result;
 }
@@ -211,17 +222,52 @@ export function useSavedFilterTabs(viewName) {
     }
   }
 
-  /** Apply the strip's order, top to bottom. */
+  /**
+   * Apply the strip's order, top to bottom.
+   *
+   * `ids` is what the caller can see, which is rarely everything: the strip
+   * leaves out hidden tabs and, in a two-level view, every tab outside the
+   * active module. The server numbers positions straight from the list it
+   * receives, so passing a subset through would renumber it from zero and
+   * collide with the tabs left out. The visible sequence is therefore woven
+   * back into the full list, keeping the slots of everything it never names.
+   *
+   * An id matches a saved tab by `id`, or a builtin's placeholder row by its
+   * `builtin_key` — the strip knows a builtin by its code-level string id.
+   */
   async function reorderTabs(ids) {
+    const wanted = (ids || []).map(String);
+    const full = [...savedTabs.value].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const rowFor = (id) => full.find((tab) => (
+      tab.builtin_key ? String(tab.builtin_key) === id : String(tab.id) === id
+    ));
+    const moving = wanted.map(rowFor).filter(Boolean);
+    if (!moving.length) return false;
+
+    const movingIds = new Set(moving.map((tab) => tab.id));
+    const slots = [];
+    full.forEach((tab, index) => {
+      if (movingIds.has(tab.id)) slots.push(index);
+    });
+    const merged = [...full];
+    slots.forEach((slot, i) => { merged[slot] = moving[i]; });
+
     lastError.value = null;
     try {
       const { data } = await create_request(`${ENDPOINT}reorder/`, {
-        view: viewName, ids,
+        view: viewName, ids: merged.map((tab) => tab.id),
       });
       savedTabs.value = Array.isArray(data) ? data : savedTabs.value;
       return true;
     } catch (err) {
       lastError.value = err;
+      // Snap the strip back. The drag already moved the chip on screen, and
+      // the strip mirrors this list to know better; leaving the list byte
+      // for byte identical would tell it nothing happened, and the rejected
+      // order would sit there looking saved until the next reload undid it.
+      // A fresh array is what makes the mirror re-read the real order.
+      savedTabs.value = [...savedTabs.value];
       return false;
     }
   }

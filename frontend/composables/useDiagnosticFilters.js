@@ -190,5 +190,6 @@ export function useDiagnosticFilters() {
     renameTab,
     restoreTab,
     rebaseTab,
+    reorderTabs: tabs.reorderTabs,
   };
 }

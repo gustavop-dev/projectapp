@@ -37,7 +37,7 @@ function mountPanel(props = {}) {
       stubs: {
         ProposalFilterDropdown: true,
         ProposalFilterRangeDropdown: true,
-        BaseSegmented: true,
+        BaseSegmentedMulti: true,
       },
     },
   });
@@ -66,8 +66,44 @@ describe('AccountingFilterPanel', () => {
     expect(labels).toContain('"kore"');
     expect(labels).toContain('Total: 100 – 500');
     expect(labels).toContain('Tipo: Líquido');
-    expect(labels).toContain('Categoría: Negocio');
-    expect(labels).toContain('Categoría: Personal');
+    // One chip per DIMENSION listing its values, so a dimension with two
+    // values chosen still reads as one cut and not as two unrelated filters.
+    expect(labels).toContain('Categoría: Negocio, Personal');
+  });
+
+  it('lists every chosen value of a dimension in a single chip', () => {
+    const wrapper = mountPanel({
+      modelValue: {
+        amountMin: '', amountMax: '', kind: ['liquid'], categories: ['business', 'personal'],
+      },
+    });
+    const chip = wrapper.findAll('[data-testid="accounting-filter-chip"]')
+      .find((c) => c.text().startsWith('Categoría'));
+    expect(chip.text()).toBe('Categoría: Negocio, Personal');
+    expect(chip.findAll('[data-testid="accounting-filter-chip-value"]')).toHaveLength(2);
+  });
+
+  it('removing one value of a dimension leaves the other applied', async () => {
+    const wrapper = mountPanel({
+      modelValue: {
+        amountMin: '', amountMax: '', kind: [], categories: ['business', 'personal'],
+      },
+    });
+    await wrapper
+      .find('[data-testid="accounting-filter-chip-remove-categories-business"]')
+      .trigger('click');
+    expect(wrapper.emitted('update:modelValue')[0][0].categories).toEqual(['personal']);
+  });
+
+  it('reads a tab saved before the dimension went multi-valued', () => {
+    // Stored scalar, not an array: it must still raise its chip instead of
+    // looking like no filter at all.
+    const wrapper = mountPanel({
+      modelValue: { amountMin: '', amountMax: '', kind: 'liquid', categories: [] },
+    });
+    const labels = wrapper.findAll('[data-testid="accounting-filter-chip"]')
+      .map((chip) => chip.text());
+    expect(labels).toContain('Tipo: Líquido');
   });
 
   it('removing a chip clears only its filter keys', async () => {

@@ -24,8 +24,13 @@ pytestmark = pytest.mark.django_db
 @pytest.fixture(autouse=True)
 def _blank_default_filter_tabs(monkeypatch):
     """Keep legacy CRUD behavior deterministic: GET auto-seeds from the
-    registry, so these tests run against an empty one."""
+    registry, so these tests run against an empty one.
+
+    Both registries are blanked. A GET also materialises one placeholder row
+    per builtin quick-filter, and that is just as much of a surprise row for
+    a test that counts what a view gives back."""
     monkeypatch.setattr(saved_filter_tab_service, 'DEFAULT_FILTER_TABS', {})
+    monkeypatch.setattr(saved_filter_tab_service, 'BUILTIN_FILTER_TABS', {})
 
 
 @pytest.fixture
@@ -557,3 +562,229 @@ def test_history_subtabs_are_separate_views(
 
     assert resp.status_code == 200
     assert [tab['name'] for tab in resp.json()] == []
+
+
+# ---------------------------------------------------------------------------
+# Builtin placeholders: the rows that let a code-level quick-filter be
+# dragged and hidden like any other chip, without ever storing its filters.
+# ---------------------------------------------------------------------------
+
+COLLECTIONS = SavedFilterTab.VIEW_ACCOUNTING_COLLECTIONS
+
+
+@pytest.fixture
+def _builtin_registry(monkeypatch):
+    """Controlled builtin registry (overrides the blank autouse one)."""
+    registry = {
+        'accounting_income': [
+            {'key': 'expected-pending', 'name': 'Solo esperados'},
+            {'key': 'lost', 'name': 'Perdidos'},
+        ],
+        # A view with builtins and NO seeded defaults — the shape that used
+        # to fall through the early return in seed_default_tabs.
+        COLLECTIONS: [
+            {'key': 'open', 'name': 'Por cobrar'},
+            {'key': 'overdue', 'name': 'Vencidas'},
+        ],
+    }
+    monkeypatch.setattr(
+        saved_filter_tab_service, 'BUILTIN_FILTER_TABS', registry,
+    )
+    return registry
+
+
+def _get_view(api_client, headers, view):
+    return api_client.get(
+        f'/api/accounts/saved-filter-tabs/?view={view}', **headers,
+    )
+
+
+def test_get_seeds_a_placeholder_per_builtin_carrying_no_filters(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+):
+    resp = _get_view(api_client, admin_a_headers, COLLECTIONS)
+
+    assert resp.status_code == 200
+    rows = resp.json()
+    assert [r['builtin_key'] for r in rows] == ['open', 'overdue']
+    assert [r['order'] for r in rows] == [0, 1]
+    # The whole point: the definition stays in the frontend, so a date-based
+    # builtin cannot freeze on the day it was seeded.
+    assert all(r['filters'] == {} for r in rows)
+
+
+def test_get_seeds_builtins_for_a_view_without_factory_defaults(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+):
+    """Cuentas de cobro has builtins but no seeded tabs at all."""
+    _get_view(api_client, admin_a_headers, COLLECTIONS)
+
+    assert SavedFilterTab.objects.filter(
+        user=admin_a, view=COLLECTIONS,
+    ).exclude(builtin_key='').count() == 2
+
+
+def test_seeding_builtins_is_idempotent_and_keeps_a_moved_order(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+):
+    _get_view(api_client, admin_a_headers, COLLECTIONS)
+    moved = SavedFilterTab.objects.get(
+        user=admin_a, view=COLLECTIONS, builtin_key='overdue',
+    )
+    moved.order = 7
+    moved.save(update_fields=['order'])
+
+    _get_view(api_client, admin_a_headers, COLLECTIONS)
+
+    assert SavedFilterTab.objects.filter(
+        user=admin_a, view=COLLECTIONS,
+    ).count() == 2
+    moved.refresh_from_db()
+    assert moved.order == 7
+
+
+def test_factory_tabs_still_seed_when_builtins_already_hold_rows(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+    _accounting_registry,
+):
+    """The placeholders must not read as "this user already has tabs here"."""
+    resp = _get_view(api_client, admin_a_headers, 'accounting_income')
+
+    names = [r['name'] for r in resp.json()]
+    assert names == ['Solo esperados', 'Perdidos', 'Esperados', 'Líquidos']
+
+
+def test_reorder_moves_a_builtin_among_the_saved_ones(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+    _accounting_registry,
+):
+    """Punto 4 de la ficha: los de fábrica se reordenan junto a los propios."""
+    _get_view(api_client, admin_a_headers, 'accounting_income')
+    by_label = {
+        row.builtin_key or row.name: row.id
+        for row in SavedFilterTab.objects.filter(
+            user=admin_a, view='accounting_income',
+        )
+    }
+
+    resp = api_client.post(
+        REORDER_URL,
+        {
+            'view': 'accounting_income',
+            'ids': [
+                by_label['Líquidos'], by_label['lost'],
+                by_label['expected-pending'], by_label['Esperados'],
+            ],
+        },
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    assert [r['name'] for r in resp.json()] == [
+        'Líquidos', 'Perdidos', 'Solo esperados', 'Esperados',
+    ]
+
+
+def test_reset_returns_the_builtins_to_the_factory_order_and_unhides_them(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+):
+    _get_view(api_client, admin_a_headers, COLLECTIONS)
+    mine = SavedFilterTab.objects.create(
+        user=admin_a, view=COLLECTIONS, name='Mía', filters={}, order=9,
+    )
+    moved = SavedFilterTab.objects.get(
+        user=admin_a, view=COLLECTIONS, builtin_key='overdue',
+    )
+    moved.order = 0
+    moved.is_hidden = True
+    moved.save(update_fields=['order', 'is_hidden'])
+
+    resp = api_client.post(
+        RESET_URL, {'view': COLLECTIONS}, format='json', **admin_a_headers,
+    )
+
+    assert resp.status_code == 200
+    rebuilt = SavedFilterTab.objects.get(
+        user=admin_a, view=COLLECTIONS, builtin_key='overdue',
+    )
+    assert (rebuilt.order, rebuilt.is_hidden) == (1, False)
+    # The user's own tab is theirs and outlives the reset.
+    assert SavedFilterTab.objects.filter(id=mine.id).exists()
+
+
+def test_placeholders_do_not_eat_slots_from_the_twelve_tab_cap(
+    api_client, admin_a, admin_a_headers, _builtin_registry,
+):
+    _get_view(api_client, admin_a_headers, COLLECTIONS)
+    for idx in range(SavedFilterTab.MAX_TABS_PER_VIEW - 1):
+        SavedFilterTab.objects.create(
+            user=admin_a, view=COLLECTIONS, name=f'Propia {idx}', filters={},
+        )
+
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/',
+        {'view': COLLECTIONS, 'name': 'La duodécima', 'filters': {}},
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 201
+
+
+def test_builtin_key_cannot_be_claimed_through_the_panel(
+    api_client, admin_a, admin_a_headers,
+):
+    """Otherwise a real tab could pose as a placeholder and lose its filters."""
+    resp = api_client.post(
+        '/api/accounts/saved-filter-tabs/',
+        {
+            'view': 'proposal', 'name': 'Impostora',
+            'filters': {'statuses': ['sent']}, 'builtin_key': 'lost',
+        },
+        format='json',
+        **admin_a_headers,
+    )
+
+    assert resp.status_code == 201
+    assert SavedFilterTab.objects.get(id=resp.json()['id']).builtin_key == ''
+
+
+def test_builtin_registry_keys_exist_in_the_frontend_sources():
+    """The backend only knows a builtin by its key; the filters stay in the
+    frontend. A renamed `id` there would leave the placeholder orphaned — the
+    chip would quietly stop being draggable — so pin the keys to their source.
+    """
+    from pathlib import Path
+
+    from accounts.default_filter_tabs import BUILTIN_FILTER_TABS
+
+    frontend = Path(__file__).resolve().parents[3] / 'frontend'
+    sources = {
+        'accounting_income': 'pages/panel/accounting/incomes.vue',
+        'accounting_hosting': 'pages/panel/accounting/hostings.vue',
+        'accounting_collections': 'pages/panel/accounting/collections.vue',
+        'accounting_history_sends': 'constants/historyFilters.js',
+        'accounting_history_changes': 'constants/historyFilters.js',
+        'client': 'constants/clientFilters.js',
+    }
+    assert set(sources) == set(BUILTIN_FILTER_TABS), (
+        'every view with builtins needs its frontend source listed here'
+    )
+
+    missing = []
+    for view, relative in sources.items():
+        text = (frontend / relative).read_text(encoding='utf-8')
+        for spec in BUILTIN_FILTER_TABS[view]:
+            if f"'{spec['key']}'" not in text:
+                missing.append(f'{view}:{spec["key"]} not in {relative}')
+    assert missing == []
+
+
+def test_builtin_registry_keys_are_unique_per_view():
+    """A duplicate key would give one chip two placeholders and two orders."""
+    from accounts.default_filter_tabs import BUILTIN_FILTER_TABS
+
+    for view, specs in BUILTIN_FILTER_TABS.items():
+        keys = [spec['key'] for spec in specs]
+        assert len(keys) == len(set(keys)), f'duplicate builtin key in {view}'
