@@ -1,6 +1,7 @@
 import { config } from '@vue/test-utils';
 import BaseButton from '../components/base/BaseButton.vue';
 import BaseFormRow from '../components/base/BaseFormRow.vue';
+import BaseMobileTabSelect from '../components/base/BaseMobileTabSelect.vue';
 
 if (typeof globalThis.structuredClone === 'undefined') {
   globalThis.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
@@ -15,8 +16,12 @@ if (typeof globalThis.structuredClone === 'undefined') {
 // BaseFormRow is here for the same reason, and because it provides the bands
 // its BaseFormFields inject: unresolved, the fields would silently fall back to
 // stacking and a spec could not tell an aligned row from a crooked one.
+// BaseMobileTabSelect renders the mobile <select> of every tab control, so
+// unresolved it would take the only <select> out of the DOM and the specs that
+// drive a tab strip through `get('select')` would fail to find it.
 config.global.components = {
   ...config.global.components,
   BaseButton,
   BaseFormRow,
+  BaseMobileTabSelect,
 };

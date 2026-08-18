@@ -169,7 +169,8 @@ prefer the bare class without `/N`.
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
 | `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`sm`/`md`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
 | `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId? }` or strings), `size` (`sm`/`md`), `fullWidth` — segmented control / pill tabs |
-| `BaseTabs`      | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth` — desktop tab bar with mobile `<select>` fallback |
+| `BaseTabs`      | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — desktop tab bar with mobile `<select>` fallback |
+| `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — the mobile `<select>` every tab control collapses into below `md`. It hides itself above the breakpoint, so pair it with a `hidden md:flex` desktop strip. `nav` for module navigation, `filter` for a filter control: the two sit next to each other in most accounting views and must not read as the same thing |
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |

@@ -19,7 +19,14 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex gap-2 mb-5">
+    <!--
+      `flex-wrap` por la misma razón que la tira de predefinidos: sin él la fila
+      se desborda y el `body { overflow-x: hidden }` de app.vue la recorta SIN
+      barra de scroll, así que el último filtro queda inalcanzable y el corte se
+      lee como el final de la lista. Son cuatro etiquetas cortas: envolver
+      alcanza, no hace falta colapsar en un selector.
+    -->
+    <div class="flex flex-wrap gap-2 mb-5">
       <button
         v-for="f in filters"
         :key="f.value"

@@ -1,8 +1,16 @@
 <template>
+  <!--
+    Esc and the backdrop are disabled while the reparto is open on top: the
+    BaseModal keydown handler lives on `window`, so without this Escape would
+    close BOTH modals and yank the detail out from under the operator. Same
+    guard ClientEmailsModal uses for its preview.
+  -->
   <BaseModal
     :model-value="open"
     size="xl"
     title-id="income-detail-title"
+    :close-on-esc="!allocationsOpen"
+    :close-on-backdrop="!allocationsOpen"
     @close="emit('close')"
   >
     <div data-testid="income-detail-modal">
@@ -100,6 +108,7 @@
                     <th class="px-3 py-2">Fecha</th>
                     <th class="px-3 py-2">Concepto</th>
                     <th class="px-3 py-2">Tipo</th>
+                    <th class="px-3 py-2">Movimiento</th>
                     <th class="px-3 py-2 text-right">Monto</th>
                   </tr>
                 </thead>
@@ -115,6 +124,35 @@
                     </td>
                     <td class="px-3 py-2 text-text-default">{{ row.concept }}</td>
                     <td class="px-3 py-2 text-text-muted text-xs">{{ row.label }}</td>
+                    <!--
+                      Qué movimiento del bolsillo pagó esta línea. Un abono
+                      compartido abre el reparto completo — con los hermanos,
+                      que es lo que no se podía ver desde acá: el mismo control
+                      y la misma etiqueta que el listado del bolsillo, para que
+                      el operador aprenda uno solo.
+                    -->
+                    <td class="px-3 py-2 text-xs">
+                      <BaseButton
+                        v-if="row.movement?.is_shared"
+                        variant="ghost"
+                        size="sm"
+                        :data-testid="`income-detail-movement-${row.id}`"
+                        @click="openAllocations(row.movement)"
+                      >
+                        Abono · {{ row.movement.allocation_count }} ingresos
+                      </BaseButton>
+                      <span
+                        v-else-if="row.movement"
+                        class="text-text-muted"
+                        :data-testid="`income-detail-movement-${row.id}`"
+                      >
+                        {{ row.movement.concept }}
+                        · {{ formatDate(row.movement.movement_date) }}
+                      </span>
+                      <!-- Sin movimiento es información: ese dinero no pasó
+                           por el bolsillo y no es rastreable en el ledger. -->
+                      <span v-else class="text-text-subtle" title="No pasó por el bolsillo">—</span>
+                    </td>
                     <td class="px-3 py-2 text-right tabular-nums text-text-default">
                       {{ money(row.amount) }}
                     </td>
@@ -139,12 +177,24 @@
       </div>
     </div>
   </BaseModal>
+
+  <!--
+    Apilado, no anidado en el slot: es como el repo apila modales
+    (CollectionAccountFormModal hace lo mismo con IncomeFormModal). El de
+    reparto es exactamente el del bolsillo, alimentado por el mismo payload.
+  -->
+  <PocketMovementAllocationsModal
+    :open="allocationsOpen"
+    :movement="allocationsMovement"
+    @close="allocationsMovement = null"
+  />
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCell.vue';
+import PocketMovementAllocationsModal from '~/components/accounting/PocketMovementAllocationsModal.vue';
 import { useAccountingStore } from '~/stores/accounting';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
@@ -174,6 +224,18 @@ function money(value) {
   return formatMoney(Number(value ?? 0), 'COP');
 }
 
+/**
+ * El movimiento cuyo reparto se está mirando, o null. Derivar `open` de él en
+ * vez de llevar un segundo booleano evita el parpadeo de payload viejo al
+ * cerrar.
+ */
+const allocationsMovement = ref(null);
+const allocationsOpen = computed(() => allocationsMovement.value !== null);
+
+function openAllocations(movement) {
+  allocationsMovement.value = movement;
+}
+
 const settlements = computed(() => {
   const liquid = (detail.value?.liquid ?? []).map((row) => ({
     id: row.id,
@@ -181,7 +243,10 @@ const settlements = computed(() => {
     concept: row.concept,
     amount: row.total_amount,
     date: row.period_date,
-    label: 'Liquidación',
+    // Un hijo nacido de un abono compartido dejaba de distinguirse de una
+    // liquidación cualquiera; la etiqueta sola ya cierra media brecha.
+    label: row.movement?.is_shared ? 'Abono' : 'Liquidación',
+    movement: row.movement ?? null,
   }));
   const deductions = (detail.value?.expenses ?? []).map((row) => ({
     id: row.id,
@@ -190,6 +255,8 @@ const settlements = computed(() => {
     amount: row.total_amount,
     date: row.period_date,
     label: row.deduction_type_label || 'Deducción',
+    // Una deducción acredita el bruto sin pasar por el bolsillo.
+    movement: null,
   }));
   return [...liquid, ...deductions].sort((a, b) =>
     String(a.date).localeCompare(String(b.date)),
@@ -199,6 +266,8 @@ const settlements = computed(() => {
 async function load() {
   detail.value = null;
   error.value = false;
+  // El reparto que estuviera abierto pertenece al ingreso anterior.
+  allocationsMovement.value = null;
   if (!props.incomeId) return;
   loading.value = true;
   const result = await store.fetchIncomeDetail(props.incomeId);

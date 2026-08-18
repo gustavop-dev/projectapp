@@ -22,6 +22,7 @@ from content.serializers.accounting import (
     NotificationRecipientCreateUpdateSerializer,
     PocketMovementCreateUpdateSerializer,
     PocketMovementSerializer,
+    SettlementMovementSerializer,
     RecurringPaymentCreateUpdateSerializer,
     month_label,
 )
@@ -807,3 +808,60 @@ class TestPocketMovementAllocations:
             data = PocketMovementSerializer(queryset, many=True).data
         assert len(data) == 3
         assert all(len(row['allocations']) == 2 for row in data)
+
+    def test_the_income_side_reports_the_same_reparto_as_the_pocket_side(
+        self, make_income,
+    ):
+        """Both serializers render the reparto through `allocation_entries`.
+
+        They feed the same panel modal from opposite directions, so a shape
+        that drifts on one side breaks the other silently.
+        """
+        movement = self._movement()
+        parent = make_income(concept='Kore - Fase 2')
+        self._child(movement, make_income, 'Kore - Fase 2', '500000.00', parent)
+        self._child(movement, make_income, 'Kore - Fase 3', '300000.00')
+
+        from_pocket = PocketMovementSerializer(movement).data['allocations']
+        from_income = SettlementMovementSerializer(movement).data['allocations']
+
+        assert from_income == from_pocket
+        assert len(from_income) == 2
+
+    def test_the_settlement_view_of_a_movement_counts_its_allocations(
+        self, make_income,
+    ):
+        shared = self._movement()
+        self._child(shared, make_income, 'Kore - Fase 2', '500000.00')
+        self._child(shared, make_income, 'Kore - Fase 3', '300000.00')
+        alone = self._movement(amount='500000.00')
+        self._child(alone, make_income, 'Kore suelto', '500000.00')
+
+        shared_data = SettlementMovementSerializer(shared).data
+        alone_data = SettlementMovementSerializer(alone).data
+
+        assert shared_data['is_shared'] is True
+        assert shared_data['allocation_count'] == 2
+        assert shared_data['amount'] == '800000.00'
+        assert alone_data['is_shared'] is False
+        assert alone_data['allocation_count'] == 1
+
+    def test_the_settlement_view_never_touches_the_expense_side(
+        self, make_income, django_assert_num_queries,
+    ):
+        """No `expense_record` read, so the income detail needs no join for it.
+
+        The full PocketMovementSerializer would cost one query per row here
+        (reverse OneToOne), for a link that is structurally always NULL on an
+        incoming movement.
+        """
+        movement = self._movement()
+        self._child(movement, make_income, 'Kore - Fase 2', '500000.00')
+        self._child(movement, make_income, 'Kore - Fase 3', '300000.00')
+
+        queryset = PocketMovement.objects.prefetch_related('income_records')
+        with django_assert_num_queries(2):
+            data = SettlementMovementSerializer(queryset, many=True).data
+
+        assert [row['allocation_count'] for row in data] == [2]
+        assert 'linked_expense_id' not in data[0]
