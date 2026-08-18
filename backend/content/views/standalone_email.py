@@ -131,10 +131,15 @@ def _parse_standalone_email(request):
     document_ids = [int(d) for d in document_ids if isinstance(d, (int, str)) and str(d).isdigit()]
 
     if document_ids:
+        from content.services.document_content import resolve_blocks
         from content.services.document_pdf_service import DocumentPdfService
         documents = Document.objects.filter(pk__in=document_ids)
         for doc in documents:
-            if not doc.content_json or not doc.content_json.get('blocks'):
+            # `resolve_blocks` y no `content_json['blocks']`: un documento cuyo
+            # writer se saltó el parseo se descarga bien desde el panel y
+            # desaparecía del correo sin avisar. Mismo criterio que la vista de
+            # descarga (`views/document.py`).
+            if not resolve_blocks(doc):
                 continue
             pdf_bytes = DocumentPdfService.generate(doc)
             if not pdf_bytes:

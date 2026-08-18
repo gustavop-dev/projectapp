@@ -469,3 +469,113 @@ class TestDocumentPdfServiceTemplateStyle:
                         content_json=_with_blocks(blocks))
         out = DocumentPdfService.generate(doc, template_style='friendly')
         assert out[:4] == b'%PDF'
+
+
+# -- Las tres casillas deciden las páginas ------------------------------------
+
+class TestCoverFlagsDecidePages:
+    """Las cinco combinaciones que pide la ficha, contando páginas reales.
+
+    Sin `_merge_with_covers` mockeado: el punto es justamente que la portada y
+    la contraportada se peguen (o no) según la configuración guardada, y eso
+    sólo se ve contando las páginas del PDF que se descarga.
+    """
+
+    CONTENT = [
+        {'type': 'heading', 'level': 1, 'text': 'Alcance'},
+        {'type': 'paragraph', 'text': 'Cuerpo del documento.'},
+    ]
+
+    @staticmethod
+    def _page_count(pdf_bytes):
+        import io
+
+        from pypdf import PdfReader
+
+        return len(PdfReader(io.BytesIO(pdf_bytes)).pages)
+
+    def _generate(self, **flags):
+        from content.services.document_pdf_service import DocumentPdfService
+
+        doc = _document(content_json=_with_blocks(self.CONTENT), **flags)
+        pdf_bytes = DocumentPdfService.generate(doc)
+        assert pdf_bytes[:4] == b'%PDF'
+        return self._page_count(pdf_bytes)
+
+    @pytest.fixture
+    def content_only_pages(self):
+        """Línea base: el mismo contenido sin ninguna página añadida."""
+        return self._generate(
+            include_portada=False,
+            include_subportada=False,
+            include_contraportada=False,
+        )
+
+    def test_none_checked_yields_content_only(self, content_only_pages):
+        """Con las tres desmarcadas el PDF trae sólo el contenido."""
+        from content.services.pdf_utils import BACK_COVER_PDF, COVER_PDF
+
+        assert COVER_PDF.exists() and BACK_COVER_PDF.exists()
+        assert content_only_pages >= 1
+
+        pages = self._generate(
+            include_portada=False,
+            include_subportada=False,
+            include_contraportada=False,
+        )
+        assert pages == content_only_pages
+
+    def test_only_portada_adds_the_front_cover(self, content_only_pages):
+        """Sólo portada marcada: se pega la carátula y nada más."""
+        from pypdf import PdfReader
+
+        from content.services.pdf_utils import COVER_PDF
+
+        cover_pages = len(PdfReader(str(COVER_PDF)).pages)
+        pages = self._generate(
+            include_portada=True,
+            include_subportada=False,
+            include_contraportada=False,
+        )
+        assert pages == content_only_pages + cover_pages
+
+    def test_only_subportada_adds_the_title_page(self, content_only_pages):
+        """Sólo subportada marcada: una página de título, sin carátulas."""
+        pages = self._generate(
+            include_portada=False,
+            include_subportada=True,
+            include_contraportada=False,
+        )
+        assert pages == content_only_pages + 1
+
+    def test_only_contraportada_adds_the_back_cover(self, content_only_pages):
+        """Sólo contraportada marcada: se pega al final y nada al principio."""
+        from pypdf import PdfReader
+
+        from content.services.pdf_utils import BACK_COVER_PDF
+
+        back_pages = len(PdfReader(str(BACK_COVER_PDF)).pages)
+        pages = self._generate(
+            include_portada=False,
+            include_subportada=False,
+            include_contraportada=True,
+        )
+        assert pages == content_only_pages + back_pages
+
+    def test_all_three_add_every_page(self, content_only_pages):
+        """Las tres marcadas: carátula, título, contenido y contracarátula."""
+        from pypdf import PdfReader
+
+        from content.services.pdf_utils import BACK_COVER_PDF, COVER_PDF
+
+        extra = (
+            len(PdfReader(str(COVER_PDF)).pages)
+            + 1
+            + len(PdfReader(str(BACK_COVER_PDF)).pages)
+        )
+        pages = self._generate(
+            include_portada=True,
+            include_subportada=True,
+            include_contraportada=True,
+        )
+        assert pages == content_only_pages + extra

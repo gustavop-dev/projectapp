@@ -954,6 +954,24 @@ class TestDuplicateDocument:
         duplicate = Document.objects.get(pk=data['id'])
         assert duplicate.document_type is not None
 
+    def test_duplicate_keeps_the_export_configuration(self, admin_client, document):
+        """La copia sale igual: casillas Y estilo, que se perdía en el camino."""
+        document.include_portada = False
+        document.include_subportada = True
+        document.include_contraportada = False
+        document.template_style = 'friendly'
+        document.save()
+
+        url = reverse('duplicate-document', kwargs={'document_id': document.id})
+        response = admin_client.post(url)
+
+        assert response.status_code == 201
+        duplicate = Document.objects.get(pk=response.json()['id'])
+        assert duplicate.include_portada is False
+        assert duplicate.include_subportada is True
+        assert duplicate.include_contraportada is False
+        assert duplicate.template_style == 'friendly'
+
     def test_duplicate_keeps_content_json_independent_from_original(self, admin_client, document):
         url = reverse('duplicate-document', kwargs={'document_id': document.id})
 
@@ -1003,6 +1021,50 @@ class TestDownloadDocumentPdf:
 
         assert response.status_code == 200
         assert response['Content-Type'] == 'application/pdf'
+
+    def test_inline_query_param_renders_in_the_viewer(self, admin_client, document):
+        """`?inline=1` es lo que hace posible previsualizar sin descargar."""
+        url = reverse('download-document-pdf', kwargs={'document_id': document.id})
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 mock content',
+        ):
+            response = admin_client.get(url, {'inline': '1'})
+
+        assert response.status_code == 200
+        assert response['Content-Disposition'].startswith('inline')
+
+    def test_pdf_is_built_from_the_saved_cover_flags(
+        self, admin_client, document,
+    ):
+        """Guardar las casillas y descargar: el PDF sale con lo guardado.
+
+        Es el recorrido completo de la ficha —PATCH y luego descarga— y lo que
+        se asierta es el documento con el que se llama al generador, porque ahí
+        es donde se decidía usar los valores por defecto.
+        """
+        admin_client.patch(
+            reverse('update-document', kwargs={'document_id': document.id}),
+            data={
+                'include_portada': False,
+                'include_subportada': False,
+                'include_contraportada': False,
+            },
+            content_type='application/json',
+        )
+
+        url = reverse('download-document-pdf', kwargs={'document_id': document.id})
+        with patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 mock content',
+        ) as generate:
+            response = admin_client.get(url)
+
+        assert response.status_code == 200
+        generated_doc = generate.call_args.args[0]
+        assert generated_doc.include_portada is False
+        assert generated_doc.include_subportada is False
+        assert generated_doc.include_contraportada is False
 
     def test_returns_400_when_no_blocks(self, admin_client, markdown_doc_type):
         doc = Document.objects.create(

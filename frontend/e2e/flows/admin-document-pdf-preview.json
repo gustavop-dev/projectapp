@@ -1,0 +1,14 @@
+{
+  "id": "admin-document-pdf-preview",
+  "name": "Admin Document PDF Preview",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin previews the generated PDF from the document edit page ('Previsualizar PDF', data-testid doc-preview-pdf) instead of downloading it to find out how it came out. The viewer embeds the very file the download delivers — same endpoint with ?inline=1 — so the portada, subportada and contraportada decided by the export checkboxes are visible before downloading; its header (doc-pdf-preview-pages) names the pages of the SAVED configuration, and previewing with pending changes offers 'Guardar y previsualizar' / 'Previsualizar lo guardado' / 'Seguir editando'.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

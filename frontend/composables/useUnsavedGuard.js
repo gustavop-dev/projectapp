@@ -18,6 +18,22 @@ const REFRESH = {
   tail: 'Actualizar vuelve a traer los datos del servidor y los reemplaza.',
 };
 
+// El archivo lo arma el servidor con lo GUARDADO. Sin este aviso, cambiar una
+// opción de exportación y descargar entrega en silencio un archivo que no es
+// el que la pantalla está mostrando.
+const EXPORT_VERBS = {
+  download: {
+    saveText: 'Guardar y descargar',
+    discardText: 'Descargar lo guardado',
+    tail: 'La descarga se arma con la última versión guardada.',
+  },
+  preview: {
+    saveText: 'Guardar y previsualizar',
+    discardText: 'Previsualizar lo guardado',
+    tail: 'La vista previa se arma con la última versión guardada.',
+  },
+};
+
 /**
  * Aviso de cambios sin guardar para un editor de página completa del panel.
  *
@@ -199,6 +215,16 @@ export function useUnsavedGuard({
     if (reload) await reload();
   }
 
+  /**
+   * Puerta para las acciones que consumen la versión GUARDADA (descargar el
+   * PDF, previsualizarlo). Devuelve true cuando se puede seguir: o se guardó,
+   * o se aceptó explícitamente usar lo guardado.
+   */
+  async function guardedExport(kind = 'download') {
+    if (!hasChanges.value) return true;
+    return confirmExit(EXPORT_VERBS[kind] || EXPORT_VERBS.download);
+  }
+
   /** El botón "Descartar cambios" del aviso. */
   async function discardChanges() {
     if (!hasChanges.value) return;
@@ -225,6 +251,7 @@ export function useUnsavedGuard({
     canSaveNow,
     commit,
     guardedReload,
+    guardedExport,
     discardChanges,
     // Sólo cuando la página no inyectó su propio requestConfirm.
     confirmState: own?.confirmState,

@@ -144,6 +144,45 @@ class TestDocumentsMcpCrud:
         assert doc.content_json['blocks']  # parser produced blocks
         assert doc.content_json['meta']['title'] == 'Guía'
 
+    def test_create_document_honors_the_cover_flags(self, api_client, documents_connector, markdown_doc_type):
+        """Un documento creado por MCP nacía siempre con las tres portadas."""
+        _, token = documents_connector
+        response = _call(api_client, token, 'create_document', {
+            'title': 'Sin portadas',
+            'markdown': '# Título\n\nUn párrafo.',
+            'include_portada': False,
+            'include_contraportada': False,
+        })
+        assert response.data['result']['isError'] is False
+        doc = Document.objects.get(title='Sin portadas')
+        assert doc.include_portada is False
+        assert doc.include_contraportada is False
+        # La que no se envió conserva el default.
+        assert doc.include_subportada is True
+
+    def test_update_document_changes_the_cover_flags(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'include_subportada': False,
+        })
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.include_subportada is False
+
+    def test_cover_flag_rejects_a_string(self, api_client, documents_connector, markdown_doc_type):
+        """"false" de texto sería True: mejor un error que un PDF equivocado."""
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'include_portada': 'false',
+        })
+        assert response.data['result']['isError'] is True
+        doc.refresh_from_db()
+        assert doc.include_portada is True
+
     def test_read_document_returns_markdown(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type, title='Leer', content_markdown='# X\n\nY.')
         _, token = documents_connector

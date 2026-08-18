@@ -167,10 +167,14 @@
                 v-for="option in coverOptions"
                 :key="option.key"
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
+                :data-testid="option.testId"
               >
                 <BaseToggle v-model="form[option.key]" />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
+              <p class="text-xs text-text-subtle pt-1 px-1" data-testid="doc-included-pages">
+                El PDF incluirá: {{ includedPagesLabel }}
+              </p>
             </div>
           </div>
         </div>
@@ -353,6 +357,7 @@ import { useClientProjectCascade } from '~/composables/useClientProjectCascade';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import { describeIncludedPages } from '~/utils/documentCoverPages';
 
 const localePath = useLocalePath();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -517,10 +522,14 @@ watch(() => form.folder_id, (folderId) => {
 });
 
 const coverOptions = [
-  { key: 'include_portada', label: 'Incluir portada' },
-  { key: 'include_subportada', label: 'Incluir subportada' },
-  { key: 'include_contraportada', label: 'Incluir contraportada' },
+  { key: 'include_portada', label: 'Incluir portada', testId: 'doc-cover-portada' },
+  { key: 'include_subportada', label: 'Incluir subportada', testId: 'doc-cover-subportada' },
+  { key: 'include_contraportada', label: 'Incluir contraportada', testId: 'doc-cover-contraportada' },
 ];
+
+// Qué páginas va a traer el PDF, en el orden en que salen: las casillas dicen
+// qué se incluye, esto dice cómo queda.
+const includedPagesLabel = computed(() => describeIncludedPages(form));
 
 const templateStyleOptions = [
   { value: 'friendly', label: 'Amigable', testId: 'doc-style-friendly' },
