@@ -1,4 +1,4 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.6)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.7)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
@@ -7,7 +7,7 @@
 - **Implementación web por defecto.** La calculadora está calibrada para web. La plataforma solo entra como modificador excluyente: web = sin recargo · PWA = `+30%` · app móvil nativa (iOS/Android + tiendas) = `+60%` (aplicado al final, `×1,6` sobre el resultado ya modificado).
 - **Desarrollo desde cero (greenfield)** salvo que la descripción declare que se extiende algo existente.
 - **Cliente PYME colombiano.** Precios en **COP, más IVA**: el valor cotizado **no incluye IVA** y se presenta siempre con la marca `+ IVA` (p. ej. `$7.000.000 + IVA`). IVA colombiano vigente: **19%**. Nunca cotizar un valor con IVA incluido sin declararlo, ni omitir la marca en las tablas de inversión.
-- **Tarifa de venta blended de referencia: ≈ $15.000 COP/hora** (≈ US$4,4 a TRM ≈ $3.443/USD). *Recalibrada el 04/08/2026:* **−20%** por directriz del dueño sobre la tarifa del 02/07/2026 (≈ $18.750/h — que a su vez venía de dividir ÷4 la calibración de mercado desarrollado, ≈ $75.000/h).
+- **Tarifa de venta blended de referencia: ≈ $16.500 COP/hora** (≈ US$4,8 a TRM ≈ $3.443/USD). *Recalibrada el 18/08/2026:* **+10%** por directriz del dueño sobre la tarifa del 04/08/2026 (≈ $15.000/h — que venía de un −20% sobre los ≈ $18.750/h del 02/07/2026, a su vez resultado de dividir ÷4 la calibración de mercado desarrollado, ≈ $75.000/h).
 - **Killer: $20.000.000 COP** — una propuesta (la **suma** de los requerimientos, no un ítem suelto) por encima de ese techo tiende a ser rechazada. Obligatorio fragmentar.
 - **Granularidad:** se estima funcionalidad por funcionalidad; el proyecto es la suma.
 - **Vigencia de la estimación: 30 días.** Todo estimate declara "precios válidos por 30 días desde su fecha"; pasado el plazo se re-emite en vez de honrarse (la tarifa y el catálogo evolucionan — la recalibración ÷4 cambió todos los precios en un solo día).
@@ -22,11 +22,11 @@
 
 | Nivel | Pts | Perfil típico | Horas | Precio COP | ≈ USD |
 |---|---|---|---|---|---|
-| **XS** | 1 | Cambio de configuración, un campo, validación básica, enlace simple. | 2–7 | $32K – $104K | $9–30 |
-| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, contador simple. | 7–20 | $104K – $304K | $30–88 |
-| **M** | 3 | CRUD estándar con extras, generación de archivos, permisos, lógica condicional. A menudo se apoya en algo existente. | 20–50 | $304K – $704K | $88–204 |
-| **L** | 5 | **Un feature completo desde cero**: backend + frontend robustos (a veces + una integración, que lo lleva al techo del rango). | 55–90 | $800K – $1,4M | $232–407 |
-| **XL** | 8 | **Referencia de magnitud, NO cotizable como ítem.** Exige descomposición obligatoria en 2+ filas `S`/`M`/`L` (cada una suele ser un L). El rango solo sirve para dimensionar la conversación. | 90–200 | $1,4M – $3,0M | $407–871 |
+| **XS** | 1 | Cambio de configuración, un campo, validación básica, enlace simple. | 2–7 | $35K – $114K | $10–33 |
+| **S** | 2 | Ajuste de UI/plantilla, modal, correo básico, contador simple. | 7–20 | $114K – $334K | $33–97 |
+| **M** | 3 | CRUD estándar con extras, generación de archivos, permisos, lógica condicional. A menudo se apoya en algo existente. | 20–50 | $334K – $774K | $97–225 |
+| **L** | 5 | **Un feature completo desde cero**: backend + frontend robustos (a veces + una integración, que lo lleva al techo del rango). | 55–90 | $880K – $1,5M | $256–447 |
+| **XL** | 8 | **Referencia de magnitud, NO cotizable como ítem.** Exige descomposición obligatoria en 2+ filas `S`/`M`/`L` (cada una suele ser un L). El rango solo sirve para dimensionar la conversación. | 90–200 | $1,5M – $3,3M | $447–958 |
 
 **Fuente de verdad:** la **columna de precio** manda (es la calibración comercial del dueño frente al mercado); las horas son indicativas. Los pequeños desfases entre horas × tarifa y el rango de precio, y el colchón de horas entre `M` (50) y `L` (55), son deliberados: margen pre-modificador. Los puntos (Pts) son un *shorthand* de magnitud, no entran en fórmulas.
 
@@ -66,12 +66,18 @@
 
 Los precios de este catálogo están expresados en pesos del **año de emisión** del estimate. Para proyectar el precio de un requerimiento a años siguientes se aplica el **reajuste anual de ProjectApp** — la misma mecánica de reajuste que ProjectApp usa en sus servicios recurrentes:
 
-`precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`
+```
+reajuste anual    = Δ%SMLMV + 12%                              (12% = componente fijo ProjectApp)
+precio año N+1    = precio año N × (1 + reajuste anual)
+precio año base+k = precio año base × (1 + reajuste anual)^k   (forma cerrada, compuesta)
+```
 
 - **Δ%SMLMV** — porcentaje de incremento decretado del Salario Mínimo Legal Mensual Vigente en Colombia. Es un dato verificable año a año; cada estimate **declara el valor usado como supuesto**. Para años cuyo decreto aún no existe se usa el último incremento decretado.
 - **Componente fijo: 12%** — definido por ProjectApp. Si el dueño lo cambia, se cambia **aquí** (única fuente); ningún documento lo hardcodea por su cuenta.
-- **Reajuste compuesto:** cada año se aplica sobre el precio ya reajustado del año anterior, no sobre el original.
-- **Ejemplo:** si el SMLMV subió 11%, el reajuste total es 11% + 12% = **23%**: un requerimiento estimado en $1,0M este año se proyecta en ≈ $1,2M para el año siguiente y ≈ $1,5M para el subsiguiente.
+- **Reajuste compuesto:** cada año se aplica sobre el precio ya reajustado del año anterior, no sobre el original. La forma cerrada `(1 + reajuste)^k` es la que conviene mostrar cuando el horizonte pasa de dos años.
+- **Horizonte: año de emisión + 4 años.** La tabla del estimate lleva **5 filas** — la base sin reajuste y cuatro proyectadas — cada una con su **factor acumulado** respecto del año base, para que el salto sea legible sin rehacer la cuenta.
+- **La fórmula se imprime en el documento.** No basta con declarar el supuesto en prosa: el estimate muestra el bloque de fórmula y su instancia con los números del año (`reajuste = X% + 12% = Y%`), porque el reajuste es un argumento comercial y un número sin su derivación no se puede discutir.
+- **Ejemplo (datos vigentes, emisión 2026):** el SMLMV 2026 subió **23%** (Decreto 0159 del 19/02/2026), luego el reajuste anual es 23% + 12% = **35%** → factor **1,35** por año. Un requerimiento de $1,0M en 2026 se proyecta en **$1,4M** (2027, ×1,35), **$1,8M** (2028, ×1,82), **$2,5M** (2029, ×2,46) y **$3,3M** (2030, ×3,32).
 - **Carácter informativo.** La proyección **no** es una oferta en firme de precios futuros: la vigencia del estimate sigue siendo **30 días**. Solo anticipa el orden de magnitud del reajuste si el mismo alcance se contratara en años posteriores — es un argumento comercial para decidir **hoy**, no una tarifa congelable.
 
 ## Si el cliente contrapropone
@@ -120,17 +126,28 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $15.000/h (recalibración 04/08/2026) · **precios válidos por 30 días desde la fecha del documento** · proyección año a año informativa con la regla `Δ%SMLMV + 12%` (declarando el Δ%SMLMV supuesto) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $16.500/h (recalibración 18/08/2026) · **precios válidos por 30 días desde la fecha del documento** · proyección año a año informativa a **4 años** con la regla `Δ%SMLMV + 12%` (declarando el Δ%SMLMV supuesto y mostrando la fórmula) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
 
 ---
 
-## Qué cambió en esta versión (v1.6 — recalibración −20%)
+## Qué cambió en esta versión (v1.7 — recalibración +10% y proyección a 4 años)
+
+**Directriz del dueño 18/08/2026:** dos cambios.
+
+1. **Precio +10%.** La tarifa blended sube de $15.000/h a **$16.500/h** y los rangos por talla se reescalan ×1,10 (p. ej. `M` pasa de $304K–$704K a **$334K–$774K**; `L`, de $800K–$1,4M a **$880K–$1,5M**). Es el primer ajuste al alza del año, después del ÷4 del 02/07 y del −20% del 04/08.
+2. **Proyección a 4 años con la fórmula a la vista.** El horizonte pasa de 2 a **4 años siguientes** (5 filas contando la base), la tabla gana una columna de **factor acumulado**, y el estimate ahora **imprime el bloque de fórmula** y su instancia con los números del año en vez de limitarse a declarar el supuesto en prosa.
+
+**Sin cambios:** horas por nivel, señales, modificadores, la regla de reajuste en sí (`Δ%SMLMV + 12%`, compuesta, informativa) ni los umbrales del semáforo ($12M/$20M — miden disposición de pago absoluta y no se recalibran con la tarifa). La suite `validation/` se reescaló ×1,10 en el mismo cambio; ningún semáforo del baseline cambió de zona.
+
+---
+
+## Qué cambió en la versión anterior (v1.6 — recalibración −20%)
 
 **Directriz del dueño 04/08/2026:** los rangos de precio por talla y la tarifa blended bajan **−20%** (tarifa: $18.750/h → **$15.000/h**; p.ej. `M` pasa de $380K–$880K a $304K–$704K). **Sin cambios** en horas por nivel, señales, modificadores, regla de proyección año a año (Δ%SMLMV + 12%) ni umbrales del semáforo ($12M/$20M — miden disposición de pago absoluta y no se recalibran con la tarifa). La suite `validation/` se reescaló ×0,8 en el mismo cambio (semáforos del baseline sin cambio de zona).
 
 ---
 
-## Qué cambió en la versión anterior (v1.5 — proyección de precios año a año)
+## Qué cambió en v1.5 (proyección de precios año a año)
 
 **Directriz del dueño 03/08/2026:** se agregó la regla de **proyección de precios año a año** — `precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`, compuesta, con el Δ%SMLMV declarado como supuesto y carácter informativo (la vigencia de 30 días no cambia). El estimate gana una sección dedicada con la proyección del total a los 2 años siguientes (plantilla §5 del SKILL). **Sin cambios** en tarifa, tallas, horas, señales ni umbrales del semáforo — el baseline conserva sus números.
 
