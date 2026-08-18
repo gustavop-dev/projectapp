@@ -7,163 +7,76 @@
   -->
   <div
     v-if="selected.length > 0"
-    class="sticky bottom-4 z-20 flex flex-col gap-3 mt-4 p-3 pr-20 rounded-xl border border-border-default bg-surface-raised shadow-lg"
+    class="sticky bottom-4 z-20 flex flex-col sm:flex-row sm:items-center gap-3 mt-4 p-3 pr-20 rounded-xl border border-border-default bg-surface-raised shadow-lg"
     :data-testid="`${testidPrefix}-bulk-bar`"
   >
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-      <span class="text-sm text-text-default">
-        <span class="whitespace-nowrap">
-          <span class="font-semibold tabular-nums">{{ selected.length }}</span>
-          seleccionado{{ selected.length === 1 ? '' : 's' }}
-        </span>
-        <!--
-          Selecting survives a filter change, and the action runs on the whole
-          selection — so when part of it no longer passes the filter, the bar
-          says so instead of letting the count disagree with the table.
-        -->
-        <span
-          v-if="outsideCount > 0"
-          class="text-xs text-text-muted whitespace-nowrap"
-          title="Se marcaron con otro filtro activo. La acción los incluye igual; la confirmación los lista uno por uno."
-          :data-testid="`${testidPrefix}-bulk-outside`"
-        >
-          · {{ outsideCount }} fuera del filtro actual
-        </span>
+    <span class="text-sm text-text-default">
+      <span class="whitespace-nowrap">
+        <span class="font-semibold tabular-nums">{{ selected.length }}</span>
+        seleccionado{{ selected.length === 1 ? '' : 's' }}
       </span>
-      <BaseButton
-        v-if="!allFilteredSelected"
-        variant="ghost"
-        size="sm"
-        :data-testid="`${testidPrefix}-select-all-filtered`"
-        @click="selectAllFiltered"
-      >
-        Seleccionar los {{ filteredIds.length }} filtrados
-      </BaseButton>
-      <!-- Qué se asigna: cliente o proyecto. Un solo toggle en la misma
-           barra, porque dos barras sticky pelearían por el mismo lugar. -->
-      <BaseSegmented
-        v-if="projectEnabled"
-        v-model="target"
-        size="sm"
-        :options="[
-          { value: 'client', label: 'Cliente' },
-          { value: 'project', label: 'Proyecto' },
-        ]"
-        :data-testid="`${testidPrefix}-bulk-target`"
-      />
       <!--
-        Sin el hint propio del picker: crecía DENTRO de esta celda del flex y,
-        con `sm:items-center`, re-centraba toda la fila contra la celda más
-        alta — el input subía y los botones quedaban desalineados. La barra lo
-        dice abajo, en su línea de estado, donde no mueve nada.
+        Selecting survives a filter change, and the action runs on the whole
+        selection — so when part of it no longer passes the filter, the bar
+        says so instead of letting the count disagree with the table.
       -->
-      <div class="flex-1 min-w-[16rem]">
-        <ClientAutocomplete
-          v-if="target === 'client'"
-          v-model="clientId"
-          :test-id="`${testidPrefix}-bulk-client`"
-          placeholder="Buscar el cliente a asignar..."
-          :show-linked-hint="false"
-          @select="onClientSelect"
-        />
-        <ProjectCatalogSelect
-          v-else
-          v-model="projectId"
-          :test-id="`${testidPrefix}-bulk-project`"
-          placeholder="Buscar el proyecto a asignar..."
-          @select="onProjectSelect"
-        />
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <BaseButton variant="secondary" size="sm" @click="clearSelection">
-          Cancelar
-        </BaseButton>
-        <!--
-          Registrar abono vive fuera del segmented Cliente/Proyecto: no es un
-          "target" (no usa el picker — abre su propio modal, que ES la
-          confirmación) y meterlo como tercer segmento dejaría vacía la celda
-          del picker. Siempre presente cuando la página lo habilita, sólo
-          cambia `disabled`, así la fila no refluye entre selecciones.
-        -->
-        <BaseButton
-          v-if="settleEnabled"
-          variant="secondary"
-          size="sm"
-          :disabled="settleEligibleIds.length === 0 || busy"
-          :data-testid="`${testidPrefix}-bulk-settle`"
-          @click="emitSettle"
-        >
-          Registrar abono
-        </BaseButton>
-        <!--
-          Desvincular es su propio botón, no el mismo con el selector vacío:
-          sólo aparece cuando hay algo que desvincular, así que su presencia
-          ya dice que la selección tiene cliente (o proyecto).
-        -->
-        <template v-if="target === 'client'">
-          <BaseButton
-            v-if="canUnlink"
-            variant="danger"
-            size="sm"
-            :disabled="busy"
-            :data-testid="`${testidPrefix}-bulk-unlink`"
-            @click="confirmAndSubmit(unlinkPlan)"
-          >
-            Desvincular cliente
-          </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="Boolean(assignBlockedReason) || busy"
-            :data-testid="`${testidPrefix}-bulk-assign`"
-            @click="confirmAndSubmit(assignPlan)"
-          >
-            Asignar cliente
-          </BaseButton>
-        </template>
-        <template v-else>
-          <BaseButton
-            v-if="canUnlinkProject"
-            variant="danger"
-            size="sm"
-            :disabled="busy"
-            :data-testid="`${testidPrefix}-bulk-unlink-project`"
-            @click="confirmAndSubmitProject(unlinkProjectPlan)"
-          >
-            Quitar proyecto
-          </BaseButton>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="Boolean(projectBlockedReason) || busy"
-            :data-testid="`${testidPrefix}-bulk-assign-project`"
-            @click="confirmAndSubmitProject(assignProjectPlan)"
-          >
-            Asignar proyecto
-          </BaseButton>
-        </template>
-      </div>
-    </div>
-
-    <!--
-      Una sola línea, nunca vacía: o dice por qué Asignar está apagado, o
-      confirma a quién se va a enlazar. La razón va inline y siempre visible,
-      no en un tooltip: un botón apagado sin explicación es el mismo callejón
-      que el placeholder que escondía el "vacío = desvincular". Y que la línea
-      no pueda faltar es lo que mantiene fijo el alto de la barra.
-
-      `truncate` no es cosmético: un nombre largo partido en dos renglones
-      volvería a mover la barra. El texto completo queda en el title.
-    -->
-    <p
-      class="flex items-center gap-1.5 text-xs text-text-muted min-w-0"
-      :data-testid="`${testidPrefix}-bulk-hint`"
-      :title="statusLine.text"
+      <span
+        v-if="outsideCount > 0"
+        class="text-xs text-text-muted whitespace-nowrap"
+        title="Se marcaron con otro filtro activo. La acción los incluye igual; la confirmación los lista uno por uno."
+        :data-testid="`${testidPrefix}-bulk-outside`"
+      >
+        · {{ outsideCount }} fuera del filtro actual
+      </span>
+    </span>
+    <BaseButton
+      v-if="!allFilteredSelected"
+      variant="ghost"
+      size="sm"
+      :data-testid="`${testidPrefix}-select-all-filtered`"
+      @click="selectAllFiltered"
     >
-      <component :is="statusLine.icon" class="w-4 h-4 flex-shrink-0" />
-      <span class="truncate">{{ statusLine.text }}</span>
-    </p>
+      Seleccionar los {{ filteredIds.length }} filtrados
+    </BaseButton>
+
+    <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
+      <BaseButton variant="secondary" size="sm" @click="clearSelection">
+        Cancelar
+      </BaseButton>
+      <!--
+        Un solo control en vez de los seis que había: vincular un registro y
+        mover dinero son operaciones de naturaleza distinta y convivían en la
+        misma fila, que quedó ilegible. El menú las agrupa con una división
+        clara entre vincular y cobrar, y crece sin desordenarse cuando lleguen
+        más acciones. Abre hacia ARRIBA porque la barra está pegada al fondo.
+      -->
+      <BaseDropdown :items="actionItems" placement="top" align="right" width="w-64">
+        <template #trigger>
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :disabled="busy"
+            :data-testid="`${testidPrefix}-bulk-actions`"
+          >
+            Acciones ▾
+          </BaseButton>
+        </template>
+      </BaseDropdown>
+    </div>
   </div>
+
+  <BulkAssignModal
+    :open="assignTarget !== null"
+    :target="assignTarget || 'client'"
+    :rows="rows"
+    :selected-ids="selected"
+    :entity="entity"
+    :record-label="recordLabel"
+    :testid-prefix="testidPrefix"
+    :busy="busy"
+    @close="assignTarget = null"
+    @submit="onAssignSubmit"
+  />
 
   <ConfirmModal
     v-model="confirmState.open"
@@ -190,16 +103,17 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { InformationCircleIcon, LinkIcon } from '@heroicons/vue/24/outline';
+import { computed, ref } from 'vue';
+import {
+  BanknotesIcon, FolderPlusIcon, LinkSlashIcon, UserPlusIcon,
+} from '@heroicons/vue/24/outline';
 
 import ConfirmModal from '~/components/ConfirmModal.vue';
+import BulkAssignModal from '~/components/accounting/BulkAssignModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
 import ProjectBulkAssignSummary from '~/components/accounting/ProjectBulkAssignSummary.vue';
-import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
-import ProjectCatalogSelect from '~/components/accounting/ProjectCatalogSelect.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
-import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import BaseDropdown from '~/components/base/BaseDropdown.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { isSettleEligible } from '~/utils/settleAllocation';
 import { buildAssignmentPlan, describeAssignmentPlan } from '~/utils/clientAssignment';
@@ -209,21 +123,23 @@ import {
 } from '~/utils/projectAssignment';
 
 /**
- * Bulk (un)assignment bar for the accounting tables — client since the
- * beginning, project behind the `projectEnabled` toggle. One bar for both
- * targets on purpose: two sticky bars would stack over the same corner and
- * duplicate the selection chrome whose layout invariants live above.
+ * Bulk actions over the current selection, for the accounting tables.
+ *
+ * The bar itself holds only the selection count and ONE control: everything
+ * it can do hangs off an actions menu. It used to lay all six controls out at
+ * once — a Cliente/Proyecto toggle, a picker, and four buttons — which mixed
+ * linking a record with moving money in the same row and became unreadable.
+ * Assigning now opens BulkAssignModal (picker + plan + confirm); unlinking,
+ * which needs no target, still goes straight to the confirmation; the abono
+ * opens its own modal on the page.
  *
  * Shared between hostings and incomes: the two pages used to hold a
  * byte-identical copy of this block, so a fix in one silently left the
  * other behind.
  *
- * Each target keeps its two operations as two buttons. Assigning needs a
- * target and says so inline when it hasn't got one; unlinking only exists
- * while the selection actually has something to lose. Either way the
- * operator confirms against a breakdown of what changes and a list of every
- * record involved — this is a mass edit, and the scope has to be visible
- * before it runs, not after.
+ * Either way the operator confirms against a breakdown of what changes and a
+ * list of every record involved — this is a mass edit, and the scope has to
+ * be visible before it runs, not after.
  */
 const props = defineProps({
   /**
@@ -241,9 +157,9 @@ const props = defineProps({
   testidPrefix: { type: String, required: true },
   /** (row) => the row's identity in the confirmation list. */
   recordLabel: { type: Function, required: true },
-  /** Store mutation in flight: blocks both actions. */
+  /** Store mutation in flight: blocks every action. */
   busy: { type: Boolean, default: false },
-  /** Offer the Proyecto target (pages whose rows carry a project link). */
+  /** Offer the Proyecto actions (pages whose rows carry a project link). */
   projectEnabled: { type: Boolean, default: false },
   /** Offer "Registrar abono" (incomes only: bulk-settle needs expected rows). */
   settleEnabled: { type: Boolean, default: false },
@@ -256,11 +172,8 @@ const emit = defineEmits([
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } =
   useConfirmModal();
 
-const target = ref('client');
-const clientId = ref(null);
-const clientLabel = ref('');
-const projectId = ref(null);
-const selectedProjectRow = ref(null);
+/** 'client' | 'project' while the assign modal is open, null when closed. */
+const assignTarget = ref(null);
 const pendingPlan = ref(null);
 const pendingPlanKind = ref('client');
 
@@ -275,14 +188,6 @@ const outsideCount = computed(() => {
   return props.selected.filter((id) => !filtered.has(id)).length;
 });
 
-const assignPlan = computed(() => buildAssignmentPlan({
-  rows: props.rows,
-  selectedIds: props.selected,
-  mode: 'assign',
-  targetClientId: clientId.value,
-  targetClientLabel: clientLabel.value,
-}));
-
 const unlinkPlan = computed(() => buildAssignmentPlan({
   rows: props.rows,
   selectedIds: props.selected,
@@ -290,13 +195,6 @@ const unlinkPlan = computed(() => buildAssignmentPlan({
 }));
 
 const canUnlink = computed(() => unlinkPlan.value.toUnlink.length > 0);
-
-const assignProjectPlan = computed(() => buildProjectAssignmentPlan({
-  rows: props.rows,
-  selectedIds: props.selected,
-  mode: 'assign',
-  targetProject: selectedProjectRow.value,
-}));
 
 const unlinkProjectPlan = computed(() => buildProjectAssignmentPlan({
   rows: props.rows,
@@ -315,71 +213,70 @@ const settleEligibleIds = computed(() => {
   return props.selected.filter((id) => isSettleEligible(byId.get(id)));
 });
 
-/** Empty string = the abono button is live. */
+/** Empty string = the abono action is live. */
 const settleBlockedReason = computed(() => {
   if (!props.settleEnabled || settleEligibleIds.value.length > 0) return '';
   return 'Para abonar se necesitan esperados con saldo pendiente.';
 });
 
-/** Empty string = the assign button is live. */
-const assignBlockedReason = computed(() => {
-  if (!clientId.value) return 'Elige un cliente para poder asignar.';
-  if (assignPlan.value.affected.length === 0) {
-    return `Todo lo seleccionado ya tiene a ${clientLabel.value}.`;
-  }
-  return '';
-});
-
-/** Same contract for the project target: empty string = button live. */
-const projectBlockedReason = computed(() => {
-  if (!projectId.value) return 'Elige un proyecto para poder asignar.';
-  const plan = assignProjectPlan.value;
-  if (plan.affected.length > 0) return '';
-  if (plan.blockedClientMismatch.length > 0) {
-    return `La selección pertenece a otro cliente: "${plan.targetProjectLabel}" es de ${plan.targetClientLabel || 'otro cliente'}.`;
-  }
-  return `Todo lo seleccionado ya tiene "${plan.targetProjectLabel}".`;
-});
-
 /**
- * La razón de bloqueo sólo queda vacía cuando ya hay destino Y hay filas que
- * cambiar, así que el else de cada rama es exactamente el caso en que
- * corresponde confirmar el enlace. Por eso la línea nunca está vacía, y por
- * eso la barra no cambia de alto entre estados ni entre targets.
+ * Lo que se puede hacer con la selección, agrupado: primero vincular, después
+ * cobrar. Los divisores se insertan CON su grupo, nunca sueltos — Hostings no
+ * habilita el abono, así que un divisor incondicional al final le dejaría una
+ * línea separando la nada.
+ *
+ * "Registrar abono" siempre está presente cuando la página lo habilita y sólo
+ * cambia `disabled`, para que el menú no cambie de alto entre selecciones; su
+ * razón viaja en `description`, porque un ítem deshabilitado de Headless UI no
+ * toma foco ni recibe puntero y un tooltip encima sería inalcanzable.
  */
-const statusLine = computed(() => {
-  // La razón del abono viaja como sufijo `·` de la misma línea única (el
-  // precedente es el sufijo de mismatch del target proyecto): una segunda
-  // línea rompería el alto fijo de la barra.
-  const settleSuffix = settleBlockedReason.value
-    ? ` · ${settleBlockedReason.value}`
-    : '';
-  if (target.value === 'project') {
-    if (projectBlockedReason.value) {
-      return {
-        text: `${projectBlockedReason.value}${settleSuffix}`,
-        icon: InformationCircleIcon,
-      };
-    }
-    const blocked = assignProjectPlan.value.blockedClientMismatch.length;
-    const suffix = blocked > 0
-      ? ` · ${blocked} de otro cliente no se ${blocked === 1 ? 'toca' : 'tocan'}`
-      : '';
-    return {
-      text: `Proyecto enlazado: ${assignProjectPlan.value.targetProjectLabel} (#${projectId.value})${suffix}${settleSuffix}`,
-      icon: LinkIcon,
-    };
+const actionItems = computed(() => {
+  const items = [
+    {
+      label: 'Asignar cliente',
+      icon: UserPlusIcon,
+      onClick: () => { assignTarget.value = 'client'; },
+    },
+  ];
+  if (props.projectEnabled) {
+    items.push({
+      label: 'Asignar proyecto',
+      icon: FolderPlusIcon,
+      onClick: () => { assignTarget.value = 'project'; },
+    });
   }
-  if (assignBlockedReason.value) {
-    return {
-      text: `${assignBlockedReason.value}${settleSuffix}`,
-      icon: InformationCircleIcon,
-    };
+
+  const unlinks = [];
+  // Desvincular sólo existe mientras haya algo que desvincular, así que su
+  // presencia ya dice que la selección tiene cliente (o proyecto).
+  if (canUnlink.value) {
+    unlinks.push({
+      label: 'Desvincular cliente',
+      icon: LinkSlashIcon,
+      danger: true,
+      onClick: () => confirmAndSubmit(unlinkPlan.value),
+    });
   }
-  return {
-    text: `Cliente enlazado: ${clientLabel.value} (#${clientId.value})${settleSuffix}`,
-    icon: LinkIcon,
-  };
+  if (props.projectEnabled && canUnlinkProject.value) {
+    unlinks.push({
+      label: 'Quitar proyecto',
+      icon: LinkSlashIcon,
+      danger: true,
+      onClick: () => confirmAndSubmitProject(unlinkProjectPlan.value),
+    });
+  }
+  if (unlinks.length) items.push({ divider: true }, ...unlinks);
+
+  if (props.settleEnabled) {
+    items.push({ divider: true }, {
+      label: 'Registrar abono',
+      icon: BanknotesIcon,
+      disabled: settleEligibleIds.value.length === 0,
+      description: settleBlockedReason.value,
+      onClick: emitSettle,
+    });
+  }
+  return items;
 });
 
 function selectAllFiltered() {
@@ -404,34 +301,14 @@ function clearSelection() {
   emit('update:selected', []);
 }
 
-function onClientSelect(client) {
-  clientLabel.value = client?.name || '';
+/**
+ * The assign modal already showed the plan and built the payload; the bar
+ * only routes it to the right emit. Keyed on the payload's own shape rather
+ * than on `assignTarget`, which the close that follows is about to clear.
+ */
+function onAssignSubmit(payload) {
+  emit(Object.hasOwn(payload, 'project') ? 'submit-project' : 'submit', payload);
 }
-
-function onProjectSelect(project) {
-  selectedProjectRow.value = project || null;
-}
-
-// Typing in the picker drops the committed id without re-emitting `select`,
-// so the label has to follow the id or the confirmation would name a target
-// that is no longer chosen.
-watch(clientId, (id) => {
-  if (id == null) clientLabel.value = '';
-});
-watch(projectId, (id) => {
-  if (id == null) selectedProjectRow.value = null;
-});
-
-// The page clears the selection after a successful run; both pickers reset
-// with it so the next batch starts from scratch.
-watch(() => props.selected.length, (count) => {
-  if (count === 0) {
-    clientId.value = null;
-    clientLabel.value = '';
-    projectId.value = null;
-    selectedProjectRow.value = null;
-  }
-});
 
 /**
  * Show the plan, and on confirmation hand the parent only the rows that
