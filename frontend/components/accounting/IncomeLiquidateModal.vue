@@ -2,9 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import PartnerSplitInput from './PartnerSplitInput.vue'
 import PeriodDateField from './PeriodDateField.vue'
+import { useHostingPeriod } from '~/composables/useHostingPeriod'
 import { DEDUCTION_TYPE_OPTIONS as deductionOptions } from '~/utils/accountingDeductions'
 import { formatMoney } from '~/utils/formatMoney'
 import { todayISO } from '~/utils/periodDates'
+import { FREQUENCY_OPTIONS as cadenceOptions } from '~/utils/recurring'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -38,10 +40,80 @@ function defaultForm() {
     gustavo_amount: '',
     carlos_amount: '',
     notes: '',
+    // Only ever filled for a hosting charge that never recorded its window;
+    // they travel as `period` and describe the EXPECTED income, not this
+    // payment (see the covered-period block in the write serializer).
+    period_start: '',
+    period_end: '',
+    period_cadence: '',
   }
 }
 
 const isPersonal = computed(() => props.record?.ledger !== 'company')
+
+/**
+ * The window a hosting charge covers, asked for here when the charge never
+ * recorded one — the gap shows up while liquidating, so it gets resolved
+ * while liquidating instead of sending the operator to another screen.
+ *
+ * It is a courtesy and never a condition: leaving the block empty settles
+ * exactly the same. Liquidar registers that the money came in; the period
+ * describes what the charge covers, and holding the money for a descriptive
+ * field is what broke this flow in the first place.
+ */
+const needsPeriod = computed(
+  () => props.record?.origin === 'hosting' && !props.record?.period_start,
+)
+
+const {
+  anchorStart,
+  cycleOptions,
+  isCycleActive,
+  applyCycle,
+  onPeriodEndEdited,
+  periodEndError,
+} = useHostingPeriod(form, {
+  isHosting: needsPeriod,
+  // `isEdit: false` is what keeps the duration shortcuts on screen, and no
+  // settlement is ever a duplicate. `resolveAnchor` is deliberately never
+  // called: it looks up where a client's NEXT window opens, and this block
+  // completes one that already happened.
+  isEdit: computed(() => false),
+  isDuplicate: computed(() => false),
+  seed: computed(() => null),
+})
+
+// Duration, not increment: the same four cadences the income form offers as
+// "+3 meses" for the period that FOLLOWS read as the length of this one.
+const CYCLE_LABELS = { 1: '1 mes', 3: '3 meses', 6: '6 meses', 12: '1 año' }
+
+const cycleLabel = (months) => CYCLE_LABELS[months] ?? `${months} meses`
+
+/** The start we proposed. Sitting there untouched, it is not an answer. */
+const proposedPeriodStart = computed(() => props.record?.period_date ?? '')
+
+// Same pristine idea the deduction and follow-up rows use: a value the modal
+// filled in by itself must not turn an optional block into a required one.
+const periodTouched = computed(() => Boolean(
+  form.value.period_end
+  || form.value.period_cadence
+  || (
+    form.value.period_start
+    && form.value.period_start !== proposedPeriodStart.value
+  ),
+))
+
+const periodComplete = computed(() => Boolean(
+  form.value.period_start
+  && form.value.period_end
+  && form.value.period_cadence
+  && !periodEndError.value,
+))
+
+/** Started and left half-written — the one state the block does block on. */
+const periodIncomplete = computed(
+  () => needsPeriod.value && periodTouched.value && !periodComplete.value,
+)
 
 const pending = computed(() => Number(props.record?.pending_amount ?? 0))
 
@@ -128,13 +200,19 @@ const hasIncompleteRow = computed(
   () => deductionErrors.value.some(Boolean) || followUpErrors.value.some(Boolean),
 )
 
-const canSubmit = computed(() => !overAllocated.value && !hasIncompleteRow.value)
+const canSubmit = computed(
+  () => !overAllocated.value && !hasIncompleteRow.value && !periodIncomplete.value,
+)
 
 /** Why the submit is blocked — shown next to the disabled button. */
 const submitBlockReason = computed(() => {
   if (canSubmit.value) return ''
   if (overAllocated.value) {
     return `La distribución supera el saldo por resolver por ${money(-unassigned.value)}.`
+  }
+  if (periodIncomplete.value) {
+    return periodEndError.value
+      || 'Completa el período que cubre el cobro, o déjalo vacío.'
   }
   if (deductionErrors.value.some(Boolean)) {
     return 'Hay líneas de gasto incompletas: revisa concepto y monto.'
@@ -210,9 +288,17 @@ watch(
     followUpsOpen.value = false
     autoExpanded.value = false
     overSource.value = null
+    // The window opens on the charge's own date — the same reading the backend
+    // calls `original_date` when it duplicates an income with no window
+    // recorded. Set before the form is replaced, so the composable's watchers
+    // already have their anchor when the fields land.
+    anchorStart.value = props.record.period_date ?? ''
     form.value = {
       ...defaultForm(),
       concept: props.record.concept ?? '',
+      // Proposed, not imposed: the operator can move it, and the end follows
+      // from whatever periodicity they pick.
+      period_start: needsPeriod.value ? (props.record.period_date ?? '') : '',
       // Liquidating records a payment that just happened, so today beats
       // the expected period (which is exactly the stale value).
       period_date: todayISO(),
@@ -252,6 +338,15 @@ function onSubmit() {
   if (!isPersonal.value && gustavo_amount !== '' && carlos_amount !== '') {
     payload.gustavo_amount = gustavo_amount
     payload.carlos_amount = carlos_amount
+  }
+  // Absent unless the block was completed: the backend applies it to the
+  // expected income, and its absence is an ordinary liquidation.
+  if (needsPeriod.value && periodComplete.value) {
+    payload.period = {
+      period_start: form.value.period_start,
+      period_end: form.value.period_end,
+      period_cadence: form.value.period_cadence,
+    }
   }
   payload.notes = form.value.notes
   emit('submit', payload)
@@ -332,6 +427,73 @@ function onSubmit() {
       <BaseFormField v-else label="Valor pagado" required>
         <BaseCurrencyInput v-model="form.total_amount" required />
       </BaseFormField>
+
+      <!-- The window this hosting charge covers, when it never recorded one.
+           Optional by design: an untouched block settles exactly the same. -->
+      <section
+        v-if="needsPeriod"
+        class="rounded-lg border border-border-muted p-4 space-y-3"
+        data-testid="income-liquidate-period-block"
+      >
+        <div>
+          <h4 class="text-sm font-medium text-text-default">
+            Período que cubre este cobro
+          </h4>
+          <p class="mt-0.5 text-xs text-text-subtle">
+            Este hosting no tiene período registrado. Complétalo si lo sabes:
+            si lo dejas vacío, la liquidación se registra igual.
+          </p>
+        </div>
+
+        <BaseFormField
+          label="Periodicidad"
+          hint="Al elegirla se calcula la fecha de fin del período."
+        >
+          <BaseSelect
+            v-model="form.period_cadence"
+            :options="cadenceOptions"
+            placeholder="Elegir periodicidad"
+            data-testid="income-liquidate-period-cadence"
+          />
+        </BaseFormField>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <BaseFormField label="Inicio del período">
+            <BaseInput
+              v-model="form.period_start"
+              type="date"
+              data-testid="income-liquidate-period-start"
+            />
+          </BaseFormField>
+          <BaseFormField label="Fin del período" :error="periodEndError">
+            <BaseInput
+              v-model="form.period_end"
+              type="date"
+              :error="!!periodEndError"
+              data-testid="income-liquidate-period-end"
+              @update:model-value="onPeriodEndEdited"
+            />
+          </BaseFormField>
+        </div>
+
+        <div v-if="cycleOptions.length">
+          <p class="mb-1.5 text-xs text-text-subtle">Duración del período:</p>
+          <div class="flex flex-wrap gap-1.5" data-testid="income-liquidate-cycles">
+            <BaseButton
+              v-for="option in cycleOptions"
+              :key="option.months"
+              type="button"
+              size="sm"
+              :variant="isCycleActive(option) ? 'primary' : 'secondary'"
+              :aria-pressed="isCycleActive(option)"
+              :data-testid="`income-liquidate-cycle-${option.months}`"
+              @click="applyCycle(option)"
+            >
+              {{ cycleLabel(option.months) }}
+            </BaseButton>
+          </div>
+        </div>
+      </section>
 
       <!-- Shortfall: the money that was invoiced but did not arrive. -->
       <section
