@@ -12,9 +12,19 @@ const { Menu, MenuButton, MenuItems, MenuItem } = HeadlessUI
 const NuxtLinkComponent = resolveComponent('NuxtLink')
 
 defineProps({
-  // Items: [{ label, onClick?, to?, icon?, disabled?, danger?, divider? }]
+  // Items: [{ label, description?, onClick?, to?, icon?, disabled?, danger?, divider? }]
+  //
+  // `description` is a muted second line under the label. It exists so a
+  // DISABLED item can explain itself: Headless UI's disabled MenuItems take no
+  // focus and swallow pointer events, so a tooltip on one is unreachable — and
+  // a dead action with no visible reason is the callejón this codebase keeps
+  // arguing against.
   items: { type: Array, required: true },
   align: { type: String, default: 'right' }, // left | right
+  // Which way the panel opens. `top` is for triggers anchored to the bottom of
+  // the viewport (a sticky bulk bar), where the default downward panel would
+  // render off screen.
+  placement: { type: String, default: 'bottom' }, // bottom | top
   width: { type: String, default: 'w-56' },
 })
 
@@ -40,9 +50,15 @@ function itemColorClass(danger, active) {
     >
       <MenuItems
         :class="[
-          'absolute z-30 mt-2 origin-top rounded-xl bg-surface border border-border-default shadow-raised focus:outline-none p-1',
+          'absolute z-30 rounded-xl bg-surface border border-border-default shadow-raised focus:outline-none p-1',
           width,
-          align === 'right' ? 'right-0 origin-top-right' : 'left-0 origin-top-left',
+          // The offset and the transform origin travel together: a drop-up has
+          // to grow from its bottom edge or the scale-95 transition reads as
+          // the panel sliding out of the trigger backwards.
+          placement === 'top' ? 'bottom-full mb-2' : 'mt-2',
+          align === 'right'
+            ? (placement === 'top' ? 'right-0 origin-bottom-right' : 'right-0 origin-top-right')
+            : (placement === 'top' ? 'left-0 origin-bottom-left' : 'left-0 origin-top-left'),
         ]"
       >
         <template v-for="(item, idx) in items" :key="idx">
@@ -61,7 +77,12 @@ function itemColorClass(danger, active) {
               @click="item.onClick && item.onClick($event)"
             >
               <component v-if="item.icon" :is="item.icon" class="w-4 h-4 flex-shrink-0" />
-              <span class="flex-1">{{ item.label }}</span>
+              <span class="flex-1 min-w-0">
+                <span class="block">{{ item.label }}</span>
+                <span v-if="item.description" class="block text-xs text-text-muted mt-0.5">
+                  {{ item.description }}
+                </span>
+              </span>
             </component>
           </MenuItem>
         </template>

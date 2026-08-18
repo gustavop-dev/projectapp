@@ -1093,6 +1093,30 @@ class HostingCycleCreateSerializer(serializers.Serializer):
 
 # ── Pocket ──
 
+def allocation_entries(movement):
+    """Per-income breakdown of an abono: how much of this movement went where.
+
+    One entry for ordinary linked movements, [] when unlinked, so the panel
+    renders a single structure either way.
+
+    Module-level and not a serializer method because two serializers render it
+    — the pocket ledger row and the income detail's settlement history — and
+    the panel's PocketMovementAllocationsModal reads the result verbatim from
+    either side. One owner of the shape is what keeps them from drifting.
+
+    Reads `income_children`, which memoizes and reuses the caller's prefetch.
+    """
+    return [
+        {
+            'income_id': child.pk,
+            'expected_income_id': child.expected_income_id,
+            'concept': child.concept,
+            'amount': str(child.total_amount),
+        }
+        for child in movement.income_children
+    ]
+
+
 class PocketMovementSerializer(serializers.ModelSerializer):
     direction_label = serializers.CharField(
         source='get_direction_display', read_only=True,
@@ -1137,18 +1161,58 @@ class PocketMovementSerializer(serializers.ModelSerializer):
         return obj.attribution
 
     def get_allocations(self, obj):
-        """Per-income breakdown of an abono: how much of this movement went
-        where. One entry for ordinary linked movements, [] when unlinked, so
-        the panel renders a single structure either way."""
-        return [
-            {
-                'income_id': child.pk,
-                'expected_income_id': child.expected_income_id,
-                'concept': child.concept,
-                'amount': str(child.total_amount),
-            }
-            for child in obj.income_children
-        ]
+        return allocation_entries(obj)
+
+
+class SettlementMovementSerializer(serializers.ModelSerializer):
+    """The pocket movement as the income detail needs to name it.
+
+    Deliberately NOT `PocketMovementSerializer`: that one carries
+    `linked_expense_id` and `linked_ledger`, which read the reverse OneToOne
+    `expense_record` — a query per row, for a join that is structurally always
+    NULL on an incoming movement. This one never touches it.
+
+    The field names are chosen so the payload drops straight into the panel's
+    PocketMovementAllocationsModal, which is what lets the income detail reuse
+    that modal with no adapter and no second fetch.
+    """
+
+    # The model owns what makes a movement an abono; mirroring the rule here
+    # would let the two answers drift.
+    is_shared = serializers.ReadOnlyField()
+    allocation_count = serializers.SerializerMethodField()
+    allocations = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PocketMovement
+        fields = (
+            'id', 'concept', 'movement_date', 'amount',
+            'is_shared', 'allocation_count', 'allocations',
+        )
+
+    def get_allocation_count(self, obj):
+        return len(obj.income_children)
+
+    def get_allocations(self, obj):
+        return allocation_entries(obj)
+
+
+# ── Income ↔ Pocket bridge ──
+
+class LiquidSettlementSerializer(IncomeRecordSerializer):
+    """A liquid child plus the pocket movement that paid it.
+
+    Only the income DETAIL endpoint uses this. `IncomeRecordSerializer` itself
+    stays lean on purpose: it is shared with the paginated list, the
+    create/update responses and the MCP get_income handler, none of which
+    select_related the movement — nesting it there would cost two queries per
+    liquid row on every list page to answer a question only the detail asks.
+    """
+
+    movement = SettlementMovementSerializer(source='pocket_movement', read_only=True)
+
+    class Meta(IncomeRecordSerializer.Meta):
+        fields = IncomeRecordSerializer.Meta.fields + ('movement',)
 
 
 class PocketMovementCreateUpdateSerializer(serializers.ModelSerializer):

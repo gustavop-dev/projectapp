@@ -1,18 +1,37 @@
 import { mount, flushPromises } from '@vue/test-utils';
+
+// Mock Headless UI the way BaseDropdown.spec does: the stubbed MenuItems
+// renders unconditionally, so the actions are queryable without driving the
+// focus machinery — while the REAL BaseDropdown still maps our items, so the
+// danger class, the disabled attribute and the reason line stay under test.
+jest.mock('@headlessui/vue', () => ({
+  Menu: { name: 'Menu', props: ['as'], template: '<div class="hl-menu"><slot /></div>' },
+  MenuButton: {
+    name: 'MenuButton',
+    props: ['as'],
+    template: '<div class="hl-menu-button"><slot /></div>',
+  },
+  MenuItems: { name: 'MenuItems', template: '<div class="hl-menu-items"><slot /></div>' },
+  MenuItem: {
+    name: 'MenuItem',
+    props: ['disabled'],
+    template: '<div class="hl-menu-item"><slot :active="false" :disabled="disabled || false" /></div>',
+  },
+}));
+
 import BulkAssignBar from '../../../components/accounting/BulkAssignBar.vue';
 
-const ClientAutocompleteStub = {
-  name: 'ClientAutocomplete',
-  props: ['modelValue', 'testId', 'placeholder', 'showLinkedHint'],
-  emits: ['update:modelValue', 'select'],
-  template: '<div data-testid="client-autocomplete-stub" />',
+const NuxtLink = {
+  name: 'NuxtLink',
+  props: ['to'],
+  template: '<a class="nuxt-link"><slot /></a>',
 };
 
-const ProjectCatalogSelectStub = {
-  name: 'ProjectCatalogSelect',
-  props: ['modelValue', 'testId', 'placeholder'],
-  emits: ['update:modelValue', 'select'],
-  template: '<div data-testid="project-catalog-select-stub" />',
+const BulkAssignModalStub = {
+  name: 'BulkAssignModal',
+  props: ['open', 'target', 'rows', 'selectedIds', 'entity', 'recordLabel', 'testidPrefix', 'busy'],
+  emits: ['close', 'submit'],
+  template: '<div v-if="open" data-testid="assign-modal-stub">{{ target }}</div>',
 };
 
 const ENTITY = { singular: 'hosting', plural: 'hostings' };
@@ -43,9 +62,9 @@ function mountBar(props = {}) {
       ...props,
     },
     global: {
+      components: { NuxtLink },
       stubs: {
-        ClientAutocomplete: ClientAutocompleteStub,
-        ProjectCatalogSelect: ProjectCatalogSelectStub,
+        BulkAssignModal: BulkAssignModalStub,
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
@@ -57,11 +76,20 @@ function mountBar(props = {}) {
   });
 }
 
-/** Pick a client the way ClientAutocomplete does: id via v-model, then `select`. */
-async function pickClient(wrapper, client = { id: 5, name: 'Ana Pérez' }) {
-  const picker = wrapper.findComponent(ClientAutocompleteStub);
-  await picker.vm.$emit('update:modelValue', client.id);
-  await picker.vm.$emit('select', client);
+/** The menu's actions, as the operator reads them. */
+const actionLabels = (wrapper) => wrapper
+  .findAll('.hl-menu-item')
+  .map((item) => item.text());
+
+const action = (wrapper, label) => wrapper
+  .findAll('.hl-menu-item')
+  .find((item) => item.text().includes(label));
+
+/** Whether the menu offers `label` at all. */
+const offers = (wrapper, label) => Boolean(action(wrapper, label));
+
+async function runAction(wrapper, label) {
+  await action(wrapper, label).find('button').trigger('click');
   await flushPromises();
 }
 
@@ -70,147 +98,95 @@ async function confirm(wrapper) {
   await flushPromises();
 }
 
-describe('BulkAssignBar — the two actions are separate', () => {
-  it('keeps Asignar disabled with the reason on screen until a client is picked', async () => {
+describe('BulkAssignBar — one control, and what hangs off it', () => {
+  it('collapses the whole bar into a count and a single actions trigger', () => {
     const wrapper = mountBar();
 
-    expect(wrapper.find('[data-testid="hostings-bulk-assign"]').attributes('disabled'))
-      .toBeDefined();
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Elige un cliente para poder asignar');
-
-    await pickClient(wrapper);
-
-    expect(wrapper.find('[data-testid="hostings-bulk-assign"]').attributes('disabled'))
-      .toBeUndefined();
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Cliente enlazado: Ana Pérez (#5)');
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
+    expect(wrapper.find('[data-testid="hostings-bulk-actions"]').exists()).toBe(true);
+    // Nothing else is laid out: the picker and the four action buttons moved.
+    expect(wrapper.find('[data-testid="hostings-bulk-target"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hostings-bulk-client"]').exists()).toBe(false);
   });
 
-  it('blocks Asignar and says why when every selected row already has that client', async () => {
-    const wrapper = mountBar({ selected: [3] });
+  it('shuts the trigger while a mutation is in flight', () => {
+    const wrapper = mountBar({ busy: true });
 
-    await pickClient(wrapper, { id: 7, name: 'Kore SAS' });
-
-    expect(wrapper.find('[data-testid="hostings-bulk-assign"]').attributes('disabled'))
-      .toBeDefined();
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Todo lo seleccionado ya tiene a Kore SAS');
+    expect(wrapper.find('[data-testid="hostings-bulk-actions"]').element.disabled)
+      .toBe(true);
   });
 
+  it('opens the assign modal on the target the chosen action names', async () => {
+    const wrapper = mountBar({ projectEnabled: true });
+    expect(wrapper.find('[data-testid="assign-modal-stub"]').exists()).toBe(false);
+
+    await runAction(wrapper, 'Asignar proyecto');
+
+    expect(wrapper.find('[data-testid="assign-modal-stub"]').text()).toBe('project');
+  });
+
+  it('routes what the modal submits to the emit its target belongs to', async () => {
+    const wrapper = mountBar({ projectEnabled: true });
+    const modal = wrapper.findComponent(BulkAssignModalStub);
+
+    await modal.vm.$emit('submit', { ids: [1], client: 5, mode: 'assign', plan: {} });
+    await modal.vm.$emit('submit', { ids: [3], project: 40, mode: 'assign', plan: {} });
+
+    expect(wrapper.emitted('submit')[0][0].client).toBe(5);
+    expect(wrapper.emitted('submit-project')[0][0].project).toBe(40);
+  });
+});
+
+describe('BulkAssignBar — the menu only offers what the selection allows', () => {
   it('hides Desvincular when nothing selected has a client to lose', () => {
     const wrapper = mountBar({ selected: [1, 2] });
 
-    expect(wrapper.find('[data-testid="hostings-bulk-unlink"]').exists()).toBe(false);
+    expect(offers(wrapper, 'Desvincular cliente')).toBe(false);
+    expect(offers(wrapper, 'Asignar cliente')).toBe(true);
   });
 
   it('shows Desvincular as soon as a selected row is linked', () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
-    expect(wrapper.find('[data-testid="hostings-bulk-unlink"]').exists()).toBe(true);
-  });
-});
-
-describe('BulkAssignBar — the row holds its line', () => {
-  // El hint del picker crecía DENTRO de la celda del flex y, con
-  // `sm:items-center`, re-centraba la fila entera: el input subía y los
-  // botones se quedaban abajo. La barra dibuja esa línea ella misma, fuera
-  // de la fila, y le pide al picker que no dibuje la suya.
-  it('confirms the linked client in its own line, not inside the picker', async () => {
-    const wrapper = mountBar({ selected: [1] });
-
-    await pickClient(wrapper);
-
-    expect(wrapper.findComponent(ClientAutocompleteStub).props('showLinkedHint'))
-      .toBe(false);
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Cliente enlazado: Ana Pérez (#5)');
+    expect(offers(wrapper, 'Desvincular cliente')).toBe(true);
   });
 
-  // El salto reportado ocurría justo acá: al elegir y al limpiar. Si la línea
-  // pudiera quedar vacía en cualquiera de los dos extremos, la barra cambiaría
-  // de alto — así que el ciclo completo tiene que dejarla siempre con texto.
-  it('keeps the status line populated through picking and clearing a client', async () => {
-    const wrapper = mountBar({ selected: [1] });
-    const hint = () => wrapper.find('[data-testid="hostings-bulk-hint"]');
-
-    expect(hint().text()).toContain('Elige un cliente para poder asignar');
-
-    await pickClient(wrapper);
-    expect(hint().text()).toContain('Cliente enlazado: Ana Pérez (#5)');
-
-    // Desvincular (la X del picker) suelta el id sin re-emitir `select`.
-    // Escribir encima ya NO lo suelta: buscar no es desvincular.
-    await wrapper.findComponent(ClientAutocompleteStub).vm.$emit('update:modelValue', null);
-    await flushPromises();
-    expect(hint().text()).toContain('Elige un cliente para poder asignar');
-  });
-
-  // Sin fondo el botón se leía como texto plano y sólo aparecía al pasar el
-  // cursor: una acción destructiva no puede depender del hover para existir.
-  it('gives Desvincular a destructive background of its own', () => {
+  it('paints Desvincular as the destructive action it is', () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
-    expect(wrapper.find('[data-testid="hostings-bulk-unlink"]').classes())
-      .toContain('bg-danger-strong');
+    expect(action(wrapper, 'Desvincular cliente').find('button').classes())
+      .toContain('text-danger-strong');
+  });
+
+  it('offers the project actions only where the page enables them', () => {
+    expect(offers(mountBar(), 'Asignar proyecto')).toBe(false);
+    expect(offers(mountBar({ projectEnabled: true }), 'Asignar proyecto')).toBe(true);
+  });
+
+  it('offers Quitar proyecto only when the selection has one to lose', () => {
+    const withProject = mountBar({ projectEnabled: true, selected: [4] });
+    const without = mountBar({ projectEnabled: true, selected: [3] });
+
+    expect(offers(withProject, 'Quitar proyecto')).toBe(true);
+    expect(offers(without, 'Quitar proyecto')).toBe(false);
+  });
+
+  it('never renders a divider with nothing under it', () => {
+    // Hostings enables projects but NOT the abono, and this selection has
+    // nothing to unlink — so the menu is two entries and no separators.
+    const wrapper = mountBar({ projectEnabled: true, selected: [1, 2] });
+
+    expect(actionLabels(wrapper)).toEqual(['Asignar cliente', 'Asignar proyecto']);
+    expect(wrapper.findAll('.border-t.border-border-muted')).toHaveLength(0);
   });
 });
 
 describe('BulkAssignBar — nothing runs without confirmation', () => {
-  it('breaks a mixed selection into its two halves instead of one flat count', async () => {
-    const wrapper = mountBar({ selected: [1, 2, 3] });
-    await pickClient(wrapper);
-
-    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
-    await flushPromises();
-
-    expect(wrapper.find('[data-testid="modal"]').text())
-      .toContain('Se asignará Ana Pérez a 3 hostings: 2 sin cliente y 1 que cambia de cliente');
-    expect(wrapper.find('[data-testid="client-bulk-summary-assign"]').text())
-      .toBe('2 sin cliente pasan a Ana Pérez');
-    expect(wrapper.find('[data-testid="client-bulk-summary-reassign"]').text())
-      .toBe('1 cambia de cliente a Ana Pérez');
-  });
-
-  it('names every affected record and writes nothing until the operator confirms', async () => {
-    const wrapper = mountBar({ selected: [1, 2, 3] });
-    await pickClient(wrapper);
-
-    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
-    await flushPromises();
-
-    // A mass edit has to show its scope, not just its size.
-    expect(wrapper.find('[data-testid="client-bulk-summary-list"]').text())
-      .toContain('kore.com.co');
-    expect(wrapper.find('[data-testid="client-bulk-summary-list"]').text())
-      .toContain('tuhuella.co');
-    expect(wrapper.emitted('submit')).toBeUndefined();
-
-    await confirm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0]).toMatchObject({
-      ids: [1, 2, 3],
-      client: 5,
-      mode: 'assign',
-    });
-  });
-
-  it('leaves the rows already on the target out of the payload', async () => {
-    const wrapper = mountBar({ selected: [1, 3] });
-    await pickClient(wrapper, { id: 7, name: 'Kore SAS' });
-
-    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
-    await flushPromises();
-    await confirm(wrapper);
-
-    expect(wrapper.emitted('submit')[0][0].ids).toEqual([1]);
-  });
-
   it('names the client the rows are being taken from before unlinking', async () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
-    await wrapper.find('[data-testid="hostings-bulk-unlink"]').trigger('click');
-    await flushPromises();
+    await runAction(wrapper, 'Desvincular cliente');
 
     expect(wrapper.find('[data-testid="modal"]').text())
       .toContain('1 hosting quedará sin cliente: 1 de Kore SAS.');
@@ -232,151 +208,20 @@ describe('BulkAssignBar — nothing runs without confirmation', () => {
   it('emits nothing when the confirmation is cancelled', async () => {
     const wrapper = mountBar({ selected: [1, 3] });
 
-    await wrapper.find('[data-testid="hostings-bulk-unlink"]').trigger('click');
-    await flushPromises();
+    await runAction(wrapper, 'Desvincular cliente');
     await wrapper.findAll('button').find((b) => b.text() === 'Cancelar').trigger('click');
     await flushPromises();
 
-    expect(wrapper.emitted('submit')).toBeUndefined();
-  });
-});
-
-describe('BulkAssignBar — selection plumbing', () => {
-  it('hands the parent every filtered id when asked to select them all', async () => {
-    const wrapper = mountBar({ selected: [1] });
-
-    await wrapper.find('[data-testid="hostings-select-all-filtered"]').trigger('click');
-
-    expect(wrapper.emitted('update:selected')[0][0]).toEqual([1, 2, 3]);
+    expect(wrapper.emitted('submit') ?? []).toHaveLength(0);
+    // Backing out leaves the selection exactly where it was, ready to retry.
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
   });
 
-  it('drops the offer once everything filtered is already selected', () => {
-    const wrapper = mountBar({ selected: [1, 2, 3] });
-
-    expect(wrapper.find('[data-testid="hostings-select-all-filtered"]').exists()).toBe(false);
-  });
-
-  it('forgets the picked client when the parent clears the selection', async () => {
-    const wrapper = mountBar({ selected: [1] });
-    await pickClient(wrapper);
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Cliente enlazado');
-
-    await wrapper.setProps({ selected: [] });
-    await wrapper.setProps({ selected: [1] });
-
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Elige un cliente para poder asignar');
-  });
-
-  // The selection survives a filter change and the action still runs on all of
-  // it, so the count alone would disagree with what the table is showing.
-  it('flags the selected rows the active filter no longer shows', () => {
-    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
-
-    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
-      .toContain('1 fuera del filtro actual');
-  });
-
-  it('says nothing about the filter while the whole selection passes it', () => {
-    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1, 2, 3] });
-
-    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
-  });
-});
-
-const PROJECT = {
-  id: 40,
-  name: 'Kore Web',
-  status: 'active',
-  status_label: 'Activo',
-  client: { profile_id: 7, name: 'Kore SAS' },
-};
-
-async function switchToProject(wrapper) {
-  await wrapper
-    .find('[data-testid="hostings-bulk-target"]')
-    .findAll('button')
-    .find((button) => button.text() === 'Proyecto')
-    .trigger('click');
-  await flushPromises();
-}
-
-/** Pick a project the way ProjectCatalogSelect does: id, then the full row. */
-async function pickProject(wrapper, project = PROJECT) {
-  const picker = wrapper.findComponent(ProjectCatalogSelectStub);
-  await picker.vm.$emit('update:modelValue', project.id);
-  await picker.vm.$emit('select', project);
-  await flushPromises();
-}
-
-describe('BulkAssignBar — the Proyecto target', () => {
-  it('offers the toggle only where the page enables it', () => {
-    expect(mountBar().find('[data-testid="hostings-bulk-target"]').exists())
-      .toBe(false);
-    expect(
-      mountBar({ projectEnabled: true })
-        .find('[data-testid="hostings-bulk-target"]').exists(),
-    ).toBe(true);
-  });
-
-  it('switching targets swaps the picker and keeps the status line talking', async () => {
+  it('clears the project of the rows that have one, and only those', async () => {
     const wrapper = mountBar({ projectEnabled: true, selected: [3, 4] });
 
-    await switchToProject(wrapper);
-
-    expect(wrapper.findComponent(ProjectCatalogSelectStub).exists()).toBe(true);
-    expect(wrapper.findComponent(ClientAutocompleteStub).exists()).toBe(false);
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('Elige un proyecto para poder asignar');
-  });
-
-  it('confirms against the plan and leaves the foreign-client rows out', async () => {
-    const wrapper = mountBar({ projectEnabled: true, selected: [1, 3, 4] });
-    await switchToProject(wrapper);
-    await pickProject(wrapper);
-
-    await wrapper.find('[data-testid="hostings-bulk-assign-project"]').trigger('click');
-    await flushPromises();
-
-    // Row 1 has no client: named apart, never in the payload.
-    expect(wrapper.find('[data-testid="project-bulk-summary-blocked"]').text())
-      .toContain('kore.com.co');
-    expect(wrapper.find('[data-testid="project-bulk-summary-list"]').text())
-      .toContain('Vieja Web');
-    expect(wrapper.emitted('submit-project')).toBeUndefined();
-
-    await confirm(wrapper);
-
-    expect(wrapper.emitted('submit-project')[0][0]).toMatchObject({
-      ids: [3, 4],
-      project: 40,
-      mode: 'assign',
-    });
-  });
-
-  it('blocks Asignar with the ownership reason when nothing can change', async () => {
-    const wrapper = mountBar({ projectEnabled: true, selected: [1, 2] });
-    await switchToProject(wrapper);
-    await pickProject(wrapper);
-
-    expect(
-      wrapper.find('[data-testid="hostings-bulk-assign-project"]').attributes('disabled'),
-    ).toBeDefined();
-    expect(wrapper.find('[data-testid="hostings-bulk-hint"]').text())
-      .toContain('pertenece a otro cliente');
-  });
-
-  it('offers Quitar proyecto only when the selection has one to lose', async () => {
-    const without = mountBar({ projectEnabled: true, selected: [1, 3] });
-    await switchToProject(without);
-    expect(without.find('[data-testid="hostings-bulk-unlink-project"]').exists())
-      .toBe(false);
-
-    const wrapper = mountBar({ projectEnabled: true, selected: [4] });
-    await switchToProject(wrapper);
-    await wrapper.find('[data-testid="hostings-bulk-unlink-project"]').trigger('click');
-    await flushPromises();
+    await runAction(wrapper, 'Quitar proyecto');
     await confirm(wrapper);
 
     expect(wrapper.emitted('submit-project')[0][0]).toMatchObject({
@@ -387,128 +232,132 @@ describe('BulkAssignBar — the Proyecto target', () => {
   });
 });
 
-/**
- * A record can leave the selection two ways, and the bar must not confuse
- * them: the filters can stop showing it (kept, and announced) or it can stop
- * existing (dropped by the page, and gone from every count). The page owns the
- * pruning — these pin what the bar does with the result of it.
- */
-describe('BulkAssignBar — a deleted record is not a filtered one', () => {
-  it('counts only what the page still holds once the deleted id is pruned', () => {
-    // Row 2 was deleted: gone from `rows`, gone from `filteredIds`, and the
-    // page has already dropped it from the selection.
-    const wrapper = mountBar({
-      rows: [ROWS[0], ROWS[2]],
-      selected: [1],
-      filteredIds: [1, 3],
-    });
+describe('BulkAssignBar — selection plumbing', () => {
+  it('hands the parent every filtered id when asked to select them all', async () => {
+    const wrapper = mountBar();
 
-    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
-      .toContain('1 seleccionado');
-    // The deleted row must not resurface as "fuera del filtro actual" — that
-    // notice is about records that still exist.
-    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+    await wrapper.find('[data-testid="hostings-select-all-filtered"]').trigger('click');
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([1, 2, 3]);
   });
 
-  it('leaves on its own when the pruning empties the selection', async () => {
-    const wrapper = mountBar({ selected: [1], filteredIds: [1] });
-    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(true);
+  it('drops the offer once everything filtered is already selected', () => {
+    const wrapper = mountBar({ selected: [1, 2, 3] });
 
-    await wrapper.setProps({ rows: [ROWS[2]], selected: [], filteredIds: [3] });
-
-    // No reload, no Cancelar.
-    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="hostings-select-all-filtered"]').exists())
+      .toBe(false);
   });
 
-  it('keeps a still-existing row that the filter hides, and says so', () => {
-    // Same shape as the case above, except row 2 was only filtered out. It
-    // stays selected and stays counted.
-    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1] });
+  it('flags the selected rows the active filter no longer shows', () => {
+    const wrapper = mountBar({ selected: [1, 4], filteredIds: [1, 2, 3] });
 
-    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
-      .toContain('2 seleccionados');
     expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
       .toContain('1 fuera del filtro actual');
   });
 
-  it('leaves a stale id out of the payload it submits', async () => {
-    // The safety net for the window the page cannot close: the confirmation
-    // freezes the plan when it opens, and a row can vanish while it is up.
-    const wrapper = mountBar({ selected: [1, 99] });
-    await pickClient(wrapper);
+  it('says nothing about the filter while the whole selection passes it', () => {
+    const wrapper = mountBar({ selected: [1, 2], filteredIds: [1, 2, 3] });
 
-    await wrapper.find('[data-testid="hostings-bulk-assign"]').trigger('click');
-    await flushPromises();
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').exists()).toBe(false);
+  });
+
+  it('hands back an empty selection when cancelled', async () => {
+    const wrapper = mountBar();
+
+    await wrapper.findAll('button').find((b) => b.text() === 'Cancelar').trigger('click');
+
+    expect(wrapper.emitted('update:selected')[0][0]).toEqual([]);
+  });
+});
+
+describe('BulkAssignBar — a deleted record is not a filtered one', () => {
+  it('counts only what the page still holds once the deleted id is pruned', () => {
+    const wrapper = mountBar({ selected: [1, 2], rows: ROWS.slice(0, 2) });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('2 seleccionados');
+  });
+
+  it('leaves on its own when the pruning empties the selection', async () => {
+    const wrapper = mountBar();
+
+    await wrapper.setProps({ selected: [] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').exists()).toBe(false);
+  });
+
+  it('keeps a still-existing row that the filter hides, and says so', () => {
+    const wrapper = mountBar({ selected: [4], filteredIds: [1, 2, 3] });
+
+    expect(wrapper.find('[data-testid="hostings-bulk-outside"]').text())
+      .toContain('1 fuera del filtro actual');
+    expect(wrapper.find('[data-testid="hostings-bulk-bar"]').text())
+      .toContain('1 seleccionado');
+  });
+
+  it('leaves a stale id out of the payload it submits', async () => {
+    // id 9 was deleted elsewhere; the plan resolves ids against `rows`.
+    const wrapper = mountBar({ selected: [3, 9] });
+
+    await runAction(wrapper, 'Desvincular cliente');
     await confirm(wrapper);
 
-    expect(wrapper.emitted('submit')[0][0].ids).toEqual([1]);
+    expect(wrapper.emitted('submit')[0][0].ids).toEqual([3]);
   });
 });
 
 describe('BulkAssignBar — Registrar abono behind settleEnabled', () => {
   const INCOME_ROWS = [
     {
-      id: 11, kind: 'expected', ledger: 'company', client: 7,
-      pending_amount: '500000.00', period_date: '2026-05-01',
-      client_display_name: 'Kore SAS', domain_url: 'a.com',
+      id: 11, kind: 'expected', ledger: 'company',
+      pending_amount: '500000.00', client: 5, concept: 'Kore - Fase 2',
     },
     {
-      id: 12, kind: 'expected', ledger: 'company', client: 7,
-      pending_amount: '300000.00', period_date: '2026-06-01',
-      client_display_name: 'Kore SAS', domain_url: 'b.com',
+      id: 12, kind: 'expected', ledger: 'company',
+      pending_amount: '0.00', client: 5, concept: 'Kore - Fase 1',
     },
     {
-      id: 13, kind: 'liquid', ledger: 'company', client: 7,
-      pending_amount: null, period_date: '2026-06-10',
-      client_display_name: 'Kore SAS', domain_url: 'c.com',
-    },
-    {
-      id: 14, kind: 'expected', ledger: 'company', client: 7,
-      pending_amount: '0.00', period_date: '2026-04-01',
-      client_display_name: 'Kore SAS', domain_url: 'd.com',
+      id: 13, kind: 'liquid', ledger: 'company',
+      pending_amount: null, client: 5, concept: 'Kore - abono',
     },
   ];
 
-  it('offers the button only behind the prop, so Hostings stays untouched', () => {
-    const withoutProp = mountBar();
-    expect(withoutProp.find('[data-testid="hostings-bulk-settle"]').exists())
-      .toBe(false);
+  function mountIncomes(props = {}) {
+    return mountBar({
+      rows: INCOME_ROWS,
+      selected: [11, 12],
+      filteredIds: [11, 12, 13],
+      entity: { singular: 'ingreso', plural: 'ingresos' },
+      testidPrefix: 'incomes',
+      recordLabel: (row) => row.concept,
+      settleEnabled: true,
+      ...props,
+    });
+  }
 
-    const withProp = mountBar({ settleEnabled: true });
-    expect(withProp.find('[data-testid="hostings-bulk-settle"]').exists())
-      .toBe(true);
+  it('offers the action only behind the prop, so Hostings stays untouched', () => {
+    expect(offers(mountIncomes(), 'Registrar abono')).toBe(true);
+    expect(offers(mountBar(), 'Registrar abono')).toBe(false);
   });
 
   it('emits submit-settle with only the eligible ids and the excluded count', async () => {
-    const wrapper = mountBar({
-      settleEnabled: true,
-      rows: INCOME_ROWS,
-      selected: [11, 12, 13, 14],
-      filteredIds: [11, 12, 13, 14],
-    });
+    const wrapper = mountIncomes({ selected: [11, 12, 13] });
 
-    await wrapper.find('[data-testid="hostings-bulk-settle"]').trigger('click');
+    await runAction(wrapper, 'Registrar abono');
 
     expect(wrapper.emitted('submit-settle')[0][0]).toEqual({
-      ids: [11, 12],
+      ids: [11],
       excludedCount: 2,
     });
   });
 
-  it('disables the abono and appends the reason to the single status line', () => {
-    // Only the liquid and the fully paid rows are selected: nothing to abonar.
-    const wrapper = mountBar({
-      settleEnabled: true,
-      rows: INCOME_ROWS,
-      selected: [13, 14],
-      filteredIds: [11, 12, 13, 14],
-    });
+  it('goes dead with its reason on the item when nothing can take an abono', () => {
+    const wrapper = mountIncomes({ selected: [12, 13] });
+    const item = action(wrapper, 'Registrar abono');
 
-    expect(
-      wrapper.find('[data-testid="hostings-bulk-settle"]').element.disabled,
-    ).toBe(true);
-    const hint = wrapper.find('[data-testid="hostings-bulk-hint"]').text();
-    expect(hint).toContain('Elige un cliente para poder asignar.');
-    expect(hint).toContain('Para abonar se necesitan esperados con saldo pendiente.');
+    expect(item.find('button').element.disabled).toBe(true);
+    // The reason rides on the item itself: a disabled Headless UI MenuItem
+    // takes no focus and swallows the pointer, so a tooltip is unreachable.
+    expect(item.text()).toContain('Para abonar se necesitan esperados con saldo pendiente.');
   });
 });

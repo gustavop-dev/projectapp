@@ -14,6 +14,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { bulkAction, bulkMenuItem, openBulkMenu } from '../helpers/bulk-actions.js';
 import {
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
   ADMIN_ACCOUNTING_INCOME_CLIENT,
@@ -1351,19 +1352,16 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await page.getByTestId('accounting-select-2').check();
     await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
 
+    await bulkAction(page, 'incomes', 'Asignar cliente');
     await page.getByTestId('incomes-bulk-client').fill('Ana');
     await page.getByTestId('client-autocomplete-option-5').click();
-    await page.getByTestId('incomes-bulk-assign').click();
 
     // Nothing is written until the operator sees what the mass edit touches.
-    await expect(page.getByRole('dialog')).toContainText(
-      'Se asignará Ana Pérez a 2 ingresos sin cliente.',
-    );
     await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Inicio 40%');
     await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Entrega 30%');
     expect(calls.some((c) => c.apiPath === 'accounting/incomes/bulk-assign-client/')).toBe(false);
 
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('incomes-bulk-assign').click();
 
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
     await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
@@ -1384,12 +1382,17 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
 
     await page.getByTestId('accounting-select-1').check();
 
+    // Nothing selected has a client, so the menu does not offer to unlink one
+    // — and the menu has to be OPEN for that absence to mean anything.
+    await openBulkMenu(page, 'incomes');
+    await expect(bulkMenuItem(page, 'Desvincular cliente')).toHaveCount(0);
+    await bulkMenuItem(page, 'Asignar cliente').click();
+
     // An empty picker no longer means "unlink": the action is simply off.
     await expect(page.getByTestId('incomes-bulk-assign')).toBeDisabled();
     await expect(page.getByTestId('incomes-bulk-hint')).toContainText(
       'Elige un cliente para poder asignar',
     );
-    await expect(page.getByTestId('incomes-bulk-unlink')).toHaveCount(0);
   });
 
   test('unlinking is its own action and names the client the rows are leaving', {
@@ -1407,7 +1410,7 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
 
     await page.getByTestId('accounting-select-1').check();
     await page.getByTestId('accounting-select-2').check();
-    await page.getByTestId('incomes-bulk-unlink').click();
+    await bulkAction(page, 'incomes', 'Desvincular cliente');
 
     await expect(page.getByRole('dialog')).toContainText(
       '1 ingreso quedará sin cliente: 1 de Ana Pérez.',
@@ -1551,11 +1554,11 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
 
     await page.getByTestId('accounting-select-1').check();
     await page.getByTestId('accounting-select-2').check();
+    await bulkAction(page, 'incomes', 'Asignar cliente');
     await page.getByTestId('incomes-bulk-client').fill('Ana');
     await page.getByTestId('client-autocomplete-option-5').click();
-    await page.getByTestId('incomes-bulk-assign').click();
     const fetchesBefore = listFetches.count;
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('incomes-bulk-assign').click();
 
     await expect(page.getByText('1 de los ingresos seleccionados ya no existe.'))
       .toBeVisible();
@@ -1669,13 +1672,13 @@ test.describe('Admin Accounting Incomes — vista agrupada por cliente', () => {
     // The row that already has a client is in another group and stays out.
     await expect(page.getByTestId('accounting-select-1')).not.toBeChecked();
 
+    await bulkAction(page, 'incomes', 'Asignar cliente');
     await page.getByTestId('incomes-bulk-client').fill('Ana');
     await page.getByTestId('client-autocomplete-option-5').click();
-    await page.getByTestId('incomes-bulk-assign').click();
-    await expect(page.getByRole('dialog')).toContainText(
-      'Se asignará Ana Pérez a 2 ingresos sin cliente.',
+    await expect(page.getByTestId('incomes-bulk-hint')).toContainText(
+      'Cliente enlazado: Ana Pérez',
     );
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('incomes-bulk-assign').click();
 
     // The completion path closes: the bucket the grouping exposed is empty.
     await expect(page.getByTestId('income-group-none')).toHaveCount(0);

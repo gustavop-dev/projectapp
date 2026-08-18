@@ -2,7 +2,7 @@
  * E2E tests for the bulk PROJECT target of the accounting assign bar.
  *
  * FLOWS: admin-accounting-project-bulk-assign
- * Covers: the Cliente|Proyecto toggle on the hostings bulk bar; the
+ * Covers: Asignar proyecto reached from the hostings actions menu; the
  *         catalog-wide project picker; the confirmation that names the
  *         foreign-client rows the action refuses to touch (they never
  *         travel); the in-place row update without a reload; the disabled
@@ -12,6 +12,7 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { bulkAction, bulkMenuItem, openBulkMenu } from '../helpers/bulk-actions.js';
 import { ADMIN_ACCOUNTING_PROJECT_BULK_ASSIGN } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -163,19 +164,19 @@ test.describe('Admin Accounting — bulk project assignment', () => {
     await page.getByTestId('accounting-select-3').check();
     await expect(page.getByTestId('hostings-bulk-bar')).toContainText('3 seleccionados');
 
-    await page.getByTestId('hostings-bulk-target').getByRole('tab', { name: 'Proyecto' }).click();
+    await bulkAction(page, 'hostings', 'Asignar proyecto');
     await page.getByTestId('hostings-bulk-project').click();
     await page.getByTestId('hostings-bulk-project-option-40').click();
-    await page.getByTestId('hostings-bulk-assign-project').click();
 
     // The mass edit shows its exact scope first: what moves, and what the
-    // ownership rule refuses to touch.
+    // ownership rule refuses to touch. The plan is live in the modal now, so
+    // it is on screen BEFORE the confirm rather than behind it.
     await expect(page.getByTestId('project-bulk-summary-blocked')).toContainText('otro.com');
     await expect(page.getByTestId('project-bulk-summary-list')).toContainText('korehealths.com');
     await expect(page.getByTestId('project-bulk-summary-list')).toContainText('Vieja Web');
     expect(calls).toHaveLength(0);
 
-    await page.getByTestId('confirm-modal-confirm').click();
+    await page.getByTestId('hostings-bulk-assign-project').click();
 
     await expect(page.getByTestId('accounting-row-1')).toContainText('Kore Web');
     await expect(page.getByTestId('hostings-bulk-bar')).toHaveCount(0);
@@ -189,13 +190,17 @@ test.describe('Admin Accounting — bulk project assignment', () => {
     await gotoHostings(page);
 
     await page.getByTestId('accounting-select-1').check();
-    await page.getByTestId('hostings-bulk-target').getByRole('tab', { name: 'Proyecto' }).click();
+
+    // Row 1 has no project, so the menu does not offer to remove one — and the
+    // menu has to be OPEN for that absence to mean anything.
+    await openBulkMenu(page, 'hostings');
+    await expect(bulkMenuItem(page, 'Quitar proyecto')).toHaveCount(0);
+    await bulkMenuItem(page, 'Asignar proyecto').click();
 
     await expect(page.getByTestId('hostings-bulk-assign-project')).toBeDisabled();
     await expect(page.getByTestId('hostings-bulk-hint')).toContainText(
       'Elige un proyecto para poder asignar',
     );
-    await expect(page.getByTestId('hostings-bulk-unlink-project')).toHaveCount(0);
   });
 
   test('Quitar proyecto is its own destructive action and clears the cell', {
@@ -206,9 +211,8 @@ test.describe('Admin Accounting — bulk project assignment', () => {
     await gotoHostings(page);
 
     await page.getByTestId('accounting-select-3').check();
-    await page.getByTestId('hostings-bulk-target').getByRole('tab', { name: 'Proyecto' }).click();
 
-    await page.getByTestId('hostings-bulk-unlink-project').click();
+    await bulkAction(page, 'hostings', 'Quitar proyecto');
     await expect(page.getByRole('dialog')).toContainText(
       '1 hosting quedará sin proyecto: 1 de Vieja Web.',
     );
