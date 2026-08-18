@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('accounts', '0050_pocket_attribution_filter_tabs'),
+        ('accounts', '0051_multi_value_filter_tabs'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
