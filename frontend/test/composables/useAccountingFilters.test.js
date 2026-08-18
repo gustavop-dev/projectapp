@@ -52,6 +52,9 @@ import {
   matchNumberRange,
   matchIncludes,
   matchEquals,
+  matchBooleanIncludes,
+  matchAnyToken,
+  coerceToDefaultShape,
 } from '~/composables/useAccountingFilters';
 
 const tabsStub = savedFilterTabsModule.__stub;
@@ -707,5 +710,79 @@ describe('filters in the URL', () => {
     // selectTab resets the filters, so both watchers fire in the same tick.
     expect(mockReplace).toHaveBeenCalledTimes(1);
     expect(mockReplace).toHaveBeenCalledWith({ query: {} });
+  });
+});
+
+describe('multi-value filter helpers', () => {
+  describe('matchBooleanIncludes', () => {
+    const match = matchBooleanIncludes('reminders_muted', 'muted');
+
+    it('is inactive with an empty selection', () => {
+      expect(match({ reminders_muted: true }, null, { muted: [] })).toBe(true);
+    });
+
+    it('cuts by one token', () => {
+      expect(match({ reminders_muted: true }, null, { muted: ['true'] })).toBe(true);
+      expect(match({ reminders_muted: false }, null, { muted: ['true'] })).toBe(false);
+    });
+
+    it('marking both tokens is the same as no cut', () => {
+      const both = { muted: ['true', 'false'] };
+      expect(match({ reminders_muted: true }, null, both)).toBe(true);
+      expect(match({ reminders_muted: false }, null, both)).toBe(true);
+    });
+  });
+
+  describe('matchAnyToken', () => {
+    const match = matchAnyToken('partner', {
+      gustavo: (r) => Number(r.gustavo_amount) > 0,
+      carlos: (r) => Number(r.carlos_amount) > 0,
+    });
+
+    it('unions the tokens instead of answering for the first one', () => {
+      const filters = { partner: ['gustavo', 'carlos'] };
+      expect(match({ gustavo_amount: 10, carlos_amount: 0 }, null, filters)).toBe(true);
+      expect(match({ gustavo_amount: 0, carlos_amount: 10 }, null, filters)).toBe(true);
+      expect(match({ gustavo_amount: 0, carlos_amount: 0 }, null, filters)).toBe(false);
+    });
+
+    it('counts a record once when several tokens hold at the same time', () => {
+      // Overlapping tokens are the point (an overdue account is also issued):
+      // the predicate answers yes, it does not answer twice.
+      const record = { gustavo_amount: 10, carlos_amount: 10 };
+      expect(match(record, null, { partner: ['gustavo', 'carlos'] })).toBe(true);
+    });
+
+    it('does not widen the cut on an unknown token', () => {
+      expect(match({ gustavo_amount: 10 }, null, { partner: ['nadie'] })).toBe(false);
+    });
+  });
+
+  describe('coerceToDefaultShape', () => {
+    const defaults = { kind: [], search: '', amountMin: '' };
+
+    it('wraps a scalar saved before the dimension went multi-valued', () => {
+      expect(coerceToDefaultShape({ kind: 'expected' }, defaults).kind)
+        .toEqual(['expected']);
+    });
+
+    it('reads an empty scalar as no cut, not as a cut on ""', () => {
+      expect(coerceToDefaultShape({ kind: '' }, defaults).kind).toEqual([]);
+    });
+
+    it('leaves arrays and unrelated keys alone', () => {
+      const out = coerceToDefaultShape(
+        { kind: ['liquid'], search: 'kore', amountMin: '10' }, defaults,
+      );
+      expect(out).toEqual({ kind: ['liquid'], search: 'kore', amountMin: '10' });
+    });
+
+    it('unwraps an array back to a scalar if a key ever moves back', () => {
+      expect(coerceToDefaultShape({ search: ['kore'] }, defaults).search).toBe('kore');
+    });
+
+    it('does not invent keys the stored dict never had', () => {
+      expect('kind' in coerceToDefaultShape({ search: 'x' }, defaults)).toBe(false);
+    });
   });
 });

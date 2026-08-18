@@ -129,7 +129,7 @@ const SAVED_TABS = [
   },
 ];
 
-function buildHandler({ tabs = [] } = {}) {
+function buildHandler({ tabs = [], rows = ROWS } = {}) {
   return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -153,7 +153,7 @@ function buildHandler({ tabs = [] } = {}) {
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ results: ROWS, meta: {} }),
+        body: JSON.stringify({ results: rows, meta: {} }),
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -205,6 +205,20 @@ function filterPanel(page) {
   return page.getByTestId('accounting-filter-panel');
 }
 
+/**
+ * One option of a filter dimension.
+ *
+ * The dimensions are checkable toggle groups (`role="group"` + `aria-pressed`),
+ * not tablists — several values of one dimension can be marked at once. Scoping
+ * by the group's accessible name is what keeps "Gustavo" the socio apart from
+ * "Personal Gustavo" the contabilidad, and from the saved tab of the same name.
+ */
+function filterOption(page, dimension, label) {
+  return filterPanel(page)
+    .getByRole('group', { name: dimension })
+    .getByRole('button', { name: label, exact: true });
+}
+
 test.describe('Admin Accounting Filters', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -249,11 +263,18 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('tab', { name: 'Gustavo', exact: true }).click();
+    await filterOption(page, 'Socio', 'Gustavo').click();
     await expect(visibleRows(page)).toHaveCount(3);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toHaveCount(0);
 
-    await page.getByRole('tab', { name: 'ProjectApp' }).click();
+    // Marking a second socio ADDS it — the dimension is checkable now, so
+    // clicking ProjectApp no longer silently replaces Gustavo.
+    await filterOption(page, 'Socio', 'ProjectApp').click();
+    await expect(visibleRows(page)).toHaveCount(4);
+    await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
+
+    // Unmarking Gustavo leaves ProjectApp's own cut behind.
+    await filterOption(page, 'Socio', 'Gustavo').click();
     await expect(visibleRows(page)).toHaveCount(1);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toBeVisible();
   });
@@ -267,7 +288,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('tab', { name: 'Sin pagos' }).click();
+    await filterOption(page, 'Cobro', 'Sin pagos').click();
 
     // Only the expected row without any settlement survives: the paid one
     // and both liquid rows drop out.
@@ -312,8 +333,8 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('tab', { name: 'Líquido' }).click();
-    await page.getByRole('tab', { name: 'Gustavo', exact: true }).click();
+    await filterOption(page, 'Tipo', 'Líquido').click();
+    await filterOption(page, 'Socio', 'Gustavo').click();
 
     await expect(page.getByRole('button', { name: /Filtros/ })).toContainText('2');
   });
@@ -324,7 +345,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await filterOption(page, 'Tipo', 'Líquido').click();
     await expect(visibleRows(page)).toHaveCount(2);
 
     await page.getByTestId('accounting-filter-reset').click();
@@ -359,7 +380,7 @@ test.describe('Admin Accounting Filters', () => {
     await expect(page.getByTestId('accounting-results-count')).toHaveText('4 resultados');
 
     await openFilterPanel(page);
-    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await filterOption(page, 'Tipo', 'Líquido').click();
     await expect(page.getByTestId('accounting-results-count')).toHaveText('2 resultados');
   });
 
@@ -369,7 +390,7 @@ test.describe('Admin Accounting Filters', () => {
     await gotoIncomes(page);
     await openFilterPanel(page);
 
-    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await filterOption(page, 'Tipo', 'Líquido').click();
     await expect(visibleRows(page)).toHaveCount(2);
 
     const chip = page.getByTestId('accounting-filter-chip');
@@ -438,5 +459,136 @@ test.describe('Admin Accounting Filters', () => {
 
     await expect(visibleRows(page)).toHaveCount(2);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toHaveCount(0);
+  });
+
+  // ── Selección múltiple dentro de una misma dimensión ──────────────────────
+  //
+  // El caso de la ficha: "Cobro" sólo admitía un valor, así que la vista de
+  // esperados por cobrar dejaba fuera a los parcialmente pagados. Un abono
+  // recién registrado desaparecía y parecía no haberse creado nunca.
+
+  const PARTIAL_ROWS = [
+    { ...ROWS[1] },
+    {
+      ...ROWS[1],
+      id: 9,
+      concept: 'Abonado a medias',
+      total_amount: '1000000.00',
+      paid_amount: '400000.00',
+      pending_amount: '600000.00',
+      payment_status: 'partial',
+      payment_status_label: 'Parcial',
+    },
+    { ...ROWS[0] },
+  ];
+
+  test('two values of one dimension show the union of both cuts', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (llegar a Ingresos por el subnav ya lo cubren
+    // las specs de navegación; ésta fija la selección múltiple en sí)
+    await gotoIncomes(page, { rows: PARTIAL_ROWS });
+    await openFilterPanel(page);
+
+    await filterOption(page, 'Cobro', 'Sin pagos').click();
+    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(page.getByText('Abonado a medias')).toHaveCount(0);
+
+    // Marking a second value ADDS to the cut instead of replacing it.
+    await filterOption(page, 'Cobro', 'Parcial').click();
+    await expect(visibleRows(page)).toHaveCount(2);
+    await expect(page.getByText('G&M Entrega No. 1 (Mayo)')).toBeVisible();
+    await expect(page.getByText('Abonado a medias')).toBeVisible();
+    // The one that IS collected stays out: the dimension still narrows.
+    await expect(page.getByText('Kore - Inicio 40%')).toHaveCount(0);
+
+    await expect(filterOption(page, 'Cobro', 'Sin pagos'))
+      .toHaveAttribute('aria-pressed', 'true');
+    await expect(filterOption(page, 'Cobro', 'Parcial'))
+      .toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('one chip lists both values and drops them one at a time', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (llegar a Ingresos por el subnav ya lo cubren
+    // las specs de navegación; ésta fija la selección múltiple en sí)
+    await gotoIncomes(page, { rows: PARTIAL_ROWS });
+    await openFilterPanel(page);
+    await filterOption(page, 'Cobro', 'Sin pagos').click();
+    await filterOption(page, 'Cobro', 'Parcial').click();
+
+    const chip = page.getByTestId('accounting-filter-chip');
+    await expect(chip).toHaveCount(1);
+    await expect(chip).toHaveText('Cobro: Sin pagos, Parcial');
+
+    // Quitar un valor no desarma la dimensión completa.
+    await page
+      .getByTestId('accounting-filter-chip-remove-paymentStatus-pending')
+      .click();
+    await expect(chip).toHaveText('Cobro: Parcial');
+    await expect(visibleRows(page)).toHaveCount(1);
+    await expect(page.getByText('Abonado a medias')).toBeVisible();
+  });
+
+  test('"Todos" clears the dimension instead of adding a value to it', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (llegar a Ingresos por el subnav ya lo cubren
+    // las specs de navegación; ésta fija la selección múltiple en sí)
+    await gotoIncomes(page, { rows: PARTIAL_ROWS });
+    await openFilterPanel(page);
+    await filterOption(page, 'Cobro', 'Sin pagos').click();
+    await filterOption(page, 'Cobro', 'Parcial').click();
+    await expect(visibleRows(page)).toHaveCount(2);
+
+    await filterOption(page, 'Cobro', 'Todos').click();
+    await expect(visibleRows(page)).toHaveCount(3);
+    await expect(page.getByTestId('accounting-filter-chip')).toHaveCount(0);
+  });
+
+  test('the multi-value cut survives being shared as a link', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (el enlace compartido ES la funcionalidad bajo
+    // prueba: llegar clicando ejercitaría el otro camino, no éste)
+    // quality: allow-no-interaction (el contrato es que la URL basta; tocar
+    // algo antes taparía justo lo que se quiere verificar)
+    // A saved filter is only worth having if it can be pasted to someone else.
+    await mockApi(page, buildHandler({ rows: PARTIAL_ROWS }));
+    await page.goto(
+      '/panel/accounting/incomes?accounting_incomeTab=all'
+      + '&paymentStatus=pending,partial',
+      { waitUntil: 'domcontentloaded' },
+    );
+    await expect(
+      page.getByRole('heading', { name: 'Ingresos', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await expect(visibleRows(page)).toHaveCount(2);
+    await expect(page.getByTestId('accounting-filter-chip'))
+      .toHaveText('Cobro: Sin pagos, Parcial');
+  });
+
+  test('the landing tab no longer hides a partially paid expected', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (la pestaña de aterrizaje se define por la ruta
+    // desnuda; entrar por el subnav no probaría el default que aquí importa)
+    // quality: allow-no-interaction (el defecto era lo que se ve AL LLEGAR: el
+    // parcial faltaba sin que nadie tocara un filtro)
+    // Sin `?...Tab=all`: se entra por donde entra el operador todos los días.
+    await mockApi(page, buildHandler({ rows: PARTIAL_ROWS }));
+    await page.goto(
+      '/panel/accounting/incomes',
+      { waitUntil: 'domcontentloaded' },
+    );
+    await expect(
+      page.getByRole('heading', { name: 'Ingresos', exact: true }),
+    ).toBeVisible({ timeout: 25_000 });
+
+    await expect(page.getByText('Abonado a medias')).toBeVisible();
+    await expect(page.getByText('G&M Entrega No. 1 (Mayo)')).toBeVisible();
+    await expect(page.getByText('Kore - Inicio 40%')).toHaveCount(0);
   });
 });

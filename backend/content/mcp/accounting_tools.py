@@ -558,15 +558,24 @@ def _list_schema(key):
                 + ', '.join(sorted(conditions)) + '.'
             ),
         }
+    # `string` rather than `enum` for both: they now take comma-separated
+    # tokens like the q_filters above, and `_str_params` would stringify a real
+    # list as "['a', 'b']".
     if config.get('has_split'):
-        props['partner'] = {'type': 'string', 'enum': ['gustavo', 'carlos', 'projectapp', 'all']}
+        props['partner'] = {
+            'type': 'string',
+            'description': (
+                'Uno o varios valores separados por coma: carlos, gustavo, '
+                "projectapp. 'all' no filtra."
+            ),
+        }
     if config.get('payment_status_filter'):
         props['payment_status'] = {
             'type': 'string',
-            'enum': ['pending', 'partial', 'paid'],
             'description': (
-                'Estado de cobro de un esperado: pending (sin pagos), '
-                'partial (pago parcial) o paid (pagado).'
+                'Estado de cobro de un esperado, uno o varios separados por '
+                'coma: pending (sin pagos), partial (pago parcial) o paid '
+                "(pagado). 'all' no filtra."
             ),
         }
     return {'type': 'object', 'properties': props}

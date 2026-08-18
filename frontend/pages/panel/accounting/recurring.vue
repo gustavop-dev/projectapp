@@ -388,8 +388,7 @@ import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useRecurringViewMode } from '~/composables/useRecurringViewMode';
 import {
   useAccountingFilters,
-  matchBoolean,
-  matchEquals,
+  matchBooleanIncludes,
   matchIncludes,
   matchNumberRange,
 } from '~/composables/useAccountingFilters';
@@ -437,20 +436,20 @@ const {
     category: [],
     frequency: [],
     payment_method: [],
-    currency: '',
-    cost_type: '',
+    currency: [],
+    cost_type: [],
     price_min: '',
     price_max: '',
-    is_active: '',
+    is_active: [],
   },
   matchers: {
     category: matchIncludes('category', 'category'),
     frequency: matchIncludes('frequency', 'frequency'),
     payment_method: matchIncludes('payment_method', 'payment_method'),
-    currency: matchEquals('currency', 'currency'),
-    cost_type: matchEquals('cost_type', 'cost_type'),
+    currency: matchIncludes('currency', 'currency'),
+    cost_type: matchIncludes('cost_type', 'cost_type'),
     priceRange: matchNumberRange('price', 'price_min', 'price_max'),
-    isActive: matchBoolean('is_active', 'is_active'),
+    isActive: matchBooleanIncludes('is_active', 'is_active'),
   },
   searchFields: ['name', 'notes'],
 });

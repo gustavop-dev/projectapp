@@ -466,7 +466,8 @@ test.describe('Admin Accounting Collections', () => {
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoCollections(page);
 
-    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await page.getByRole('group', { name: 'Estado' })
+      .getByRole('button', { name: 'Vencidas', exact: true }).click();
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
@@ -507,7 +508,8 @@ test.describe('Admin Accounting Collections', () => {
     await expect(row.getByText('Emitida', { exact: true })).toBeVisible();
 
     // And the tab that used to sweep it up no longer does.
-    await page.getByRole('tab', { name: 'Vencidas' }).click();
+    await page.getByRole('group', { name: 'Estado' })
+      .getByRole('button', { name: 'Vencidas', exact: true }).click();
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 

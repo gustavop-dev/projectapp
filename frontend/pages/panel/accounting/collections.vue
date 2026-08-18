@@ -74,9 +74,11 @@
       />
       <!-- The status bar stays out of the panel: it is the day-to-day
            control and the panel is collapsed by default. -->
-      <BaseSegmented
+      <BaseSegmentedMulti
         v-model="currentFilters.status"
         :options="statusOptions"
+        label="Estado"
+        test-id-prefix="collections-status"
         size="sm"
         class="ml-auto"
       />
@@ -392,7 +394,7 @@ import CollectionAccountDetailModal from '~/components/accounting/CollectionAcco
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
-import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import BaseSegmentedMulti from '~/components/base/BaseSegmentedMulti.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -401,6 +403,7 @@ import {
   useAccountingFilters,
   matchDateRange,
   matchNumberRange,
+  matchAnyToken,
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
@@ -457,14 +460,16 @@ const matchProjects = (record, value) => {
 };
 matchProjects.keys = ['projects'];
 
-// `overdue` is a computed serializer field, not a commercial_status value,
-// so matchEquals cannot express it.
-const matchCommercialStatus = (record, value) => {
-  if (!value) return true;
-  if (value === 'overdue') return Boolean(record.is_overdue);
-  return record.commercial_status === value;
-};
-matchCommercialStatus.keys = ['status'];
+// `overdue` is a computed serializer field, not a commercial_status value, so
+// it cannot be an equality test. It also OVERLAPS `issued` — a vencida is an
+// emitida that passed its date — which is why the tokens have to union rather
+// than fall through an if/elif that only ever answers for the first one.
+const matchCommercialStatus = matchAnyToken('status', {
+  overdue: (record) => Boolean(record.is_overdue),
+  issued: (record) => record.commercial_status === 'issued',
+  paid: (record) => record.commercial_status === 'paid',
+  cancelled: (record) => record.commercial_status === 'cancelled',
+});
 
 const {
   currentFilters,
@@ -488,8 +493,11 @@ const {
   viewName: 'accounting_collections',
   ephemeralParams: ['focus'],
   builtinTabs: [
-    { id: 'open', name: 'Por cobrar', filters: { status: 'issued' } },
-    { id: 'overdue', name: 'Vencidas', filters: { status: 'overdue' } },
+    // "Por cobrar" used to mean `issued` alone, which quietly left the vencidas
+    // out of the one tab whose name promises everything still owed — the same
+    // omission "Solo esperados" made with the parciales.
+    { id: 'open', name: 'Por cobrar', filters: { status: ['issued', 'overdue'] } },
+    { id: 'overdue', name: 'Vencidas', filters: { status: ['overdue'] } },
     { id: 'no-project', name: 'Sin proyecto', filters: { projects: [NO_PROJECT_KEY] } },
   ],
   // 'all', never a narrowing builtin: this is the page other tabs deep-link
@@ -499,7 +507,7 @@ const {
   defaults: {
     clients: [],
     projects: [],
-    status: '',
+    status: [],
     issueAfter: '',
     issueBefore: '',
     totalMin: '',
