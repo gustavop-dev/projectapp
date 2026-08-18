@@ -366,6 +366,68 @@ _POCKET_LINKED_Q = {
 }
 
 
+# Mirrors `IncomeRecordSerializer.get_payment_status` over the `paid_amount`
+# annotation: keep both sides in sync. Applied with `wrap=Q(kind=EXPECTED)`,
+# which every branch relies on — `paid` alone would also match a liquid row,
+# whose paid_amount and total_amount are both 0.
+#
+# `total_amount__gt=0` on `pending` is what reconciles this with
+# `payment_status_for`, which calls a zero-total expected 'paid' (a settlement
+# that closes a record at total 0 is collected, not uncollected).
+_PAYMENT_STATUS_Q = {
+    'pending': Q(paid_amount__lte=0) & Q(total_amount__gt=0),
+    'partial': Q(paid_amount__gt=0) & Q(paid_amount__lt=F('total_amount')),
+    'paid': Q(paid_amount__gte=F('total_amount')),
+}
+
+
+def _partner_conditions(config):
+    """Token -> Q for the partner split.
+
+    A factory rather than a constant because `projectapp` folds in the
+    entity's own `pocket_filter`: an income can be pocket-bound, an expense
+    cannot.
+    """
+    projectapp = Q(total_amount__gt=F('gustavo_amount') + F('carlos_amount'))
+    pocket_q = config.get('pocket_filter')
+    if pocket_q is not None:
+        projectapp = pocket_q | projectapp
+    return {
+        'gustavo': Q(gustavo_amount__gt=0),
+        'carlos': Q(carlos_amount__gt=0),
+        'projectapp': projectapp,
+    }
+
+
+def _apply_token_filter(queryset, field, raw_value, conditions, wrap=None):
+    """OR the Qs of the comma-separated tokens in `raw_value`.
+
+    One parser for every filter whose values are not columns. Empty and the
+    explicit `all` sentinel mean "no cut"; an unknown token is a 400 rather
+    than a silent empty list, because a filter that quietly matches nothing is
+    indistinguishable from data that does not exist.
+
+    `wrap` is AND-ed around the whole OR, for a condition that qualifies every
+    token instead of being one of them.
+    """
+    value = (raw_value or '').strip()
+    if not value or value == 'all':
+        return queryset
+    tokens = [item for item in value.split(',') if item]
+    if any(token not in conditions for token in tokens):
+        raise ValueError(
+            f"El parámetro '{field}' debe ser 'all' o uno o varios de: "
+            + ', '.join(sorted(conditions)) + '.'
+        )
+    # Q() is the identity for `|`, so seeding the OR with it is safe.
+    condition = Q()
+    for token in tokens:
+        condition |= conditions[token]
+    if wrap is not None:
+        condition = wrap & condition
+    return queryset.filter(condition)
+
+
 _ENTITIES = {
     'income': {
         'entity_type': EntityType.INCOME,
@@ -610,9 +672,16 @@ def _apply_filters(queryset, params, config):
                 queryset = queryset.filter(**{field: values[0]})
 
     for field in config.get('bool_filters', ()):
-        value = params.get(field)
-        if value in ('true', 'false'):
-            queryset = queryset.filter(**{field: value == 'true'})
+        # Now that the panel's boolean dimensions are checkable, "both marked"
+        # serializes as `true,false` — which means no cut. That already fell
+        # through the old exact-match test, but by accident; spelling it out
+        # keeps it true when someone tightens this. Anything else stays
+        # leniently ignored: this param has never validated, and turning it
+        # into a 400 now would break every two-value export.
+        value = (params.get(field) or '').strip()
+        tokens = {item for item in value.split(',') if item}
+        if tokens in ({'true'}, {'false'}):
+            queryset = queryset.filter(**{field: tokens == {'true'}})
 
     # Nullable FK filters: 'none' isolates the unassigned rows as a group,
     # 'all'/empty means no filter, ids (comma-separated) filter as OR.
@@ -643,66 +712,27 @@ def _apply_filters(queryset, params, config):
     # `choice_filters`). This is how the pocket exposes linkage and attribution,
     # which live in the mirrored income/expense and not in PocketMovement.
     for field, conditions in config.get('q_filters', {}).items():
-        value = (params.get(field) or '').strip()
-        if not value or value == 'all':
-            continue
-        tokens = [item for item in value.split(',') if item]
-        if any(token not in conditions for token in tokens):
-            raise ValueError(
-                f"El parámetro '{field}' debe ser 'all' o uno o varios de: "
-                + ', '.join(sorted(conditions)) + '.'
-            )
-        # Q() is the identity for `|`, so seeding the OR with it is safe.
-        condition = Q()
-        for token in tokens:
-            condition |= conditions[token]
         # No .distinct() needed: every relation these Qs traverse is a reverse
         # OneToOne, which cannot fan a row out across the join.
-        queryset = queryset.filter(condition)
+        queryset = _apply_token_filter(
+            queryset, field, params.get(field), conditions,
+        )
 
-    if config.get('has_split') and params.get('partner'):
-        partner = params['partner']
-        if partner == 'gustavo':
-            queryset = queryset.filter(gustavo_amount__gt=0)
-        elif partner == 'carlos':
-            queryset = queryset.filter(carlos_amount__gt=0)
-        elif partner == 'projectapp':
-            # Pocket-bound records or records with an unassigned remainder.
-            partner_q = Q(
-                total_amount__gt=F('gustavo_amount') + F('carlos_amount'),
-            )
-            pocket_q = config.get('pocket_filter')
-            if pocket_q is not None:
-                partner_q = pocket_q | partner_q
-            queryset = queryset.filter(partner_q)
-        elif partner != 'all':
-            raise ValueError(
-                "El parámetro 'partner' debe ser gustavo, carlos, "
-                'projectapp o all.'
-            )
+    if config.get('has_split'):
+        queryset = _apply_token_filter(
+            queryset, 'partner', params.get('partner'),
+            _partner_conditions(config),
+        )
 
-    if config.get('payment_status_filter') and params.get('payment_status'):
-        # Mirrors IncomeRecordSerializer.get_payment_status over the
-        # `paid_amount` annotation: keep both sides in sync.
-        value = params['payment_status']
-        expected = Q(kind=IncomeRecord.Kind.EXPECTED)
-        if value == 'pending':
-            queryset = queryset.filter(expected, paid_amount__lte=0)
-        elif value == 'partial':
-            queryset = queryset.filter(
-                expected,
-                paid_amount__gt=0,
-                paid_amount__lt=F('total_amount'),
-            )
-        elif value == 'paid':
-            queryset = queryset.filter(
-                expected, paid_amount__gte=F('total_amount'),
-            )
-        else:
-            raise ValueError(
-                "El parámetro 'payment_status' debe ser pending, partial "
-                'o paid.'
-            )
+    if config.get('payment_status_filter'):
+        # `expected` is factored OUT of the OR on purpose. Inside it, asking for
+        # pending+paid would OR three unguarded predicates over the annotation
+        # and drag in the liquid and lost rows, whose paid_amount is 0.
+        queryset = _apply_token_filter(
+            queryset, 'payment_status', params.get('payment_status'),
+            _PAYMENT_STATUS_Q,
+            wrap=Q(kind=IncomeRecord.Kind.EXPECTED),
+        )
 
     search = (params.get('q') or '').strip()
     if search:

@@ -18,16 +18,27 @@ function isInactiveValue(value) {
 }
 
 /**
- * Drop inactive keys (`''` / `null` / `[]`) from a filters dict.
+ * Drop inactive keys (`''` / `null` / `[]`) from a filters dict, and read a
+ * one-value dimension the same way however it was stored.
  *
  * Stored tabs carry the page's expanded default shape (every filter key plus
  * `search`) because the auto-save clones the whole `currentFilters`, while
  * seeded `base_filters` stay sparse — both spell the same active filters.
+ *
+ * The single-element unwrap is what keeps the "drifted" dot honest across the
+ * move to multi-value dimensions: a tab written before it holds
+ * `kind: 'expected'` and the live panel now holds `kind: ['expected']`. Those
+ * are the same cut, and comparing them raw would light the dot on every seeded
+ * tab and offer a "Restaurar filtros" that restores nothing.
  */
+function canonicalValue(value) {
+  return Array.isArray(value) && value.length === 1 ? value[0] : value;
+}
+
 export function normalizedFilters(filters) {
   const result = {};
   for (const [key, value] of Object.entries(filters || {})) {
-    if (!isInactiveValue(value)) result[key] = value;
+    if (!isInactiveValue(value)) result[key] = canonicalValue(value);
   }
   return result;
 }

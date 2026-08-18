@@ -311,7 +311,8 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await expect(page.getByTestId('accounting-row-1')).toBeVisible({ timeout: 25_000 });
 
     await page.getByRole('button', { name: /Filtros/ }).click();
-    await page.getByRole('tab', { name: 'Sin vincular', exact: true }).click();
+    await page.getByRole('group', { name: 'Vínculo' })
+      .getByRole('button', { name: 'Sin vincular', exact: true }).click();
 
     // Only the movement with no mirrored record survives.
     await expect(page.locator('[data-testid^="accounting-row-"]')).toHaveCount(1);

@@ -117,7 +117,8 @@ test.describe('Admin Accounting Export', () => {
 
     // Apply a filter so the export carries it.
     await page.getByRole('button', { name: /Filtros/ }).click();
-    await page.getByRole('tab', { name: 'Líquido' }).click();
+    await page.getByRole('group', { name: 'Tipo' })
+      .getByRole('button', { name: 'Líquido', exact: true }).click();
 
     const downloadPromise = page.waitForEvent('download');
     await page.getByTestId('accounting-export-button').click();
