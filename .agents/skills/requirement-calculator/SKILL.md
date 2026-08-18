@@ -47,9 +47,9 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 2. Por cada funcionalidad, en este orden:
    - **(a) ¿La base existe?** Si sí, aplica el atenuador "extiende algo existente" (baja de `L` a `M` o menos).
    - **(b) Nivel base con cita literal**: recorre los niveles de arriba hacia abajo (XL → XS); el primer indicador que la describe fija el nivel. En la tabla del documento **cita el texto literal de la señal** (o de la celda de la familia espejo). Si ninguna señal aplica: clasifica por analogía, márcalo como *"sin señal — por analogía"* y propone la señal faltante al final (retroalimenta el catálogo).
-   - **(c) Checklist de modificadores completo**: recorre la tabla entera de modificadores marcando aplica / no aplica (es donde se olvidan cron, PWA, diseño no entregado). Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* **nunca** sobre un `L`.
+   - **(c) Checklist de modificadores completo**: recorre la tabla entera de modificadores marcando aplica / no aplica (es donde se olvidan cron, PWA, diseño no entregado y el recargo `⇧50%` de la señal citada). Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* **nunca** sobre un `L`.
    - **(d) Familia espejo**: si la palabra clave es ambigua (búsqueda, firma, factura, chat, tiempo real…), verifica la celda correcta en la tabla de señales espejo antes de fijar el nivel.
-3. Si una funcionalidad da `XL`: **prohibido dejarla como fila** — pártela en 2+ funcionalidades `S`/`M`/`L` y clasifica cada una. La tabla final del documento **no puede contener filas XL**.
+3. Si una funcionalidad da `XL`: **prohibido dejarla como fila** — pártela en 2+ funcionalidades `S`/`M`/`L` y clasifica cada una. La tabla final del documento **no puede contener filas XL**. Si la señal `XL` estaba marcada `⇧50%`, **cada fila hija hereda el recargo**: si no, el recargo se evapora justo en los arquetipos más caros.
 4. **Anti-doble-cobro**: verifica que dos filas no coticen la misma pieza (mismo modelo de datos, misma pantalla) y que los transversales (auditoría, permisos, notificaciones, motores) aparezcan **una sola vez** como fila propia — nunca repetidos pantalla por pantalla.
 
 ## 4. Precio y validación aritmética
@@ -64,7 +64,7 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 5. Si el total ≥ $12M: propone **Estrategia A (fases)** o **B (V1/V2/V3)** con alcance y precio de cada parte.
 6. Recorre el **mapa de adyacencias** y anticipa qué se abrirá después (candidatas a V2/V3); identifica qué conviene **separar** (motores, transversales, features empaquetados).
 7. **Formato de moneda (obligatorio):** COP en millones con sufijo `M`, coma decimal y **máximo un decimal**, redondeando cada extremo al múltiplo de $0,1M más cercano (`$1,8M`, no `$1,83M` ni `$1.830.000`). Montos < $1M en miles: `$850K`. Rangos con guion sin espacios: `$1,8M–$2,4M`. El total se redondea **después** de sumar los extremos sin redondear. Un solo formato en todo el documento.
-8. **Proyección de precio año a año (informativa):** calcula la proyección del **precio total** (y de los subtotales por bloque, si el documento consolida varios requerimientos del mismo proyecto) para el año de emisión y los **2 años siguientes**, con la regla de `market-pricing.md`: `precio año N+1 = precio año N × (1 + (Δ%SMLMV + 12%))`, compuesta. Usa el **último incremento decretado del SMLMV** (dato verificado, nunca de memoria) y declara ese supuesto en la sección de proyección y en Supuestos. La proyección no altera el semáforo ni la vigencia de 30 días.
+8. **Proyección de precio año a año (informativa):** calcula la proyección del **precio total** (y de los subtotales por bloque, si el documento consolida varios requerimientos del mismo proyecto) para el año de emisión y los **4 años siguientes**, con la regla de `market-pricing.md`: `reajuste anual = Δ%SMLMV + 12%` · `precio año base+k = precio año base × (1 + reajuste anual)^k`, compuesta. Usa el **último incremento decretado del SMLMV** (dato verificado, nunca de memoria) y declara ese supuesto en la sección de proyección y en Supuestos. **Imprime el bloque de fórmula en el documento** — no basta la declaración en prosa: el reajuste es un argumento comercial y sin su derivación no se puede discutir. La proyección no altera el semáforo ni la vigencia de 30 días.
 
 ## 4-bis. Consistencia con estimaciones previas (barato, condicional)
 
@@ -189,11 +189,19 @@ Escribe el resultado en un archivo temporal del scratchpad. **Markdown puro** �
 
 ## 4. Proyección de precio año a año
 
-| Año | Δ%SMLMV supuesto | % reajuste total | Precio proyectado (piso–techo) |
-|---|---|---|---|
-<primera fila = año de emisión con el rango total sin reajuste ("—" en las columnas de %); luego 2 filas más, compuestas, con la regla de market-pricing.md (Δ%SMLMV + 12%). Si el documento consolida bloques del mismo proyecto, repetí la tabla o agregá columnas por bloque.>
+**Fórmula del reajuste anual de ProjectApp:**
 
-<Una línea declarando el supuesto y el alcance: "Proyección informativa calculada con el último incremento decretado del SMLMV (<año>: <X%>) + 12% fijo de ProjectApp, compuesta año a año; no constituye oferta en firme — la vigencia de esta estimación es de 30 días.">
+    reajuste anual    = Δ%SMLMV + 12%                              (12% = componente fijo ProjectApp)
+    precio año N+1    = precio año N × (1 + reajuste anual)
+    precio año base+k = precio año base × (1 + reajuste anual)^k   (compuesta)
+
+Con el Δ%SMLMV decretado de <año> (<X>%): reajuste anual = <X>% + 12% = **<Y>%** → factor **<1,YY>** por año.
+
+| Año | Δ%SMLMV supuesto | % reajuste total | Factor acumulado | Precio proyectado (piso–techo) |
+|---|---|---|---|---|
+<primera fila = año de emisión con el rango total sin reajuste ("—" en % y factor 1,00); luego **4 filas más**, compuestas, con la regla de market-pricing.md. NO agregues una sexta columna: el gate de §4-ter trata como fila de descomposición a toda fila de 6 columnas y el chequeo total-vs-suma reventaría. Si el documento consolida bloques del mismo proyecto, repetí la tabla por bloque.>
+
+<Una línea declarando el supuesto y el alcance: "Proyección informativa calculada con el último incremento decretado del SMLMV (<año>: <X%>) + 12% fijo de ProjectApp, compuesta año a año sobre un horizonte de 4 años; no constituye oferta en firme — la vigencia de esta estimación es de 30 días.">
 
 ## 5. Observaciones
 <Qué separar y por qué · qué es transversal · qué adyacencias se abren.>
@@ -281,7 +289,8 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 - Máximo una ronda de preguntas; después, supuestos declarados con su impacto.
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
 - **Vigencia declarada:** todo documento fija "precios válidos por 30 días"; después se re-emite (documento versionado nuevo), nunca se honra ni se negocia por chat sin documento.
-- **Proyección año a año siempre presente e informativa:** todo documento incluye la sección de proyección (regla `Δ%SMLMV + 12%` de `market-pricing.md`, Δ%SMLMV declarado como supuesto verificado); nunca constituye oferta en firme ni extiende la vigencia de 30 días.
+- **Proyección año a año siempre presente e informativa:** todo documento incluye la sección de proyección **a 4 años** (5 filas contando la base) con el **bloque de fórmula impreso** y la columna de factor acumulado (regla `Δ%SMLMV + 12%` de `market-pricing.md`, Δ%SMLMV declarado como supuesto verificado); la tabla no pasa de 5 columnas (§4-ter) y nunca constituye oferta en firme ni extiende la vigencia de 30 días.
+- **Recargo de arquetipo `⇧50%` (interno):** si la señal citada está marcada en el catálogo, el `+50%` entra en el cálculo de horas y precio —**sobre** el nivel, nunca en lugar del nivel, heredado por las filas hijas de un `XL` descompuesto— pero **no se itemiza en el documento**: ni en la columna Modificadores, ni en Supuestos, ni como nota. El precio de la fila ya lo incorpora; el rastro vive en el catálogo, no en el entregable.
 - **El gate aritmético (§4-ter) es obligatorio**: nunca persistir con `GATE_FAIL`.
 - **Re-estimación del mismo requerimiento ⇒ mini-tabla Δ** vs el estimate anterior (filas nuevas / retiradas / cambiadas, con motivo).
 
