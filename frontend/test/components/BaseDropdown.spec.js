@@ -163,4 +163,37 @@ describe('BaseDropdown', () => {
     const cls = wrapper.find('.hl-menu-items').attributes('class') || ''
     expect(cls).toContain('w-72')
   })
+
+  it('opens upward when placement="top", growing from its bottom edge', () => {
+    const wrapper = mountDropdown({
+      items: [{ label: 'A', onClick: () => {} }],
+      placement: 'top',
+    })
+    const cls = wrapper.find('.hl-menu-items').attributes('class') || ''
+    expect(cls).toContain('bottom-full')
+    expect(cls).toContain('origin-bottom-right')
+    // The downward offset has to go, or the panel sits a notch off the trigger.
+    expect(cls).not.toContain('mt-2')
+  })
+
+  it('keeps opening downward by default', () => {
+    const wrapper = mountDropdown({ items: [{ label: 'A', onClick: () => {} }] })
+    const cls = wrapper.find('.hl-menu-items').attributes('class') || ''
+    expect(cls).toContain('mt-2')
+    expect(cls).toContain('origin-top-right')
+    expect(cls).not.toContain('bottom-full')
+  })
+
+  it('prints item.description as a second line, so a dead item says why', () => {
+    const wrapper = mountDropdown({
+      items: [
+        { label: 'Registrar abono', description: 'Para abonar se necesitan esperados con saldo pendiente.', disabled: true },
+        { label: 'Asignar cliente', onClick: () => {} },
+      ],
+    })
+    const inner = wrapper.findAll('.hl-menu-item')
+    expect(inner[0].text()).toContain('Para abonar se necesitan esperados con saldo pendiente.')
+    // The item without a description stays a single line.
+    expect(inner[1].text()).toBe('Asignar cliente')
+  })
 })
