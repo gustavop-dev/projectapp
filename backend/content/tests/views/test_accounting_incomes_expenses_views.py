@@ -791,6 +791,73 @@ class TestIncomePaymentStatusFilter:
         assert 'Abonado a medias' not in body
         assert 'Cobrado' not in body
 
+    def test_several_statuses_return_their_union(self, super_client, rows):
+        """The ficha's case: "lo que falta por cobrar" is pending OR partial.
+
+        Asking for one of them is what made a partially paid record look like
+        it had never been created.
+        """
+        assert self._concepts(super_client, 'pending,partial') == [
+            'Abonado a medias', 'Sin abonos',
+        ]
+
+    def test_partial_and_paid_leave_out_the_untouched_row(
+        self, super_client, rows,
+    ):
+        assert self._concepts(super_client, 'partial,paid') == [
+            'Abonado a medias', 'Cobrado',
+        ]
+
+    def test_every_status_keeps_liquid_and_lost_rows_out(
+        self, super_client, rows,
+    ):
+        """`expected` is AND-ed around the OR, not one of its branches.
+
+        Inside it, `paid` (paid_amount >= total_amount) would also match a
+        liquid row, where both are 0.
+        """
+        assert self._concepts(super_client, 'pending,partial,paid') == [
+            'Abonado a medias', 'Cobrado', 'Sin abonos',
+        ]
+
+    def test_all_is_not_a_cut(self, super_client, rows):
+        response = super_client.get('/api/accounting/incomes/?payment_status=all')
+        assert response.status_code == 200
+        # Every row, the liquid children included.
+        assert len(response.data['results']) == 5
+
+    def test_an_unknown_value_inside_a_list_still_returns_400(
+        self, super_client, rows,
+    ):
+        response = super_client.get(
+            '/api/accounting/incomes/?payment_status=pending,cobrado',
+        )
+        assert response.status_code == 400
+
+    def test_a_zero_total_expected_reads_as_paid_not_pending(
+        self, super_client, make_income,
+    ):
+        """A settlement that closes a record at total 0 is collected.
+
+        `payment_status_for` has always called it 'paid'; the SQL side used to
+        answer 'pending' for the same row, so the badge and the export
+        disagreed.
+        """
+        make_income(concept='Cerrado en cero', total_amount=Decimal('0.00'))
+        assert self._concepts(super_client, 'pending') == []
+        assert self._concepts(super_client, 'paid') == ['Cerrado en cero']
+
+    def test_the_export_applies_a_multi_value_filter(self, super_client, rows):
+        response = super_client.get(
+            '/api/accounting/export/'
+            '?section=income&payment_status=pending,partial',
+        )
+        assert response.status_code == 200
+        body = response.content.decode('utf-8-sig')
+        assert 'Sin abonos' in body
+        assert 'Abonado a medias' in body
+        assert 'Cobrado' not in body
+
 
 @pytest.mark.django_db
 class TestExpenseDeductionSurface:

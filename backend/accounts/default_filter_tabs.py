@@ -13,8 +13,11 @@ Partial dicts are fine: the frontend merges stored filters over its own
 fresh defaults, so only the keys that differ need to be listed here.
 
 - ``accounting_*`` -> each page's ``useAccountingFilters`` defaults in
-  ``frontend/pages/panel/accounting/*.vue`` (bool tabs use the strings
-  ``'true'``/``'false'`` expected by ``matchBoolean``).
+  ``frontend/pages/panel/accounting/*.vue``. Every cut is a LIST since the
+  filter dimensions went multi-value: a dimension holds the values chosen
+  inside it, and the bool ones keep the ``'true'``/``'false'`` string tokens
+  ``matchBooleanIncludes`` expects. Migration ``accounts/0051`` converted the
+  scalars that predate that change.
 - ``view_map``  -> ``frontend/composables/useViewMapFilters.js`` (categories,
   audiences, viewTypes).
 
@@ -41,22 +44,22 @@ DEFAULT_FILTER_TABS = {
         # untouched). The uncollected-only cut ("Solo esperados") and its
         # hosting variant are builtin tabs in incomes.vue instead: the landing
         # tab must not be silently rewritten when a filter is tweaked.
-        {'name': 'Todos los esperados', 'filters': {'kind': 'expected'}},
-        {'name': 'Líquidos', 'filters': {'kind': 'liquid'}},
-        {'name': 'Gustavo', 'filters': {'partner': 'gustavo'}},
-        {'name': 'Carlos', 'filters': {'partner': 'carlos'}},
-        {'name': 'ProjectApp', 'filters': {'partner': 'projectapp'}},
+        {'name': 'Todos los esperados', 'filters': {'kind': ['expected']}},
+        {'name': 'Líquidos', 'filters': {'kind': ['liquid']}},
+        {'name': 'Gustavo', 'filters': {'partner': ['gustavo']}},
+        {'name': 'Carlos', 'filters': {'partner': ['carlos']}},
+        {'name': 'ProjectApp', 'filters': {'partner': ['projectapp']}},
     ],
     'accounting_expense': [
         {'name': 'Negocio', 'filters': {'categories': ['business']}},
         {'name': 'Personales', 'filters': {'categories': ['personal']}},
-        {'name': 'Empresa', 'filters': {'ledger': 'company'}},
-        {'name': 'Personal Gustavo', 'filters': {'ledger': 'gustavo'}},
-        {'name': 'Personal Carlos', 'filters': {'ledger': 'carlos'}},
+        {'name': 'Empresa', 'filters': {'ledger': ['company']}},
+        {'name': 'Personal Gustavo', 'filters': {'ledger': ['gustavo']}},
+        {'name': 'Personal Carlos', 'filters': {'ledger': ['carlos']}},
     ],
     'accounting_hosting': [
-        {'name': 'Activos', 'filters': {'isActive': 'true'}},
-        {'name': 'Inactivos', 'filters': {'isActive': 'false'}},
+        {'name': 'Activos', 'filters': {'isActive': ['true']}},
+        {'name': 'Inactivos', 'filters': {'isActive': ['false']}},
         {'name': 'Mensuales', 'filters': {'modalities': ['monthly']}},
         {'name': 'Anuales', 'filters': {'modalities': ['annual']}},
     ],
@@ -64,19 +67,19 @@ DEFAULT_FILTER_TABS = {
     # of Gustavo's pocket"); "Sin vincular" is the repair queue: movements that
     # never got their mirror in Ingresos or Gastos.
     'accounting_pocket': [
-        {'name': 'Entradas', 'filters': {'direction': 'in'}},
-        {'name': 'Salidas', 'filters': {'direction': 'out'}},
+        {'name': 'Entradas', 'filters': {'direction': ['in']}},
+        {'name': 'Salidas', 'filters': {'direction': ['out']}},
         {'name': 'Gustavo', 'filters': {'attribution': ['gustavo']}},
         {'name': 'Carlos', 'filters': {'attribution': ['carlos']}},
         {'name': 'Empresa', 'filters': {'attribution': ['company']}},
-        {'name': 'Sin vincular', 'filters': {'linked': 'false'}},
+        {'name': 'Sin vincular', 'filters': {'linked': ['false']}},
     ],
     'accounting_recurring': [
-        {'name': 'Activos', 'filters': {'is_active': 'true'}},
-        {'name': 'Mensuales', 'filters': {'frequency': ['monthly'], 'is_active': 'true'}},
-        {'name': 'Anuales', 'filters': {'frequency': ['annual'], 'is_active': 'true'}},
-        {'name': 'USD', 'filters': {'currency': 'USD'}},
-        {'name': 'Variables', 'filters': {'cost_type': 'variable'}},
+        {'name': 'Activos', 'filters': {'is_active': ['true']}},
+        {'name': 'Mensuales', 'filters': {'frequency': ['monthly'], 'is_active': ['true']}},
+        {'name': 'Anuales', 'filters': {'frequency': ['annual'], 'is_active': ['true']}},
+        {'name': 'USD', 'filters': {'currency': ['USD']}},
+        {'name': 'Variables', 'filters': {'cost_type': ['variable']}},
     ],
     'view_map': [
         {'name': 'Admin', 'filters': {'audiences': ['admin']}},

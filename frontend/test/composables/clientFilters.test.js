@@ -169,20 +169,20 @@ describe('subfilters', () => {
 
   it('hosting-charged keeps only clients holding a live hosting', () => {
     const { currentFilters, applyFilters } = useClientFilters();
-    currentFilters.hostingStatus = 'charged';
+    currentFilters.hostingStatus = ['charged'];
     expect(applyFilters([withHosting, expiredHostingOnly, noHosting])).toEqual([withHosting]);
   });
 
   it('hosting-any also keeps the ones whose hostings all expired', () => {
     const { currentFilters, applyFilters } = useClientFilters();
-    currentFilters.hostingStatus = 'any';
+    currentFilters.hostingStatus = ['any'];
     expect(applyFilters([withHosting, expiredHostingOnly, noHosting]))
       .toEqual([withHosting, expiredHostingOnly]);
   });
 
   it('no-hosting keeps exactly the complement of hosting-any', () => {
     const { currentFilters, applyFilters } = useClientFilters();
-    currentFilters.hostingStatus = 'none';
+    currentFilters.hostingStatus = ['none'];
     expect(applyFilters([withHosting, expiredHostingOnly, noHosting])).toEqual([noHosting]);
   });
 
@@ -190,7 +190,7 @@ describe('subfilters', () => {
     const { currentFilters, applyFilters } = useClientFilters();
     const missing = baseClient({ nit: '', cedula: '   ', billing_code: null });
     const identified = baseClient({ nit: '', cedula: '', billing_code: 'KORE' });
-    currentFilters.billingData = 'missing';
+    currentFilters.billingData = ['missing'];
     expect(applyFilters([missing, identified, baseClient()])).toEqual([missing]);
   });
 
@@ -198,7 +198,7 @@ describe('subfilters', () => {
     const { currentFilters, applyFilters } = useClientFilters();
     const live = baseClient({ projects_count: 2, active_projects_count: 1 });
     const archivedOnly = baseClient({ projects_count: 2, active_projects_count: 0 });
-    currentFilters.projectStatus = 'active';
+    currentFilters.projectStatus = ['active'];
     expect(applyFilters([live, archivedOnly])).toEqual([live]);
   });
 
@@ -206,7 +206,7 @@ describe('subfilters', () => {
     const { currentFilters, applyFilters } = useClientFilters();
     const archivedOnly = baseClient({ projects_count: 2, active_projects_count: 0 });
     const none = baseClient({ projects_count: 0, active_projects_count: 0 });
-    currentFilters.projectStatus = 'none';
+    currentFilters.projectStatus = ['none'];
     expect(applyFilters([archivedOnly, none])).toEqual([none]);
   });
 
@@ -217,7 +217,7 @@ describe('subfilters', () => {
     await nextTick();
 
     // The edit lands on the live filters...
-    expect(currentFilters.hostingStatus).toBe('charged');
+    expect(currentFilters.hostingStatus).toEqual(['charged']);
     expect(currentFilters.lastStatuses).toEqual(['draft']);
     // ...but a builtin tab has no server row to rewrite.
     expect(tabsStub.updateTabFilters).not.toHaveBeenCalled();
@@ -227,7 +227,7 @@ describe('subfilters', () => {
     const { currentFilters, applyFilters } = useClientFilters();
     const wanted = baseClient({ active_hostings_count: 1, last_status: 'draft' });
     const otherStatus = baseClient({ active_hostings_count: 1, last_status: 'sent' });
-    currentFilters.hostingStatus = 'charged';
+    currentFilters.hostingStatus = ['charged'];
     currentFilters.lastStatuses = ['draft'];
     expect(applyFilters([wanted, otherStatus, noHosting])).toEqual([wanted]);
   });
@@ -236,8 +236,8 @@ describe('subfilters', () => {
     const { currentFilters, applyFilters } = useClientFilters();
     const both = baseClient({ active_hostings_count: 1, nit: '', cedula: '', billing_code: null });
     const hostingOnly = baseClient({ active_hostings_count: 1 });
-    currentFilters.hostingStatus = 'charged';
-    currentFilters.billingData = 'missing';
+    currentFilters.hostingStatus = ['charged'];
+    currentFilters.billingData = ['missing'];
     expect(applyFilters([both, hostingOnly])).toEqual([both]);
   });
 
@@ -456,7 +456,7 @@ describe('module (level 1)', () => {
 
   it('groups a saved tab under the module it was saved in', () => {
     savedTabsRef.value = [
-      { id: 4, view: 'client', name: 'Mía', filters: { module: 'hosting', hostingStatus: 'any' } },
+      { id: 4, view: 'client', name: 'Mía', filters: { module: 'hosting', hostingStatus: ['any'] } },
       { id: 5, view: 'client', name: 'Otra', filters: { module: 'proposals' } },
     ];
     const { currentFilters, displayTabs } = useClientFilters();
@@ -497,9 +497,9 @@ describe('module (level 1)', () => {
   it('clearing the filters keeps the module being read', () => {
     const { currentFilters, resetFilters } = useClientFilters();
     currentFilters.module = 'hosting';
-    currentFilters.hostingStatus = 'charged';
+    currentFilters.hostingStatus = ['charged'];
     resetFilters();
-    expect(currentFilters.hostingStatus).toBe('');
+    expect(currentFilters.hostingStatus).toEqual([]);
     expect(currentFilters.module).toBe('hosting');
   });
 });
@@ -507,7 +507,7 @@ describe('module (level 1)', () => {
 describe('legacy preset key', () => {
   it('translates a tab saved with the old single preset key', () => {
     expect(normalizeLegacyPreset({ preset: 'hosting-charged' }))
-      .toEqual({ hostingStatus: 'charged', module: 'hosting' });
+      .toEqual({ hostingStatus: ['charged'], module: 'hosting' });
   });
 
   it('leaves filters without the legacy key untouched', () => {
@@ -521,7 +521,7 @@ describe('legacy preset key', () => {
     ];
     const { currentFilters, selectTab, applyFilters } = useClientFilters();
     selectTab(8);
-    expect(currentFilters.hostingStatus).toBe('charged');
+    expect(currentFilters.hostingStatus).toEqual(['charged']);
     const live = baseClient({ active_hostings_count: 1 });
     expect(applyFilters([live, baseClient()])).toEqual([live]);
   });
@@ -546,7 +546,7 @@ describe('activeFilterCount + hasActiveFilters', () => {
 
   it('counts an applied subfilter as one active filter', () => {
     const { currentFilters, activeFilterCount } = useClientFilters();
-    currentFilters.hostingStatus = 'charged';
+    currentFilters.hostingStatus = ['charged'];
     expect(activeFilterCount.value).toBe(1);
   });
 });
@@ -572,9 +572,9 @@ describe('resetFilters + selectTab', () => {
   it('selecting "all" clears an applied subfilter but stays in its module', () => {
     const { currentFilters, selectTab } = useClientFilters();
     selectTab('hosting-charged');
-    expect(currentFilters.hostingStatus).toBe('charged');
+    expect(currentFilters.hostingStatus).toEqual(['charged']);
     selectTab('all');
-    expect(currentFilters.hostingStatus).toBe('');
+    expect(currentFilters.hostingStatus).toEqual([]);
     expect(currentFilters.module).toBe('hosting');
   });
 });
@@ -600,7 +600,7 @@ describe('URL sync + tab CRUD delegation', () => {
     mockRoute.query = { clientTab: 'hosting-charged' };
     const { currentFilters, activeTabId, activeModule } = useClientFilters();
     expect(activeTabId.value).toBe('hosting-charged');
-    expect(currentFilters.hostingStatus).toBe('charged');
+    expect(currentFilters.hostingStatus).toEqual(['charged']);
     expect(activeModule.value).toBe('hosting');
   });
 

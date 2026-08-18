@@ -36,11 +36,11 @@
       <!-- Diagnóstico -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Diagnóstico</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Diagnóstico"
           test-id="client-filter-diagnostic-status"
           :options="diagnosticStatusOptions"
-          :model-value="modelValue.diagnosticStatus || ''"
+          :model-value="modelValue.diagnosticStatus || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, diagnosticStatus: $event })"
         />
       </div>
@@ -48,11 +48,11 @@
       <!-- Proyectos -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Proyectos</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Proyecto"
           test-id="client-filter-project-status"
           :options="projectStatusOptions"
-          :model-value="modelValue.projectStatus || ''"
+          :model-value="modelValue.projectStatus || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, projectStatus: $event })"
         />
         <ProposalFilterDropdown
@@ -72,11 +72,11 @@
       <!-- Hosting -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Hosting</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Hosting"
           test-id="client-filter-hosting-status"
           :options="hostingStatusOptions"
-          :model-value="modelValue.hostingStatus || ''"
+          :model-value="modelValue.hostingStatus || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, hostingStatus: $event })"
         />
       </div>
@@ -84,11 +84,11 @@
       <!-- Contabilidad -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Contabilidad</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Facturación"
           test-id="client-filter-billing-data"
           :options="billingDataOptions"
-          :model-value="modelValue.billingData || ''"
+          :model-value="modelValue.billingData || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, billingData: $event })"
         />
       </div>
@@ -96,11 +96,11 @@
       <!-- Documentos -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Documentos</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Documentos"
           test-id="client-filter-documents-status"
           :options="documentsStatusOptions"
-          :model-value="modelValue.documentsStatus || ''"
+          :model-value="modelValue.documentsStatus || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, documentsStatus: $event })"
         />
       </div>
@@ -108,11 +108,11 @@
       <!-- Emails -->
       <div class="flex flex-wrap items-center gap-2 px-3 py-2.5">
         <span class="text-[10px] font-semibold uppercase tracking-wider text-text-subtle w-[5.5rem] shrink-0">Emails</span>
-        <ProposalFilterChoiceDropdown
+        <ProposalFilterDropdown
           label="Correos"
           test-id="client-filter-email-status"
           :options="emailStatusOptions"
-          :model-value="modelValue.emailStatus || ''"
+          :model-value="modelValue.emailStatus || []"
           @update:model-value="emit('update:modelValue', { ...modelValue, emailStatus: $event })"
         />
       </div>
@@ -167,7 +167,6 @@
 import { computed } from 'vue';
 import ProposalFilterDropdown from '~/components/proposals/ProposalFilterDropdown.vue';
 import ProposalFilterRangeDropdown from '~/components/proposals/ProposalFilterRangeDropdown.vue';
-import ProposalFilterChoiceDropdown from '~/components/proposals/ProposalFilterChoiceDropdown.vue';
 import {
   proposalStatusOptions as statusOptions,
   projectTypeOptions,
@@ -236,11 +235,11 @@ const activeChips = computed(() => {
   const accepted = formatRange(mv.acceptedMin, mv.acceptedMax);
   if (accepted) chips.push({ key: 'accepted', label: moduleLabel('proposals', `aceptadas ${accepted}`) });
 
-  if (mv.diagnosticStatus)
-    chips.push({ key: 'diagnosticStatus', label: moduleLabel('diagnostics', optionLabel(diagnosticStatusOptions, mv.diagnosticStatus)) });
+  if (mv.diagnosticStatus?.length)
+    chips.push({ key: 'diagnosticStatus', label: moduleLabel('diagnostics', mv.diagnosticStatus.map((v) => optionLabel(diagnosticStatusOptions, v)).join(', ')) });
 
-  if (mv.projectStatus)
-    chips.push({ key: 'projectStatus', label: moduleLabel('projects', optionLabel(projectStatusOptions, mv.projectStatus)) });
+  if (mv.projectStatus?.length)
+    chips.push({ key: 'projectStatus', label: moduleLabel('projects', mv.projectStatus.map((v) => optionLabel(projectStatusOptions, v)).join(', ')) });
 
   if (mv.projectTypes?.length)
     chips.push({ key: 'projectTypes', label: moduleLabel('projects', `tipo ${mv.projectTypes.map((t) => projectTypeLabelMap[t] || t).join(', ')}`) });
@@ -248,17 +247,17 @@ const activeChips = computed(() => {
   if (mv.marketTypes?.length)
     chips.push({ key: 'marketTypes', label: moduleLabel('projects', `mercado ${mv.marketTypes.map((t) => marketTypeLabelMap[t] || t).join(', ')}`) });
 
-  if (mv.hostingStatus)
-    chips.push({ key: 'hostingStatus', label: moduleLabel('hosting', optionLabel(hostingStatusOptions, mv.hostingStatus)) });
+  if (mv.hostingStatus?.length)
+    chips.push({ key: 'hostingStatus', label: moduleLabel('hosting', mv.hostingStatus.map((v) => optionLabel(hostingStatusOptions, v)).join(', ')) });
 
-  if (mv.billingData)
-    chips.push({ key: 'billingData', label: moduleLabel('accounting', optionLabel(billingDataOptions, mv.billingData)) });
+  if (mv.billingData?.length)
+    chips.push({ key: 'billingData', label: moduleLabel('accounting', mv.billingData.map((v) => optionLabel(billingDataOptions, v)).join(', ')) });
 
-  if (mv.documentsStatus)
-    chips.push({ key: 'documentsStatus', label: moduleLabel('documents', optionLabel(documentsStatusOptions, mv.documentsStatus)) });
+  if (mv.documentsStatus?.length)
+    chips.push({ key: 'documentsStatus', label: moduleLabel('documents', mv.documentsStatus.map((v) => optionLabel(documentsStatusOptions, v)).join(', ')) });
 
-  if (mv.emailStatus)
-    chips.push({ key: 'emailStatus', label: moduleLabel('emails', optionLabel(emailStatusOptions, mv.emailStatus)) });
+  if (mv.emailStatus?.length)
+    chips.push({ key: 'emailStatus', label: moduleLabel('emails', mv.emailStatus.map((v) => optionLabel(emailStatusOptions, v)).join(', ')) });
 
   const ar = formatDateRange(mv.lastActivityAfter, mv.lastActivityBefore);
   if (ar) chips.push({ key: 'activityRange', label: `Actividad: ${ar}` });
@@ -273,12 +272,12 @@ const CHIP_RESET = {
   totalProposals: (mv) => { mv.totalProposalsMin = null; mv.totalProposalsMax = null; },
   accepted:       (mv) => { mv.acceptedMin = null; mv.acceptedMax = null; },
   activityRange:  (mv) => { mv.lastActivityAfter = null; mv.lastActivityBefore = null; },
-  hostingStatus:  (mv) => { mv.hostingStatus = ''; },
-  projectStatus:  (mv) => { mv.projectStatus = ''; },
-  billingData:    (mv) => { mv.billingData = ''; },
-  documentsStatus: (mv) => { mv.documentsStatus = ''; },
-  diagnosticStatus: (mv) => { mv.diagnosticStatus = ''; },
-  emailStatus:    (mv) => { mv.emailStatus = ''; },
+  hostingStatus:  (mv) => { mv.hostingStatus = []; },
+  projectStatus:  (mv) => { mv.projectStatus = []; },
+  billingData:    (mv) => { mv.billingData = []; },
+  documentsStatus: (mv) => { mv.documentsStatus = []; },
+  diagnosticStatus: (mv) => { mv.diagnosticStatus = []; },
+  emailStatus:    (mv) => { mv.emailStatus = []; },
 };
 
 function clearChip(key) {
