@@ -47,9 +47,9 @@ Si alguna aplica, haz **una** ronda de preguntas con AskUserQuestion (máximo 4 
 2. Por cada funcionalidad, en este orden:
    - **(a) ¿La base existe?** Si sí, aplica el atenuador "extiende algo existente" (baja de `L` a `M` o menos).
    - **(b) Nivel base con cita literal**: recorre los niveles de arriba hacia abajo (XL → XS); el primer indicador que la describe fija el nivel. En la tabla del documento **cita el texto literal de la señal** (o de la celda de la familia espejo). Si ninguna señal aplica: clasifica por analogía, márcalo como *"sin señal — por analogía"* y propone la señal faltante al final (retroalimenta el catálogo).
-   - **(c) Checklist de modificadores completo**: recorre la tabla entera de modificadores marcando aplica / no aplica (es donde se olvidan cron, PWA, diseño no entregado). Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* **nunca** sobre un `L`.
+   - **(c) Checklist de modificadores completo**: recorre la tabla entera de modificadores marcando aplica / no aplica (es donde se olvidan cron, PWA, diseño no entregado y el recargo `⇧30%` de la señal citada). Anti-doble-conteo: *Pantalla nueva* y *Modelo de datos* **nunca** sobre un `L`.
    - **(d) Familia espejo**: si la palabra clave es ambigua (búsqueda, firma, factura, chat, tiempo real…), verifica la celda correcta en la tabla de señales espejo antes de fijar el nivel.
-3. Si una funcionalidad da `XL`: **prohibido dejarla como fila** — pártela en 2+ funcionalidades `S`/`M`/`L` y clasifica cada una. La tabla final del documento **no puede contener filas XL**.
+3. Si una funcionalidad da `XL`: **prohibido dejarla como fila** — pártela en 2+ funcionalidades `S`/`M`/`L` y clasifica cada una. La tabla final del documento **no puede contener filas XL**. Si la señal `XL` estaba marcada `⇧30%`, **cada fila hija hereda el recargo**: si no, el recargo se evapora justo en los arquetipos más caros.
 4. **Anti-doble-cobro**: verifica que dos filas no coticen la misma pieza (mismo modelo de datos, misma pantalla) y que los transversales (auditoría, permisos, notificaciones, motores) aparezcan **una sola vez** como fila propia — nunca repetidos pantalla por pantalla.
 
 ## 4. Precio y validación aritmética
@@ -290,6 +290,7 @@ Este paso lo dispara el operador cuando ocurre el evento (venta o entrega) — n
 - Markdown puro con callouts — sin HTML ni colores inline: el branding lo aplican el panel y el PDF.
 - **Vigencia declarada:** todo documento fija "precios válidos por 30 días"; después se re-emite (documento versionado nuevo), nunca se honra ni se negocia por chat sin documento.
 - **Proyección año a año siempre presente e informativa:** todo documento incluye la sección de proyección **a 4 años** (5 filas contando la base) con el **bloque de fórmula impreso** y la columna de factor acumulado (regla `Δ%SMLMV + 12%` de `market-pricing.md`, Δ%SMLMV declarado como supuesto verificado); la tabla no pasa de 5 columnas (§4-ter) y nunca constituye oferta en firme ni extiende la vigencia de 30 días.
+- **Recargo de arquetipo `⇧30%`:** toda fila cuya señal esté marcada en el catálogo declara el `+30%` en su columna Modificadores. Se aplica **sobre** el nivel, nunca en lugar del nivel, y se hereda a las filas hijas de un `XL` descompuesto.
 - **El gate aritmético (§4-ter) es obligatorio**: nunca persistir con `GATE_FAIL`.
 - **Re-estimación del mismo requerimiento ⇒ mini-tabla Δ** vs el estimate anterior (filas nuevas / retiradas / cambiadas, con motivo).
 
