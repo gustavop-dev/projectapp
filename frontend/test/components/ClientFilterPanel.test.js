@@ -6,13 +6,13 @@ const emptyFilters = {
   totalProposalsMin: null, totalProposalsMax: null,
   acceptedMin: null, acceptedMax: null,
   lastActivityAfter: null, lastActivityBefore: null,
-  hostingStatus: '', projectStatus: '', billingData: '',
-  documentsStatus: '', diagnosticStatus: '', emailStatus: '',
+  hostingStatus: [], projectStatus: [], billingData: [],
+  documentsStatus: [], diagnosticStatus: [], emailStatus: [],
 };
 
 function mountPanel(props = {}, { stubChoice = true } = {}) {
-  const stubs = { ProposalFilterDropdown: true, ProposalFilterRangeDropdown: true };
-  if (stubChoice) stubs.ProposalFilterChoiceDropdown = true;
+  const stubs = { ProposalFilterRangeDropdown: true };
+  if (stubChoice) stubs.ProposalFilterDropdown = true;
   return mount(ClientFilterPanel, {
     props: { modelValue: emptyFilters, isOpen: true, filterCount: 0, ...props },
     global: { stubs },
@@ -80,8 +80,8 @@ describe('ClientFilterPanel', () => {
     const wrapper = mountPanel({
       modelValue: {
         ...emptyFilters,
-        diagnosticStatus: 'unconverted',
-        emailStatus: 'failed',
+        diagnosticStatus: ['unconverted'],
+        emailStatus: ['failed'],
       },
       filterCount: 2,
     });
@@ -93,29 +93,29 @@ describe('ClientFilterPanel', () => {
   it('clearing the diagnostic chip emits the filters without it', async () => {
     // CHIP_RESET is the one entry in this slice with no derivation behind it.
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, diagnosticStatus: 'unconverted' },
+      modelValue: { ...emptyFilters, diagnosticStatus: ['unconverted'] },
       filterCount: 1,
     });
 
     await wrapper.get('[data-testid="client-filter-chip-diagnosticStatus"]').trigger('click');
 
-    expect(wrapper.emitted('update:modelValue')[0][0].diagnosticStatus).toBe('');
+    expect(wrapper.emitted('update:modelValue')[0][0].diagnosticStatus).toEqual([]);
   });
 
   it('clearing the email chip emits the filters without it', async () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, emailStatus: 'cold' },
+      modelValue: { ...emptyFilters, emailStatus: ['cold'] },
       filterCount: 1,
     });
 
     await wrapper.get('[data-testid="client-filter-chip-emailStatus"]').trigger('click');
 
-    expect(wrapper.emitted('update:modelValue')[0][0].emailStatus).toBe('');
+    expect(wrapper.emitted('update:modelValue')[0][0].emailStatus).toEqual([]);
   });
 
   it('names the module each active chip comes from', () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, lastStatuses: ['draft'], hostingStatus: 'charged' },
+      modelValue: { ...emptyFilters, lastStatuses: ['draft'], hostingStatus: ['charged'] },
       filterCount: 2,
     });
 
@@ -125,25 +125,25 @@ describe('ClientFilterPanel', () => {
 
   it('clearing a subfilter chip emits the filters without it', async () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, hostingStatus: 'charged' },
+      modelValue: { ...emptyFilters, hostingStatus: ['charged'] },
       filterCount: 1,
     });
 
     await wrapper.get('[data-testid="client-filter-chip-hostingStatus"]').trigger('click');
 
-    expect(wrapper.emitted('update:modelValue')[0][0].hostingStatus).toBe('');
+    expect(wrapper.emitted('update:modelValue')[0][0].hostingStatus).toEqual([]);
   });
 
   it('clearing one chip leaves the other cuts alone', async () => {
     const wrapper = mountPanel({
-      modelValue: { ...emptyFilters, hostingStatus: 'charged', billingData: 'missing' },
+      modelValue: { ...emptyFilters, hostingStatus: ['charged'], billingData: ['missing'] },
       filterCount: 2,
     });
 
     await wrapper.get('[data-testid="client-filter-chip-hostingStatus"]').trigger('click');
 
     const emitted = wrapper.emitted('update:modelValue')[0][0];
-    expect(emitted.hostingStatus).toBe('');
-    expect(emitted.billingData).toBe('missing');
+    expect(emitted.hostingStatus).toEqual([]);
+    expect(emitted.billingData).toEqual(['missing']);
   });
 });

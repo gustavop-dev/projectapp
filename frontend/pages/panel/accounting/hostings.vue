@@ -425,7 +425,7 @@ import {
   matchDateRange,
   matchNumberRange,
   matchIncludes,
-  matchBoolean,
+  matchBooleanIncludes,
 } from '~/composables/useAccountingFilters';
 import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
@@ -527,7 +527,7 @@ const {
     valueMax: '',
     validToAfter: '',
     validToBefore: '',
-    isActive: '',
+    isActive: [],
   },
   matchers: {
     clients: matchClients,
@@ -535,7 +535,7 @@ const {
     modalities: matchIncludes('payment_modality', 'modalities'),
     value: matchNumberRange('monthly_value', 'valueMin', 'valueMax'),
     validTo: matchDateRange('valid_to', 'validToAfter', 'validToBefore'),
-    isActive: matchBoolean('is_active', 'isActive'),
+    isActive: matchBooleanIncludes('is_active', 'isActive'),
   },
   searchFields: [
     'client_name', 'client_display_name', 'project_name', 'domain_url', 'notes',

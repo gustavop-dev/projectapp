@@ -513,3 +513,22 @@ describe('administración de la tira', () => {
     expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Fallidos', 'La mía']);
   });
 });
+
+describe('sameFilters across the move to multi-value dimensions', () => {
+  it('reads a scalar and its one-element array as the same cut', () => {
+    // A tab saved before the dimension went multi-valued must not report drift
+    // against the very definition it was restored from.
+    expect(sameFilters({ kind: 'expected' }, { kind: ['expected'] })).toBe(true);
+  });
+
+  it('still sees a real difference when a second value was added', () => {
+    expect(sameFilters(
+      { paymentStatus: ['pending'] },
+      { paymentStatus: ['pending', 'partial'] },
+    )).toBe(false);
+  });
+
+  it('still sees a difference between two different single values', () => {
+    expect(sameFilters({ kind: 'expected' }, { kind: ['liquid'] })).toBe(false);
+  });
+});

@@ -2,6 +2,7 @@
   <div ref="containerRef" class="relative">
     <button
       type="button"
+      :data-testid="testId"
       class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors border whitespace-nowrap focus-visible:ring-2 focus-visible:ring-focus-ring/30 focus-visible:outline-none"
       :class="isActive
         ? 'bg-primary text-white border-emerald-600 hover:bg-primary-strong'
@@ -59,6 +60,9 @@ const props = defineProps({
   options: { type: Array, required: true },
   modelValue: { type: Array, default: () => [] },
   icon: { type: String, default: null },
+  // Same knob its single-choice sibling already had: the panels that assert
+  // "every predefined filter also exists as a control" address it by testid.
+  testId: { type: String, default: null },
 });
 
 const emit = defineEmits(['update:modelValue']);

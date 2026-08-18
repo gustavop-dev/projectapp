@@ -121,6 +121,83 @@ export function matchBoolean(field, key) {
   return fn;
 }
 
+/**
+ * Multi-value twin of `matchBoolean`: the selection is an array of the same
+ * 'true'/'false' tokens. Marking both degenerates to "no cut", which is the
+ * honest reading — a two-option dimension with everything checked is "Todos".
+ */
+export function matchBooleanIncludes(field, key) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.includes(record[field] === true ? 'true' : 'false');
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Multi-value matcher for a DERIVED dimension: one predicate per token, OR'd.
+ *
+ * The dimensions that go through here (`partner`, the expense `nature`, the
+ * collection `status`) are not columns — they are read off several fields at
+ * once, and some of their tokens OVERLAP (an overdue account is also issued).
+ * A set union is therefore the only correct reading; an if/elif chain would
+ * silently return just the first match.
+ */
+export function matchAnyToken(key, predicates) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.some((token) => {
+      const predicate = predicates[token];
+      // An unknown token must not silently widen the cut to everything.
+      return typeof predicate === 'function' ? predicate(record) : false;
+    });
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Same union as `matchAnyToken`, for a dimension whose tokens are already
+ * served by one `(record, token) => boolean` function. Lets a scalar matcher
+ * that predates multi-select keep its single definition instead of being
+ * copied into a per-token dict.
+ */
+export function matchAnyValue(key, predicate) {
+  const fn = (record, _value, filters) => {
+    const selected = filters[key];
+    if (!Array.isArray(selected) || selected.length === 0) return true;
+    return selected.some((token) => predicate(record, token));
+  };
+  fn.keys = [key];
+  return fn;
+}
+
+/**
+ * Reconcile a stored filter dict with the shape its view expects today.
+ *
+ * Saved tabs are free-form JSON with no server-side validation, so rows written
+ * before a dimension became multi-value still hold `kind: 'expected'` where the
+ * matcher now wants `['expected']`. Loading one unconverted does not throw — it
+ * filters NOTHING, silently, which is the exact failure this whole feature
+ * exists to remove. The scalar branch is kept too so a rollback survives.
+ */
+export function coerceToDefaultShape(stored, defaults) {
+  const out = { ...stored };
+  for (const [key, fallback] of Object.entries(defaults)) {
+    if (!(key in out)) continue;
+    const value = out[key];
+    if (Array.isArray(fallback) && !Array.isArray(value)) {
+      out[key] = value === '' || value === null || value === undefined ? [] : [value];
+    } else if (!Array.isArray(fallback) && Array.isArray(value)) {
+      out[key] = value.length ? value[0] : '';
+    }
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------------------
 // Factory
 // ---------------------------------------------------------------------------
@@ -225,9 +302,20 @@ export function useAccountingFilters({
     return structuredClone(toRaw(filters));
   }
 
+  /**
+   * Stored filters -> live filters, in two steps that must stay in this order:
+   * the per-view `normalizeFilters` hook renames keys whose MEANING changed,
+   * then the shape pass fixes keys whose TYPE changed (scalar -> array). The
+   * hook runs first so it can keep emitting the shape it always emitted.
+   */
+  function readStoredFilters(filters) {
+    const stored = cloneFilters(filters || {});
+    const renamed = normalizeFilters ? normalizeFilters(stored) : stored;
+    return coerceToDefaultShape(renamed, DEFAULT_FILTERS);
+  }
+
   function loadTabFilters(target, tab) {
-    const stored = cloneFilters(tab.filters);
-    Object.assign(target, freshFilters(), normalizeFilters ? normalizeFilters(stored) : stored);
+    Object.assign(target, freshFilters(), readStoredFilters(tab.filters));
   }
 
   /** Read this instance's filters out of the query string. */
@@ -546,7 +634,9 @@ export function useAccountingFilters({
   function countTabs(records, tabList = savedTabs.value) {
     const counts = { all: records.length };
     for (const tab of tabList) {
-      const filters = { ...freshFilters(), ...(tab.filters || {}) };
+      // Same read path as loadTabFilters: a badge computed off a raw scalar tab
+      // would count it as unfiltered and disagree with what selecting it shows.
+      const filters = { ...freshFilters(), ...readStoredFilters(tab.filters) };
       counts[String(tab.id)] = filterWith(records, filters).length;
     }
     return counts;

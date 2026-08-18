@@ -28,6 +28,7 @@
  */
 
 import {
+  matchAnyValue,
   matchDateRange,
   matchIncludes,
   matchNumberRange,
@@ -103,41 +104,41 @@ export const CLIENT_SUBFILTERS = [
   // and asking for both would hide exactly the rows worth chasing. The other
   // two read the entity, which is what carries the date a proposal is
   // compared against.
-  { id: 'diagnostic-billed', name: 'Con diagnóstico facturado', module: 'diagnostics', filters: { diagnosticStatus: 'billed' } },
-  { id: 'no-diagnostic', name: 'Sin diagnóstico', module: 'diagnostics', filters: { diagnosticStatus: 'none' } },
-  { id: 'diagnostic-unconverted', name: 'Diagnóstico sin propuesta posterior', module: 'diagnostics', filters: { diagnosticStatus: 'unconverted' } },
+  { id: 'diagnostic-billed', name: 'Con diagnóstico facturado', module: 'diagnostics', filters: { diagnosticStatus: ['billed'] } },
+  { id: 'no-diagnostic', name: 'Sin diagnóstico', module: 'diagnostics', filters: { diagnosticStatus: ['none'] } },
+  { id: 'diagnostic-unconverted', name: 'Diagnóstico sin propuesta posterior', module: 'diagnostics', filters: { diagnosticStatus: ['unconverted'] } },
 
   // Proyectos — leans on the Plataforma module (PA-49), where a project
   // becomes an administrable entity.
-  { id: 'active-project', name: 'Con proyecto activo', module: 'projects', filters: { projectStatus: 'active' } },
-  { id: 'no-project', name: 'Sin proyecto', module: 'projects', filters: { projectStatus: 'none' } },
+  { id: 'active-project', name: 'Con proyecto activo', module: 'projects', filters: { projectStatus: ['active'] } },
+  { id: 'no-project', name: 'Sin proyecto', module: 'projects', filters: { projectStatus: ['none'] } },
 
   // Hosting
-  { id: 'hosting-charged', name: 'Con hosting cobrado', module: 'hosting', filters: { hostingStatus: 'charged' } },
-  { id: 'hosting-any', name: 'Con hosting (histórico)', module: 'hosting', filters: { hostingStatus: 'any' } },
-  { id: 'no-hosting', name: 'Sin hosting', module: 'hosting', filters: { hostingStatus: 'none' } },
+  { id: 'hosting-charged', name: 'Con hosting cobrado', module: 'hosting', filters: { hostingStatus: ['charged'] } },
+  { id: 'hosting-any', name: 'Con hosting (histórico)', module: 'hosting', filters: { hostingStatus: ['any'] } },
+  { id: 'no-hosting', name: 'Sin hosting', module: 'hosting', filters: { hostingStatus: ['none'] } },
 
   // Contabilidad — the smallest module today and the one that will grow most
   // (cuentas de cobro pendientes/vencidas land here).
-  { id: 'no-billing', name: 'Sin datos de facturación', module: 'accounting', filters: { billingData: 'missing' } },
+  { id: 'no-billing', name: 'Sin datos de facturación', module: 'accounting', filters: { billingData: ['missing'] } },
 
   // Documentos — la pertenencia dejó de vivir en el nombre de una carpeta:
   // estos cortes leen la relación documento→cliente/proyecto. El tercero es
   // la lista de lo que quedó a medio asociar tras la pasada retroactiva.
-  { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: 'with' } },
-  { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: 'none' } },
-  { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: 'no-project' } },
+  { id: 'docs-with', name: 'Con documentos', module: 'documents', filters: { documentsStatus: ['with'] } },
+  { id: 'docs-none', name: 'Sin documentos', module: 'documents', filters: { documentsStatus: ['none'] } },
+  { id: 'docs-no-project', name: 'Con documentos sin proyecto', module: 'documents', filters: { documentsStatus: ['no-project'] } },
   // El cuarto lee la relación de la CARPETA, no la de los documentos: una
   // carpeta suya sin nada adentro todavía dice de quién es.
-  { id: 'docs-with-folder', name: 'Con carpeta', module: 'documents', filters: { documentsStatus: 'with-folder' } },
+  { id: 'docs-with-folder', name: 'Con carpeta', module: 'documents', filters: { documentsStatus: ['with-folder'] } },
 
   // Emails — contact, not business. All four read what was addressed to the
   // client: the internal notices about their records show in the modal,
   // marked, but a digest that reached the team is not contact with them.
-  { id: 'emails-any', name: 'Con correos enviados', module: 'emails', filters: { emailStatus: 'any' } },
-  { id: 'no-emails', name: 'Sin ningún correo', module: 'emails', filters: { emailStatus: 'none' } },
-  { id: 'emails-failed', name: 'Con envíos fallidos', module: 'emails', filters: { emailStatus: 'failed' } },
-  { id: 'emails-cold', name: 'Sin contacto en los últimos 30 días', module: 'emails', filters: { emailStatus: 'cold' } },
+  { id: 'emails-any', name: 'Con correos enviados', module: 'emails', filters: { emailStatus: ['any'] } },
+  { id: 'no-emails', name: 'Sin ningún correo', module: 'emails', filters: { emailStatus: ['none'] } },
+  { id: 'emails-failed', name: 'Con envíos fallidos', module: 'emails', filters: { emailStatus: ['failed'] } },
+  { id: 'emails-cold', name: 'Sin contacto en los últimos 30 días', module: 'emails', filters: { emailStatus: ['cold'] } },
 ];
 
 const SUBFILTER_BY_ID = new Map(CLIENT_SUBFILTERS.map((s) => [s.id, s]));
@@ -157,9 +158,11 @@ export function clientSubfiltersFor(moduleId) {
  * that true by construction instead of by discipline.
  */
 export function subfilterOptionsFor(moduleId, key) {
+  // Each subfilter pins exactly one value of its module's axis; the panel
+  // control is what lets several of them be marked at once.
   return clientSubfiltersFor(moduleId)
-    .filter((s) => typeof s.filters[key] === 'string')
-    .map((s) => ({ value: s.filters[key], label: s.name }));
+    .filter((s) => Array.isArray(s.filters[key]) && s.filters[key].length === 1)
+    .map((s) => ({ value: s.filters[key][0], label: s.name }));
 }
 
 /**
@@ -321,10 +324,10 @@ export function documentsPill(record, tabId) {
 // ---------------------------------------------------------------------------
 
 const LEGACY_PRESET_MAP = {
-  'hosting-charged': { hostingStatus: 'charged', module: 'hosting' },
-  'hosting-any': { hostingStatus: 'any', module: 'hosting' },
-  'no-billing': { billingData: 'missing', module: 'accounting' },
-  'active-project': { projectStatus: 'active', module: 'projects' },
+  'hosting-charged': { hostingStatus: ['charged'], module: 'hosting' },
+  'hosting-any': { hostingStatus: ['any'], module: 'hosting' },
+  'no-billing': { billingData: ['missing'], module: 'accounting' },
+  'active-project': { projectStatus: ['active'], module: 'projects' },
 };
 
 /**
@@ -374,12 +377,12 @@ export const CLIENT_FILTERS_CONFIG = {
     acceptedMax: null,
     lastActivityAfter: null,
     lastActivityBefore: null,
-    hostingStatus: '',
-    projectStatus: '',
-    billingData: '',
-    documentsStatus: '',
-    diagnosticStatus: '',
-    emailStatus: '',
+    hostingStatus: [],
+    projectStatus: [],
+    billingData: [],
+    documentsStatus: [],
+    diagnosticStatus: [],
+    emailStatus: [],
   },
   matchers: {
     lastStatuses: matchIncludes('last_status', 'lastStatuses'),
@@ -392,12 +395,14 @@ export const CLIENT_FILTERS_CONFIG = {
     activityRange: matchDateRange(
       'last_sent_at', 'lastActivityAfter', 'lastActivityBefore',
     ),
-    hostingStatus: matchHostingStatus,
-    projectStatus: matchProjectStatus,
-    billingData: matchBillingData,
-    documentsStatus: matchDocumentsStatus,
-    diagnosticStatus: matchDiagnosticStatus,
-    emailStatus: matchEmailStatus,
+    // The scalar predicates keep their single definition — `matchAnyValue`
+    // just unions them over the values marked in the dimension.
+    hostingStatus: matchAnyValue('hostingStatus', matchHostingStatus),
+    projectStatus: matchAnyValue('projectStatus', matchProjectStatus),
+    billingData: matchAnyValue('billingData', matchBillingData),
+    documentsStatus: matchAnyValue('documentsStatus', matchDocumentsStatus),
+    diagnosticStatus: matchAnyValue('diagnosticStatus', matchDiagnosticStatus),
+    emailStatus: matchAnyValue('emailStatus', matchEmailStatus),
   },
   builtinTabs: CLIENT_SUBFILTERS.map(({ id, name, module, filters }) => ({
     id, name, module, filters: { ...filters, module },
