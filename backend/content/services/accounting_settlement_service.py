@@ -177,6 +177,11 @@ def settle_expected_income(income, data, user):
             f'(${pending:,.2f}).'
         )
 
+    # After every refusal and before anything is created: a settlement that
+    # will not happen must not leave the parent altered.
+    if data.get('period'):
+        _complete_parent_period(income, data['period'], user)
+
     liquid = _create_liquid_child(income, data, user) if received > 0 else None
     expenses = [
         _create_deduction(income, data, deduction, user)
@@ -203,6 +208,40 @@ def settle_expected_income(income, data, user):
         'expenses': expenses,
         'expected_incomes': new_expected,
     }
+
+
+def _complete_parent_period(income, period, user):
+    """Write the covered window the operator completed while settling.
+
+    The window belongs here, on the expected income: it is the record that
+    says which service was billed. Its children carry the payment instead, so
+    they are exempt from the rule (see the covered-period block in
+    ``IncomeRecordCreateUpdateSerializer.validate``) and this is the only
+    place a settlement writes a period.
+
+    It goes through the ordinary write serializer, without the `settlement`
+    context, precisely because this IS someone describing the charge: the
+    same rules the income form obeys apply — the end must come after the
+    start, `period_date` is re-derived from the start, and the change lands in
+    the accounting changelog like any other edit.
+    """
+    if income.origin != IncomeRecord.Origin.HOSTING:
+        raise ValueError(
+            'Solo un ingreso de hosting cubre un período; este no lo es.'
+        )
+    serializer = IncomeRecordCreateUpdateSerializer(
+        instance=income,
+        data={
+            'period_start': period['period_start'],
+            'period_end': period['period_end'],
+            'period_cadence': period['period_cadence'],
+        },
+        partial=True,
+    )
+    serializer.is_valid(raise_exception=True)
+    return accounting_service.update_record(
+        EntityType.INCOME, income, serializer, user, notify=False,
+    )
 
 
 def _create_liquid_child(income, data, user):
