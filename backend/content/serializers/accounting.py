@@ -531,11 +531,26 @@ class IncomeRecordCreateUpdateSerializer(
         # touches neither origin nor the period stays valid, while the panel
         # form always sends `origin`, so editing one from there completes its
         # period (deliberate gradual backfill).
+        #
+        # Settling takes the same escape `origin` takes above, and for a
+        # stronger reason: it does not describe a charge, it DERIVES records
+        # from one already on the book. The window belongs to the expected
+        # income — the record that says which service was billed — while its
+        # children are the payment (a date, an amount, a destination) and the
+        # balance rescheduled for later. Demanding it of them would refuse
+        # every hosting settlement, the ones whose parent has a complete
+        # window included, since the child is new and inherits nothing but the
+        # origin; and handing them the parent's window instead would overwrite
+        # their `period_date` with its start, throwing away the very date the
+        # modal asks for — the day the money came in.
         origin = effective('origin', '')
         period_fields = ('origin', 'period_start', 'period_end', 'period_cadence')
         touches_period = any(field in data for field in period_fields)
         if origin == IncomeRecord.Origin.HOSTING:
-            if self.instance is None or touches_period:
+            if (
+                (self.instance is None or touches_period)
+                and not self.context.get('settlement')
+            ):
                 if not effective('period_start'):
                     raise serializers.ValidationError({
                         'period_start': (
@@ -608,6 +623,23 @@ class SettlementFollowUpSerializer(serializers.Serializer):
     )
 
 
+class SettlementPeriodSerializer(serializers.Serializer):
+    """The window a hosting charge covers, completed while settling it.
+
+    Optional as a block and complete inside it: the modal either fills the
+    three fields or sends nothing, so a half-answered window never reaches the
+    book. It describes the PARENT — the expected income is what says which
+    service was billed — and the service applies it there, never to the
+    children the settlement derives.
+    """
+
+    period_start = FlexiblePeriodField()
+    period_end = serializers.DateField()
+    period_cadence = serializers.ChoiceField(
+        choices=RecurringPayment.Frequency.choices,
+    )
+
+
 class IncomeSettlementSerializer(serializers.Serializer):
     """Liquidating an expected income plus how its shortfall is resolved.
 
@@ -635,6 +667,11 @@ class IncomeSettlementSerializer(serializers.Serializer):
     notes = serializers.CharField(required=False, allow_blank=True)
     deductions = SettlementDeductionSerializer(many=True, required=False)
     expected_incomes = SettlementFollowUpSerializer(many=True, required=False)
+    # Completing the parent's window from here is a courtesy, never a
+    # condition: a hosting income with no period settles exactly the same
+    # without it. Resolving the gap where it shows up beats sending the
+    # operator to another screen, and the money is never held for it.
+    period = SettlementPeriodSerializer(required=False, allow_null=True)
 
 
 class SettlementAllocationSerializer(serializers.Serializer):

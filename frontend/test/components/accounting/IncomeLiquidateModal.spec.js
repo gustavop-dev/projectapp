@@ -1,5 +1,12 @@
 import { mount } from '@vue/test-utils';
+import { createPinia, setActivePinia } from 'pinia';
 import IncomeLiquidateModal from '../../../components/accounting/IncomeLiquidateModal.vue';
+
+// The covered-period block leans on `useHostingPeriod`, which resolves the
+// accounting store at setup — even when the block itself stays hidden.
+beforeEach(() => {
+  setActivePinia(createPinia());
+});
 
 const PartnerSplitInputStub = {
   name: 'PartnerSplitInput',
@@ -596,5 +603,120 @@ describe('shortfall discoverability', () => {
     expect(
       wrapper.find('[data-testid="income-liquidate-deduction-0"]').exists(),
     ).toBe(false);
+  });
+});
+
+describe('covered period of a hosting charge', () => {
+  // A hosting charge from before the period fields existed: the block exists
+  // for exactly this record.
+  const legacyHosting = {
+    ...expectedRecord,
+    id: 230,
+    concept: 'Vastago (Hosting) - Semestre 1',
+    origin: 'hosting',
+    period_date: '2026-10-01',
+    period_start: null,
+    period_end: null,
+    period_cadence: '',
+  };
+
+  const block = (wrapper) =>
+    wrapper.find('[data-testid="income-liquidate-period-block"]');
+
+  async function submit(wrapper) {
+    await wrapper.find('form').trigger('submit');
+    return wrapper.emitted('submit')?.[0]?.[0];
+  }
+
+  it('stays out of the way of an income that is not hosting', () => {
+    const wrapper = mountModal();
+
+    expect(block(wrapper).exists()).toBe(false);
+  });
+
+  it('stays out of the way of a hosting that already recorded its window', () => {
+    const wrapper = mountModal({
+      record: {
+        ...legacyHosting,
+        period_start: '2026-08-01',
+        period_end: '2026-10-31',
+        period_cadence: 'quarterly',
+      },
+    });
+
+    expect(block(wrapper).exists()).toBe(false);
+  });
+
+  it('opens the window on the charge date when there is none recorded', () => {
+    const wrapper = mountModal({ record: legacyHosting });
+
+    expect(block(wrapper).exists()).toBe(true);
+    expect(
+      wrapper.find('[data-testid="income-liquidate-period-start"]').element.value,
+    ).toBe('2026-10-01');
+  });
+
+  it('computes the end of the period from the periodicity', async () => {
+    const wrapper = mountModal({ record: legacyHosting });
+
+    await wrapper
+      .find('[data-testid="income-liquidate-period-cadence"]')
+      .setValue('semiannual');
+
+    expect(
+      wrapper.find('[data-testid="income-liquidate-period-end"]').element.value,
+    ).toBe('2027-03-31');
+  });
+
+  it('sends the completed window alongside the settlement', async () => {
+    const wrapper = mountModal({ record: legacyHosting });
+    await wrapper
+      .find('[data-testid="income-liquidate-period-cadence"]')
+      .setValue('semiannual');
+
+    const payload = await submit(wrapper);
+
+    expect(payload.period).toEqual({
+      period_start: '2026-10-01',
+      period_end: '2027-03-31',
+      period_cadence: 'semiannual',
+    });
+    // The payment keeps its own date: the window describes the charge.
+    expect(payload.period_date).not.toBe('2026-10-01');
+  });
+
+  it('settles with no window at all when the block is left untouched', async () => {
+    const wrapper = mountModal({ record: legacyHosting });
+
+    const payload = await submit(wrapper);
+
+    // It went through — with no window attached to it.
+    expect(payload.concept).toBe('Vastago (Hosting) - Semestre 1');
+    expect(payload.period).toBeUndefined();
+  });
+
+  it('refuses to send a window that was started and left half written', async () => {
+    const wrapper = mountModal({ record: legacyHosting });
+    await wrapper
+      .find('[data-testid="income-liquidate-period-cadence"]')
+      .setValue('semiannual');
+
+    await wrapper.find('[data-testid="income-liquidate-period-end"]').setValue('');
+
+    expect(wrapper.find('[data-testid="income-liquidate-submit-reason"]').text())
+      .toContain('Completa el período que cubre el cobro, o déjalo vacío.');
+    expect(await submit(wrapper)).toBeUndefined();
+  });
+
+  it('flags an end that does not come after the start', async () => {
+    const wrapper = mountModal({ record: legacyHosting });
+
+    await wrapper
+      .find('[data-testid="income-liquidate-period-end"]')
+      .setValue('2026-09-30');
+
+    expect(wrapper.find('[data-testid="income-liquidate-submit-reason"]').text())
+      .toContain('La fecha de fin debe ser posterior a la de inicio.');
+    expect(await submit(wrapper)).toBeUndefined();
   });
 });
