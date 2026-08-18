@@ -465,12 +465,49 @@ class TestAccountingMcpPaymentStatusFilter:
         response = _call(api_client, token, 'list_income', {'payment_status': 'settled'})
         assert response.data['result']['isError'] is True
 
+    def test_list_income_accepts_several_statuses_at_once(
+        self, api_client, accounting_connector, make_income,
+    ):
+        """The cut the panel's landing tab makes: everything still uncollected."""
+        self._seed(make_income)
+        _, token = accounting_connector
+        response = _call(
+            api_client, token, 'list_income', {'payment_status': 'pending,partial'},
+        )
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert sorted(row['concept'] for row in payload['results']) == [
+            'Esperado parcial', 'Esperado sin pagos',
+        ]
+
+    def test_list_income_rejects_an_unknown_value_inside_a_list(
+        self, api_client, accounting_connector,
+    ):
+        _, token = accounting_connector
+        response = _call(
+            api_client, token, 'list_income', {'payment_status': 'pending,settled'},
+        )
+        assert response.data['result']['isError'] is True
+
     def test_income_schema_gates_payment_status_to_income_only(self):
         income_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_income')
         expense_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_expense')
         prop = income_tool['input_schema']['properties']['payment_status']
-        assert prop['enum'] == ['pending', 'partial', 'paid']
+        # A plain string, not an enum: the filter takes one or several tokens
+        # separated by commas, and `_str_params` would stringify a real list as
+        # "['pending', 'partial']". The vocabulary lives in the description.
+        assert prop['type'] == 'string'
+        assert 'enum' not in prop
+        for token in ('pending', 'partial', 'paid'):
+            assert token in prop['description']
         assert 'payment_status' not in expense_tool['input_schema']['properties']
+
+    def test_partner_schema_also_takes_several_values(self):
+        income_tool = next(t for t in ACCOUNTING_TOOLS if t['name'] == 'list_income')
+        prop = income_tool['input_schema']['properties']['partner']
+        assert prop['type'] == 'string'
+        assert 'enum' not in prop
+        for token in ('gustavo', 'carlos', 'projectapp'):
+            assert token in prop['description']
 
 
 @pytest.mark.django_db
