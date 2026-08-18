@@ -140,6 +140,7 @@
 | Large service files | Medium | `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large enough to justify future splitting |
 | Large view file | Medium | `views/proposal.py` remains a very large FBV module and could benefit from submodule extraction |
 | Single Django app for content | Low | All proposal/blog/portfolio/contact models in `content` app; consider splitting if scope grows |
+| One bank transfer paying several expenses books N pocket movements | Low | The balance is right, the ledger's shape is not: an extract showing one debit appears as three. **Evaluated and deliberately out of scope for the abono v1** — expenses have no `kind`, so no expected/liquid split and nothing to impute against; full rationale, cost breakdown and the cheap first step (`ExpenseRecord.pocket_movement` OneToOne→FK, nothing else) in `tasks/active_context.md`. Revisit when expected expenses start being recorded. |
 
 ---
 
