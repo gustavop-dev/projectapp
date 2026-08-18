@@ -1499,6 +1499,21 @@ class SavedFilterTab(models.Model):
     # Kept out of the strip without being deleted, so a tab that is only
     # useful now and then does not have to be rebuilt from scratch.
     is_hidden = models.BooleanField(default=False)
+    # Non-empty marks a PLACEHOLDER row standing in for a quick-filter that
+    # the frontend defines in code (its `builtinTabs`). It carries `order`,
+    # `is_hidden` and a label, and nothing else: `filters` stays empty and
+    # the real definition keeps living in the frontend constant this key
+    # matches.
+    #
+    # Why a row at all, when not having one is the whole point of a builtin:
+    # the order is per-user, so it has nowhere else to live. And why the row
+    # still refuses to carry the filters — i.e. why not just seed them like
+    # any other factory tab: a builtin like "Hoy" or "Últimos 7 días"
+    # resolves its dates when it renders, so a persisted `date_from` would
+    # freeze it on the day it was written.
+    builtin_key = models.CharField(
+        max_length=64, blank=True, default='', db_index=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -1506,6 +1521,15 @@ class SavedFilterTab(models.Model):
         ordering = ['view', 'order', 'created_at']
         indexes = [
             models.Index(fields=['user', 'view', 'order']),
+        ]
+        constraints = [
+            # One placeholder per builtin per view: the seeding upserts on
+            # this key, and a duplicate would give one chip two orders.
+            models.UniqueConstraint(
+                fields=['user', 'view', 'builtin_key'],
+                condition=models.Q(builtin_key__gt=''),
+                name='uniq_saved_filter_tab_builtin_key',
+            ),
         ]
 
     def __str__(self):

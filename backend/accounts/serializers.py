@@ -1574,12 +1574,15 @@ class SavedFilterTabSerializer(serializers.ModelSerializer):
         model = SavedFilterTab
         fields = [
             'id', 'view', 'name', 'filters', 'base_filters', 'order',
-            'is_seeded', 'is_hidden', 'created_at', 'updated_at',
+            'is_seeded', 'is_hidden', 'builtin_key', 'created_at', 'updated_at',
         ]
         # `is_seeded` is the seeding's own bookkeeping: letting the panel set
         # it would let a user's tab claim to be a factory one and be wiped by
-        # the next "Restablecer".
-        read_only_fields = ['id', 'is_seeded', 'created_at', 'updated_at']
+        # the next "Restablecer". `builtin_key` is the same kind of claim: it
+        # would turn a real tab into a placeholder whose filters are ignored.
+        read_only_fields = [
+            'id', 'is_seeded', 'builtin_key', 'created_at', 'updated_at',
+        ]
 
     def create(self, validated_data):
         # A new tab's definition is whatever it was created with; writable
@@ -1594,7 +1597,12 @@ class SavedFilterTabSerializer(serializers.ModelSerializer):
         if self.instance is None:
             user = self.context['request'].user
             view = attrs.get('view')
-            count = SavedFilterTab.objects.filter(user=user, view=view).count()
+            # Placeholders are scaffolding for the builtins, not tabs the user
+            # made: counting them would shrink the real cap from 12 to 7 in
+            # Ingresos and leave Clientes unable to save a single one.
+            count = SavedFilterTab.objects.filter(
+                user=user, view=view, builtin_key='',
+            ).count()
             if count >= SavedFilterTab.MAX_TABS_PER_VIEW:
                 raise serializers.ValidationError({
                     'view': (

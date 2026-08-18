@@ -30,6 +30,13 @@ def _sample_registry(monkeypatch):
     monkeypatch.setattr(
         saved_filter_tab_service, 'DEFAULT_FILTER_TABS', SAMPLE_REGISTRY,
     )
+    # These tests are about seeding the DEFAULTS. Builtins are a second
+    # seeding that runs on the same GET and reserves the leading `order`
+    # slots for the code-level quick-filters, so leaving the real registry in
+    # would push every seeded tab of the `client` view down by 24 and add 24
+    # placeholder rows to what the endpoint gives back. That half is covered
+    # in `test_saved_filter_tabs.py`.
+    monkeypatch.setattr(saved_filter_tab_service, 'BUILTIN_FILTER_TABS', {})
 
 
 @pytest.fixture

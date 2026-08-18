@@ -189,5 +189,6 @@ export function useViewMapFilters() {
     renameTab,
     restoreTab,
     rebaseTab,
+    reorderTabs: tabs.reorderTabs,
   };
 }

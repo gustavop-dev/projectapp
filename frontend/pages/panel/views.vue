@@ -75,6 +75,7 @@
       @delete="deleteTab"
       @restore="restoreTab"
       @rebase="rebaseTab"
+      @reorder="reorderTabs"
     />
 
     <!-- Search bar + filter toggle -->
@@ -280,6 +281,7 @@ const {
   renameTab,
   restoreTab,
   rebaseTab,
+  reorderTabs,
 } = useViewMapFilters()
 
 const { viewMode, selectedModuleId, applyDefaultMode, selectModule, clearModule } = useViewMapMode()

@@ -399,19 +399,63 @@ export function useAccountingFilters({
     (moduleKey ? String(currentFilters[moduleKey] ?? defaultModule) : defaultModule),
   );
 
+  /**
+   * The server's placeholder row for a builtin, keyed by `builtin_key`.
+   *
+   * A placeholder carries the user's `order` and `is_hidden` for a quick
+   * filter whose definition lives here in code — that is the whole point, so
+   * a date-based builtin like "Hoy" cannot freeze on a stored `date_from`.
+   */
+  const placeholderByKey = computed(() => new Map(
+    savedTabs.value
+      .filter((tab) => tab.builtin_key)
+      .map((tab) => [String(tab.builtin_key), tab]),
+  ));
+
+  // Builtins with no placeholder yet (the row is seeded on the first GET, and
+  // a view may have been dropped from the backend registry) sort ahead of
+  // everything: negative slots reproduce exactly the old "builtins first,
+  // then the saved ones" layout while nothing has been moved.
+  const UNPLACED_BUILTIN_BASE = -1000;
+
   // `filters` travels with the builtins too: a view that badges its tabs has
   // to be able to ask the server what each one is worth, and a builtin with
   // no definition attached would be counted as if it filtered nothing.
   const displayTabs = computed(() => {
+    const placeholders = placeholderByKey.value;
     const all = [
-      ...builtinTabs.map((t) => ({
-        id: t.id, name: t.name, filters: t.filters || {}, module: t.module, builtin: true,
-      })),
-      ...savedTabs.value,
+      ...builtinTabs.map((t, index) => {
+        const row = placeholders.get(String(t.id));
+        return {
+          id: t.id,
+          name: t.name,
+          filters: t.filters || {},
+          module: t.module,
+          builtin: true,
+          // The row contributes order and visibility and nothing else: its
+          // `filters` are empty by design and must never shadow these.
+          order: row ? row.order : UNPLACED_BUILTIN_BASE + index,
+          is_hidden: row ? row.is_hidden : false,
+        };
+      }),
+      // A placeholder whose constant is gone (builtin retired from the code)
+      // would render as a nameless chip that filters nothing — drop it.
+      ...savedTabs.value.filter((tab) => !tab.builtin_key),
     ];
+    all.sort((a, b) => (a.order || 0) - (b.order || 0));
     if (!moduleKey) return all;
     return all.filter((tab) => moduleOf(tab) === activeModule.value);
   });
+
+  /**
+   * Persist the strip's order after a drag, a menu move or a keyboard move.
+   *
+   * The strip only ever names what it shows — hidden tabs and, in a two-level
+   * view, the other modules stay out of the list. Weaving that back into the
+   * full order is `useSavedFilterTabs.reorderTabs`'s job; builtins travel by
+   * their string id and are matched to their placeholder row there.
+   */
+  const reorderTabs = tabs.reorderTabs;
 
   /**
    * Switching module never clears what is already applied: the panel and the
@@ -683,6 +727,7 @@ export function useAccountingFilters({
     renameTab,
     restoreTab,
     rebaseTab,
+    reorderTabs,
     reloadTabs: tabs.loadTabs,
     consumeParam,
     // For a page with several instances: whichever becomes the visible one

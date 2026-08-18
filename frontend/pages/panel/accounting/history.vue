@@ -65,6 +65,7 @@
       @delete="onDeleteTab"
       @restore="onRestoreTab"
       @rebase="onRebaseTab"
+      @reorder="onReorderTabs"
     />
 
     <!-- Error -->
@@ -384,6 +385,10 @@ async function onRestoreTab(tabId) {
 
 async function onRebaseTab(tabId) {
   await active.value.rebaseTab(tabId);
+}
+
+async function onReorderTabs(ids) {
+  await active.value.reorderTabs(ids);
 }
 
 // ---------------------------------------------------------------------------

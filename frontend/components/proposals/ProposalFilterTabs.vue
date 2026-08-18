@@ -52,83 +52,147 @@
         >({{ allCount }})</span>
       </button>
 
-      <!-- Saved tabs -->
-      <div
-        v-for="tab in visibleTabs"
-        :key="tab.id"
-        class="relative group flex items-center"
+      <!--
+        Saved tabs, reorderable.
+
+        `class="contents"` keeps this wrapper out of the layout: its children
+        have to stay direct flex items of the strip above, or the whole list
+        would collapse into a single item and the wrap would break. It also
+        keeps "Todas", "+" and "Configuraciones" as siblings — with "Todas"
+        outside the sortable list, nothing can be dropped ahead of it, so it
+        stays first by construction instead of by a rule someone must enforce.
+      -->
+      <draggable
+        v-model="orderedTabs"
+        item-key="id"
+        tag="div"
+        class="contents"
+        ghost-class="opacity-30"
+        :delay="TOUCH_DRAG_DELAY_MS"
+        :delay-on-touch-only="true"
+        :touch-start-threshold="5"
+        @start="isDragging = true"
+        @end="handleDragEnd"
       >
-        <button
-          type="button"
-          :data-testid="`filter-tabs-tab-${tab.id}`"
-          class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap"
-          :class="activeTabId === tab.id
-            ? 'border-emerald-600 text-text-brand'
-            : 'border-transparent text-text-muted hover:text-text-default'"
-          @click="$emit('select', tab.id)"
-        >
-          {{ tab.name }}<span
-            v-if="countFor(tab) != null"
-            :data-testid="`filter-tabs-count-${tab.id}`"
-            class="ml-1 text-xs tabular-nums text-text-subtle"
-            :title="countTitle"
-          >({{ countFor(tab) }})</span><span
-            v-if="isModified(tab)"
-            :data-testid="`filter-tabs-modified-${tab.id}`"
-            class="ml-1 text-warning-strong"
-            title="Filtros modificados respecto a su base"
-          >•</span>
-        </button>
-        <!-- Tab context menu trigger (builtin tabs can't be renamed/deleted) -->
-        <button
-          v-if="!tab.builtin"
-          type="button"
-          :data-testid="`filter-tabs-menu-${tab.id}`"
-          class="p-0.5 rounded text-text-subtle hover:text-text-muted opacity-0 group-hover:opacity-100 transition-opacity -ml-1 mr-1"
-          @click.stop="toggleMenu(tab.id)"
-        >
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-          </svg>
-        </button>
-        <!-- Dropdown menu -->
-        <div
-          v-if="!tab.builtin && openMenuId === tab.id"
-          class="absolute top-full left-0 mt-1 z-50 bg-surface border border-border-default rounded-lg shadow-lg py-1 min-w-[140px]"
-        >
-          <button
-            type="button"
-            data-testid="filter-tabs-rename"
-            class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised"
-            @click="startRename(tab)"
-          >
-            Renombrar
-          </button>
-          <BaseButton
-            v-if="isModified(tab)"
-            variant="ghost"
-            size="sm"
-            class="w-full"
-            data-testid="filter-tabs-restore"
-            @click="handleRestore(tab.id)"
-          >
-            Restaurar filtros
-          </BaseButton>
-          <BaseButton
-            v-if="isModified(tab)"
-            variant="ghost"
-            size="sm"
-            class="w-full"
-            data-testid="filter-tabs-rebase"
-            @click="handleRebase(tab.id)"
-          >
-            Fijar como base
-          </BaseButton>
-          <BaseButton variant="danger-ghost" size="sm" class="w-full" data-testid="filter-tabs-delete" @click="handleDelete(tab.id)">
-            Eliminar
-          </BaseButton>
-        </div>
-      </div>
+        <template #item="{ element: tab }">
+          <div class="relative group flex items-center">
+            <button
+              type="button"
+              :data-testid="`filter-tabs-tab-${tab.id}`"
+              class="px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px whitespace-nowrap cursor-grab active:cursor-grabbing"
+              :class="activeTabId === tab.id
+                ? 'border-emerald-600 text-text-brand'
+                : 'border-transparent text-text-muted hover:text-text-default'"
+              aria-keyshortcuts="Control+ArrowLeft Control+ArrowRight"
+              @click="handleSelect(tab.id)"
+              @keydown="onTabKeydown($event, tab)"
+            >
+              {{ tab.name }}<span
+                v-if="countFor(tab) != null"
+                :data-testid="`filter-tabs-count-${tab.id}`"
+                class="ml-1 text-xs tabular-nums text-text-subtle"
+                :title="countTitle"
+              >({{ countFor(tab) }})</span><span
+                v-if="isModified(tab)"
+                :data-testid="`filter-tabs-modified-${tab.id}`"
+                class="ml-1 text-warning-strong"
+                title="Filtros modificados respecto a su base"
+              >•</span>
+            </button>
+            <!--
+              Context menu. Builtins get one too now: it is the only place
+              they can be moved without dragging, which is the whole point of
+              offering a non-drag path. What they still cannot do is be
+              renamed, restored, re-based or deleted — they have no row of
+              their own to rewrite.
+
+              El `aria-label` es genérico a propósito, y no "Opciones de
+              «Negociando»": Playwright empareja `name` por SUBCADENA salvo
+              que se pida `exact`, así que un rótulo que lleve el nombre del
+              chip hace que `getByRole('button', { name: 'Negociando' })`
+              resuelva a dos elementos y reviente en strict mode — en las
+              trece vistas que usan la tira, no sólo acá. El botón va pegado
+              a su chip, que es lo que dice de cuál filtro son las opciones.
+            -->
+            <button
+              type="button"
+              :data-testid="`filter-tabs-menu-${tab.id}`"
+              class="p-0.5 rounded text-text-subtle hover:text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity -ml-1 mr-1"
+              aria-label="Opciones del filtro"
+              @click.stop="toggleMenu(tab.id)"
+            >
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+            <!-- Dropdown menu -->
+            <div
+              v-if="openMenuId === tab.id"
+              class="absolute top-full left-0 mt-1 z-50 bg-surface border border-border-default rounded-lg shadow-lg py-1 min-w-[180px]"
+            >
+              <button
+                type="button"
+                :data-testid="`filter-tabs-move-left-${tab.id}`"
+                class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised
+                       disabled:text-text-subtle disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                :disabled="isFirst(tab)"
+                @click="handleMove(tab.id, -1)"
+              >
+                Mover a la izquierda
+              </button>
+              <button
+                type="button"
+                :data-testid="`filter-tabs-move-right-${tab.id}`"
+                class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised
+                       disabled:text-text-subtle disabled:hover:bg-transparent disabled:cursor-not-allowed"
+                :disabled="isLast(tab)"
+                @click="handleMove(tab.id, 1)"
+              >
+                Mover a la derecha
+              </button>
+              <button
+                v-if="!tab.builtin"
+                type="button"
+                data-testid="filter-tabs-rename"
+                class="w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised"
+                @click="startRename(tab)"
+              >
+                Renombrar
+              </button>
+              <BaseButton
+                v-if="!tab.builtin && isModified(tab)"
+                variant="ghost"
+                size="sm"
+                class="w-full"
+                data-testid="filter-tabs-restore"
+                @click="handleRestore(tab.id)"
+              >
+                Restaurar filtros
+              </BaseButton>
+              <BaseButton
+                v-if="!tab.builtin && isModified(tab)"
+                variant="ghost"
+                size="sm"
+                class="w-full"
+                data-testid="filter-tabs-rebase"
+                @click="handleRebase(tab.id)"
+              >
+                Fijar como base
+              </BaseButton>
+              <BaseButton
+                v-if="!tab.builtin"
+                variant="danger-ghost"
+                size="sm"
+                class="w-full"
+                data-testid="filter-tabs-delete"
+                @click="handleDelete(tab.id)"
+              >
+                Eliminar
+              </BaseButton>
+            </div>
+          </div>
+        </template>
+      </draggable>
 
       <!-- "+" button to create new tab -->
       <button
@@ -201,11 +265,23 @@
       class="fixed inset-0 z-40"
       @click="openMenuId = null"
     />
+
+    <!--
+      A move is silent for anyone not watching the strip: the chip changes
+      place and nothing else happens. This says where it landed.
+    -->
+    <p
+      data-testid="filter-tabs-live"
+      class="sr-only"
+      role="status"
+      aria-live="polite"
+    >{{ liveMessage }}</p>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import draggable from 'vuedraggable';
 import { sameFilters } from '~/composables/useSavedFilterTabs';
 
 const props = defineProps({
@@ -225,7 +301,17 @@ const props = defineProps({
 
 const emit = defineEmits([
   'select', 'create', 'rename', 'delete', 'config', 'restore', 'rebase',
+  'reorder',
 ]);
+
+/**
+ * Hold-to-drag on touch, immediate with a mouse (`delayOnTouchOnly`).
+ *
+ * On a touch screen the strip is also something you swipe across, and a drag
+ * that started on contact would eat that gesture. A mouse has no such
+ * ambiguity, and making it wait would just feel broken.
+ */
+const TOUCH_DRAG_DELAY_MS = 200;
 
 // Builtin quick-filters carry no persisted definition; legacy tab payloads
 // without base_filters must not flag as modified.
@@ -264,6 +350,107 @@ const allCount = computed(() => {
  * lugar.
  */
 const visibleTabs = computed(() => props.tabs.filter((tab) => !tab.is_hidden));
+
+/**
+ * Mutable mirror of `visibleTabs`: vuedraggable writes the new order straight
+ * into the array it is given, and `visibleTabs` is a computed over a prop.
+ *
+ * The parent stays the source of truth — every change to `props.tabs` resyncs
+ * this — so a rejected reorder snaps the strip back on its own when the server
+ * echo arrives with the old order.
+ */
+const orderedTabs = ref([...visibleTabs.value]);
+watch(visibleTabs, (tabs) => { orderedTabs.value = [...tabs]; });
+
+const isDragging = ref(false);
+// Set on drop and cleared a turn later, to swallow the click the drop
+// produces. See `handleSelect`.
+const justDragged = ref(false);
+const liveMessage = ref('');
+
+function isFirst(tab) {
+  return orderedTabs.value.findIndex((t) => t.id === tab.id) === 0;
+}
+
+function isLast(tab) {
+  const list = orderedTabs.value;
+  return list.findIndex((t) => t.id === tab.id) === list.length - 1;
+}
+
+function announceMove(tab) {
+  const position = orderedTabs.value.findIndex((t) => t.id === tab.id) + 1;
+  liveMessage.value = `«${tab.name}» movido a la posición ${position} de ${orderedTabs.value.length}`;
+}
+
+/** Persist whatever `orderedTabs` currently says, top to bottom. */
+function commitOrder() {
+  emit('reorder', orderedTabs.value.map((tab) => tab.id));
+}
+
+function handleDragEnd() {
+  isDragging.value = false;
+  // The browser fires `click` right after the drop, so the flag has to
+  // outlive this handler by one turn to be there when it arrives.
+  justDragged.value = true;
+  setTimeout(() => { justDragged.value = false; }, 0);
+
+  const moved = orderedTabs.value;
+  const previous = visibleTabs.value;
+  const changed = moved.some((tab, i) => tab.id !== previous[i]?.id);
+  if (!changed) return;
+  announceMove(moved.find((tab, i) => tab.id !== previous[i]?.id));
+  commitOrder();
+}
+
+/**
+ * Move without dragging: the menu entries and the keyboard shortcut.
+ *
+ * Dragging is not reachable for everyone and is awkward on a small screen,
+ * and reordering is not an optional extra of this strip — so it cannot be the
+ * only way in.
+ */
+function moveTab(tabId, delta) {
+  const list = [...orderedTabs.value];
+  const index = list.findIndex((tab) => tab.id === tabId);
+  const target = index + delta;
+  if (index === -1 || target < 0 || target >= list.length) return false;
+  [list[index], list[target]] = [list[target], list[index]];
+  orderedTabs.value = list;
+  announceMove(list[target]);
+  commitOrder();
+  return true;
+}
+
+function handleMove(tabId, delta) {
+  openMenuId.value = null;
+  moveTab(tabId, delta);
+}
+
+/**
+ * Ctrl/Cmd + arrow moves the focused chip. Bare arrows are left alone: they
+ * are how a screen reader walks the strip, and stealing them would trade one
+ * kind of reach for another.
+ */
+function onTabKeydown(event, tab) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  const delta = event.key === 'ArrowLeft' ? -1 : (event.key === 'ArrowRight' ? 1 : 0);
+  if (!delta) return;
+  event.preventDefault();
+  moveTab(tab.id, delta);
+}
+
+/**
+ * Moving a chip must not apply its filter — the two gestures start the same
+ * way and the strip changes the whole view.
+ *
+ * Sortable does suppress the click on the element it moved, but not reliably
+ * on a drag that ends back where it began, which the browser still reports as
+ * an ordinary click. Guarding here makes it deterministic instead.
+ */
+function handleSelect(tabId) {
+  if (isDragging.value || justDragged.value) return;
+  emit('select', tabId);
+}
 
 /**
  * Las opciones del selector móvil, en el MISMO orden que la tira de escritorio:
