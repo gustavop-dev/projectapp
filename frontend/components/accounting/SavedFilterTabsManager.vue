@@ -49,8 +49,13 @@
           >
             {{ tab.name }}
           </span>
+          <!--
+            A builtin's placeholder is a factory chip too: it carries no
+            filters of its own, but here it reads exactly like a seeded tab,
+            and that the distinction is invisible is the point.
+          -->
           <span
-            v-if="tab.is_seeded"
+            v-if="tab.is_seeded || tab.builtin_key"
             class="text-[10px] uppercase tracking-wider text-text-subtle"
           >
             De fábrica

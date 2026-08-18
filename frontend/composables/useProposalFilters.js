@@ -225,6 +225,7 @@ export function useProposalFilters() {
     renameTab,
     restoreTab,
     rebaseTab,
+    reorderTabs: tabs.reorderTabs,
     reloadTabs: tabs.loadTabs,
   };
 }

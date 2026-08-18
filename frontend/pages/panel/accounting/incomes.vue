@@ -86,6 +86,7 @@
       @delete="deleteFilterTab"
       @restore="restoreFilterTab"
       @rebase="rebaseFilterTab"
+      @reorder="reorderFilterTabs"
     />
 
     <!-- Search + Filter toggle -->
@@ -599,6 +600,7 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  reorderTabs: reorderFilterTabs,
   consumeParam,
 } = useAccountingFilters({
   viewName: 'accounting_income',

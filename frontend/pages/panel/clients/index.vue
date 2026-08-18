@@ -74,6 +74,7 @@
       @delete="deleteFilterTab"
       @restore="restoreFilterTab"
       @rebase="rebaseFilterTab"
+      @reorder="reorderFilterTabs"
     />
 
     <!-- Search + client status + Filter toggle. Status sits here, next to the
@@ -845,6 +846,7 @@ const {
   renameTab: renameFilterTab,
   restoreTab: restoreFilterTab,
   rebaseTab: rebaseFilterTab,
+  reorderTabs: reorderFilterTabs,
   reloadTabs: reloadFilterTabs,
 } = useAccountingFilters(CLIENT_FILTERS_CONFIG);
 

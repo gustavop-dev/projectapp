@@ -402,7 +402,12 @@ describe('administración de la tira', () => {
   });
 
   it('reorderTabs manda el orden y adopta la lista que vuelve', async () => {
-    get_request.mockResolvedValueOnce({ data: [] });
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 1, name: 'Uno', order: 0 },
+        { id: 2, name: 'Dos', order: 1 },
+      ],
+    });
     create_request.mockResolvedValueOnce({
       data: [
         { id: 2, name: 'Dos', order: 0 },
@@ -420,6 +425,49 @@ describe('administración de la tira', () => {
       { view: 'proposal', ids: [2, 1] },
     );
     expect(tabs.savedTabs.value.map((t) => t.name)).toEqual(['Dos', 'Uno']);
+  });
+
+  it('reorderTabs conserva el lugar de las ocultas que la tira no nombra', async () => {
+    // The strip only lists what it shows. Numbering from the visible list
+    // alone would hand the hidden tab an order it never asked for.
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 1, name: 'Uno', order: 0 },
+        { id: 2, name: 'Oculta', order: 1, is_hidden: true },
+        { id: 3, name: 'Tres', order: 2 },
+      ],
+    });
+    create_request.mockResolvedValueOnce({ data: [] });
+    const tabs = useSavedFilterTabs('proposal');
+    await tabs.loadTabs();
+
+    await tabs.reorderTabs([3, 1]);
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reorder/',
+      { view: 'proposal', ids: [3, 2, 1] },
+    );
+  });
+
+  it('reorderTabs ubica un builtin por su builtin_key', async () => {
+    // The strip knows a builtin by its code-level string id; the row holding
+    // its order is reached through `builtin_key`.
+    get_request.mockResolvedValueOnce({
+      data: [
+        { id: 10, name: 'Perdidos', order: 0, builtin_key: 'lost' },
+        { id: 11, name: 'Líquidos', order: 1 },
+      ],
+    });
+    create_request.mockResolvedValueOnce({ data: [] });
+    const tabs = useSavedFilterTabs('accounting_income');
+    await tabs.loadTabs();
+
+    await tabs.reorderTabs([11, 'lost']);
+
+    expect(create_request).toHaveBeenCalledWith(
+      'accounts/saved-filter-tabs/reorder/',
+      { view: 'accounting_income', ids: [11, 10] },
+    );
   });
 
   it('resetTabs adopta lo que el servidor deja, propias incluidas', async () => {

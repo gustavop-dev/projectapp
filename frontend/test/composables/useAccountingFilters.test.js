@@ -419,6 +419,73 @@ describe('builtin tabs', () => {
   });
 });
 
+describe('orden de la tira con placeholders de builtins', () => {
+  function makeWithTwoBuiltins() {
+    return useAccountingFilters({
+      viewName: 'accounting_income',
+      defaults: DEFAULTS,
+      matchers: { statuses: matchIncludes('status', 'statuses') },
+      builtinTabs: [
+        { id: 'lost', name: 'Perdidos', filters: { statuses: ['lost'] } },
+        { id: 'no-client', name: 'Sin cliente', filters: { statuses: ['x'] } },
+      ],
+    });
+  }
+
+  it('un builtin toma el orden de su fila placeholder', () => {
+    // La fila lleva orden y visibilidad; los filtros siguen siendo los del
+    // código, que es lo que impide que un builtin de fecha se congele.
+    savedTabsRef.value = [
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 0 },
+      {
+        id: 51, view: 'accounting_income', name: 'Perdidos', filters: {},
+        order: 1, builtin_key: 'lost',
+      },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    // 'no-client' no tiene fila todavía: conserva su lugar de código, delante.
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['no-client', 50, 'lost']);
+    expect(displayTabs.value.find((t) => t.id === 'lost').filters)
+      .toEqual({ statuses: ['lost'] });
+  });
+
+  it('sin ninguna fila placeholder, los builtins siguen yendo primero', () => {
+    savedTabsRef.value = [
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 0 },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['lost', 'no-client', 50]);
+  });
+
+  it('una fila placeholder oculta esconde su chip', () => {
+    savedTabsRef.value = [
+      {
+        id: 51, view: 'accounting_income', name: 'Perdidos', filters: {},
+        order: 0, builtin_key: 'lost', is_hidden: true,
+      },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.find((t) => t.id === 'lost').is_hidden).toBe(true);
+  });
+
+  it('descarta la fila de un builtin que ya no existe en el código', () => {
+    // Si no, quedaría un chip sin nombre que no filtra nada.
+    savedTabsRef.value = [
+      {
+        id: 52, view: 'accounting_income', name: 'Retirado', filters: {},
+        order: 0, builtin_key: 'retirado',
+      },
+      { id: 50, view: 'accounting_income', name: 'Míos', filters: {}, order: 1 },
+    ];
+    const { displayTabs } = makeWithTwoBuiltins();
+
+    expect(displayTabs.value.map((t) => t.id)).toEqual(['lost', 'no-client', 50]);
+  });
+});
+
 describe('default landing tab', () => {
   function makeWithDefaultTab() {
     return useAccountingFilters({

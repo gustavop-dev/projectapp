@@ -5824,7 +5824,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-expected-detail` | admin | P2 | display | 1 |
 | `admin-accounting-expenses-crud` | admin | P2 | display,success,error | 4 |
 | `admin-accounting-export` | admin | P2 | success | 1 |
-| `admin-accounting-filters` | admin | P1 | display,success | 11 |
+| `admin-accounting-filters` | admin | P1 | display,success | 19 |
 | `admin-accounting-history` | admin | P2 | display,success | 6 |
 | `admin-accounting-history-diagnosis` | admin | P2 | display,success,error | 4 |
 | `admin-accounting-history-filters` | admin | P2 | display,success | 7 |

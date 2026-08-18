@@ -79,6 +79,7 @@
       @delete="deleteTab"
       @restore="restoreTab"
       @rebase="rebaseTab"
+      @reorder="reorderTabs"
     />
 
     <!-- Search + Filter toggle + view mode -->
@@ -431,6 +432,7 @@ const {
   renameTab,
   restoreTab,
   rebaseTab,
+  reorderTabs,
 } = useAccountingFilters({
   viewName: 'accounting_recurring',
   defaults: {

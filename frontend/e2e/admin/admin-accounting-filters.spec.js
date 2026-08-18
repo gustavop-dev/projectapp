@@ -129,7 +129,21 @@ const SAVED_TABS = [
   },
 ];
 
-function buildHandler({ tabs = [] } = {}) {
+// Same view, with the placeholder row that carries a builtin's order: 601
+// stands in for the code-level 'lost' chip, whose filters stay in the page.
+const BUILTIN_BACKED_TABS = [
+  {
+    id: 601, view: 'accounting_income', name: 'Perdidos',
+    filters: {}, base_filters: {}, order: 0, builtin_key: 'lost',
+  },
+  {
+    id: 602, view: 'accounting_income', name: 'Todos los esperados',
+    filters: { kind: 'expected' }, base_filters: { kind: 'expected' },
+    order: 1,
+  },
+];
+
+function buildHandler({ tabs = [], reorderCalls = [] } = {}) {
   return ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -157,6 +171,22 @@ function buildHandler({ tabs = [] } = {}) {
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
+      // A move persists by posting the whole order. Echo the list back in
+      // that order, the way the server does: without it the next render
+      // rebuilds the strip from the old list and the move snaps back.
+      if (apiPath.includes('reorder/') && method === 'POST') {
+        const { ids } = route.request().postDataJSON();
+        reorderCalls.push(ids);
+        const byId = new Map(tabs.map((t) => [t.id, t]));
+        const reordered = ids
+          .map((id, index) => (byId.has(id) ? { ...byId.get(id), order: index } : null))
+          .filter(Boolean);
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify(reordered),
+        };
+      }
       if (method === 'PATCH') {
         const tabId = Number(apiPath.replace(/\/$/, '').split('/').pop());
         const tab = tabs.find((t) => t.id === tabId) || {};
@@ -193,6 +223,43 @@ async function gotoIncomes(page, options = {}) {
 
 function visibleRows(page) {
   return page.locator('[data-testid^="accounting-row-"]');
+}
+
+/**
+ * Just the two saved chips, in DOM order. The strip also carries the page's
+ * builtin quick-filters, which render among them, so `.first()` over every
+ * chip would answer about "Solo esperados", not about the pair under test.
+ */
+function savedPair(page) {
+  return page.locator(
+    '[data-testid="filter-tabs-tab-501"], [data-testid="filter-tabs-tab-502"]',
+  );
+}
+
+/**
+ * Manual mouse drag of one chip past another — sortablejs does not react to
+ * Playwright's dragTo.
+ *
+ * Three things this has to get right:
+ * - Scroll the chip into view first. `page.mouse` takes raw viewport
+ *   coordinates and does not auto-scroll the way `locator.click()` does, so a
+ *   chip below the fold receives no events at all and the drag does nothing.
+ * - Nudge before travelling. A first small move is what makes sortable enter
+ *   drag mode; jumping straight to the target reads as a click.
+ * - Land past the neighbour's midpoint but inside it. Sortable only reorders
+ *   once the pointer crosses the middle, and aiming beyond the element drops
+ *   outside the list, which reverts.
+ */
+async function dragChipPast(page, source, target) {
+  await source.scrollIntoViewIfNeeded();
+  const from = await source.boundingBox();
+  const to = await target.boundingBox();
+
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2 + 8, from.y + from.height / 2, { steps: 4 });
+  await page.mouse.move(to.x + to.width * 0.75, to.y + to.height / 2, { steps: 12 });
+  await page.mouse.up();
 }
 
 async function openFilterPanel(page) {
@@ -438,5 +505,87 @@ test.describe('Admin Accounting Filters', () => {
 
     await expect(visibleRows(page)).toHaveCount(2);
     await expect(page.getByText('Vastago (Fase 1) - Inicio 40%')).toHaveCount(0);
+  });
+  test('reordenar la tira arrastrando un filtro guardado', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // quality: allow-no-interaction (la interacción es un arrastre manual de
+    // mouse — sortablejs ignora el dragTo de Playwright, así que esto maneja
+    // mouse.down/move/up, que la lista de llamadas del detector no reconoce)
+    const reorderCalls = [];
+    await gotoIncomes(page, { tabs: SAVED_TABS, reorderCalls });
+
+    const first = page.getByTestId('filter-tabs-tab-501');
+    const second = page.getByTestId('filter-tabs-tab-502');
+    await expect(first).toBeVisible();
+    await dragChipPast(page, first, second);
+
+    // El servidor recibe el orden nuevo, y la tira lo muestra.
+    await expect
+      .poll(() => reorderCalls.length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+    expect(reorderCalls[0]).toEqual([502, 501]);
+    await expect(savedPair(page).first()).toContainText('Esperados sin cobrar');
+  });
+
+  test('arrastrar un filtro no lo aplica', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Punto 2 de la ficha: mover y seleccionar arrancan con el mismo gesto, y
+    // la tira cambia toda la vista — un arrastre no puede filtrarla al pasar.
+    // quality: allow-no-interaction (ídem: arrastre manual con mouse.down/
+    // move/up, que el detector no cuenta como interacción)
+    const reorderCalls = [];
+    await gotoIncomes(page, { tabs: SAVED_TABS, reorderCalls });
+
+    await expect(visibleRows(page)).toHaveCount(4);
+    await dragChipPast(
+      page,
+      page.getByTestId('filter-tabs-tab-501'),
+      page.getByTestId('filter-tabs-tab-502'),
+    );
+    await expect
+      .poll(() => reorderCalls.length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+
+    // La tabla sigue sin filtrar: el arrastre movió, no seleccionó.
+    await expect(visibleRows(page)).toHaveCount(4);
+    await expect(page).toHaveURL(/accounting_incomeTab=all/);
+  });
+
+  test('mover un filtro a la derecha desde su menú', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // La vía sin arrastrar, que es la única alcanzable para quien no puede
+    // arrastrar y la cómoda en una pantalla chica.
+    const reorderCalls = [];
+    await gotoIncomes(page, { tabs: SAVED_TABS, reorderCalls });
+
+    await page.getByTestId('filter-tabs-menu-501').click();
+    await page.getByTestId('filter-tabs-move-right-501').click();
+
+    await expect
+      .poll(() => reorderCalls.length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+    expect(reorderCalls[0]).toEqual([502, 501]);
+    await expect(savedPair(page).first()).toContainText('Esperados sin cobrar');
+  });
+
+  test('un predefinido de fábrica se mueve igual que uno propio', {
+    tag: [...ADMIN_ACCOUNTING_FILTERS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    // Punto 4: los builtin viven en el código y su orden en una fila
+    // placeholder, así que se mueven junto a los guardados.
+    const reorderCalls = [];
+    await gotoIncomes(page, { tabs: BUILTIN_BACKED_TABS, reorderCalls });
+
+    await page.getByTestId('filter-tabs-menu-lost').click();
+    await page.getByTestId('filter-tabs-move-right-lost').click();
+
+    await expect
+      .poll(() => reorderCalls.length, { timeout: 10_000 })
+      .toBeGreaterThan(0);
+    // 601 es la fila placeholder de 'lost': el chip viaja por su builtin_key.
+    expect(reorderCalls[0]).toEqual([602, 601]);
   });
 });
