@@ -251,6 +251,12 @@ export function useSavedFilterTabs(viewName) {
       return true;
     } catch (err) {
       lastError.value = err;
+      // Snap the strip back. The drag already moved the chip on screen, and
+      // the strip mirrors this list to know better; leaving the list byte
+      // for byte identical would tell it nothing happened, and the rejected
+      // order would sit there looking saved until the next reload undid it.
+      // A fresh array is what makes the mirror re-read the real order.
+      savedTabs.value = [...savedTabs.value];
       return false;
     }
   }

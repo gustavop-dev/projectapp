@@ -336,6 +336,12 @@ describe('ProposalFilterTabs restorable base', () => {
       return wrapper.findComponent({ name: 'DraggableStub' });
     }
 
+    /** The chips in the order the strip renders them. */
+    function chipIds(wrapper) {
+      return wrapper.findAll('[data-testid^="filter-tabs-tab-"]')
+        .map((el) => el.attributes('data-testid').replace('filter-tabs-tab-', ''));
+    }
+
     /** What vuedraggable does on a drop: rewrite the array, then emit end. */
     async function drop(wrapper, nextOrder) {
       const drag = draggable(wrapper);
@@ -380,6 +386,20 @@ describe('ProposalFilterTabs restorable base', () => {
       await wrapper.get('[data-testid="filter-tabs-tab-7"]').trigger('click');
 
       expect(wrapper.emitted('select')).toEqual([[7]]);
+    });
+
+    it('vuelve al orden real si el padre no adopta el movimiento', async () => {
+      // El rechazo del servidor llega como una lista nueva con el orden
+      // viejo. La tira tiene que releerla en vez de quedarse mostrando un
+      // orden que no se guardo.
+      const wrapper = mountTabs({ tabs: threeTabs });
+
+      await drop(wrapper, [threeTabs[1], threeTabs[0], threeTabs[2]]);
+      expect(chipIds(wrapper)).toEqual(['7', 'lost', '8']);
+
+      await wrapper.setProps({ tabs: [...threeTabs] });
+
+      expect(chipIds(wrapper)).toEqual(['lost', '7', '8']);
     });
 
     it('mueve a la derecha desde el menu del filtro', async () => {
