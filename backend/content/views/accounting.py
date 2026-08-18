@@ -67,6 +67,7 @@ from content.serializers.accounting import (
     IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
+    LiquidSettlementSerializer,
     NotificationRecipientCreateUpdateSerializer,
     NotificationRecipientSerializer,
     PocketMovementCreateUpdateSerializer,
@@ -768,6 +769,15 @@ def retrieve_income_detail(request, record_id):
 
     The shape deliberately mirrors the settle endpoint's, so the UI renders
     one structure for both "just settled" and "opened the detail".
+
+    Each liquid child carries the pocket movement that paid it, so the panel
+    can name it — and, when the movement is a shared abono, open the same
+    reparto the pocket ledger shows. Cost is +1 query, flat: select_related
+    puts the movement on the children's own query, and the prefetch fills the
+    `income_records` cache that `PocketMovement.income_children` reads (it
+    sorts in Python precisely so it does not bypass that cache), so
+    is_shared/allocation_count/allocations share one cache walk per row
+    regardless of how many siblings an abono has.
     """
     config = _ENTITIES['income']
     income = get_object_or_404(
@@ -778,7 +788,11 @@ def retrieve_income_detail(request, record_id):
     )
     children = income.liquid_records.filter(
         kind=IncomeRecord.Kind.LIQUID,
-    ).select_related('client', 'client__user', 'project').order_by(
+    ).select_related(
+        'client', 'client__user', 'project', 'pocket_movement',
+    ).prefetch_related(
+        'pocket_movement__income_records',
+    ).order_by(
         'period_date', 'id',
     )
     # Deductions credit the gross total without ever arriving as a liquid
@@ -794,7 +808,7 @@ def retrieve_income_detail(request, record_id):
     )
     return Response({
         'income': config['read'](income).data,
-        'liquid': IncomeRecordSerializer(children, many=True).data,
+        'liquid': LiquidSettlementSerializer(children, many=True).data,
         'expenses': ExpenseRecordSerializer(deductions, many=True).data,
         'collection_account': {
             'id': cuenta.pk,
