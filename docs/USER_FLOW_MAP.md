@@ -5921,7 +5921,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
-| `admin-document-pdf-download` | admin | P2 | success,failure | 1 |
+| `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
+| `admin-document-pdf-preview` | admin | P2 | display | 1 |
 | `admin-document-rename` | admin | P2 | success,failure | 1 |
 | `admin-document-send-email` | admin | P1 | success,failure | 1 |
 | `admin-document-tags-manage` | admin | P2 | success,failure | 1 |

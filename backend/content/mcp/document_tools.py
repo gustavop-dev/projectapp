@@ -111,7 +111,45 @@ def _doc_summary(doc):
 
 
 def _doc_detail(doc):
-    return {**_doc_summary(doc), 'content_markdown': doc.content_markdown}
+    return {
+        **_doc_summary(doc),
+        'content_markdown': doc.content_markdown,
+        # Las tres deciden qué páginas trae el PDF: sin exponerlas, quien crea
+        # por MCP no tiene cómo saber con qué configuración quedó el documento.
+        'include_portada': doc.include_portada,
+        'include_subportada': doc.include_subportada,
+        'include_contraportada': doc.include_contraportada,
+    }
+
+
+COVER_FLAGS = ('include_portada', 'include_subportada', 'include_contraportada')
+
+_COVER_FLAG_PROPS = {
+    'include_portada': {
+        'type': 'boolean',
+        'description': 'Incluir la portada de marca (por defecto true).',
+    },
+    'include_subportada': {
+        'type': 'boolean',
+        'description': 'Incluir la subportada con título, cliente y fecha (por defecto true).',
+    },
+    'include_contraportada': {
+        'type': 'boolean',
+        'description': 'Incluir la contraportada de marca (por defecto true).',
+    },
+}
+
+
+def _cover_flag(arguments, name):
+    """Lee una casilla de portada de los argumentos MCP.
+
+    Sólo booleanos: un `'false'` de texto colado como True dejaría al caller
+    creyendo que configuró el PDF cuando no lo hizo.
+    """
+    value = arguments.get(name)
+    if not isinstance(value, bool):
+        raise ToolError(f'{name} debe ser true o false.')
+    return value
 
 
 # ── Handlers ─────────────────────────────────────────────────────────────────
@@ -190,6 +228,10 @@ def create_document(arguments):
 
     folder = _resolve_folder(arguments.get('folder_id'))
     client_name = arguments.get('client_name', '') or ''
+    covers = {
+        name: _cover_flag(arguments, name)
+        for name in COVER_FLAGS if name in arguments
+    }
 
     doc = Document(
         title=title,
@@ -198,6 +240,7 @@ def create_document(arguments):
         client_name=client_name,
         language=language,
         content_markdown=markdown_text,
+        **covers,
     )
     doc.content_json = build_content_json(doc, markdown_text)
     doc.save()
@@ -237,6 +280,11 @@ def update_document(arguments):
         doc.folder = _resolve_folder(arguments.get('folder_id'))
         update_fields.add('folder')
 
+    for flag in COVER_FLAGS:
+        if flag in arguments:
+            setattr(doc, flag, _cover_flag(arguments, flag))
+            update_fields.add(flag)
+
     markdown_changed = 'markdown' in arguments
     if markdown_changed:
         markdown_text = arguments.get('markdown')
@@ -248,7 +296,8 @@ def update_document(arguments):
     if not update_fields:
         raise ToolError(
             'No se indicó ningún campo para actualizar. Envía al menos uno de: '
-            'title, markdown, folder_id, status, client_name, language.'
+            'title, markdown, folder_id, status, client_name, language, '
+            'include_portada, include_subportada, include_contraportada.'
         )
 
     # content_json must always reflect the current title/meta + markdown, so
@@ -387,7 +436,9 @@ DOCUMENT_TOOLS = [
         'description': (
             'Crea un documento nuevo a partir de markdown. El sistema lo '
             'convierte en PDF con marca luego; basta con enviar buen markdown. '
-            'Opcional: folder_id (de list_folders), language (es/en), client_name.'
+            'Opcional: folder_id (de list_folders), language (es/en), client_name, '
+            'y las casillas include_portada / include_subportada / '
+            'include_contraportada, que deciden qué páginas trae el PDF.'
         ),
         'input_schema': {
             'type': 'object',
@@ -397,6 +448,7 @@ DOCUMENT_TOOLS = [
                 'folder_id': {'type': 'integer', 'description': 'Carpeta destino (opcional).'},
                 'language': {'type': 'string', 'enum': ['es', 'en'], 'default': 'es'},
                 'client_name': {'type': 'string'},
+                **_COVER_FLAG_PROPS,
             },
             'required': ['title', 'markdown'],
         },
@@ -407,7 +459,8 @@ DOCUMENT_TOOLS = [
         'description': (
             'Actualiza un documento markdown existente (parcial). Envía '
             'document_id y al menos uno de: title, markdown, folder_id, '
-            'status (draft/published/archived), client_name, language. Al '
+            'status (draft/published/archived), client_name, language, '
+            'include_portada, include_subportada, include_contraportada. Al '
             'cambiar el markdown se reprocesa el contenido para el PDF.'
         ),
         'input_schema': {
@@ -423,6 +476,7 @@ DOCUMENT_TOOLS = [
                 'status': {'type': 'string', 'enum': ['draft', 'published', 'archived']},
                 'client_name': {'type': 'string'},
                 'language': {'type': 'string', 'enum': ['es', 'en']},
+                **_COVER_FLAG_PROPS,
             },
             'required': ['document_id'],
         },

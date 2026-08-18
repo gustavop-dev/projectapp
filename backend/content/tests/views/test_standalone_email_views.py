@@ -446,6 +446,36 @@ class TestSendStandaloneEmailSuccess:
             )
         assert response.status_code == 500
 
+    def test_document_with_only_markdown_is_still_attached(self, admin_client):
+        """Un documento sin parsear se adjunta igual: se descargaba bien y
+        desaparecía del correo sin decir nada."""
+        from content.models import Document
+        doc = Document.objects.create(
+            title='Sólo markdown',
+            content_markdown='# Alcance\n\nContenido real.\n',
+            content_json={},
+        )
+        url = reverse('send-standalone-email')
+        with patch(
+            'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
+            return_value=True,
+        ), patch(
+            'content.services.document_pdf_service.DocumentPdfService.generate',
+            return_value=b'%PDF-1.4 fake',
+        ) as gen:
+            response = admin_client.post(
+                url,
+                {
+                    'recipient_email': 'client@example.com',
+                    'subject': 'Con adjunto',
+                    'sections': ['Contenido'],
+                    'document_ids': [doc.id],
+                },
+                format='json',
+            )
+        assert response.status_code == 200
+        gen.assert_called_once_with(doc)
+
     def test_document_attachment_uses_persisted_style_no_override(self, admin_client):
         """Standalone email attaches document PDFs with no template param —
         it must rely on DocumentPdfService.generate() defaulting to

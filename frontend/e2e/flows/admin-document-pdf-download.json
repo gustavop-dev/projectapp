@@ -6,10 +6,11 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' button.",
+  "description": "Admin downloads a Document entity as a branded PDF from the document edit page via the 'Descargar PDF' dropdown (Amigable / Profesional). The file is built server-side from the SAVED document, so the export options — las casillas de portada, subportada y contraportada — only reach the PDF once saved: a line under the checkboxes (data-testid doc-included-pages) names, live, the pages the PDF will bring, and downloading with pending changes opens the three-way confirmation 'Guardar y descargar' / 'Descargar lo guardado' / 'Seguir editando' instead of silently shipping the previous configuration.",
   "expectedSpecs": 1,
   "outcomes": [
     "success",
-    "failure"
+    "failure",
+    "display"
   ]
 }

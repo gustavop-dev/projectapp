@@ -320,10 +320,25 @@
                 v-for="option in coverOptions"
                 :key="option.key"
                 class="flex items-center gap-3 cursor-pointer py-1.5 px-1 select-none"
+                :data-testid="option.testId"
               >
                 <BaseToggle v-model="form[option.key]" />
                 <span class="text-sm font-medium text-text-default">{{ option.label }}</span>
               </label>
+              <!-- Traduce las casillas a páginas: sin esto, saber qué trae el
+                   archivo obligaba a descargarlo. -->
+              <p class="text-xs text-text-subtle pt-1 px-1" data-testid="doc-included-pages">
+                El PDF incluirá: {{ includedPagesLabel }}
+              </p>
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                class="mt-2 w-full"
+                data-testid="doc-preview-pdf"
+                @click="handlePreviewPdf"
+              >
+                Previsualizar PDF
+              </BaseButton>
             </div>
           </div>
         </div>
@@ -474,6 +489,17 @@
       </div>
     </MarkdownPreviewModal>
 
+    <!-- El PDF de verdad, el mismo que entrega la descarga: es lo único que
+         muestra las portadas, que la vista previa de markdown no rinde. -->
+    <DocumentPdfPreviewModal
+      v-model="showPdfPreview"
+      :document-id="route.params.id"
+      :title="form.title || 'Vista previa del PDF'"
+      :template-style="form.template_style"
+      :version="documentStore.currentDocument?.updated_at || ''"
+      :cover-options="savedCoverOptions"
+    />
+
     <!-- Las tres salidas del guard: [Seguir editando] [Salir sin guardar]
          [Guardar y salir]. Sin este modal el guard abriría un diálogo que
          nadie renderiza y la navegación se bloquearía en silencio. -->
@@ -501,6 +527,7 @@
 import { reactive, ref, computed, onMounted, nextTick } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
+import DocumentPdfPreviewModal from '~/components/panel/documents/DocumentPdfPreviewModal.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
@@ -513,6 +540,7 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import { joinEs } from '~/utils/spanishList';
+import { describeIncludedPages } from '~/utils/documentCoverPages';
 
 const localePath = useLocalePath();
 const route = useRoute();
@@ -541,6 +569,7 @@ const savedProjectName = ref('');
 const isDownloading = ref(false);
 const showPreview = ref(true);
 const showFullPreview = ref(false);
+const showPdfPreview = ref(false);
 const copiedMarkdown = ref(false);
 const pastedMarkdown = ref(false);
 const markdownTextareaRef = ref(null);
@@ -588,6 +617,7 @@ const {
   canSaveNow,
   commit: commitBaseline,
   guardedReload,
+  guardedExport,
   discardChanges,
   confirmState,
   handleConfirmed,
@@ -635,10 +665,27 @@ function applyAssociationSnapshot(data) {
 }
 
 const coverOptions = [
-  { key: 'include_portada', label: 'Incluir portada' },
-  { key: 'include_subportada', label: 'Incluir subportada' },
-  { key: 'include_contraportada', label: 'Incluir contraportada' },
+  { key: 'include_portada', label: 'Incluir portada', testId: 'doc-cover-portada' },
+  { key: 'include_subportada', label: 'Incluir subportada', testId: 'doc-cover-subportada' },
+  { key: 'include_contraportada', label: 'Incluir contraportada', testId: 'doc-cover-contraportada' },
 ];
+
+// Las casillas dicen qué se incluye; esto dice qué va a salir, en el orden en
+// que sale. Se lee del formulario vivo, así el efecto de desmarcar una casilla
+// se ve antes de guardar (el PDF, en cambio, se arma con lo guardado).
+const includedPagesLabel = computed(() => describeIncludedPages(form));
+
+// La vista previa muestra el PDF GUARDADO: su encabezado tiene que describir
+// esa configuración, no la de la pantalla, o volvería a prometer algo que el
+// archivo no cumple.
+const savedCoverOptions = computed(() => {
+  const saved = documentStore.currentDocument || {};
+  return {
+    include_portada: saved.include_portada,
+    include_subportada: saved.include_subportada,
+    include_contraportada: saved.include_contraportada,
+  };
+});
 
 const templateStyleOptions = [
   { value: 'friendly', label: 'Amigable', testId: 'doc-style-friendly' },
@@ -806,6 +853,9 @@ const downloadItems = computed(() => [
 ]);
 
 async function handleDownloadPdf(template = null) {
+  // El archivo lo arma el servidor con lo guardado: con cambios en pantalla
+  // hay que decidir primero cuál de las dos versiones se descarga.
+  if (!(await guardedExport('download'))) return;
   isDownloading.value = true;
   const result = await documentStore.downloadPdf(
     route.params.id, form.title || 'document', template);
@@ -813,6 +863,11 @@ async function handleDownloadPdf(template = null) {
   if (!result.success) {
     notify.error({ title: 'No se pudo descargar el PDF', detail: result.message });
   }
+}
+
+async function handlePreviewPdf() {
+  if (!(await guardedExport('preview'))) return;
+  showPdfPreview.value = true;
 }
 </script>
 

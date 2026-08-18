@@ -294,6 +294,88 @@ describe('useUnsavedGuard — guarded refresh', () => {
   });
 });
 
+describe('useUnsavedGuard — guarded export (descargar / previsualizar)', () => {
+  it('lets the export through untouched when nothing is pending', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, calls } = setup({ outcome: 'confirm', save });
+    api.commit();
+
+    await expect(api.guardedExport('download')).resolves.toBe(true);
+    expect(calls).toHaveLength(0);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('saves first when the download exit is chosen, so the file matches the screen', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form, calls } = setup({ outcome: 'confirm', save });
+    api.commit();
+    form.client = 2;
+
+    await expect(api.guardedExport('download')).resolves.toBe(true);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(calls[0].confirmText).toBe('Guardar y descargar');
+    expect(calls[0].secondaryText).toBe('Descargar lo guardado');
+  });
+
+  it('downloads the stored version when that exit is chosen, without saving', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form } = setup({ outcome: 'secondary', save });
+    api.commit();
+    form.client = 2;
+
+    await expect(api.guardedExport('download')).resolves.toBe(true);
+    expect(save).not.toHaveBeenCalled();
+    expect(api.hasChanges.value).toBe(true);
+  });
+
+  it('cancels the export when the user goes back to editing', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form } = setup({ outcome: 'cancel', save });
+    api.commit();
+    form.client = 2;
+
+    await expect(api.guardedExport('download')).resolves.toBe(false);
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('does not export when saving fails: the file would not match either state', async () => {
+    const save = jest.fn().mockResolvedValue(false);
+    const { api, form } = setup({ outcome: 'confirm', save });
+    api.commit();
+    form.client = 2;
+
+    await expect(api.guardedExport('download')).resolves.toBe(false);
+    expect(save).toHaveBeenCalledTimes(1);
+  });
+
+  it('names the preview in its own wording', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form, calls } = setup({ outcome: 'confirm', save });
+    api.commit();
+    form.client = 2;
+
+    await api.guardedExport('preview');
+
+    expect(calls[0].confirmText).toBe('Guardar y previsualizar');
+    expect(calls[0].secondaryText).toBe('Previsualizar lo guardado');
+  });
+
+  it('offers only the stored version when the page cannot save', async () => {
+    const save = jest.fn().mockResolvedValue(true);
+    const { api, form, calls } = setup({
+      outcome: 'confirm', save, canSave: () => false,
+      blockedReason: 'Esta cuenta de cobro ya fue emitida.',
+    });
+    api.commit();
+    form.client = 2;
+
+    await expect(api.guardedExport('download')).resolves.toBe(true);
+    expect(save).not.toHaveBeenCalled();
+    expect(calls[0].confirmText).toBe('Descargar lo guardado');
+    expect(calls[0].secondaryText).toBeUndefined();
+  });
+});
+
 describe('useUnsavedGuard — tab close', () => {
   it('arms the browser dialog only while there are unsaved changes', () => {
     const addSpy = jest.spyOn(window, 'addEventListener');

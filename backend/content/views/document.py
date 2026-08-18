@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
@@ -475,6 +477,9 @@ def duplicate_document(request, document_id):
         include_portada=document.include_portada,
         include_subportada=document.include_subportada,
         include_contraportada=document.include_contraportada,
+        # Va con las casillas y no aparte: las cuatro deciden cómo sale el PDF,
+        # y una copia que cambia de estilo sola no es una copia.
+        template_style=document.template_style,
         folder=folder,
         status=Document.Status.DRAFT,
         content_markdown=document.content_markdown,
@@ -485,10 +490,20 @@ def duplicate_document(request, document_id):
     return Response(detail.data, status=status.HTTP_201_CREATED)
 
 
+# sameorigin porque la previsualización del panel embebe `?inline=1` en un
+# visor: el DENY por defecto del middleware dejaría el visor en blanco.
+@xframe_options_sameorigin
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def download_document_pdf(request, document_id):
-    """Generate and download document as PDF."""
+    """Generate the document PDF, as a download or inline for the previewer.
+
+    El PDF se arma SIEMPRE con la configuración guardada del documento
+    (`include_portada`/`include_subportada`/`include_contraportada`): esta vista
+    no acepta banderas por request a propósito, para que lo previsualizado y lo
+    descargado sean el mismo archivo. El panel avisa de los cambios sin guardar
+    antes de llegar acá.
+    """
     document = get_object_or_404(Document, pk=document_id)
 
     # `resolve_blocks` y no `content_json['blocks']`: un documento cuyo writer
@@ -514,7 +529,13 @@ def download_document_pdf(request, document_id):
     filename = f'{safe_slug(document.title)}.pdf'
 
     response = HttpResponse(pdf_bytes, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    # `?inline=1` deja que el panel lo embeba en un visor en vez de bajarlo:
+    # previsualizar no debería llenar la carpeta de descargas. El default sigue
+    # siendo `attachment`, así que ningún caller existente cambia.
+    as_attachment = not request.query_params.get('inline')
+    response['Content-Disposition'] = content_disposition_header(
+        as_attachment, filename,
+    )
     return response
 
 
