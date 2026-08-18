@@ -1,4 +1,4 @@
-# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.5)
+# Indicadores de Esfuerzo — Calculadora de Requerimientos (v1.4)
 
 > **Propósito.** Este documento es el corazón del procesamiento de un requerimiento. Mapea señales concretas presentes en la **descripción de un requerimiento** hacia un **nivel de esfuerzo (XS → XL)**, que luego se traduce en horas y precio. No estima proyectos completos: clasifica **funcionalidad por funcionalidad** (o feature por feature); el proyecto es la suma.
 >
@@ -16,15 +16,15 @@
 
 > **Definición.** `XL` significa **descomposición obligatoria**: sea porque la descripción mezcla 2+ features, o porque la pieza es estructuralmente tan grande que no se cotiza como un solo ítem. Se parte en requerimientos `S` / `M` / `L` y se cotiza cada uno. Las señales de abajo son los disparadores típicos de esa descomposición.
 
-- **Dinero y datos sensibles** — pagos, transacciones financieras, facturación electrónica (DIAN), open banking / conciliación bancaria directa, o cualquier integración con terceros críticos que maneje datos sensibles (pasarelas, entidades financieras). **⇧30%**
-- **Cobro recurrente y comercio completo** — suscripciones / facturación recurrente (planes, prorrateo, reintentos de cobro, *dunning*) y checkout e-commerce completo (carrito + pago + órdenes + inventario descontado). El carrito sin pago ronda `L`; el link de pago de pasarela es `L`. **⇧30%**
-- **Cumplimiento regulatorio de dominio** — facturación electrónica DIAN, nómina / liquidación laboral colombiana (prestaciones, PILA, retenciones), Habeas Data avanzado: normativa con cambios frecuentes que exige mantenimiento continuo. **⇧30%**
+- **Dinero y datos sensibles** — pagos, transacciones financieras, facturación electrónica (DIAN), open banking / conciliación bancaria directa, o cualquier integración con terceros críticos que maneje datos sensibles (pasarelas, entidades financieras). **⇧50%**
+- **Cobro recurrente y comercio completo** — suscripciones / facturación recurrente (planes, prorrateo, reintentos de cobro, *dunning*) y checkout e-commerce completo (carrito + pago + órdenes + inventario descontado). El carrito sin pago ronda `L`; el link de pago de pasarela es `L`. **⇧50%**
+- **Cumplimiento regulatorio de dominio** — facturación electrónica DIAN, nómina / liquidación laboral colombiana (prestaciones, PILA, retenciones), Habeas Data avanzado: normativa con cambios frecuentes que exige mantenimiento continuo. **⇧50%**
 - **Contabilidad de dominio** — plan de cuentas (PUC), comprobantes y asientos de partida doble, libros auxiliares, balances y cierres de periodo: dominio normado (NIIF/PUC) que exige exactitud y cuadre contable. Casi siempre la respuesta comercial correcta es integrarse o exportar hacia un software contable existente (ver *Exportación contable en formato de tercero*, `M`), no construirla.
 - **Flujo multi-etapa con traspaso de responsabilidad entre roles** — **≥3 etapas o ≥2 traspasos** con escalamiento, SLA o notificación por etapa. Una aprobación de un solo paso (solicitante → aprobador) es `M` sobre lo existente o `L` como módulo desde cero; un wizard multi-paso de un solo usuario es `L`. "Turnos" aquí = traspaso de responsabilidad dentro del flujo; el turnero/digiturno de atención es `L` (señal propia). Ver familia *Aprobaciones / flujo*.
 - **Motor de PDF complejo** — posicionamiento preciso de múltiples elementos, contenido dinámico inyectado, merge de documentos. Una firma-imagen posicionada en un PDF propio es `L`.
 - **Sincronización en tiempo real transversal / edición colaborativa concurrente** — múltiples usuarios sobre el mismo estado o documento (CRDT/OT, cursores compartidos, resolución de conflictos).
-- **Arquitectura multiempresa / multi-tenant** — aislamiento de datos, roles y configuración por cliente. Estructural y transversal. **⇧30%**
-- **Migración masiva / ETL desde legacy** — extraer, mapear, limpiar, validar y reconciliar datos históricos. Por sí sola es un proyecto. **⇧30%**
+- **Arquitectura multiempresa / multi-tenant** — aislamiento de datos, roles y configuración por cliente. Estructural y transversal. **⇧50%**
+- **Migración masiva / ETL desde legacy** — extraer, mapear, limpiar, validar y reconciliar datos históricos. Por sí sola es un proyecto. **⇧50%**
 - **Motor de workflow / BPM configurable** — el cliente crea etapas, reglas, responsables, aprobaciones y condicionales.
 - **Búsqueda full-text con motor de indexación** (Elasticsearch/OpenSearch) — relevancia, facetas, sinónimos (la facetada "a mano" es `L`).
 - **Integración bidireccional con ERP/CRM** (SAP, Salesforce, Siigo, World Office) — sincronización de maestros, colas, reconciliación.
@@ -35,10 +35,10 @@
 - **SSO corporativo / endurecimiento de seguridad empresarial** — SAML, LDAP, Active Directory, MFA, políticas de contraseña, auditoría avanzada, cifrado at-rest transversal, cumplimiento de estándar (OWASP/ISO) verificado.
 - **Motor de BI / analítica sobre volumen** — agregaciones, drill-down, series temporales (distinto del dashboard `L` y del reporte parametrizable `M`).
 - **Marketplace / plataforma de oferta y demanda** — usuarios, publicaciones, pagos, reputación, mensajes, órdenes, administración.
-- **Arquitectura de alto volumen / rendimiento** — cuando el volumen **obliga a cambiar la arquitectura**: colas, caché distribuido, particionado, procesamiento paralelo, millones de registros. Operar sobre datasets grandes *dentro* de la arquitectura actual es el modificador *Volumen alto*. **⇧30%**
+- **Arquitectura de alto volumen / rendimiento** — cuando el volumen **obliga a cambiar la arquitectura**: colas, caché distribuido, particionado, procesamiento paralelo, millones de registros. Operar sobre datasets grandes *dentro* de la arquitectura actual es el modificador *Volumen alto*. **⇧50%**
 - **Streaming de video/audio en vivo** — transmisión en directo (WebRTC).
 - **Pipeline de video bajo demanda** — upload + transcodificación + almacenamiento + reproducción.
-- **API pública para terceros** — versionado, API keys, rate limiting, documentación, sandbox, soporte a integradores externos. **⇧30%**
+- **API pública para terceros** — versionado, API keys, rate limiting, documentación, sandbox, soporte a integradores externos. **⇧50%**
 - **Entrenamiento / fine-tuning de un modelo de IA propio** — recolección de datos y ajuste (distinto de *usar* una API de IA, que es `M`–`L`).
 
 _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microservicios (extraer de un monolito) · georreferenciación con rutas y tracking en vivo · integración profunda con hardware físico cuando el dispositivo es el corazón del requerimiento (una integración puntual con impresora/lector es `L` + modificador *Hardware*).
@@ -54,9 +54,9 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Búsqueda / filtrado avanzado desde cero** — filtros combinados o facetados, autocompletado, paginado y/o preferencias y vistas guardadas por usuario. Con motor de indexación → `XL`; agregar un filtro a un listado existente → `M` o menos.
 - **Búsqueda global multi-entidad (omnibox)** — un solo campo que busca sobre varias entidades del sistema con resultados agrupados (con motor de indexación → `XL`).
 - **Trazabilidad de historial / auditoría / bitácora de eventos** — construir el registro de quién hizo qué y cuándo: eventos de creación, edición y eliminación sobre uno o varios modelos, con su vista de consulta. Solo *mostrar* logs ya guardados es `M`; extender una bitácora existente a otro modelo es el atenuador (`M` o menos); auditoría avanzada con exigencia de cumplimiento → `XL` (seguridad empresarial).
-- **Numeración consecutiva sin huecos con garantía de concurrencia** — consecutivos legales o de facturación que no pueden duplicarse ni saltarse. Un ID único simple (UUID, slug) es `XS`–`S`. **⇧30%**
+- **Numeración consecutiva sin huecos con garantía de concurrencia** — consecutivos legales o de facturación que no pueden duplicarse ni saltarse. Un ID único simple (UUID, slug) es `XS`–`S`. **⇧50%**
 - **Múltiples CRUD relacionados** entre sí / **panel de administración de entidades** (CRUD + permisos + búsqueda sobre varios modelos).
-- **Autenticación / registro completo desde cero** — login, signup, verificación de correo, recuperación, sesiones. Piezas sueltas sobre auth existente (OAuth social, recuperación) son `M`; 2FA/MFA es `L`; SSO corporativo es `XL`. **⇧30%**
+- **Autenticación / registro completo desde cero** — login, signup, verificación de correo, recuperación, sesiones. Piezas sueltas sobre auth existente (OAuth social, recuperación) son `M`; 2FA/MFA es `L`; SSO corporativo es `XL`. **⇧50%**
 - **Panel de administración de usuarios y roles (RBAC granular)** — crear roles y asignar permisos por vista o por acción.
 - **Dashboard / panel de KPIs desde cero** — widgets, gráficas, agregaciones, rangos de fecha.
 - **Visualización interactiva compleja a medida** — Gantt, organigrama, árbol jerárquico editable, mapa de procesos con edición/drag. Integrar un componente de terceros que ya lo hace es `M`.
@@ -72,8 +72,8 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Sistema de comentarios / hilos / anotaciones** — con menciones, adjuntos ligeros y notificación.
 - **Chat / mensajería en tiempo real propio** — 1:1 o grupos, historial persistente, presencia. Embeber un widget de chat de terceros (Chatwoot, Tawk) es `M` (componente de terceros).
 - **Gestión de etiquetas/taxonomías o de reseñas como feature completo** — agregar un rating a una entidad existente es `M`.
-- **Onboarding / wizard multi-paso** con persistencia de progreso (de un solo usuario; con traspaso entre roles → `XL`). **⇧30%**
-- **Integración con un servicio / API externo (piso)** — toda integración de **datos con backend de terceros autenticada** es **al menos `L`** (incluye el link de pago de pasarela y la generación de guías con transportadoras — Servientrega, Coordinadora, Envía; multi-transportadora con reglas de selección o tracking en vivo → `XL`); sube a `XL` con pagos recurrentes/checkout, facturación, datos sensibles o bidireccionalidad. Excepciones que conservan su nivel: webhook saliente (`M`), componente FE de terceros (`M`), script/pixel (`S`). **⇧30%**
+- **Onboarding / wizard multi-paso** con persistencia de progreso (de un solo usuario; con traspaso entre roles → `XL`). **⇧50%**
+- **Integración con un servicio / API externo (piso)** — toda integración de **datos con backend de terceros autenticada** es **al menos `L`** (incluye el link de pago de pasarela y la generación de guías con transportadoras — Servientrega, Coordinadora, Envía; multi-transportadora con reglas de selección o tracking en vivo → `XL`); sube a `XL` con pagos recurrentes/checkout, facturación, datos sensibles o bidireccionalidad. Excepciones que conservan su nivel: webhook saliente (`M`), componente FE de terceros (`M`), script/pixel (`S`). **⇧50%**
 - **Canal único de mensajería vía proveedor** — WhatsApp Business API, SMS o push con un proveedor: setup, plantillas aprobadas, envío y estados. Multicanal orquestado → `XL`.
 - **Funcionalidad basada en IA / resoluble con IA** — piso `M`, típicamente `L`; **antes de dar precio**, validar alcance y factibilidad. Modelo propio / fine-tuning → `XL`.
 - **OCR / extracción de datos desde documentos** — facturas, cédulas, PDFs escaneados: captura + parsing + corrección manual del resultado.
@@ -100,7 +100,7 @@ _Rondando el borde (raros, normalmente XL):_ Web3 / smart contracts · microserv
 - **Re-enganche automático por abandono** — detectar un flujo iniciado y no terminado (carrito, solicitud, reserva, registro) o inactividad, con secuencia programada de 2–3 recordatorios, enlace de reanudación al punto exacto y supresión al completar. Un recordatorio único por evento es `M`; con orquestación multicanal → `XL` (mensajería a escala).
 - **Moderación de contenido generado por usuarios (UGC)** — reportar/denunciar con motivos, bandeja de revisión, acciones (aprobar / ocultar / eliminar) y sanciones acumulativas al autor (strikes, suspensión). Distinto del maker-checker (aprobación de operaciones internas): aquí dispara la denuncia del público y hay régimen de sanciones. Un botón "reportar" que solo crea un registro visible al admin es `M`; con IA o escalamiento entre roles → `XL`.
 - **Billetera / ledger de saldo y créditos internos** — cuenta por usuario con saldo, movimientos inmutables (abonos/cargos con concepto), atomicidad en el débito y extracto — créditos, puntos canjeables, horas, tokens de uso; **sin dinero real**. Con recargas por pasarela o retiros/payouts → `XL` (dinero y datos sensibles). ≠ puntos de gamificación (premian, no se gastan como medio de pago).
-- **Límites y features por plan (feature gating / entitlements)** — planes con límites cuantitativos (N usuarios, N registros, X GB), medición del consumo, bloqueo o aviso al alcanzar el límite y llamados a upgrade. No incluye el cobro (suscripciones → `XL`). Gatear features con un booleano por plan es `M` (como permisos por rol). Tiende a sumar el multiplicador *Transversal*. **⇧30%**
+- **Límites y features por plan (feature gating / entitlements)** — planes con límites cuantitativos (N usuarios, N registros, X GB), medición del consumo, bloqueo o aviso al alcanzar el límite y llamados a upgrade. No incluye el cobro (suscripciones → `XL`). Gatear features con un booleano por plan es `M` (como permisos por rol). Tiende a sumar el multiplicador *Transversal*. **⇧50%**
 - **Asignación / despacho de tareas o pedidos (dispatch)** — distribuir unidades de trabajo (pedidos, citas, leads, casos) entre un pool de responsables con reglas — round-robin, carga, zona, habilidad — más aceptar/rechazar, reasignación y notificación. Un campo "asignado a" manual con notificación es `M`; despacho automático en tiempo real con geolocalización y rutas → `XL`.
 - **Oferta / contraoferta entre dos partes (negociación)** — una parte ofrece, la otra acepta, rechaza o contraoferta; historial del hilo, expiración y notificación por movimiento. ≠ pipeline de documentos comerciales (ahí emite la empresa; aquí negocian dos usuarios). Una oferta simple sin réplica es `M`; subasta con pujas en tiempo real → `XL`.
 - **Corte y liquidación periódica a contrapartes** — cierre de periodo que congela las transacciones incluidas, cálculo del neto (usa el motor de comisiones si existe), estado de cuenta y estados pagado/pendiente/en disputa (vendedores, repartidores, comisionistas, propietarios). La dispersión real del dinero es `XL` (pagos); la nómina es `XL` regulatorio.
@@ -150,29 +150,29 @@ _Rondando el borde:_ carrito de compras sin pago · feed/timeline de actividad �
 - **Webhook saliente simple** — enviar un payload a un tercero cuando ocurre un evento.
 - **Login social (OAuth) o recuperación de contraseña** sobre una autenticación que ya existe.
 - **Importación simple** sin motor avanzado de validación o conciliación.
-- **Tema claro / oscuro (theming)** — ligero pero **transversal**. **⇧30%**
+- **Tema claro / oscuro (theming)** — ligero pero **transversal**. **⇧50%**
 - **Configurar / parametrizar una regla de negocio antes fija en el código** — UI para administrarla (→ `L` si es un panel de configuración completo).
 - **Generalizar una operación (crear/editar/eliminar) del caso base a N casos o modelos** — creación en cascada (→ `L` si obliga a un motor completo).
-- **Multidioma (i18n)** — construir la capacidad; **transversal**. Entregar un feature en 2 idiomas sobre i18n ya existente es el modificador *Entregable bilingüe*. **⇧30%**
+- **Multidioma (i18n)** — construir la capacidad; **transversal**. Entregar un feature en 2 idiomas sobre i18n ya existente es el modificador *Entregable bilingüe*. **⇧50%**
 - **Firma dibujada en canvas / aceptación en pantalla** — trazo sobre canvas o botón "acepto" con evidencia (≠ firma-imagen posicionada en PDF `L`, ≠ certificada `XL`).
 - **Generación / lectura de códigos QR o de barras** — generar el código es simple; escanear con cámara sube dentro de `M` o a `L` según el flujo.
 - **Actualización en vivo de una vista puntual** — polling o un websocket acotado para refrescar un dato (≠ *sincronización en tiempo real transversal*, `XL`).
-- **Multi-moneda / conversión de divisas** — mostrar y calcular montos en más de una moneda con tasa administrable. **⇧30%**
+- **Multi-moneda / conversión de divisas** — mostrar y calcular montos en más de una moneda con tasa administrable. **⇧50%**
 - **Vencimientos / renovaciones con alertas** — fechas de expiración de contratos, membresías o documentos + recordatorio (suma *Tarea programada*).
-- **Términos y condiciones con aceptación versionada / consentimientos** — registrar quién aceptó qué versión y cuándo (Habeas Data básico). **⇧30%**
-- **Sesiones activas / cierre remoto / bloqueo por inactividad** — listar dispositivos, cerrar sesión a distancia, timeout. **⇧30%**
-- **Impersonación ("ingresar como usuario") para admins** — con evidencia de auditoría y salida segura. **⇧30%**
-- **Rate limiting / anti-abuso / captcha** en formularios o endpoints públicos. **⇧30%**
-- **Cifrado de campos sensibles / anonimización puntual** — proteger columnas específicas (≠ endurecimiento de seguridad empresarial, `XL`). **⇧30%**
+- **Términos y condiciones con aceptación versionada / consentimientos** — registrar quién aceptó qué versión y cuándo (Habeas Data básico). **⇧50%**
+- **Sesiones activas / cierre remoto / bloqueo por inactividad** — listar dispositivos, cerrar sesión a distancia, timeout. **⇧50%**
+- **Impersonación ("ingresar como usuario") para admins** — con evidencia de auditoría y salida segura. **⇧50%**
+- **Rate limiting / anti-abuso / captcha** en formularios o endpoints públicos. **⇧50%**
+- **Cifrado de campos sensibles / anonimización puntual** — proteger columnas específicas (≠ endurecimiento de seguridad empresarial, `XL`). **⇧50%**
 - **Landing / página de marketing multi-sección con formulario** — página nueva con varias secciones y captura de contacto, sin CMS (página estática simple = `S`; administrable = `L`).
 - **Cotizador / calculadora pública embebida con captura de lead** — con reglas de cálculo simples fijas (con motor de reglas configurable → `L`).
-- **Tarea técnica no funcional pedida como requerimiento** — actualizar framework, migrar hosting, SSL/dominio, optimización puntual: se clasifica y cotiza aparte del roadmap funcional. **⇧30%**
+- **Tarea técnica no funcional pedida como requerimiento** — actualizar framework, migrar hosting, SSL/dominio, optimización puntual: se clasifica y cotiza aparte del roadmap funcional. **⇧50%**
 
 - **Aprobación de un paso (maker-checker)** — un usuario registra o solicita y otro aprueba/rechaza antes de que surta efecto: estado pendiente, notificación al aprobador y evidencia de quién aprobó (→ `L` si el módulo de solicitudes se construye desde cero; → `XL` con ≥3 etapas, escalamiento o reglas configurables).
 - **Cupones / códigos de descuento simples** — código con porcentaje o valor fijo, vigencia, límite de usos y validación al aplicar. Reglas combinables o configurables por el cliente (motor) → `L`.
 - **Exportación contable en formato de tercero** — archivo plano o Excel con la estructura exigida por un software contable (Siigo, World Office, contador), con homologación parametrizable de cuentas, terceros e impuestos (→ `L` si la homologación exige un panel de parametrización completo; la integración por API con el ERP es `XL`).
 - **Listas de precios / precio especial por cliente o segmento** — asignar precios diferenciados sobre un catálogo existente, con vigencia y precio por defecto. Reglas de cálculo configurables (volumen, combinaciones) → motor `L`.
-- **Tracking de uso / telemetría propia básica** — registrar eventos de navegación o acciones del usuario (endpoints visitados, vistas, tiempos) vía middleware o eventos, con consulta simple de los datos. Con panel de análisis propio → `L`; con script de terceros (GA/Hotjar) es `S`. Ojo Habeas Data: puede requerir consentimiento (ver *T&C / consentimientos*). **⇧30%**
+- **Tracking de uso / telemetría propia básica** — registrar eventos de navegación o acciones del usuario (endpoints visitados, vistas, tiempos) vía middleware o eventos, con consulta simple de los datos. Con panel de análisis propio → `L`; con script de terceros (GA/Hotjar) es `S`. Ojo Habeas Data: puede requerir consentimiento (ver *T&C / consentimientos*). **⇧50%**
 - **Comparador de ítems lado a lado** — seleccionar N ítems de un catálogo existente y verlos en tabla comparativa de atributos, con persistencia de la selección. Si los atributos comparables los configura el admin o se comparan entidades heterogéneas → `L`.
 - **Texto sugerido automáticamente por el sistema, editable por el usuario** — el sistema propone un texto a partir de datos ya registrados (movimientos, historial, plantillas de contexto) y el usuario lo complementa o sobrescribe antes de persistir: observaciones, descripciones, respuestas precargadas. Si la sugerencia la produce una IA → señal *Funcionalidad basada en IA* (`M`–`L`).
 - **Bloqueo/reserva exclusiva de un registro por usuario** — al iniciar el trabajo, el registro queda reservado a quien lo tomó y un segundo usuario recibe el mensaje de bloqueo (lock con `select_for_update` o equivalente). Suele sumar el modificador *Concurrencia / atomicidad*; la liberación por timeout/vencimiento se cotiza con su *Tarea programada*. ≠ edición colaborativa concurrente sobre el mismo estado (→ `XL` sincronización en tiempo real).
@@ -284,11 +284,11 @@ No definen el nivel por sí solos: lo **ajustan**. Fórmula de aplicación (ver 
 | Urgencia / entrega exprés exigida (cronograma comprimido) | `+20–50%` |
 | Coordinación con equipo/proveedor del cliente (comités, dependencia de su TI, reuniones recurrentes) | `+10–25%` |
 | Entregable bilingüe (ES/EN) sobre i18n ya existente (construir i18n desde cero es la señal `M` transversal) | `+5–15%` |
-| **Arquetipo con recargo estructural** — la señal citada está marcada `⇧30%` en el catálogo. Se aplica **encima** del nivel; si la señal es `XL` y se descompone, **cada fila hija lo hereda** | `+30%` |
+| **Arquetipo con recargo estructural** — la señal citada está marcada `⇧50%` en el catálogo. Se aplica **encima** del nivel; si la señal es `XL` y se descompone, **cada fila hija lo hereda**. **Interno: no se itemiza en el documento** | `+50%` |
 
-### Arquetipos con recargo (`⇧30%`)
+### Arquetipos con recargo (`⇧50%`)
 
-Los arquetipos marcados `⇧30%` llevan el modificador de la tabla anterior. No es una lista arbitraria: comparten que el nivel mide bien su **tamaño** pero no su **fricción** — certificación, ambientes ajenos, dinero real, normativa que cambia sin avisar, o un cambio que toca toda la plataforma a la vez.
+Los arquetipos marcados `⇧50%` llevan el modificador de la tabla anterior. No es una lista arbitraria: comparten que el nivel mide bien su **tamaño** pero no su **fricción** — certificación, ambientes ajenos, dinero real, normativa que cambia sin avisar, o un cambio que toca toda la plataforma a la vez.
 
 - **Estructurales** (la forma del sistema cambia, no una pantalla): Arquitectura multiempresa / multi-tenant · Migración masiva / ETL desde legacy · Arquitectura de alto volumen / rendimiento.
 - **Regulados** (la norma la pone un tercero): Cumplimiento regulatorio de dominio · Numeración consecutiva sin huecos con garantía de concurrencia · Términos y condiciones con aceptación versionada / consentimientos · Cifrado de campos sensibles / anonimización puntual.
@@ -373,26 +373,14 @@ _Ejemplo componible (no señal propia): "alertas por búsqueda guardada" = búsq
 - **IA: primero alcance, luego precio.** Piso `M`, tiende a `L`; modelo propio o fine-tuning es `XL`.
 - **"Factura" ≠ facturación electrónica.** Una cuenta de cobro o factura simple en PDF es `M`; solo la facturación electrónica DIAN dispara el `XL` regulatorio. Preguntar cuál es antes de clasificar.
 - **Presentación con marca.** Un PDF o correo deja de ser básico (`S`) apenas pide membrete o identidad → `M`; solo llega a `XL` con posicionamiento preciso múltiple o contenido dinámico complejo.
-- **El recargo `⇧30%` no reemplaza el piso de nivel, se suma.** Una integración autenticada ya nace en `L` y los arquetipos de dinero o cumplimiento regulatorio en `XL`; el `+30%` va **encima**. El nivel paga construir la pieza, el recargo paga la fricción de la clase — son ejes distintos y conviene que sigan separados. Si la señal marcada es `XL` y se descompone (obligatorio), **cada fila hija hereda el recargo**: si no, se evapora justo en los arquetipos más caros.
+- **El recargo `⇧50%` no reemplaza el piso de nivel, se suma.** Una integración autenticada ya nace en `L` y los arquetipos de dinero o cumplimiento regulatorio en `XL`; el `+50%` va **encima**. El nivel paga construir la pieza, el recargo paga la fricción de la clase — son ejes distintos y conviene que sigan separados. Si la señal marcada es `XL` y se descompone (obligatorio), **cada fila hija hereda el recargo**: si no, se evapora justo en los arquetipos más caros.
 - **Operación en producción no es gratis.** Despliegue, dominios, correos, backups, ambientes y monitoreo se cobran como modificador o ítem aparte.
 - **Lo técnico también se cotiza.** Upgrades de framework, migraciones de hosting y optimizaciones son requerimientos por derecho propio (`M`–`L` según alcance), no favores implícitos.
 - **Hardware = riesgo físico.** Cualquier dispositivo físico agrega pruebas en sitio, drivers y variables fuera del control del software: nunca subestimarlo.
 
 ---
 
-## Qué cambió en esta versión (v1.5 — recargo de arquetipos estructurales)
-
-**Directriz del dueño 18/08/2026:** 22 arquetipos quedan marcados `⇧30%` y llevan un modificador nuevo de `+30%` en *Costo y riesgo*, con herencia obligatoria a las filas hijas cuando la señal marcada es `XL`.
-
-El conjunto salió de una **diferencia de conjuntos** sobre el proyecto Vástago: los arquetipos que el módulo Multi-Tenant va a consumir **menos** los que la Fase 1.5 ya consumió (33 arquetipos distintos en las 53 filas cotizadas de los 3 estimates del baseline, organizadas en las 4 etapas de su propuesta comercial). Lo que ya tiene precio cerrado no se re-precia; lo que sólo aparece en el trabajo nuevo, sí.
-
-Los 22 comparten una **propiedad intrínseca** —estructurales, regulados, financieros, de integración con terceros o capacidades transversales de plataforma— y el marcador se define por esa clase, no por la historia de un cliente: así la regla sirve para el próximo proyecto igual que para éste.
-
-**Sin cambios:** ninguna señal, ningún nivel, ninguna celda de señales espejo, ningún otro modificador. La suite `validation/` conserva números y semáforos **por construcción** — ninguna de sus 53 filas cita un arquetipo marcado, y eso se verifica con un grep, no con una promesa.
-
----
-
-## Qué cambió en la versión anterior (v1.4 — cobertura empírica + cobro manual y operación en campo)
+## Qué cambió en esta versión (v1.4 — cobertura empírica + cobro manual y operación en campo)
 
 **Método (revisión metodológica del 01/08/2026, tres lentes):** clasificación empírica de ~111 funcionalidades reales de clientes (G&M, Vástago, Kore — el 78% ya matcheaba señal literal), simulación de mercado sobre 19 verticales PYME colombianas, y auditoría de proceso del flujo (sus cambios viven en `SKILL.md` y `market-pricing.md`).
 
@@ -406,7 +394,7 @@ Los 22 comparten una **propiedad intrínseca** —estructurales, regulados, fina
 
 ---
 
-## Qué cambió en v1.3 (simulación de mercado + patrones por arquetipo)
+## Qué cambió en la versión anterior (v1.3 — simulación de mercado + patrones por arquetipo)
 
 **Correcciones a señales que sobre-disparaban (6):** `XL` *Flujo multi-etapa* ahora exige **≥3 etapas o ≥2 traspasos** (una aprobación de un paso ya no es XL — era el falso positivo más costoso) · `XL` *Agendamiento/reservas críticas* exige **al menos dos** condiciones concurrentes (la cita de un recurso sin pago es `L`) · notas de desempate en *Motor de cotizaciones* (cupón/lista de precios = `M`), *Cuenta de cobro* (consecutivo legal = `L`), *Portal de autoservicio* (una vista sobre auth existente = `M`) y "turnos" (flujo ≠ turnero).
 

@@ -1,4 +1,4 @@
-# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.8)
+# Esfuerzo, Precio y Reglas de Mercado — Calculadora de Requerimientos (v1.7)
 
 > Complemento de `effort-indicators.md`. Traduce el nivel de esfuerzo a horas y precio COP, y define las reglas comerciales del mercado colombiano.
 
@@ -126,19 +126,11 @@ Anticiparlas siempre: no para cobrarlas de una, sino para ordenarlas en fases/ve
 
 ## Supuestos que siempre se declaran
 
-Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $16.500/h (recalibración 18/08/2026) · **precios válidos por 30 días desde la fecha del documento** · proyección año a año informativa a **4 años** con la regla `Δ%SMLMV + 12%` (declarando el Δ%SMLMV supuesto y mostrando la fórmula) · las filas cuyo arquetipo esté marcado `⇧30%` declaran ese recargo en su columna Modificadores · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
+Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · implementación web (PWA/nativa solo si se declara, con su recargo) · desarrollo desde cero · tarifa blended ≈ $16.500/h (recalibración 18/08/2026) · **precios válidos por 30 días desde la fecha del documento** · proyección año a año informativa a **4 años** con la regla `Δ%SMLMV + 12%` (declarando el Δ%SMLMV supuesto y mostrando la fórmula) · no incluye infraestructura recurrente, licencias de terceros ni migración de datos legados salvo mención explícita · estimación sujeta a refinamiento tras análisis detallado.
 
 ---
 
-## Qué cambió en esta versión (v1.8 — recargo de arquetipos estructurales)
-
-**Directriz del dueño 18/08/2026:** 22 arquetipos del catálogo quedan marcados `⇧30%` y llevan un modificador nuevo de `+30%` (ver `effort-indicators.md` v1.5, sección *Arquetipos con recargo*). El conjunto es la diferencia entre lo que el Multi-Tenant de Vástago va a consumir y lo que su Fase 1.5 ya consumió: lo contratado no se re-precia, lo nuevo sí.
-
-**Sin cambios acá:** tarifa blended ($16.500/h), tabla de tallas, fórmula de cálculo, umbrales del semáforo ($12M/$20M) y regla de proyección año a año. El recargo entra por el `Σ% aditivos` que la fórmula ya tenía — no hizo falta mecánica nueva.
-
----
-
-## Qué cambió en la versión anterior (v1.7 — recalibración +10% y proyección a 4 años)
+## Qué cambió en esta versión (v1.7 — recalibración +10% y proyección a 4 años)
 
 **Directriz del dueño 18/08/2026:** dos cambios.
 
@@ -149,7 +141,7 @@ Precios en COP **más IVA** (presentados como `+ IVA`; IVA vigente 19%) · imple
 
 ---
 
-## Qué cambió en v1.6 (recalibración −20%)
+## Qué cambió en la versión anterior (v1.6 — recalibración −20%)
 
 **Directriz del dueño 04/08/2026:** los rangos de precio por talla y la tarifa blended bajan **−20%** (tarifa: $18.750/h → **$15.000/h**; p.ej. `M` pasa de $380K–$880K a $304K–$704K). **Sin cambios** en horas por nivel, señales, modificadores, regla de proyección año a año (Δ%SMLMV + 12%) ni umbrales del semáforo ($12M/$20M — miden disposición de pago absoluta y no se recalibran con la tarifa). La suite `validation/` se reescaló ×0,8 en el mismo cambio (semáforos del baseline sin cambio de zona).
 
