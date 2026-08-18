@@ -819,4 +819,82 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     await page.getByTestId('recurring-charts-back').click();
     await expect(legend).toContainText('Arquitectura e infraestructura');
   });
+
+  /**
+   * La navegación del módulo en un celular.
+   *
+   * Las doce secciones envolvían en cuatro filas de pastillas y ocupaban casi
+   * media pantalla: al entrar al Bolsillo lo primero que se veía era la
+   * navegación y el saldo — el dato por el que se entró — quedaba debajo del
+   * pliegue. La medida de éxito del requerimiento es esa, y es lo que afirma el
+   * primer test.
+   */
+  test.describe('en un celular', () => {
+    test.use({ viewport: { width: 375, height: 667 } });
+
+    test('el saldo del bolsillo se ve sin desplazarse', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (mide lo que se ve al llegar; interactuar movería el scroll que se está midiendo)
+      // quality: allow-deep-link (entrar a la vista ES el escenario, no el camino hasta ella)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      const balance = page.getByTestId('pocket-balance');
+      await expect(balance).toBeVisible({ timeout: 25_000 });
+      await expect(balance).toHaveText('$-149.000');
+
+      // Sin haber scrolleado, el saldo entra entero en la primera pantalla.
+      const scrolled = await page.evaluate(() => window.scrollY);
+      expect(scrolled).toBe(0);
+      const box = await balance.boundingBox();
+      expect(box.y + box.height).toBeLessThanOrEqual(667);
+
+      // Y entra holgado, que es lo que de verdad mide el cambio. Números
+      // medidos en esta misma vista y viewport: con las doce pastillas
+      // envolviendo, el saldo arrancaba en y=495; con la navegación en una
+      // línea arranca en y=333. Son 162px que la navegación le devolvió al
+      // contenido. El tope deja aire para que un subtítulo más largo no vuelva
+      // frágil el test, pero no tanto como para que la parrilla pueda volver
+      // sin que esto se ponga rojo.
+      expect(box.y).toBeLessThanOrEqual(420);
+    });
+
+    test('la sección se cambia desde el selector, sin la parrilla de tabs', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      const nav = page.getByTestId('accounting-subnav-select');
+      await expect(nav).toBeVisible({ timeout: 25_000 });
+      // Las pastillas siguen en el DOM pero no ocupan lugar: eso es lo que le
+      // devuelve la pantalla al contenido.
+      await expect(page.getByTestId('accounting-subnav-incomes')).toBeHidden();
+      // El activo viene marcado al abrir, sin tener que elegir nada.
+      await expect(nav).toHaveValue('pocket');
+
+      await nav.selectOption('incomes');
+
+      await expect(page).toHaveURL(/\/panel\/accounting\/incomes/);
+    });
+
+    test('el selector de sección no se confunde con el de filtros guardados', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (los dos quedan contiguos; lo que se afirma es que se distinguen antes de tocarlos)
+      // quality: allow-deep-link (la vista es el escenario, no el camino hasta ella)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      const nav = page.getByTestId('accounting-subnav-select');
+      const filters = page.getByTestId('filter-tabs-select');
+      await expect(nav).toBeVisible({ timeout: 25_000 });
+      await expect(filters).toBeVisible();
+
+      // Cada uno dice qué hace, y no dicen lo mismo.
+      await expect(nav).toHaveAttribute('aria-label', 'Sección de contabilidad');
+      await expect(filters).toHaveAttribute('aria-label', 'Filtro guardado');
+    });
+  });
 });

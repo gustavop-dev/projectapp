@@ -67,9 +67,16 @@
         'text-text-default',
       ]"
     >
+      <!--
+        Oculta por debajo de `md`: en un celular el nombre de la vista ya
+        aparece en la barra superior (que además es sticky, así que sobrevive al
+        scroll) y otra vez en el título de la propia vista. La miga era la
+        tercera copia del mismo dato, y el alto vertical es justo lo que se está
+        tratando de devolverle al contenido. En escritorio no cambia nada.
+      -->
       <div
         v-if="_panelSectionLabel && _panelViewLabel"
-        class="mb-5 flex items-center gap-1.5 text-xs"
+        class="mb-5 hidden md:flex items-center gap-1.5 text-xs"
         :class="isDark ? 'text-green-light/60' : 'text-green-light'"
       >
         <span>{{ _panelSectionLabel }}</span>
