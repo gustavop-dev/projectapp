@@ -99,7 +99,10 @@ fi
 
 # ── Step 4: Collect static files ─────────────────────────────────────────────
 step "4/6  Collect static files"
-run env DJANGO_SETTINGS_MODULE="$SETTINGS" python "$BACKEND_DIR/manage.py" collectstatic --noinput
+# Nuxt uses content-hashed filenames and may change a payload path from a file
+# to a directory between releases. Clear the generated destination first so
+# stale bundles and file/directory collisions cannot survive a deploy.
+run env DJANGO_SETTINGS_MODULE="$SETTINGS" python "$BACKEND_DIR/manage.py" collectstatic --clear --noinput
 
 # ── Step 5: Sync configs (optional) ──────────────────────────────────────────
 if [ "$SYNC_CONFIGS" = true ]; then

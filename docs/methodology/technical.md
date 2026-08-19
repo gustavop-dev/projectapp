@@ -144,7 +144,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - ApexCharts is not a global Nuxt plugin. `components/ApexChart.client.vue` imports only the chart types and features used by the application and is consumed through Nuxt's lazy `LazyApexChart` component.
 - Heavy vendor splitting belongs under `vite.$client.build.rollupOptions`; applying the same manual chunks to Nitro's server build can generate unusable server output.
-- The production build gate is zero emitted client chunks above 500,000 bytes. Current maximum after gzip-independent measurement is 450,238 bytes.
+- The production build gate is zero emitted client chunks above 500,000 bytes. Current maximum after gzip-independent measurement is 448,634 bytes.
+
+### Static payload and collection policy
+
+- Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.
+- Both `scripts/deploy.sh` and the automatic blog rebuild call `collectstatic` with `clear=True`/`--clear`. `staticfiles/` is generated output and must not retain hashed chunks or file/directory shapes from older Nuxt builds.
+- A production-equivalent build must contain zero `_payload.json` artifacts and zero JavaScript chunks above 500,000 bytes before publication.
 
 ### MCP connector concurrency
 
