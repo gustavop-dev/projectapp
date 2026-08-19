@@ -203,7 +203,9 @@ jobs:
   # ───────────────────────────────────────────
   frontend-e2e-tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # Azure's Ubuntu mirror can spend more than 25 minutes downloading the
+    # Playwright system fonts; the test load itself stays capped at 87/shard.
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
