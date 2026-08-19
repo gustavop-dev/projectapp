@@ -763,7 +763,7 @@ import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } 
 import { useRoute, useRouter } from 'vue-router';
 import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
-import { statusLabel as documentStatusLabel } from '~/utils/documentStatus';
+import { documentStatusLabel } from '~/utils/documentStatus';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
 import SidebarIcon from '~/components/platform/SidebarIcon.vue';

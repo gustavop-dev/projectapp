@@ -188,7 +188,7 @@
         <template #cell-commercial_status="{ row }">
           <span
             class="text-xs px-2.5 py-1 rounded-full font-medium"
-            :class="statusBadgeClass(row)"
+            :class="collectionStatusBadgeClass(row)"
           >
             {{ row.is_overdue ? 'Vencida' : row.commercial_status_label }}
           </span>
@@ -414,7 +414,11 @@ import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
-import { originLabel, originTone, statusBadgeClass } from '~/utils/collectionStatus';
+import {
+  collectionStatusBadgeClass,
+  originLabel,
+  originTone,
+} from '~/utils/collectionStatus';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 

@@ -68,7 +68,7 @@ const options = computed(() => ({
       description="No hay ingresos ni gastos de la empresa en los meses seleccionados."
     />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         type="line"
         height="300"
         :options="options"

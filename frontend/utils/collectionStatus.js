@@ -4,7 +4,7 @@
  */
 
 /** Tailwind classes for the commercial-status pill. Overdue wins. */
-export function statusBadgeClass(row) {
+export function collectionStatusBadgeClass(row) {
   if (row?.is_overdue) return 'bg-warning-soft text-warning-strong';
   return {
     draft: 'bg-surface-raised text-text-muted',

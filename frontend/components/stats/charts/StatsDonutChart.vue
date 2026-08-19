@@ -2,7 +2,7 @@
   <div data-testid="stats-donut-chart">
     <BaseEmptyState v-if="isEmpty" :title="emptyTitle" />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         type="donut"
         :height="height"
         :options="options"

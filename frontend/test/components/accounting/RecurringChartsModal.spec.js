@@ -62,7 +62,7 @@ function mountModal(props = {}) {
           emits: ['update:modelValue', 'close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
-        apexchart: {
+        LazyApexChart: {
           template: '<div data-testid="apexchart-stub" />',
           props: ['options', 'series', 'type', 'height'],
         },

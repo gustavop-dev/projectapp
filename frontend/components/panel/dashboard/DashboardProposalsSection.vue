@@ -43,7 +43,7 @@
             class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
             :class="pillClass(st)"
           >
-            {{ statusLabel(st) }}: <strong>{{ count }}</strong>
+            {{ dashboardProposalStatusLabel(st) }}: <strong>{{ count }}</strong>
           </span>
         </div>
       </div>
@@ -90,7 +90,7 @@
               class="ml-3 shrink-0 text-xs px-2.5 py-1 rounded-full font-medium"
               :class="pillClass(p.status)"
             >
-              {{ statusLabel(p.status) }}
+              {{ dashboardProposalStatusLabel(p.status) }}
             </span>
           </NuxtLink>
         </li>
@@ -104,7 +104,7 @@ import { computed } from 'vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import DashboardStatTile from '~/components/panel/dashboard/DashboardStatTile.vue';
 import DashboardTrendChart from '~/components/panel/dashboard/DashboardTrendChart.vue';
-import { statusLabel, pillClass } from '~/utils/proposalStatus';
+import { dashboardProposalStatusLabel, pillClass } from '~/utils/proposalStatus';
 
 /** Curated commercial summary; the deep-dive lives in /panel/proposals. */
 const props = defineProps({

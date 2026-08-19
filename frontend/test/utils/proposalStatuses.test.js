@@ -7,7 +7,7 @@
 
 const {
   PROPOSAL_STATUSES,
-  statusLabel,
+  proposalTransitionStatusLabel,
   statusClass,
   isNaturalTransition,
 } = require('../../utils/proposalStatuses');
@@ -19,13 +19,13 @@ describe('proposalStatuses', () => {
     ]);
   });
 
-  it('statusLabel returns the Spanish singular label', () => {
-    expect(statusLabel('sent')).toBe('Enviada');
-    expect(statusLabel('negotiating')).toBe('En negociación');
+  it('proposalTransitionStatusLabel returns the Spanish singular label', () => {
+    expect(proposalTransitionStatusLabel('sent')).toBe('Enviada');
+    expect(proposalTransitionStatusLabel('negotiating')).toBe('En negociación');
   });
 
-  it('statusLabel falls back to the raw value for unknown statuses', () => {
-    expect(statusLabel('bogus')).toBe('bogus');
+  it('proposalTransitionStatusLabel falls back to the raw value for unknown statuses', () => {
+    expect(proposalTransitionStatusLabel('bogus')).toBe('bogus');
   });
 
   it('statusClass returns semantic token classes per status', () => {

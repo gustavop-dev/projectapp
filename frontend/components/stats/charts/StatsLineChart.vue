@@ -2,7 +2,7 @@
   <div data-testid="stats-line-chart">
     <BaseEmptyState v-if="isEmpty" :title="emptyTitle" />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         :type="area ? 'area' : 'line'"
         :height="height"
         :options="options"

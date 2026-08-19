@@ -2,7 +2,7 @@
   <div data-testid="stats-bar-chart">
     <BaseEmptyState v-if="isEmpty" :title="emptyTitle" />
     <ClientOnly v-else>
-      <apexchart type="bar" :height="height" :options="options" :series="series" />
+      <LazyApexChart type="bar" :height="height" :options="options" :series="series" />
       <template #fallback>
         <div
           class="rounded-xl bg-surface-raised motion-safe:animate-pulse"

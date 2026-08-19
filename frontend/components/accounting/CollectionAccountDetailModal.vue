@@ -21,7 +21,7 @@
           <div class="flex items-center gap-3">
             <span
               class="text-xs px-2.5 py-1 rounded-full font-medium"
-              :class="statusBadgeClass(record)"
+              :class="collectionStatusBadgeClass(record)"
               data-testid="collection-detail-status"
             >
               {{ record?.is_overdue ? 'Vencida' : record?.commercial_status_label }}
@@ -326,7 +326,7 @@ import IncomePaymentStateCell from '~/components/accounting/IncomePaymentStateCe
 import { useAccountingStore } from '~/stores/accounting';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
-import { statusBadgeClass } from '~/utils/collectionStatus';
+import { collectionStatusBadgeClass } from '~/utils/collectionStatus';
 
 /**
  * Everything about one cuenta de cobro in the place the operator already is:

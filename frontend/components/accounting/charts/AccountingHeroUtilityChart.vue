@@ -67,7 +67,7 @@ const options = computed(() => ({
       Utilidad por mes
     </p>
     <ClientOnly>
-      <apexchart
+      <LazyApexChart
         type="line"
         :height="height"
         :options="options"
