@@ -35,6 +35,7 @@
 | Admin Auth Middleware | ✅ Done | Session/CSRF check, redirect to Django admin login |
 | CI/CD Pipeline | ✅ Done | GitHub Actions: pytest, Jest, Playwright (5 shards), quality gate |
 | Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, native repo skills in `.agents/skills/`, project config in `.codex/config.toml`, canonical guide + quickstart, legacy compatibility notes |
+| MCP Concurrent Startup Capacity | ✅ Done | DRF throttle buckets registered MCP connectors by client IP + connector slug, while every unknown slug shares one defensive bucket. Five legitimate connectors can initialize concurrently without consuming one another's quota. |
 | Deployment (Production) | ✅ Done | Gunicorn + Nginx + systemd, documented in deployment-guide.md |
 | WhatsApp Notifications | ✅ Done | CallMeBot API integration |
 | Database Backups | ✅ Done | django-dbbackup with rotation |

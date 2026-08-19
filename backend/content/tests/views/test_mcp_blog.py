@@ -2,6 +2,7 @@
 import pytest
 
 from content.models import BlogPost, McpConnector, McpRequestLog
+from content.views.mcp_blog import McpEndpointThrottle
 
 
 @pytest.fixture
@@ -24,6 +25,15 @@ def _rpc(method, params=None, msg_id=1):
     if params is not None:
         message['params'] = params
     return message
+
+
+def _active_connector(slug):
+    connector, _ = McpConnector.objects.get_or_create(
+        slug=slug, defaults={'name': f'{slug.title()} MCP'},
+    )
+    connector.is_active = True
+    connector.save(update_fields=['is_active'])
+    return connector.generate_token()
 
 
 VALID_POST = {
@@ -55,6 +65,45 @@ class TestMcpEndpointAuth:
         _, token = blog_connector
         response = api_client.get(_url(token))
         assert response.status_code == 405
+
+
+@pytest.mark.django_db
+class TestMcpEndpointThrottle:
+    def test_registered_connectors_do_not_consume_each_others_ip_quota(
+        self, api_client, monkeypatch,
+    ):
+        """A busy connector must not make a sibling fail startup with HTTP 429."""
+        monkeypatch.setattr(McpEndpointThrottle, 'rate', '2/min', raising=False)
+        blog_token = _active_connector('blog')
+        documents_token = _active_connector('documents')
+
+        for _ in range(2):
+            response = api_client.post(_url(blog_token), _rpc('ping'), format='json')
+            assert response.status_code == 200
+        assert api_client.post(
+            _url(blog_token), _rpc('ping'), format='json',
+        ).status_code == 429
+
+        sibling_response = api_client.post(
+            f'/api/mcp/documents/{documents_token}/', _rpc('ping'), format='json',
+        )
+        assert sibling_response.status_code == 200
+        assert sibling_response.data['result'] == {}
+
+    def test_unknown_slugs_share_one_quota_bucket(self, api_client, monkeypatch):
+        """Inventing endpoint slugs must not bypass the anonymous throttle."""
+        monkeypatch.setattr(McpEndpointThrottle, 'rate', '2/min', raising=False)
+
+        for slug in ('made-up-one', 'made-up-two'):
+            response = api_client.post(
+                f'/api/mcp/{slug}/invalid/', _rpc('ping'), format='json',
+            )
+            assert response.status_code == 404
+
+        blocked = api_client.post(
+            '/api/mcp/made-up-three/invalid/', _rpc('ping'), format='json',
+        )
+        assert blocked.status_code == 429
 
 
 @pytest.mark.django_db

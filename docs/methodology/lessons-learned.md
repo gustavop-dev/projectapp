@@ -657,6 +657,7 @@ A build step that prerenders pages by fetching the app's **own public API** is, 
 ### MCP connector security (claude.ai remote connectors)
 - The connector token is a **capability URL**: shown in full exactly once at generation, then only its **SHA-256 hash** is stored (`McpConnector`). Regenerating rotates the hash and instantly 404s the old URL.
 - The MCP endpoint (`content/views/mcp_blog.py`) validates **Origin** (DNS-rebinding defense) + token + active-state on every JSON-RPC call, and logs `handshake/tool_call/auth_error/origin_rejected` to `McpRequestLog` (the panel's connection-activity feed reads this).
+- Rate limits for a multi-connector client must be keyed by **IP + registered connector slug**, not IP alone: Codex starts its connectors concurrently, so a shared IP bucket turns legitimate sibling startups into HTTP 429 failures. Unknown slugs must collapse into one defensive bucket; using arbitrary path text would make the throttle bypassable.
 - MCP tools wrap existing services/ORM — they are **not** a new business layer. Guardrails live in the tool module (e.g. Documents connector only exposes MARKDOWN docs, refuses to delete published docs). The machine-facing endpoint is integration-tested in pytest, not E2E.
 
 ### Accounting partner-split invariant

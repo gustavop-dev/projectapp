@@ -53,6 +53,22 @@ TOOLS_BY_SLUG = {
 class McpEndpointThrottle(AnonRateThrottle):
     scope = 'mcp'
 
+    def get_cache_key(self, request, view):
+        """Rate-limit each registered connector independently per client IP.
+
+        Codex initializes every configured connector concurrently. Sharing one
+        IP-only bucket made five legitimate connectors consume each other's
+        allowance. Unknown slugs deliberately share one bucket so callers
+        cannot evade the throttle by inventing paths.
+        """
+        slug = getattr(view, 'kwargs', {}).get('slug', '')
+        connector_scope = slug if slug in TOOLS_BY_SLUG else 'unknown'
+        ident = self.get_ident(request)
+        return self.cache_format % {
+            'scope': f'{self.scope}:{connector_scope}',
+            'ident': ident,
+        }
+
 
 class McpContentNegotiation(DefaultContentNegotiation):
     """

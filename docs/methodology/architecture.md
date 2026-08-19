@@ -108,6 +108,10 @@ flowchart TD
     ContentURLs --> EmailTemplateViews["Email Template Views"]
 ```
 
+### MCP ingress and throttling
+
+Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.
+
 ---
 
 ## 4. Data Model
