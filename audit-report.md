@@ -42,7 +42,7 @@ La instalación aislada termina con `pip check` sin dependencias rotas y `pip-au
 | @babel/core | ^7.29.0 | ^7.29.7 |
 | nuxt | ^3.21.4 | ^3.21.11 |
 
-El lockfile se regeneró con npm y `npm audit` termina en cero. Las versiones nuevas que permanecen en `npm outdated` o `pip list --outdated` no tienen hallazgos activos en estas auditorías; sus upgrades mayores quedan fuera de este cambio para no mezclar migraciones funcionales con el cierre de seguridad.
+El lockfile se regeneró y validó con npm 10.9.4, la misma generación usada por Node 22 en CI; `npm ci` y `npm audit` terminan en cero. Las versiones nuevas que permanecen en `npm outdated` o `pip list --outdated` no tienen hallazgos activos en estas auditorías; sus upgrades mayores quedan fuera de este cambio para no mezclar migraciones funcionales con el cierre de seguridad.
 
 ## Compatibilidad MySQL
 
