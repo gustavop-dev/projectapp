@@ -198,3 +198,12 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `backend/content/services/document_archive_service.py`, `backend/content/migrations/0186_repair_active_rows_under_archived_folders.py`, `backend/content/management/commands/audit_archive_integrity.py`, `backend/content/admin.py`, `backend/accounts/document_views.py`.
 - **Test coverage**: `content/tests/services/test_document_archive_service.py`, `content/tests/services/test_document_orphan_repair_migration.py`, `content/tests/management/test_audit_archive_integrity.py`, `content/tests/views/test_admin.py`, `accounts/tests/test_client_documents.py`.
 - **Lesson**: «Restaurar» es una operación de **ubicación**, no sólo de estado: o se garantiza un destino alcanzable o se degrada explícitamente (raíz / «Sin carpeta»), nunca a un estado invisible. Y un invariante que sólo vive en el servicio queda a merced de toda superficie de escritura que no pasa por él (admin, carreras, scripts): hay que sellarlas (readonly, locks) y darse una auditoría re-ejecutable — la migración corre una sola vez.
+
+### [ERR-017] Concurrent MCP connectors exhausted one shared IP throttle
+- **Date**: 2026-08-19
+- **Context**: Codex starts the blog, documents, proposals, accounting and LinkedIn connectors concurrently from the same VPS. Some connectors timed out even though their endpoints were healthy in isolation.
+- **Root Cause**: `McpEndpointThrottle` inherited DRF's anonymous cache key unchanged, so all connector requests from one client IP consumed the same `mcp` quota.
+- **Resolution**: Override `get_cache_key()` with a scope composed from the base scope and a registered connector slug. Unknown slugs deliberately map to one `unknown` scope so arbitrary paths cannot create unlimited buckets. Capability tokens remain excluded from cache keys.
+- **Files Affected**: `backend/content/views/mcp_blog.py`, `backend/content/tests/views/test_mcp_blog.py`.
+- **Test coverage**: One test exhausts the blog quota and proves documents still responds; another proves three distinct unknown slugs share and exhaust one quota.
+- **Lesson**: Rate-limit keys must model the independent consumer boundary. For a multiplexed endpoint, IP-only is too coarse and unvalidated path-only is too permissive.

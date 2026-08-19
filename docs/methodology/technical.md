@@ -35,6 +35,7 @@
 | **Config Management** | python-decouple | >=3.8,<3.9 |
 | **Fake Data** | Faker | 28.4.1 |
 | **Token Encryption** | cryptography (Fernet) | >=42,<46 | LinkedIn OAuth token + Project admin credential encryption |
+| **MCP Transport** | JSON-RPC over Streamable HTTP | Per-connector capability URL; DRF throttle key is client IP + registered slug |
 
 ---
 
@@ -131,6 +132,12 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ---
 
 ## 4. Key Technical Decisions
+
+### MCP connector concurrency
+
+- Connector URLs remain token-authenticated capability URLs; tokens are not part of the throttle key.
+- Registered connectors receive independent per-IP buckets keyed by slug, allowing Codex to initialize the configured domains in parallel.
+- Unknown slugs share one `unknown` bucket. Never key untrusted paths directly without first checking them against `TOOLS_BY_SLUG`.
 
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
