@@ -84,7 +84,9 @@ class TestRunFrontendRebuild:
         env = mock_run.call_args.kwargs['env']
         assert env['PRERENDER_REQUIRE_BLOG'] == '1'
         assert env['PRERENDER_API_ORIGIN'] == settings.PRERENDER_API_ORIGIN
-        mock_collectstatic.assert_called_once()
+        mock_collectstatic.assert_called_once_with(
+            'collectstatic', interactive=False, verbosity=0, clear=True,
+        )
         assert frontend_build.rebuild_needed() is False
 
     @patch.object(frontend_build, 'call_command')

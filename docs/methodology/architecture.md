@@ -589,11 +589,13 @@ MySQL:
 flowchart LR
     NuxtBuild["npm run build:django"]
     NuxtBuild -->|generates| StaticFrontend["backend/static/frontend/"]
-    CollectStatic["python manage.py collectstatic"]
+    CollectStatic["python manage.py collectstatic --clear"]
     StaticFrontend --> CollectStatic
     CollectStatic -->|copies to| StaticFiles["backend/staticfiles/"]
     Nginx -->|serves| StaticFiles
 ```
+
+Nuxt payload data stays inline because the generated site is mounted below `app.cdnURL=/static/frontend/`; external `_payload.json` URLs are not part of this deployment topology. Clearing `staticfiles/` on every deploy and blog rebuild prevents old content-hashed chunks and file/directory collisions from surviving publication.
 
 ---
 

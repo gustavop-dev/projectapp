@@ -156,7 +156,7 @@ def run_frontend_rebuild(force=False):
         return {'status': 'failed', 'detail': tail}
 
     if not settings.DEBUG:
-        call_command('collectstatic', interactive=False, verbosity=0)
+        call_command('collectstatic', interactive=False, verbosity=0, clear=True)
 
     # A success closes the incident: the next failure is a new one and
     # should alert immediately instead of waiting out the dedupe window.

@@ -34,7 +34,7 @@
 | Internationalization (i18n) | ✅ Done | EN/ES with prefix routing, lazy loading, geo-detection |
 | Admin Auth Middleware | ✅ Done | Session/CSRF check, redirect to Django admin login |
 | CI/CD Pipeline | ✅ Done | GitHub Actions: pytest, Jest, Playwright (5 shards), quality gate |
-| Security & Build Warning Hardening | ✅ Done | 2026-08-19: `npm audit` y `pip-audit` en cero; cinco constraints opcionales compatibles con MySQL mediante `NULLIF`; autoimports de status sin colisiones; ApexCharts lazy/client-only y ningún chunk cliente supera 500 KB. |
+| Security & Build Warning Hardening | ✅ Done | 2026-08-19: `npm audit` y `pip-audit` en cero; cinco constraints opcionales compatibles con MySQL mediante `NULLIF`; autoimports de status sin colisiones; ApexCharts lazy/client-only y ningún chunk cliente supera 500 KB. El build estático mantiene payloads inline y limpia `staticfiles` antes de publicar para impedir payloads HTML, colisiones archivo/directorio y chunks huérfanos. |
 | Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, native repo skills in `.agents/skills/`, project config in `.codex/config.toml`, canonical guide + quickstart, legacy compatibility notes |
 | MCP Concurrent Startup Capacity | ✅ Done | DRF throttle buckets registered MCP connectors by client IP + connector slug, while every unknown slug shares one defensive bucket. Five legitimate connectors can initialize concurrently without consuming one another's quota. |
 | Deployment (Production) | ✅ Done | Gunicorn + Nginx + systemd, documented in deployment-guide.md |

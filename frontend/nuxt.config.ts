@@ -196,6 +196,10 @@ export default defineNuxtConfig({
 
   experimental: {
     appManifest: false,
+    // Django serves the generated site below /static/frontend/. Extracted
+    // payload URLs use app.cdnURL and can be prerendered as HTML routes by the
+    // Nitro crawler, so keep payload data inline for this deployment topology.
+    payloadExtraction: false,
   },
 
   vite: {

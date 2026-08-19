@@ -2,7 +2,7 @@
 
 **Fecha:** 2026-08-19
 
-**Rama:** `fix/19082026-security-build-warnings`
+**Ramas:** `fix/19082026-security-build-warnings` y hotfix `fix/19082026-nuxt-payload-generation`
 
 **Base:** `origin/main`
 
@@ -16,7 +16,7 @@
 | `pip-audit` | 88 asociaciones paquete-aviso, 77 identificadores únicos | **0** |
 | Constraints condicionales ignorados por MySQL | 5 warnings | **0** |
 | Imports automáticos duplicados de Nuxt | 4 nombres ambiguos | **0** |
-| Chunks JavaScript mayores de 500 KB | 2; máximo aproximado 1.18 MB | **0**; máximo 450,238 bytes |
+| Chunks JavaScript mayores de 500 KB | 2; máximo aproximado 1.18 MB | **0**; máximo 448,634 bytes |
 
 ## Dependencias corregidas
 
@@ -72,7 +72,13 @@ Se asignaron nombres explícitos a los helpers de estado que Nuxt autoimportaba 
 - `documentStatusBadgeClass`
 - `collectionStatusBadgeClass`
 
-ApexCharts dejó de registrarse globalmente. `ApexChart.client.vue` carga el wrapper sólo en cliente e importa únicamente core, tipos de gráfica y features utilizadas. Los consumidores usan `LazyApexChart` y Vite divide ApexCharts y GSAP mediante `vite.$client.build.rollupOptions.output.manualChunks`. El build final no reporta imports duplicados ni chunks superiores al límite; el archivo cliente más grande mide 450,238 bytes.
+ApexCharts dejó de registrarse globalmente. `ApexChart.client.vue` carga el wrapper sólo en cliente e importa únicamente core, tipos de gráfica y features utilizadas. Los consumidores usan `LazyApexChart` y Vite divide ApexCharts y GSAP mediante `vite.$client.build.rollupOptions.output.manualChunks`. El build final no reporta imports duplicados ni chunks superiores al límite; el archivo cliente más grande mide 448,634 bytes.
+
+## Hardening del build estático
+
+La verificación del primer despliegue detectó que Nuxt 3.21.11 combinaba los payloads extraídos con `app.cdnURL=/static/frontend/` y generaba algunas rutas `_payload.json` como HTML. La navegación seguía funcionando, pero la consola reportaba que no podía parsear el payload. Para la topología estática de Django se fijó `experimental.payloadExtraction: false`: los datos quedan inline y el build ya no emite ni solicita `_payload.json`.
+
+También se cambió `collectstatic` a modo `--clear` en los dos caminos productivos —`scripts/deploy.sh` y el rebuild automático del blog—. Así no sobreviven chunks con hash de builds anteriores ni pueden reaparecer colisiones archivo/directorio. El build Django real pasó de 485 rutas, que incluían payloads espurios, a 313 rutas válidas.
 
 ## Verificaciones ejecutadas
 
@@ -83,8 +89,12 @@ ApexCharts dejó de registrarse globalmente. `ApexChart.client.vue` carga el wra
 - Frontend unitario relacionado: 37 pruebas, todas aprobadas.
 - Playwright focalizado en gráficas reales: 3 pruebas, todas aprobadas sin retries.
 - `npm run build`: aprobado, sin los warnings objetivo y sin chunks mayores de 500 KB.
+- `npm run build:django`: aprobado con 79 posts, cero artefactos `_payload.json` y cero chunks mayores de 500 KB.
+- Navegación Playwright read-only home → portfolio: URL y API 200, sin requests ni errores de payload.
 - Quality gate: backend 99/100 y frontend unitario 97/100, ambos aprobados; el test backend nuevo no introduce findings.
 
 ## Nota técnica
 
 El preview del servidor Nitro generado localmente no inicia porque su paquete virtual de `vue` queda incompleto. No afecta la ruta productiva de ProjectApp: producción usa `npm run build:django`/`nuxi generate`, copia el resultado estático a Django y no ejecuta Nitro como servidor. Se mantiene como investigación independiente si en el futuro el proyecto adopta despliegue SSR con Nitro.
+
+La portada pública todavía emite el warning genérico preexistente `Hydration completed but contains mismatches`; no provoca errores de página, requests fallidos ni bloquea la navegación validada. Es una investigación separada del payload y de los warnings objetivo de esta auditoría.
