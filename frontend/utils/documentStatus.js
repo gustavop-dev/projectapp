@@ -15,11 +15,11 @@ const STATUS_LABEL = {
   published: 'Publicado',
 };
 
-export function statusBadgeClass(status) {
+export function documentStatusBadgeClass(status) {
   return STATUS_BADGE[status] || STATUS_BADGE.draft;
 }
 
-export function statusLabel(status) {
+export function documentStatusLabel(status) {
   return STATUS_LABEL[status] || status;
 }
 

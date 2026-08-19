@@ -61,7 +61,7 @@ const options = computed(() => ({
       description="Registra snapshots en la sección Tarjetas para ver la evolución de la deuda."
     />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         type="line"
         height="300"
         :options="options"

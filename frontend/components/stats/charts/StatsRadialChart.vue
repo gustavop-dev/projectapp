@@ -2,7 +2,7 @@
   <div data-testid="stats-radial-chart">
     <BaseEmptyState v-if="isEmpty" :title="emptyTitle" />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         type="radialBar"
         :height="height"
         :options="options"

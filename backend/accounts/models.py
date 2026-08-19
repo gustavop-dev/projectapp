@@ -4,6 +4,7 @@ import string
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import models
+from django.db.models.functions import NullIf
 from django.utils import timezone
 
 from accounts.services.image_utils import optimize_avatar, optimize_image
@@ -494,8 +495,8 @@ class Requirement(models.Model):
         ordering = ['order', '-created_at']
         constraints = [
             models.UniqueConstraint(
-                fields=['phase', 'source_flow_key'],
-                condition=~models.Q(source_flow_key=''),
+                models.F('phase'),
+                NullIf(models.F('source_flow_key'), models.Value('')),
                 name='uniq_requirement_phase_flow_key',
             ),
         ]
@@ -573,8 +574,8 @@ class ProjectScopeItem(models.Model):
         ordering = ['group_order', 'item_order', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['phase', 'source_item_id'],
-                condition=~models.Q(source_item_id=''),
+                models.F('phase'),
+                NullIf(models.F('source_item_id'), models.Value('')),
                 name='uniq_scope_item_phase_source',
             ),
         ]
@@ -953,8 +954,8 @@ class Deliverable(models.Model):
         ordering = ['category', '-updated_at']
         constraints = [
             models.UniqueConstraint(
-                fields=['project', 'source_epic_key'],
-                condition=~models.Q(source_epic_key=''),
+                models.F('project'),
+                NullIf(models.F('source_epic_key'), models.Value('')),
                 name='uniq_deliverable_project_epic_key',
             ),
         ]
@@ -1008,8 +1009,8 @@ class DataModelEntity(models.Model):
         ordering = ['name']
         constraints = [
             models.UniqueConstraint(
-                fields=['deliverable', 'source_entity_name'],
-                condition=~models.Q(source_entity_name=''),
+                models.F('deliverable'),
+                NullIf(models.F('source_entity_name'), models.Value('')),
                 name='uniq_data_model_entity_deliverable_source',
             ),
         ]
@@ -1526,8 +1527,9 @@ class SavedFilterTab(models.Model):
             # One placeholder per builtin per view: the seeding upserts on
             # this key, and a duplicate would give one chip two orders.
             models.UniqueConstraint(
-                fields=['user', 'view', 'builtin_key'],
-                condition=models.Q(builtin_key__gt=''),
+                models.F('user'),
+                models.F('view'),
+                NullIf(models.F('builtin_key'), models.Value('')),
                 name='uniq_saved_filter_tab_builtin_key',
             ),
         ]

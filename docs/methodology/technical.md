@@ -4,25 +4,26 @@
 
 | Layer | Technology | Version |
 |-------|-----------|---------|
-| **Backend Framework** | Django | 5.2.13 |
+| **Backend Framework** | Django | 5.2.17 |
 | **REST API** | Django REST Framework | 3.17.1 |
 | **JWT (platform)** | djangorestframework-simplejwt | >=5.3,<6.0 |
-| **Frontend Framework** | Nuxt 3 | ^3.21.4 |
+| **Frontend Framework** | Nuxt 3 | ^3.21.11 |
 | **Vue** | Vue 3 | ^3.5.33 |
 | **State Management** | Pinia (Options API) | ^2.3.1 |
 | **CSS Framework** | TailwindCSS | ^6.14.0 (@nuxtjs/tailwindcss) |
-| **Animations** | GSAP + ScrollTrigger + ScrollToPlugin | ^3.13.0 |
-| **i18n** | @nuxtjs/i18n | ^9.1.0 |
+| **Animations** | GSAP + ScrollTrigger + ScrollToPlugin | ^3.15.0 |
+| **Charts** | ApexCharts + vue3-apexcharts | 5.16.0 + ^1.11.1 |
+| **i18n** | @nuxtjs/i18n | ^9.5.6 |
 | **Task Queue** | Huey (RedisHuey) | >=2.5.0 |
 | **Cache/Queue Backend** | Redis | >=4.0.0 |
 | **Database (prod)** | MySQL 8+ | via mysqlclient >=2.2 |
 | **Database (dev)** | SQLite 3 | built-in |
-| **HTTP Client** | Axios | ^1.15.2 |
-| **PDF Generation** | ReportLab + pypdf | ^4.0 |
-| **Image Processing** | Pillow | 10.3.0 |
+| **HTTP Client** | Axios | ^1.19.0 |
+| **PDF Generation** | ReportLab + pypdf | `>=4,<5` + `>=6.15,<7` |
+| **Image Processing** | Pillow | 12.3.0 |
 | **Email** | Django EmailMultiAlternatives | SMTP (GoDaddy) |
 | **WhatsApp** | CallMeBot API | via requests |
-| **Testing (backend)** | pytest + pytest-django + pytest-cov | 8.3.2 |
+| **Testing (backend)** | pytest + pytest-django + pytest-cov | 9.1.1 |
 | **Testing (frontend unit)** | Jest + @vue/test-utils | ^29.7.0 |
 | **Testing (E2E)** | Playwright | ^1.59.1 |
 | **Linter** | Ruff | via ruff.toml |
@@ -34,7 +35,7 @@
 | **Profiling** | django-silk (optional) | >=5.0.0 |
 | **Config Management** | python-decouple | >=3.8,<3.9 |
 | **Fake Data** | Faker | 28.4.1 |
-| **Token Encryption** | cryptography (Fernet) | >=42,<46 | LinkedIn OAuth token + Project admin credential encryption |
+| **Token Encryption** | cryptography (Fernet) | >=50,<51 | LinkedIn OAuth token + Project admin credential encryption |
 | **MCP Transport** | JSON-RPC over Streamable HTTP | Per-connector capability URL; DRF throttle key is client IP + registered slug |
 
 ---
@@ -132,6 +133,18 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ---
 
 ## 4. Key Technical Decisions
+
+### MySQL uniqueness for optional sync keys
+
+- MySQL does not enforce Django conditional unique constraints, so optional sync keys use functional `UniqueConstraint` expressions with `NullIf(F(key), Value(''))`.
+- Empty strings become `NULL` and can repeat; non-empty values remain unique inside their project/user scope.
+- Schema migrations must check for existing duplicate non-empty keys before replacing an index, so deployment fails before DDL with a useful remediation message.
+
+### Client chart loading and bundle budget
+
+- ApexCharts is not a global Nuxt plugin. `components/ApexChart.client.vue` imports only the chart types and features used by the application and is consumed through Nuxt's lazy `LazyApexChart` component.
+- Heavy vendor splitting belongs under `vite.$client.build.rollupOptions`; applying the same manual chunks to Nitro's server build can generate unusable server output.
+- The production build gate is zero emitted client chunks above 500,000 bytes. Current maximum after gzip-independent measurement is 450,238 bytes.
 
 ### MCP connector concurrency
 

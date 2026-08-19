@@ -14,7 +14,7 @@ import DashboardTrendChart from '../../components/panel/dashboard/DashboardTrend
 const GLOBAL = {
   stubs: {
     ClientOnly: { template: '<div><slot /></div>' },
-    apexchart: {
+    LazyApexChart: {
       template: '<div data-testid="apexchart-stub" />',
       props: ['options', 'series', 'type', 'height'],
     },

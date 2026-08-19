@@ -1,7 +1,7 @@
 <script setup>
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 import {
-  statusBadgeClass, statusLabel, formatDocumentDate, folderRowSummary,
+  documentStatusBadgeClass, documentStatusLabel, formatDocumentDate, folderRowSummary,
   archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { computed } from 'vue'
@@ -209,9 +209,9 @@ function onFolderLink(event, sub) {
             <span
               v-else
               class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              :class="statusBadgeClass(doc.status)"
+              :class="documentStatusBadgeClass(doc.status)"
             >
-              {{ statusLabel(doc.status) }}
+              {{ documentStatusLabel(doc.status) }}
             </span>
           </td>
           <td class="px-6 py-4 text-sm text-text-muted tabular-nums">

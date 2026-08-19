@@ -30,7 +30,7 @@ const CLASSES = {
   expired: 'bg-warning-soft text-warning-strong',
 };
 
-export function statusLabel(value) {
+export function proposalTransitionStatusLabel(value) {
   return LABELS[value] || value;
 }
 

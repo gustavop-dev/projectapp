@@ -72,7 +72,7 @@ const options = computed(() => ({
       description="Cuando envíes propuestas verás aquí su evolución mensual."
     />
     <ClientOnly v-else>
-      <apexchart
+      <LazyApexChart
         type="bar"
         height="220"
         :options="options"

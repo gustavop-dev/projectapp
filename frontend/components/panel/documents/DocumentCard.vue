@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue'
 import {
-  statusBadgeClass, statusLabel, formatDocumentDate, archivedAgeLabel,
+  documentStatusBadgeClass, documentStatusLabel, formatDocumentDate, archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
@@ -80,9 +80,9 @@ const meta = computed(() => {
       <span
         v-else
         class="absolute top-2 right-2 inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium shadow-sm"
-        :class="statusBadgeClass(document.status)"
+        :class="documentStatusBadgeClass(document.status)"
       >
-        {{ statusLabel(document.status) }}
+        {{ documentStatusLabel(document.status) }}
       </span>
     </div>
 

@@ -9,12 +9,12 @@
       @change="onChange"
       @click.stop
     >
-      <option :value="proposal.status" disabled>{{ statusLabel(proposal.status) }}</option>
+      <option :value="proposal.status" disabled>{{ proposalTransitionStatusLabel(proposal.status) }}</option>
       <optgroup v-if="naturalTargets.length" label="Flujo normal">
-        <option v-for="s in naturalTargets" :key="s" :value="s">{{ statusLabel(s) }}</option>
+        <option v-for="s in naturalTargets" :key="s" :value="s">{{ proposalTransitionStatusLabel(s) }}</option>
       </optgroup>
       <optgroup v-if="forcedTargets.length" label="Forzar estado">
-        <option v-for="s in forcedTargets" :key="s" :value="s">{{ statusLabel(s) }}</option>
+        <option v-for="s in forcedTargets" :key="s" :value="s">{{ proposalTransitionStatusLabel(s) }}</option>
       </optgroup>
     </select>
     <span v-if="updating" class="absolute right-1.5 flex items-center pointer-events-none">
@@ -28,7 +28,11 @@
 
 <script setup>
 import { computed } from 'vue';
-import { PROPOSAL_STATUSES, statusLabel, statusClass } from '~/utils/proposalStatuses';
+import {
+  PROPOSAL_STATUSES,
+  proposalTransitionStatusLabel,
+  statusClass,
+} from '~/utils/proposalStatuses';
 
 /**
  * Badge-styled status select (admin mode). Pure intent-picker: the visible

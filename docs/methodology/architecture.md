@@ -358,6 +358,23 @@ flowchart TD
     PlatformDashboard -->|middleware: platform-auth| JWTCheck["JWT validation"]
 ```
 
+### 6.1.1 Client Chart Loading
+
+```mermaid
+flowchart LR
+    Page["Dashboard / accounting / stats page"] --> Lazy["LazyApexChart"]
+    Lazy --> Client["ApexChart.client.vue"]
+    Client --> Core["ApexCharts core"]
+    Client --> Types["Used chart types"]
+    Client --> Features["Legend / annotations / exports"]
+    Core --> Chunks["Client-only manual chunks"]
+    Types --> Chunks
+    Features --> Chunks
+    Chunks --> Static["Nuxt generate → Django static assets"]
+```
+
+Charts are lazy and client-only: there is no global ApexCharts plugin in the Nuxt bootstrap. The wrapper owns the modular imports, while `vite.$client` splits ApexCharts and GSAP without changing Nitro's server graph. This keeps chart code away from routes that do not render charts and enforces the 500 KB client-chunk budget used by the production build.
+
 ### 6.2 Store Architecture
 
 ```mermaid

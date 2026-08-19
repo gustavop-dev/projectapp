@@ -169,7 +169,7 @@
           </div>
           <div class="px-2 sm:px-4 py-2">
             <ClientOnly>
-              <apexchart
+              <LazyApexChart
                 type="bar"
                 :height="funnelChartHeight"
                 :options="funnelChartOptions"

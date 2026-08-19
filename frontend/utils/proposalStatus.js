@@ -31,7 +31,7 @@ export const FUNNEL_ORDER = [
   'accepted', 'finished', 'rejected', 'expired',
 ];
 
-export function statusLabel(status) {
+export function dashboardProposalStatusLabel(status) {
   return STATUS_LABELS[status] || status;
 }
 

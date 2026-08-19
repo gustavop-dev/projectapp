@@ -198,5 +198,51 @@ export default defineNuxtConfig({
     appManifest: false,
   },
 
+  vite: {
+    optimizeDeps: {
+      include: [
+        'apexcharts/core',
+        'apexcharts/line',
+        'apexcharts/area',
+        'apexcharts/bar',
+        'apexcharts/donut',
+        'apexcharts/radialBar',
+        'apexcharts/features/legend',
+        'apexcharts/features/annotations',
+        'apexcharts/features/exports',
+      ],
+    },
+    $client: {
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks(id) {
+              const normalizedId = id.replaceAll('\\', '/')
+
+              if (normalizedId.includes('/node_modules/apexcharts/dist/features/')) {
+                return 'apexcharts-features'
+              }
+              if (
+                /\/node_modules\/apexcharts\/dist\/(line|area|bar|donut|radialBar)\.esm\.js$/.test(
+                  normalizedId,
+                )
+              ) {
+                return 'apexcharts-chart-types'
+              }
+              if (normalizedId.includes('/node_modules/apexcharts/dist/core.esm.js')) {
+                return 'apexcharts-core'
+              }
+              if (normalizedId.includes('/node_modules/gsap/')) {
+                return 'gsap'
+              }
+
+              return undefined
+            },
+          },
+        },
+      },
+    },
+  },
+
   compatibilityDate: '2024-11-01',
 })

@@ -1,7 +1,10 @@
 import { ref } from 'vue';
 import { useProposalStore } from '~/stores/proposals';
 import { usePanelNotify } from '~/composables/usePanelNotify';
-import { statusLabel, isNaturalTransition } from '~/utils/proposalStatuses';
+import {
+  isNaturalTransition,
+  proposalTransitionStatusLabel,
+} from '~/utils/proposalStatuses';
 
 /**
  * Shared confirm + PATCH + notify orchestration for proposal status changes
@@ -30,8 +33,8 @@ export function useProposalStatusChange({ requestConfirm, onNegotiate = null, re
 
   async function confirmChange(proposal, newStatus, natural) {
     if (!natural) {
-      let message = `La propuesta pasará de «${statusLabel(proposal.status)}» a `
-        + `«${statusLabel(newStatus)}» fuera del flujo normal. No se enviarán `
+      let message = `La propuesta pasará de «${proposalTransitionStatusLabel(proposal.status)}» a `
+        + `«${proposalTransitionStatusLabel(newStatus)}» fuera del flujo normal. No se enviarán `
         + 'correos ni se ejecutarán automatizaciones.';
       if (proposal.status === 'expired') {
         message += ' Si la fecha de expiración ya pasó, una visita del cliente puede volver a expirarla.';

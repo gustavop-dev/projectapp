@@ -85,7 +85,7 @@ import { useChartTheme } from '~/composables/useChartTheme';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useProposalStore } from '~/stores/proposals';
 import { formatMoney } from '~/utils/formatMoney';
-import { FUNNEL_ORDER, statusLabel } from '~/utils/proposalStatus';
+import { dashboardProposalStatusLabel, FUNNEL_ORDER } from '~/utils/proposalStatus';
 
 /**
  * Proposals deep-dive over GET proposals/dashboard/. The endpoint is
@@ -158,7 +158,7 @@ const funnel = computed(() => {
   const byStatus = dashboard.value?.by_status || {};
   return FUNNEL_ORDER.map((status) => ({
     status,
-    label: statusLabel(status),
+    label: dashboardProposalStatusLabel(status),
     count: Number(byStatus[status]) || 0,
   }));
 });
@@ -168,7 +168,7 @@ const valueByStage = computed(() => {
   return Object.entries(byStage)
     .map(([status, value]) => ({
       status,
-      label: statusLabel(status),
+      label: dashboardProposalStatusLabel(status),
       value: Number(value) || 0,
     }))
     .filter((row) => row.value > 0)
