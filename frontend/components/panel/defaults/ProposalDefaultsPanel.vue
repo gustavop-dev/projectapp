@@ -54,8 +54,8 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-text-default mb-1">Dcto. anual hosting (%)</label>
-            <BaseInput v-model.number="generalForm.hosting_discount_annual" type="number" min="0" max="100" class="w-32" />
+            <label class="block text-sm font-medium text-text-default mb-1">Dcto. 9 meses hosting (%)</label>
+            <BaseInput v-model.number="generalForm.hosting_discount_nine_month" type="number" min="0" max="100" class="w-32" />
           </div>
           <div>
             <label class="block text-sm font-medium text-text-default mb-1">Dcto. semestral hosting (%)</label>
@@ -826,7 +826,7 @@ const generalForm = ref({
   currency: 'COP',
   total_investment: 0,
   hosting_percent: DEFAULT_HOSTING_PERCENT,
-  hosting_discount_annual: 40,
+  hosting_discount_nine_month: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expiration_days: 21,
@@ -1052,7 +1052,7 @@ async function loadDefaults(lang) {
         currency: typeof d.default_currency === 'string' ? d.default_currency : 'COP',
         total_investment: num(d.default_total_investment, 0),
         hosting_percent: num(d.hosting_percent, DEFAULT_HOSTING_PERCENT),
-        hosting_discount_annual: num(d.hosting_discount_annual, 40),
+        hosting_discount_nine_month: num(d.hosting_discount_nine_month, 40),
         hosting_discount_semiannual: num(d.hosting_discount_semiannual, 20),
         hosting_discount_quarterly: num(d.hosting_discount_quarterly, 10),
         expiration_days: num(d.expiration_days, 21),

@@ -394,7 +394,10 @@ _ENTITY_FIELDS = {
             },
             'monthly_value': {'type': ['number', 'string']},
             'domain_url': {'type': 'string'},
-            'payment_modality': {'type': 'string', 'enum': ['monthly', 'quarterly', 'semiannual', 'annual']},
+            'payment_modality': {
+                'type': 'string',
+                'enum': ['quarterly', 'semiannual', 'nine_month'],
+            },
             'benefit': {'type': 'string'},
             'valid_from': {'type': 'string', 'description': 'YYYY-MM-DD.'},
             'valid_to': {'type': 'string', 'description': 'YYYY-MM-DD.'},

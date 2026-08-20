@@ -948,7 +948,7 @@ def export_proposal_json(request, proposal_id):
         'total_investment': str(proposal.total_investment),
         'currency': proposal.currency or 'COP',
         'hosting_percent': proposal.hosting_percent,
-        'hosting_discount_annual': proposal.hosting_discount_annual,
+        'hosting_discount_nine_month': proposal.hosting_discount_nine_month,
         'hosting_discount_semiannual': proposal.hosting_discount_semiannual,
         'hosting_discount_quarterly': proposal.hosting_discount_quarterly,
         'expires_at': (
@@ -1185,7 +1185,7 @@ def duplicate_proposal(request, proposal_id):
             currency=proposal.currency,
             nationality=proposal.nationality,
             hosting_percent=proposal.hosting_percent,
-            hosting_discount_annual=proposal.hosting_discount_annual,
+            hosting_discount_nine_month=proposal.hosting_discount_nine_month,
             hosting_discount_semiannual=proposal.hosting_discount_semiannual,
             hosting_discount_quarterly=proposal.hosting_discount_quarterly,
             project_type=proposal.project_type,
@@ -1208,6 +1208,13 @@ def duplicate_proposal(request, proposal_id):
         )
 
         for section in proposal.sections.all().order_by('order'):
+            section_content = copy.deepcopy(section.content_json or {})
+            if section.section_type == ProposalSection.SectionType.INVESTMENT:
+                from content.services.proposal_service import normalize_hosting_plan
+
+                section_content['hostingPlan'] = normalize_hosting_plan(
+                    new_proposal, section_content.get('hostingPlan') or {},
+                )
             ProposalSection.objects.create(
                 proposal=new_proposal,
                 section_type=section.section_type,
@@ -1215,7 +1222,7 @@ def duplicate_proposal(request, proposal_id):
                 order=section.order,
                 is_enabled=section.is_enabled,
                 is_wide_panel=section.is_wide_panel,
-                content_json=copy.deepcopy(section.content_json),
+                content_json=section_content,
             )
 
         ProposalChangeLog.objects.create(
@@ -3315,7 +3322,7 @@ def proposal_defaults(request):
             'default_currency': ProposalDefaultConfig.Currency.COP,
             'default_total_investment': '0.00',
             'hosting_percent': blank.hosting_percent,
-            'hosting_discount_annual': blank.hosting_discount_annual,
+            'hosting_discount_nine_month': blank.hosting_discount_nine_month,
             'hosting_discount_semiannual': blank.hosting_discount_semiannual,
             'hosting_discount_quarterly': blank.hosting_discount_quarterly,
             'expiration_days': ProposalService.DEFAULT_EXPIRATION_DAYS,

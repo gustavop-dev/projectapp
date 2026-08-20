@@ -60,8 +60,7 @@ DEFAULT_FILTER_TABS = {
     'accounting_hosting': [
         {'name': 'Activos', 'filters': {'isActive': ['true']}},
         {'name': 'Inactivos', 'filters': {'isActive': ['false']}},
-        {'name': 'Mensuales', 'filters': {'modalities': ['monthly']}},
-        {'name': 'Anuales', 'filters': {'modalities': ['annual']}},
+        {'name': 'Cada 9 meses', 'filters': {'modalities': ['nine_month']}},
     ],
     # The three attribution cuts are the consulta that repeats ("what came out
     # of Gustavo's pocket"); "Sin vincular" is the repair queue: movements that

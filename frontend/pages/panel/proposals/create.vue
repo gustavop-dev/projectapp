@@ -298,17 +298,17 @@
                   ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_semiannual) / 100 * 6).toLocaleString() }} {{ form.currency }}
                 </div>
               </template>
-              <div class="px-4 py-2 text-info-strong font-medium">☁️ Anual</div>
+              <div class="px-4 py-2 text-info-strong font-medium">☁️ Cada 9 meses</div>
               <div class="px-4 py-2 text-info-strong font-semibold text-right">
-                ${{ Math.round(form.total_investment * form.hosting_percent / 100).toLocaleString() }} {{ form.currency }}
+                ${{ Math.round(form.total_investment * form.hosting_percent / 100 / 12 * 9).toLocaleString() }} {{ form.currency }}
               </div>
-              <template v-if="form.hosting_discount_annual">
+              <template v-if="form.hosting_discount_nine_month">
                 <div class="px-4 py-2 text-info-strong font-medium">
-                  Anual
-                  <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
+                  Cada 9 meses
+                  <span class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_nine_month }}% dcto)</span>
                 </div>
                 <div class="px-4 py-2 text-text-brand font-semibold text-right">
-                  ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_annual) / 100 * 12).toLocaleString() }} {{ form.currency }}
+                  ${{ Math.round(Math.round(form.total_investment * form.hosting_percent / 100 / 12) * (100 - form.hosting_discount_nine_month) / 100 * 9).toLocaleString() }} {{ form.currency }}
                 </div>
               </template>
             </div>
@@ -317,8 +317,8 @@
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label class="block text-sm font-medium text-text-default mb-1">Dcto. anual (%)</label>
-            <input v-model.number="form.hosting_discount_annual" type="number" min="0" max="100"
+            <label class="block text-sm font-medium text-text-default mb-1">Dcto. 9 meses (%)</label>
+            <input v-model.number="form.hosting_discount_nine_month" type="number" min="0" max="100"
               class="w-32 px-4 py-2.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none" />
           </div>
           <div>
@@ -1162,7 +1162,7 @@ const expiryDaysInput = ref(getExpiryDaysFromStr(defaultExpiryStr));
 // constants in the form init are just the offline fallback.
 const HOSTING_DEFAULT_FIELDS = [
   'hosting_percent',
-  'hosting_discount_annual',
+  'hosting_discount_nine_month',
   'hosting_discount_semiannual',
   'hosting_discount_quarterly',
 ];
@@ -1223,7 +1223,7 @@ const form = reactive({
   currency: 'COP',
   nationality: 'COL',
   hosting_percent: DEFAULT_HOSTING_PERCENT,
-  hosting_discount_annual: 40,
+  hosting_discount_nine_month: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,
@@ -1369,7 +1369,7 @@ const jsonForm = reactive({
   currency: 'COP',
   nationality: 'COL',
   hosting_percent: DEFAULT_HOSTING_PERCENT,
-  hosting_discount_annual: 40,
+  hosting_discount_nine_month: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: defaultExpiryStr,

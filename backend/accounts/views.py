@@ -3045,18 +3045,22 @@ def _extract_proposal_financial_data(proposal):
         })
 
     # --- Hosting tiers (pricing for client plan selection) ---
-    normalized = normalize_hosting_plan(proposal, cj.get('hostingPlan', {}))
+    normalized = normalize_hosting_plan(
+        proposal, cj.get('hostingPlan', {}), force_current_terms=True,
+    )
     base_percent = normalized['hostingPercent']
-    hosting_annual = float(proposal.total_investment) * base_percent / 100
-    base_monthly = round(hosting_annual / 12, 2)
+    hosting_twelve_month_reference = (
+        float(proposal.total_investment) * base_percent / 100
+    )
+    base_monthly = round(hosting_twelve_month_reference / 12, 2)
     currency = str(cj.get('currency', proposal.currency))
 
     billing_tiers = normalized['billingTiers']
     if not billing_tiers:
         billing_tiers = [
-            {'frequency': 'annual', 'months': 12, 'label': 'Anual',
+            {'frequency': 'nine_month', 'months': 9, 'label': 'Cada 9 meses',
              'badge': 'Máximo descuento',
-             'discountPercent': proposal.hosting_discount_annual},
+             'discountPercent': proposal.hosting_discount_nine_month},
             {'frequency': 'semiannual', 'months': 6, 'label': 'Semestral',
              'badge': '20% dcto',
              'discountPercent': proposal.hosting_discount_semiannual},
@@ -3142,7 +3146,7 @@ def _create_subscription_multi_phase(project, plan):
     Payment.objects.create(
         subscription=sub,
         amount=billing_amount,
-        description=f'Hosting {sub.get_plan_display()} — {billing_start} a {billing_end}',
+        description=f'Hosting {sub.plan_label} — {billing_start} a {billing_end}',
         billing_period_start=billing_start,
         billing_period_end=billing_end,
         due_date=billing_start,
@@ -3179,7 +3183,7 @@ def _generate_next_payment(subscription):
     payment = Payment.objects.create(
         subscription=subscription,
         amount=subscription.billing_amount,
-        description=f'Hosting {subscription.get_plan_display()} — {billing_start} a {billing_end}',
+        description=f'Hosting {subscription.plan_label} — {billing_start} a {billing_end}',
         billing_period_start=billing_start,
         billing_period_end=billing_end,
         due_date=billing_start,
@@ -3373,7 +3377,7 @@ def project_subscription_view(request, project_id):
     GET  — Subscription detail with payments (admin or owning client).
            Returns 404 if no subscription exists yet.
     POST — Client (or admin) creates subscription by choosing a hosting plan.
-           Required: { plan: 'quarterly'|'semiannual'|'annual' }
+           Required: { plan: 'quarterly'|'semiannual'|'nine_month' }
            Only works if no subscription exists yet and the project has phases
            with at least one already started.
     PATCH — Change hosting plan (admin or client) or status (admin only).
@@ -3399,7 +3403,7 @@ def project_subscription_view(request, project_id):
         plan = request.data.get('plan')
         if plan not in dict(HostingSubscription.PLAN_CHOICES):
             return Response(
-                {'detail': 'Plan inválido. Opciones: quarterly, semiannual, annual.'},
+                {'detail': 'Plan inválido. Opciones: quarterly, semiannual, nine_month.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -3493,7 +3497,7 @@ def project_subscription_view(request, project_id):
                 first.amount = sub.billing_amount
                 first.billing_period_end = billing_end
                 first.description = (
-                    f'Hosting {sub.get_plan_display()} — '
+                    f'Hosting {sub.plan_label} — '
                     f'{first.billing_period_start} a {billing_end}'
                 )
                 first.save(update_fields=['amount', 'billing_period_end', 'description'])

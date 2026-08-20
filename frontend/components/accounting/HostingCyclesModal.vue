@@ -24,7 +24,11 @@
           <BaseCurrencyInput v-model="form.amount" required data-testid="cycle-amount" />
         </BaseFormField>
         <BaseFormField label="Modalidad del ciclo">
-          <BaseSelect v-model="form.modality" :options="modalityOptions" />
+          <BaseSelect
+            v-model="form.modality"
+            :options="modalityOptions"
+            data-testid="cycle-modality"
+          />
         </BaseFormField>
         <BaseFormField label="Fecha de pago">
           <BaseInput v-model="form.paid_at" type="date" />
@@ -136,13 +140,12 @@ const emit = defineEmits(['close', 'changed']);
 const store = useAccountingStore();
 const notify = usePanelNotify();
 
-const MODALITY_MONTHS = { monthly: 1, quarterly: 3, semiannual: 6, annual: 12 };
+const MODALITY_MONTHS = { quarterly: 3, semiannual: 6, nine_month: 9 };
 
 const modalityOptions = [
-  { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
-  { value: 'annual', label: 'Anual' },
+  { value: 'nine_month', label: 'Cada 9 meses' },
 ];
 
 const cycles = ref([]);
@@ -152,7 +155,9 @@ const saving = ref(false);
 function defaultForm() {
   return {
     amount: props.record ? Number(props.record.payment_per_cycle) || null : null,
-    modality: props.record?.payment_modality || 'monthly',
+    modality: MODALITY_MONTHS[props.record?.payment_modality]
+      ? props.record.payment_modality
+      : 'quarterly',
     paid_at: new Date().toISOString().slice(0, 10),
     notes: '',
     advance_validity: true,

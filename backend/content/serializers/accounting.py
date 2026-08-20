@@ -922,7 +922,7 @@ class ExpenseRecordCreateUpdateSerializer(
 
 class HostingRecordSerializer(serializers.ModelSerializer):
     payment_modality_label = serializers.CharField(
-        source='get_payment_modality_display', read_only=True,
+        read_only=True,
     )
     client_display_name = serializers.SerializerMethodField()
     # The `Marca` half of the old `Persona - Marca` label, now its own field.
@@ -979,6 +979,7 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True,
     )
+    payment_modality = serializers.CharField(required=False)
 
     class Meta:
         model = HostingRecord
@@ -1000,6 +1001,25 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         data = super().validate(data)
+
+        modality = data.get('payment_modality')
+        if modality is not None:
+            offered = set(HostingRecord.Modality.values)
+            legacy_unchanged = bool(
+                self.instance
+                and modality == self.instance.payment_modality
+                and modality in {
+                    HostingRecord.LEGACY_MONTHLY,
+                    HostingRecord.LEGACY_ANNUAL,
+                }
+            )
+            if modality not in offered and not legacy_unchanged:
+                raise serializers.ValidationError({
+                    'payment_modality': (
+                        'Periodicidad inválida. Opciones: quarterly, '
+                        'semiannual, nine_month.'
+                    ),
+                })
 
         def effective(field):
             if field in data:
@@ -1071,7 +1091,7 @@ class HostingRecordCreateUpdateSerializer(serializers.ModelSerializer):
         if self.instance is None and 'payment_per_cycle' not in data:
             monthly = data.get('monthly_value')
             modality = data.get(
-                'payment_modality', HostingRecord.Modality.MONTHLY,
+                'payment_modality', HostingRecord.Modality.QUARTERLY,
             )
             if monthly is not None:
                 months = HostingRecord.MODALITY_MONTHS.get(modality, 1)
@@ -1094,9 +1114,7 @@ class HostingCycleSerializer(serializers.ModelSerializer):
         )
 
     def get_modality_label(self, obj):
-        return dict(HostingRecord.Modality.choices).get(
-            obj.modality, obj.modality,
-        )
+        return HostingRecord.modality_label(obj.modality)
 
     def get_is_backfill(self, obj):
         return obj.source_ref.startswith('backfill:')

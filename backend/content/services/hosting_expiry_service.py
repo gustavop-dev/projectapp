@@ -109,5 +109,5 @@ def _item(record, today):
         'amount': record.payment_per_cycle,
         'total': None,
         'notice_number': record.expiry_notice_count + 1,
-        'detail': record.get_payment_modality_display(),
+        'detail': record.payment_modality_label,
     }

@@ -27,11 +27,22 @@ const isEdit = computed(() => !!props.record)
 const title = computed(() => (isEdit.value ? 'Editar Hosting' : 'Nuevo Hosting'))
 
 const modalityOptions = [
-  { value: 'monthly', label: 'Mensual' },
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
-  { value: 'annual', label: 'Anual' },
+  { value: 'nine_month', label: 'Cada 9 meses' },
 ]
+const legacyModalityLabels = {
+  monthly: 'Mensual (histórico)',
+  annual: 'Anual (histórico)',
+}
+const availableModalityOptions = computed(() => {
+  const current = props.record?.payment_modality
+  if (!legacyModalityLabels[current]) return modalityOptions
+  return [
+    ...modalityOptions,
+    { value: current, label: legacyModalityLabels[current] },
+  ]
+})
 
 function defaultForm() {
   return {
@@ -44,7 +55,7 @@ function defaultForm() {
     client_identification: '',
     domain_url: '',
     monthly_value: '',
-    payment_modality: 'monthly',
+    payment_modality: 'quarterly',
     benefit: '',
     valid_from: '',
     valid_to: '',
@@ -71,7 +82,7 @@ watch(
         client_identification: props.record.client_identification ?? '',
         domain_url: props.record.domain_url ?? '',
         monthly_value: props.record.monthly_value ?? '',
-        payment_modality: props.record.payment_modality ?? 'monthly',
+        payment_modality: props.record.payment_modality ?? 'quarterly',
         benefit: props.record.benefit ?? '',
         valid_from: props.record.valid_from ?? '',
         valid_to: props.record.valid_to ?? '',
@@ -310,7 +321,11 @@ function onSubmit() {
           <BaseCurrencyInput v-model="form.monthly_value" data-testid="hosting-form-monthly" required />
         </BaseFormField>
         <BaseFormField label="Modalidad de pago">
-          <BaseSelect v-model="form.payment_modality" :options="modalityOptions" />
+          <BaseSelect
+            v-model="form.payment_modality"
+            :options="availableModalityOptions"
+            data-testid="hosting-form-modality"
+          />
         </BaseFormField>
       </BaseFormRow>
 

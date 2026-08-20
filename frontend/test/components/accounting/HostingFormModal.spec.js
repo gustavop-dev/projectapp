@@ -85,9 +85,10 @@ function mountModal(props = {}) {
             '<textarea :value="modelValue" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseSelect: {
+          name: 'BaseSelect',
           props: ['modelValue', 'options'],
           emits: ['update:modelValue'],
-          template: '<select :value="modelValue" />',
+          template: '<select :value="modelValue"><option v-for="option in options" :key="option.value" :value="option.value">{{ option.label }}</option></select>',
         },
         BaseToggle: {
           props: ['modelValue'],
@@ -127,6 +128,31 @@ describe('HostingFormModal', () => {
     expect(payload.client_name).toBe('MIMITTOS');
     expect(payload.client_email).toBe('arq.daniel@example.com');
     expect(payload.client_identification).toBe('901234567');
+    expect(payload.payment_modality).toBe('quarterly');
+  });
+
+  it('offers only quarterly, semiannual and nine-month periodicities', () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.findComponent({ name: 'BaseSelect' }).props('options')).toEqual([
+      { value: 'quarterly', label: 'Trimestral' },
+      { value: 'semiannual', label: 'Semestral' },
+      { value: 'nine_month', label: 'Cada 9 meses' },
+    ]);
+  });
+
+  it('keeps an existing annual modality readable only while editing history', async () => {
+    const wrapper = mountModal({
+      record: { ...LEGACY_RECORD, payment_modality: 'annual' },
+    });
+    await flushPromises();
+
+    expect(wrapper.findComponent({ name: 'BaseSelect' }).props('options')).toEqual([
+      { value: 'quarterly', label: 'Trimestral' },
+      { value: 'semiannual', label: 'Semestral' },
+      { value: 'nine_month', label: 'Cada 9 meses' },
+      { value: 'annual', label: 'Anual (histórico)' },
+    ]);
   });
 
   it('never overwrites what the operator already typed', async () => {

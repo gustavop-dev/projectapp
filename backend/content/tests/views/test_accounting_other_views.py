@@ -35,6 +35,41 @@ class TestHostingEndpoints:
         assert response.status_code == 201, response.data
         assert response.data['payment_per_cycle'] == '550002.00'
 
+    def test_create_nine_month_defaults_payment_per_cycle(
+        self, super_client, make_client_profile,
+    ):
+        response = super_client.post(
+            '/api/accounting/hostings/create/',
+            {
+                'client': make_client_profile().pk,
+                'client_name': 'Cliente 9 meses',
+                'monthly_value': '100000.00',
+                'payment_modality': 'nine_month',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 201, response.data
+        assert response.data['payment_per_cycle'] == '900000.00'
+
+    @pytest.mark.parametrize('legacy_modality', ['monthly', 'annual'])
+    def test_create_rejects_legacy_modality(
+        self, super_client, make_client_profile, legacy_modality,
+    ):
+        response = super_client.post(
+            '/api/accounting/hostings/create/',
+            {
+                'client': make_client_profile().pk,
+                'client_name': 'Cliente histórico',
+                'monthly_value': '100000.00',
+                'payment_modality': legacy_modality,
+            },
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert 'payment_modality' in response.data
+
     def test_create_without_client_is_rejected(self, super_client):
         # Every hosting belongs to a client; new ones must say which.
         response = super_client.post(
@@ -94,6 +129,7 @@ class TestHostingEndpoints:
             '/api/accounting/hostings/?payment_modality=annual',
         )
         assert [r['client_name'] for r in response.data['results']] == ['Anual']
+        assert response.data['results'][0]['payment_modality_label'] == 'Anual (histórico)'
 
     def test_bulk_assign_client_refreshes_billing_snapshot(
         self, super_client, make_client_profile,

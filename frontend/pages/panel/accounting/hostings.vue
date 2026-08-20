@@ -607,10 +607,9 @@ const filterFields = computed(() => [
     key: 'modalities',
     label: 'Modalidad',
     options: [
-      { value: 'monthly', label: 'Mensual' },
       { value: 'quarterly', label: 'Trimestral' },
       { value: 'semiannual', label: 'Semestral' },
-      { value: 'annual', label: 'Anual' },
+      { value: 'nine_month', label: 'Cada 9 meses' },
     ],
   },
   { kind: 'range', label: 'Valor/mes', minKey: 'valueMin', maxKey: 'valueMax', type: 'money' },

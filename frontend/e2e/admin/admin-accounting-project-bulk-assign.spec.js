@@ -29,7 +29,7 @@ function hostingRow(overrides = {}) {
     domain_url: 'https://korehealths.com/',
     monthly_value: '91667.00',
     payment_modality: 'monthly',
-    payment_modality_label: 'Mensual',
+    payment_modality_label: 'Mensual (histórico)',
     benefit: '',
     valid_from: '2026-03-02',
     valid_to: '2026-09-02',

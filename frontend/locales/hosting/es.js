@@ -10,11 +10,12 @@ export default {
     free_price: "Sin costo",
     free_condition: "Este servicio de hosting no tiene costo con la compra de nuestra Página de Aterrizaje de E-Commerce V1.0",
     frequencies: [
-      { value: "semi_annually", label: "Semestral"},
-      { value: "annually", label: "Anual" },
+      { value: "quarterly", label: "Trimestral" },
+      { value: "semiannual", label: "Semestral" },
+      { value: "nine_month", label: "Cada 9 meses" },
     ],
     save_plan: {
-      text: "Con el plan anual",
+      text: "Con el plan cada 9 meses",
       badge: "Ahorra",
     },
     hostingBenefits: [
@@ -38,4 +39,3 @@ export default {
       },
     ]
   };
-  

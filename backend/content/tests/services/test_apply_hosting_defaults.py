@@ -17,7 +17,7 @@ def _config(**kwargs):
     defaults = {
         'language': 'es',
         'hosting_percent': 45,
-        'hosting_discount_annual': 35,
+        'hosting_discount_nine_month': 35,
         'hosting_discount_semiannual': 15,
         'hosting_discount_quarterly': 5,
     }
@@ -40,7 +40,7 @@ class TestApplyHostingDefaults:
         ProposalService.apply_hosting_defaults(proposal, {'title', 'client_name'})
         proposal.refresh_from_db()
         assert proposal.hosting_percent == 45
-        assert proposal.hosting_discount_annual == 35
+        assert proposal.hosting_discount_nine_month == 35
         assert proposal.hosting_discount_semiannual == 15
         assert proposal.hosting_discount_quarterly == 5
 
@@ -51,7 +51,7 @@ class TestApplyHostingDefaults:
         ProposalService.apply_hosting_defaults(proposal, {'hosting_percent'})
         proposal.refresh_from_db()
         assert proposal.hosting_percent == 70          # explicit value kept
-        assert proposal.hosting_discount_annual == 35  # absent field seeded
+        assert proposal.hosting_discount_nine_month == 35  # absent field seeded
 
     def test_matches_config_by_proposal_language(self):
         ProposalDefaultConfig.objects.all().delete()

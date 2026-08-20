@@ -176,6 +176,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - `settings_build.py` exists **only** for this loopback build server — never serves real traffic. It disables `SECURE_SSL_REDIRECT`/HSTS/secure-cookies that `settings_prod` enforces.
 - Gates: `PRERENDER_BLOG=1` enables it; `PRERENDER_API_ORIGIN` overrides the target; `PRERENDER_REQUIRE_BLOG=1` makes a failed prerender a hard build error. With no backend present (CI/dev) the script skips the local server and falls back to the env-provided origin.
 
+### Current hosting terms versus historical snapshots
+
+- The selectable hosting enum is `quarterly`, `semiannual`, `nine_month`; `monthly` and `annual` constants/maps exist only to render preserved history.
+- `normalize_hosting_plan(proposal, data)` is context-sensitive: public/PDF callers preserve closed or inactive proposal JSON, while operational onboarding passes `force_current_terms=True` to create a new 9/6/3-month project snapshot.
+- The twelve-month hosting percentage remains only a calculation reference. A nine-month cycle is `effective_monthly_amount × 9`; it is not 75% of an independently rounded annual total at runtime.
+- Schema migrations rename `hosting_discount_annual` to `hosting_discount_nine_month`. Data migrations update only current proposal/accounting/platform state, never paid cycles or payments, and guard Wompi-linked work before mutation.
+- Write serializers reject new monthly/annual accounting values but allow an unchanged legacy value when editing another field on a historical row.
+
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
 - Each proposal section's `content_json` matches the props schema of its Vue component

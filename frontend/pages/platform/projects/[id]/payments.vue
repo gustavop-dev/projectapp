@@ -693,10 +693,12 @@ const planError = ref('')
 const frequencyOptions = [
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
-  { value: 'annual', label: 'Anual' },
+  { value: 'nine_month', label: 'Cada 9 meses' },
 ]
 const selectedFrequencyLabel = computed(
-  () => frequencyOptions.find((o) => o.value === selectedPlan.value)?.label || '',
+  () => frequencyOptions.find((o) => o.value === selectedPlan.value)?.label
+    || sub.value?.plan_display
+    || '',
 )
 
 // The frequency stays editable until the first payment settles (the
@@ -761,7 +763,7 @@ const manualError = ref('')
 const manualFreqOptions = [
   { value: 'quarterly', label: 'Trimestral' },
   { value: 'semiannual', label: 'Semestral' },
-  { value: 'annual', label: 'Anual' },
+  { value: 'nine_month', label: 'Cada 9 meses' },
 ]
 const manualForm = reactive({ frequency: '', amount: '', billing_period_start: '', description: '' })
 const manualFormValid = computed(() =>

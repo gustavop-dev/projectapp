@@ -80,7 +80,7 @@ describe('Investment', () => {
 
   describe('hosting billing tiers', () => {
     const billingTiers = [
-      { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: '' },
+      { frequency: 'nine_month', months: 9, discountPercent: 40, label: 'Cada 9 meses', badge: '' },
       { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '' },
       { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '' },
     ];
@@ -234,10 +234,10 @@ describe('Investment', () => {
     });
   });
 
-  describe('hosting: annual tier, free month, renewal', () => {
-    it('renders the annual 40% tier by default', () => {
+  describe('hosting: nine-month tier, free month, renewal', () => {
+    it('renders the nine-month 40% tier by default', () => {
       const wrapper = mountInvestment();
-      expect(wrapper.text()).toContain('Anual');
+      expect(wrapper.text()).toContain('Cada 9 meses');
       expect(wrapper.text()).toContain('40%');
     });
 

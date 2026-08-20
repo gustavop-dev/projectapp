@@ -22,7 +22,7 @@ const mockProject = {
   start_date: '2025-01-01', estimated_end_date: '2025-06-30',
   hosting_start_date: '2025-04-01',
   hosting_tiers: [
-    { frequency: 'annual', months: 12, label: 'Anual', badge: 'Máximo descuento', discount_percent: 40, base_monthly: 250000, effective_monthly: 150000, billing_amount: 1800000, currency: 'COP' },
+    { frequency: 'nine_month', months: 9, label: 'Cada 9 meses', badge: 'Máximo descuento', discount_percent: 40, base_monthly: 250000, effective_monthly: 150000, billing_amount: 1350000, currency: 'COP' },
     { frequency: 'semiannual', months: 6, label: 'Semestral', badge: '20% dcto', discount_percent: 20, base_monthly: 250000, effective_monthly: 200000, billing_amount: 1200000, currency: 'COP' },
     { frequency: 'quarterly', months: 3, label: 'Trimestral', badge: '10% dcto', discount_percent: 10, base_monthly: 250000, effective_monthly: 225000, billing_amount: 675000, currency: 'COP' },
   ],
@@ -67,7 +67,7 @@ const mockPhases = [
     hosting_tiers: [
       { frequency: 'quarterly', months: 3, label: 'Trimestral', discount_percent: 10, base_monthly: 250000, monthly_equivalent: 225000, billing_amount: 675000 },
       { frequency: 'semiannual', months: 6, label: 'Semestral', discount_percent: 20, base_monthly: 250000, monthly_equivalent: 200000, billing_amount: 1200000 },
-      { frequency: 'annual', months: 12, label: 'Anual', discount_percent: 40, base_monthly: 250000, monthly_equivalent: 150000, billing_amount: 1800000 },
+      { frequency: 'nine_month', months: 9, label: 'Cada 9 meses', discount_percent: 40, base_monthly: 250000, monthly_equivalent: 150000, billing_amount: 1350000 },
     ],
   },
 ];
@@ -156,7 +156,7 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     // exact: true — the "Activar plan <freq>" CTA also contains the frequency label.
     await expect(page.getByRole('button', { name: 'Semestral', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Trimestral', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Anual', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cada 9 meses', exact: true })).toBeVisible();
   });
 
   test('client can select a plan and activate subscription', {
@@ -172,25 +172,25 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await activateBtn.click();
   });
 
-  test('selecting the annual plan recomputes the total and activates with plan:annual', {
+  test('selecting the nine-month plan recomputes the total and activates with plan:nine_month', {
     tag: [...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     await setupMocksNoSubscription(page, { user: mockPlatformClient });
     await page.goto('/platform/projects/1/payments', { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: 'Activa tu plan de hosting' }).waitFor({ state: 'visible', timeout: 30000 });
 
-    await page.getByRole('button', { name: 'Anual', exact: true }).click();
+    await page.getByRole('button', { name: 'Cada 9 meses', exact: true }).click();
 
-    // Total recomputes to the annual billing amount (1.800.000 COP) and the CTA reflects the annual plan.
-    await expect(page.getByRole('row').filter({ hasText: 'Total a pagar ahora' })).toContainText('1.800.000');
-    const activateBtn = page.getByRole('button', { name: /activar plan anual/i });
+    // Total recomputes to the nine-month billing amount (1.350.000 COP).
+    await expect(page.getByRole('row').filter({ hasText: 'Total a pagar ahora' })).toContainText('1.350.000');
+    const activateBtn = page.getByRole('button', { name: /activar plan cada 9 meses/i });
     await expect(activateBtn).toBeEnabled();
 
     const [req] = await Promise.all([
       page.waitForRequest((r) => r.url().includes('accounts/projects/1/subscription/') && r.method() === 'POST'),
       activateBtn.click(),
     ]);
-    expect(req.postDataJSON()).toMatchObject({ plan: 'annual' });
+    expect(req.postDataJSON()).toMatchObject({ plan: 'nine_month' });
   });
 
   test('activating a plan fails and re-enables the CTA with the fallback error', {
@@ -282,7 +282,13 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
 
     // quality: allow-deep-link (arrives via projects list -> project row click -> Hosting tab click, mirroring platform-client-documents.spec.js's accepted entry pattern; not a deep link straight to /payments)
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('row', { name: /E-commerce Platform/i }).click();
+    const projectRow = page.getByTestId('project-row-1');
+    await expect(projectRow).toBeVisible();
+    // quality: allow-fragile-selector (the SSR row can be visible just before
+    // Nuxt attaches its @click listener; this short hydration buffer prevents
+    // a no-op click while keeping the user entry path intact)
+    await page.waitForTimeout(500);
+    await projectRow.click();
     await page.waitForURL(/\/platform\/projects\/1$/, { waitUntil: 'domcontentloaded' });
     await page.getByRole('link', { name: 'Hosting' }).click();
     await page.waitForURL(/\/platform\/projects\/1\/payments/, { waitUntil: 'domcontentloaded' });
@@ -290,18 +296,18 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
 
     // Unlike the active-subscription display test below, the frequency
     // pills ARE visible while pending.
-    const annualPill = page.getByRole('button', { name: 'Anual', exact: true });
-    await expect(annualPill).toBeVisible();
+    const nineMonthPill = page.getByRole('button', { name: 'Cada 9 meses', exact: true });
+    await expect(nineMonthPill).toBeVisible();
 
     await Promise.all([
       page.waitForRequest((r) => r.url().includes('accounts/projects/1/subscription/') && r.method() === 'PATCH'),
-      annualPill.click(),
+      nineMonthPill.click(),
     ]);
 
-    expect(patchBody).toMatchObject({ plan: 'annual' });
-    // The breakdown total recomputes to the annual billing amount from the
+    expect(patchBody).toMatchObject({ plan: 'nine_month' });
+    // The breakdown total recomputes to the nine-month billing amount from the
     // mocked phase tiers (content-bearing, not just a visibility check).
-    await expect(page.getByRole('row').filter({ hasText: 'Total anual' })).toContainText('1.800.000');
+    await expect(page.getByRole('row').filter({ hasText: 'Total cada 9 meses' })).toContainText('1.350.000');
   });
 
   test('active subscription shows auto-renewal up-to-date card', {

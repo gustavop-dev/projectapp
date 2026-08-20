@@ -94,7 +94,7 @@
         <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />
       </div>
       <div v-if="form.hostingPlan.hostingPercent > 0 && proposalData?.total_investment" class="bg-info-soft border border-info-strong/30 rounded-xl px-4 py-3 text-sm text-info-strong">
-        💡 <strong>Hosting anual estimado:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
+        💡 <strong>Referencia para calcular los pagos de hosting:</strong> ${{ Math.round(Number(proposalData.total_investment) * form.hostingPlan.hostingPercent / 100).toLocaleString() }} {{ proposalData?.currency || 'COP' }}
         <span class="text-xs text-info-strong ml-2">({{ form.hostingPlan.hostingPercent }}% de ${{ Number(proposalData.total_investment).toLocaleString() }})</span>
       </div>
       <!-- Billing Tiers -->
@@ -104,7 +104,7 @@
           <div v-for="(tier, tIdx) in form.hostingPlan.billingTiers" :key="tIdx"
                class="bg-surface-raised rounded-xl p-3 border border-border-muted">
             <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'annual' ? 'Anual' : tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : ''" />
+              <FieldInput v-model="tier.label" label="Etiqueta" :placeholder="tier.frequency === 'nine_month' ? 'Cada 9 meses' : tier.frequency === 'semiannual' ? 'Semestral' : tier.frequency === 'quarterly' ? 'Trimestral' : ''" />
               <FieldInput v-model.number="tier.months" label="Meses" type="number" :placeholder="String(tier.months)" />
               <FieldInput v-model.number="tier.discountPercent" label="% Descuento" type="number" placeholder="0" />
               <FieldInput v-model="tier.badge" label="Badge" placeholder="Mejor precio" />

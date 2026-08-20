@@ -477,10 +477,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
 - **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `GET /api/accounts/projects/:id/phases/` (per-phase hosting tiers)
-- **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one frequency. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
+- **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one of three frequencies: quarterly, semiannual or every 9 months. Monthly and annual plans are not offered. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
-  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (mensual/trimestral/semestral/anual — anual has the biggest discount).
+  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (trimestral/semestral/cada 9 meses — 9 meses has the biggest discount).
   3. Client toggles a pill → the table total recomputes live; clicks "Activar plan {frecuencia}" → `POST .../subscription/`.
   4. Subscription created billing the sum of started phases. Billing always starts on the 1st of a month and the client gets a free hosting period from delivery until that date (≥ 1 month), so the first payment is dated to the 1st (not the activation day) → "Activa el cobro automático" card prompts to register a card.
   5. Client registers a card (`platform-hosting-card-setup`); the first payment is charged on confirm.
@@ -1772,16 +1772,16 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid` (+ downloadable PDF)
-- **Description:** The Investment section's hosting plan shows three payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10%; month-to-month is not offered, minimum commitment is quarterly) and a "1 free month of hosting" gift bucket (billing starts on the 1st of the month; at least one free month). The tier cards match the width of the coverage cards above them. The renewal conditions for each renewal year from the second year (`new = previous × (1 + (SMLMV increase % + 8% fixed))`) render ONLY in the PDF, NOT in the web view. Tiers and the free-month bucket render in both the public view and the PDF, in ES and EN. Numbers derive from the BusinessProposal model (default `hosting_percent` 80%, `hosting_discount_annual` 40%).
+- **Description:** The Investment section's current hosting offer shows three payment-frequency tiers (every 9 months 40% / semiannual 20% / quarterly 10%; monthly and annual are not offered) and a "1 free month of hosting" gift bucket. The public view and PDF share the same normalized terms in ES and EN; closed or inactive proposals preserve their historical snapshot. Renewal conditions render ONLY in the PDF, NOT in the web view. Numbers derive from the BusinessProposal model (`hosting_discount_nine_month` carries the maximum 40% discount).
 - **Steps:**
   1. Client opens the proposal and scrolls to "Tu inversión y cómo pagar".
-  2. The hosting plan shows the three tiers including the highlighted Annual (40%) tier.
+  2. The hosting plan shows the three tiers including the highlighted Every 9 months / Cada 9 meses (40%) tier.
   3. The free-month gift bucket renders.
   4. The "Renovaciones" / "Renewals" block does NOT render in the web view (it is PDF-only).
   5. Downloading the PDF reproduces the same tiers, free-month note and the renewal note with the SMLMV+8% formula and example.
-- **Coverage:** 📝 Documented-only (no dedicated E2E spec yet)
-- **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: annual tier, free month, renewal`
-- **Suggested E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`
+- **Coverage:** ✅ Covered
+- **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: nine-month tier, free month, renewal`
+- **E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`
 
 #### FLOW: `proposal-rejection-optional-reason`
 
@@ -6098,7 +6098,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-executive-to-detailed` | proposal | P2 | display | 1 |
 | `proposal-expired-graceful` | proposal | P1 | failure | 1 |
 | `proposal-functional-requirements-modal` | proposal | P2 | display | 1 |
-| `proposal-hosting-plan-terms` | proposal | P2 | display | 0 |
+| `proposal-hosting-plan-terms` | proposal | P2 | display | 1 |
 | `proposal-investment-calculator` | proposal | P1 | success | 1 |
 | `proposal-magic-link-request` | proposal | P1 | success | 1 |
 | `proposal-negotiate` | proposal | P1 | success | 1 |
@@ -6287,7 +6287,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Client hosting registry: monthly value, payment modality, validity and billing contact (email/contacto/identificación), with 4 KPI cards (active count, monthly income, expiring in 30 days, historic total paid) and modal CRUD (per-modality payment-per-cycle default). Estado is an inline select (see `admin-accounting-hosting-inline-edit`); ciclos/total pagado are read-only, computed from the cycle history (see `admin-accounting-hosting-cycles`). Since Aug 2026 **Cliente and Proyecto are two columns**, both sortable and filterable on their own: the house convention used to glue them into the free-text `client_name` as `Persona - Marca` ("German - Kore"), which made filtering by client or sorting by project impossible. Cliente now reads the relation (`client_display_name`, falling back to the legacy snapshot while the link is pending — see `admin-accounting-hosting-client`) and is no longer typed by hand; the name on the cuenta de cobro follows the picked client and shows read-only in the form. Proyecto is a real relation (`project`, FK to `accounts.Project`): the table renders `project_name` read-only from the relation, and the form picks it through the `ProjectSelect` combobox, which also creates the project on the fly (name pre-filled from the typed term, client inherited) when nothing matches. The deterministic legacy consolidation ships as migration `content/0192`: rows whose client is already linked and whose name carries the `' - '` separator get the brand half materialized as a Project (accent/case-blind reuse against the client's existing projects) and linked. Names with no separator could not be resolved — there is no way to tell whether the single value was the client or the project — so they are skipped and surface in `/panel/projects`, whose clients-without-projects indicator is the deliberate completion mechanism.
+- **Description:** Client hosting registry: monthly value, payment modality, validity and billing contact, with KPI cards and modal CRUD. New records offer exactly quarterly, semiannual and every-9-month modalities; `payment_per_cycle` is derived from the monthly value. Legacy monthly/annual rows remain readable as historical values but cannot be selected for new records. Estado is inline; ciclos/total pagado are read-only and computed from cycle history. Cliente and Proyecto remain separate linked columns.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-expenses-hostings.spec.js`
 
@@ -6491,7 +6491,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/hostings`
-- **Description:** Cycle payment history per hosting (clock row action → `HostingCyclesModal`): history table (modality + amount snapshotted per paid period; consolidated "histórico" backfill rows flagged with their `cycles_represented`) plus a register form prefilled from the contract (amount = `payment_per_cycle`, current modality, paid_at = today) with an "Extender vigencia" toggle (on by default: `valid_to` advances one modality period, which re-arms the expiry notices). `total_paid`/`cycles_count` recompute from the history; deleting a cycle (ConfirmModal) recalculates but never rolls back `valid_to`.
+- **Description:** Cycle payment history per hosting (clock row action → `HostingCyclesModal`): historical modality/amount snapshots remain immutable, while the register form offers quarterly, semiannual and every-9-month cycles and prefills the current contract amount/modality. "Extender vigencia" advances one current modality period. `total_paid`/`cycles_count` recompute from history; deleting a cycle recalculates but never rolls back `valid_to`.
 - **Coverage:** ✅ Covered (backfill badge history, register payment with advance_validity, delete with confirm)
 - **E2E Spec:** `e2e/admin/admin-accounting-hosting-billing-cycles.spec.js`
 

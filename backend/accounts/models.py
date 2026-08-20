@@ -316,7 +316,7 @@ class Project(models.Model):
     )
     hosting_tiers = models.JSONField(
         default=list, blank=True,
-        help_text='Hosting billing tiers from proposal (semiannual/quarterly/monthly with pricing).',
+        help_text='Hosting billing tiers from proposal (quarterly/semiannual/nine-month with pricing).',
     )
     hosting_start_date = models.DateField(
         null=True, blank=True,
@@ -1235,18 +1235,17 @@ class HostingSubscription(models.Model):
     Derived from the linked BusinessProposal pricing or set manually.
     """
 
-    # Legacy value: month-to-month hosting is no longer offered. Kept only so
-    # historical data and pre-existing references resolve; it is intentionally
-    # absent from PLAN_CHOICES/PLAN_MONTHS so it cannot be selected for new
-    # subscriptions (minimum commitment is now quarterly).
+    # Legacy values remain readable for historical data but are intentionally
+    # absent from PLAN_CHOICES so they cannot be selected for new subscriptions.
     PLAN_MONTHLY = 'monthly'
+    PLAN_ANNUAL = 'annual'
     PLAN_QUARTERLY = 'quarterly'
     PLAN_SEMIANNUAL = 'semiannual'
-    PLAN_ANNUAL = 'annual'
+    PLAN_NINE_MONTH = 'nine_month'
     PLAN_CHOICES = [
         (PLAN_QUARTERLY, 'Trimestral'),
         (PLAN_SEMIANNUAL, 'Semestral'),
-        (PLAN_ANNUAL, 'Anual'),
+        (PLAN_NINE_MONTH, 'Cada 9 meses'),
     ]
 
     STATUS_ACTIVE = 'active'
@@ -1260,12 +1259,18 @@ class HostingSubscription(models.Model):
         (STATUS_PENDING, 'Pendiente'),
     ]
 
-    # Legacy 'monthly' is omitted on purpose; billing_months() falls back to 1
-    # for any stored legacy value via .get(plan, 1).
+    # Legacy values are included only for calculations of preserved records.
     PLAN_MONTHS = {
+        PLAN_MONTHLY: 1,
         PLAN_QUARTERLY: 3,
         PLAN_SEMIANNUAL: 6,
+        PLAN_NINE_MONTH: 9,
         PLAN_ANNUAL: 12,
+    }
+
+    PLAN_LABELS = dict(PLAN_CHOICES) | {
+        PLAN_MONTHLY: 'Mensual (histórico)',
+        PLAN_ANNUAL: 'Anual (histórico)',
     }
 
     project = models.OneToOneField(
@@ -1277,7 +1282,7 @@ class HostingSubscription(models.Model):
         help_text='Monthly hosting cost before discount (COP).',
     )
     discount_percent = models.PositiveIntegerField(
-        default=0, help_text='Discount % based on plan (0, 10, 20).',
+        default=0, help_text='Discount % based on the selected hosting plan.',
     )
     effective_monthly_amount = models.DecimalField(
         max_digits=12, decimal_places=2,
@@ -1318,11 +1323,15 @@ class HostingSubscription(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f'{self.project.name} — {self.get_plan_display()} (${self.billing_amount:,.0f} COP)'
+        return f'{self.project.name} — {self.plan_label} (${self.billing_amount:,.0f} COP)'
 
     @property
     def billing_months(self):
         return self.PLAN_MONTHS.get(self.plan, 1)
+
+    @property
+    def plan_label(self):
+        return self.PLAN_LABELS.get(self.plan, self.plan)
 
     def calculate_amounts(self):
         """Recalculate effective_monthly_amount and billing_amount from base + plan."""

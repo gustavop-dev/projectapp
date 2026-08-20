@@ -202,6 +202,7 @@ Building on the base Platform (auth, projects, kanban), these modules extend cli
 - Track payment milestones and subscription plans per project
 - Global view (`/platform/payments`) + per-project view (`/platform/projects/:id/payments`)
 - Linked to proposal investment section (hosting tiers, payment milestones)
+- New hosting offers use exactly three prepaid periods: quarterly (10% discount), semiannual (20%), and every 9 months (40%). Monthly and annual remain readable only on historical records.
 
 #### Global Board + Profile
 - `/platform/board` — global kanban view across all projects
@@ -324,3 +325,4 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 14. **Client document signing**: a client can only sign a `requires_signature` document after their email is verified via OTP. Signing records name/timestamp/IP/user-agent and is idempotent; it fires best-effort team milestone notifications (first login, email validated, document signed) that never block the client flow.
 15. **Accounting partner split**: every accounting record carries a total plus per-partner amounts; a record on a personal ledger (Gustavo/Carlos) must be 100% that partner's (the other partner's amount = 0), enforced at `clean()`. Company amount is derived, not stored.
 16. **Manual-only discount offer**: the discount/urgency email from the proposal actions menu is never sent automatically — it requires an explicit send and is only offered when a discount percentage is configured and the client has a real email.
+17. **Hosting periodicities**: the current commercial offer is quarterly, semiannual, and every 9 months. The nine-month charge is the discounted effective monthly price multiplied by nine. Public proposal views and PDFs preserve the stored annual snapshot for closed/inactive proposals, while new operational project/subscription records always use the current 9/6/3-month catalog. Paid cycles and payments are immutable history.

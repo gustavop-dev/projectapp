@@ -195,7 +195,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'nationality',
             'hosting_percent',
-            'hosting_discount_annual',
+            'hosting_discount_nine_month',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
@@ -237,7 +237,19 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
         sections = list(obj.sections.all())
         if not is_admin:
             sections = [s for s in sections if s.is_enabled]
-        return ProposalSectionDetailSerializer(sections, many=True).data
+        serialized = list(ProposalSectionDetailSerializer(sections, many=True).data)
+        if not is_admin:
+            from content.services.proposal_service import normalize_hosting_plan
+
+            for section in serialized:
+                if section.get('section_type') != 'investment':
+                    continue
+                content = dict(section.get('content_json') or {})
+                content['hostingPlan'] = normalize_hosting_plan(
+                    obj, content.get('hostingPlan') or {},
+                )
+                section['content_json'] = content
+        return serialized
 
     def get_validity_text(self, obj):
         """Server-computed validity sentence shared verbatim with the PDF."""
@@ -422,7 +434,7 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'title', 'client_name', 'client_email', 'slug',
             'language', 'total_investment', 'currency', 'nationality',
             'hosting_percent',
-            'hosting_discount_annual',
+            'hosting_discount_nine_month',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at', 'reminder_days', 'urgency_reminder_days',
             'discount_percent', 'is_active', 'automations_paused',
@@ -762,7 +774,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
             'default_currency',
             'default_total_investment',
             'hosting_percent',
-            'hosting_discount_annual',
+            'hosting_discount_nine_month',
             'hosting_discount_semiannual',
             'hosting_discount_quarterly',
             'expiration_days',
@@ -776,7 +788,7 @@ class ProposalDefaultConfigSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'created_at', 'updated_at')
         extra_kwargs = {
             'hosting_percent': {'min_value': 0, 'max_value': 100},
-            'hosting_discount_annual': {'min_value': 0, 'max_value': 100},
+            'hosting_discount_nine_month': {'min_value': 0, 'max_value': 100},
             'hosting_discount_semiannual': {'min_value': 0, 'max_value': 100},
             'hosting_discount_quarterly': {'min_value': 0, 'max_value': 100},
             'default_discount_percent': {'min_value': 0, 'max_value': 100},

@@ -264,15 +264,15 @@
           <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">referencia</div>
 
           <div class="px-4 py-2 text-info-strong font-medium">
-            Trimestral
-            <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
+            Cada 9 meses
+            <span v-if="form.hosting_discount_nine_month" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_nine_month }}% dcto)</span>
           </div>
           <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-               :class="form.hosting_discount_quarterly ? 'text-text-brand' : 'text-info-strong'">
-            ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
+               :class="form.hosting_discount_nine_month ? 'text-text-brand' : 'text-info-strong'">
+            ${{ hostingMonthlyWithDiscount(form.hosting_discount_nine_month).toLocaleString() }} {{ form.currency }}/mes
           </div>
           <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">
-            total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
+            total ${{ hostingPeriodTotal(form.hosting_discount_nine_month, 9).toLocaleString() }} {{ form.currency }} / 9 meses
           </div>
 
           <div class="px-4 py-2 text-info-strong font-medium">
@@ -288,32 +288,26 @@
           </div>
 
           <div class="px-4 py-2 text-info-strong font-medium">
-            Anual
-            <span v-if="form.hosting_discount_annual" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_annual }}% dcto)</span>
+            Trimestral
+            <span v-if="form.hosting_discount_quarterly" class="ml-1 text-xs text-text-brand font-normal">({{ form.hosting_discount_quarterly }}% dcto)</span>
           </div>
           <div class="px-4 py-2 font-semibold text-right whitespace-nowrap"
-               :class="form.hosting_discount_annual ? 'text-text-brand' : 'text-info-strong'">
-            ${{ hostingMonthlyWithDiscount(form.hosting_discount_annual).toLocaleString() }} {{ form.currency }}/mes
+               :class="form.hosting_discount_quarterly ? 'text-text-brand' : 'text-info-strong'">
+            ${{ hostingMonthlyWithDiscount(form.hosting_discount_quarterly).toLocaleString() }} {{ form.currency }}/mes
           </div>
           <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">
-            total ${{ hostingPeriodTotal(form.hosting_discount_annual, 12).toLocaleString() }} {{ form.currency }} / 12 meses
+            total ${{ hostingPeriodTotal(form.hosting_discount_quarterly, 3).toLocaleString() }} / 3 meses
           </div>
-
-          <div class="px-4 py-2 text-info-strong font-medium">☁️ Anual (referencia)</div>
-          <div class="px-4 py-2 text-info-strong font-semibold text-right whitespace-nowrap">
-            ${{ hostingAnnualAmount.toLocaleString() }} {{ form.currency }}
-          </div>
-          <div class="px-4 py-2 text-[11px] text-info-strong/70 text-right whitespace-nowrap">sin descuento</div>
         </div>
       </div>
       <p class="text-xs text-text-subtle mt-1">Sincronizado automáticamente con el Plan de Hosting que ve el cliente en "Tu inversión y cómo pagar".</p>
     </div>
     <div data-testid="general-finance-discounts-card" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div>
-        <label class="block text-sm font-medium text-text-default mb-1">Dcto. anual (%)</label>
+        <label class="block text-sm font-medium text-text-default mb-1">Dcto. 9 meses (%)</label>
         <BaseInput
-          v-model.number="form.hosting_discount_annual"
-          data-testid="general-finance-annual-discount"
+          v-model.number="form.hosting_discount_nine_month"
+          data-testid="general-finance-nine-month-discount"
           type="number"
           min="0"
           max="100"
@@ -917,18 +911,18 @@ watch(expiryDaysInput, (days) => {
   form.expires_at = `${dateStr}T${timeStr}`;
 });
 
-// Must match Investment.vue's hostingAnnualAmount / computedBillingTiers so admin preview
+// Must match Investment.vue's hostingTwelveMonthReference / computedBillingTiers so admin preview
 // shows the exact same numbers the client will see (avoids rounding drift).
 // Client-facing basis is the effective total (base + admin-default additional
 // modules), same input the client's "Inversión Total" line uses.
-const hostingAnnualAmount = computed(() => {
+const hostingTwelveMonthReference = computed(() => {
   const effective = Number(effectiveTotalInvestment.value);
   const basis = effective > 0 ? effective : Number(form.total_investment) || 0;
   const percent = Number(form.hosting_percent) || 0;
   return Math.round(basis * percent / 100);
 });
 const hostingMonthlyBase = computed(() =>
-  Math.round(hostingAnnualAmount.value / 12)
+  Math.round(hostingTwelveMonthReference.value / 12)
 );
 function hostingMonthlyWithDiscount(discountPercent) {
   return Math.round(hostingMonthlyBase.value * (100 - (discountPercent || 0)) / 100);

@@ -55,13 +55,13 @@ function hostingRows({ billingSent }) {
       client_email: '',
       domain_url: 'https://xpandia.global/',
       monthly_value: '19000.00',
-      payment_modality: 'annual',
-      payment_modality_label: 'Anual',
+      payment_modality: 'nine_month',
+      payment_modality_label: 'Cada 9 meses',
       benefit: '',
       valid_from: '2026-07-01',
       valid_to: '2027-07-01',
       cycles_count: 0,
-      payment_per_cycle: '228000.00',
+      payment_per_cycle: '171000.00',
       total_paid: '0.00',
       billing_requested_at: null,
       is_active: true,
@@ -287,6 +287,10 @@ test.describe('Admin Accounting Hosting Cycles', () => {
     await gotoHostings(page);
 
     await page.getByTestId('hosting-cycles-1').click();
+    await expect(page.getByTestId('cycle-modality')).toHaveValue('semiannual');
+    await expect(page.getByTestId('cycle-modality').locator('option')).toHaveText([
+      'Trimestral', 'Semestral', 'Cada 9 meses',
+    ]);
     await page.getByTestId('cycle-amount').fill('600000');
     await page.getByTestId('cycle-submit').click();
 

@@ -10,11 +10,12 @@ export default {
     free_price: "Free",
     free_condition: "This hosting service is free with the purchase of our E-Commerce Landing Page V1.0",
     frequencies: [
-      { value: "semi_annually", label: "Semi-annually"},
-      { value: "annually", label: "Annually"},
+      { value: "quarterly", label: "Quarterly" },
+      { value: "semiannual", label: "Semi-annually" },
+      { value: "nine_month", label: "Every 9 months" },
     ],
     save_plan: {
-      text: "With annual plan",
+      text: "With the nine-month plan",
       badge: "Save",
     },
     hostingBenefits: [
@@ -38,4 +39,3 @@ export default {
       },
     ]
   };
-  
