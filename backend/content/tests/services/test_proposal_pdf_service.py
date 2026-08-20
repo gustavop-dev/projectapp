@@ -2651,11 +2651,11 @@ class TestInvestmentHostingRenewalContent:
         """Catches the renderer silently dropping/mangling the admin-written
         renewalNote text instead of drawing it in the RENOVACIONES callout,
         or dropping the hosting specs/pricing table rendered alongside it
-        (maximal hosting payload: specs grid + legacy monthly/annual price
-        row + coverage callout, all sharing this SECTION_RENDERERS entry).
+        (maximal hosting payload: specs grid + normalized 9/6/3 pricing
+        table + coverage callout, all sharing this SECTION_RENDERERS entry).
         """
         proposal = self._proposal_with_investment(_HOSTING_PLAN_WITH_SPECS | {
-            'renewalNote': 'La renovación anual queda fija en $987.654 COP durante el primer trienio.',
+            'renewalNote': 'La renovación cada nueve meses queda fija en $987.654 COP durante el primer trienio.',
         })
 
         pdf_bytes = ProposalPdfService.generate(proposal)
@@ -2665,10 +2665,10 @@ class TestInvestmentHostingRenewalContent:
         text = '\n'.join(page.extract_text() or '' for page in reader.pages)
 
         assert 'RENOVACIONES' in text
-        assert 'La renovación anual queda fija en $987.654 COP durante el primer trienio.' in text
+        assert 'La renovación cada nueve meses queda fija en $987.654 COP durante el primer trienio.' in text
         assert 'Storage' in text
         assert '$150.000' in text
-        assert '$1.500.000' in text
+        assert '$1.350.000' in text
         assert 'Hosting covers domain, SSL, and CDN.' in text
 
     @patch(
@@ -2710,11 +2710,9 @@ class TestInvestmentHostingRenewalContent:
         'content.services.proposal_pdf_service.BACK_COVER_PDF',
         new_callable=lambda: MagicMock(exists=MagicMock(return_value=False)),
     )
-    def test_hosting_with_no_renewal_generates_default(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
-        """Catches the legacy monthly-only price row (monthlyPrice set,
-        annualPrice empty — proposal_pdf_service.py:1495-1514) losing its
-        label/price text, or the annual price row rendering anyway even
-        though annualPrice is falsy.
+    def test_legacy_pricing_fields_render_current_tiers(self, _mock_back, _mock_cover):  # quality: disable unverified_mock (file-path stubs prevent real disk I/O; PDF content is the contract)  # noqa: PT019
+        """Catches active proposals with legacy monthly/annual price fields
+        rendering obsolete labels instead of the normalized 9/6/3 terms.
         """
         proposal = self._proposal_with_investment({
             'title': 'Starter',
@@ -2730,8 +2728,10 @@ class TestInvestmentHostingRenewalContent:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         text = '\n'.join(page.extract_text() or '' for page in reader.pages)
 
-        assert 'por mes' in text
-        assert '$50.000' in text
+        assert 'Cada 9 meses' in text
+        assert '$150.000' in text
+        assert '$1.350.000' in text
+        assert 'por mes' not in text
         assert 'pago anual' not in text
 
 
