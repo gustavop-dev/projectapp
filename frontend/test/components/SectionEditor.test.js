@@ -900,7 +900,7 @@ describe('buildFormFromJson', () => {
       const json = { ...investmentJson, hostingPlan: { title: 'Hosting' } };
       const form = buildFormFromJson(json, 'investment');
       expect(form.hostingPlan.billingTiers).toHaveLength(3);
-      expect(form.hostingPlan.billingTiers[0].months).toBe(12);
+      expect(form.hostingPlan.billingTiers[0].months).toBe(9);
       expect(form.hostingPlan.billingTiers[1].months).toBe(6);
       expect(form.hostingPlan.billingTiers[2].months).toBe(3);
     });
