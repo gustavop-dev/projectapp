@@ -75,7 +75,7 @@ npm run dev                             # http://localhost:3000
 - Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
 - Setup & activation: `docs/CODEX_SETUP.md`
 - Migration history: `docs/CODEX_MIGRATION_MAP.md`
-- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`, `.windsurf/`
+- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`
 - Naming policy: `debug` is canonical; `debugme` remains as legacy alias
 
 ### Task Queue (for async features)

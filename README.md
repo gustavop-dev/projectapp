@@ -73,7 +73,7 @@ ProjectApp uses a Codex-first methodology and automation stack:
   - `frontend/AGENTS.md`
 - Native repo skills: `.agents/skills/*`
 - Project config: `.codex/config.toml`
-- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`, `.windsurf/`
+- Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`
 
 Main references:
 
