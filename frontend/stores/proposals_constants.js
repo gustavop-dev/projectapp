@@ -7,11 +7,10 @@ export const DEFAULT_HOSTING_PERCENT = 60;
 
 // Default hosting payment-frequency tiers, ordered best-discount first. Single
 // source of truth shared by the public Investment view and the admin editor so
-// the annual/semiannual/quarterly discounts never drift between them. Monthly
-// pay-as-you-go is intentionally not offered — the minimum commitment is
-// quarterly.
+// the nine-month/semiannual/quarterly discounts never drift between them.
+// Monthly pay-as-you-go is intentionally not offered.
 export const DEFAULT_BILLING_TIERS = [
-  { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: 'Máximo descuento' },
+  { frequency: 'nine_month', months: 9, discountPercent: 40, label: 'Cada 9 meses', badge: 'Máximo descuento' },
   { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '20% dcto' },
   { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
 ];

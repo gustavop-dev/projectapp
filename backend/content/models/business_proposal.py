@@ -102,11 +102,14 @@ class BusinessProposal(models.Model):
     )
     hosting_percent = models.PositiveIntegerField(
         default=60,
-        help_text='Percentage of total investment charged for annual hosting.',
+        help_text=(
+            'Percentage of total investment used as the hosting price '
+            'reference before monthly proration.'
+        ),
     )
-    hosting_discount_annual = models.PositiveIntegerField(
+    hosting_discount_nine_month = models.PositiveIntegerField(
         default=40,
-        help_text='Default discount % for annual (12-month) hosting payments.',
+        help_text='Default discount % for nine-month hosting payments.',
     )
     hosting_discount_semiannual = models.PositiveIntegerField(
         default=20,

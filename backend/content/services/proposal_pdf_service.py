@@ -1200,8 +1200,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     hosting = _safe(data, 'hostingPlan', {})
     normalized_hosting = normalize_hosting_plan(_proposal, hosting)
     h_percent = normalized_hosting.get('hostingPercent', 0) or 0
-    annual_hosting = (round(display_num * h_percent / 100)
-                      if h_percent and display_num else 0)
+    hosting_twelve_month_reference = (
+        round(display_num * h_percent / 100)
+        if h_percent and display_num else 0
+    )
 
     # ── Estimated duration (adjusted when modules are deselected) ──
     duration_value = ''
@@ -1255,9 +1257,19 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
     if duration_value:
         tiles.append({'value': duration_value,
                       'label': 'Duración estimada', 'sub': duration_sub})
-    if annual_hosting > 0:
-        tiles.append({'value': f'{_format_cop(annual_hosting)}/año',
-                      'label': 'Hosting y mantenimiento',
+    if hosting_twelve_month_reference > 0:
+        first_tier = (normalized_hosting.get('billingTiers') or [{}])[0]
+        if _safe(first_tier, 'frequency') == 'nine_month':
+            discount = _safe(first_tier, 'discountPercent', 0) or 0
+            monthly_base = round(hosting_twelve_month_reference / 12)
+            nine_month_total = (
+                round(monthly_base * (100 - discount) / 100) * 9
+            )
+            hosting_kpi = f'{_format_cop(nine_month_total)}/9 meses'
+        else:
+            # Closed historical proposals preserve their original annual KPI.
+            hosting_kpi = f'{_format_cop(hosting_twelve_month_reference)}/año'
+        tiles.append({'value': hosting_kpi, 'label': 'Hosting y mantenimiento',
                       'sub': tax_suffix.strip()})
     if tiles:
         y = _draw_kpi_tile_row(c, y, tiles, ps=ps, accent_first=True)
@@ -1457,10 +1469,10 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
 
         # Billing tiers — one full-width table instead of N fixed-height
         # side-by-side cards (labels/prices can never collide again).
-        # normalized_hosting / h_percent / annual_hosting are hoisted at
+        # normalized_hosting / h_percent / hosting_twelve_month_reference are hoisted at
         # the top of the renderer (shared with the KPI tiles). Hosting is
         # a percentage of the SAME "Inversión Total" the client sees —
-        # parity with Investment.vue ``hostingAnnualAmount``.
+        # parity with Investment.vue ``hostingTwelveMonthReference``.
         billing_tiers = normalized_hosting.get('billingTiers', [])
 
         tier_headers = ['Frecuencia', 'Ahorro',
@@ -1468,8 +1480,8 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
                         f'Equivalente ({tax_suffix.strip()})']
         tier_col_widths = [0.28, 0.14, 0.27, 0.31]
         tier_aligns = ['left', 'center', 'right', 'right']
-        if billing_tiers and annual_hosting > 0:
-            monthly_base = round(annual_hosting / 12)
+        if billing_tiers and hosting_twelve_month_reference > 0:
+            monthly_base = round(hosting_twelve_month_reference / 12)
             tier_rows = []
             for tier in billing_tiers:
                 discount = _safe(tier, 'discountPercent', 0)
@@ -1492,8 +1504,7 @@ def _render_investment(c, data, _proposal, ps=None, y=None):
             y = _draw_table(c, y, tier_headers, tier_rows, ps=ps,
                             col_widths=tier_col_widths, aligns=tier_aligns)
         else:
-            # Legacy fallback: monthlyPrice / annualPrice — same table,
-            # one code path with the tiers above.
+            # Historical fallback for closed proposals that predate billingTiers.
             m_price = _safe(hosting, 'monthlyPrice')
             a_price = _safe(hosting, 'annualPrice')
             legacy_rows = []

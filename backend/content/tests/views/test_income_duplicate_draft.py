@@ -25,7 +25,7 @@ def make_hosting(**overrides):
     fields = {
         'client_name': 'Acme SAS',
         'monthly_value': Decimal('90000.00'),
-        'payment_modality': HostingRecord.Modality.ANNUAL,
+        'payment_modality': HostingRecord.LEGACY_ANNUAL,
     }
     fields.update(overrides)
     return HostingRecord.objects.create(**fields)
@@ -194,7 +194,7 @@ class TestProposedDate:
         self, super_client, make_income, make_client_profile,
     ):
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_ANNUAL)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.HOSTING,
@@ -226,7 +226,7 @@ class TestProposedDate:
     ):
         """Jan 31 + one month is Feb 28, not March 3."""
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_MONTHLY)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.HOSTING,
@@ -249,11 +249,11 @@ class TestProposedDate:
         )
         make_hosting(
             client=profile, project=billed,
-            payment_modality=HostingRecord.Modality.MONTHLY,
+            payment_modality=HostingRecord.LEGACY_MONTHLY,
         )
         make_hosting(
             client=profile, project=other,
-            payment_modality=HostingRecord.Modality.ANNUAL,
+            payment_modality=HostingRecord.LEGACY_ANNUAL,
         )
         income = make_income(
             client=profile,
@@ -270,7 +270,7 @@ class TestProposedDate:
         self, super_client, make_income, make_client_profile,
     ):
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_ANNUAL)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.DEVELOPMENT,
@@ -297,8 +297,8 @@ class TestProposedDate:
     ):
         """Two hostings on the same client disagreeing: guessing is worse."""
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_MONTHLY)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_ANNUAL)
         income = make_income(client=profile, origin=IncomeRecord.Origin.HOSTING)
 
         response = super_client.get(url(income))
@@ -312,7 +312,7 @@ class TestProposedDate:
         profile = make_client_profile()
         make_hosting(
             client=profile, is_active=False,
-            payment_modality=HostingRecord.Modality.ANNUAL,
+            payment_modality=HostingRecord.LEGACY_ANNUAL,
         )
         income = make_income(client=profile, origin=IncomeRecord.Origin.HOSTING)
 
@@ -470,7 +470,7 @@ class TestRecordedPeriod:
         self, super_client, make_income, make_client_profile,
     ):
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_ANNUAL)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.HOSTING,
@@ -555,7 +555,7 @@ class TestPeriodAnchor:
     ):
         """Jan 31 plus a month lands on Feb 28, not on March 3."""
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_MONTHLY)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.HOSTING,
@@ -577,8 +577,8 @@ class TestPeriodAnchor:
         original's period lasted, but the date it is counted from travels.
         """
         profile = make_client_profile()
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.MONTHLY)
-        make_hosting(client=profile, payment_modality=HostingRecord.Modality.ANNUAL)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_MONTHLY)
+        make_hosting(client=profile, payment_modality=HostingRecord.LEGACY_ANNUAL)
         income = make_income(
             client=profile,
             origin=IncomeRecord.Origin.HOSTING,

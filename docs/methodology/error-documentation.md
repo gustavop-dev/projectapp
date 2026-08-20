@@ -207,3 +207,11 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `backend/content/views/mcp_blog.py`, `backend/content/tests/views/test_mcp_blog.py`.
 - **Test coverage**: One test exhausts the blog quota and proves documents still responds; another proves three distinct unknown slugs share and exhaust one quota.
 - **Lesson**: Rate-limit keys must model the independent consumer boundary. For a multiplexed endpoint, IP-only is too coarse and unvalidated path-only is too permissive.
+
+### [ERR-018] Historical proposal normalization leaked annual terms into new platform projects
+- **Date**: 2026-08-20
+- **Context**: The hosting migration correctly preserved an accepted proposal's annual JSON for its public/PDF history, but project creation reused the same normalizer and copied that annual tier into a brand-new operational project.
+- **Root Cause**: One helper was serving two different temporal contracts: render the terms agreed in a historical document, and produce the catalog offered for a new subscription today.
+- **Resolution**: `normalize_hosting_plan` keeps historical preservation as its default and accepts an explicit `force_current_terms=True` only for operational onboarding. Integration tests pin both outcomes: accepted proposal display remains annual; a project created from it receives nine-month/semiannual/quarterly tiers.
+- **Files Affected**: `backend/content/services/proposal_service.py`, `backend/accounts/views.py`, proposal serializer and platform project tests.
+- **Lesson**: A snapshot renderer and a new operational record do not share the same meaning of “source of truth.” Make the time boundary explicit at the call site instead of weakening historical preservation globally.

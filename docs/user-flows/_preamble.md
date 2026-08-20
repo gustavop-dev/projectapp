@@ -475,10 +475,10 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Priority:** P1
 - **Routes:** `/platform/projects/:id/payments`, `/platform/payments`
 - **API:** `GET /api/accounts/subscriptions/` (unified `/platform/payments` list), `GET/POST/PATCH /api/accounts/projects/:id/subscription/`, `GET /api/accounts/projects/:id/payments/`, `GET /api/accounts/projects/:id/phases/` (per-phase hosting tiers)
-- **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one frequency. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
+- **Description:** The client sees a per-phase hosting cost table and activates a subscription that bills the sum of all started phases at one of three frequencies: quarterly, semiannual or every 9 months. Monthly and annual plans are not offered. Card is the only payment method; after activation the client registers a card (see `platform-hosting-card-setup`) for automatic recurring billing. Admin sees subscription status and stored-card info. Netflix-style active state shows the next automatic renewal date.
 - **Steps:**
   1. Client navigates to `/platform/projects/:id/payments`.
-  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (mensual/trimestral/semestral/anual — anual has the biggest discount).
+  2. If no subscription: a per-phase cost table renders (one row per phase + total) with frequency pills (trimestral/semestral/cada 9 meses — 9 meses has the biggest discount).
   3. Client toggles a pill → the table total recomputes live; clicks "Activar plan {frecuencia}" → `POST .../subscription/`.
   4. Subscription created billing the sum of started phases. Billing always starts on the 1st of a month and the client gets a free hosting period from delivery until that date (≥ 1 month), so the first payment is dated to the 1st (not the activation day) → "Activa el cobro automático" card prompts to register a card.
   5. Client registers a card (`platform-hosting-card-setup`); the first payment is charged on confirm.
@@ -1770,16 +1770,16 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid` (+ downloadable PDF)
-- **Description:** The Investment section's hosting plan shows three payment-frequency tiers (annual 40% / semiannual 20% / quarterly 10%; month-to-month is not offered, minimum commitment is quarterly) and a "1 free month of hosting" gift bucket (billing starts on the 1st of the month; at least one free month). The tier cards match the width of the coverage cards above them. The renewal conditions for each renewal year from the second year (`new = previous × (1 + (SMLMV increase % + 8% fixed))`) render ONLY in the PDF, NOT in the web view. Tiers and the free-month bucket render in both the public view and the PDF, in ES and EN. Numbers derive from the BusinessProposal model (default `hosting_percent` 80%, `hosting_discount_annual` 40%).
+- **Description:** The Investment section's current hosting offer shows three payment-frequency tiers (every 9 months 40% / semiannual 20% / quarterly 10%; monthly and annual are not offered) and a "1 free month of hosting" gift bucket. The public view and PDF share the same normalized terms in ES and EN; closed or inactive proposals preserve their historical snapshot. Renewal conditions render ONLY in the PDF, NOT in the web view. Numbers derive from the BusinessProposal model (`hosting_discount_nine_month` carries the maximum 40% discount).
 - **Steps:**
   1. Client opens the proposal and scrolls to "Tu inversión y cómo pagar".
-  2. The hosting plan shows the three tiers including the highlighted Annual (40%) tier.
+  2. The hosting plan shows the three tiers including the highlighted Every 9 months / Cada 9 meses (40%) tier.
   3. The free-month gift bucket renders.
   4. The "Renovaciones" / "Renewals" block does NOT render in the web view (it is PDF-only).
   5. Downloading the PDF reproduces the same tiers, free-month note and the renewal note with the SMLMV+8% formula and example.
-- **Coverage:** 📝 Documented-only (no dedicated E2E spec yet)
-- **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: annual tier, free month, renewal`
-- **Suggested E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`
+- **Coverage:** ✅ Covered
+- **Unit coverage:** `frontend/test/components/Investment.test.js` → `hosting: nine-month tier, free month, renewal`
+- **E2E Spec:** `e2e/proposal/proposal-hosting-plan-terms.spec.js`
 
 #### FLOW: `proposal-rejection-optional-reason`
 

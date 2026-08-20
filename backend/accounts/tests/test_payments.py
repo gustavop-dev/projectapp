@@ -154,6 +154,17 @@ class TestHostingSubscriptionModel:
         assert sub.effective_monthly_amount == Decimal('80000')
         assert sub.billing_amount == Decimal('480000')
 
+    def test_calculate_amounts_nine_month(self, project):
+        sub = HostingSubscription(
+            project=project, plan='nine_month',
+            base_monthly_amount=Decimal('100000'), discount_percent=40,
+            start_date='2026-01-01',
+        )
+        sub.calculate_amounts()
+
+        assert sub.effective_monthly_amount == Decimal('60000')
+        assert sub.billing_amount == Decimal('540000')
+
     def test_calculate_amounts_monthly_no_discount(self, project):
         sub = HostingSubscription(
             project=project, plan='monthly',
@@ -256,12 +267,12 @@ class TestProjectSubscription:
 
         resp = api_client.patch(
             f'/api/accounts/projects/{project.id}/subscription/',
-            {'plan': 'annual'},
+            {'plan': 'nine_month'},
             format='json', **client_headers,
         )
 
         assert resp.status_code == 200
-        assert resp.json()['plan'] == 'annual'
+        assert resp.json()['plan'] == 'nine_month'
 
     def test_client_cannot_change_status(
         self, api_client, client_headers, project, subscription,

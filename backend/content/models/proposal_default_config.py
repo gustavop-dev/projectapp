@@ -39,7 +39,7 @@ class ProposalDefaultConfig(models.Model):
         default=0,
     )
     hosting_percent = models.PositiveSmallIntegerField(default=60)
-    hosting_discount_annual = models.PositiveSmallIntegerField(default=40)
+    hosting_discount_nine_month = models.PositiveSmallIntegerField(default=40)
     hosting_discount_semiannual = models.PositiveSmallIntegerField(default=20)
     hosting_discount_quarterly = models.PositiveSmallIntegerField(default=10)
     expiration_days = models.PositiveIntegerField(

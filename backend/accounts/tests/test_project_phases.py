@@ -256,7 +256,7 @@ def test_patch_phase_returns_hosting_tiers(authed_client, project, business_prop
     tiers = resp.json().get('hosting_tiers', [])
     assert len(tiers) == 3
     frequencies = [t['frequency'] for t in tiers]
-    assert frequencies == ['quarterly', 'semiannual', 'annual']
+    assert frequencies == ['quarterly', 'semiannual', 'nine_month']
 
 
 def test_patch_phase_rejects_non_admin(project, business_proposal, client_user):

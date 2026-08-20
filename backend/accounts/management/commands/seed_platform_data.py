@@ -462,7 +462,7 @@ class Command(BaseCommand):
         Payment.objects.create(
             subscription=sub,
             amount=sub.billing_amount,
-            description=f'Hosting {sub.get_plan_display()} — next cycle ({marker})',
+            description=f'Hosting {sub.plan_label} — next cycle ({marker})',
             billing_period_start=today + timedelta(days=90),
             billing_period_end=today + timedelta(days=179),
             due_date=today + timedelta(days=14),
@@ -471,7 +471,7 @@ class Command(BaseCommand):
         Payment.objects.create(
             subscription=sub,
             amount=sub.billing_amount,
-            description=f'Hosting {sub.get_plan_display()} — overdue ({marker})',
+            description=f'Hosting {sub.plan_label} — overdue ({marker})',
             billing_period_start=today - timedelta(days=180),
             billing_period_end=today - timedelta(days=91),
             due_date=today - timedelta(days=30),
@@ -480,7 +480,7 @@ class Command(BaseCommand):
         Payment.objects.create(
             subscription=sub,
             amount=sub.billing_amount,
-            description=f'Hosting {sub.get_plan_display()} — failed card ({marker})',
+            description=f'Hosting {sub.plan_label} — failed card ({marker})',
             billing_period_start=today - timedelta(days=270),
             billing_period_end=today - timedelta(days=181),
             due_date=today - timedelta(days=120),

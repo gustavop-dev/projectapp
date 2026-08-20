@@ -265,18 +265,18 @@ class TestFirstBillingDate:
         assert hosting_billing.first_billing_date(delivery) == expected
 
 
-class TestAnnualPlan:
-    """Annual (12-month) hosting plan: discount + billing amount."""
+class TestNineMonthPlan:
+    """Nine-month hosting plan: discount + billing amount."""
 
-    def test_plan_discount_annual_uses_model_field(self, project):
+    def test_plan_discount_nine_month_uses_model_field(self, project):
         phase = _phase(project, 12_000_000, order=1)
         assert hosting_billing.plan_discount(
-            phase, HostingSubscription.PLAN_ANNUAL,
+            phase, HostingSubscription.PLAN_NINE_MONTH,
         ) == Decimal('40')
 
-    def test_annual_billing_amount(self, project):
-        # monthly base 12,000,000 * 40% / 12 = 400,000; annual = 400,000 * 12 * 0.60
+    def test_nine_month_billing_amount(self, project):
+        # monthly base 400,000; nine-month = 400,000 * 9 * 0.60
         phase = _phase(project, 12_000_000, order=1)
         assert hosting_billing.phase_billing_amount(
-            phase, HostingSubscription.PLAN_ANNUAL,
-        ) == Decimal('2880000')
+            phase, HostingSubscription.PLAN_NINE_MONTH,
+        ) == Decimal('2160000')

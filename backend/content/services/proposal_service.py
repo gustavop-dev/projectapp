@@ -723,10 +723,10 @@ DEFAULT_SECTIONS = [
                 'hostingPercent': 80,
                 'billingTiers': [
                     {
-                        'frequency': 'annual',
-                        'months': 12,
+                        'frequency': 'nine_month',
+                        'months': 9,
                         'discountPercent': 40,
-                        'label': 'Anual',
+                        'label': 'Cada 9 meses',
                         'badge': 'Máximo descuento',
                     },
                     {
@@ -2063,13 +2063,12 @@ DEFAULT_SECTIONS_EN = [
                 ],
                 'hostingPercent': 80,
                 'monthlyLabel': 'per month',
-                'annualLabel': 'annual payment',
                 'billingTiers': [
                     {
-                        'frequency': 'annual',
-                        'months': 12,
+                        'frequency': 'nine_month',
+                        'months': 9,
                         'discountPercent': 40,
-                        'label': 'Annual',
+                        'label': 'Every 9 months',
                         'badge': 'Best value',
                     },
                     {
@@ -3240,16 +3239,28 @@ DEFAULT_SECTIONS_EN = [
 ]
 
 
-def normalize_hosting_plan(proposal, hosting_plan_json):
+CURRENT_HOSTING_TERM_STATUSES = frozenset({
+    'draft', 'sent', 'viewed', 'negotiating', 'expired',
+})
+
+
+def proposal_uses_current_hosting_terms(proposal):
+    """Whether a proposal must show the currently offered hosting terms."""
+    return bool(
+        getattr(proposal, 'is_active', False)
+        and getattr(proposal, 'status', None) in CURRENT_HOSTING_TERM_STATUSES
+    )
+
+
+def normalize_hosting_plan(
+    proposal, hosting_plan_json, *, force_current_terms=False,
+):
     """Merge BusinessProposal model fields with content_json.hostingPlan.
 
-    Model fields (hosting_percent, hosting_discount_semiannual,
-    hosting_discount_quarterly) are the source of truth; the JSON mirror
-    only contributes presentation (title, specs, labels, badges) and
-    serves as fallback when the model field is unset. Mirrors the
-    override in frontend/pages/proposal/[uuid]/index.vue so every
-    backend consumer (PDF renderer, platform onboarding API) produces
-    numbers consistent with what the client sees.
+    Model fields are the pricing source of truth for active proposals. Closed
+    or inactive proposals keep their stored tier snapshot so historical terms
+    remain unchanged in the public view and PDF. Operational consumers can
+    request the currently offered terms when creating a new platform record.
 
     Pure function: no ORM queries, no side effects.
     """
@@ -3264,36 +3275,64 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
         model_percent if model_percent else base.get('hostingPercent', 80)
     )
 
+    lang = getattr(proposal, 'language', 'es') or 'es'
+    if (not force_current_terms
+            and not proposal_uses_current_hosting_terms(proposal)):
+        if not base.get('billingTiers'):
+            base['billingTiers'] = [
+                {
+                    'frequency': 'annual',
+                    'months': 12,
+                    'discountPercent': getattr(
+                        proposal, 'hosting_discount_nine_month', 40,
+                    ),
+                    'label': 'Annual' if lang == 'en' else 'Anual',
+                    'badge': 'Best value' if lang == 'en' else 'Máximo descuento',
+                },
+                {
+                    'frequency': 'semiannual',
+                    'months': 6,
+                    'discountPercent': getattr(
+                        proposal, 'hosting_discount_semiannual', 20,
+                    ),
+                    'label': 'Semiannual' if lang == 'en' else 'Semestral',
+                    'badge': '20% off' if lang == 'en' else '20% dcto',
+                },
+                {
+                    'frequency': 'quarterly',
+                    'months': 3,
+                    'discountPercent': getattr(
+                        proposal, 'hosting_discount_quarterly', 10,
+                    ),
+                    'label': 'Quarterly' if lang == 'en' else 'Trimestral',
+                    'badge': '10% off' if lang == 'en' else '10% dcto',
+                },
+            ]
+        return base
+
     discount_overrides = {
-        HostingSubscription.PLAN_ANNUAL:
-            getattr(proposal, 'hosting_discount_annual', None),
+        HostingSubscription.PLAN_NINE_MONTH:
+            getattr(proposal, 'hosting_discount_nine_month', None),
         HostingSubscription.PLAN_SEMIANNUAL:
             getattr(proposal, 'hosting_discount_semiannual', None),
         HostingSubscription.PLAN_QUARTERLY:
             getattr(proposal, 'hosting_discount_quarterly', None),
     }
 
-    # Enforce the canonical set of *offered* payment tiers, best-discount first.
-    # Month-to-month is no longer offered, so any stored 'monthly' tier is
-    # dropped, and the annual tier is guaranteed even for older proposals whose
-    # stored content predates it. Stored label/badge/months are preserved when
-    # present; discounts always come from the model fields. This keeps the public
-    # view and the PDF consistent for every proposal regardless of stored drift.
-    lang = getattr(proposal, 'language', 'es') or 'es'
+    # Enforce the canonical offered set, best discount first. An annual tier in
+    # stale JSON is treated as presentation data for the new nine-month tier.
     stored_by_freq = {
         t.get('frequency'): t
         for t in (base.get('billingTiers') or [])
         if isinstance(t, dict)
     }
-    # No stored tiers → leave empty; the frontend falls back to its own default
-    # tier list. Only reconcile to the canonical set when tiers actually exist.
-    if not stored_by_freq:
-        base['billingTiers'] = []
-        return base
+    if ('annual' in stored_by_freq
+            and HostingSubscription.PLAN_NINE_MONTH not in stored_by_freq):
+        stored_by_freq[HostingSubscription.PLAN_NINE_MONTH] = stored_by_freq['annual']
     tier_defaults = {
-        HostingSubscription.PLAN_ANNUAL: {
-            'months': 12,
-            'label': 'Annual' if lang == 'en' else 'Anual',
+        HostingSubscription.PLAN_NINE_MONTH: {
+            'months': 9,
+            'label': 'Every 9 months' if lang == 'en' else 'Cada 9 meses',
             'badge': 'Best value' if lang == 'en' else 'Máximo descuento',
             'discount': 40,
         },
@@ -3311,7 +3350,7 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
         },
     }
     normalized_tiers = []
-    for freq in (HostingSubscription.PLAN_ANNUAL,
+    for freq in (HostingSubscription.PLAN_NINE_MONTH,
                  HostingSubscription.PLAN_SEMIANNUAL,
                  HostingSubscription.PLAN_QUARTERLY):
         defaults = tier_defaults[freq]
@@ -3325,8 +3364,8 @@ def normalize_hosting_plan(proposal, hosting_plan_json):
             discount = defaults['discount']
         normalized_tiers.append({
             'frequency': freq,
-            'months': stored.get('months', defaults['months']),
-            'label': stored.get('label') or defaults['label'],
+            'months': defaults['months'],
+            'label': defaults['label'],
             'badge': stored.get('badge', defaults['badge']),
             'discountPercent': discount,
         })
@@ -3573,7 +3612,7 @@ class ProposalService:
     # value instead of the model default.
     HOSTING_CONFIG_FIELDS = (
         'hosting_percent',
-        'hosting_discount_annual',
+        'hosting_discount_nine_month',
         'hosting_discount_semiannual',
         'hosting_discount_quarterly',
     )

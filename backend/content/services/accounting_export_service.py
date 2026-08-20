@@ -193,7 +193,7 @@ EXPORT_SECTIONS = {
             ('Cliente', 'client_name'),
             ('Dominio', 'domain_url'),
             ('Valor mensual', 'monthly_value'),
-            ('Modalidad', lambda r: r.get_payment_modality_display()),
+            ('Modalidad', lambda r: r.payment_modality_label),
             ('Vigente desde', 'valid_from'),
             ('Vigente hasta', 'valid_to'),
             ('Ciclos', 'cycles_count'),

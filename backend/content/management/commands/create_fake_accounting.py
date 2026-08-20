@@ -301,6 +301,9 @@ class Command(BaseCommand):
                 client_profiles[index % len(client_profiles)]
                 if client_profiles and index != 0 else None
             )
+            modality = rng.choice(list(HostingRecord.Modality))
+            modality_months = HostingRecord.MODALITY_MONTHS[modality]
+            payment_per_cycle = monthly * modality_months
             hosting = HostingRecord.objects.create(
                 client=hosting_client,
                 project=project_for(hosting_client, index),
@@ -308,12 +311,12 @@ class Command(BaseCommand):
                 client_email=f'facturacion@{domain.split("//")[-1].strip("/")}',
                 domain_url=domain,
                 monthly_value=monthly,
-                payment_modality=rng.choice(list(HostingRecord.Modality)),
+                payment_modality=modality,
                 valid_from=_month_start(6),
                 valid_to=_month_start(0) + timedelta(days=180),
                 cycles_count=cycles,
-                payment_per_cycle=monthly * 6,
-                total_paid=monthly * 6 * cycles,
+                payment_per_cycle=payment_per_cycle,
+                total_paid=payment_per_cycle * cycles,
                 source_ref=FAKE_REF,
             )
             # Cycle history is the source of truth for total_paid.
@@ -321,8 +324,10 @@ class Command(BaseCommand):
                 HostingCycle.objects.create(
                     hosting_record=hosting,
                     modality=hosting.payment_modality,
-                    amount=monthly * 6,
-                    paid_at=_month_start(6 * (cycles - cycle_index)),
+                    amount=payment_per_cycle,
+                    paid_at=_month_start(
+                        modality_months * (cycles - cycle_index),
+                    ),
                     source_ref=FAKE_REF,
                 )
                 created += 1

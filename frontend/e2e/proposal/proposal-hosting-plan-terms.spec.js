@@ -3,7 +3,7 @@
  * investment section.
  *
  * @flow: proposal-hosting-plan-terms
- * Covers: the annual (40% discount) billing tier renders, the free-month
+ * Covers: the nine-month (40% discount) billing tier renders, the free-month
  * gift bucket renders, and the PDF-only renewal note is NEVER leaked into
  * the web view — even though it travels through the same hostingPlan
  * payload as the rest of the section.
@@ -61,7 +61,7 @@ const mockProposal = {
           description: 'Infraestructura optimizada para proyectos de alto rendimiento.',
           hostingPercent: 80,
           billingTiers: [
-            { frequency: 'annual', months: 12, discountPercent: 40, label: 'Anual', badge: 'Máximo descuento' },
+            { frequency: 'nine_month', months: 9, discountPercent: 40, label: 'Cada 9 meses', badge: 'Máximo descuento' },
             { frequency: 'semiannual', months: 6, discountPercent: 20, label: 'Semestral', badge: '20% dcto' },
             { frequency: 'quarterly', months: 3, discountPercent: 10, label: 'Trimestral', badge: '10% dcto' },
           ],
@@ -103,12 +103,12 @@ test.describe('Proposal Hosting Plan Terms', () => {
     }, MOCK_UUID);
   });
 
-  // Catches: a hosting-plan wiring bug that drops the annual tier, hides the
+  // Catches: a hosting-plan wiring bug that drops the nine-month tier, hides the
   // free-month bucket, or — the regression that actually matters here —
   // leaks the PDF-only renewal note into the public web view. The unit test
   // (Investment.test.js) already proves this in isolation; this is the first
   // check that proves it end-to-end through the real uuid fetch → render path.
-  test('shows the annual tier and free-month bucket, and never leaks the renewal note', {
+  test('shows the nine-month tier and free-month bucket, and never leaks the renewal note', {
     tag: [...PROPOSAL_HOSTING_PLAN_TERMS, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (the proposal link is the guest's only real entry
@@ -118,7 +118,8 @@ test.describe('Proposal Hosting Plan Terms', () => {
     await setupMock(page);
     await openInvestmentSection(page);
 
-    // Annual tier (40% discount) badge is visible.
+    await expect(page.getByText('Cada 9 meses', { exact: true })).toBeVisible();
+    // Nine-month tier (40% discount) badge is visible.
     await expect(page.getByText('Máximo descuento')).toBeVisible({ timeout: 10000 });
 
     // Free-month gift bucket copy is visible.

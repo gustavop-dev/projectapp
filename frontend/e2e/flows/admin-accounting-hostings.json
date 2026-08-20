@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with an inline estado select (Activo/Inactivo, PATCHes on change with snap-back), validity, 4 KPI cards (active count, monthly income, expiring in 30 days, historic total paid from list meta) and modal CRUD with per-modality payment defaults plus client billing contact fields (email, contact name, identification). Ciclos/total pagado are read-only in the form (computed from the cycle history). Since Aug 2026 Cliente renders the linked relation (client_display_name) instead of the free-text `Persona - Marca` label, and Proyecto is a column of its own.",
+  "description": "Superuser manages the client hosting registry at /panel/accounting/hostings: list with an inline estado select, validity, 4 KPI cards and modal CRUD. New records offer exactly quarterly, semiannual and every-9-month payment modalities, with payment_per_cycle derived from the monthly value. Legacy monthly/annual rows remain readable as historical values but cannot be selected for new records. Ciclos/total pagado are read-only in the form. Cliente renders the linked relation and Proyecto is a column of its own.",
   "expectedSpecs": 3,
   "outcomes": [
     "display",

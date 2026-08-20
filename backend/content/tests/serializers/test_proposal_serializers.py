@@ -152,6 +152,69 @@ class TestProposalDetailSerializerSections:
         assert proposal_section.id in section_ids
         assert disabled.id not in section_ids
 
+    def test_public_context_normalizes_current_hosting_terms(self, proposal):
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            content_json={
+                'hostingPlan': {
+                    'billingTiers': [{
+                        'frequency': 'annual',
+                        'months': 12,
+                        'discountPercent': 40,
+                        'label': 'Anual',
+                    }],
+                },
+            },
+        )
+
+        data = ProposalDetailSerializer(
+            proposal, context={'is_admin': False},
+        ).data
+
+        investment = next(
+            section for section in data['sections']
+            if section['section_type'] == 'investment'
+        )
+        frequencies = [
+            tier['frequency']
+            for tier in investment['content_json']['hostingPlan']['billingTiers']
+        ]
+        assert frequencies == ['nine_month', 'semiannual', 'quarterly']
+        assert investment['content_json']['hostingPlan']['billingTiers'][0]['months'] == 9
+
+    def test_public_context_preserves_closed_hosting_terms(self, proposal):
+        proposal.status = 'accepted'
+        proposal.save(update_fields=['status'])
+        ProposalSection.objects.create(
+            proposal=proposal,
+            section_type='investment',
+            title='Inversión',
+            content_json={
+                'hostingPlan': {
+                    'billingTiers': [{
+                        'frequency': 'annual',
+                        'months': 12,
+                        'discountPercent': 40,
+                        'label': 'Anual',
+                    }],
+                },
+            },
+        )
+
+        data = ProposalDetailSerializer(
+            proposal, context={'is_admin': False},
+        ).data
+
+        investment = next(
+            section for section in data['sections']
+            if section['section_type'] == 'investment'
+        )
+        assert investment['content_json']['hostingPlan']['billingTiers'][0][
+            'frequency'
+        ] == 'annual'
+
 
 class TestProposalListSerializerComputedFields:
     def test_days_remaining_present(self, proposal):

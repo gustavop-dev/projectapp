@@ -7,7 +7,7 @@ overwriting the whole snapshot (which would also revert unrelated sections that
 have merely evolved in code), this command patches ONLY the fields this change
 cares about, copying their current values from code:
 
-  - investment.hostingPlan.billingTiers   (annual/semiannual/quarterly, no monthly)
+  - investment.hostingPlan.billingTiers   (nine-month/semiannual/quarterly, no monthly)
   - investment.hostingPlan.renewalNote     (new SMLMV + 8% formula)
   - corporate_branding_module.selected / default_selected = True
   - reports_alerts_module.title/description/items          (Telegram removed)

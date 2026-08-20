@@ -187,7 +187,7 @@ def duplicate_proposal(arguments):
             currency=proposal.currency,
             nationality=proposal.nationality,
             hosting_percent=proposal.hosting_percent,
-            hosting_discount_annual=proposal.hosting_discount_annual,
+            hosting_discount_nine_month=proposal.hosting_discount_nine_month,
             hosting_discount_semiannual=proposal.hosting_discount_semiannual,
             hosting_discount_quarterly=proposal.hosting_discount_quarterly,
             project_type=proposal.project_type,
@@ -209,6 +209,11 @@ def duplicate_proposal(arguments):
             urgency_email_sent_at=None,
         )
         for section in proposal.sections.all().order_by('order'):
+            section_content = copy.deepcopy(section.content_json or {})
+            if section.section_type == ProposalSection.SectionType.INVESTMENT:
+                section_content['hostingPlan'] = proposal_service.normalize_hosting_plan(
+                    new_proposal, section_content.get('hostingPlan') or {},
+                )
             ProposalSection.objects.create(
                 proposal=new_proposal,
                 section_type=section.section_type,
@@ -216,7 +221,7 @@ def duplicate_proposal(arguments):
                 order=section.order,
                 is_enabled=section.is_enabled,
                 is_wide_panel=section.is_wide_panel,
-                content_json=copy.deepcopy(section.content_json),
+                content_json=section_content,
             )
         ProposalChangeLog.objects.create(
             proposal=new_proposal, change_type='duplicated', actor_type='seller',

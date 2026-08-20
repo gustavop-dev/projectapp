@@ -483,9 +483,9 @@ class TestExtractProposalFallbackTiers:
         assert resp.status_code == 201
         from accounts.models import Project
         project = Project.objects.get(id=resp.json()['id'])
-        # Fallback tiers should include annual, semiannual, quarterly frequencies
+        # Fallback tiers should include the currently offered frequencies.
         tier_frequencies = {t['frequency'] for t in project.hosting_tiers}
-        assert 'annual' in tier_frequencies
+        assert 'nine_month' in tier_frequencies
         assert 'quarterly' in tier_frequencies
         assert 'semiannual' in tier_frequencies
 

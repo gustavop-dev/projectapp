@@ -111,8 +111,8 @@ const HOSTING_ROWS = [
     client_name: 'Nestor - Xpandia',
     domain_url: 'https://xpandia.global/',
     monthly_value: '19000.00',
-    payment_modality: 'annual',
-    payment_modality_label: 'Anual',
+    payment_modality: 'nine_month',
+    payment_modality_label: 'Cada 9 meses',
     benefit: '',
     valid_from: '2026-07-01',
     valid_to: '2027-07-01',
@@ -386,12 +386,14 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('hosting-form-client-name').fill('Katerin Ruiz - Senses Candles');
     await page.getByTestId('hosting-form-monthly').fill('38333');
+    await page.getByTestId('hosting-form-modality').selectOption('nine_month');
     await page.getByTestId('hosting-form-submit').click();
 
     await expect(page.getByText('Hosting creado')).toContainText('Hosting creado');
     expect(calls).toHaveLength(1);
     expect(calls[0].body.client).toBe(5);
     expect(calls[0].body.client_name).toBe('Katerin Ruiz - Senses Candles');
+    expect(calls[0].body.payment_modality).toBe('nine_month');
   });
 });
 

@@ -602,13 +602,13 @@ class TestGetDefaultSections:
         assert 'annualPrice' not in hp
 
     @pytest.mark.parametrize('lang', ['es', 'en'])
-    def test_hosting_plan_has_annual_tier_at_40(self, lang):
+    def test_hosting_plan_has_nine_month_tier_at_40(self, lang):
         sections = ProposalService.get_default_sections(lang)
         inv = next(s for s in sections if s['section_type'] == 'investment')
         tiers = {t['frequency']: t for t in inv['content_json']['hostingPlan']['billingTiers']}
-        assert 'annual' in tiers
-        assert tiers['annual']['months'] == 12
-        assert tiers['annual']['discountPercent'] == 40
+        assert 'nine_month' in tiers
+        assert tiers['nine_month']['months'] == 9
+        assert tiers['nine_month']['discountPercent'] == 40
 
     @pytest.mark.parametrize('lang', ['es', 'en'])
     def test_hosting_plan_has_renewal_and_free_month_notes(self, lang):
@@ -976,9 +976,11 @@ class TestNormalizeHostingPlan:
     def _proposal(self, **overrides):
         p = MagicMock()
         p.language = overrides.get('language', 'es')
+        p.is_active = overrides.get('is_active', True)
+        p.status = overrides.get('status', 'draft')
         p.hosting_percent = overrides.get('hosting_percent', 40)
-        p.hosting_discount_annual = overrides.get(
-            'hosting_discount_annual', 40,
+        p.hosting_discount_nine_month = overrides.get(
+            'hosting_discount_nine_month', 40,
         )
         p.hosting_discount_semiannual = overrides.get(
             'hosting_discount_semiannual', 25,
@@ -1009,13 +1011,13 @@ class TestNormalizeHostingPlan:
         tiers = {t['frequency']: t for t in result['billingTiers']}
         assert tiers['semiannual']['discountPercent'] == 25
         assert tiers['quarterly']['discountPercent'] == 15
-        # Annual is guaranteed even though the input lacked it.
-        assert tiers['annual']['discountPercent'] == 40
+        # Nine-month is guaranteed even though the input lacked it.
+        assert tiers['nine_month']['discountPercent'] == 40
         assert 'monthly' not in tiers
 
-    def test_monthly_tier_is_dropped_and_annual_guaranteed(self):
+    def test_monthly_tier_is_dropped_and_nine_month_guaranteed(self):
         # A legacy proposal that only stored a monthly tier is reconciled to the
-        # canonical offered set [annual, semiannual, quarterly] with no monthly.
+        # canonical offered set [nine-month, semiannual, quarterly].
         result = normalize_hosting_plan(
             self._proposal(),
             {'billingTiers': [
@@ -1023,7 +1025,7 @@ class TestNormalizeHostingPlan:
             ]},
         )
         freqs = [t['frequency'] for t in result['billingTiers']]
-        assert freqs == ['annual', 'semiannual', 'quarterly']
+        assert freqs == ['nine_month', 'semiannual', 'quarterly']
 
     def test_missing_model_percent_falls_back_to_json(self):
         p = self._proposal(hosting_percent=0)
@@ -1035,9 +1037,11 @@ class TestNormalizeHostingPlan:
         result = normalize_hosting_plan(p, {})
         assert result['hostingPercent'] == 80
 
-    def test_empty_billing_tiers_returns_empty_list(self):
+    def test_empty_billing_tiers_returns_canonical_offering(self):
         result = normalize_hosting_plan(self._proposal(), {})
-        assert result['billingTiers'] == []
+        assert [tier['frequency'] for tier in result['billingTiers']] == [
+            'nine_month', 'semiannual', 'quarterly',
+        ]
 
     def test_malformed_tier_is_skipped(self):
         result = normalize_hosting_plan(
@@ -1050,13 +1054,28 @@ class TestNormalizeHostingPlan:
         )
         # Malformed entries are ignored; the result is the canonical offered set.
         freqs = [t['frequency'] for t in result['billingTiers']]
-        assert freqs == ['annual', 'semiannual', 'quarterly']
+        assert freqs == ['nine_month', 'semiannual', 'quarterly']
 
-    def test_none_billing_tiers_returns_empty_list(self):
+    def test_none_billing_tiers_returns_canonical_offering(self):
         result = normalize_hosting_plan(
             self._proposal(), {'billingTiers': None},
         )
-        assert result['billingTiers'] == []
+        assert [tier['frequency'] for tier in result['billingTiers']] == [
+            'nine_month', 'semiannual', 'quarterly',
+        ]
+
+    def test_closed_proposal_preserves_annual_snapshot(self):
+        stored = [
+            {
+                'frequency': 'annual', 'months': 12,
+                'discountPercent': 40, 'label': 'Anual',
+            },
+        ]
+        result = normalize_hosting_plan(
+            self._proposal(status='accepted'), {'billingTiers': stored},
+        )
+
+        assert result['billingTiers'] == stored
 
     def test_presentation_fields_preserved(self):
         result = normalize_hosting_plan(

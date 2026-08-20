@@ -175,7 +175,13 @@ function formatCurrency(value) {
 }
 
 function planLabel(plan) {
-  const map = { monthly: 'Mensual', quarterly: 'Trimestral', semiannual: 'Semestral', annual: 'Anual' }
+  const map = {
+    monthly: 'Mensual (histórico)',
+    quarterly: 'Trimestral',
+    semiannual: 'Semestral',
+    nine_month: 'Cada 9 meses',
+    annual: 'Anual (histórico)',
+  }
   return map[plan] || plan
 }
 

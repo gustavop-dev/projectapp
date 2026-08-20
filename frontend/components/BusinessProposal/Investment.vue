@@ -385,7 +385,6 @@ const props = defineProps({
       ],
       hostingPercent: DEFAULT_HOSTING_PERCENT,
       monthlyLabel: 'por mes',
-      annualLabel: 'Hosting anual — Año 1',
       renewalNote: '',
       coverageNote: '',
       freeMonths: 1,
@@ -543,7 +542,6 @@ const i18n = {
     paymentOptions: 'Formas de Pago',
     convenientPayments: 'pagos flexibles',
     specialPrice: 'Precio especial',
-    annualPayment: 'Pago anual único',
     perMonth: '/ mes',
     discount: 'de descuento',
     every: 'cada',
@@ -576,7 +574,6 @@ const i18n = {
     paymentOptions: 'Payment Options',
     convenientPayments: 'flexible payments',
     specialPrice: 'Special price',
-    annualPayment: 'Annual payment',
     perMonth: '/ month',
     discount: 'discount',
     every: 'every',
@@ -627,7 +624,7 @@ function formatCurrency(value) {
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 }
 
-const hostingAnnualAmount = computed(() => {
+const hostingTwelveMonthReference = computed(() => {
   const hp = props.hostingPlan;
   // Hosting is a percentage of the same "Inversión Total" shown to the
   // client — the effective total (base + admin-pre-selected modules) by
@@ -643,11 +640,11 @@ const hostingAnnualAmount = computed(() => {
 
 const computedBillingTiers = computed(() => {
   const hp = props.hostingPlan;
-  if (hostingAnnualAmount.value === null) return [];
+  if (hostingTwelveMonthReference.value === null) return [];
 
   const tiers = hp?.billingTiers?.length ? hp.billingTiers : DEFAULT_BILLING_TIERS;
 
-  const monthlyBase = Math.round(hostingAnnualAmount.value / 12);
+  const monthlyBase = Math.round(hostingTwelveMonthReference.value / 12);
   if (monthlyBase <= 0) return [];
 
   return tiers.map(tier => {

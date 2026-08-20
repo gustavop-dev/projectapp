@@ -276,7 +276,7 @@ def _notify_phase_onboarded(phase, sub, prorated_payment, new_amount):
 
     project = sub.project
     title = phase.business_proposal.title
-    period = sub.get_plan_display().lower()
+    period = sub.plan_label.lower()
     related_type = 'payment' if prorated_payment else ''
     related_id = prorated_payment.id if prorated_payment else None
 

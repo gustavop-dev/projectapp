@@ -2,7 +2,7 @@
 Hosting billing calculations for multi-phase projects.
 
 A project's hosting subscription bills the sum of all its activated phases at
-a single frequency (monthly/quarterly/semiannual/annual). Each phase derives
+a single offered frequency (quarterly/semiannual/nine-month). Each phase derives
 its price from its own BusinessProposal. A phase that starts mid-cycle is
 charged a prorated amount for the remaining days of the current billing cycle.
 """
@@ -49,8 +49,8 @@ def plan_discount(phase, plan):
         return Decimal(str(getattr(bp, 'hosting_discount_quarterly', 0) or 0))
     if plan == HostingSubscription.PLAN_SEMIANNUAL:
         return Decimal(str(getattr(bp, 'hosting_discount_semiannual', 0) or 0))
-    if plan == HostingSubscription.PLAN_ANNUAL:
-        return Decimal(str(getattr(bp, 'hosting_discount_annual', 0) or 0))
+    if plan == HostingSubscription.PLAN_NINE_MONTH:
+        return Decimal(str(getattr(bp, 'hosting_discount_nine_month', 0) or 0))
     return Decimal('0')
 
 
@@ -64,8 +64,8 @@ def phase_billing_amount(phase, plan):
 def phase_tiers(phase):
     """The billing tiers for one phase (client breakdown table), one per plan.
 
-    Iterates over every plan in PLAN_CHOICES so a newly added frequency (e.g.
-    annual) is surfaced automatically without touching this function.
+    Iterates over every offered plan in PLAN_CHOICES so all client choices stay
+    aligned with the subscription model.
     """
     plan_labels = dict(HostingSubscription.PLAN_CHOICES)
     # Undiscounted monthly list price — reference for the "full price" / savings

@@ -15,16 +15,24 @@ class HostingRecord(AccountingRecordBase):
     """
 
     class Modality(models.TextChoices):
-        MONTHLY = 'monthly', 'Mensual'
         QUARTERLY = 'quarterly', 'Trimestral'
         SEMIANNUAL = 'semiannual', 'Semestral'
-        ANNUAL = 'annual', 'Anual'
+        NINE_MONTH = 'nine_month', 'Cada 9 meses'
+
+    LEGACY_MONTHLY = 'monthly'
+    LEGACY_ANNUAL = 'annual'
 
     MODALITY_MONTHS = {
-        Modality.MONTHLY: 1,
+        LEGACY_MONTHLY: 1,
         Modality.QUARTERLY: 3,
         Modality.SEMIANNUAL: 6,
-        Modality.ANNUAL: 12,
+        Modality.NINE_MONTH: 9,
+        LEGACY_ANNUAL: 12,
+    }
+
+    MODALITY_LABELS = dict(Modality.choices) | {
+        LEGACY_MONTHLY: 'Mensual (histórico)',
+        LEGACY_ANNUAL: 'Anual (histórico)',
     }
 
     # The client the hosting belongs to. Nullable at the DB level only so
@@ -64,7 +72,7 @@ class HostingRecord(AccountingRecordBase):
     payment_modality = models.CharField(
         max_length=12,
         choices=Modality.choices,
-        default=Modality.MONTHLY,
+        default=Modality.QUARTERLY,
     )
     benefit = models.CharField(max_length=255, blank=True, default='')
     valid_from = models.DateField(null=True, blank=True)
@@ -129,6 +137,14 @@ class HostingRecord(AccountingRecordBase):
         """The linked project's name, or '' — same convention the income
         serializer follows (`source='project.name'`)."""
         return self.project.name if self.project_id else ''
+
+    @classmethod
+    def modality_label(cls, value):
+        return cls.MODALITY_LABELS.get(value, value)
+
+    @property
+    def payment_modality_label(self):
+        return self.modality_label(self.payment_modality)
 
     @property
     def display_label(self):

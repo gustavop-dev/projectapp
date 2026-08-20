@@ -188,7 +188,7 @@ erDiagram
 | **ChangeRequest** | Change requests per project | project_fk, title, description, status, requested_by |
 | **Deliverable** | Project deliverables tracking | project_fk, title, description, status, due_date |
 | **Notification** | In-platform notifications | user_fk, message, type, is_read, created_at |
-| **HostingSubscription** | Hosting billing subscription | project_fk, plan, status, start_date, billing_cycle |
+| **HostingSubscription** | Hosting billing subscription | project_fk, plan (`quarterly`/`semiannual`/`nine_month`; legacy monthly/annual readable), status, start_date, billing amounts, next_billing_date |
 | **Payment** | Payment milestones per project | project_fk, title, amount, status, due_date |
 | **PaymentHistory** | Payment audit trail | payment_fk, event_type, amount, notes |
 | **DataModelEntity** | Reusable JSON-defined data model schema | name, description, schema_json, created_at |
@@ -614,3 +614,11 @@ Nuxt payload data stays inline because the generated site is mounted below `app.
 9. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.) — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail
 10. Client responds: accept / reject (with reason) / negotiate / comment. Acceptance fires `ProposalEmailService.send_acceptance_confirmation()` to the client (this branch was added 2026-04-09 — see ERR-007).
 11. Admin monitors via dashboard, alerts, analytics, scorecard. Orphan clients (zero proposals, zero projects) can be cleaned up from `/panel/clients` Huérfanos tab.
+
+### Hosting Terms → Public Snapshot → Operational Billing
+
+1. `BusinessProposal` and `ProposalDefaultConfig` own the 9/6/3-month discounts; `ProposalSection.content_json.hostingPlan` mirrors their presentation.
+2. `normalize_hosting_plan()` enforces the current catalog for active draft/sent/viewed/negotiating/expired proposals, so the public serializer and `ProposalPdfService` calculate from one shape.
+3. Closed or inactive proposals keep their stored tiers for contractual history. Platform onboarding explicitly requests current terms when it turns an accepted proposal into a new `Project` snapshot.
+4. Current `HostingSubscription` and active accounting `HostingRecord` rows use `nine_month`; cancelled/archived subscriptions, paid `Payment`/`HostingCycle` rows and inactive records retain legacy values and historical labels.
+5. Data migrations abort before changing a subscription when an unpaid annual payment is processing or already linked to Wompi; safe pending payments are recalculated to nine months.

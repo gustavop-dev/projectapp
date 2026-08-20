@@ -716,3 +716,16 @@ PA-51 made the covered period mandatory on hosting incomes, and the rule landed 
 - **Watch for fields whose validation also DERIVES other fields.** The period block rewrites `period_date` from `period_start`. Handing the window to a settlement child would have been the obvious fix and would have silently moved the collected money to the month the window opens, instead of the day it came in.
 - **Money is never held for a descriptive field.** Registering that the money arrived and describing what it covers are different acts; the missing description is completed where it shows up (the Liquidar modal offers the window when the hosting charge has none) and, left empty, the settlement goes through all the same.
 - **The test that would have caught it** is the one that runs the *derived* path, not the one that runs the form. Any new required field deserves at least one test per writing path — see `content/tests/views/test_settlement_hosting_period.py`.
+
+## 26. Commercial catalogs and contractual snapshots need an explicit time boundary
+
+Replacing an offered periodicity is not a global string substitution. The proposal document, its public view and its PDF may be contractual history, while a project or subscription created today is an operational record governed by the current catalog. In the 2026-08-20 annual→nine-month change, using one unconditional normalizer either rewrote accepted proposals or leaked annual terms into new projects.
+
+The stable pattern is:
+
+- Define “current” once (proposal activity/status or operational record state).
+- Preserve stored JSON and paid ledger rows for terminal history; label legacy enum values as historical instead of deleting their read maps.
+- Let new-write serializers expose only the current enum while permitting an unchanged legacy value during unrelated edits.
+- Give operational conversions an explicit call-site override (`force_current_terms=True`) rather than changing a public/PDF helper's default semantics.
+- Put payment-provider state ahead of mutation: abort a data migration before touching any subscription whose pending charge is processing or linked externally.
+- Test both sides of the boundary in the same change: historical display stays old, new operational creation becomes current.

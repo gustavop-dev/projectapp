@@ -430,7 +430,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
         bp1 = phases[0].business_proposal
         disc_q = getattr(bp1, 'hosting_discount_quarterly', 10)
         disc_s = getattr(bp1, 'hosting_discount_semiannual', 20)
-        disc_a = getattr(bp1, 'hosting_discount_annual', 40)
+        disc_n = getattr(bp1, 'hosting_discount_nine_month', 40)
         currency = str(getattr(bp1, 'currency', 'COP'))
 
         def _tier(frequency, months, label, badge, discount):
@@ -450,7 +450,7 @@ class ProjectDetailSerializer(ProjectListSerializer):
             }
 
         return [
-            _tier('annual', 12, 'Anual', 'Máximo descuento', disc_a),
+            _tier('nine_month', 9, 'Cada 9 meses', 'Máximo descuento', disc_n),
             _tier('semiannual', 6, 'Semestral', f'{disc_s}% dcto' if disc_s else '', disc_s),
             _tier('quarterly', 3, 'Trimestral', f'{disc_q}% dcto' if disc_q else '', disc_q),
         ]
@@ -1381,7 +1381,7 @@ class PaymentHistorySerializer(serializers.ModelSerializer):
 
 
 class ManualPaymentSerializer(serializers.Serializer):
-    frequency = serializers.ChoiceField(choices=['quarterly', 'semiannual', 'annual'])
+    frequency = serializers.ChoiceField(choices=['quarterly', 'semiannual', 'nine_month'])
     amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal('1'))
     billing_period_start = serializers.DateField()
     description = serializers.CharField(max_length=300, required=False, default='', allow_blank=True)
@@ -1413,7 +1413,7 @@ class PaymentSerializer(serializers.ModelSerializer):
 class HostingSubscriptionSerializer(serializers.ModelSerializer):
     project_name = serializers.SerializerMethodField()
     project_id = serializers.IntegerField(source='project.id', read_only=True)
-    plan_display = serializers.CharField(source='get_plan_display', read_only=True)
+    plan_display = serializers.CharField(source='plan_label', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
     has_payment_source = serializers.SerializerMethodField()
@@ -1443,7 +1443,7 @@ class HostingSubscriptionSerializer(serializers.ModelSerializer):
 class HostingSubscriptionListSerializer(serializers.ModelSerializer):
     project_name = serializers.SerializerMethodField()
     project_id = serializers.IntegerField(source='project.id', read_only=True)
-    plan_display = serializers.CharField(source='get_plan_display', read_only=True)
+    plan_display = serializers.CharField(source='plan_label', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     pending_payments = serializers.SerializerMethodField()
     has_payment_source = serializers.SerializerMethodField()
@@ -1499,6 +1499,7 @@ class ProposalSummarySerializer(serializers.Serializer):
     total_investment = serializers.DecimalField(max_digits=12, decimal_places=2)
     currency = serializers.CharField()
     hosting_percent = serializers.IntegerField()
+    hosting_discount_nine_month = serializers.IntegerField()
     hosting_discount_semiannual = serializers.IntegerField()
     hosting_discount_quarterly = serializers.IntegerField()
     status = serializers.CharField()

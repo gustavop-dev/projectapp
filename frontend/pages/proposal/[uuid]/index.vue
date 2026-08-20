@@ -987,21 +987,10 @@ function getSectionProps(section, displayIndex) {
     const formattedTotal = proposalTotal > 0
       ? '$' + proposalTotal.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
       : content.totalInvestment || '';
-    // Model fields are the source of truth for hosting %/discounts; content_json.hostingPlan
-    // only supplies presentation (title, specs, copy). Override numeric fields so the public
-    // view never drifts from what the admin configured in the General tab.
-    const baseHostingPlan = content.hostingPlan || {};
-    const discountByFrequency = {
-      semiannual: proposal.value?.hosting_discount_semiannual,
-      quarterly: proposal.value?.hosting_discount_quarterly,
-    };
-    const hostingPlan = {
-      ...baseHostingPlan,
-      hostingPercent: proposal.value?.hosting_percent ?? baseHostingPlan.hostingPercent ?? DEFAULT_HOSTING_PERCENT,
-      billingTiers: (baseHostingPlan.billingTiers || []).map((tier) => {
-        const override = discountByFrequency[tier?.frequency];
-        return override != null ? { ...tier, discountPercent: override } : tier;
-      }),
+    // The public serializer resolves the canonical hosting terms, including
+    // preserving the stored snapshot for closed historical proposals.
+    const hostingPlan = content.hostingPlan || {
+      hostingPercent: DEFAULT_HOSTING_PERCENT,
     };
     return {
       ...content,

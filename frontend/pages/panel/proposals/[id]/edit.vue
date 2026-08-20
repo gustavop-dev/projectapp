@@ -822,7 +822,7 @@ const form = reactive({
   total_investment: 0,
   currency: 'COP',
   hosting_percent: DEFAULT_HOSTING_PERCENT,
-  hosting_discount_annual: 40,
+  hosting_discount_nine_month: 40,
   hosting_discount_semiannual: 20,
   hosting_discount_quarterly: 10,
   expires_at: '',
@@ -1093,7 +1093,7 @@ function hydrateFormFromProposal() {
     total_investment: Number(proposal.value.total_investment),
     currency: proposal.value.currency,
     hosting_percent: proposal.value.hosting_percent ?? DEFAULT_HOSTING_PERCENT,
-    hosting_discount_annual: proposal.value.hosting_discount_annual ?? 40,
+    hosting_discount_nine_month: proposal.value.hosting_discount_nine_month ?? 40,
     hosting_discount_semiannual: proposal.value.hosting_discount_semiannual ?? 20,
     hosting_discount_quarterly: proposal.value.hosting_discount_quarterly ?? 10,
     expires_at: proposal.value.expires_at
