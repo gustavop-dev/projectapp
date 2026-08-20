@@ -603,9 +603,11 @@ Nuxt payload data stays inline because the generated site is mounted below `app.
 
 ### Proposal Creation → Client View → Close
 
+The explicit `$proposal-create` / `/proposal-create` workflow can precede the panel: it asks for unresolved commercial decisions, exports active defaults, produces and audits JSON + a decision manifest, then—only after a separate approval—creates an unsent draft through the same serializer/service used by JSON import.
+
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
 2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
-3. 17 section types auto-generated with default content per language (some web-only, skipping the PDF)
+3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF)
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
 6. Client opens unique link `/proposal/{uuid}`

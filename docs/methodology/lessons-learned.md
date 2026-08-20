@@ -149,8 +149,14 @@ venv/bin/python <command>
 
 ## 6. Proposal System Specifics
 
+### Proposal creation automation must preserve runtime decisions
+- Generate from `ProposalService.get_default_sections()`, then validate through `ProposalFromJSONSerializer` and create through `build_proposal_from_json`; hardcoded templates miss admin-edited defaults.
+- `BusinessProposal.total_investment` is the base. The effective client total adds each selected calculator module after per-module rounding, so a quoted all-inclusive total must first be converted into a base that reproduces it.
+- Persist `selected_modules` and a `calc_confirmed` change log even when the confirmed selection is empty; otherwise default-selected modules can silently re-enter scope.
+- Hosting numbers live on `BusinessProposal`, while `investment.hostingPlan` is presentation. Setting only the JSON is insufficient because public/PDF serializers normalize from the model.
+
 ### Section Types Are Fixed
-- 12 section types defined in `ProposalSection.SectionType` choices
+- 18 section types defined in `ProposalSection.SectionType` choices
 - Each maps to a specific Vue component in `components/BusinessProposal/`
 - Unique together constraint: `(proposal, section_type)` — one of each per proposal
 

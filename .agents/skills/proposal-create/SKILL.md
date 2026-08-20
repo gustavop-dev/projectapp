@@ -1,9 +1,7 @@
 ---
 name: proposal-create
 description: "Crea una nueva propuesta comercial de ProjectApp mediante preguntas adaptativas, JSON importable, detalle técnico trazable y creación opcional de un borrador seguro. Usar cuando el operador invoque /proposal-create o $proposal-create con el contexto de una propuesta nueva; no usar para editar propuestas existentes."
-disable-model-invocation: true
 allowed-tools: Bash, Read, Write, WebSearch, WebFetch, AskUserQuestion
-argument-hint: "<contexto inicial de la propuesta: cliente, problema, alcance, inversión y cualquier condición conocida>"
 ---
 
 # Proposal Create

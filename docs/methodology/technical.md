@@ -70,13 +70,15 @@ npm run dev                             # http://localhost:3000
   - `AGENTS.md`
   - `backend/AGENTS.md`
   - `frontend/AGENTS.md`
-- Native repo skills: 33 directories under `.agents/skills/` (incl. `backend-test-coverage`, `client-report`, `debug`, `e2e-user-flows-check`, `fix-broken-tests`, `frontend-e2e-test-coverage`, `frontend-unit-test-coverage`, `git-sync`, `human`, `implement`, `methodology-setup`, `new-feature-checklist`, `plan`, `requirement-calculator`, `test-quality-gate`, `user-walkthrough`, `view-map-audit`, `vuln-audit`, plus accounting/MCP-related helpers). The parallel `.claude/skills/` tree has 34 directories.
+- Native repo skills: 41 directories under `.agents/skills/`; the parallel `.claude/skills/` tree has 40. `proposal-create` exists in both ecosystems and keeps its shared body/references/scripts aligned, with ecosystem-specific invocation metadata.
 - Project config: `.codex/config.toml`
 - Methodology guide: `docs/CODEX_METHODOLOGY_GUIDE.md`
 - Setup & activation: `docs/CODEX_SETUP.md`
 - Migration history: `docs/CODEX_MIGRATION_MAP.md`
 - Compatibility surfaces: `CLAUDE.md`, `backend/CLAUDE.md`, `frontend/CLAUDE.md`, `.claude/`
 - Naming policy: `debug` is canonical; `debugme` remains as legacy alias
+
+`proposal-create` reads proposal shape and business defaults at runtime rather than freezing them in the skill. Its artifacts live under the gitignored `proposal-artifacts/`: an importable JSON plus a manifest for environment, base/effective price, hosting, modules and section visibility. Its optional creator uses `ProposalFromJSONSerializer` and `build_proposal_from_json`; database writes require a dry-run followed by the literal `CREATE_DRAFT` confirmation.
 
 ### Task Queue (for async features)
 
