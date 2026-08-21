@@ -751,3 +751,17 @@ means “preserve” during partial updates, while an explicit empty string mean
 Duplicating a document deliberately clears all three fields because delivery copy is
 specific to one concrete handoff. Test this boundary from both sides: internal CRUD
 round-trips the note, and platform serializers never expose it.
+
+## 28. Parallel Django migrations converge through an explicit merge node
+
+Two feature branches can both create `0204_*` from the same `0203` parent and merge
+without a textual Git conflict because the filenames differ. Django still has two
+leaf nodes and will refuse every `migrate` until the graph is reunified.
+
+The safe repair is a new, empty migration whose dependencies are both leaves. Do not
+rename either shared migration and do not make one depend retroactively on the other:
+either action rewrites published history and can produce inconsistent migration state
+across environments. Verify the repair at graph level (`detect_conflicts()` is empty
+and the app has one leaf), then run `makemigrations --check --dry-run` and the system
+check. This graph check belongs before production deploys because Git alone cannot
+detect the condition.

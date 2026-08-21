@@ -215,3 +215,12 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Resolution**: `normalize_hosting_plan` keeps historical preservation as its default and accepts an explicit `force_current_terms=True` only for operational onboarding. Integration tests pin both outcomes: accepted proposal display remains annual; a project created from it receives nine-month/semiannual/quarterly tiers.
 - **Files Affected**: `backend/content/services/proposal_service.py`, `backend/accounts/views.py`, proposal serializer and platform project tests.
 - **Lesson**: A snapshot renderer and a new operational record do not share the same meaning of “source of truth.” Make the time boundary explicit at the call site instead of weakening historical preservation globally.
+
+### [ERR-019] Production deploy stopped on two `content.0204` migration leaves
+- **Date**: 2026-08-21
+- **Context**: `$deploy-and-check` fast-forwarded production `main`, installed backend requirements, and then Django refused to migrate with `Conflicting migrations detected`. The frontend build, `collectstatic`, and service restarts were skipped; the previous runtime remained healthy.
+- **Root Cause**: The contract-terms and private document-communication features were developed in parallel from `0203_hosting_nine_month_terms`. Each added a distinct `0204` file, so Git merged both cleanly while Django correctly saw two terminal nodes in the same app.
+- **Resolution**: Add the empty migration `0205_merge_contract_terms_and_client_communication`, depending on both `0204_businessproposal_contract_terms_mode` and `0204_document_client_communication`. It performs no schema or data operations and preserves both histories.
+- **Files Affected**: `backend/content/migrations/0205_merge_contract_terms_and_client_communication.py`.
+- **Verification**: `MigrationLoader.detect_conflicts()` returns `{}`, `content` has only the `0205` leaf, `makemigrations --check --dry-run` reports no changes, and Django's system check passes.
+- **Lesson**: Distinct migration filenames do not create a Git conflict. Parallel migration branches need a graph-conflict check in CI or pre-deploy, followed by an explicit merge migration after both leaves land; never rename or re-parent migrations already merged.

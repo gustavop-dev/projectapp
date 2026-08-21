@@ -150,6 +150,12 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Empty strings become `NULL` and can repeat; non-empty values remain unique inside their project/user scope.
 - Schema migrations must check for existing duplicate non-empty keys before replacing an index, so deployment fails before DDL with a useful remediation message.
 
+### Migration graph convergence
+
+- Parallel feature branches may legitimately create migrations with the same number and parent. After both land, add an explicit empty merge migration that depends on both leaves.
+- Never rename or re-parent a migration that has already reached a shared branch or an environment. The merge node preserves both histories and gives later migrations one canonical leaf.
+- A pre-deploy check must confirm `MigrationLoader.detect_conflicts()` is empty so a duplicate leaf is caught before the production migration phase.
+
 ### Client chart loading and bundle budget
 
 - ApexCharts is not a global Nuxt plugin. `components/ApexChart.client.vue` imports only the chart types and features used by the application and is consumed through Nuxt's lazy `LazyApexChart` component.
