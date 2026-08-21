@@ -742,15 +742,19 @@ A report and the message used to deliver it have different audiences and lifecyc
 Putting email/WhatsApp copy in the markdown would leak internal working text into the
 PDF and client portal; keeping it only in terminal output makes a delayed delivery
 easy to lose. The durable boundary is optional private metadata on `Document`, read
-and written only by the admin detail surface and the Documents MCP.
+and written only by the admin detail surface and the Documents MCP. Free-form notes
+follow the same boundary as an ordered JSON collection of small `{title, content}`
+objects; a shared normalizer keeps REST and MCP writes consistent without coupling
+them to the report markdown schema.
 
 One workflow must own the words. `client-report` creates the report and its canonical
 subject/email/WhatsApp triple; `client-message`, when it requests a report, reuses the
 same bytes instead of composing an equivalent second message. An omitted MCP field
 means “preserve” during partial updates, while an explicit empty string means “clear”.
-Duplicating a document deliberately clears all three fields because delivery copy is
-specific to one concrete handoff. Test this boundary from both sides: internal CRUD
-round-trips the note, and platform serializers never expose it.
+Duplicating a document deliberately clears all fixed and custom notes because the
+metadata is specific to one concrete handoff. Test this boundary from both sides:
+internal CRUD round-trips the notes in insertion order, and platform serializers
+never expose them.
 
 ## 28. Parallel Django migrations converge through an explicit merge node
 

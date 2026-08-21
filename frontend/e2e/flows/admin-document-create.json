@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and an optional private client note opened from doc-client-note-open. The modal groups email subject, email body, and WhatsApp in sequence; applying it keeps the draft in the form and creation persists all three fields without adding them to the PDF. The optional client/project association remains available through ClientAutocomplete plus ProjectSelect, including inverse project-to-client cascade and folder suggestions.",
+  "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and optional private notes opened from doc-client-note-open. The modal groups email subject, email body, WhatsApp, and an ordered collection of custom title/content notes; applying it keeps the draft in the form and creation persists every value without adding it to the PDF. The optional client/project association remains available through ClientAutocomplete plus ProjectSelect, including inverse project-to-client cascade and folder suggestions.",
   "expectedSpecs": 1,
   "knownGaps": "Cover toggles and template-style selection are carried by the same payload but are not asserted independently in this flow.",
   "outcomes": [

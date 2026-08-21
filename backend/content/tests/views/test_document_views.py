@@ -347,6 +347,9 @@ class TestCreateDocumentFromMarkdown:
             'client_email_subject': 'Entrega completada',
             'client_email_body': 'Hola Ana,\n\nLa entrega está lista.',
             'client_whatsapp_message': 'Hola Ana, la entrega ya está lista.',
+            'client_custom_notes': [
+                {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+            ],
         }
 
         response = admin_client.post(url, payload, format='json')
@@ -357,6 +360,9 @@ class TestCreateDocumentFromMarkdown:
         assert response.json()['client_whatsapp_message'] == (
             'Hola Ana, la entrega ya está lista.'
         )
+        assert response.json()['client_custom_notes'] == [
+            {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+        ]
 
 
 # ── upload_document_markdown ──
@@ -431,6 +437,7 @@ class TestUploadDocumentMarkdown:
                 'client_email_subject': 'Reporte disponible',
                 'client_email_body': 'El reporte está disponible.',
                 'client_whatsapp_message': 'Ya puedes revisar el reporte.',
+                'client_custom_notes': '[{"title":"Interna","content":"Revisar el viernes."}]',
             },
             format='multipart',
         )
@@ -440,6 +447,9 @@ class TestUploadDocumentMarkdown:
         assert document.client_email_subject == 'Reporte disponible'
         assert document.client_email_body == 'El reporte está disponible.'
         assert document.client_whatsapp_message == 'Ya puedes revisar el reporte.'
+        assert document.client_custom_notes == [
+            {'title': 'Interna', 'content': 'Revisar el viernes.'},
+        ]
 
     def test_rejects_an_oversized_client_subject(self, admin_client):
         url = reverse('upload-document-markdown')
@@ -523,6 +533,9 @@ class TestUpdateDocument:
         document.client_email_subject = 'Asunto anterior'
         document.client_email_body = 'Correo anterior'
         document.client_whatsapp_message = 'WhatsApp anterior'
+        document.client_custom_notes = [
+            {'title': 'Anterior', 'content': 'Contenido anterior.'},
+        ]
         document.save()
         url = reverse('update-document', kwargs={'document_id': document.id})
 
@@ -530,6 +543,7 @@ class TestUpdateDocument:
             'client_email_subject': '',
             'client_email_body': '',
             'client_whatsapp_message': '',
+            'client_custom_notes': [],
         }, format='json')
 
         assert response.status_code == 200
@@ -537,6 +551,7 @@ class TestUpdateDocument:
         assert document.client_email_subject == ''
         assert document.client_email_body == ''
         assert document.client_whatsapp_message == ''
+        assert document.client_custom_notes == []
 
 
 # ── delete_document ──
@@ -1064,6 +1079,9 @@ class TestDuplicateDocument:
         document.client_email_subject = 'Asunto privado'
         document.client_email_body = 'Correo privado'
         document.client_whatsapp_message = 'WhatsApp privado'
+        document.client_custom_notes = [
+            {'title': 'Privada', 'content': 'No copiar.'},
+        ]
         document.save()
         url = reverse('duplicate-document', kwargs={'document_id': document.id})
 
@@ -1074,6 +1092,7 @@ class TestDuplicateDocument:
         assert duplicate.client_email_subject == ''
         assert duplicate.client_email_body == ''
         assert duplicate.client_whatsapp_message == ''
+        assert duplicate.client_custom_notes == []
 
 
 # ── download_document_pdf ──

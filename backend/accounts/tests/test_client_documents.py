@@ -116,6 +116,9 @@ def test_detail_keeps_the_client_note_private(api_client, client_user, client_he
     document.client_email_subject = 'Asunto interno'
     document.client_email_body = 'Correo interno'
     document.client_whatsapp_message = 'WhatsApp interno'
+    document.client_custom_notes = [
+        {'title': 'Seguimiento', 'content': 'Contenido interno.'},
+    ]
     document.save()
 
     response = api_client.get(
@@ -126,6 +129,7 @@ def test_detail_keeps_the_client_note_private(api_client, client_user, client_he
     assert 'client_email_subject' not in response.json()
     assert 'client_email_body' not in response.json()
     assert 'client_whatsapp_message' not in response.json()
+    assert 'client_custom_notes' not in response.json()
 
 
 def test_pdf_download_owner_ok(api_client, client_user, client_headers, project):
