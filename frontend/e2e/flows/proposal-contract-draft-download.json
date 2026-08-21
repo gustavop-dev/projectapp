@@ -6,7 +6,7 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Client downloads the unsigned, watermarked draft from the Contract and terms introduction.",
+  "description": "Client downloads the unsigned, watermarked draft from the persistent floating PDF action in Contract and terms mode; the introduction does not duplicate that action.",
   "expectedSpecs": 1,
   "outcomes": [
     "success"

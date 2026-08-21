@@ -224,6 +224,7 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### Contract terms are global proposal metadata, not section JSON
 - `BusinessProposal.show_contract_terms` is a Boolean visibility flag and defaults to `True`; the public mode additionally requires `language='es'` and an active proposal.
 - The legal reader is built from two synthetic frontend panels and `ContractTermsService`, not from a `ProposalSection`. Creation/import/update pass the flag as top-level metadata, leaving AI prompts and the 18-section JSON contract unchanged.
+- `ContractTermsOverview` uses the same `max-w-5xl` content column for its introduction and clause index. It owns no proposal identifier or download URL; legal-mode downloads stay centralized in the page-level floating `PdfDownloadButton`.
 - `ContractTermsDocument` groups its header, states, preamble and clauses under one `role="document"` paper surface. Border, front sheet, decorative back sheet and shadows use semantic theme tokens; anchors and lazy-loading behavior stay unchanged.
 - `GET /api/proposals/<uuid>/contract-terms/` parses the current default contract Markdown into stable `clause-NN` anchors. `GET /api/proposals/<uuid>/contract/draft-pdf/` forces that same default template even if the proposal has custom contract Markdown.
 - Both public endpoints use draft masking; the PDF omits the contractor signature image and carries the `BORRADOR` watermark. Responses are `no-store` because the global template can change independently from the proposal.

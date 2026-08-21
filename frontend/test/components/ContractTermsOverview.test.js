@@ -19,12 +19,19 @@ const global = {
 describe('ContractTermsOverview', () => {
   it('renders every clause from the global contract', () => {
     const wrapper = mount(ContractTermsOverview, {
-      props: { terms, proposalUuid: 'uuid' },
+      props: { terms },
       global,
     });
 
     expect(wrapper.text()).toContain('CLÁUSULA PRIMERA — OBJETO');
     expect(wrapper.text()).toContain('CLÁUSULA SEGUNDA — PAGOS');
+  });
+
+  it('omits the duplicate draft download action', () => {
+    const wrapper = mount(ContractTermsOverview, { props: { terms }, global });
+
+    expect(wrapper.text()).not.toContain('Descargar borrador');
+    expect(wrapper.find('[data-testid="contract-draft-download"]').exists()).toBe(false);
   });
 
   it('emits the selected clause id', async () => {

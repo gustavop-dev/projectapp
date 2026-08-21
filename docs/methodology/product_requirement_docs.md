@@ -167,7 +167,7 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Contract PDFs generated via `ContractPdfService` using ReportLab + shared `PdfUtils`
 - **Draft mode**: generate contract PDF without contractor signature block for review
 - **Final mode**: include contractor signature block once contract is agreed
-- **Public proposal draft**: Spanish proposals may expose the current default template as **Contrato y condiciones**. Its first panel explains the draft and lists linked clauses; its second panel renders the full contract vertically inside a bordered, layered paper surface that remains readable in light and dark themes. The dedicated PDF download always forces the global template, masks personal data, omits signatures, and applies the `BORRADOR` watermark.
+- **Public proposal draft**: Spanish proposals may expose the current default template as **Contrato y condiciones**. Its first panel explains the draft at the same usable width as the linked clause index; its second panel renders the full contract vertically inside a bordered, layered paper surface that remains readable in light and dark themes. The dedicated PDF download is available from the persistent floating action, always forces the global template, masks personal data, omits signatures, and applies the `BORRADOR` watermark.
 - The public draft is intentionally independent from proposal-specific `ProposalDocument` contracts and from proposal prompt/section JSON. It is current global content, not a per-proposal snapshot.
 - Font: Helvetica throughout for consistent cross-platform rendering
 - Clickable Table of Contents with anchor links to contract sections
