@@ -127,11 +127,14 @@ test.describe('Proposal Contract and terms', () => {
     test.setTimeout(60_000);
     await page.setViewportSize({ width: 1366, height: 900 });
     await mockApi(page, buildMockHandler());
-    await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
+    // quality: allow-deep-link (the shared proposal URL is the guest's real entry point; this test drives legal selection through the gateway)
+    await page.goto(`/proposal/${MOCK_UUID}`, { waitUntil: 'domcontentloaded' });
+    await page.getByTestId('gateway-legal-card').click({ timeout: 30_000 });
 
     const description = page.getByTestId('contract-terms-description');
     const clauseIndex = page.getByTestId('contract-terms-index');
     await expect(description).toBeVisible({ timeout: 30_000 });
+    await expect(description).toContainText('Revisa de forma transparente el borrador');
     await expect(clauseIndex).toBeVisible();
 
     const descriptionBox = await description.boundingBox();
