@@ -85,8 +85,13 @@ generates `client_email_subject`, `client_email_body`, and
 `client_whatsapp_message`, then sends them with the markdown through the Documents
 MCP after operator confirmation. `client-message` delegates report creation and
 prints those exact values rather than redrafting them. The fields are optional model
-metadata exposed by admin detail/create/update and MCP detail/create/update only;
-list serializers, PDF generation, and platform document serializers exclude them.
+metadata exposed by admin detail/create/update and MCP detail/create/update only.
+`client_custom_notes` extends the same private boundary with an ordered JSON list of
+`{title, content}` objects; `document_notes.normalize_client_custom_notes()` is the
+shared REST/MCP validator, trims both values, requires both to be non-empty, and caps
+titles at 255 characters. `client-report` and `client-message` deliberately leave
+that free-form collection alone. List serializers, PDF generation, and platform
+document serializers exclude all four private-note fields.
 
 ### Task Queue (for async features)
 

@@ -169,6 +169,9 @@ class TestDocumentsMcpCrud:
             'client_email_subject': 'Caso resuelto',
             'client_email_body': 'Hola Ana,\n\nEl caso fue resuelto.',
             'client_whatsapp_message': 'Hola Ana, el caso ya fue resuelto.',
+            'client_custom_notes': [
+                {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+            ],
         })
 
         assert response.data['result']['isError'] is False
@@ -176,6 +179,9 @@ class TestDocumentsMcpCrud:
         assert document.client_email_subject == 'Caso resuelto'
         assert document.client_email_body == 'Hola Ana,\n\nEl caso fue resuelto.'
         assert document.client_whatsapp_message == 'Hola Ana, el caso ya fue resuelto.'
+        assert document.client_custom_notes == [
+            {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+        ]
 
     def test_update_document_changes_the_cover_flags(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type)
@@ -213,6 +219,9 @@ class TestDocumentsMcpCrud:
             client_email_subject='Reporte listo',
             client_email_body='El reporte está listo.',
             client_whatsapp_message='Ya está listo el reporte.',
+            client_custom_notes=[
+                {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+            ],
         )
         _, token = documents_connector
 
@@ -222,6 +231,46 @@ class TestDocumentsMcpCrud:
         assert payload['client_email_subject'] == 'Reporte listo'
         assert payload['client_email_body'] == 'El reporte está listo.'
         assert payload['client_whatsapp_message'] == 'Ya está listo el reporte.'
+        assert payload['client_custom_notes'] == [
+            {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
+        ]
+
+    def test_update_document_replaces_custom_notes(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(
+            markdown_doc_type,
+            client_custom_notes=[{'title': 'Anterior', 'content': 'Contenido anterior.'}],
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'client_custom_notes': [
+                {'title': '  Nueva  ', 'content': '  Contenido nuevo.  '},
+            ],
+        })
+
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.client_custom_notes == [
+            {'title': 'Nueva', 'content': 'Contenido nuevo.'},
+        ]
+
+    def test_update_document_rejects_an_incomplete_custom_note(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'client_custom_notes': [{'title': 'Sin contenido', 'content': ''}],
+        })
+
+        assert response.data['result']['isError'] is True
+        doc.refresh_from_db()
+        assert doc.client_custom_notes == []
 
     def test_update_document_reparses_markdown(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type, title='Old')
@@ -357,6 +406,21 @@ class TestDocumentsMcpAppend:
 
 @pytest.mark.django_db
 class TestDocumentsMcpMarkdownGuardrail:
+    def test_list_documents_marks_a_custom_note(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        _make_doc(
+            markdown_doc_type,
+            title='Con nota',
+            client_custom_notes=[{'title': 'Interna', 'content': 'Seguimiento.'}],
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'list_documents', {})
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert payload['results'][0]['has_client_note'] is True
+
     def test_list_documents_excludes_collection_accounts(self, api_client, documents_connector, markdown_doc_type, collection_account_type):
         _make_doc(markdown_doc_type, title='Markdown doc')
         _make_doc(collection_account_type, title='Cuenta de cobro')

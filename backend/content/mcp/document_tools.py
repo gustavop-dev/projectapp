@@ -24,6 +24,9 @@ document_type helpers as the panel so the PDF pipeline stays identical.
 from content.mcp.protocol import ToolError
 from content.models import Document, DocumentFolder
 from content.services.document_content import build_content_json
+from content.services.document_notes import (
+    DocumentNotesValidationError, normalize_client_custom_notes,
+)
 from content.services.document_type_codes import MARKDOWN
 from content.services.document_type_utils import get_markdown_document_type
 
@@ -110,6 +113,7 @@ def _doc_summary(doc):
             doc.client_email_subject.strip(),
             doc.client_email_body.strip(),
             doc.client_whatsapp_message.strip(),
+            doc.client_custom_notes,
         )),
         'updated_at': doc.updated_at.isoformat() if doc.updated_at else None,
     }
@@ -122,6 +126,7 @@ def _doc_detail(doc):
         'client_email_subject': doc.client_email_subject,
         'client_email_body': doc.client_email_body,
         'client_whatsapp_message': doc.client_whatsapp_message,
+        'client_custom_notes': doc.client_custom_notes,
         # Las tres deciden qué páginas trae el PDF: sin exponerlas, quien crea
         # por MCP no tiene cómo saber con qué configuración quedó el documento.
         'include_portada': doc.include_portada,
@@ -164,6 +169,19 @@ _CLIENT_NOTE_PROPS = {
         'type': 'string',
         'description': 'Mensaje de WhatsApp preparado para el cliente (opcional).',
     },
+    'client_custom_notes': {
+        'type': 'array',
+        'description': 'Notas privadas adicionales, en su orden de creación.',
+        'items': {
+            'type': 'object',
+            'properties': {
+                'title': {'type': 'string', 'maxLength': 255},
+                'content': {'type': 'string'},
+            },
+            'required': ['title', 'content'],
+            'additionalProperties': False,
+        },
+    },
 }
 
 
@@ -188,6 +206,14 @@ def _client_note_value(arguments, name):
     if name == 'client_email_subject' and len(value) > 255:
         raise ToolError('client_email_subject no puede superar 255 caracteres.')
     return value
+
+
+def _client_custom_notes_value(arguments):
+    """Validate and normalize the ordered custom-note collection."""
+    try:
+        return normalize_client_custom_notes(arguments.get('client_custom_notes'))
+    except DocumentNotesValidationError as exc:
+        raise ToolError(f'client_custom_notes: {exc}') from exc
 
 
 # ── Handlers ─────────────────────────────────────────────────────────────────
@@ -274,6 +300,8 @@ def create_document(arguments):
         name: _client_note_value(arguments, name)
         for name in CLIENT_NOTE_FIELDS if name in arguments
     }
+    if 'client_custom_notes' in arguments:
+        client_note['client_custom_notes'] = _client_custom_notes_value(arguments)
 
     doc = Document(
         title=title,
@@ -333,6 +361,10 @@ def update_document(arguments):
             setattr(doc, field, _client_note_value(arguments, field))
             update_fields.add(field)
 
+    if 'client_custom_notes' in arguments:
+        doc.client_custom_notes = _client_custom_notes_value(arguments)
+        update_fields.add('client_custom_notes')
+
     markdown_changed = 'markdown' in arguments
     if markdown_changed:
         markdown_text = arguments.get('markdown')
@@ -346,7 +378,8 @@ def update_document(arguments):
             'No se indicó ningún campo para actualizar. Envía al menos uno de: '
             'title, markdown, folder_id, status, client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
-            'client_email_subject, client_email_body, client_whatsapp_message.'
+            'client_email_subject, client_email_body, client_whatsapp_message, '
+            'client_custom_notes.'
         )
 
     # content_json must always reflect the current title/meta + markdown, so
@@ -474,7 +507,7 @@ DOCUMENT_TOOLS = [
         'name': 'read_document',
         'description': (
             'Devuelve un documento markdown completo, incluido su content_markdown '
-            'y la nota privada preparada para comunicárselo al cliente.'
+            'y todas sus notas privadas.'
         ),
         'input_schema': {
             'type': 'object',
@@ -491,7 +524,7 @@ DOCUMENT_TOOLS = [
             'Opcional: folder_id (de list_folders), language (es/en), client_name, '
             'y las casillas include_portada / include_subportada / '
             'include_contraportada, que deciden qué páginas trae el PDF. También '
-            'puede guardar asunto, correo y WhatsApp como nota privada.'
+            'puede guardar asunto, correo, WhatsApp y notas personalizadas privadas.'
         ),
         'input_schema': {
             'type': 'object',
@@ -515,7 +548,8 @@ DOCUMENT_TOOLS = [
             'document_id y al menos uno de: title, markdown, folder_id, '
             'status (draft/published/archived), client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
-            'client_email_subject, client_email_body, client_whatsapp_message. Al '
+            'client_email_subject, client_email_body, client_whatsapp_message, '
+            'client_custom_notes. Al '
             'cambiar el markdown se reprocesa el contenido para el PDF.'
         ),
         'input_schema': {

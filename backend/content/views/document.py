@@ -1,4 +1,5 @@
 import copy
+import json
 import logging
 
 from django.contrib.auth import get_user_model
@@ -220,6 +221,7 @@ def create_document_from_markdown(request):
         client_email_subject=data.get('client_email_subject', ''),
         client_email_body=data.get('client_email_body', ''),
         client_whatsapp_message=data.get('client_whatsapp_message', ''),
+        client_custom_notes=data.get('client_custom_notes', []),
         client_user=data.get('client_user'),
         project=data.get('project'),
         language=data.get('language', 'es'),
@@ -266,6 +268,14 @@ def upload_document_markdown(request):
     client_email_subject = request.data.get('client_email_subject', '')
     client_email_body = request.data.get('client_email_body', '')
     client_whatsapp_message = request.data.get('client_whatsapp_message', '')
+    client_custom_notes = request.data.get('client_custom_notes', [])
+    if isinstance(client_custom_notes, str):
+        try:
+            client_custom_notes = json.loads(client_custom_notes)
+        except json.JSONDecodeError:
+            # Let the serializer return the same field-level validation error
+            # used by JSON requests instead of inventing a multipart contract.
+            pass
     language = request.data.get('language', 'es')
     cover_type = request.data.get('cover_type', 'generic')
     template_style = request.data.get('template_style', 'professional')
@@ -279,6 +289,7 @@ def upload_document_markdown(request):
         'client_email_subject': client_email_subject,
         'client_email_body': client_email_body,
         'client_whatsapp_message': client_whatsapp_message,
+        'client_custom_notes': client_custom_notes,
         'language': language,
         'cover_type': cover_type,
         'template_style': template_style,
@@ -322,6 +333,7 @@ def upload_document_markdown(request):
         client_email_subject=metadata.get('client_email_subject', ''),
         client_email_body=metadata.get('client_email_body', ''),
         client_whatsapp_message=metadata.get('client_whatsapp_message', ''),
+        client_custom_notes=metadata.get('client_custom_notes', []),
         language=metadata.get('language', 'es'),
         cover_type=metadata.get('cover_type', 'generic'),
         template_style=metadata.get('template_style', 'professional'),
@@ -518,6 +530,7 @@ def duplicate_document(request, document_id):
         client_email_subject='',
         client_email_body='',
         client_whatsapp_message='',
+        client_custom_notes=[],
     )
 
     detail = DocumentDetailSerializer(new_document)

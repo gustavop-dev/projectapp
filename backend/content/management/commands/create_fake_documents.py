@@ -247,6 +247,22 @@ class Command(BaseCommand):
                     'Buen día. Le enviamos un correo con el documento y los '
                     'puntos que puede revisar. Quedamos atentos.' if i % 3 == 0 else ''
                 ),
+                client_custom_notes=(
+                    [
+                        {
+                            'title': 'Seguimiento de entrega',
+                            'content': (
+                                'Confirmar la recepción y registrar los '
+                                'comentarios del cliente.'
+                            ),
+                        },
+                        {
+                            'title': 'Próximo paso',
+                            'content': 'Agendar la revisión final cuando el cliente responda.',
+                        },
+                    ]
+                    if i % 4 == 0 else []
+                ),
                 created_by=admin,
                 updated_by=admin,
             )

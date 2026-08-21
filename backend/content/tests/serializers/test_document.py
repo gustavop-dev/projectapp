@@ -102,7 +102,7 @@ class TestDocumentDetailSerializer:
             'content_markdown', 'content_json', 'client_name',
             'client', 'client_display_name', 'project', 'project_name',
             'client_email_subject', 'client_email_body',
-            'client_whatsapp_message',
+            'client_whatsapp_message', 'client_custom_notes',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
@@ -174,6 +174,41 @@ class TestDocumentCreateUpdateSerializer:
         assert not serializer.is_valid()
         assert 'client_email_subject' in serializer.errors
 
+    def test_persists_trimmed_custom_notes_in_order(self):
+        serializer = DocumentCreateUpdateSerializer(data={
+            'title': 'Informe mensual',
+            'client_custom_notes': [
+                {'title': '  Seguimiento  ', 'content': '  Llamar el viernes.  '},
+                {'title': 'Pago', 'content': 'Confirmar la transferencia.'},
+            ],
+        })
+
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+
+        assert document.client_custom_notes == [
+            {'title': 'Seguimiento', 'content': 'Llamar el viernes.'},
+            {'title': 'Pago', 'content': 'Confirmar la transferencia.'},
+        ]
+
+    def test_rejects_an_incomplete_custom_note(self):
+        serializer = DocumentCreateUpdateSerializer(data={
+            'title': 'Informe mensual',
+            'client_custom_notes': [{'title': 'Seguimiento', 'content': '  '}],
+        })
+
+        assert not serializer.is_valid()
+        assert 'client_custom_notes' in serializer.errors
+
+    def test_rejects_an_oversized_custom_note_title(self):
+        serializer = DocumentCreateUpdateSerializer(data={
+            'title': 'Informe mensual',
+            'client_custom_notes': [{'title': 'a' * 256, 'content': 'Contenido.'}],
+        })
+
+        assert not serializer.is_valid()
+        assert 'client_custom_notes' in serializer.errors
+
 
 # ── DocumentFromMarkdownSerializer ────────────────────────────────────────────
 
@@ -231,6 +266,7 @@ class TestDocumentFromMarkdownSerializer:
         assert serializer.validated_data['client_email_subject'] == ''
         assert serializer.validated_data['client_email_body'] == ''
         assert serializer.validated_data['client_whatsapp_message'] == ''
+        assert serializer.validated_data['client_custom_notes'] == []
 
 
 # ── Asociación cliente/proyecto ───────────────────────────────────────────────

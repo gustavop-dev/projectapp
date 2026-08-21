@@ -3,7 +3,7 @@
  *
  * @flow:admin-document-create
  * Covers: page renders with mode tabs, paste Markdown mode, file upload mode,
- *         form submission creates document, validation error handling.
+ *         private fixed/custom notes, form submission, and error handling.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -74,7 +74,7 @@ test.describe('Admin Document Create', () => {
     expect(postBody.markdown).toContain('Contenido de prueba');
   });
 
-  test('stores the client note in the create payload', {
+  test('stores the client messages in the create payload', {
     tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     let postBody = null;
@@ -94,14 +94,14 @@ test.describe('Admin Document Create', () => {
       .fill('# Informe\n\nCaso resuelto.');
     const noteButton = page.getByTestId('doc-client-note-open');
     await expect(noteButton).toHaveText('📝');
-    await expect(noteButton).toHaveAccessibleName('Agregar nota para el cliente');
+    await expect(noteButton).toHaveAccessibleName('Agregar notas');
     await noteButton.click();
     await page.getByTestId('client-note-subject').fill('Caso resuelto');
     await page.getByTestId('client-note-email').fill('Hola Ana,\n\nEl caso fue resuelto.');
     await page.getByTestId('client-note-whatsapp').fill('Hola Ana, el caso ya fue resuelto.');
     await page.getByTestId('client-note-apply').click();
     await expect(noteButton).toHaveText('✏️');
-    await expect(noteButton).toHaveAccessibleName('Editar nota para el cliente');
+    await expect(noteButton).toHaveAccessibleName('Editar notas');
 
     await page.getByRole('button', { name: /Crear Documento/i }).click();
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
@@ -111,7 +111,37 @@ test.describe('Admin Document Create', () => {
     expect(postBody.client_whatsapp_message).toBe('Hola Ana, el caso ya fue resuelto.');
   });
 
-  test('a rejected client note remains on the create page', {
+  test('stores a custom note in the create payload', {
+    tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let postBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/create-from-markdown/' && method === 'POST') {
+        postBody = route.request().postDataJSON();
+        return { status: 201, contentType: 'application/json', body: JSON.stringify(createdDocument) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/create');
+    await page.getByLabel(/T[ií]tulo/i).fill('Informe con contexto');
+    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
+      .fill('# Informe');
+    await page.getByTestId('doc-client-note-open').click();
+    await page.getByTestId('client-note-add-custom').click();
+    await page.getByTestId('client-note-custom-title-0').fill('Próximo paso');
+    await page.getByTestId('client-note-custom-content-0').fill('Confirmar la fecha de entrega.');
+    await page.getByTestId('client-note-apply').click();
+
+    await page.getByRole('button', { name: /Crear Documento/i }).click();
+    await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
+
+    expect(postBody.client_custom_notes).toEqual([
+      { title: 'Próximo paso', content: 'Confirmar la fecha de entrega.' },
+    ]);
+  });
+
+  test('rejected notes remain on the create page', {
     tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
@@ -143,7 +173,7 @@ test.describe('Admin Document Create', () => {
     await expect(page).toHaveURL(/\/panel\/documents\/create$/);
   });
 
-  test('a server failure preserves the client note draft', {
+  test('a server failure preserves the notes draft', {
     tag: [...ADMIN_DOCUMENT_CREATE, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath, method }) => {
