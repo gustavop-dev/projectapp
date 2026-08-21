@@ -1,30 +1,19 @@
 <template>
   <section class="min-h-screen bg-surface px-4 py-12 sm:px-8 sm:py-16">
     <div class="mx-auto w-full max-w-5xl">
-      <div class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-        <div class="max-w-3xl">
-          <BaseBadge variant="warning" class="mb-4">
-            {{ copy.draftLabel }}
-          </BaseBadge>
-          <h1 class="mb-4 text-3xl font-light leading-tight text-text-brand sm:text-5xl">
-            {{ copy.title }}
-          </h1>
-          <p class="text-base font-light leading-relaxed text-text-muted sm:text-lg">
-            {{ copy.description }}
-          </p>
-        </div>
-
-        <BaseButton
-          v-if="proposalUuid"
-          as="a"
-          :to="downloadUrl"
-          variant="secondary"
-          class="flex-shrink-0"
-          data-testid="contract-draft-download"
+      <div class="mb-8">
+        <BaseBadge variant="warning" class="mb-4">
+          {{ copy.draftLabel }}
+        </BaseBadge>
+        <h1 class="mb-4 text-3xl font-light leading-tight text-text-brand sm:text-5xl">
+          {{ copy.title }}
+        </h1>
+        <p
+          data-testid="contract-terms-description"
+          class="text-base font-light leading-relaxed text-text-muted sm:text-lg"
         >
-          <span aria-hidden="true">↓</span>
-          {{ copy.download }}
-        </BaseButton>
+          {{ copy.description }}
+        </p>
       </div>
 
       <BaseAlert variant="warning" :title="copy.noticeTitle" class="mb-10">
@@ -55,7 +44,11 @@
           <span class="text-sm text-text-muted">{{ copy.clauseCount(clauses.length) }}</span>
         </div>
 
-        <nav :aria-label="copy.indexTitle" class="grid gap-3 md:grid-cols-2">
+        <nav
+          :aria-label="copy.indexTitle"
+          data-testid="contract-terms-index"
+          class="grid gap-3 md:grid-cols-2"
+        >
           <button
             v-for="clause in clauses"
             :key="clause.id"
@@ -84,7 +77,6 @@ const props = defineProps({
   terms: { type: Object, default: null },
   loading: { type: Boolean, default: false },
   error: { type: String, default: '' },
-  proposalUuid: { type: String, default: '' },
   language: { type: String, default: 'es' },
 });
 
@@ -95,7 +87,6 @@ const translations = {
     draftLabel: 'Borrador informativo',
     title: 'Contrato y condiciones',
     description: 'Revisa de forma transparente el borrador del contrato de prestación de servicios que acompañaría la ejecución del proyecto. Aquí encontrarás el alcance, entregables, pagos, garantías, responsabilidades, propiedad intelectual, tratamiento de datos, terminación, soporte y hosting.',
-    download: 'Descargar borrador',
     noticeTitle: 'Documento para revisión',
     notice: 'Este borrador no contiene firmas ni datos reales. Refleja la plantilla global vigente y puede actualizarse antes de la formalización definitiva.',
     loading: 'Preparando el borrador del contrato…',
@@ -110,7 +101,6 @@ const translations = {
     draftLabel: 'Informational draft',
     title: 'Contract and terms',
     description: 'Review the current draft service agreement and its main conditions.',
-    download: 'Download draft',
     noticeTitle: 'Document for review',
     notice: 'This draft has no signatures or real personal data and may change before execution.',
     loading: 'Preparing the contract draft…',
@@ -125,5 +115,4 @@ const translations = {
 
 const copy = computed(() => translations[props.language] || translations.es);
 const clauses = computed(() => props.terms?.clauses || []);
-const downloadUrl = computed(() => `/api/proposals/${props.proposalUuid}/contract/draft-pdf/`);
 </script>

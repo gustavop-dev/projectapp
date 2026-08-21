@@ -18,6 +18,7 @@ const proposal = {
   uuid: MOCK_UUID,
   title: 'Contrato E2E',
   client_name: 'Cliente Legal',
+  created_at: '2026-08-21T12:00:00Z',
   language: 'es',
   status: 'sent',
   total_investment: '5000000',
@@ -120,6 +121,24 @@ test.describe('Proposal Contract and terms', () => {
     await expect(selectedClause).toContainText('Los pagos se realizarán según los hitos definidos.');
   });
 
+  test('introductory description uses the clause index width', {
+    tag: [...PROPOSAL_CONTRACT_TERMS, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    test.setTimeout(60_000);
+    await page.setViewportSize({ width: 1366, height: 900 });
+    await mockApi(page, buildMockHandler());
+    await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
+
+    const description = page.getByTestId('contract-terms-description');
+    const clauseIndex = page.getByTestId('contract-terms-index');
+    await expect(description).toBeVisible({ timeout: 30_000 });
+    await expect(clauseIndex).toBeVisible();
+
+    const descriptionBox = await description.boundingBox();
+    const indexBox = await clauseIndex.boundingBox();
+    expect(descriptionBox.width / indexBox.width).toBeGreaterThanOrEqual(0.98);
+  });
+
   test('hidden mode cannot be forced through the legal query', {
     tag: [...PROPOSAL_CONTRACT_TERMS, '@role:guest', '@outcome:error'],
   }, async ({ page }) => {
@@ -162,18 +181,19 @@ test.describe('Proposal Contract and terms', () => {
     await expect(page.getByText('CLÁUSULA PRIMERA — OBJETO')).toBeVisible({ timeout: 20_000 });
   });
 
-  test('download action requests the dedicated draft PDF', {
+  test('floating download is the only draft PDF action', {
     tag: [...PROPOSAL_CONTRACT_DRAFT_DOWNLOAD, '@role:guest', '@outcome:success'],
   }, async ({ page }) => {
     test.setTimeout(60_000);
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
-    const downloadButton = page.getByTestId('contract-draft-download');
-    await expect(downloadButton).toContainText('Descargar borrador', { timeout: 30_000 });
+    const downloadButton = page.getByTitle('Descargar PDF');
+    await expect(downloadButton).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('contract-draft-download')).toHaveCount(0);
 
     const downloadPromise = page.waitForEvent('download');
     await downloadButton.click();
     const download = await downloadPromise;
-    expect(download.suggestedFilename()).toBe('Borrador_Contrato_E2E.pdf');
+    expect(download.suggestedFilename()).toBe('Borrador_Contrato_Contrato_E2E_21-08-26.pdf');
   });
 });

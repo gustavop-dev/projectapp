@@ -925,7 +925,6 @@ function getSectionProps(section, displayIndex) {
       terms: contractTerms.value,
       loading: contractTermsLoading.value,
       error: contractTermsError.value,
-      proposalUuid: proposal.value?.uuid || '',
       language: proposal.value?.language || 'es',
     };
   }
