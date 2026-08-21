@@ -96,6 +96,7 @@ test.describe('Proposal Contract and terms', () => {
   }, async ({ page }) => {
     test.setTimeout(60_000);
     await mockApi(page, buildMockHandler());
+    // quality: allow-deep-link (the shared proposal URL is the guest's real entry point; this test then exercises the gateway selection)
     await page.goto(`/proposal/${MOCK_UUID}`, { waitUntil: 'domcontentloaded' });
 
     await page.getByTestId('gateway-legal-card').click({ timeout: 30_000 });
@@ -123,8 +124,12 @@ test.describe('Proposal Contract and terms', () => {
     await mockApi(page, buildMockHandler({ proposalOverrides: { show_contract_terms: false } }));
     await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: '¿Cómo prefieres explorar esta propuesta?' })).toBeVisible({ timeout: 30_000 });
+    const gatewayHeading = page.getByRole('heading', { name: '¿Cómo prefieres explorar esta propuesta?' });
+    await expect(gatewayHeading).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('gateway-legal-card')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /Vista Ejecutiva/ }).click();
+    await expect(gatewayHeading).not.toBeVisible({ timeout: 10_000 });
   });
 
   test('English proposal cannot be forced into the legal mode', {
@@ -134,8 +139,12 @@ test.describe('Proposal Contract and terms', () => {
     await mockApi(page, buildMockHandler({ proposalOverrides: { language: 'en' } }));
     await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('heading', { name: 'How would you like to explore this proposal?' })).toBeVisible({ timeout: 30_000 });
+    const gatewayHeading = page.getByRole('heading', { name: 'How would you like to explore this proposal?' });
+    await expect(gatewayHeading).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('gateway-legal-card')).toHaveCount(0);
+
+    await page.getByRole('button', { name: /Executive View/ }).click();
+    await expect(gatewayHeading).not.toBeVisible({ timeout: 10_000 });
   });
 
   test('temporary contract failure exposes a working retry', {
@@ -156,10 +165,11 @@ test.describe('Proposal Contract and terms', () => {
     test.setTimeout(60_000);
     await mockApi(page, buildMockHandler());
     await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByTestId('contract-draft-download')).toBeVisible({ timeout: 30_000 });
+    const downloadButton = page.getByTestId('contract-draft-download');
+    await expect(downloadButton).toContainText('Descargar borrador', { timeout: 30_000 });
 
     const downloadPromise = page.waitForEvent('download');
-    await page.getByTestId('contract-draft-download').click();
+    await downloadButton.click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe('Borrador_Contrato_E2E.pdf');
   });
