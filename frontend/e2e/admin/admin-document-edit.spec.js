@@ -3,10 +3,10 @@
  *
  * @flow:admin-document-edit
  * Covers: edit form pre-filled with existing document data, save updates document,
- *         status change, back link navigation, download PDF action, copy/paste
- *         markdown content toolbar buttons, template style switch (Amigable/
- *         Profesional) toggling the preview theme, and the dual-style PDF
- *         download dropdown.
+ *         private fixed/custom notes (including read-only copy), status change,
+ *         back link navigation, download PDF action, copy/paste markdown content
+ *         toolbar buttons, template style switch (Amigable/Profesional) toggling
+ *         the preview theme, and the dual-style PDF download dropdown.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -19,6 +19,16 @@ const mockDocument = {
   id: 1, title: 'Contrato de Servicios', status: 'draft',
   content: '# Contrato\n\nEste es el contenido del contrato.',
   client_name: 'ACME Corp', created_at: '2026-03-01T10:00:00Z',
+};
+
+const issuedCollectionAccount = {
+  ...mockDocument,
+  document_type_code: 'collection_account',
+  commercial_status: 'issued',
+  client_email_subject: 'Cuenta emitida',
+  client_custom_notes: [
+    { title: 'Conciliación', content: 'Pago pendiente de confirmar.' },
+  ],
 };
 
 test.describe('Admin Document Edit', () => {
@@ -34,6 +44,9 @@ test.describe('Admin Document Edit', () => {
       client_email_subject: 'Contrato listo para revisión',
       client_email_body: 'Hola Ana,\n\nEl contrato está listo para tu revisión.',
       client_whatsapp_message: 'Hola Ana, te envié el contrato para revisión.',
+      client_custom_notes: [
+        { title: 'Seguimiento', content: 'Confirmar recepción el viernes.' },
+      ],
     };
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -54,24 +67,21 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByLabel(/T[ií]tulo/i)).toHaveValue('Contrato de Servicios');
     const noteButton = page.getByTestId('doc-client-note-open');
     await expect(noteButton).toHaveText('✏️');
-    await expect(noteButton).toHaveAccessibleName('Editar nota para el cliente');
+    await expect(noteButton).toHaveAccessibleName('Editar notas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo para revisión');
     await expect(page.getByTestId('client-note-email')).toHaveValue('Hola Ana,\n\nEl contrato está listo para tu revisión.');
     await expect(page.getByTestId('client-note-whatsapp')).toHaveValue('Hola Ana, te envié el contrato para revisión.');
+    await expect(page.getByTestId('client-note-custom-title-0')).toHaveValue('Seguimiento');
+    await expect(page.getByTestId('client-note-custom-content-0'))
+      .toHaveValue('Confirmar recepción el viernes.');
   });
 
-  test('an issued collection account keeps the Ver nota action', {
+  test('an issued collection account keeps the Ver notas action', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-deep-link (/panel/documents is the module entry; from
     // there this test follows the real list → editor → note interaction)
-    const issuedCollectionAccount = {
-      ...mockDocument,
-      document_type_code: 'collection_account',
-      commercial_status: 'issued',
-      client_email_subject: 'Cuenta emitida',
-    };
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/') {
@@ -89,11 +99,43 @@ test.describe('Admin Document Edit', () => {
     await page.getByTestId('document-open-1').click();
 
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('Ver nota');
+    await expect(noteButton).toHaveText('Ver notas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
     await expect(page.getByTestId('client-note-subject')).toBeDisabled();
+    await expect(page.getByTestId('client-note-custom-content-0')).toBeDisabled();
     await expect(page.getByTestId('client-note-apply')).toHaveCount(0);
+    await expect(page.getByTestId('client-note-add-custom')).toHaveCount(0);
+  });
+
+  test('copies a custom note from an issued collection account', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page, context }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(issuedCollectionAccount) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents');
+    await page.getByTestId('document-open-1').click();
+    await page.getByTestId('doc-client-note-open').click();
+
+    const copyButton = page.getByTestId('client-note-custom-copy-content-0');
+    await expect(copyButton).toHaveText('📋');
+    await expect(copyButton).toHaveAccessibleName('Copiar contenido de la nota 1');
+    await copyButton.click();
+    await expect(copyButton).toHaveText('✅');
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
+      .toBe('Pago pendiente de confirmar.');
   });
 
   test('back link navigates to documents list', {
@@ -136,7 +178,7 @@ test.describe('Admin Document Edit', () => {
     expect(patchCalled).toBe(true);
   });
 
-  test('saves an edited client note', {
+  test('saves edited notes', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const documentWithNote = {
@@ -145,6 +187,9 @@ test.describe('Admin Document Edit', () => {
       client_email_subject: 'Contrato listo',
       client_email_body: 'Hola Ana,\n\nEl contrato está listo.',
       client_whatsapp_message: 'Hola Ana, revisa el contrato en tu correo.',
+      client_custom_notes: [
+        { title: 'Seguimiento', content: 'Llamar el viernes.' },
+      ],
     };
     await mockApi(page, async ({ route, apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
@@ -166,6 +211,7 @@ test.describe('Admin Document Edit', () => {
     await page.getByTestId('doc-client-note-open').click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo');
     await page.getByTestId('client-note-email').fill('Hola Ana,\n\nAdjunto el contrato final.');
+    await page.getByTestId('client-note-custom-content-0').fill('Llamar el lunes.');
     await page.getByTestId('client-note-apply').click();
     const requestPromise = page.waitForRequest(
       (request) => request.url().includes('/api/documents/1/update/')
@@ -178,9 +224,52 @@ test.describe('Admin Document Edit', () => {
     expect(patchBody.client_email_subject).toBe('Contrato listo');
     expect(patchBody.client_email_body).toBe('Hola Ana,\n\nAdjunto el contrato final.');
     expect(patchBody.client_whatsapp_message).toBe('Hola Ana, revisa el contrato en tu correo.');
+    expect(patchBody.client_custom_notes).toEqual([
+      { title: 'Seguimiento', content: 'Llamar el lunes.' },
+    ]);
   });
 
-  test('a rejected client note keeps the unsaved warning', {
+  test('deletes a custom note from the saved document', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const documentWithCustomNote = {
+      ...mockDocument,
+      content_markdown: '# Contrato',
+      client_custom_notes: [
+        { title: 'Temporal', content: 'Eliminar después de revisar.' },
+      ],
+    };
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithCustomNote) };
+      }
+      if (apiPath === 'documents/1/update/' && method === 'PATCH') {
+        const body = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...documentWithCustomNote, ...body }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+    await page.getByTestId('doc-client-note-open').click();
+    await page.getByTestId('client-note-custom-delete-0').click();
+    await page.getByTestId('client-note-apply').click();
+    const requestPromise = page.waitForRequest(
+      (request) => request.url().includes('/api/documents/1/update/')
+        && request.method() === 'PATCH',
+    );
+
+    await page.getByTestId('doc-save-desktop').click();
+    const request = await requestPromise;
+
+    expect(request.postDataJSON().client_custom_notes).toEqual([]);
+  });
+
+  test('rejected notes keep the unsaved warning', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const documentWithMarkdown = {
@@ -216,7 +305,7 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByTestId('doc-unsaved-notice')).toBeVisible();
   });
 
-  test('a server failure preserves the edited client note', {
+  test('a server failure preserves the edited notes', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:failure'],
   }, async ({ page }) => {
     const documentWithMarkdown = {

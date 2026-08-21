@@ -161,6 +161,7 @@ class Document(models.Model):
     client_email_subject = models.CharField(max_length=255, blank=True, default='')
     client_email_body = models.TextField(blank=True, default='')
     client_whatsapp_message = models.TextField(blank=True, default='')
+    client_custom_notes = models.JSONField(default=list, blank=True)
     language = models.CharField(
         max_length=2, choices=Language.choices, default=Language.ES,
     )

@@ -169,25 +169,25 @@
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <div class="flex items-center gap-2">
-                    <p class="text-sm font-medium text-text-default">Nota para el cliente</p>
-                    <BaseBadge v-if="clientNoteDirty" variant="warning" size="sm">Sin guardar</BaseBadge>
-                    <BaseBadge v-else-if="hasClientNote" variant="success" size="sm">Agregada</BaseBadge>
+                    <p class="text-sm font-medium text-text-default">Notas</p>
+                    <BaseBadge v-if="notesDirty" variant="warning" size="sm">Sin guardar</BaseBadge>
+                    <BaseBadge v-else-if="hasNotes" variant="success" size="sm">Agregadas</BaseBadge>
                   </div>
-                  <p class="text-xs text-text-subtle mt-1">Asunto, correo y WhatsApp en un solo lugar.</p>
+                  <p class="text-xs text-text-subtle mt-1">Asunto, correo, WhatsApp y notas personalizadas.</p>
                 </div>
                 <BaseButton
                   type="button"
                   variant="secondary"
                   size="sm"
                   :icon-only="!lockedCuenta"
-                  :aria-label="lockedCuenta ? undefined : clientNoteActionLabel"
-                  :title="lockedCuenta ? undefined : clientNoteActionLabel"
-                  :disabled="lockedCuenta && !hasClientNote"
+                  :aria-label="lockedCuenta ? undefined : notesActionLabel"
+                  :title="lockedCuenta ? undefined : notesActionLabel"
+                  :disabled="lockedCuenta && !hasNotes"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
                 >
-                  <span v-if="lockedCuenta">Ver nota</span>
-                  <span v-else aria-hidden="true">{{ hasClientNote ? '✏️' : '📝' }}</span>
+                  <span v-if="lockedCuenta">Ver notas</span>
+                  <span v-else aria-hidden="true">{{ hasNotes ? '✏️' : '📝' }}</span>
                 </BaseButton>
               </div>
             </div>
@@ -504,6 +504,7 @@
       :subject="form.client_email_subject"
       :email-body="form.client_email_body"
       :whatsapp-message="form.client_whatsapp_message"
+      :custom-notes="form.client_custom_notes"
       :readonly="lockedCuenta"
       @apply="applyClientNote"
     />
@@ -624,6 +625,7 @@ const form = reactive({
   client_email_subject: '',
   client_email_body: '',
   client_whatsapp_message: '',
+  client_custom_notes: [],
   folder_id: null,
   tag_ids: [],
   template_style: 'professional',
@@ -644,6 +646,7 @@ const FIELD_LABELS = {
   client_email_subject: 'asunto del correo',
   client_email_body: 'correo para el cliente',
   client_whatsapp_message: 'WhatsApp para el cliente',
+  client_custom_notes: 'notas adicionales',
   folder_id: 'carpeta',
   tag_ids: 'etiquetas',
   template_style: 'estilo de plantilla',
@@ -679,26 +682,28 @@ const {
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
 
-const hasClientNote = computed(() => [
+const hasNotes = computed(() => [
   form.client_email_subject,
   form.client_email_body,
   form.client_whatsapp_message,
-].some((value) => value.trim()));
+].some((value) => value.trim()) || form.client_custom_notes.length > 0);
 
-const clientNoteActionLabel = computed(() => (
-  hasClientNote.value ? 'Editar nota para el cliente' : 'Agregar nota para el cliente'
+const notesActionLabel = computed(() => (
+  hasNotes.value ? 'Editar notas' : 'Agregar notas'
 ));
 
-const clientNoteDirty = computed(() => [
+const notesDirty = computed(() => [
   'client_email_subject',
   'client_email_body',
   'client_whatsapp_message',
+  'client_custom_notes',
 ].some((field) => isFieldDirty(field)));
 
 function applyClientNote(note) {
   form.client_email_subject = note.subject;
   form.client_email_body = note.emailBody;
   form.client_whatsapp_message = note.whatsappMessage;
+  form.client_custom_notes = note.customNotes;
 }
 
 const { onClientSelect, onProjectSelect } = useClientProjectCascade(
@@ -841,6 +846,9 @@ async function reloadDocument() {
     form.client_email_subject = result.data.client_email_subject || '';
     form.client_email_body = result.data.client_email_body || '';
     form.client_whatsapp_message = result.data.client_whatsapp_message || '';
+    form.client_custom_notes = Array.isArray(result.data.client_custom_notes)
+      ? result.data.client_custom_notes.map((note) => ({ ...note }))
+      : [];
     form.folder_id = result.data.folder || null;
     form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
     form.template_style = result.data.template_style || 'professional';
@@ -875,6 +883,7 @@ async function handleSave() {
     client_email_subject: form.client_email_subject,
     client_email_body: form.client_email_body,
     client_whatsapp_message: form.client_whatsapp_message,
+    client_custom_notes: form.client_custom_notes,
     folder_id: form.folder_id,
     tag_ids: form.tag_ids,
     template_style: form.template_style,

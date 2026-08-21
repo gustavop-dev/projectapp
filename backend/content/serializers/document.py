@@ -5,6 +5,20 @@ from content.models import Document, DocumentFolder, DocumentTag
 from content.services.document_archive_service import (
     DocumentArchiveError, ensure_active_target,
 )
+from content.services.document_notes import (
+    DocumentNotesValidationError, normalize_client_custom_notes,
+)
+
+
+class ClientCustomNotesField(serializers.JSONField):
+    """Ordered private-note payload with one contract for every write path."""
+
+    def to_internal_value(self, data):
+        value = super().to_internal_value(data)
+        try:
+            return normalize_client_custom_notes(value)
+        except DocumentNotesValidationError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
 
 
 class _TagSummarySerializer(serializers.ModelSerializer):
@@ -211,7 +225,7 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'content_markdown', 'content_json',
             'client_name', 'client', 'client_display_name',
             'client_email_subject', 'client_email_body',
-            'client_whatsapp_message',
+            'client_whatsapp_message', 'client_custom_notes',
             'project', 'project_name',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
@@ -247,13 +261,14 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
     # carpeta de OTRO cliente. No es un campo del modelo: se consume en
     # validate() y nunca llega a validated_data.
     adopt_folder_client = serializers.BooleanField(required=False, write_only=True)
+    client_custom_notes = ClientCustomNotesField(required=False)
 
     class Meta:
         model = Document
         fields = (
             'title', 'client_name', 'language', 'cover_type', 'template_style',
             'client_email_subject', 'client_email_body',
-            'client_whatsapp_message',
+            'client_whatsapp_message', 'client_custom_notes',
             'include_portada', 'include_subportada', 'include_contraportada',
             'status', 'content_markdown', 'content_json',
             'folder_id', 'tag_ids', 'client', 'project', 'adopt_folder_client',
@@ -314,6 +329,7 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
     client_whatsapp_message = serializers.CharField(
         required=False, allow_blank=True, default='',
     )
+    client_custom_notes = ClientCustomNotesField(required=False, default=list)
     language = serializers.ChoiceField(
         choices=Document.Language.choices, required=False, default='es',
     )
