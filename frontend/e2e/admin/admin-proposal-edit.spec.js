@@ -350,7 +350,7 @@ test.describe('Admin Proposal Edit', () => {
     await expect(page).toHaveURL(new RegExp(`/panel/proposals/${PROPOSAL_ID}/edit`));
   });
 
-  test('links a technical requirement to a commercial item and saves linked_item_ids', {
+  test('saves linked_item_ids for required commercial items', {
     tag: [...ADMIN_PROPOSAL_EDIT, '@role:admin'],
   }, async ({ page }) => {
     const proposalWithItems = {
@@ -417,12 +417,13 @@ test.describe('Admin Proposal Edit', () => {
     await expect(itemLinks).toContainText('Vistas');
     await expect(itemLinks).toContainText('Home');
 
-    // Link the requirement to the "Home" item and save
-    await itemLinks.getByRole('checkbox').first().check();
+    // Every included item must be traced before the technical document can save.
+    await itemLinks.getByRole('checkbox', { name: 'Home' }).check();
+    await itemLinks.getByRole('checkbox', { name: 'Contacto' }).check();
     await page.getByRole('button', { name: /Guardar detalle técnico/ }).click();
 
     await expect.poll(() => capturedSectionPayload, { timeout: 10_000 }).not.toBeNull();
     const savedReq = capturedSectionPayload.content_json.epics[0].requirements[0];
-    expect(savedReq.linked_item_ids).toEqual(['item-views-home']);
+    expect(savedReq.linked_item_ids).toEqual(['item-views-home', 'item-views-contacto']);
   });
 });
