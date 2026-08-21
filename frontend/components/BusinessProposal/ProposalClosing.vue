@@ -77,6 +77,7 @@
           <span class="text-2xl font-bold text-text-brand">{{ formatCurrency(proposal?.discounted_investment) }}</span>
           <span class="text-sm text-text-brand/40 line-through">{{ formatCurrency(effectiveTotal) }}</span>
           <span class="text-xs text-text-brand/60">{{ proposal?.currency }}</span>
+          <span class="text-xs font-semibold text-text-brand/70">{{ taxLabel }}</span>
         </div>
       </div>
 
@@ -108,6 +109,7 @@
           <span class="text-xs text-white/70">{{ t.scopeInvestment }}:</span>
           <span class="text-lg font-bold text-white ml-2">{{ formatCurrency(effectiveTotal) }}</span>
           <span class="text-xs text-white/70 ml-1">{{ proposal.currency }}</span>
+          <span class="text-xs font-semibold text-accent ml-1">{{ taxLabel }}</span>
         </div>
       </div>
 
@@ -205,6 +207,7 @@
             <span class="text-xs text-accent/70">{{ t.scopeInvestment }}:</span>
             <span class="text-lg font-bold text-accent ml-2">{{ formatCurrency(effectiveTotal) }}</span>
             <span class="text-xs text-accent/70 ml-1">{{ proposal.currency }}</span>
+            <span class="text-xs font-semibold text-accent ml-1">{{ taxLabel }}</span>
           </div>
         </div>
 
@@ -435,6 +438,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { linkify } from '~/composables/useLinkify';
+import { ensureProposalTaxLabel, proposalTaxLabel } from '~/utils/proposalTax';
 import confetti from 'canvas-confetti';
 
 const sectionRef = ref(null);
@@ -460,6 +464,7 @@ const props = defineProps({
 
 // Use customizedTotal from calculator when available, otherwise fall back to proposal.total_investment
 const effectiveTotal = computed(() => props.customizedTotal ?? props.proposal?.total_investment);
+const taxLabel = computed(() => proposalTaxLabel(props.proposal?.currency));
 
 const whatsappTalkUrl = computed(() => {
   if (props.whatsappLink) return props.whatsappLink;
@@ -737,7 +742,10 @@ const scopeSummary = computed(() => {
   if (inv) {
     const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
     const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
-    items.push({ label: t.value.scopeInvestment, value: formatted + ' ' + (p.currency || '') });
+    items.push({
+      label: t.value.scopeInvestment,
+      value: `${formatted} ${p.currency || ''} ${taxLabel.value}`.trim(),
+    });
   }
   const mods = p.selected_modules || p.modules;
   if (Array.isArray(mods) && mods.length) items.push({ label: t.value.scopeModules, value: String(mods.length) });
@@ -764,7 +772,10 @@ const scopeDisplay = computed(() => {
     if (inv) {
       const numVal = parseFloat(String(inv).replace(/[^\d.]/g, ''));
       const formatted = !isNaN(numVal) && numVal > 0 ? formatCurrency(numVal) : inv;
-      items.push({ label: t.value.scopeInvestment, value: formatted + ' ' + (p.currency || '') });
+      items.push({
+        label: t.value.scopeInvestment,
+        value: `${formatted} ${p.currency || ''} ${taxLabel.value}`.trim(),
+      });
     }
   }
   const mods = p.selected_modules || p.modules;
@@ -777,14 +788,24 @@ const scopeDisplay = computed(() => {
 const paymentMilestones = computed(() => {
   const opts = props.proposal?.payment_options;
   if (!opts || typeof opts !== 'object') return [];
-  if (Array.isArray(opts)) return opts.map(o => ({ label: o.label || o.name || '', amount: o.amount || '' }));
-  if (opts.milestones && Array.isArray(opts.milestones)) return opts.milestones;
-  return [];
+  const milestones = Array.isArray(opts)
+    ? opts
+    : (Array.isArray(opts.milestones) ? opts.milestones : []);
+  return milestones.map(o => ({
+    ...o,
+    label: o.label || o.name || '',
+    amount: ensureProposalTaxLabel(o.amount || '', props.proposal?.currency),
+  }));
 });
 
 const closingPaymentOptions = computed(() => {
   if (!props.paymentOptions || !Array.isArray(props.paymentOptions)) return [];
-  return props.paymentOptions.filter(o => o.label && o.description);
+  return props.paymentOptions
+    .filter(o => o.label && o.description)
+    .map(o => ({
+      ...o,
+      description: ensureProposalTaxLabel(o.description, props.proposal?.currency),
+    }));
 });
 
 const onboardingSteps = computed(() => {

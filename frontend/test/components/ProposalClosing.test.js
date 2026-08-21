@@ -109,6 +109,30 @@ describe('ProposalClosing', () => {
 
     expect(wrapper.find('a[href="mailto:team@projectapp.co"]').text()).toContain('team@projectapp.co');
   });
+
+  it('shows IVA on the closing total', () => {
+    const wrapper = mountProposalClosing({
+      paymentOptions: [
+        { label: '40% al inicio', description: '$112.000.000 COP' },
+      ],
+    });
+
+    expect(wrapper.text()).toMatch(/\$1\.490\.000\s*COP\s*\+ IVA/);
+  });
+
+  it('shows IVA on every 40/30/30 payment', () => {
+    const wrapper = mountProposalClosing({
+      paymentOptions: [
+        { label: '40% al inicio', description: '$112.000.000 COP' },
+        { label: '30% al aprobar QA', description: '$84.000.000 COP + IVA' },
+        { label: '30% al desplegar', description: '$84.000.000 COP' },
+      ],
+    });
+
+    const text = wrapper.text();
+    expect(text).toContain('$112.000.000 COP + IVA');
+    expect(text.match(/\$84\.000\.000 COP \+ IVA/g)).toHaveLength(2);
+  });
 });
 
 // ── Modal flows (additions) ──────────────────────────────────────────────────
@@ -248,6 +272,23 @@ describe('ProposalClosing modal flows', () => {
 
     expect(wrapper.text()).toContain('Pago inicial');
     expect(wrapper.text()).toContain('Entrega final');
+  });
+
+  it('adds IVA to payment milestone amounts', () => {
+    const wrapper = mountProposalClosing({
+      proposal: {
+        ...sentProposal,
+        payment_options: {
+          milestones: [
+            { label: 'Pago inicial', amount: '$500.000' },
+            { label: 'Entrega final', amount: '$990.000' },
+          ],
+        },
+      },
+    });
+
+    expect(wrapper.text()).toContain('$500.000 + IVA');
+    expect(wrapper.text()).toContain('$990.000 + IVA');
   });
 
   // ── WhatsApp link ─────────────────────────────────────────────────────────

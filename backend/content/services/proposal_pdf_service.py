@@ -1127,6 +1127,16 @@ def _payment_pill_desc(label, desc, display_num, tax_suffix=''):
     else:
         pill = formatted
     pill = pill if pill.startswith('$') else '$' + pill
+    if tax_suffix:
+        # Stored proposal copy may already declare the tax. Normalize that
+        # trailing label before appending the renderer-owned suffix so PDF
+        # amounts never read "+ IVA + IVA" or "+ Tax + Tax".
+        pill = re.sub(
+            r'\s*(?:\+\s*|m[aá]s\s+)(?:IVA|Tax)\s*\.?\s*$',
+            '',
+            pill,
+            flags=re.IGNORECASE,
+        ).rstrip()
     return f'{pill}{tax_suffix}'
 
 

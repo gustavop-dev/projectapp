@@ -66,6 +66,7 @@
             <span class="text-sm text-on-primary/70">{{ t.totalInvestment }}:</span>
             <span class="text-xl font-bold text-on-primary ml-2 tabular-nums">{{ formatCurrency(displayTotal) }}</span>
             <span class="text-sm text-on-primary/70 ml-1">{{ currency }}</span>
+            <span class="text-sm font-semibold text-accent ml-1">{{ taxLabel }}</span>
             <p v-if="isBadgeVisible" class="text-xs text-on-primary/50 mt-1">{{ t.customized }}</p>
           </div>
         </div>
@@ -74,7 +75,7 @@
         <div v-else class="text-center mb-8">
           <div class="text-sm font-semibold uppercase tracking-wider mb-4 text-on-primary">{{ t.totalInvestment }}</div>
           <div class="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 text-on-primary tabular-nums">{{ formatCurrency(displayTotal) }}</div>
-          <div class="text-on-primary">{{ currency }}</div>
+          <div class="text-on-primary">{{ currency }} {{ taxLabel }}</div>
           <p v-if="isBadgeVisible" class="text-xs text-on-primary/70 mt-2">{{ t.customized }}</p>
         </div>
 
@@ -137,6 +138,7 @@
                 {{ totalInvestment }}
               </span>
               <span class="text-xs text-on-primary/70 font-medium">{{ currency }}</span>
+              <span class="text-xs text-accent font-semibold">{{ taxLabel }}</span>
             </div>
           </div>
           <!-- Countdown chip -->
@@ -312,6 +314,7 @@ import { useExpirationTimer } from '~/composables/useExpirationTimer';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';
 import { useLinkify } from '~/composables/useLinkify';
 import { RESOLVED_PROPOSAL_STATUSES, DEFAULT_HOSTING_PERCENT, DEFAULT_BILLING_TIERS } from '~/stores/proposals_constants';
+import { ensureProposalTaxLabel, proposalTaxLabel } from '~/utils/proposalTax';
 import InvestmentCalculatorModal from './InvestmentCalculatorModal.vue';
 import InvestmentDetailedTeaser from './InvestmentDetailedTeaser.vue';
 
@@ -469,6 +472,7 @@ const effectiveNumber = computed(() => {
 });
 
 const displayNumber = computed(() => effectiveNumber.value);
+const taxLabel = computed(() => proposalTaxLabel(props.currency));
 
 // Badge shows only for client-confirmed customization, not admin-default
 // modules (which are already reflected in the backend effective total).
@@ -513,16 +517,22 @@ const computedPaymentOptions = computed(() => {
 
   return props.paymentOptions.map(opt => {
     const pctMatch = String(opt.label || '').match(/(\d+)\s*%/);
-    if (!pctMatch) return opt;
+    if (!pctMatch) {
+      return {
+        ...opt,
+        description: ensureProposalTaxLabel(opt.description, props.currency),
+      };
+    }
     const pct = Number(pctMatch[1]) / 100;
     const newAmount = Math.round(target * pct);
     const desc = opt.description || '';
     const newDesc = desc
       ? desc.replace(/[\$]?[\d.,]+/, formatCurrency(newAmount).replace('$', ''))
       : formatCurrency(newAmount);
+    const normalizedDescription = newDesc.startsWith('$') ? newDesc : '$' + newDesc;
     return {
       ...opt,
-      description: newDesc.startsWith('$') ? newDesc : '$' + newDesc,
+      description: ensureProposalTaxLabel(normalizedDescription, props.currency),
     };
   });
 });
