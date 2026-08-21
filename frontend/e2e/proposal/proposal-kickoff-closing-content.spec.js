@@ -94,6 +94,8 @@ test.describe('Proposal kickoff and closing content', () => {
   test('keeps both commitment columns readable at laptop width', {
     tag: [...PROPOSAL_KICKOFF_DISCLOSURE, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the shared proposal URL is the guest's real
+    // entry point; the test reaches the commitment section through nav-next)
     await page.setViewportSize({ width: 1366, height: 768 });
     await openProposal(page);
     await page.getByTestId('nav-next').click();
@@ -102,6 +104,8 @@ test.describe('Proposal kickoff and closing content', () => {
     const kickoff = page.getByTestId('kickoff-card');
     await expect(commitment).toBeVisible();
     await expect(kickoff).toBeVisible();
+    await expect(commitment).toContainText('Construiremos el proyecto con alcance verificable.');
+    await expect(kickoff).toContainText('Revisión comercial');
     const widths = await Promise.all([
       commitment.evaluate(element => element.getBoundingClientRect().width),
       kickoff.evaluate(element => element.getBoundingClientRect().width),

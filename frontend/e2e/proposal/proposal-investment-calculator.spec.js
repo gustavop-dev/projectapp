@@ -117,6 +117,8 @@ test.describe('Proposal Investment Calculator', () => {
   test('keeps tax-qualified payment amounts on one line at laptop width', {
     tag: [...PROPOSAL_INVESTMENT_CALCULATOR, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (the shared proposal URL is the guest's real
+    // entry point; the test reaches the investment section through nav-next)
     const proposal = structuredClone(mockProposal);
     proposal.sections[1].content_json.totalInvestment = '$280.000.000';
     proposal.total_investment = '280000000';
