@@ -1,0 +1,14 @@
+{
+  "id": "proposal-closing-contact",
+  "name": "Proposal Closing Contact",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client reaches the final panel and reviews the commercial calls to action and contact channels.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

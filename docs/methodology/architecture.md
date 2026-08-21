@@ -463,7 +463,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    ProposalPage["pages/proposal/[uuid].vue"]
+    ProposalPage["pages/proposal/[uuid]/index.vue"]
     ProposalPage --> ProposalStore
     ProposalPage --> useProposalNavigation
     ProposalPage --> useExpirationTimer
@@ -483,7 +483,16 @@ flowchart TD
     Sections --> Timeline
     Sections --> Investment
     Sections --> FinalNote
-    Sections --> NextSteps
+
+    NextStepsData["next_steps.content_json"] -->|steps + intro| FinalNote
+    NextStepsData -->|CTA + contacts| ProposalClosing
+    FinalNote --> KickoffColumns["Two columns: commitment + kickoff"]
+    FinalNote --> KickoffDisclosure["Closed disclosure: schedule prerequisites"]
+
+    ProposalPage --> ProposalClosing["Synthetic final closing panel"]
+
+    FunctionalRequirements --> ItemRequirementsMap["item id → linked technical requirements"]
+    ItemRequirementsMap --> LinkedRequirementsModal["Ver requerimientos (N)"]
 
     ProposalPage --> Overlays["Overlay Components"]
     Overlays --> ProposalIndex
@@ -493,6 +502,10 @@ flowchart TD
     Overlays --> ShareProposalButton
     Overlays --> ProposalExpired
 ```
+
+`next_steps` is data-only in the public route: it is not rendered as an independent horizontal panel. Its prerequisite steps are merged into `FinalNote`, while commercial calls to action and contact channels are passed to the synthetic `ProposalClosing` panel in detailed, executive and technical modes. This keeps the commitment narrative distinct from the final response/contact surface.
+
+Commercial item traceability is inclusion-aware. Visible base groups always require coverage; calculator modules require it only when selected/default-selected, and hidden groups are ignored. `TechnicalDocumentEditor` blocks saving when an included item has no technical requirement in `linked_item_ids`, but reports unselected optional gaps as non-blocking warnings. The same mapping powers the client-facing “Ver requerimientos (N)” link for base and contracted-module cards.
 
 ---
 

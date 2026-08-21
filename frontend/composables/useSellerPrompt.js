@@ -73,6 +73,9 @@ Resumen ejecutivo (la promesa)
 ### 6. Escribe como si hablaras con el dueño del negocio
 Tono profesional pero cercano. Nada de jerga técnica innecesaria. No digas "implementaremos una arquitectura de microservicios con API RESTful". Di "construiremos una tienda online rápida, segura y fácil de administrar". El cliente es el decisor, no un programador.
 
+### 7. Facilita la lectura visual
+En los párrafos descriptivos que aparecen debajo de títulos de sección, resalta con \`<b>…</b>\` únicamente **uno o dos conceptos de valor** (resultado, alcance verificable o condición decisiva). El resaltado ayuda a escanear; no conviertas el párrafo completo en negrilla ni uses HTML distinto de las etiquetas permitidas.
+
 ---
 
 ## RESTRICCIONES ESTRUCTURALES DEL JSON
@@ -144,7 +147,7 @@ El JSON de la propuesta alimenta una interfaz visual (UI) con componentes predis
 |---|---|---|
 | \`totalInvestment\` | string | Formato: "$X.XXX.XXX" con puntos como separador de miles colombiano. |
 | \`currency\` | string | "COP" o "USD". No modificar según lo que indique el contexto del cliente. |
-| \`whatsIncluded\` | array de objetos | **Exactamente 3 objetos.** Cada uno con \`icon\` (emoji), \`title\` y \`description\`. Representan: Diseño, Desarrollo, Despliegue. Adaptar \`description\` al proyecto. |
+| \`whatsIncluded\` | array de objetos | **Entre 3 y 6 objetos**, cada uno con \`icon\` (emoji), \`title\` y \`description\`. Deben representar procesos realmente incluidos y diferenciados. Cuando apliquen, separa explícitamente **levantamiento de requerimientos**, Diseño, Desarrollo, **QA** y **Despliegue**; QA y despliegue NUNCA se fusionan en una sola tarjeta. No agregues capacidades funcionales nuevas para llenar tarjetas. |
 | \`paymentOptions\` | array de objetos | **Exactamente 3 objetos.** Distribución fija: 40% / 30% / 30%. Cada \`label\` tiene emoji al final. Cada \`description\` muestra el monto calculado en formato "$X.XXX.XXX COP". |
 | \`paymentMethods\` | array de strings | **Exactamente 2 items.** Dejar: "Transferencia bancaria" y "Nequi / Daviplata". |
 | \`modules\` | array | **Dejar vacío \`[]\`.** Los módulos se gestionan en \`functionalRequirements\`. |
@@ -263,6 +266,8 @@ Sección de presentación que **agrupa los 5 módulos base sin costo extra** (ad
 | \`_kpi_note\` | string | **NO eliminar.** Es una anotación interna. |
 | \`cards\` | array de objetos | **Exactamente 5 tarjetas.** Orden fijo: Inversión, Tiempo Estimado, Garantía, Soporte, Vigencia. Cada una: \`icon\`, \`title\`, \`description\`, \`source\`. Los \`source\` tienen valores fijos: \`total_investment\`, \`timeline_duration\`, \`static\`, \`static\`, \`expires_at\`. NO cambiar los \`source\`. Solo personalizar \`description\`. |
 
+**Regla de garantía:** la duración y condiciones de garantía deben copiarse del contexto contractual y mantenerse idénticas en \`proposalSummary\`, \`finalNote\`, inversión, condiciones comerciales y cualquier otra mención. Nunca inventes un plazo ni reutilices el valor de otra propuesta. No agregues una tarjeta de reportes/analítica salvo que esa capacidad esté explícitamente incluida en el alcance y representada en el JSON.
+
 #### \`finalNote\` 
 | Campo | Tipo | Restricción |
 |---|---|---|
@@ -361,13 +366,15 @@ Sección de presentación que **agrupa los 5 módulos base sin costo extra** (ad
 
 ### \`investment\`
 - \`paymentOptions\`: Calcula los porcentajes (40% / 30% / 30%) sobre el monto total y escríbelos en la \`description\` de cada opción en formato "$X.XXX.XXX COP".
-- \`whatsIncluded\`: Adapta las descripciones al proyecto específico. No dejes textos genéricos.
+- \`whatsIncluded\`: Adapta las descripciones al proyecto específico. Si el proyecto incluye levantamiento, QA y despliegue, dales tarjetas independientes; describe entregables verificables de cada proceso sin convertirlos en módulos funcionales adicionales.
 - \`valueReasons\`: Razones que justifiquen el precio ANTES de que el cliente lo cuestione. Incluye diferenciadores: "diseñado a medida para el sector X", "integración con pasarela de pago colombiana", etc.
 
 ### \`functionalRequirements\`
 - **SINERGIA COMERCIAL↔TÉCNICA (léelo antes de escribir esta sección):** esta sección y el detalle técnico del paso 2 son DOS VISTAS DE LA MISMA HISTORIA. Cada tarjeta comercial (Vistas, Componentes, Funcionalidades, módulos) tendrá una épica técnica homónima, y cada item será enlazado por requerimientos técnicos vía su \`id\` (\`linked_item_ids\`). El cliente navega del item comercial al detalle técnico con un clic — un id mal formado, cambiado o faltante rompe esa navegación, y una descripción comercial que el detalle técnico no pueda sustentar rompe la confianza. Escribe cada item pensando en que el paso 2 DEBERÁ detallarlo.
 - **REGLA CRÍTICA**: NO elimines ningún grupo que tenga \`"_do_not_remove": true\`. Los 25 grupos (8 base + 17 opcionales) deben permanecer. Solo modifica su contenido interno.
 - Adapta cada vista, componente y funcionalidad al negocio del cliente. Si es una pet shop, las categorías son "alimentos, accesorios, salud, juguetes". Si es una inmobiliaria, son "apartamentos, casas, locales".
+- **Introducción orientada al contenido:** \`intro\` debe explicar qué encontrará el lector —experiencias del usuario, componentes, capacidades y trazabilidad— y cómo revisar ese alcance. No menciones módulos opcionales, porcentajes, precio ni frases defensivas como “no hace parte”; esos límites viven en las condiciones comerciales.
+- **No derivar alcance institucional:** no inventes administración, autenticación, usuarios, roles, permisos, auditoría ni configuración operativa porque una vista “podría necesitarlos”. Solo inclúyelos cuando el brief los solicite de forma explícita y exista suficiente detalle para acotarlos.
 - **Items atómicos (regla estricta):** cada item representa UNA sola pantalla, componente o capacidad. Si el brief menciona "registro e inicio de sesión", son DOS vistas separadas con ids distintos — nunca un item compuesto. El paso 2 desglosará cada item en requerimientos técnicos enlazados según su complejidad (3-5 los típicos, hasta 6 los transaccionales); un item compuesto vuelve ese desglose ambiguo y el alcance impreciso.
 - **Asigna a CADA item de \`groups[].items\` y \`additionalModules[].items\` su \`id\` estable** (formato \`item-<id_del_grupo>-<slug-del-nombre>\`, algoritmo exacto en la tabla de restricciones). SIN EXCEPCIONES: un item sin \`id\` es un JSON inválido.
 - **Coherencia de las descripciones de items (regla estricta):** la \`description\` de un item cuenta el QUÉ y el valor de negocio; el CÓMO (configuración, flujos, tecnología) vive en el detalle técnico del paso 2. PROHIBIDO afirmar en un item capacidades que pertenecen a un módulo de \`additionalModules\` NO seleccionado (ej.: no menciones pagos con Stripe, modo offline, chat en vivo, facturación DIAN ni generación con IA en items de \`views\`/\`components\`/\`features\` si el módulo correspondiente no quedó \`default_selected: true\` — para eso existe el módulo). Toda afirmación de una descripción debe poder expandirse en requerimientos técnicos del paso 2 sin contradicción.
@@ -454,10 +461,12 @@ Antes de emitir el JSON, verifica UNO POR UNO estos puntos. Si alguno falla, cor
 1. **Ids de items:** TODO item de \`groups[]\` y \`additionalModules[]\` tiene \`id\` con formato \`item-<id_del_grupo>-<slug>\`, generado con el algoritmo exacto (minúsculas, sin tildes, guiones), único en toda la sección, con dedupe \`-2\`/\`-3\` en orden de documento. En ediciones, ningún id existente cambió.
 2. **Estructura de functionalRequirements:** 8 grupos base en su orden original + 17 módulos opcionales en su orden original. Ningún grupo eliminado, ningún módulo movido entre arrays.
 3. **Coherencia de descripciones:** ninguna descripción de item afirma capacidades de módulos no seleccionados; cada descripción es expandible en requerimientos técnicos sin contradicción.
-4. **roiProjection:** exactamente 3 \`kpis\` (todos con \`source\` verificable) y 3 \`scenarios\` con métricas paralelas y UNA sola \`emphasis: true\` por escenario.
-5. **technicalDocument:** presente como esqueleto de plantilla (sin contenido técnico profundo — eso es el paso 2).
-6. **_meta:** sin claves adicionales a las de la plantilla.
-7. **JSON válido:** parseable, sin comentarios, sin texto fuera del objeto.
+4. **Garantía consistente:** toda mención usa exactamente la duración y condiciones entregadas en el contexto contractual.
+5. **Resumen sin capacidades inventadas:** no aparece una tarjeta de reportes/analítica si no está expresamente incluida en el alcance.
+6. **roiProjection:** exactamente 3 \`kpis\` (todos con \`source\` verificable) y 3 \`scenarios\` con métricas paralelas y UNA sola \`emphasis: true\` por escenario.
+7. **technicalDocument:** presente como esqueleto de plantilla (sin contenido técnico profundo — eso es el paso 2).
+8. **_meta:** sin claves adicionales a las de la plantilla.
+9. **JSON válido:** parseable, sin comentarios, sin texto fuera del objeto.
 
 ---
 

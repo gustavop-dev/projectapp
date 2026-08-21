@@ -13,9 +13,7 @@
       </div>
 
       <div data-animate="fade-up" class="investment-intro mb-12">
-        <p class="text-text-brand/80 font-light leading-relaxed text-lg md:text-xl">
-          {{ introText }}
-        </p>
+        <p class="text-text-brand/80 font-light leading-relaxed text-lg md:text-xl" v-html="linkify(introText)" />
       </div>
 
       <!-- F5: Value proposition — why this investment is worth it -->

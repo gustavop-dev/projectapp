@@ -17,7 +17,57 @@
       <!-- Thank you message -->
       <div v-if="thankYouMessage" data-animate="fade-up">
         <h3 class="text-2xl md:text-3xl font-bold text-text-brand mb-2">{{ t.thankYouTitle }}</h3>
-        <p class="text-base md:text-lg text-text-brand/70 font-light max-w-2xl mx-auto">{{ thankYouMessage }}</p>
+        <p class="text-base md:text-lg text-text-brand/70 font-light max-w-2xl mx-auto" v-html="linkify(thankYouMessage)" />
+      </div>
+
+      <!-- Commercial CTA and contact channels belong to the final closing panel. -->
+      <div
+        v-if="ctaMessage || primaryCTA?.link || secondaryCTA?.text || contactMethods?.length"
+        data-animate="fade-up"
+        data-testid="proposal-ready-contact"
+        class="w-full bg-primary rounded-3xl p-5 sm:p-8 md:p-10 text-center shadow-2xl"
+      >
+        <h3 class="text-2xl sm:text-3xl font-bold text-accent mb-3">{{ t.readyTitle }}</h3>
+        <p
+          v-if="ctaMessage"
+          class="text-base sm:text-lg text-white/85 leading-relaxed mb-6 max-w-2xl mx-auto"
+          v-html="linkify(ctaMessage)"
+        />
+        <div v-if="primaryCTA?.link || secondaryCTA?.text" class="flex flex-col sm:flex-row gap-3 justify-center mb-7">
+          <a
+            v-if="primaryCTA?.link"
+            :href="primaryCTA.link"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center px-6 py-3 bg-accent text-text-brand rounded-xl font-bold hover:opacity-90 transition-opacity"
+          >
+            {{ primaryCTA.text }}
+          </a>
+          <button
+            v-if="secondaryCTA?.text"
+            type="button"
+            data-cal-link="projectapp/discovery-call-projectapp"
+            data-cal-namespace="discovery-call-projectapp"
+            data-cal-config='{"layout":"month_view","useSlotsViewOnSmallScreen":"true"}'
+            class="inline-flex items-center justify-center px-6 py-3 bg-primary-strong text-accent rounded-xl font-bold hover:opacity-85 transition-opacity cursor-pointer"
+          >
+            {{ secondaryCTA.text }}
+          </button>
+        </div>
+        <div v-if="contactMethods?.length" class="grid sm:grid-cols-3 gap-3">
+          <a
+            v-for="(contact, cIdx) in contactMethods"
+            :key="cIdx"
+            :href="contact.link || undefined"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="contact-card bg-surface/10 border border-white/15 rounded-xl p-4 text-white hover:bg-surface/15 transition-colors"
+          >
+            <span class="block text-2xl mb-2">{{ contact.icon }}</span>
+            <span class="block text-sm font-bold">{{ contact.title }}</span>
+            <span class="block text-xs text-white/75 mt-1 break-words">{{ contact.value }}</span>
+          </a>
+        </div>
       </div>
 
       <!-- Discount badge near accept button -->
@@ -384,6 +434,7 @@
 <script setup>
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 import confetti from 'canvas-confetti';
 
 const sectionRef = ref(null);
@@ -401,6 +452,10 @@ const props = defineProps({
   customizedTotal: { type: Number, default: null },
   selectedModuleIds: { type: Array, default: () => [] },
   viewMode: { type: String, default: 'detailed' },
+  ctaMessage: { type: String, default: '' },
+  primaryCTA: { type: Object, default: () => ({}) },
+  secondaryCTA: { type: Object, default: () => ({}) },
+  contactMethods: { type: Array, default: () => [] },
 });
 
 // Use customizedTotal from calculator when available, otherwise fall back to proposal.total_investment
@@ -420,6 +475,7 @@ const i18nStrings = {
   es: {
     validityTitle: 'Validez de la Propuesta',
     thankYouTitle: '¡Gracias por tu Tiempo!',
+    readyTitle: '¿Listo para comenzar?',
     acceptBtn: 'Acepto la propuesta',
     negotiateBtn: 'Necesito ajustes',
     negotiateTitle: 'Me interesa, pero negociemos alcance',
@@ -499,6 +555,7 @@ const i18nStrings = {
   en: {
     validityTitle: 'Proposal Validity',
     thankYouTitle: 'Thank You for Your Time!',
+    readyTitle: 'Ready to get started?',
     acceptBtn: 'I accept the proposal',
     negotiateBtn: 'I need adjustments',
     negotiateTitle: 'I\'m interested, but let\'s adjust the scope',

@@ -982,6 +982,30 @@ describe('linked_item_ids (item traceability)', () => {
     const reqs = payload.content_json.epics[0].requirements;
     expect(reqs[reqs.length - 1].linked_item_ids).toEqual([]);
   });
+
+  it('blocks saving when an included commercial item has no requirement link', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS.map((group) => ({ ...group, isRequiredForCoverage: true })),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().startsWith('Guardar detalle')).trigger('click');
+
+    expect(wrapper.emitted('save')).toBeFalsy();
+    expect(wrapper.text()).toContain('Faltan 1 items obligatorios');
+  });
+
+  it('shows unlinked optional items without blocking the save', async () => {
+    const wrapper = mountTechnicalDocumentEditor({
+      section: sectionWithEpic,
+      itemLinkOptions: ITEM_OPTIONS.map((group) => ({ ...group, isRequiredForCoverage: false })),
+    });
+
+    await wrapper.findAll('button').find((button) => button.text().startsWith('Guardar detalle')).trigger('click');
+
+    expect(wrapper.emitted('save')).toHaveLength(1);
+    expect(wrapper.text()).toContain('items opcionales aún no enlazados');
+  });
 });
 
 // ── Collapse-by-default layout ───────────────────────────────────────────────

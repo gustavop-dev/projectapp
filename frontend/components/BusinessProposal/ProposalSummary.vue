@@ -10,21 +10,25 @@
             {{ content.title }}
           </h2>
         </div>
-        <p v-if="content.subtitle" data-animate="fade-up" class="text-text-default/70 font-light text-lg md:text-xl leading-relaxed">
-          {{ content.subtitle }}
-        </p>
+        <p
+          v-if="content.subtitle"
+          data-animate="fade-up"
+          class="text-text-default/70 font-light text-lg md:text-xl leading-relaxed"
+          v-html="linkify(content.subtitle)"
+        />
       </div>
 
       <div data-animate="fade-up" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
         <div
           v-for="(card, idx) in resolvedCards"
           :key="idx"
+          data-testid="proposal-summary-card"
           class="summary-card bg-esmerald/5 border border-esmerald/10 rounded-2xl p-6 hover:border-esmerald/30 transition-all"
         >
           <div class="text-3xl mb-3">{{ card.icon }}</div>
           <h3 class="font-bold text-text-brand text-base mb-1">{{ card.title }}</h3>
           <p v-if="card.value" class="text-lg font-bold text-text-brand mb-2">{{ card.value }}</p>
-          <p class="text-sm text-text-default/60 leading-relaxed">{{ card.description }}</p>
+          <p class="text-sm text-text-default/60 leading-relaxed" v-html="linkify(card.description)" />
         </div>
       </div>
     </div>
@@ -34,6 +38,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -80,8 +85,6 @@ const i18n = {
     milestones: 'hitos de pago',
     designerTitle: 'Diseñador dedicado',
     designerDesc: 'Un profesional creativo asignado a tu proyecto para diseñar cada detalle de tu experiencia digital.',
-    analyticsTitle: 'Reportes y analítica',
-    analyticsDesc: 'Acceso a un dashboard con reportes periódicos sobre el rendimiento y tráfico de tu sitio para tomar decisiones informadas.',
     bestPracticesTitle: 'Estándares de la industria',
     bestPracticesDesc: 'Desarrollo con las mejores prácticas de la industria en seguridad, rendimiento y calidad de código.',
     guaranteeTitle: 'Soporte post-lanzamiento',
@@ -100,8 +103,6 @@ const i18n = {
     milestones: 'payment milestones',
     designerTitle: 'Dedicated Designer',
     designerDesc: 'A creative professional assigned to your project to craft every detail of your digital experience.',
-    analyticsTitle: 'Reports & Analytics',
-    analyticsDesc: 'Access to a dashboard with periodic reports on your site\'s performance and traffic to make informed decisions.',
     bestPracticesTitle: 'Industry Standards',
     bestPracticesDesc: 'Development following industry best practices in security, performance, and code quality.',
     guaranteeTitle: 'Post-Launch Support',
@@ -188,15 +189,6 @@ const resolvedCards = computed(() => {
       title: t.value.designerTitle,
       value: '',
       description: t.value.designerDesc,
-    });
-  }
-
-  if (!existingSources.has('analytics_dashboard')) {
-    resolved.push({
-      icon: '📊',
-      title: t.value.analyticsTitle,
-      value: '',
-      description: t.value.analyticsDesc,
     });
   }
 

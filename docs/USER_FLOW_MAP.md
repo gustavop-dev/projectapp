@@ -6089,6 +6089,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-calculator-reopen-after-nav` | proposal | P1 | success | 1 |
 | `proposal-calculator-selected-first` | proposal | P2 | display | 1 |
 | `proposal-calculator-timeline` | proposal | P1 | success | 1 |
+| `proposal-closing-contact` | proposal | P2 | display | 1 |
 | `proposal-comment-from-closing` | proposal | P2 | success | 1 |
 | `proposal-conditional-acceptance` | proposal | P2 | success | 1 |
 | `proposal-countdown-realtime` | proposal | P3 | display | 1 |
@@ -6100,6 +6101,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-functional-requirements-modal` | proposal | P2 | display | 1 |
 | `proposal-hosting-plan-terms` | proposal | P2 | display | 1 |
 | `proposal-investment-calculator` | proposal | P1 | success | 1 |
+| `proposal-kickoff-disclosure` | proposal | P2 | display | 1 |
 | `proposal-magic-link-request` | proposal | P1 | success | 1 |
 | `proposal-negotiate` | proposal | P1 | success | 1 |
 | `proposal-og-meta-personalized` | proposal | P3 | display | 1 |
@@ -6825,3 +6827,37 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 | `admin-accounting-project-coherence` | admin | admin | P1 | ✅ Covered | `e2e/admin/admin-accounting-project-coherence.spec.js` |
 | `admin-project-inline-assign-offer` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-inline-assign-offer.spec.js` |
 | `admin-project-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-project-change-client.spec.js` |
+
+
+## Unsectioned flows
+
+### FLOW: `proposal-closing-contact`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** El cliente llega al panel final “Gracias por tu tiempo” y encuentra allí el mensaje comercial, las acciones principales y los canales de contacto, separados de la nota de compromiso.
+- **Steps:**
+  1. El cliente recorre la propuesta hasta el panel de cierre.
+  2. El panel muestra el llamado “¿Listo para comenzar?”.
+  3. Se presentan las acciones comerciales configuradas.
+  4. Se muestran Email, WhatsApp y Website con sus enlaces correspondientes.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-kickoff-closing-content.spec.js`
+
+### FLOW: `proposal-kickoff-disclosure`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** El cliente revisa la nota de compromiso y el plan de kickoff en dos columnas. La información que condiciona la activación del cronograma permanece resumida en un desplegable para no desbalancear la sección.
+- **Steps:**
+  1. El cliente navega a la sección de nota final.
+  2. La nota, los compromisos y el plan de kickoff aparecen en columnas equilibradas.
+  3. El bloque “Información necesaria para activar el cronograma” inicia cerrado.
+  4. El cliente expande el bloque.
+  5. Se muestran la introducción y los pasos requeridos antes de iniciar.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-kickoff-closing-content.spec.js`

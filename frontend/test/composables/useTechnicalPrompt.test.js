@@ -160,6 +160,18 @@ describe('useTechnicalPrompt DEFAULT_PROMPT coherence rules (regression guard)',
     expect(DEFAULT_PROMPT).toMatch(/flowKey\*\*: ASCII, minúsculas, números y guiones \(kebab\)/)
   })
 
+  it('prefers small requirements and splits five-point stories', () => {
+    expect(DEFAULT_PROMPT).toContain('preferencia equivalente a 1–3 puntos')
+    expect(DEFAULT_PROMPT).toContain('5 puntos o más')
+    expect(DEFAULT_PROMPT).toContain('divídela en requerimientos independientes')
+  })
+
+  it('models external integrations for resilient cached reads', () => {
+    expect(DEFAULT_PROMPT).toContain('Modelo de datos para integraciones resilientes')
+    expect(DEFAULT_PROMPT).toContain('estado de salud y la política de retención/cache')
+    expect(DEFAULT_PROMPT).toContain('último dato válido, frescura, checksum y expiración')
+  })
+
   it('includes the pre-output checklist', () => {
     expect(DEFAULT_PROMPT).toContain('CHECKLIST ANTES DE RESPONDER')
     expect(DEFAULT_PROMPT).toContain('Cobertura total de items')

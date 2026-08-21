@@ -85,6 +85,30 @@ describe('ProposalClosing', () => {
     const acceptBtn = wrapper.findAll('button').find(b => b.text().includes('Acepto la propuesta'));
     expect(acceptBtn).toBeFalsy();
   });
+
+  it('renders the ready message in the final panel', () => {
+    const wrapper = mountProposalClosing({ ctaMessage: 'Podemos activar el kickoff.' });
+
+    const readyBlock = wrapper.find('[data-testid="proposal-ready-contact"]');
+    expect(readyBlock.text()).toContain('¿Listo para comenzar?');
+    expect(readyBlock.text()).toContain('Podemos activar el kickoff.');
+  });
+
+  it('renders the configured primary CTA', () => {
+    const wrapper = mountProposalClosing({
+      primaryCTA: { text: 'Escribir por WhatsApp', link: 'https://wa.me/123' },
+    });
+
+    expect(wrapper.find('a[href="https://wa.me/123"]').text()).toBe('Escribir por WhatsApp');
+  });
+
+  it('renders the configured contact methods', () => {
+    const wrapper = mountProposalClosing({
+      contactMethods: [{ icon: '✉️', title: 'Email', value: 'team@projectapp.co', link: 'mailto:team@projectapp.co' }],
+    });
+
+    expect(wrapper.find('a[href="mailto:team@projectapp.co"]').text()).toContain('team@projectapp.co');
+  });
 });
 
 // ── Modal flows (additions) ──────────────────────────────────────────────────

@@ -13,7 +13,7 @@
 
         <div data-animate="fade-up" class="requirements-intro mb-12">
           <p
-            class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl"
+            class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
             v-html="linkify(data.intro)"
           />
         </div>

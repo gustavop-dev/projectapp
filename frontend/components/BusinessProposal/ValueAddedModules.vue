@@ -23,9 +23,11 @@
             <span>✨</span>
             <span>{{ noCostLabel }}</span>
           </span>
-          <p v-if="content.intro" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
-            {{ content.intro }}
-          </p>
+          <p
+            v-if="content.intro"
+            class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
+            v-html="linkify(content.intro)"
+          />
         </div>
 
         <!-- Cards grid -->
@@ -176,6 +178,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 import { trackRequirementClick } from '~/utils/trackRequirementClick';
 import { renderInlineBold } from '~/utils/renderInlineBold';
 import FunctionalRequirementsModal from './FunctionalRequirementsModal.vue';

@@ -1,5 +1,7 @@
 import {
   buildProposalModuleLinkCatalog,
+  buildProposalItemLinkOptions,
+  buildTechnicalItemCoverage,
   buildProposalModuleLinkOptions,
   normalizeTechnicalDocumentModuleLinks,
 } from '~/utils/proposalModuleLinkOptions'
@@ -250,5 +252,51 @@ describe('buildProposalModuleLinkOptions', () => {
 
   it('returns empty array when neither functional_requirements nor investment present', () => {
     expect(buildProposalModuleLinkOptions([{ section_type: 'other' }])).toEqual([])
+  })
+})
+
+describe('commercial item traceability', () => {
+  const sections = [{
+    section_type: 'functional_requirements',
+    content_json: {
+      groups: [{
+        id: 'views',
+        title: 'Vistas',
+        items: [{ id: 'item-views-map', name: 'Mapa' }],
+      }],
+      additionalModules: [{
+        id: 'pwa_module',
+        title: 'PWA',
+        selected: false,
+        items: [{ id: 'item-pwa-install', name: 'Instalación' }],
+      }],
+    },
+  }]
+
+  it('assigns required-item status from commercial inclusion', () => {
+    const options = buildProposalItemLinkOptions(sections)
+
+    expect(options[0].isRequiredForCoverage).toBe(true)
+    expect(options[1].isRequiredForCoverage).toBe(false)
+  })
+
+  it('classifies traceability gaps by commercial inclusion', () => {
+    const coverage = buildTechnicalItemCoverage(
+      buildProposalItemLinkOptions(sections),
+      { epics: [] },
+    )
+
+    expect(coverage.missingRequired.map((item) => item.id)).toEqual(['item-views-map'])
+    expect(coverage.missingOptional.map((item) => item.id)).toEqual(['item-pwa-install'])
+  })
+
+  it('recognizes a linked required item', () => {
+    const coverage = buildTechnicalItemCoverage(
+      buildProposalItemLinkOptions(sections),
+      { epics: [{ requirements: [{ linked_item_ids: ['item-views-map'] }] }] },
+    )
+
+    expect(coverage.coveredRequiredCount).toBe(1)
+    expect(coverage.missingRequired).toEqual([])
   })
 })

@@ -1,0 +1,14 @@
+{
+  "id": "proposal-kickoff-disclosure",
+  "name": "Proposal Kickoff Disclosure",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client expands the kickoff disclosure to review the information required before the schedule starts.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

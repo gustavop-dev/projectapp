@@ -499,6 +499,10 @@ const readMinutesEstimate = computed(() => {
   return 8;
 });
 
+const nextStepsContent = computed(() => (
+  enabledSections.value.find((section) => section.section_type === 'next_steps')?.content_json || {}
+));
+
 // Build display panels: skip next_steps (merged into final_note), no FR sub-panels
 // When viewMode is 'executive', filter to only executive section types
 // When 'technical', synthetic panels from technical_document + closing
@@ -513,6 +517,7 @@ const displayPanels = computed(() => {
     if (enabledSections.value.length > 0) {
       const finalNote = enabledSections.value.find((s) => s.section_type === 'final_note');
       const fnContent = finalNote?.content_json || {};
+      const nsContent = nextStepsContent.value;
       panels.push({
         id: 'proposal_closing',
         section_type: 'proposal_closing',
@@ -520,6 +525,10 @@ const displayPanels = computed(() => {
         _validityMessage: fnContent.validityMessage || '',
         _thankYouMessage: fnContent.thankYouMessage || '',
         _expiresAt: proposal.value?.expires_at || '',
+        _ctaMessage: nsContent.ctaMessage || '',
+        _primaryCTA: nsContent.primaryCTA || {},
+        _secondaryCTA: nsContent.secondaryCTA || {},
+        _contactMethods: nsContent.contactMethods || [],
       });
     }
     return panels;
@@ -557,6 +566,7 @@ const displayPanels = computed(() => {
   if (enabledSections.value.length > 0) {
     const finalNote = enabledSections.value.find(s => s.section_type === 'final_note');
     const fnContent = finalNote?.content_json || {};
+    const nsContent = nextStepsContent.value;
     panels.push({
       id: 'proposal_closing',
       section_type: 'proposal_closing',
@@ -564,6 +574,10 @@ const displayPanels = computed(() => {
       _validityMessage: fnContent.validityMessage || '',
       _thankYouMessage: fnContent.thankYouMessage || '',
       _expiresAt: proposal.value?.expires_at || '',
+      _ctaMessage: nsContent.ctaMessage || '',
+      _primaryCTA: nsContent.primaryCTA || {},
+      _secondaryCTA: nsContent.secondaryCTA || {},
+      _contactMethods: nsContent.contactMethods || [],
     });
   }
 
@@ -881,6 +895,10 @@ function getSectionProps(section, displayIndex) {
       customizedTotal: displayTotal,
       selectedModuleIds: effectiveSelectedModuleIdsForTechnical() || [],
       viewMode: viewMode.value || 'detailed',
+      ctaMessage: section._ctaMessage || '',
+      primaryCTA: section._primaryCTA || {},
+      secondaryCTA: section._secondaryCTA || {},
+      contactMethods: section._contactMethods || [],
     };
   }
 
@@ -1078,10 +1096,6 @@ function getSectionProps(section, displayIndex) {
       kickoffPlan: content.kickoffPlan || defaultKickoff,
       nextSteps: nsContent.steps || [],
       nextStepsIntro: nsContent.introMessage || '',
-      ctaMessage: nsContent.ctaMessage || '',
-      primaryCTA: nsContent.primaryCTA || {},
-      secondaryCTA: nsContent.secondaryCTA || {},
-      contactMethods: nsContent.contactMethods || [],
     };
   }
 
