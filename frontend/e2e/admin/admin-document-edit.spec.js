@@ -52,10 +52,48 @@ test.describe('Admin Document Edit', () => {
     await page.getByTestId('document-open-1').click();
 
     await expect(page.getByLabel(/T[ií]tulo/i)).toHaveValue('Contrato de Servicios');
-    await page.getByTestId('doc-client-note-open').click();
+    const noteButton = page.getByTestId('doc-client-note-open');
+    await expect(noteButton).toHaveText('✏️');
+    await expect(noteButton).toHaveAccessibleName('Editar nota para el cliente');
+    await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo para revisión');
     await expect(page.getByTestId('client-note-email')).toHaveValue('Hola Ana,\n\nEl contrato está listo para tu revisión.');
     await expect(page.getByTestId('client-note-whatsapp')).toHaveValue('Hola Ana, te envié el contrato para revisión.');
+  });
+
+  test('an issued collection account keeps the Ver nota action', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; from
+    // there this test follows the real list → editor → note interaction)
+    const issuedCollectionAccount = {
+      ...mockDocument,
+      document_type_code: 'collection_account',
+      commercial_status: 'issued',
+      client_email_subject: 'Cuenta emitida',
+    };
+    await mockApi(page, async ({ apiPath }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(issuedCollectionAccount) };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents');
+    await page.getByTestId('document-open-1').click();
+
+    const noteButton = page.getByTestId('doc-client-note-open');
+    await expect(noteButton).toHaveText('Ver nota');
+    await noteButton.click();
+    await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
+    await expect(page.getByTestId('client-note-subject')).toBeDisabled();
+    await expect(page.getByTestId('client-note-apply')).toHaveCount(0);
   });
 
   test('back link navigates to documents list', {

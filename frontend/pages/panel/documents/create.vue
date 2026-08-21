@@ -76,10 +76,13 @@
                   type="button"
                   variant="secondary"
                   size="sm"
+                  icon-only
+                  :aria-label="clientNoteActionLabel"
+                  :title="clientNoteActionLabel"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
                 >
-                  {{ hasClientNote ? 'Editar nota' : 'Agregar nota' }}
+                  <span aria-hidden="true">{{ hasClientNote ? '✏️' : '📝' }}</span>
                 </BaseButton>
               </div>
             </div>
@@ -492,6 +495,10 @@ const hasClientNote = computed(() => [
   form.client_email_body,
   form.client_whatsapp_message,
 ].some((value) => value.trim()));
+
+const clientNoteActionLabel = computed(() => (
+  hasClientNote.value ? 'Editar nota para el cliente' : 'Agregar nota para el cliente'
+));
 
 function applyClientNote(note) {
   form.client_email_subject = note.subject;
