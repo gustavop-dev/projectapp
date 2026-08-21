@@ -395,6 +395,14 @@ class TestPaymentPillTaxSuffix:
         assert '745.000' in pill
         assert pill.startswith('$')
 
+    def test_amount_pill_does_not_duplicate_stored_tax_suffix(self):
+        from content.services.proposal_pdf_service import _payment_pill_desc
+        pill = _payment_pill_desc(
+            '40%', '$112.000.000 COP + IVA', 280000000,
+            tax_suffix=' + IVA',
+        )
+        assert pill == '$112.000.000 COP + IVA'
+
     def test_no_percentage_option_has_no_suffix(self):
         from content.services.proposal_pdf_service import _payment_pill_desc
         # No percentage in label -> raw description, no amount, no suffix.

@@ -65,6 +65,12 @@ describe('Investment', () => {
     expect(wrapper.text()).toContain('Conoce el detalle de tu inversión.');
   });
 
+  it('shows IVA on the investment total', () => {
+    const wrapper = mountInvestment();
+
+    expect(wrapper.text()).toContain('COP + IVA');
+  });
+
   it('renders the customize investment button', () => {
     const wrapper = mountInvestment({ modules: [{ id: 1, title: 'Module', optional: true }] });
 
@@ -185,6 +191,8 @@ describe('Investment', () => {
       expect(text).toContain('$3.888.000');
       // 9.720.000 × 0.3 = 2.916.000
       expect(text).toContain('$2.916.000');
+      expect(text).toContain('$3.888.000 COP + IVA');
+      expect(text.match(/\$2\.916\.000 COP \+ IVA/g)).toHaveLength(2);
       // 3.888.000 + 2.916.000 + 2.916.000 === 9.720.000 (effective)
     });
 

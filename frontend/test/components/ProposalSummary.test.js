@@ -79,17 +79,18 @@ describe('ProposalSummary', () => {
       ],
     });
 
-    it('rewrites a stale amount in the description with the live customizedTotal', () => {
+    it('rewrites a stale taxed amount with the live customized total plus IVA', () => {
       const wrapper = mountSummary({
-        content: investmentCardContent('Monto total del proyecto: $4.900.000 COP.'),
+        content: investmentCardContent('Monto total del proyecto: $4.900.000 COP más IVA.'),
         proposal: { total_investment: 3200000, currency: 'COP' },
         customizedTotal: 4320000,
         isCustomized: false,
       });
 
       const card = wrapper.find('.summary-card');
-      expect(card.text()).toContain('$4.320.000 COP');
+      expect(card.text()).toContain('$4.320.000 COP + IVA');
       expect(card.text()).not.toContain('$4.900.000');
+      expect(card.text()).not.toContain('más IVA');
     });
 
     it('falls back to proposal.total_investment when customizedTotal is null', () => {
@@ -101,7 +102,7 @@ describe('ProposalSummary', () => {
       });
 
       const card = wrapper.find('.summary-card');
-      expect(card.text()).toContain('$3.200.000 COP');
+      expect(card.text()).toContain('$3.200.000 COP + IVA');
       expect(card.text()).not.toContain('$4.900.000');
     });
 

@@ -39,6 +39,7 @@
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
 import { linkify } from '~/composables/useLinkify';
+import { proposalTaxLabel } from '~/utils/proposalTax';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);
@@ -122,10 +123,11 @@ const resolvedCards = computed(() => {
     if (card.source === 'total_investment') {
       const effectiveCustom = props.customizedTotal;
       const currency = props.proposal?.currency || 'COP';
+      const taxLabel = proposalTaxLabel(currency);
       if (effectiveCustom !== null && effectiveCustom !== undefined) {
-        value = `${formatCurrency(effectiveCustom)} ${currency}`;
+        value = `${formatCurrency(effectiveCustom)} ${currency} ${taxLabel}`;
       } else if (props.proposal?.total_investment) {
-        value = `${formatCurrency(props.proposal.total_investment)} ${currency}`;
+        value = `${formatCurrency(props.proposal.total_investment)} ${currency} ${taxLabel}`;
       }
       if (props.isCustomized) {
         description = t.value.customized;
@@ -133,7 +135,7 @@ const resolvedCards = computed(() => {
         // Re-template any hard-typed amount in the description so the price
         // inside the narrative stays in sync with the live total.
         description = description.replace(
-          /\$[\d.,]+(\s*(?:COP|USD|EUR|MXN|ARS|CLP))?/i,
+          /\$[\d.,]+(?:\s*(?:COP|USD|EUR|MXN|ARS|CLP))?(?:\s*(?:\+\s*|m[aá]s\s+)(?:IVA|Tax))?/i,
           value,
         );
       }
