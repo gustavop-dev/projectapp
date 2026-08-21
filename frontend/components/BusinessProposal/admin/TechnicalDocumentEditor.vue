@@ -12,7 +12,7 @@
       class="rounded-xl border p-4 space-y-2"
       :class="coverageSummary.missingRequired.length
         ? 'border-red-200 bg-red-50 text-red-900'
-        : 'border-emerald-200 bg-emerald-50 text-emerald-900'"
+        : 'border-emerald-200 bg-success-soft text-emerald-900'"
     >
       <p class="text-sm font-semibold">
         Trazabilidad comercial ↔ técnica:
