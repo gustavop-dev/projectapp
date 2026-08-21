@@ -63,6 +63,26 @@
                        focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
               />
             </div>
+            <div class="rounded-xl border border-border-default bg-surface-raised p-3">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2">
+                    <p class="text-sm font-medium text-text-default">Nota para el cliente</p>
+                    <BaseBadge v-if="hasClientNote" variant="success" size="sm">Agregada</BaseBadge>
+                  </div>
+                  <p class="text-xs text-text-subtle mt-1">Asunto, correo y WhatsApp en un solo lugar.</p>
+                </div>
+                <BaseButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  data-testid="doc-client-note-open"
+                  @click="showClientNote = true"
+                >
+                  {{ hasClientNote ? 'Editar nota' : 'Agregar nota' }}
+                </BaseButton>
+              </div>
+            </div>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Cliente</label>
               <ClientAutocomplete
@@ -321,6 +341,14 @@
       </section>
     </form>
 
+    <DocumentClientNoteModal
+      v-model="showClientNote"
+      :subject="form.client_email_subject"
+      :email-body="form.client_email_body"
+      :whatsapp-message="form.client_whatsapp_message"
+      @apply="applyClientNote"
+    />
+
     <!-- Sin este modal el guard abriría un diálogo que nadie renderiza y la
          navegación quedaría bloqueada en silencio. -->
     <ConfirmModal
@@ -347,6 +375,7 @@
 import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue';
 import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
+import DocumentClientNoteModal from '~/components/panel/documents/DocumentClientNoteModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
@@ -370,6 +399,7 @@ const notify = usePanelNotify();
 const mode = ref('paste');
 const uploadedFileName = ref('');
 const showPreview = ref(true);
+const showClientNote = ref(false);
 const isDragging = ref(false);
 const route = useRoute();
 
@@ -393,6 +423,9 @@ const form = reactive({
   include_subportada: true,
   include_contraportada: true,
   content_markdown: '',
+  client_email_subject: '',
+  client_email_body: '',
+  client_whatsapp_message: '',
   folder_id: null,
   tag_ids: [],
   template_style: 'professional',
@@ -407,6 +440,9 @@ const CREATE_FIELD_LABELS = {
   include_subportada: 'subportada',
   include_contraportada: 'contraportada',
   content_markdown: 'contenido',
+  client_email_subject: 'asunto del correo',
+  client_email_body: 'correo para el cliente',
+  client_whatsapp_message: 'WhatsApp para el cliente',
   folder_id: 'carpeta',
   tag_ids: 'etiquetas',
   template_style: 'estilo de plantilla',
@@ -450,6 +486,18 @@ onMounted(async () => {
 const canSubmit = computed(
   () => !documentStore.isUpdating && form.title.trim() && form.content_markdown.trim(),
 );
+
+const hasClientNote = computed(() => [
+  form.client_email_subject,
+  form.client_email_body,
+  form.client_whatsapp_message,
+].some((value) => value.trim()));
+
+function applyClientNote(note) {
+  form.client_email_subject = note.subject;
+  form.client_email_body = note.emailBody;
+  form.client_whatsapp_message = note.whatsappMessage;
+}
 
 // Elegir cliente o proyecto es una decisión del operador: retira la
 // sugerencia de la carpeta y evita que vuelva a proponerse.
@@ -586,6 +634,9 @@ async function handleSubmit() {
     include_subportada: form.include_subportada,
     include_contraportada: form.include_contraportada,
     markdown: form.content_markdown,
+    client_email_subject: form.client_email_subject,
+    client_email_body: form.client_email_body,
+    client_whatsapp_message: form.client_whatsapp_message,
     folder_id: form.folder_id,
     tag_ids: form.tag_ids,
     template_style: form.template_style,
@@ -609,4 +660,3 @@ async function handleSubmit() {
   }
 }
 </script>
-

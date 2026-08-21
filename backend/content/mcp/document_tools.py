@@ -106,6 +106,11 @@ def _doc_summary(doc):
         'language': doc.language,
         'folder_id': doc.folder_id,
         'folder_name': doc.folder.name if doc.folder else None,
+        'has_client_note': any((
+            doc.client_email_subject.strip(),
+            doc.client_email_body.strip(),
+            doc.client_whatsapp_message.strip(),
+        )),
         'updated_at': doc.updated_at.isoformat() if doc.updated_at else None,
     }
 
@@ -114,6 +119,9 @@ def _doc_detail(doc):
     return {
         **_doc_summary(doc),
         'content_markdown': doc.content_markdown,
+        'client_email_subject': doc.client_email_subject,
+        'client_email_body': doc.client_email_body,
+        'client_whatsapp_message': doc.client_whatsapp_message,
         # Las tres deciden qué páginas trae el PDF: sin exponerlas, quien crea
         # por MCP no tiene cómo saber con qué configuración quedó el documento.
         'include_portada': doc.include_portada,
@@ -123,6 +131,9 @@ def _doc_detail(doc):
 
 
 COVER_FLAGS = ('include_portada', 'include_subportada', 'include_contraportada')
+CLIENT_NOTE_FIELDS = (
+    'client_email_subject', 'client_email_body', 'client_whatsapp_message',
+)
 
 _COVER_FLAG_PROPS = {
     'include_portada': {
@@ -139,6 +150,22 @@ _COVER_FLAG_PROPS = {
     },
 }
 
+_CLIENT_NOTE_PROPS = {
+    'client_email_subject': {
+        'type': 'string',
+        'maxLength': 255,
+        'description': 'Asunto del correo preparado para el cliente (opcional).',
+    },
+    'client_email_body': {
+        'type': 'string',
+        'description': 'Cuerpo del correo preparado para el cliente (opcional).',
+    },
+    'client_whatsapp_message': {
+        'type': 'string',
+        'description': 'Mensaje de WhatsApp preparado para el cliente (opcional).',
+    },
+}
+
 
 def _cover_flag(arguments, name):
     """Lee una casilla de portada de los argumentos MCP.
@@ -149,6 +176,17 @@ def _cover_flag(arguments, name):
     value = arguments.get(name)
     if not isinstance(value, bool):
         raise ToolError(f'{name} debe ser true o false.')
+    return value
+
+
+def _client_note_value(arguments, name):
+    """Validate one private client-note field from an MCP payload."""
+    value = arguments.get(name)
+    if not isinstance(value, str):
+        raise ToolError(f'{name} debe ser texto.')
+    value = value.strip()
+    if name == 'client_email_subject' and len(value) > 255:
+        raise ToolError('client_email_subject no puede superar 255 caracteres.')
     return value
 
 
@@ -232,6 +270,10 @@ def create_document(arguments):
         name: _cover_flag(arguments, name)
         for name in COVER_FLAGS if name in arguments
     }
+    client_note = {
+        name: _client_note_value(arguments, name)
+        for name in CLIENT_NOTE_FIELDS if name in arguments
+    }
 
     doc = Document(
         title=title,
@@ -241,6 +283,7 @@ def create_document(arguments):
         language=language,
         content_markdown=markdown_text,
         **covers,
+        **client_note,
     )
     doc.content_json = build_content_json(doc, markdown_text)
     doc.save()
@@ -285,6 +328,11 @@ def update_document(arguments):
             setattr(doc, flag, _cover_flag(arguments, flag))
             update_fields.add(flag)
 
+    for field in CLIENT_NOTE_FIELDS:
+        if field in arguments:
+            setattr(doc, field, _client_note_value(arguments, field))
+            update_fields.add(field)
+
     markdown_changed = 'markdown' in arguments
     if markdown_changed:
         markdown_text = arguments.get('markdown')
@@ -297,7 +345,8 @@ def update_document(arguments):
         raise ToolError(
             'No se indicó ningún campo para actualizar. Envía al menos uno de: '
             'title, markdown, folder_id, status, client_name, language, '
-            'include_portada, include_subportada, include_contraportada.'
+            'include_portada, include_subportada, include_contraportada, '
+            'client_email_subject, client_email_body, client_whatsapp_message.'
         )
 
     # content_json must always reflect the current title/meta + markdown, so
@@ -423,7 +472,10 @@ DOCUMENT_TOOLS = [
     },
     {
         'name': 'read_document',
-        'description': 'Devuelve un documento markdown completo, incluido su content_markdown.',
+        'description': (
+            'Devuelve un documento markdown completo, incluido su content_markdown '
+            'y la nota privada preparada para comunicárselo al cliente.'
+        ),
         'input_schema': {
             'type': 'object',
             'properties': _DOCUMENT_ID_PROP,
@@ -438,7 +490,8 @@ DOCUMENT_TOOLS = [
             'convierte en PDF con marca luego; basta con enviar buen markdown. '
             'Opcional: folder_id (de list_folders), language (es/en), client_name, '
             'y las casillas include_portada / include_subportada / '
-            'include_contraportada, que deciden qué páginas trae el PDF.'
+            'include_contraportada, que deciden qué páginas trae el PDF. También '
+            'puede guardar asunto, correo y WhatsApp como nota privada.'
         ),
         'input_schema': {
             'type': 'object',
@@ -449,6 +502,7 @@ DOCUMENT_TOOLS = [
                 'language': {'type': 'string', 'enum': ['es', 'en'], 'default': 'es'},
                 'client_name': {'type': 'string'},
                 **_COVER_FLAG_PROPS,
+                **_CLIENT_NOTE_PROPS,
             },
             'required': ['title', 'markdown'],
         },
@@ -460,7 +514,8 @@ DOCUMENT_TOOLS = [
             'Actualiza un documento markdown existente (parcial). Envía '
             'document_id y al menos uno de: title, markdown, folder_id, '
             'status (draft/published/archived), client_name, language, '
-            'include_portada, include_subportada, include_contraportada. Al '
+            'include_portada, include_subportada, include_contraportada, '
+            'client_email_subject, client_email_body, client_whatsapp_message. Al '
             'cambiar el markdown se reprocesa el contenido para el PDF.'
         ),
         'input_schema': {
@@ -477,6 +532,7 @@ DOCUMENT_TOOLS = [
                 'client_name': {'type': 'string'},
                 'language': {'type': 'string', 'enum': ['es', 'en']},
                 **_COVER_FLAG_PROPS,
+                **_CLIENT_NOTE_PROPS,
             },
             'required': ['document_id'],
         },

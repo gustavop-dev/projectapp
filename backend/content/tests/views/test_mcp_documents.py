@@ -160,6 +160,23 @@ class TestDocumentsMcpCrud:
         # La que no se envió conserva el default.
         assert doc.include_subportada is True
 
+    def test_create_document_stores_the_client_note(self, api_client, documents_connector, markdown_doc_type):
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'create_document', {
+            'title': 'Informe de soporte',
+            'markdown': '# Informe\n\nCaso resuelto.',
+            'client_email_subject': 'Caso resuelto',
+            'client_email_body': 'Hola Ana,\n\nEl caso fue resuelto.',
+            'client_whatsapp_message': 'Hola Ana, el caso ya fue resuelto.',
+        })
+
+        assert response.data['result']['isError'] is False
+        document = Document.objects.get(title='Informe de soporte')
+        assert document.client_email_subject == 'Caso resuelto'
+        assert document.client_email_body == 'Hola Ana,\n\nEl caso fue resuelto.'
+        assert document.client_whatsapp_message == 'Hola Ana, el caso ya fue resuelto.'
+
     def test_update_document_changes_the_cover_flags(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type)
         _, token = documents_connector
@@ -190,6 +207,22 @@ class TestDocumentsMcpCrud:
         text = response.data['result']['content'][0]['text']
         assert '# X' in text
 
+    def test_read_document_returns_the_client_note(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(
+            markdown_doc_type,
+            client_email_subject='Reporte listo',
+            client_email_body='El reporte está listo.',
+            client_whatsapp_message='Ya está listo el reporte.',
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'read_document', {'document_id': doc.id})
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert payload['client_email_subject'] == 'Reporte listo'
+        assert payload['client_email_body'] == 'El reporte está listo.'
+        assert payload['client_whatsapp_message'] == 'Ya está listo el reporte.'
+
     def test_update_document_reparses_markdown(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type, title='Old')
         _, token = documents_connector
@@ -203,6 +236,50 @@ class TestDocumentsMcpCrud:
         assert doc.title == 'New'
         assert doc.content_json['meta']['title'] == 'New'
         assert doc.content_markdown.startswith('# Nuevo')
+
+    def test_update_document_preserves_an_omitted_client_note_field(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(
+            markdown_doc_type,
+            client_email_subject='Asunto original',
+            client_email_body='Correo original',
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'client_email_body': 'Correo actualizado',
+        })
+
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.client_email_subject == 'Asunto original'
+        assert doc.client_email_body == 'Correo actualizado'
+
+    def test_update_document_clears_a_client_note_field(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type, client_whatsapp_message='Mensaje anterior')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'client_whatsapp_message': '',
+        })
+
+        assert response.data['result']['isError'] is False
+        doc.refresh_from_db()
+        assert doc.client_whatsapp_message == ''
+
+    def test_update_document_rejects_an_oversized_client_subject(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'update_document', {
+            'document_id': doc.id,
+            'client_email_subject': 'a' * 256,
+        })
+
+        assert response.data['result']['isError'] is True
+        doc.refresh_from_db()
+        assert doc.client_email_subject == ''
 
     def test_update_document_requires_at_least_one_field(self, api_client, documents_connector, markdown_doc_type):
         doc = _make_doc(markdown_doc_type)

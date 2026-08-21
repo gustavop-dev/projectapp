@@ -869,50 +869,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-document-gallery.spec.js`
 
-#### FLOW: `admin-document-create`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P2
-- **Routes:** `/panel/documents/create`
-- **Description:** Create a new admin document using Markdown paste mode (with live preview) or file upload mode. The Identificación block carries the OPTIONAL association pair: `ClientAutocomplete` (data-testid `doc-client-autocomplete`, with inline client creation) and `ProjectSelect` (data-testid `doc-project-select`) in `allowNoClient` mode — picking a project FIRST autofills its owner into the client field (inverse cascade), choosing the client first scopes the project list, and clearing the client also clears the project. Creating inside a folder pre-fills its association (`documentStore.resolveFolderAssociation`, hint `doc-client-suggested-hint`) — a default, never a lock. Desde 2026-08-16 la carpeta que **dice** de quién es manda: su `client`/`project` son un dato, se heredan los dos y el hint lo rotula «Heredado de la carpeta». Sólo si la carpeta no lo dice se cae a la heurística del cliente mayoritario (`GET documents/folder-client-suggestion/`, ≥2 documentos y mayoría estricta), que se rotula «Sugerido». Mandar `client: null` explícito sobrevive a las dos: lo heredado se puede vaciar y nada lo repone.
-- **Steps:**
-  1. Admin navigates to `/panel/documents/create`.
-  2. Page renders with "Pegar Markdown" / "Cargar Archivo" tab toggle.
-  3. Admin optionally associates a client and/or project (either order — the pair stays coherent); the payload always carries `client`/`project`, null included.
-  4. **Paste mode:** Admin pastes Markdown content → live preview renders alongside.
-  5. **Upload mode:** Admin selects a file → file content loaded.
-  6. Admin submits → API call `POST /api/content/documents/` creates document.
-  7. On success, admin redirected to `/panel/documents`.
-- **Branches:**
-  - [Branch A — Validation error] Missing required fields → inline errors displayed.
-  - [Branch B — Preview toggle] Admin clicks preview button → split-pane preview shown alongside editor.
-- **Coverage:** ✅ Covered (paste mode + "Cargar Archivo" upload mode loading the file into the readonly preview and submitting its markdown; asserted 2026-07-23. Cover toggles and template-style are plain form fields carried in the same payload.)
-- **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
-
-#### FLOW: `admin-document-edit`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P2
-- **Routes:** `/panel/documents/:id/edit`
-- **Description:** Edit an existing admin document, update content and status, download as PDF. The Identificación block carries the same client/project association pair as create (without the folder suggestion) and, for the SAVED association, backlinks to both sides: "Ver cliente" → `/panel/clients?highlight=<profileId>` (expands that ficha) and "Ver proyecto" → `/panel/projects?highlight=<id>` (data-testid `document-client-link` / `document-project-link`); a legacy free-text `client_name` shows as reference while the document has no relational client, and sending `client`/`project` as null unlinks. The markdown toolbar above the content textarea also exposes "Copiar" (copies the full markdown to the clipboard) and "Pegar" (inserts clipboard content at the current cursor position in the textarea) buttons.
-- **Steps:**
-  1. Admin navigates to `/panel/documents/:id/edit`.
-  2. Document data loads from API (`GET /api/content/documents/:id/`).
-  3. Edit form renders pre-filled with current content, title, status, client/project association (backlinks under the client field).
-  4. Admin modifies content and clicks save.
-  5. API call `PATCH /api/content/documents/:id/` updates document.
-  6. Success feedback displayed.
-- **Branches:**
-  - [Branch A — Download PDF] Admin clicks "Descargar PDF" → PDF generated from current content.
-  - [Branch B — Status change] Admin updates status (draft/published/archived) → status badge updates.
-  - [Branch C — Back] "Volver a documentos" link → navigates to list without saving.
-  - [Branch D — Copy markdown] Admin clicks "Copiar" (disabled when content is empty) → `form.content_markdown` is written to the clipboard; button label shows "Copiado" for ~2s.
-  - [Branch E — Paste markdown] Admin clicks "Pegar" → clipboard text is inserted at the textarea's current cursor position (or appended at the end if unfocused); button label shows "Pegado" for ~2s. Clipboard read/write failures fail silently (no error shown).
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
-
 #### FLOW: `admin-document-unsaved-guard`
 
 - **Module:** admin
@@ -1297,8 +1253,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 |---------|--------|------|----------|--------|------|
 | `admin-document-list` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-list.spec.js` |
 | `admin-document-gallery` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-gallery.spec.js` |
-| `admin-document-create` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-create.spec.js` |
-| `admin-document-edit` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-edit.spec.js` |
 | `admin-document-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-unsaved-guard.spec.js` |
 | `admin-panel-unsaved-guard` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-panel-unsaved-guard.spec.js` |
 | `admin-document-folders` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folders.spec.js` |
@@ -5533,6 +5487,58 @@ Two transitions that were previously bundled into other flows now have their own
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-hour-packages-delete.spec.js`
 
+### FLOW: `admin-document-create`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/create`
+- **Description:** Crea un documento desde Markdown pegado (con preview vivo) o cargado desde archivo. El bloque Identificación conserva la asociación opcional `ClientAutocomplete` (`doc-client-autocomplete`, con creación inline) + `ProjectSelect` (`doc-project-select`, `allowNoClient`): elegir primero el proyecto completa su cliente, elegir primero el cliente filtra los proyectos y limpiar el cliente limpia el proyecto. Una carpeta puede aportar su cliente/proyecto como valor heredado; sólo cuando no los declara se usa la sugerencia por mayoría estricta de documentos, siempre editable. El acceso compacto `doc-client-note-open` abre una nota privada que agrupa, en este orden, asunto del correo, cuerpo del correo y WhatsApp; no aparece en el PDF ni en el portal del cliente.
+- **Steps:**
+  1. Admin navega a `/panel/documents/create`.
+  2. La vista ofrece **Pegar Markdown** y **Cargar Archivo**.
+  3. Admin completa el título y, opcionalmente, cliente/proyecto en cualquier orden.
+  4. Admin puede abrir **Agregar nota**, completar asunto, correo y WhatsApp, y pulsar **Aplicar al documento**; la vista principal sólo muestra el estado compacto de la nota.
+  5. En **Pegar Markdown**, escribe o pega contenido y revisa el preview vivo; en **Cargar Archivo**, selecciona un `.md` y revisa el contenido cargado.
+  6. Admin pulsa **Crear Documento**.
+  7. `POST /api/documents/create-from-markdown/` recibe markdown, asociaciones, presentación y los tres campos privados (vacíos si se omitieron).
+  8. Al guardar, admin navega al gestor de documentos.
+- **Branches:**
+  - [Display — nota] Cancelar cierra el modal sin aplicar el borrador; cada texto aplicado se puede copiar por separado.
+  - [Display — preview] Admin puede mostrar u ocultar el panel de preview sin perder el markdown.
+  - [Success — asociación] El payload siempre lleva `client`/`project`, incluido `null`; una asociación heredada o sugerida nunca bloquea la edición manual.
+  - [Error — validación] Campos obligatorios faltantes o un rechazo 400 muestran errores y conservan al admin en la página de creación.
+  - [Failure — servidor] Un fallo 5xx conserva la nota en el formulario para reintentar sin volver a redactarla.
+- **Coverage:** ✅ Covered (paste, carga de archivo, asociaciones y nota privada en display/success/error/failure; las casillas de portada y el estilo viajan en el mismo payload, pero se auditan en sus flows específicos).
+- **E2E Spec:** `e2e/admin/admin-document-create.spec.js`
+
+### FLOW: `admin-document-edit`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents/:id/edit`
+- **Description:** Edita contenido, estado, asociación cliente/proyecto y presentación de un documento. La asociación guardada ofrece backlinks `document-client-link` y `document-project-link`; un `client_name` heredado se conserva como referencia mientras no exista relación. La barra de Markdown permite copiar todo el contenido o pegar en la posición del cursor. El selector Amigable/Profesional cambia el preview y el menú de descarga permite obtener cualquiera de los dos estilos. El acceso compacto `doc-client-note-open` abre un modal precargado con asunto del correo, cuerpo del correo y WhatsApp; aplicar cualquiera de esos cambios activa la protección de trabajo sin guardar. La nota no aparece en el PDF ni en el portal del cliente.
+- **Steps:**
+  1. Admin llega desde el gestor a `/panel/documents/:id/edit`; `GET /api/documents/:id/detail/` carga el documento.
+  2. El formulario aparece precargado con título, contenido, estado, asociación, configuración visual y nota privada.
+  3. Admin puede abrir **Ver nota**, **Editar nota** o **Agregar nota**, según el estado guardado.
+  4. Revisa o modifica asunto, correo y WhatsApp, y pulsa **Aplicar al documento**.
+  5. La vista marca la nota como **Sin guardar** y el aviso de cambios incluye los campos modificados.
+  6. Admin modifica cualquier otro dato necesario y pulsa **Guardar cambios**.
+  7. `PATCH /api/documents/:id/update/` persiste el documento y los tres valores exactos, y muestra confirmación.
+- **Branches:**
+  - [Display — lectura] Una cuenta de cobro emitida permite consultar y copiar una nota existente, pero no modificarla.
+  - [Display — volver] **Volver a documentos** navega a la lista y el guard interviene si hay cambios sin guardar.
+  - [Success — PDF] Preview y descarga usan la configuración guardada; el menú permite Amigable o Profesional.
+  - [Success — estado] Cambiar draft/published/archived actualiza el estado persistido.
+  - [Success — copiar Markdown] **Copiar** escribe todo `content_markdown` al portapapeles y muestra **Copiado** temporalmente.
+  - [Success — pegar Markdown] **Pegar** inserta el texto en el cursor (o al final si no hay foco) y muestra **Pegado** temporalmente.
+  - [Error — validación] Un rechazo 400 deja el aviso de cambios sin guardar y muestra el error del campo.
+  - [Failure — servidor] Un fallo 5xx conserva el contenido editado dentro del modal para reintentar.
+- **Coverage:** ✅ Covered (la nota privada satisface display/success/error/failure; asociaciones, Markdown, estilos, PDF y guard tienen cobertura propia o compartida en el spec).
+- **E2E Spec:** `e2e/admin/admin-document-edit.spec.js`
+
 ### FLOW: `proposal-view-paste-rendering`
 
 - **Module:** proposal
@@ -5908,11 +5914,11 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-diagnostic-send-initial` | admin | P1 | success,error | 1 |
 | `admin-discount-analysis-enhanced` | admin | P3 | display | 1 |
 | `admin-document-archive` | admin | P2 | success,failure,display | 1 |
-| `admin-document-create` | admin | P2 | display,success,error | 1 |
+| `admin-document-create` | admin | P2 | display,success,error,failure | 1 |
 | `admin-document-delete` | admin | P2 | success,failure | 1 |
 | `admin-document-drag-organize` | admin | P3 | success | 0 |
 | `admin-document-duplicate` | admin | P3 | success,failure | 1 |
-| `admin-document-edit` | admin | P2 | display,success,error | 1 |
+| `admin-document-edit` | admin | P2 | display,success,error,failure | 1 |
 | `admin-document-folder-change-client` | admin | P2 | success,error | 1 |
 | `admin-document-folder-hierarchy` | admin | P2 | display | 1 |
 | `admin-document-folder-manage` | admin | P2 | success,error,failure | 1 |

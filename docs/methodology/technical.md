@@ -80,6 +80,14 @@ npm run dev                             # http://localhost:3000
 
 `proposal-create` reads proposal shape and business defaults at runtime rather than freezing them in the skill. Its artifacts live under the gitignored `proposal-artifacts/`: an importable JSON plus a manifest for environment, base/effective price, hosting, modules and section visibility. Its optional creator uses `ProposalFromJSONSerializer` and `build_proposal_from_json`; database writes require a dry-run followed by the literal `CREATE_DRAFT` confirmation.
 
+`client-report` owns the canonical client-delivery copy for report documents. It
+generates `client_email_subject`, `client_email_body`, and
+`client_whatsapp_message`, then sends them with the markdown through the Documents
+MCP after operator confirmation. `client-message` delegates report creation and
+prints those exact values rather than redrafting them. The fields are optional model
+metadata exposed by admin detail/create/update and MCP detail/create/update only;
+list serializers, PDF generation, and platform document serializers exclude them.
+
 ### Task Queue (for async features)
 
 ```bash

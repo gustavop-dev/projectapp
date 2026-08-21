@@ -339,6 +339,25 @@ class TestCreateDocumentFromMarkdown:
         assert doc.client_name == 'Test Client'
         assert doc.language == 'en'
 
+    def test_creates_the_client_note(self, admin_client):
+        url = reverse('create-document-from-markdown')
+        payload = {
+            'title': 'Informe con mensaje',
+            'markdown': '# Entrega\n\nTrabajo terminado.',
+            'client_email_subject': 'Entrega completada',
+            'client_email_body': 'Hola Ana,\n\nLa entrega está lista.',
+            'client_whatsapp_message': 'Hola Ana, la entrega ya está lista.',
+        }
+
+        response = admin_client.post(url, payload, format='json')
+
+        assert response.status_code == 201
+        assert response.json()['client_email_subject'] == 'Entrega completada'
+        assert response.json()['client_email_body'] == 'Hola Ana,\n\nLa entrega está lista.'
+        assert response.json()['client_whatsapp_message'] == (
+            'Hola Ana, la entrega ya está lista.'
+        )
+
 
 # ── upload_document_markdown ──
 
@@ -399,6 +418,42 @@ class TestUploadDocumentMarkdown:
         response = admin_client.post(url, {'file': file_obj}, format='multipart')
 
         assert response.status_code == 400
+
+    def test_creates_the_client_note_from_form_data(self, admin_client):
+        url = reverse('upload-document-markdown')
+        file_obj = BytesIO(b'# Uploaded report')
+        file_obj.name = 'report.md'
+
+        response = admin_client.post(
+            url,
+            {
+                'file': file_obj,
+                'client_email_subject': 'Reporte disponible',
+                'client_email_body': 'El reporte está disponible.',
+                'client_whatsapp_message': 'Ya puedes revisar el reporte.',
+            },
+            format='multipart',
+        )
+
+        assert response.status_code == 201
+        document = Document.objects.get(pk=response.json()['id'])
+        assert document.client_email_subject == 'Reporte disponible'
+        assert document.client_email_body == 'El reporte está disponible.'
+        assert document.client_whatsapp_message == 'Ya puedes revisar el reporte.'
+
+    def test_rejects_an_oversized_client_subject(self, admin_client):
+        url = reverse('upload-document-markdown')
+        file_obj = BytesIO(b'# Uploaded report')
+        file_obj.name = 'report.md'
+
+        response = admin_client.post(
+            url,
+            {'file': file_obj, 'client_email_subject': 'a' * 256},
+            format='multipart',
+        )
+
+        assert response.status_code == 400
+        assert 'client_email_subject' in response.json()
 
 
 # ── retrieve_document ──
@@ -463,6 +518,25 @@ class TestUpdateDocument:
         response = admin_client.patch(url, {'title': 'X'}, format='json')
 
         assert response.status_code == 404
+
+    def test_clears_the_client_note(self, admin_client, document):
+        document.client_email_subject = 'Asunto anterior'
+        document.client_email_body = 'Correo anterior'
+        document.client_whatsapp_message = 'WhatsApp anterior'
+        document.save()
+        url = reverse('update-document', kwargs={'document_id': document.id})
+
+        response = admin_client.patch(url, {
+            'client_email_subject': '',
+            'client_email_body': '',
+            'client_whatsapp_message': '',
+        }, format='json')
+
+        assert response.status_code == 200
+        document.refresh_from_db()
+        assert document.client_email_subject == ''
+        assert document.client_email_body == ''
+        assert document.client_whatsapp_message == ''
 
 
 # ── delete_document ──
@@ -985,6 +1059,21 @@ class TestDuplicateDocument:
         duplicate.refresh_from_db()
 
         assert duplicate.content_json['blocks'][0]['text'] == 'Hello'
+
+    def test_duplicate_starts_without_the_client_note(self, admin_client, document):
+        document.client_email_subject = 'Asunto privado'
+        document.client_email_body = 'Correo privado'
+        document.client_whatsapp_message = 'WhatsApp privado'
+        document.save()
+        url = reverse('duplicate-document', kwargs={'document_id': document.id})
+
+        response = admin_client.post(url)
+
+        assert response.status_code == 201
+        duplicate = Document.objects.get(pk=response.json()['id'])
+        assert duplicate.client_email_subject == ''
+        assert duplicate.client_email_body == ''
+        assert duplicate.client_whatsapp_message == ''
 
 
 # ── download_document_pdf ──

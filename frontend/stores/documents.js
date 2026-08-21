@@ -346,7 +346,8 @@ export const useDocumentStore = defineStore('documents', {
 
     /**
      * createFromMarkdown: Create a new document from markdown content.
-     * @param {object} data - { title, client_name, language, cover_type, content_markdown }.
+     * @param {object} data - Document content, presentation metadata, and the
+     * optional private client communication fields.
      */
     async createFromMarkdown(data) {
       this.isUpdating = true;

@@ -101,6 +101,8 @@ class TestDocumentDetailSerializer:
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json', 'client_name',
             'client', 'client_display_name', 'project', 'project_name',
+            'client_email_subject', 'client_email_body',
+            'client_whatsapp_message',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
@@ -147,6 +149,30 @@ class TestDocumentCreateUpdateSerializer:
         )
         assert not serializer.is_valid()
         assert 'status' in serializer.errors
+
+    def test_persists_the_client_note(self):
+        serializer = DocumentCreateUpdateSerializer(data={
+            'title': 'Informe mensual',
+            'client_email_subject': 'Informe listo',
+            'client_email_body': 'Hola Ana,\n\nAdjunto el informe.',
+            'client_whatsapp_message': 'Hola Ana, ya quedó listo el informe.',
+        })
+
+        assert serializer.is_valid(), serializer.errors
+        document = serializer.save()
+
+        assert document.client_email_subject == 'Informe listo'
+        assert document.client_email_body == 'Hola Ana,\n\nAdjunto el informe.'
+        assert document.client_whatsapp_message == 'Hola Ana, ya quedó listo el informe.'
+
+    def test_rejects_an_oversized_client_email_subject(self):
+        serializer = DocumentCreateUpdateSerializer(data={
+            'title': 'Informe mensual',
+            'client_email_subject': 'a' * 256,
+        })
+
+        assert not serializer.is_valid()
+        assert 'client_email_subject' in serializer.errors
 
 
 # ── DocumentFromMarkdownSerializer ────────────────────────────────────────────
@@ -195,6 +221,16 @@ class TestDocumentFromMarkdownSerializer:
         )
         assert serializer.is_valid()
         assert serializer.validated_data['client_name'] == ''
+
+    def test_defaults_the_client_note_to_empty_values(self):
+        serializer = DocumentFromMarkdownSerializer(
+            data={'title': 'Doc', 'markdown': '# x'},
+        )
+
+        assert serializer.is_valid()
+        assert serializer.validated_data['client_email_subject'] == ''
+        assert serializer.validated_data['client_email_body'] == ''
+        assert serializer.validated_data['client_whatsapp_message'] == ''
 
 
 # ── Asociación cliente/proyecto ───────────────────────────────────────────────

@@ -111,6 +111,23 @@ def test_detail_owner_ok_other_client_404(api_client, client_user, client_header
     assert denied.status_code == 404
 
 
+def test_detail_keeps_the_client_note_private(api_client, client_user, client_headers, project):
+    document = _make_document(client_user, project, title='Informe privado')
+    document.client_email_subject = 'Asunto interno'
+    document.client_email_body = 'Correo interno'
+    document.client_whatsapp_message = 'WhatsApp interno'
+    document.save()
+
+    response = api_client.get(
+        f'/api/accounts/documents/{document.uuid}/', **client_headers,
+    )
+
+    assert response.status_code == 200
+    assert 'client_email_subject' not in response.json()
+    assert 'client_email_body' not in response.json()
+    assert 'client_whatsapp_message' not in response.json()
+
+
 def test_pdf_download_owner_ok(api_client, client_user, client_headers, project):
     doc = _make_document(client_user, project, title='PDF Doc')
     with patch(

@@ -1,6 +1,6 @@
 ---
 name: "client-report"
-description: "Reportes de cambios para el cliente (docs/reports/): crea uno en español, no técnico, de lo hecho en la sesión. --list tabula; --find busca por tema. Publica al Gestor de Documentos (MCP) si está disponible, confirmando antes de crear/actualizar."
+description: "Reportes de cambios para el cliente (docs/reports/): crea uno en español, no técnico, y prepara asunto, correo y WhatsApp como nota privada del documento. --list tabula; --find busca por tema. Publica al Gestor de Documentos (MCP) si está disponible, confirmando antes de crear/actualizar."
 ---
 
 # Client Report — reportes de cambios para el cliente
@@ -8,12 +8,13 @@ description: "Reportes de cambios para el cliente (docs/reports/): crea uno en e
 Cada entrega al cliente se documenta con un **reporte de cambios**: un markdown
 en español, **no técnico**, que cita textualmente lo que el cliente reportó,
 explica qué se hizo y le da una guía paso a paso para validarlo él mismo. Esta
-skill crea esos reportes con el formato estándar del fleet, y también los lista
-y los busca.
+skill crea esos reportes con el formato estándar del fleet, prepara la comunicación
+para entregarlos (asunto, correo y WhatsApp) y también los lista y los busca.
 
 **Cadena:** $client-message corre esta skill como su Phase 4 cuando el operador
-pide además el reporte. Invocable suelta para crear/listar/buscar reportes sin el par
-correo+WhatsApp. La coordenada del Gestor (`gestor:` en
+pide además el reporte. Invocable suelta para crear/listar/buscar reportes; en modo
+create siempre genera el par de comunicación, aunque la salida de esta skill siga
+siendo el estado del reporte. La coordenada del Gestor (`gestor:` en
 `config/client-comms/clients/<codebase>.yml`) se resuelve y persiste **acá**, no allá.
 
 **Convención de almacenamiento (fleet-wide):**
@@ -181,6 +182,31 @@ OUT="$REPORTS_DIR/<Tema_En_Snake_Case>_${FECHA}.md"
 
 ---
 
+## Phase 3B — Preparar la nota privada para el cliente (solo MODE=create)
+
+Todo reporte nuevo o actualizado lleva una comunicación lista para enviar, guardada
+como metadata privada del mismo documento y **nunca dentro del markdown/PDF**:
+
+- `client_email_subject`: el asunto sin el prefijo `Asunto:`.
+- `client_email_body`: el cuerpo completo del correo, desde el saludo hasta la firma;
+  no duplica el asunto.
+- `client_whatsapp_message`: el WhatsApp breve.
+
+Generá los tres textos con el perfil del cliente y las reglas de las Phase 5 y 6 de
+$client-message. Esta es una subrutina **no recursiva**: no ejecutes el gating ni la
+Phase 4 de `client-message`, y nunca generes un segundo reporte. Si esta skill fue
+encadenada por `client-message`, reutilizá sus insumos verificados y su perfil ya
+resuelto. Si fue invocada directamente, resolvé sólo el perfil necesario siguiendo su
+Phase 0; no preguntes si se desea reporte porque ya se está creando uno.
+
+El correo debe nombrar el título real del reporte creado en Phase 3. Conservá los tres
+valores exactos durante el resto de la corrida: son los que se publican en Phase 4 y,
+en una ejecución encadenada, los que `client-message` devuelve. **No redactes dos
+versiones equivalentes** porque la copia mostrada al operador debe coincidir byte por
+byte con la nota guardada.
+
+---
+
 ## Phase 4 — Publicar en el Gestor de Documentos (MCP) — solo MODE=create
 
 Tras escribir el `.md` local (Phase 3), publicá el reporte en el **Gestor de
@@ -222,24 +248,35 @@ esto.**
 
 3. **Decidir y CONFIRMAR con el operador (obligatorio, sin excepción):**
    - **Existe → ACTUALIZAR.** Antes de `update_document`, mostrá EXACTAMENTE qué se va a
-     actualizar: `document_id`, título, carpeta, y un resumen de qué cambia en el
-     contenido (qué secciones/puntos). Esperá confirmación explícita. Recién ahí
-     `update_document(document_id=…, markdown=<cuerpo del reporte>)`.
+     actualizar: `document_id`, título, carpeta, un resumen de qué cambia en el
+     contenido (qué secciones/puntos) y que se reemplazarán los tres campos de la
+     nota privada. Esperá confirmación explícita. Recién ahí
+     `update_document(document_id=…, markdown=<cuerpo del reporte>,
+     client_email_subject=…, client_email_body=…,
+     client_whatsapp_message=…)`.
    - **No existe → CREAR, pero PREGUNTÁ ANTES.** Nunca crees documento ni carpeta sin
      preguntar. Mostrá: carpeta destino (y si hay que CREARLA porque falta la del
      proyecto o la subcarpeta, decilo explícito), título propuesto, `language="es"`,
-     `client_name`. Esperá confirmación. Recién ahí, en orden:
+     `client_name` y que se guardará la nota privada con asunto, correo y WhatsApp.
+     Esperá confirmación. Recién ahí, en orden:
      - si el operador aprueba crear carpeta: `create_folder(name=…, parent_id=…)`;
      - `create_document(title=…, markdown=<cuerpo del reporte>, folder_id=…,
-       language="es", client_name=…)`.
+       language="es", client_name=…, client_email_subject=…,
+       client_email_body=…, client_whatsapp_message=…)`.
 
    **Reglas de confirmación:** (a) preguntar SIEMPRE antes de crear algo nuevo (carpeta
    o documento); (b) al actualizar, confirmar qué documento y qué contenido se
    sobrescribe; (c) ante ambigüedad (varias carpetas/documentos candidatos), NO
    adivines — preguntá.
 
-4. **Contenido.** El markdown que subís es el MISMO cuerpo del reporte de Phase 3 (la
-   plantilla del cliente), no un resumen. El gestor lo convierte a PDF.
+4. **Contenido y nota.** El markdown que subís es el MISMO cuerpo del reporte de
+   Phase 3 (la plantilla del cliente), no un resumen. Los tres valores de Phase 3B
+   viajan en sus campos separados y no se insertan en el markdown. El gestor convierte
+   únicamente el reporte a PDF.
+
+   Si el conector no está disponible o el operador omite la publicación, la nota queda
+   generada pero no persistida: declaralo explícitamente en el output. Nunca afirmes que
+   fue guardada si `create_document`/`update_document` no terminó correctamente.
 
 5. **Persistí la coordenada** (sólo si en el punto 1 hubo que resolverla preguntando).
    Escribí el bloque `gestor:` en
@@ -354,6 +391,7 @@ Reportar siguiendo $output-protocol. Plantilla específica:
 | Phase 0 — Args | ✅ | MODE=create, fecha DDMMYYYY del sistema |
 | Phase 3 — Insumos | ✅ | N puntos (sesión + git log) |
 | Plantilla | ✅ | citas textuales + validación paso a paso |
+| Nota privada | ✅ | asunto + correo + WhatsApp guardados / generados sin persistir |
 | Phase 4 — Gestor de Documentos | ✅ | creado id=… / actualizado id=… / n/a (sin conector) / omitido por operador |
 | Git | ⚠️ | sin commitear (decisión del operador) |
 

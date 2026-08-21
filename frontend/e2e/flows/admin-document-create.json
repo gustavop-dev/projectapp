@@ -6,12 +6,13 @@
     "admin"
   ],
   "priority": "P2",
-  "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and the OPTIONAL client/project association: ClientAutocomplete (doc-client-autocomplete, with inline client creation) plus ProjectSelect (doc-project-select) in allowNoClient mode — picking a project FIRST autofills its owner into the client field (inverse cascade), and the payload always carries client/project (null included). Creating inside a folder whose documents mostly belong to one client pre-fills that client (documents/folder-client-suggestion/, hint doc-client-suggested-hint) — a suggestion, never a lock.",
+  "description": "Create a new admin document via Markdown paste mode or file upload mode, with title, live preview, and an optional private client note opened from doc-client-note-open. The modal groups email subject, email body, and WhatsApp in sequence; applying it keeps the draft in the form and creation persists all three fields without adding them to the PDF. The optional client/project association remains available through ClientAutocomplete plus ProjectSelect, including inverse project-to-client cascade and folder suggestions.",
   "expectedSpecs": 1,
-  "knownGaps": "Spec covers paste mode only; \"Cargar Archivo\" upload mode (POST /api/documents/upload-markdown/), cover toggles and template-style selection untested (2026-07-16 audit).",
+  "knownGaps": "Cover toggles and template-style selection are carried by the same payload but are not asserted independently in this flow.",
   "outcomes": [
     "display",
     "success",
-    "error"
+    "error",
+    "failure"
   ]
 }
