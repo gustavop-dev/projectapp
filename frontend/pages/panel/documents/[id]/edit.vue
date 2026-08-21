@@ -179,11 +179,15 @@
                   type="button"
                   variant="secondary"
                   size="sm"
+                  :icon-only="!lockedCuenta"
+                  :aria-label="lockedCuenta ? undefined : clientNoteActionLabel"
+                  :title="lockedCuenta ? undefined : clientNoteActionLabel"
                   :disabled="lockedCuenta && !hasClientNote"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
                 >
-                  {{ lockedCuenta ? 'Ver nota' : (hasClientNote ? 'Editar nota' : 'Agregar nota') }}
+                  <span v-if="lockedCuenta">Ver nota</span>
+                  <span v-else aria-hidden="true">{{ hasClientNote ? '✏️' : '📝' }}</span>
                 </BaseButton>
               </div>
             </div>
@@ -680,6 +684,10 @@ const hasClientNote = computed(() => [
   form.client_email_body,
   form.client_whatsapp_message,
 ].some((value) => value.trim()));
+
+const clientNoteActionLabel = computed(() => (
+  hasClientNote.value ? 'Editar nota para el cliente' : 'Agregar nota para el cliente'
+));
 
 const clientNoteDirty = computed(() => [
   'client_email_subject',
