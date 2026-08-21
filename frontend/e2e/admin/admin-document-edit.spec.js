@@ -64,6 +64,8 @@ test.describe('Admin Document Edit', () => {
   test('an issued collection account keeps the Ver nota action', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the module entry; from
+    // there this test follows the real list → editor → note interaction)
     const issuedCollectionAccount = {
       ...mockDocument,
       document_type_code: 'collection_account',
@@ -72,6 +74,9 @@ test.describe('Admin Document Edit', () => {
     };
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
+      }
       if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
@@ -80,9 +85,15 @@ test.describe('Admin Document Edit', () => {
       }
       return null;
     });
-    await page.goto('/panel/documents/1/edit');
+    await page.goto('/panel/documents');
+    await page.getByTestId('document-open-1').click();
 
-    await expect(page.getByTestId('doc-client-note-open')).toHaveText('Ver nota');
+    const noteButton = page.getByTestId('doc-client-note-open');
+    await expect(noteButton).toHaveText('Ver nota');
+    await noteButton.click();
+    await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
+    await expect(page.getByTestId('client-note-subject')).toBeDisabled();
+    await expect(page.getByTestId('client-note-apply')).toHaveCount(0);
   });
 
   test('back link navigates to documents list', {
