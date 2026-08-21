@@ -43,6 +43,7 @@
 | Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, native repo skills in `.agents/skills/`, project config in `.codex/config.toml`, canonical guide + quickstart, legacy compatibility notes |
 | MCP Concurrent Startup Capacity | ✅ Done | DRF throttle buckets registered MCP connectors by client IP + connector slug, while every unknown slug shares one defensive bucket. Five legitimate connectors can initialize concurrently without consuming one another's quota. |
 | Deployment (Production) | ✅ Done | Gunicorn + Nginx + systemd, documented in deployment-guide.md |
+| Content migrations — merge parallel `0204` leaves | ✅ Done | `0205_merge_contract_terms_and_client_communication` reunifies the contract-terms and private document-communication branches without schema or data operations. |
 | WhatsApp Notifications | ✅ Done | CallMeBot API integration |
 | Database Backups | ✅ Done | django-dbbackup with rotation |
 | Query Profiling (Silk) | ✅ Done | Optional, env-gated |
