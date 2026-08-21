@@ -147,6 +147,8 @@
         "admin-hour-packages-create",
         "admin-hour-packages-edit",
         "admin-hour-packages-delete",
+        "admin-document-create",
+        "admin-document-edit",
         "proposal-view-paste-rendering",
         "proposal-sticky-bar-accept",
         "admin-diagnostic-create",

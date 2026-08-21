@@ -735,3 +735,19 @@ The stable pattern is:
 - Give operational conversions an explicit call-site override (`force_current_terms=True`) rather than changing a public/PDF helper's default semantics.
 - Put payment-provider state ahead of mutation: abort a data migration before touching any subscription whose pending charge is processing or linked externally.
 - Test both sides of the boundary in the same change: historical display stays old, new operational creation becomes current.
+
+## 27. Client-facing copy belongs beside the document, not inside the deliverable
+
+A report and the message used to deliver it have different audiences and lifecycles.
+Putting email/WhatsApp copy in the markdown would leak internal working text into the
+PDF and client portal; keeping it only in terminal output makes a delayed delivery
+easy to lose. The durable boundary is optional private metadata on `Document`, read
+and written only by the admin detail surface and the Documents MCP.
+
+One workflow must own the words. `client-report` creates the report and its canonical
+subject/email/WhatsApp triple; `client-message`, when it requests a report, reuses the
+same bytes instead of composing an equivalent second message. An omitted MCP field
+means “preserve” during partial updates, while an explicit empty string means “clear”.
+Duplicating a document deliberately clears all three fields because delivery copy is
+specific to one concrete handoff. Test this boundary from both sides: internal CRUD
+round-trips the note, and platform serializers never expose it.

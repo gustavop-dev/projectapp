@@ -155,6 +155,12 @@ class Document(models.Model):
     content_markdown = models.TextField(blank=True, default='')
     content_json = models.JSONField(default=dict, blank=True)
     client_name = models.CharField(max_length=255, blank=True, default='')
+    # Internal copy prepared for the operator to send manually. It is
+    # deliberately separate from the document body: none of these fields is
+    # rendered into the PDF or exposed through the client portal.
+    client_email_subject = models.CharField(max_length=255, blank=True, default='')
+    client_email_body = models.TextField(blank=True, default='')
+    client_whatsapp_message = models.TextField(blank=True, default='')
     language = models.CharField(
         max_length=2, choices=Language.choices, default=Language.ES,
     )

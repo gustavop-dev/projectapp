@@ -112,6 +112,13 @@ flowchart TD
 
 Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.
 
+The Documents connector treats client delivery copy as private document metadata:
+`client_email_subject`, `client_email_body`, and `client_whatsapp_message` travel beside
+the report markdown, not inside it. `client-report` creates one canonical triple and
+passes it to `create_document`/`update_document`; an enclosing `client-message` run
+returns those same values. The detail tool and admin editor may read them, while the
+PDF renderer and platform serializers have no path to them.
+
 ---
 
 ## 4. Data Model
@@ -170,7 +177,7 @@ erDiagram
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
-| **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type, content_json, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
+| **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type, content_json, private client_email_subject/client_email_body/client_whatsapp_message, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
 | **DocumentFolder / DocumentTag** | Document organization | name, color, parent (folder), created_by |
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |

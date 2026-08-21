@@ -145,6 +145,14 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
+- **Private client communication note**: creation and editing keep the email subject,
+  complete email body, and WhatsApp message together in one optional modal. These
+  administrative fields never render in the markdown/PDF and are never exposed in
+  the client document portal.
+- The Documents MCP can create, read, and partially update that private note. Every
+  report created through `client-report` generates the three values and persists the
+  exact same copy with the report when publication is approved; `client-message`
+  reuses it without producing a second version.
 - Bilingual support (es/en)
 - **Folders & tags**: documents organize into `DocumentFolder`s and `DocumentTag`s managed inline from the documents list page.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
@@ -264,7 +272,8 @@ Remote Model-Context-Protocol connectors that expose panel modules to claude.ai 
 - **Connectors**: blog, documents, proposals, diagnostics, clients, tasks, accounting — each a token-authenticated JSON-RPC tool server (`content/mcp/*`).
 - **Management**: generate/rotate a one-time connector URL (plaintext token shown once, only its SHA-256 hash stored), toggle active, and watch a connection-activity feed (handshake / tool_call / auth_error / origin_rejected).
 - **Security**: Origin validation (DNS-rebinding defense), per-connector token, active-state gate.
-- The `client-report` skill publishes session change-reports to the Documents connector.
+- The `client-report` skill publishes session change-reports and their private client
+  communication note to the Documents connector.
 
 ### 3.16 Client Document Portal & Signing
 

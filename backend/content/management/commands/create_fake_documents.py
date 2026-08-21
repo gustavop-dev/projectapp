@@ -236,6 +236,17 @@ class Command(BaseCommand):
                 project=project,
                 client_user=client_user,
                 client_name=client_name,
+                client_email_subject=(
+                    f'Entrega de {title}' if i % 3 == 0 else ''
+                ),
+                client_email_body=(
+                    'Buen día:\n\nLe compartimos el documento para su revisión. '
+                    'Quedamos atentos a sus comentarios.' if i % 3 == 0 else ''
+                ),
+                client_whatsapp_message=(
+                    'Buen día. Le enviamos un correo con el documento y los '
+                    'puntos que puede revisar. Quedamos atentos.' if i % 3 == 0 else ''
+                ),
                 created_by=admin,
                 updated_by=admin,
             )

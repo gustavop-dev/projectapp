@@ -29,14 +29,33 @@ test.describe('Admin Document Edit', () => {
   test('renders edit form pre-filled with existing document data', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    const documentWithNote = {
+      ...mockDocument,
+      client_email_subject: 'Contrato listo para revisión',
+      client_email_body: 'Hola Ana,\n\nEl contrato está listo para tu revisión.',
+      client_whatsapp_message: 'Hola Ana, te envié el contrato para revisión.',
+    };
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocument) };
+      if (apiPath === 'documents/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([mockDocument]) };
+      }
+      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+      }
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithNote) };
+      }
       return null;
     });
-    await page.goto('/panel/documents/1/edit');
+    await page.goto('/panel/documents');
+    await page.getByTestId('document-open-1').click();
 
-    await expect(page.getByLabel(/T[ií]tulo/i)).toBeVisible();
+    await expect(page.getByLabel(/T[ií]tulo/i)).toHaveValue('Contrato de Servicios');
+    await page.getByTestId('doc-client-note-open').click();
+    await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo para revisión');
+    await expect(page.getByTestId('client-note-email')).toHaveValue('Hola Ana,\n\nEl contrato está listo para tu revisión.');
+    await expect(page.getByTestId('client-note-whatsapp')).toHaveValue('Hola Ana, te envié el contrato para revisión.');
   });
 
   test('back link navigates to documents list', {
@@ -77,6 +96,123 @@ test.describe('Admin Document Edit', () => {
 
     await page.waitForFunction(() => window._patchCalled || true, { timeout: 5000 }).catch(() => {});
     expect(patchCalled).toBe(true);
+  });
+
+  test('saves an edited client note', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const documentWithNote = {
+      ...mockDocument,
+      content_markdown: '# Contrato\n\nEste es el contenido del contrato.',
+      client_email_subject: 'Contrato listo',
+      client_email_body: 'Hola Ana,\n\nEl contrato está listo.',
+      client_whatsapp_message: 'Hola Ana, revisa el contrato en tu correo.',
+    };
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithNote) };
+      }
+      if (apiPath === 'documents/1/update/' && method === 'PATCH') {
+        const body = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...documentWithNote, ...body }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+
+    await page.getByTestId('doc-client-note-open').click();
+    await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo');
+    await page.getByTestId('client-note-email').fill('Hola Ana,\n\nAdjunto el contrato final.');
+    await page.getByTestId('client-note-apply').click();
+    const requestPromise = page.waitForRequest(
+      (request) => request.url().includes('/api/documents/1/update/')
+        && request.method() === 'PATCH',
+    );
+    await page.getByTestId('doc-save-desktop').click();
+    const request = await requestPromise;
+    const patchBody = request.postDataJSON();
+
+    expect(patchBody.client_email_subject).toBe('Contrato listo');
+    expect(patchBody.client_email_body).toBe('Hola Ana,\n\nAdjunto el contrato final.');
+    expect(patchBody.client_whatsapp_message).toBe('Hola Ana, revisa el contrato en tu correo.');
+  });
+
+  test('a rejected client note keeps the unsaved warning', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const documentWithMarkdown = {
+      ...mockDocument,
+      content_markdown: '# Contrato\n\nContenido.',
+    };
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      }
+      if (apiPath === 'documents/1/update/' && method === 'PATCH') {
+        return {
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ client_email_subject: ['Revisa el asunto.'] }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+    await page.getByTestId('doc-client-note-open').click();
+    await page.getByTestId('client-note-subject').fill('Asunto rechazado');
+    await page.getByTestId('client-note-apply').click();
+
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/documents/1/update/'),
+    );
+    await page.getByTestId('doc-save-desktop').click();
+    await responsePromise;
+
+    await expect(page.getByText('client_email_subject: Revisa el asunto.')).toBeVisible();
+    await expect(page.getByTestId('doc-unsaved-notice')).toBeVisible();
+  });
+
+  test('a server failure preserves the edited client note', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const documentWithMarkdown = {
+      ...mockDocument,
+      content_markdown: '# Contrato\n\nContenido.',
+    };
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
+      }
+      if (apiPath === 'documents/1/update/' && method === 'PATCH') {
+        return {
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'Servicio temporalmente no disponible.' }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+    await page.getByTestId('doc-client-note-open').click();
+    await page.getByTestId('client-note-whatsapp').fill('Mensaje que debe sobrevivir.');
+    await page.getByTestId('client-note-apply').click();
+
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/documents/1/update/'),
+    );
+    await page.getByTestId('doc-save-desktop').click();
+    await responsePromise;
+    await page.getByTestId('doc-client-note-open').click();
+
+    await expect(page.getByTestId('client-note-whatsapp'))
+      .toHaveValue('Mensaje que debe sobrevivir.');
   });
 
   test('copies the markdown content to the clipboard', {

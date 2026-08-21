@@ -210,6 +210,8 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'id', 'uuid', 'title', 'slug', 'status',
             'content_markdown', 'content_json',
             'client_name', 'client', 'client_display_name',
+            'client_email_subject', 'client_email_body',
+            'client_whatsapp_message',
             'project', 'project_name',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
@@ -250,6 +252,8 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
         model = Document
         fields = (
             'title', 'client_name', 'language', 'cover_type', 'template_style',
+            'client_email_subject', 'client_email_body',
+            'client_whatsapp_message',
             'include_portada', 'include_subportada', 'include_contraportada',
             'status', 'content_markdown', 'content_json',
             'folder_id', 'tag_ids', 'client', 'project', 'adopt_folder_client',
@@ -301,6 +305,15 @@ class DocumentFromMarkdownSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     markdown = serializers.CharField(required=True)
     client_name = serializers.CharField(max_length=255, required=False, default='')
+    client_email_subject = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default='',
+    )
+    client_email_body = serializers.CharField(
+        required=False, allow_blank=True, default='',
+    )
+    client_whatsapp_message = serializers.CharField(
+        required=False, allow_blank=True, default='',
+    )
     language = serializers.ChoiceField(
         choices=Document.Language.choices, required=False, default='es',
     )

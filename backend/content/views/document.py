@@ -217,6 +217,9 @@ def create_document_from_markdown(request):
         document_type=get_markdown_document_type(),
         folder=data.get('folder_id'),
         client_name=data.get('client_name', ''),
+        client_email_subject=data.get('client_email_subject', ''),
+        client_email_body=data.get('client_email_body', ''),
+        client_whatsapp_message=data.get('client_whatsapp_message', ''),
         client_user=data.get('client_user'),
         project=data.get('project'),
         language=data.get('language', 'es'),
@@ -260,9 +263,32 @@ def upload_document_markdown(request):
 
     title = request.data.get('title', uploaded_file.name.rsplit('.', 1)[0])
     client_name = request.data.get('client_name', '')
+    client_email_subject = request.data.get('client_email_subject', '')
+    client_email_body = request.data.get('client_email_body', '')
+    client_whatsapp_message = request.data.get('client_whatsapp_message', '')
     language = request.data.get('language', 'es')
     cover_type = request.data.get('cover_type', 'generic')
     template_style = request.data.get('template_style', 'professional')
+
+    # Multipart uploads do not pass through the regular create endpoint, but
+    # their text metadata must follow the same validation contract. In
+    # particular, this prevents an oversized subject from reaching the DB.
+    metadata_serializer = DocumentCreateUpdateSerializer(data={
+        'title': title,
+        'client_name': client_name,
+        'client_email_subject': client_email_subject,
+        'client_email_body': client_email_body,
+        'client_whatsapp_message': client_whatsapp_message,
+        'language': language,
+        'cover_type': cover_type,
+        'template_style': template_style,
+    })
+    if not metadata_serializer.is_valid():
+        return Response(
+            metadata_serializer.errors,
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    metadata = metadata_serializer.validated_data
 
     def _to_bool(value, default=True):
         if isinstance(value, bool):
@@ -289,13 +315,16 @@ def upload_document_markdown(request):
         return Response({'folder_id': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     document = Document(
-        title=title,
+        title=metadata['title'],
         document_type=get_markdown_document_type(),
         folder=folder,
-        client_name=client_name,
-        language=language,
-        cover_type=cover_type,
-        template_style=template_style,
+        client_name=metadata.get('client_name', ''),
+        client_email_subject=metadata.get('client_email_subject', ''),
+        client_email_body=metadata.get('client_email_body', ''),
+        client_whatsapp_message=metadata.get('client_whatsapp_message', ''),
+        language=metadata.get('language', 'es'),
+        cover_type=metadata.get('cover_type', 'generic'),
+        template_style=metadata.get('template_style', 'professional'),
         include_portada=include_portada,
         include_subportada=include_subportada,
         include_contraportada=include_contraportada,
@@ -484,6 +513,11 @@ def duplicate_document(request, document_id):
         status=Document.Status.DRAFT,
         content_markdown=document.content_markdown,
         content_json=copy.deepcopy(document.content_json),
+        # A communication draft belongs to one concrete delivery. Copying it
+        # into another document risks sending stale client-facing text.
+        client_email_subject='',
+        client_email_body='',
+        client_whatsapp_message='',
     )
 
     detail = DocumentDetailSerializer(new_document)
