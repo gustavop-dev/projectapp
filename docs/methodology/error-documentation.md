@@ -45,6 +45,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-020] Proposal closing columns and payment amounts were visually compressed
+- **Date**: 2026-08-21
+- **Context**: The public proposal at laptop and desktop widths showed two narrow closing cards despite available screen space, while payment amounts could wrap before `+ IVA` and the legal contract floated without a document boundary.
+- **Root Cause**: `FinalNote` combined `max-w-6xl` with 192 px of desktop horizontal padding and enabled two columns at `lg`; the payment list was capped at `max-w-lg` and its amount could shrink; `ContractTermsDocument` rendered directly on the page background.
+- **Resolution**: Use a wider container and defer the two-column grid to `xl`, reserve a non-wrapping amount column inside a wider payment list, and contain the contract in a semantic paper surface with a decorative back layer.
+- **Files Affected**: `frontend/components/BusinessProposal/FinalNote.vue`, `Investment.vue`, `ContractTermsDocument.vue`
+- **Regression coverage**: Playwright measures both closing columns above 520 px and the payment list above 640 px at 1366 px, and verifies each tax-qualified amount occupies one line.
+
 ### [ERR-001] defineI18nRoute(false) conflicts with i18n strategy 'prefix'
 - **Date**: 2025-07-07
 - **Context**: All platform pages had `defineI18nRoute(false)`, but Nuxt i18n uses `strategy: 'prefix'`

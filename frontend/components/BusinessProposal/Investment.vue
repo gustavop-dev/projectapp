@@ -54,11 +54,11 @@
             <div class="text-sm font-semibold uppercase tracking-wider text-on-primary mb-1">{{ t.paymentOptions }}</div>
             <div class="text-2xl sm:text-3xl font-bold text-on-primary">{{ computedPaymentOptions.length }} {{ t.convenientPayments }}</div>
           </div>
-          <div class="max-w-lg mx-auto space-y-3">
+          <div data-testid="payment-options-list" class="mx-auto max-w-2xl space-y-3">
             <div v-for="(option, idx) in computedPaymentOptions" :key="idx"
-                 class="payment-option-card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 p-3 sm:p-4 bg-surface/10 rounded-xl">
-              <span class="text-sm text-on-primary/80">{{ option.label }}</span>
-              <span class="text-lg font-bold text-on-primary">{{ option.description }}</span>
+                 class="payment-option-card flex flex-col gap-1 rounded-xl bg-surface/10 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-4">
+              <span data-testid="payment-option-label" class="min-w-0 flex-1 text-sm text-on-primary/80">{{ option.label }}</span>
+              <span data-testid="payment-option-amount" class="shrink-0 whitespace-nowrap text-lg font-bold tabular-nums text-on-primary">{{ option.description }}</span>
             </div>
           </div>
           <!-- Total as secondary line -->

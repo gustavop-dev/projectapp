@@ -91,6 +91,26 @@ async function openProposal(page) {
 }
 
 test.describe('Proposal kickoff and closing content', () => {
+  test('keeps both commitment columns readable at laptop width', {
+    tag: [...PROPOSAL_KICKOFF_DISCLOSURE, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await openProposal(page);
+    await page.getByTestId('nav-next').click();
+
+    const commitment = page.getByTestId('commitment-column');
+    const kickoff = page.getByTestId('kickoff-card');
+    await expect(commitment).toBeVisible();
+    await expect(kickoff).toBeVisible();
+    const widths = await Promise.all([
+      commitment.evaluate(element => element.getBoundingClientRect().width),
+      kickoff.evaluate(element => element.getBoundingClientRect().width),
+    ]);
+
+    expect(widths[0]).toBeGreaterThan(520);
+    expect(widths[1]).toBeGreaterThan(520);
+  });
+
   test('expands the schedule prerequisites from the kickoff panel', {
     tag: [...PROPOSAL_KICKOFF_DISCLOSURE, '@role:guest', '@outcome:display'],
   }, async ({ page }) => {

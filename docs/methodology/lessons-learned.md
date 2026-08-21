@@ -765,3 +765,22 @@ across environments. Verify the repair at graph level (`detect_conflicts()` is e
 and the app has one leaf), then run `makemigrations --check --dry-run` and the system
 check. This graph check belongs before production deploys because Git alone cannot
 detect the condition.
+
+## 29. Responsive card grids need an inner-width acceptance threshold
+
+A desktop breakpoint does not guarantee readable columns. `FinalNote` looked spacious
+at the viewport level while `max-w-6xl`, large container padding, the grid gap and card
+padding left roughly 460 px per column. Measure the element the user reads, not the
+screen: at 1366 px the commitment and kickoff cards must each retain more than 520 px,
+and below that capacity the layout should stack. The same rule applies within rows:
+allow a descriptive payment label to wrap, but reserve an indivisible column for the
+amount, currency and tax suffix.
+
+## 30. Generated rich text needs exact JSON paths in every prompt surface
+
+“Use bold in introductions” is too ambiguous when multiple prompt surfaces and JSON
+field names exist. Keep a canonical field list in both `useSellerPrompt` and backend
+`_seller_prompt.bold_formatting`, state the allowed tag (`<b>`), fragment limit and
+empty-field behavior, and regression-test every path. When correcting one live
+proposal, use an exact-match, reversible data migration so deployment cannot overwrite
+copy edited after the correction was prepared.

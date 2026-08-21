@@ -37,6 +37,7 @@ The proposal system is the most complex and central feature. It allows the admin
 - **18 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection, and Commercial Conditions (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
 - **Edit section content** — each section stores structured JSON matching a specific Vue component's props schema
 - **Choose a reading mode** — the public gateway offers executive, detailed, technical, and **Contrato y condiciones**. The legal mode is a separate, generic document surface rather than another proposal section.
+- **Readable proposal presentation** — closing cards use two columns only when each retains a comfortable reading width; payment amounts keep number, currency, and tax suffix together on laptop/desktop screens. Non-empty lead copy below section titles contains one or two short, safe bold fragments for scanability.
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
 - **Track engagement** — view count, first viewed date, per-section or per-contract-clause time analytics, session tracking, reading mode, engagement scoring (heat score 1-10)
 - **Share links** — clients can share proposals with stakeholders, each share link tracked independently
@@ -165,7 +166,7 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Contract PDFs generated via `ContractPdfService` using ReportLab + shared `PdfUtils`
 - **Draft mode**: generate contract PDF without contractor signature block for review
 - **Final mode**: include contractor signature block once contract is agreed
-- **Public proposal draft**: Spanish proposals may expose the current default template as **Contrato y condiciones**. Its first panel explains the draft and lists linked clauses; its second panel renders the full contract vertically. The dedicated PDF download always forces the global template, masks personal data, omits signatures, and applies the `BORRADOR` watermark.
+- **Public proposal draft**: Spanish proposals may expose the current default template as **Contrato y condiciones**. Its first panel explains the draft and lists linked clauses; its second panel renders the full contract vertically inside a bordered, layered paper surface that remains readable in light and dark themes. The dedicated PDF download always forces the global template, masks personal data, omits signatures, and applies the `BORRADOR` watermark.
 - The public draft is intentionally independent from proposal-specific `ProposalDocument` contracts and from proposal prompt/section JSON. It is current global content, not a per-proposal snapshot.
 - Font: Helvetica throughout for consistent cross-platform rendering
 - Clickable Table of Contents with anchor links to contract sections

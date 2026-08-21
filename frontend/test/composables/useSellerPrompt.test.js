@@ -228,6 +228,31 @@ describe('useSellerPrompt DEFAULT_PROMPT coherence rules (regression guard)', ()
   const { useSellerPrompt } = require('../../composables/useSellerPrompt')
   const { DEFAULT_PROMPT } = useSellerPrompt()
 
+  it.each([
+    'sections.executiveSummary.paragraphs[]',
+    'sections.contextDiagnostic.paragraphs[]',
+    'sections.conversionStrategy.intro',
+    'sections.roiProjection.subtitle',
+    'sections.designUX.paragraphs[]',
+    'sections.creativeSupport.paragraphs[]',
+    'sections.developmentStages.intro',
+    'sections.processMethodology.intro',
+    'sections.functionalRequirements.intro',
+    'sections.valueAddedModules.intro',
+    'sections.investment.introText',
+    'sections.timeline.introText',
+    'sections.proposalSummary.subtitle',
+    'sections.finalNote.message',
+  ])('requires safe bold emphasis in %s', fieldPath => {
+    expect(DEFAULT_PROMPT).toContain(`\`${fieldPath}\``)
+  })
+
+  it('forbids full-copy and Markdown emphasis in section leads', () => {
+    expect(DEFAULT_PROMPT).toContain('No pongas en negrilla una oración o párrafo completo')
+    expect(DEFAULT_PROMPT).toContain('no uses Markdown `**`')
+    expect(DEFAULT_PROMPT).toContain('no inventes contenido para campos')
+  })
+
   it('defines the deterministic slug algorithm for item ids', () => {
     expect(DEFAULT_PROMPT).toContain('Algoritmo del slug')
     expect(DEFAULT_PROMPT).toContain('item-<id_del_grupo>-<slug-del-nombre>')

@@ -112,7 +112,10 @@ test.describe('Proposal Contract and terms', () => {
     await page.goto(`/proposal/${MOCK_UUID}?mode=legal`, { waitUntil: 'domcontentloaded' });
 
     await page.getByTestId('contract-clause-link-clause-02').click({ timeout: 30_000 });
-    const selectedClause = page.getByTestId('contract-clause-clause-02');
+    const paper = page.getByTestId('contract-paper');
+    const selectedClause = paper.getByTestId('contract-clause-clause-02');
+    await expect(paper).toBeVisible({ timeout: 20_000 });
+    await expect(paper).toHaveAttribute('role', 'document');
     await expect(selectedClause).toBeVisible({ timeout: 20_000 });
     await expect(selectedClause).toContainText('Los pagos se realizarán según los hitos definidos.');
   });

@@ -6,7 +6,7 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Client expands the kickoff disclosure to review the information required before the schedule starts.",
+  "description": "Client reviews the commitment and kickoff in readable columns at laptop and desktop widths, then expands the disclosure with the information required before the schedule starts.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

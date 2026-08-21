@@ -70,10 +70,10 @@ const mockProposal = {
   requirement_groups: [],
 };
 
-function buildMockHandler() {
+function buildMockHandler(proposal = mockProposal) {
   return async ({ apiPath }) => {
     if (apiPath === `proposals/${MOCK_UUID}/`) {
-      return { status: 200, contentType: 'application/json', body: JSON.stringify(mockProposal) };
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(proposal) };
     }
     return null;
   };
@@ -112,6 +112,43 @@ test.describe('Proposal Investment Calculator', () => {
     await customizeBtn.scrollIntoViewIfNeeded();
     await customizeBtn.click();
     await expect(page.getByText(/Selecciona los módulos/i)).toBeVisible({ timeout: 3000 });
+  });
+
+  test('keeps tax-qualified payment amounts on one line at laptop width', {
+    tag: [...PROPOSAL_INVESTMENT_CALCULATOR, '@role:guest', '@outcome:display'],
+  }, async ({ page }) => {
+    const proposal = structuredClone(mockProposal);
+    proposal.sections[1].content_json.totalInvestment = '$280.000.000';
+    proposal.total_investment = '280000000';
+    proposal.sections[1].content_json.paymentOptions = [
+      { label: '40% al firmar e iniciar el levantamiento ✍️', description: '$112.000.000 COP + IVA' },
+      { label: '30% al aprobar diseño y arquitectura ✅', description: '$84.000.000 COP + IVA' },
+      { label: '30% al aprobar QA/UAT y autorizar el despliegue 🚀', description: '$84.000.000 COP + IVA' },
+    ];
+    await page.setViewportSize({ width: 1366, height: 768 });
+    await mockApi(page, buildMockHandler(proposal));
+
+    await navigateToInvestment(page);
+
+    const paymentList = page.getByTestId('payment-options-list');
+    const amounts = page.getByTestId('payment-option-amount');
+    await expect(amounts).toHaveCount(3);
+    const listWidth = await paymentList.evaluate(element => element.getBoundingClientRect().width);
+    const amountMetrics = await amounts.evaluateAll(elements => elements.map(element => {
+      const range = document.createRange();
+      range.selectNodeContents(element);
+      return {
+        lineCount: range.getClientRects().length,
+        whiteSpace: window.getComputedStyle(element).whiteSpace,
+      };
+    }));
+
+    expect(listWidth).toBeGreaterThanOrEqual(640);
+    expect(amountMetrics).toEqual([
+      { lineCount: 1, whiteSpace: 'nowrap' },
+      { lineCount: 1, whiteSpace: 'nowrap' },
+      { lineCount: 1, whiteSpace: 'nowrap' },
+    ]);
   });
 
   test('required modules are locked and cannot be toggled', {

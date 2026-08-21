@@ -6,9 +6,10 @@
     "guest"
   ],
   "priority": "P1",
-  "description": "Client opens calculator modal, toggles optional modules, sees dynamic total/timeline, confirms selection.",
+  "description": "Client reviews tax-qualified payment rows without split amounts, opens the calculator, toggles optional modules, sees the dynamic total and timeline, and confirms the selection.",
   "expectedSpecs": 1,
   "outcomes": [
-    "success"
+    "success",
+    "display"
   ]
 }
