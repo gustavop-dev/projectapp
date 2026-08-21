@@ -67,6 +67,7 @@
           :language="pLang"
           :clientName="proposal.client_name || ''"
           :show-technical="hasTechnicalDocument"
+          :show-legal="hasContractTerms"
           @select="handleViewModeSelect"
         />
       </Transition>
@@ -102,7 +103,7 @@
 
         <!-- Restart tutorial button -->
         <button
-          v-if="viewMode && viewMode !== 'technical'"
+          v-if="viewMode && !isDocumentView"
           class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-raised flex items-center justify-center transition-all hover:scale-110 bg-surface text-text-brand border border-border-default hover:bg-surface-muted"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
@@ -124,7 +125,7 @@
 
         <!-- Onboarding tutorial tooltips -->
         <ProposalOnboarding
-          v-if="viewMode !== 'technical'"
+          v-if="!isDocumentView"
           ref="onboardingRef"
           :language="pLang"
           @complete="showReadingTimePopup"
@@ -149,7 +150,7 @@
 
         <!-- Functional requirements onboarding (click cards tutorial) -->
         <RequirementsOnboarding
-          v-if="viewMode !== 'technical'"
+          v-if="!isDocumentView"
           ref="requirementsOnboardingRef"
           :language="pLang"
           :proposalUuid="proposal?.uuid || ''"
@@ -169,6 +170,9 @@
                 <svg v-else-if="switchOverlayMode === 'technical'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                 </svg>
+                <svg v-else-if="switchOverlayMode === 'legal'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 <svg v-else-if="switchOverlayMode === 'gateway'" class="w-8 h-8 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
                 </svg>
@@ -181,6 +185,8 @@
                   ? (pLang === 'es' ? 'Vista Ejecutiva' : 'Executive View')
                   : switchOverlayMode === 'technical'
                     ? (pLang === 'es' ? 'Detalle técnico' : 'Technical detail')
+                    : switchOverlayMode === 'legal'
+                      ? (pLang === 'es' ? 'Contrato y condiciones' : 'Contract and terms')
                     : switchOverlayMode === 'gateway'
                       ? (pLang === 'es' ? 'Seleccionar vista' : 'Select view')
                       : (pLang === 'es' ? 'Propuesta Completa' : 'Full Proposal') }}
@@ -190,6 +196,8 @@
                   ? (pLang === 'es' ? 'Lo esencial de tu proyecto en un vistazo' : 'The essentials of your project at a glance')
                   : switchOverlayMode === 'technical'
                     ? (pLang === 'es' ? 'Arquitectura, stack y requerimientos técnicos' : 'Architecture, stack, and technical requirements')
+                    : switchOverlayMode === 'legal'
+                      ? (pLang === 'es' ? 'Revisa el borrador y sus cláusulas con transparencia' : 'Review the draft and its clauses transparently')
                     : switchOverlayMode === 'gateway'
                       ? (pLang === 'es' ? 'Elige cómo quieres ver la propuesta' : 'Choose how to view the proposal')
                       : (pLang === 'es' ? 'Ahora verás todos los detalles de tu proyecto' : 'Now you\'ll see all the details of your project') }}
@@ -341,6 +349,8 @@ import ShareProposalButton from '~/components/BusinessProposal/ShareProposalButt
 import WhatsAppFloatingButton from '~/components/BusinessProposal/WhatsAppFloatingButton.vue';
 import ProposalViewGateway from '~/components/BusinessProposal/ProposalViewGateway.vue';
 import TechnicalDocumentPublicPanel from '~/components/BusinessProposal/TechnicalDocumentPublicPanel.vue';
+import ContractTermsOverview from '~/components/BusinessProposal/ContractTermsOverview.vue';
+import ContractTermsDocument from '~/components/BusinessProposal/ContractTermsDocument.vue';
 import { buildSyntheticTechnicalPanels } from '~/utils/technicalProposalPanels';
 import {
   buildProposalModuleLinkCatalog,
@@ -391,6 +401,8 @@ const sectionComponentMap = {
   roi_projection: RoiProjection,
   proposal_closing: ProposalClosing,
   technical_document_public: TechnicalDocumentPublicPanel,
+  contract_terms_overview: ContractTermsOverview,
+  contract_terms_document: ContractTermsDocument,
 };
 
 const proposal = computed(() => proposalStore.currentProposal);
@@ -439,7 +451,7 @@ useHead({
   }),
 });
 
-const viewMode = ref(null); // null = gateway, 'executive', 'detailed', 'technical'
+const viewMode = ref(null); // null = gateway, 'executive', 'detailed', 'technical', 'legal'
 const EXECUTIVE_SECTION_TYPES = new Set([
   'greeting', 'executive_summary', 'proposal_summary', 'value_added_modules', 'functional_requirements', 'investment', 'timeline', 'proposal_closing',
 ]);
@@ -447,6 +459,13 @@ const EXECUTIVE_SECTION_TYPES = new Set([
 const hasTechnicalDocument = computed(() =>
   enabledSections.value.some((s) => s.section_type === 'technical_document'),
 );
+const hasContractTerms = computed(() => (
+  proposal.value?.language === 'es'
+  && proposal.value?.show_contract_terms !== false
+));
+const isDocumentView = computed(() => (
+  viewMode.value === 'technical' || viewMode.value === 'legal'
+));
 
 const technicalModuleLinkCatalog = computed(() =>
   buildProposalModuleLinkCatalog(enabledSections.value),
@@ -496,8 +515,10 @@ const itemRequirementsMap = computed(() => (
 const readMinutesEstimate = computed(() => {
   if (viewMode.value === 'executive') return 2;
   if (viewMode.value === 'technical') return 12;
+  if (viewMode.value === 'legal') return 10;
   return 8;
 });
+const activeContractClauseId = ref('');
 
 const nextStepsContent = computed(() => (
   enabledSections.value.find((section) => section.section_type === 'next_steps')?.content_json || {}
@@ -532,6 +553,22 @@ const displayPanels = computed(() => {
       });
     }
     return panels;
+  }
+
+  if (viewMode.value === 'legal') {
+    return [
+      {
+        id: 'contract_terms_overview',
+        section_type: 'contract_terms_overview',
+        title: '⚖️ Contrato y condiciones',
+      },
+      {
+        id: 'contract_terms_document',
+        section_type: 'contract_terms_document',
+        title: '📄 Borrador del contrato',
+        _contractClause: activeContractClauseId.value,
+      },
+    ];
   }
 
   const panels = [];
@@ -604,6 +641,10 @@ const readingPopupVisible = ref(false);
 const switchOverlayVisible = ref(false);
 const switchOverlayMode = ref('detailed');
 const welcomeBack = ref(null);
+const contractTerms = ref(null);
+const contractTermsLoading = ref(false);
+const contractTermsError = ref('');
+const pendingContractClauseId = ref('');
 
 // Current panel and neighbors
 const currentPanel = computed(() => displayPanels.value[currentIndex.value] || displayPanels.value[0]);
@@ -666,7 +707,7 @@ watch(currentPanel, (panel) => {
   if (
     panel?.section_type === 'functional_requirements' &&
     !requirementsOnboardingTriggered &&
-    viewMode.value !== 'technical'
+    !isDocumentView.value
   ) {
     requirementsOnboardingTriggered = true;
     setTimeout(() => {
@@ -878,6 +919,25 @@ function getSectionProps(section, displayIndex) {
   const content = section.content_json || {};
   const idx = typeof displayIndex === 'number' ? displayIndex : (displayIndex?.value ?? 0);
   const paddedIndex = String(idx + 1).padStart(2, '0');
+
+  if (section.section_type === 'contract_terms_overview') {
+    return {
+      terms: contractTerms.value,
+      loading: contractTermsLoading.value,
+      error: contractTermsError.value,
+      proposalUuid: proposal.value?.uuid || '',
+      language: proposal.value?.language || 'es',
+    };
+  }
+
+  if (section.section_type === 'contract_terms_document') {
+    return {
+      terms: contractTerms.value,
+      loading: contractTermsLoading.value,
+      error: contractTermsError.value,
+      language: proposal.value?.language || 'es',
+    };
+  }
 
   if (section.section_type === 'proposal_closing') {
     const investmentSection = enabledSections.value.find(s => s.section_type === 'investment');
@@ -1117,6 +1177,14 @@ function getSectionListeners(section) {
   if (type === 'technical_document_public') {
     listeners.navigate = handleNavigateToFragment;
   }
+  if (type === 'contract_terms_overview') {
+    listeners.navigate = handleNavigateToContractClause;
+    listeners.retry = retryContractTerms;
+  }
+  if (type === 'contract_terms_document') {
+    listeners.ready = handleContractDocumentReady;
+    listeners.retry = retryContractTerms;
+  }
   return listeners;
 }
 
@@ -1181,6 +1249,46 @@ function handleNavigateToFragment(fragment) {
   if (idx !== -1) navigateTo(idx);
 }
 
+async function loadContractTerms({ force = false } = {}) {
+  if (!hasContractTerms.value || contractTermsLoading.value) return;
+  if (contractTerms.value && !force) return;
+  const proposalUuid = proposal.value?.uuid || '';
+  if (!proposalUuid) return;
+
+  contractTermsLoading.value = true;
+  contractTermsError.value = '';
+  const result = await proposalStore.fetchContractTerms(proposalUuid);
+  if (result.success) {
+    contractTerms.value = result.data;
+  } else {
+    contractTermsError.value = result.error || 'contract_terms_unavailable';
+  }
+  contractTermsLoading.value = false;
+}
+
+function retryContractTerms() {
+  contractTerms.value = null;
+  loadContractTerms({ force: true });
+}
+
+function handleNavigateToContractClause(clauseId) {
+  const idx = displayPanels.value.findIndex(
+    panel => panel.section_type === 'contract_terms_document',
+  );
+  if (idx === -1) return;
+  pendingContractClauseId.value = clauseId;
+  activeContractClauseId.value = clauseId;
+  navigateTo(idx);
+}
+
+async function handleContractDocumentReady() {
+  if (!pendingContractClauseId.value) return;
+  await nextTick();
+  const clause = document.getElementById(pendingContractClauseId.value);
+  clause?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  pendingContractClauseId.value = '';
+}
+
 
 const OVERLAY_TRANSITION_MS = 1000;
 
@@ -1198,7 +1306,9 @@ function switchMode(overlayMode, newViewMode, { scrollToTop = false, beforeSwitc
 }
 
 function handleViewModeSelect(mode) {
-  switchMode(mode, mode, { startOnboarding: true });
+  if (mode === 'legal') loadContractTerms();
+  const startsOnboarding = mode !== 'technical' && mode !== 'legal';
+  switchMode(mode, mode, { startOnboarding: startsOnboarding });
 }
 
 function handleSwitchToDetailed() {
@@ -1278,9 +1388,12 @@ const onAnimationComplete = () => {
 
   // Allow bypassing gateway via URL query param (used by E2E tests and direct links)
   const queryMode = typeof route.query.mode === 'string' ? route.query.mode : '';
-  if (queryMode === 'executive' || queryMode === 'detailed' || queryMode === 'technical') {
-    if (queryMode !== 'technical' || hasTechnicalDocument.value) {
+  if (['executive', 'detailed', 'technical', 'legal'].includes(queryMode)) {
+    const canOpenTechnical = queryMode !== 'technical' || hasTechnicalDocument.value;
+    const canOpenLegal = queryMode !== 'legal' || hasContractTerms.value;
+    if (canOpenTechnical && canOpenLegal) {
       viewMode.value = queryMode;
+      if (queryMode === 'legal') loadContractTerms();
     }
   }
 
@@ -1301,7 +1414,7 @@ const onAnimationComplete = () => {
   }
 
   // If viewMode is set (returning visitor), start onboarding; otherwise gateway is shown
-  if (viewMode.value) {
+  if (viewMode.value && !isDocumentView.value) {
     nextTick(() => {
       onboardingRef.value?.start();
     });

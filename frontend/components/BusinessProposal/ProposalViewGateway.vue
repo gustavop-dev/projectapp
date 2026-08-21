@@ -14,7 +14,7 @@
       <!-- Cards -->
       <div
         class="grid grid-cols-1 gap-5 sm:gap-6"
-        :class="showTechnical ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-2'"
+        :class="gatewayGridClass"
       >
         <!-- Executive card -->
         <button
@@ -101,6 +101,36 @@
             </svg>
           </div>
         </button>
+
+        <!-- Contract terms card -->
+        <button
+          v-if="showLegal"
+          type="button"
+          data-testid="gateway-legal-card"
+          class="gateway-card group relative bg-surface rounded-2xl sm:rounded-3xl p-6 sm:p-8 text-left
+                 border-2 border-warning-strong/30 hover:border-warning-strong transition-all duration-300
+                 shadow-lg hover:shadow-2xl cursor-pointer"
+          @click="$emit('select', 'legal')"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-warning-soft rounded-xl flex items-center justify-center flex-shrink-0">
+              <span class="text-2xl">⚖️</span>
+            </div>
+            <div>
+              <h3 class="text-text-brand font-bold text-lg sm:text-xl leading-tight">{{ t.legalTitle }}</h3>
+              <span class="text-warning-strong text-xs font-medium uppercase tracking-wider">{{ t.legalTime }}</span>
+            </div>
+          </div>
+          <p class="text-text-default/70 font-light text-sm sm:text-base leading-relaxed mb-6">
+            {{ t.legalSub }}
+          </p>
+          <div class="flex items-center gap-2 text-warning-strong font-medium text-sm group-hover:gap-3 transition-all">
+            <span>{{ t.legalCta }}</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        </button>
       </div>
     </div>
   </section>
@@ -120,6 +150,10 @@ const props = defineProps({
     default: '',
   },
   showTechnical: {
+    type: Boolean,
+    default: false,
+  },
+  showLegal: {
     type: Boolean,
     default: false,
   },
@@ -143,6 +177,10 @@ const i18n = {
     technicalSub: 'Documentación técnica completa: arquitectura del sistema, stack tecnológico, modelo de datos, módulos y especificaciones de requerimientos.',
     technicalTime: TECH_READING_TIME.es,
     technicalCta: 'Ver detalle técnico',
+    legalTitle: 'Contrato y condiciones',
+    legalSub: 'Consulta de forma transparente el borrador del contrato, sus cláusulas, garantías, pagos, responsabilidades y condiciones del servicio.',
+    legalTime: '~10 min de lectura',
+    legalCta: 'Revisar el borrador',
   },
   en: {
     heading: 'How would you like to explore this proposal?',
@@ -159,10 +197,20 @@ const i18n = {
     technicalSub: 'Full technical documentation: system architecture, tech stack, data model, product modules, and requirement specifications.',
     technicalTime: TECH_READING_TIME.en,
     technicalCta: 'View technical detail',
+    legalTitle: 'Contract and terms',
+    legalSub: 'Review the draft service agreement and its main conditions.',
+    legalTime: '~10 min read',
+    legalCta: 'Review the draft',
   },
 };
 
 const t = computed(() => i18n[props.language] || i18n.es);
+const gatewayGridClass = computed(() => {
+  const visibleCards = 2 + Number(props.showTechnical) + Number(props.showLegal);
+  return visibleCards === 3
+    ? 'sm:grid-cols-2 lg:grid-cols-3'
+    : 'sm:grid-cols-2';
+});
 </script>
 
 <style scoped>
@@ -189,6 +237,7 @@ const t = computed(() => i18n[props.language] || i18n.es);
 .gateway-card:nth-child(1) { animation-delay: 0.18s; }
 .gateway-card:nth-child(2) { animation-delay: 0.36s; }
 .gateway-card:nth-child(3) { animation-delay: 0.54s; }
+.gateway-card:nth-child(4) { animation-delay: 0.72s; }
 
 .gateway-card:hover {
   transform: translateY(-4px);

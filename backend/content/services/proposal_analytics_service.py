@@ -32,8 +32,13 @@ KEY_PROPOSAL_SECTIONS = frozenset({
     'investment', 'timeline', 'functional_requirements', 'final_note',
 })
 
-# Spanish labels for the three client-selectable view modes.
-VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
+# Spanish labels for the client-selectable view modes.
+VIEW_MODE_LABELS = {
+    'executive': 'ejecutiva',
+    'detailed': 'completa',
+    'technical': 'técnica',
+    'legal': 'contractual',
+}
 
 # Ordered fragments of the technical document panel, matching frontend utils/technicalProposalPanels.js
 TECHNICAL_FRAGMENT_ORDER = [
@@ -227,6 +232,10 @@ def csv_analytics_section_group(section_type):
         return 'Detalle técnico (vista pública)'
     if section_type == 'technical_document':
         return 'Detalle técnico'
+    if section_type == 'contract_terms_overview':
+        return 'Contrato y condiciones'
+    if section_type == 'contract_terms_document':
+        return 'Borrador del contrato'
     return ''
 
 
@@ -706,7 +715,7 @@ def build_proposal_analytics(proposal):
         proposal, view_events, sections_data, unique_sessions,
     )
 
-    # --- F6: View mode breakdown (executive / detailed / technical) ---
+    # --- F6: View mode breakdown ---
     # Group by (section_type, subsection_key) so technical_document_public
     # fragments stay split per subsection instead of collapsing into one row.
     by_view_mode = {}
@@ -1171,7 +1180,7 @@ def build_dashboard():
     calc_total = calc_confirmed + calc_abandoned
     calc_abandonment_rate = round(calc_abandoned / calc_total * 100, 1) if calc_total > 0 else None
 
-    # --- Win rate by predominant view_mode (executive / detailed / technical) ---
+    # --- Win rate by predominant view_mode ---
     from content.models import ProposalViewEvent as _PVE_dm
     terminal_proposals = all_proposals.filter(
         status__in=['accepted', 'finished', 'rejected', 'expired'],
@@ -1180,6 +1189,7 @@ def build_dashboard():
         'executive': {'total': 0, 'accepted': 0},
         'detailed': {'total': 0, 'accepted': 0},
         'technical': {'total': 0, 'accepted': 0},
+        'legal': {'total': 0, 'accepted': 0},
     }
     for p in terminal_proposals:
         mode_counts = (

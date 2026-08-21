@@ -153,13 +153,13 @@ erDiagram
 
 | Model | Purpose | Key Fields |
 |-------|---------|------------|
-| **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, expires_at, view_count, cached_heat_score. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
-| **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (17 types — incl. `roi_projection`, web-only), title, order, is_enabled, content_json, is_wide_panel |
+| **BusinessProposal** | Core proposal entity | uuid, title, **client (FK→accounts.UserProfile, PROTECT)**, client_name (snapshot), client_email (snapshot), client_phone (snapshot), status, total_investment, currency, language, show_contract_terms, expires_at, view_count, cached_heat_score. Snapshots are write-through, kept in sync via `proposal_client_service.sync_snapshot()`. |
+| **ProposalSection** | Individual section within a proposal | proposal_fk, section_type (18 types — incl. `roi_projection`, web-only), title, order, is_enabled, content_json, is_wide_panel |
 | **ProposalRequirementGroup** | Functional requirements group | proposal_fk, group_id, title, description, order |
 | **ProposalRequirementItem** | Individual requirement item | group_fk, name, description, icon |
 | **ProposalAlert** | Manual/auto alerts for sellers | proposal_fk, alert_type (12 types), message, alert_date, priority, is_dismissed |
-| **ProposalViewEvent** | Each client page-load | proposal_fk, session_id, ip_address, user_agent, view_mode |
-| **ProposalSectionView** | Per-section time tracking | view_event_fk, section_type, time_spent_seconds, entered_at, view_mode |
+| **ProposalViewEvent** | Each client page-load | proposal_fk, session_id, ip_address, user_agent, view_mode (`executive`/`detailed`/`technical`/`legal`) |
+| **ProposalSectionView** | Per-section time tracking | view_event_fk, section_type, subsection_key (technical fragment or legal clause), time_spent_seconds, entered_at, view_mode |
 | **ProposalChangeLog** | Full audit trail | proposal_fk, change_type (20 types), field_name, old_value, new_value |
 | **ProposalShareLink** | Multi-stakeholder sharing | proposal_fk, uuid, shared_by_name, recipient_name, view_count |
 | **ProposalDefaultConfig** | Default section templates per language | language (unique), sections_json |
@@ -213,6 +213,7 @@ flowchart TD
     Views --> PES["ProposalEmailService"]
     Views --> PPDF["ProposalPdfService"]
     Views --> CPDF["ContractPdfService"]
+    Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
     Views --> CAS["CollectionAccountService"]
@@ -227,6 +228,7 @@ flowchart TD
     PPDF -->|shared utils| PU["PdfUtils"]
     CPDF -->|generate| ReportLab
     CPDF -->|shared utils| PU
+    CTS -->|masked current default| CPDF
     DPS -->|generate| ReportLab
     DPS -->|shared utils| PU
     DPS -->|parse markdown| MP["MarkdownParser"]
@@ -246,6 +248,7 @@ flowchart TD
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **ContractPdfService** | Medium | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
+| **ContractTermsService** | Small | Resolves only the current default contract, applies draft masking through ContractPdfService, splits Markdown H2 clauses into stable anchors, and returns the public index/document payload. |
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
@@ -471,7 +474,11 @@ flowchart TD
     ProposalPage --> useSectionAnimations
     ProposalPage --> GSAP["GSAP ScrollTrigger (horizontal scroll)"]
 
-    ProposalPage --> Sections["Section Components (17 section types; web-only types like roi_projection render here but skip the PDF)"]
+    ProposalPage --> Gateway["ProposalViewGateway: executive / detailed / technical / legal"]
+    ProposalPage --> Sections["Section Components (18 section types; web-only types like roi_projection render here but skip the PDF)"]
+    ProposalPage --> ContractTerms["Synthetic legal panels: overview/index → continuous contract"]
+    ContractTerms --> ContractTermsAPI["GET /api/proposals/:uuid/contract-terms/"]
+    ContractTerms --> ContractDraftAPI["GET /api/proposals/:uuid/contract/draft-pdf/"]
     Sections --> Greeting
     Sections --> ExecutiveSummary
     Sections --> ContextDiagnostic
@@ -620,12 +627,12 @@ The explicit `$proposal-create` / `/proposal-create` workflow can precede the pa
 
 1. Admin creates proposal via `/panel/proposals/create` (or JSON import)
 2. Admin selects an existing client from `<ClientAutocomplete>` (or types a new one). Backend resolves the client via `proposal_client_service.get_or_create_client_for_proposal()` — case-insensitive dedup by `User.email`, never hijacks admin accounts. Empty emails get a placeholder `cliente_<id>@temp.example.com` (RFC 2606 reserved TLD) generated via two-step save, which automatically pauses every email automation for that proposal until a real address is entered.
-3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF)
+3. 18 section types auto-generated with default content per language (some web-only, skipping the PDF). `show_contract_terms` remains separate top-level metadata, so enabling the fourth reading mode does not mutate this section snapshot or its prompt/JSON shape.
 4. Admin edits sections via `/panel/proposals/{id}/edit` (client picker also available there; can be swapped or its profile updated via the propagate-changes checkbox which cascades the snapshot to every other linked proposal)
 5. Admin clicks "Send" → email sent to client + admin notification + reminders scheduled (skipped silently if client email is a placeholder)
 6. Client opens unique link `/proposal/{uuid}`
-7. Frontend loads GSAP horizontal-scroll experience with all enabled sections
-8. Engagement tracked: view events, section time, session ID
+7. The gateway offers executive, detailed and technical views; eligible Spanish proposals also offer **Contrato y condiciones**. That legal mode lazily loads the current masked global template into an intro/index panel followed by one continuous vertical contract panel.
+8. Engagement tracked: view events, section time, session ID, reading mode, and the active technical fragment or legal clause in `subsection_key`
 9. Automated emails triggered based on behavior (reminder, urgency, abandonment, etc.) — every client-facing send checks `_is_unsendable_client_email()` first, so placeholder accounts never receive mail
 10. Client responds: accept / reject (with reason) / negotiate / comment. Acceptance fires `ProposalEmailService.send_acceptance_confirmation()` to the client (this branch was added 2026-04-09 — see ERR-007).
 11. Admin monitors via dashboard, alerts, analytics, scorecard. Orphan clients (zero proposals, zero projects) can be cleaned up from `/panel/clients` Huérfanos tab.

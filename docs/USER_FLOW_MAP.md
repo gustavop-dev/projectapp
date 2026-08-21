@@ -3556,6 +3556,35 @@ Two transitions that were previously bundled into other flows now have their own
 - **E2E Spec:** `e2e/proposal/proposal-technical-view.spec.js`
 - **Components:** `ProposalViewGateway.vue`, `TechnicalDocumentPublicPanel.vue`, `[uuid]/index.vue`, `technicalProposalPanels.js`
 
+### FLOW: `proposal-contract-terms`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P1
+- **Routes:** `/proposal/:uuid`, `/proposal/:uuid?mode=legal`
+- **Description:** Fourth gateway option, named **Contrato y condiciones**, available only when the proposal is in Spanish and its visibility flag is enabled. It renders two panels from the current global contract template: an introduction with a clause index and one continuous contract document. This content is independent from the proposal section JSON and from any proposal-specific contract attachment.
+- **Outcomes:**
+  - `display` — the client reaches the mode through the gateway and sees the generic explanation, draft notice, and real clause titles returned by `GET /api/proposals/:uuid/contract-terms/`.
+  - `success` — selecting a clause in the index opens the document panel and scrolls to that clause's stable anchor.
+  - `error` — `?mode=legal` cannot bypass the Spanish-language and per-proposal visibility gates; the regular gateway remains visible without the legal option.
+  - `failure` — if the global template is temporarily unavailable, the introduction explains the failure and lets the client retry.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-contract-terms.spec.js`
+- **Components:** `ProposalViewGateway.vue`, `ContractTermsOverview.vue`, `ContractTermsDocument.vue`, `[uuid]/index.vue`
+
+### FLOW: `proposal-contract-draft-download`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid?mode=legal`
+- **Description:** Download the current global contract as an informational draft. The server forces the default template, masks personal data, omits signatures, adds the `BORRADOR` watermark, and returns it from `GET /api/proposals/:uuid/contract/draft-pdf/`.
+- **Outcomes:**
+  - `success` — clicking **Descargar borrador** starts a PDF download from the dedicated draft endpoint.
+- **Non-applicable classes:** `error` and `failure` are handled by the browser's native download surface; the proposal does not expose a separate form or recoverable download-error state. `display` is covered by the parent `proposal-contract-terms` flow.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-contract-terms.spec.js`
+
 ### FLOW: `proposal-respond`
 
 - **Module:** proposal
@@ -3935,6 +3964,20 @@ Two transitions that were previously bundled into other flows now have their own
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-proposal-edit.spec.js` (includes linked_item_ids save test)
 - **Known gaps:** The automations toggle now uses positive polarity (ON = automations running, 2026-07); no E2E asserts knob position / `aria-checked`, and the toggle has no `data-testid` (only `aria-label="Activar automatizaciones"`).
+
+### FLOW: `admin-proposal-contract-terms-visibility`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/proposals/create`, `/panel/proposals/:id/edit`
+- **Description:** Decide whether a Spanish proposal exposes the generic **Contrato y condiciones** mode. The switch defaults to visible for new and existing proposals, is unavailable for English proposals, and persists as top-level proposal metadata without changing the proposal prompt or section JSON.
+- **Outcomes:**
+  - `success` — the creation form submits the selected visibility and the edit switch persists an immediate visibility change.
+  - `failure` — when the edit request fails, the switch returns to its previous state and the admin sees an error notification.
+- **Non-applicable classes:** `error` has no independent invalid Boolean input. `display` is asserted as the precondition and final state of the success/failure interactions rather than a separate read-only flow.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/admin/admin-proposal-contract-terms-visibility.spec.js`
 
 ### FLOW: `admin-proposal-slug-edit`
 
@@ -5965,6 +6008,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-proposal-contract-download` | admin | P2 | display | 1 |
 | `admin-proposal-contract-edit` | admin | P2 | success | 1 |
 | `admin-proposal-contract-generate` | admin | P1 | success | 1 |
+| `admin-proposal-contract-terms-visibility` | admin | P2 | success,failure | 1 |
 | `admin-proposal-create` | admin | P1 | success,error | 1 |
 | `admin-proposal-create-and-send` | admin | P2 | success,error | 1 |
 | `admin-proposal-create-from-json` | admin | P1 | success,error | 1 |
@@ -6092,6 +6136,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-closing-contact` | proposal | P2 | display | 1 |
 | `proposal-comment-from-closing` | proposal | P2 | success | 1 |
 | `proposal-conditional-acceptance` | proposal | P2 | success | 1 |
+| `proposal-contract-draft-download` | proposal | P2 | success | 1 |
+| `proposal-contract-terms` | proposal | P1 | display,success,error,failure | 1 |
 | `proposal-countdown-realtime` | proposal | P3 | display | 1 |
 | `proposal-discount-multi-section` | proposal | P2 | display | 1 |
 | `proposal-download-pdf` | proposal | P2 | success | 1 |

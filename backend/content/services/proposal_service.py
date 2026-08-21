@@ -4096,6 +4096,7 @@ def build_proposal_from_json(validated_data):
         reminder_days=data.get('reminder_days', 10),
         urgency_reminder_days=data.get('urgency_reminder_days', 15),
         discount_percent=data.get('discount_percent', 0),
+        show_contract_terms=data.get('show_contract_terms', True),
         client=client_profile,
     )
     proposal_client_service.sync_snapshot(proposal)
@@ -4279,6 +4280,7 @@ def apply_proposal_json_update(proposal, validated_data):
         'project_type', 'market_type', 'project_type_custom',
         'market_type_custom', 'language', 'total_investment', 'currency',
         'reminder_days', 'urgency_reminder_days', 'discount_percent',
+        'show_contract_terms',
     ]
     tracked_old = {}
     for field in metadata_fields:

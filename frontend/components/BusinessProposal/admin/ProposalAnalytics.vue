@@ -194,7 +194,7 @@
         </div>
       </details>
 
-      <!-- F6: View mode breakdown (executive / detailed / technical) -->
+      <!-- F6: View mode breakdown -->
       <details v-if="analytics.by_view_mode && Object.keys(analytics.by_view_mode).length" open class="group bg-surface rounded-xl border border-border-muted shadow-sm">
         <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
@@ -207,29 +207,21 @@
                 {{ tt.viewModeComparison }}
               </BaseTooltip>
             </div>
-            <p class="text-xs text-text-subtle mt-0.5">Engagement por vista ejecutiva, completa o técnica</p>
+            <p class="text-xs text-text-subtle mt-0.5">Engagement por vista ejecutiva, completa, técnica o contractual</p>
           </div>
           <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </summary>
         <div class="px-4 sm:px-6 py-4">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-            <div v-for="mode in ['executive', 'detailed', 'technical']" :key="mode"
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <div v-for="mode in VIEW_MODES" :key="mode"
               class="rounded-xl border p-4"
-              :class="mode === 'executive'
-                ? 'border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/20'
-                : mode === 'detailed'
-                  ? 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20'
-                  : 'border-teal-200 bg-teal-50/50 dark:border-teal-800 dark:bg-teal-900/20'"
+              :class="viewModeCardClass(mode)"
             >
               <div class="flex items-center gap-2 mb-3">
                 <span class="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
-                  :class="mode === 'executive'
-                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400'
-                    : mode === 'detailed'
-                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400'
-                      : 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300'"
+                  :class="viewModeBadgeClass(mode)"
                 >{{ mode }}</span>
                 <span class="text-xs text-text-subtle">{{ analytics.by_view_mode[mode]?.sessions || 0 }} sesiones</span>
               </div>
@@ -238,7 +230,7 @@
                   <span class="text-xs text-text-muted truncate flex-1 min-w-0">{{ sec.section_title || sec.section_type }}</span>
                   <span class="text-xs text-text-subtle tabular-nums flex-shrink-0">{{ sec.visit_count }}×</span>
                   <span class="text-xs font-medium tabular-nums flex-shrink-0"
-                    :class="mode === 'executive' ? 'text-purple-600 dark:text-purple-400' : mode === 'detailed' ? 'text-blue-600 dark:text-blue-400' : 'text-teal-700 dark:text-teal-400'"
+                    :class="viewModeTextClass(mode)"
                   >{{ formatTime(sec.total_time_seconds, { compact: true }) }}</span>
                 </div>
               </div>
@@ -751,7 +743,7 @@
                 <td class="px-4 py-3 text-center text-text-muted">{{ session.sections_viewed }}</td>
                 <td class="px-4 py-3 text-center">
                   <span v-if="session.view_mode" class="text-xs px-2 py-0.5 rounded-full font-medium"
-                    :class="session.view_mode === 'executive' ? 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : session.view_mode === 'detailed' ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : session.view_mode === 'technical' ? 'bg-teal-50 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300' : 'bg-surface-raised text-text-muted'">
+                    :class="viewModeBadgeClass(session.view_mode)">
                     {{ session.view_mode }}
                   </span>
                   <span v-else class="text-xs text-text-subtle">—</span>
@@ -791,6 +783,32 @@ const proposalStore = useProposalStore();
 const loading = ref(true);
 const analytics = ref(null);
 const funnelTab = ref<'exec_detail' | 'technical'>('exec_detail');
+const VIEW_MODES = ['executive', 'detailed', 'technical', 'legal'];
+const VIEW_MODE_CLASSES = {
+  executive: {
+    card: 'border-purple-200 bg-purple-50/50 dark:border-purple-800 dark:bg-purple-900/20',
+    badge: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-400',
+    text: 'text-purple-600 dark:text-purple-400',
+  },
+  detailed: {
+    card: 'border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20',
+    badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-400',
+    text: 'text-blue-600 dark:text-blue-400',
+  },
+  technical: {
+    card: 'border-teal-200 bg-teal-50/50 dark:border-teal-800 dark:bg-teal-900/20',
+    badge: 'bg-teal-100 text-teal-800 dark:bg-teal-900/50 dark:text-teal-300',
+    text: 'text-teal-700 dark:text-teal-400',
+  },
+  legal: {
+    card: 'border-warning-strong/30 bg-warning-soft',
+    badge: 'bg-warning-soft text-warning-strong',
+    text: 'text-warning-strong',
+  },
+};
+const viewModeCardClass = mode => VIEW_MODE_CLASSES[mode]?.card || 'border-border-default bg-surface-raised';
+const viewModeBadgeClass = mode => VIEW_MODE_CLASSES[mode]?.badge || 'bg-surface-raised text-text-muted';
+const viewModeTextClass = mode => VIEW_MODE_CLASSES[mode]?.text || 'text-text-muted';
 
 const suggestions = computed(() => {
   if (!analytics.value) return [];

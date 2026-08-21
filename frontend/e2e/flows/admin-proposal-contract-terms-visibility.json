@@ -1,0 +1,15 @@
+{
+  "id": "admin-proposal-contract-terms-visibility",
+  "name": "Admin Proposal Contract Terms Visibility",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin chooses whether a Spanish proposal exposes the generic Contract and terms mode during creation or from the proposal edit screen.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success",
+    "failure"
+  ]
+}

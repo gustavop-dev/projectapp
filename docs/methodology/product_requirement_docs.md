@@ -17,7 +17,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 
 | Problem | Solution |
 |---------|----------|
-| No centralized way to create and send client proposals | Full proposal builder with 17 auto-generated section types |
+| No centralized way to create and send client proposals | Full proposal builder with 18 auto-generated section types plus four client-facing reading modes |
 | Proposals sent as static PDFs with no tracking | Interactive fullscreen web experience with engagement analytics |
 | No visibility into client interest or behavior | View tracking, section-level time analytics, heat score, engagement signals |
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
@@ -34,10 +34,11 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 The proposal system is the most complex and central feature. It allows the admin to:
 
 - **Create proposals** with client name, email, investment amount, currency, expiration date, language, project type, and market type
-- **17 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
+- **18 section types auto-generated** per proposal: Greeting, Executive Summary, Context & Diagnostic, Conversion Strategy, Design & UX, Creative Support, Development Stages, Process & Methodology, Functional Requirements, Timeline, Investment, Proposal Summary, Final Note, Next Steps, Technical Document, Value Added Modules, ROI Projection, and Commercial Conditions (the last few are order-dependent; some — e.g. `roi_projection`, `value_added_modules`, `proposal_summary` — are web-only and intentionally skip the PDF)
 - **Edit section content** — each section stores structured JSON matching a specific Vue component's props schema
+- **Choose a reading mode** — the public gateway offers executive, detailed, technical, and **Contrato y condiciones**. The legal mode is a separate, generic document surface rather than another proposal section.
 - **Send to client** — triggers email with unique UUID link, schedules automated reminders
-- **Track engagement** — view count, first viewed date, per-section time analytics, session tracking, engagement scoring (heat score 1-10)
+- **Track engagement** — view count, first viewed date, per-section or per-contract-clause time analytics, session tracking, reading mode, engagement scoring (heat score 1-10)
 - **Share links** — clients can share proposals with stakeholders, each share link tracked independently
 - **PDF generation** — downloadable PDF version via ReportLab
 - **Investment calculator** — interactive modal for clients to explore payment options (hosting plans, discounts)
@@ -84,9 +85,9 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 - **Dashboard** (`/panel/`): multi-module command center (redesigned 2026-07-16, #110) — one consolidated endpoint aggregates proposal KPIs/heat scores/alerts, accounting year totals, tasks, diagnostics, and module shortcuts
 - **Proposals list** (`/panel/proposals/`): table with title, client, status badge, investment, expiry, views, bulk actions
-- **Create** (`/panel/proposals/create`): form with all metadata + JSON import option. Client identity is selected via `<ClientAutocomplete>` (searchable dropdown over `accounts.UserProfile` with `role='client'`); typing a brand-new name + email auto-creates a real `UserProfile` row, and an empty email gets a placeholder `cliente_<id>@temp.example.com` that pauses every email automation for that proposal.
+- **Create** (`/panel/proposals/create`): form with all metadata + JSON import option. Client identity is selected via `<ClientAutocomplete>` (searchable dropdown over `accounts.UserProfile` with `role='client'`); typing a brand-new name + email auto-creates a real `UserProfile` row, and an empty email gets a placeholder `cliente_<id>@temp.example.com` that pauses every email automation for that proposal. A top-level switch controls whether the generic contract mode is visible; it defaults on for Spanish proposals and does not enter the imported/exported section JSON.
 - **Edit** (`/panel/proposals/{id}/edit`): Tabs depending on proposal status:
-  - **General** — metadata + same `<ClientAutocomplete>` picker + write-through snapshot fields + propagate-changes-to-profile checkbox + send button
+  - **General** — metadata + same `<ClientAutocomplete>` picker + write-through snapshot fields + propagate-changes-to-profile checkbox + send button + immediate contract-mode visibility switch
   - **Correos** (sent+ statuses) — branded email composer
   - **Documentos** (negotiating/accepted/rejected) — contracts + uploaded annexes
   - **Cronograma** (accepted/finished) — project stage scheduling (design + development dates, mark-as-completed, status badges)
@@ -156,6 +157,8 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Contract PDFs generated via `ContractPdfService` using ReportLab + shared `PdfUtils`
 - **Draft mode**: generate contract PDF without contractor signature block for review
 - **Final mode**: include contractor signature block once contract is agreed
+- **Public proposal draft**: Spanish proposals may expose the current default template as **Contrato y condiciones**. Its first panel explains the draft and lists linked clauses; its second panel renders the full contract vertically. The dedicated PDF download always forces the global template, masks personal data, omits signatures, and applies the `BORRADOR` watermark.
+- The public draft is intentionally independent from proposal-specific `ProposalDocument` contracts and from proposal prompt/section JSON. It is current global content, not a per-proposal snapshot.
 - Font: Helvetica throughout for consistent cross-platform rendering
 - Clickable Table of Contents with anchor links to contract sections
 - `ProposalDocument` links a generated contract to a specific proposal
@@ -287,7 +290,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 
 ### Client (Prospect)
 - Receives unique proposal link via email
-- Views fullscreen proposal experience with horizontal scroll
+- Chooses between executive, detailed, technical, and contract reading modes; the contract itself is a continuous vertical document with clause links
 - Can accept, reject, negotiate, or comment on proposals
 - Can share proposal with stakeholders
 - Can download PDF version
@@ -314,7 +317,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 3. 24h cooldown between automated client-facing emails per proposal
 4. Automations can be paused per proposal
 5. Engagement heat score (1-10) computed from views, section time, recency
-6. Proposal sections map 1:1 to Vue components via `section_type` (17 section types; some are web-only and skip the PDF)
+6. Proposal sections map 1:1 to Vue components via `section_type` (18 section types; some are web-only and skip the PDF)
 7. Default section content is configurable per language (admin-editable)
 8. Email templates are editable and resettable via admin panel
 9. Share links track independent view counts from main proposal views
@@ -326,3 +329,4 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 15. **Accounting partner split**: every accounting record carries a total plus per-partner amounts; a record on a personal ledger (Gustavo/Carlos) must be 100% that partner's (the other partner's amount = 0), enforced at `clean()`. Company amount is derived, not stored.
 16. **Manual-only discount offer**: the discount/urgency email from the proposal actions menu is never sent automatically — it requires an explicit send and is only offered when a discount percentage is configured and the client has a real email.
 17. **Hosting periodicities**: the current commercial offer is quarterly, semiannual, and every 9 months. The nine-month charge is the discounted effective monthly price multiplied by nine. Public proposal views and PDFs preserve the stored annual snapshot for closed/inactive proposals, while new operational project/subscription records always use the current 9/6/3-month catalog. Paid cycles and payments are immutable history.
+18. **Contract proposal mode**: `show_contract_terms` is top-level proposal metadata, defaults to `True`, and only produces a public mode for Spanish proposals. It never changes the proposal prompt or section JSON. Preview and draft-PDF endpoints read the current default `ContractTemplate`, never a proposal-specific contract, and are unavailable when the proposal is inactive, English, or has the flag disabled.

@@ -104,6 +104,10 @@ _TECHNICAL_SECTION_TYPES = [
     ('technical_document', 'Detalle Técnico'),
     ('technical_document_public', 'Arquitectura / Stack'),
 ]
+_LEGAL_SECTION_TYPES = [
+    ('contract_terms_overview', 'Contrato y condiciones'),
+    ('contract_terms_document', 'Borrador del contrato'),
+]
 _COMMERCIAL_SECTION_TYPES = [
     (st, title) for st, title in SECTION_TYPES if st != 'technical_document'
 ]
@@ -111,8 +115,13 @@ _COMMERCIAL_SECTION_TYPES = [
 # Realistic distribution of view mode selection by clients.
 _VIEW_MODE_POPULATION = ['executive', 'executive', 'executive',
                           'detailed', 'detailed', 'detailed', 'detailed', 'detailed',
-                          'technical', 'technical']
-_VIEW_MODE_LABELS = {'executive': 'ejecutiva', 'detailed': 'completa', 'technical': 'técnica'}
+                          'technical', 'technical', 'legal']
+_VIEW_MODE_LABELS = {
+    'executive': 'ejecutiva',
+    'detailed': 'completa',
+    'technical': 'técnica',
+    'legal': 'contractual',
+}
 
 ALERT_TYPES = [
     'reminder', 'followup', 'call', 'meeting', 'custom',
@@ -397,15 +406,21 @@ class Command(BaseCommand):
                 viewed_at=session_time,
             )
 
-            sections_for_mode = (
-                _TECHNICAL_SECTION_TYPES if view_mode == 'technical'
-                else _COMMERCIAL_SECTION_TYPES
-            )
+            if view_mode == 'technical':
+                sections_for_mode = _TECHNICAL_SECTION_TYPES
+            elif view_mode == 'legal':
+                sections_for_mode = _LEGAL_SECTION_TYPES
+            else:
+                sections_for_mode = _COMMERCIAL_SECTION_TYPES
             for sect_type, sect_title in sections_for_mode:
+                subsection_key = ''
+                if sect_type == 'contract_terms_document':
+                    subsection_key = f'clause-{random.randint(1, 12):02d}'
                 ProposalSectionView.objects.create(
                     view_event=event,
                     section_type=sect_type,
                     section_title=sect_title,
+                    subsection_key=subsection_key,
                     time_spent_seconds=round(random.uniform(3, 120), 1),
                     entered_at=session_time + timedelta(
                         seconds=random.randint(0, 300),

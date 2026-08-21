@@ -1975,6 +1975,7 @@ class TestDuplicateProposal:
             market_type_custom='Custom market',
             selected_modules=['module-payments', 'module-reservations'],
             contract_params={'party_name': 'Acme', 'cedula': '123456'},
+            show_contract_terms=False,
             status='draft',
         )
 
@@ -1986,6 +1987,7 @@ class TestDuplicateProposal:
         assert new.hosting_discount_semiannual == original_proposal.hosting_discount_semiannual
         assert new.hosting_discount_quarterly == original_proposal.hosting_discount_quarterly
         assert new.contract_params == original_proposal.contract_params
+        assert new.show_contract_terms is False
 
     def test_copies_project_type_and_modules_fields(self, admin_client, original_proposal):
         admin_client.post(self._url(original_proposal.id))

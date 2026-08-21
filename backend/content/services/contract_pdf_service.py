@@ -133,9 +133,14 @@ def _substitute_placeholders(markdown_text: str, params: dict) -> str:
         return result
 
 
-def _get_contract_markdown(raw_params: dict, params: dict) -> str:
+def _get_contract_markdown(
+    raw_params: dict,
+    params: dict,
+    *,
+    force_default: bool = False,
+) -> str:
     """Return the final markdown text for the contract PDF."""
-    source = raw_params.get('contract_source', 'default')
+    source = 'default' if force_default else raw_params.get('contract_source', 'default')
 
     if source == 'custom':
         markdown = raw_params.get('custom_contract_markdown', '')
@@ -149,6 +154,23 @@ def _get_contract_markdown(raw_params: dict, params: dict) -> str:
         markdown = _substitute_placeholders(template.content_markdown, params)
 
     return re.sub(r' -- ', ' - ', markdown)
+
+
+def render_default_contract_draft_markdown():
+    """Return the current default template and its safely masked markdown.
+
+    This is the single source for the public contract preview. It deliberately
+    ignores every proposal's ``contract_params`` so custom contracts and real
+    party data can never leak through the generic legal module.
+    """
+    from content.models import ContractTemplate
+
+    template = ContractTemplate.get_default()
+    if not template:
+        return None
+    params = _build_params({}, draft=True)
+    markdown = _substitute_placeholders(template.content_markdown, params)
+    return template, re.sub(r' -- ', ' - ', markdown)
 
 
 # ---------------------------------------------------------------------------
@@ -329,14 +351,19 @@ def _draw_signature_block(c, y, params, ps, signature_path=None):
 # Public API
 # ---------------------------------------------------------------------------
 
-def generate_contract_pdf(proposal, draft=False) -> bytes | None:
+def generate_contract_pdf(
+    proposal,
+    draft=False,
+    *,
+    force_default=False,
+) -> bytes | None:
     """Generate a contract PDF and return raw bytes, or None on failure.
 
     When *draft* is True the contractor signature is omitted.
     """
     try:
         raw_params = getattr(proposal, 'contract_params', None) or {}
-        source = raw_params.get('contract_source', 'default')
+        source = 'default' if force_default else raw_params.get('contract_source', 'default')
         params = _build_params(raw_params, draft=draft)
 
         sig_path = None
@@ -345,7 +372,11 @@ def generate_contract_pdf(proposal, draft=False) -> bytes | None:
             company = CompanySettings.load()
             sig_path = company.contractor_signature.path if company.contractor_signature else None
 
-        markdown_text = _get_contract_markdown(raw_params, params)
+        markdown_text = _get_contract_markdown(
+            raw_params,
+            params,
+            force_default=force_default,
+        )
         if not markdown_text:
             logger.warning('Empty contract markdown for proposal %s', getattr(proposal, 'pk', '?'))
             return None

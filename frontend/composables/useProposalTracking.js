@@ -16,7 +16,7 @@ function _getCsrfToken() {
  *
  * @param {import('vue').Ref<string>} proposalUuid - Reactive proposal UUID.
  * @param {import('vue').Ref<object>} currentPanel - Reactive current panel object.
- * @param {import('vue').Ref<string>} [viewMode] - Reactive view mode ('executive', 'detailed', or 'technical').
+ * @param {import('vue').Ref<string>} [viewMode] - Reactive proposal view mode.
  */
 export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
   // Skip all tracking for admin previews to avoid polluting analytics
@@ -59,7 +59,7 @@ export function useProposalTracking(proposalUuid, currentPanel, viewMode) {
     currentEntry = {
       section_type: panel.section_type || '',
       section_title: panel.title || '',
-      subsection_key: panel._technicalFragment || '',
+      subsection_key: panel._technicalFragment || panel._contractClause || '',
       entered_at: new Date().toISOString(),
       _startTime: performance.now(),
     };

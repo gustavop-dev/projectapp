@@ -1,0 +1,17 @@
+{
+  "id": "proposal-contract-terms",
+  "name": "Proposal Contract Terms",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P1",
+  "description": "Client opens the fourth proposal mode, reads the current masked global contract, jumps from the clause index to the selected clause, retries a temporary load failure, and cannot force the mode when it is unavailable.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}
