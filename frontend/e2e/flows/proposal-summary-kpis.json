@@ -6,7 +6,7 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Proposal Summary section displays personalized KPI cards with value, label, and source citation.",
+  "description": "Proposal Summary displays personalized KPI cards and keeps the investment currency and tax suffix visible in its standard summary cards.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

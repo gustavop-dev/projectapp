@@ -6,7 +6,7 @@
     "guest"
   ],
   "priority": "P2",
-  "description": "Display payment plan milestones near the accept button in the closing section.",
+  "description": "Display payment plan milestones and the total with their currency and tax suffix near the accept button in the closing section.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

@@ -240,6 +240,23 @@ describe('Investment', () => {
       // Free-form payment option should keep its original amount.
       expect(wrapper.text()).toContain('$100.000');
     });
+
+    it('renders each complete tax-qualified amount in its dedicated value element', () => {
+      const wrapper = mountInvestment({
+        totalInvestment: '$280.000.000',
+        paymentOptions: [
+          { label: '40% al firmar', description: '$112.000.000 COP + IVA' },
+          { label: '30% al aprobar diseño', description: '$84.000.000 COP + IVA' },
+          { label: '30% al aprobar QA', description: '$84.000.000 COP + IVA' },
+        ],
+      });
+
+      expect(wrapper.findAll('[data-testid="payment-option-amount"]').map(node => node.text())).toEqual([
+        '$112.000.000 COP + IVA',
+        '$84.000.000 COP + IVA',
+        '$84.000.000 COP + IVA',
+      ]);
+    });
   });
 
   describe('hosting: nine-month tier, free month, renewal', () => {

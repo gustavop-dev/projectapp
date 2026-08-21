@@ -32,10 +32,13 @@ describe('ContractTermsDocument', () => {
     expect(wrapper.get('#clause-01').text()).toContain('CLÁUSULA PRIMERA — OBJETO');
   });
 
-  it('renders the masked contract content', () => {
+  it('renders the masked contract content inside a document surface', () => {
     const wrapper = mount(ContractTermsDocument, { props: { terms }, global });
+    const paper = wrapper.get('[data-testid="contract-paper"]');
 
-    expect(wrapper.text()).toContain('Contenido de la cláusula.');
+    expect(paper.attributes('role')).toBe('document');
+    expect(paper.attributes('aria-label')).toBe('Contrato de prestación de servicios');
+    expect(paper.text()).toContain('Contenido de la cláusula.');
   });
 
   it('emits ready after clauses mount', async () => {

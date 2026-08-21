@@ -168,7 +168,10 @@ test.describe('Calculator selection persists across section navigation', () => {
     await setupMock(page);
     await goToInvestmentSection(page);
 
-    const totalLocator = page.locator('section.investment span.tabular-nums').filter({ hasText: /\$/ });
+    const totalLocator = page
+      .getByText('Inversión Total:', { exact: true })
+      .locator('..')
+      .getByText(/^\$/);
     const initialTotal = (await totalLocator.innerText()).trim();
 
     await openModal(page);

@@ -74,7 +74,9 @@ Resumen ejecutivo (la promesa)
 Tono profesional pero cercano. Nada de jerga técnica innecesaria. No digas "implementaremos una arquitectura de microservicios con API RESTful". Di "construiremos una tienda online rápida, segura y fácil de administrar". El cliente es el decisor, no un programador.
 
 ### 7. Facilita la lectura visual
-En los párrafos descriptivos que aparecen debajo de títulos de sección, resalta con \`<b>…</b>\` únicamente **uno o dos conceptos de valor** (resultado, alcance verificable o condición decisiva). El resaltado ayuda a escanear; no conviertas el párrafo completo en negrilla ni uses HTML distinto de las etiquetas permitidas.
+En cada texto introductorio no vacío debajo del título de una sección, incluye **uno o dos fragmentos breves** con \`<b>…</b>\` que destaquen un resultado, alcance verificable o condición decisiva. Esta regla es obligatoria para: \`sections.executiveSummary.paragraphs[]\`, \`sections.contextDiagnostic.paragraphs[]\`, \`sections.conversionStrategy.intro\`, \`sections.roiProjection.subtitle\`, \`sections.designUX.paragraphs[]\`, \`sections.creativeSupport.paragraphs[]\`, \`sections.developmentStages.intro\`, \`sections.processMethodology.intro\`, \`sections.functionalRequirements.intro\`, \`sections.valueAddedModules.intro\`, \`sections.investment.introText\`, \`sections.timeline.introText\`, \`sections.proposalSummary.subtitle\` y \`sections.finalNote.message\`.
+
+No pongas en negrilla una oración o párrafo completo, no uses Markdown \`**\`, no uses otra etiqueta HTML y no inventes contenido para campos que la plantilla deje intencionalmente vacíos. Las reglas de énfasis de campos internos —highlights, issues, bullets, resultados, focusItems, includes y descripciones de requerimientos— siguen aplicando por separado.
 
 ---
 
@@ -317,7 +319,7 @@ Sección de presentación que **agrupa los 5 módulos base sin costo extra** (ad
 - El primer párrafo conecta emocionalmente: reconoce lo que el cliente ya ha logrado y abre la puerta a lo que sigue.
 - El segundo párrafo describe qué se va a construir en términos de resultado, no de tecnología.
 - \`highlights\`: Entregables concretos escritos como beneficios, no como tareas. "Tienda online con carrito de compras y pagos en línea", no "Desarrollo de módulo de carrito".
-- **Formato con negrillas:** Dentro de los \`paragraphs\`, usa etiquetas \`<b>texto</b>\` para resaltar palabras o fragmentos clave que refuercen el mensaje principal. Ejemplos de qué resaltar: el nombre del negocio, el tipo de proyecto, beneficios centrales, o frases de impacto. No abuses: máximo 2-3 fragmentos en negrilla por párrafo.
+- **Formato con negrillas:** Dentro de los \`paragraphs\`, usa etiquetas \`<b>texto</b>\` para resaltar palabras o fragmentos clave que refuercen el mensaje principal. Ejemplos de qué resaltar: el nombre del negocio, el tipo de proyecto, beneficios centrales, o frases de impacto. Máximo 2 fragmentos en negrilla por párrafo.
 
 ### \`contextDiagnostic\` 
 - Aquí demuestras que investigaste. Menciona el sector del cliente, el mercado colombiano (o el que aplique), competidores relevantes, y datos del sector.

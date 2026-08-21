@@ -4680,6 +4680,29 @@ class TestCompleteProjectStage:
 
 
 class TestProposalJsonTemplate:
+    @pytest.mark.parametrize('field_path', [
+        'executiveSummary.paragraphs[]',
+        'contextDiagnostic.paragraphs[]',
+        'conversionStrategy.intro',
+        'roiProjection.subtitle',
+        'designUX.paragraphs[]',
+        'creativeSupport.paragraphs[]',
+        'developmentStages.intro',
+        'processMethodology.intro',
+        'functionalRequirements.intro',
+        'valueAddedModules.intro',
+        'investment.introText',
+        'timeline.introText',
+        'proposalSummary.subtitle',
+        'finalNote.message',
+    ])
+    def test_seller_prompt_requires_bold_in_section_lead(
+        self, admin_client, field_path,
+    ):
+        response = admin_client.get('/api/proposals/json-template/?lang=es')
+
+        assert field_path in response.data['_seller_prompt']['bold_formatting']
+
     def test_seller_prompt_autoselect_key_is_present(self, admin_client):
         response = admin_client.get('/api/proposals/json-template/?lang=es')
         assert response.status_code == 200

@@ -1,6 +1,6 @@
 <template>
   <section ref="sectionRef" class="final-note py-16 md:py-24 bg-surface">
-    <div class="container mx-auto px-6 md:px-12 lg:px-24 max-w-6xl">
+    <div class="container mx-auto max-w-7xl px-6 md:px-12">
       <div class="section-header mb-12">
         <div data-animate="fade-up" class="flex items-baseline gap-4 mb-10">
           <span class="text-text-muted font-light tracking-[0.25em] text-xs md:text-sm">
@@ -12,9 +12,9 @@
         </div>
       </div>
 
-      <div class="grid lg:grid-cols-2 gap-8 lg:gap-10 items-stretch">
-        <div class="flex flex-col gap-5">
-          <div data-animate="fade-up" class="note-content bg-surface-raised p-5 sm:p-8 md:p-10 rounded-2xl shadow-sm flex-1">
+      <div data-testid="final-note-columns" class="grid items-stretch gap-8 xl:grid-cols-2 xl:gap-10">
+        <div data-testid="commitment-column" class="flex flex-col gap-5">
+          <div data-animate="fade-up" class="note-content flex-1 rounded-2xl bg-surface-raised p-5 shadow-sm sm:p-8">
             <div class="quote-icon mb-6">
               <svg class="w-12 h-12 text-text-brand opacity-50" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/>
@@ -51,7 +51,8 @@
         <div
           v-if="kickoffPlan?.length || nextSteps?.length"
           data-animate="fade-up"
-          class="kickoff-card bg-primary-soft border border-border-default p-5 sm:p-8 md:p-10 rounded-2xl shadow-sm"
+          data-testid="kickoff-card"
+          class="kickoff-card rounded-2xl border border-border-default bg-primary-soft p-5 shadow-sm sm:p-8"
         >
           <template v-if="kickoffPlan?.length">
             <h3 class="text-2xl font-bold text-text-brand mb-2">{{ kickoffTitle }}</h3>

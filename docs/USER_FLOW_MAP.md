@@ -3516,9 +3516,9 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** guest (via shared UUID link)
 - **Priority:** P1
 - **Routes:** `/proposal/:uuid`, `/proposal/:uuid?mode=legal`
-- **Description:** Fourth gateway option, named **Contrato y condiciones**, available only when the proposal is in Spanish and its visibility flag is enabled. It renders two panels from the current global contract template: an introduction with a clause index and one continuous contract document. This content is independent from the proposal section JSON and from any proposal-specific contract attachment.
+- **Description:** Fourth gateway option, named **Contrato y condiciones**, available only when the proposal is in Spanish and its visibility flag is enabled. It renders two panels from the current global contract template: an introduction with a clause index and one continuous contract document inside a bordered, layered paper surface. This content is independent from the proposal section JSON and from any proposal-specific contract attachment.
 - **Outcomes:**
-  - `display` — the client reaches the mode through the gateway and sees the generic explanation, draft notice, and real clause titles returned by `GET /api/proposals/:uuid/contract-terms/`.
+  - `display` — the client reaches the mode through the gateway and sees the generic explanation, draft notice, and real clause titles inside one accessible document surface returned by `GET /api/proposals/:uuid/contract-terms/`.
   - `success` — selecting a clause in the index opens the document panel and scrolls to that clause's stable anchor.
   - `error` — `?mode=legal` cannot bypass the Spanish-language and per-proposal visibility gates; the regular gateway remains visible without the legal option.
   - `failure` — if the global template is temporarily unavailable, the introduction explains the failure and lets the client retry.
@@ -4900,13 +4900,17 @@ Two transitions that were previously bundled into other flows now have their own
 - **Priority:** P1
 - **Routes:** `/proposal/:uuid`
 - **API:** (client-side only — no API call for toggling)
-- **Description:** Client opens investment calculator modal from the closing/investment section, toggles optional feature modules on/off, sees dynamic total investment and estimated timeline update in real time, and confirms or cancels the selection.
+- **Description:** Client reviews readable payment rows in the Investment section, opens the calculator modal, toggles optional feature modules on/off, sees dynamic total investment and estimated timeline update in real time, and confirms or cancels the selection.
+- **Outcomes:**
+  - `display` — at laptop width, every payment keeps amount, currency, and `+ IVA` together on one line.
+  - `success` — the client opens the calculator, changes optional modules, and confirms the resulting selection.
 - **Steps:**
   1. Client views the proposal and navigates to the Investment section.
-  2. Client clicks "Personalizar tu inversión" to open the calculator modal.
-  3. Client toggles optional feature modules — total investment and timeline update dynamically.
-  4. Client clicks "Confirmar selección" → modal closes; closing section reflects updated total.
-  5. [Branch B — Abandon] Client closes modal without confirming → selection reverts.
+  2. The payment list leaves room for its labels and keeps each complete tax-qualified amount together.
+  3. Client clicks "Personalizar tu inversión" to open the calculator modal.
+  4. Client toggles optional feature modules — total investment and timeline update dynamically.
+  5. Client clicks "Confirmar selección" → modal closes; closing section reflects updated total.
+  6. [Branch B — Abandon] Client closes modal without confirming → selection reverts.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-investment-calculator.spec.js`
 
@@ -5092,11 +5096,11 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid`
-- **Description:** The Proposal Summary section displays personalized KPI cards at the top, sourced from `content_json.kpis`. Each KPI shows a value, label, and source citation. KPIs are editable in the admin SectionEditor and included in the JSON template.
+- **Description:** The Proposal Summary section displays personalized KPI cards at the top, sourced from `content_json.kpis`. Each KPI shows a value, label, and source citation, while the standard investment card keeps the currency and `+ IVA` suffix visible. KPIs are editable in the admin SectionEditor and included in the JSON template.
 - **Steps:**
   1. Client navigates to the Proposal Summary section.
   2. KPI cards render from `content.kpis` array with value, label, and source.
-  3. Below KPIs, standard summary cards (investment, timeline, etc.) render.
+  3. Below KPIs, standard summary cards render and the investment card preserves its currency and tax suffix.
   4. Admin can add/edit/remove KPIs in the SectionEditor for proposal_summary.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-summary-kpis.spec.js`
@@ -6152,7 +6156,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `proposal-expired-graceful` | proposal | P1 | failure | 1 |
 | `proposal-functional-requirements-modal` | proposal | P2 | display | 1 |
 | `proposal-hosting-plan-terms` | proposal | P2 | display | 1 |
-| `proposal-investment-calculator` | proposal | P1 | success | 1 |
+| `proposal-investment-calculator` | proposal | P1 | success,display | 1 |
 | `proposal-kickoff-disclosure` | proposal | P2 | display | 1 |
 | `proposal-magic-link-request` | proposal | P1 | success | 1 |
 | `proposal-negotiate` | proposal | P1 | success | 1 |
@@ -6904,12 +6908,28 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Role:** guest (via shared UUID link)
 - **Priority:** P2
 - **Routes:** `/proposal/:uuid`
-- **Description:** El cliente revisa la nota de compromiso y el plan de kickoff en dos columnas. La información que condiciona la activación del cronograma permanece resumida en un desplegable para no desbalancear la sección.
+- **Description:** El cliente revisa la nota de compromiso y el plan de kickoff en columnas con ancho cómodo cuando la pantalla lo permite. La información que condiciona la activación del cronograma permanece resumida en un desplegable para no desbalancear la sección.
 - **Steps:**
   1. El cliente navega a la sección de nota final.
-  2. La nota, los compromisos y el plan de kickoff aparecen en columnas equilibradas.
+  2. A 1366 px, la nota/compromisos y el plan de kickoff aparecen en columnas de más de 520 px; en pantallas menores se apilan.
   3. El bloque “Información necesaria para activar el cronograma” inicia cerrado.
   4. El cliente expande el bloque.
   5. Se muestran la introducción y los pasos requeridos antes de iniciar.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/proposal/proposal-kickoff-closing-content.spec.js`
+
+### FLOW: `proposal-payment-plan-closing`
+
+- **Module:** proposal
+- **Role:** guest (via shared UUID link)
+- **Priority:** P2
+- **Routes:** `/proposal/:uuid`
+- **Description:** El cliente revisa cerca de las acciones de cierre los hitos del plan de pagos y el total de la propuesta, con moneda e IVA visibles.
+- **Outcomes:**
+  - `display` — el panel final muestra las cuotas configuradas y conserva el sufijo fiscal del total.
+- **Steps:**
+  1. El cliente recorre la propuesta hasta el panel de cierre.
+  2. El panel presenta el plan de pagos configurado junto a las acciones de respuesta.
+  3. El total mantiene la moneda y el texto `+ IVA` sin duplicarlos.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/proposal/proposal-payment-plan-closing.spec.js`
