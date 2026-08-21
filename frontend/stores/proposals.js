@@ -105,6 +105,24 @@ export const useProposalStore = defineStore('proposals', {
       }
     },
 
+    /**
+     * fetchContractTerms: Retrieve the current masked global contract for a proposal.
+     * @param {string} uuid - Public proposal UUID.
+     */
+    async fetchContractTerms(uuid) {
+      try {
+        const response = await get_request(`proposals/${uuid}/contract-terms/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        const status = error.response?.status;
+        return {
+          success: false,
+          status,
+          error: error.response?.data?.error || 'contract_terms_unavailable',
+        };
+      }
+    },
+
     // -----------------------------------------------------------------
     // Admin
     // -----------------------------------------------------------------

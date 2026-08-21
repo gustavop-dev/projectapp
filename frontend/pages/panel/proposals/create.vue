@@ -215,6 +215,28 @@
           <p class="text-xs text-text-subtle mt-1">Define los títulos e índices por defecto de las secciones.</p>
         </div>
 
+        <div class="rounded-xl border border-border-default bg-surface-raised p-4">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm font-medium text-text-default">Contrato y condiciones</p>
+              <p class="mt-1 text-xs leading-relaxed text-text-subtle">
+                Muestra la plantilla contractual global vigente como borrador enmascarado. No cambia el prompt ni el JSON de secciones.
+              </p>
+            </div>
+            <BaseToggle
+              v-model="form.show_contract_terms"
+              :disabled="form.language !== 'es'"
+              aria-label="Mostrar contrato y condiciones"
+              data-testid="create-contract-terms-toggle"
+            />
+          </div>
+          <p class="mt-2 text-xs" :class="form.language === 'es' ? 'text-text-muted' : 'text-warning-strong'">
+            {{ form.language === 'es'
+              ? (form.show_contract_terms ? 'Visible para el cliente.' : 'Oculto para el cliente.')
+              : 'Este módulo solo está disponible en propuestas en español.' }}
+          </p>
+        </div>
+
         <!-- Nationality -->
         <div>
           <label class="block text-sm font-medium text-text-default mb-1">Nacionalidad del cliente</label>
@@ -557,6 +579,28 @@
             </BaseButton>
           </div>
         </div>
+      </div>
+
+      <div class="rounded-xl border border-border-default bg-surface p-4 sm:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-medium text-text-default">Contrato y condiciones</h3>
+            <p class="mt-1 text-xs leading-relaxed text-text-subtle">
+              Es una opción de la propuesta, independiente del contenido importado. No agrega ninguna clave al JSON de secciones.
+            </p>
+          </div>
+          <BaseToggle
+            v-model="jsonForm.show_contract_terms"
+            :disabled="jsonForm.language !== 'es'"
+            aria-label="Mostrar contrato y condiciones"
+            data-testid="json-contract-terms-toggle"
+          />
+        </div>
+        <p class="mt-2 text-xs" :class="jsonForm.language === 'es' ? 'text-text-muted' : 'text-warning-strong'">
+          {{ jsonForm.language === 'es'
+            ? (jsonForm.show_contract_terms ? 'Visible para el cliente.' : 'Oculto para el cliente.')
+            : 'Este módulo solo está disponible en propuestas en español.' }}
+        </p>
       </div>
 
       <!-- JSON input -->
@@ -1230,6 +1274,7 @@ const form = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
+  show_contract_terms: true,
   email_features: [],
   email_method_phases: [
     { number: '01', title: 'Diagnóstico', duration: '', description: 'Mapeo de procesos y alcance final.' },
@@ -1376,6 +1421,7 @@ const jsonForm = reactive({
   reminder_days: 10,
   urgency_reminder_days: 15,
   discount_percent: 0,
+  show_contract_terms: true,
 });
 
 const jsonPreview = computed(() => {
@@ -1577,6 +1623,7 @@ async function handleJsonSubmit() {
     reminder_days: jsonForm.reminder_days,
     urgency_reminder_days: jsonForm.urgency_reminder_days,
     discount_percent: jsonForm.discount_percent,
+    show_contract_terms: jsonForm.show_contract_terms,
     sections,
     ...(jsonForm.client_id ? { client_id: jsonForm.client_id } : {}),
   };

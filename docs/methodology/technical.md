@@ -208,6 +208,12 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Public requirement cards receive `itemRequirementsMap` in detailed and executive modes. A base item is never filtered merely because it has no calculator selection; only uncontracted optional-module requirements are removed.
 - Commercial and technical generation prompts preserve scope discipline: requirement lifting, QA and deployment are distinct processes; warranty text comes from contractual context; analytics is never inferred; institutional users/roles/admin are not invented; requirements should normally fit a 1–3 point story and external feeds should model source, ingestion, resource version, health, cache/retention and last-valid-data semantics separately.
 
+### Contract terms are global proposal metadata, not section JSON
+- `BusinessProposal.show_contract_terms` is a Boolean visibility flag and defaults to `True`; the public mode additionally requires `language='es'` and an active proposal.
+- The legal reader is built from two synthetic frontend panels and `ContractTermsService`, not from a `ProposalSection`. Creation/import/update pass the flag as top-level metadata, leaving AI prompts and the 18-section JSON contract unchanged.
+- `GET /api/proposals/<uuid>/contract-terms/` parses the current default contract Markdown into stable `clause-NN` anchors. `GET /api/proposals/<uuid>/contract/draft-pdf/` forces that same default template even if the proposal has custom contract Markdown.
+- Both public endpoints use draft masking; the PDF omits the contractor signature image and carries the `BORRADOR` watermark. Responses are `no-store` because the global template can change independently from the proposal.
+
 ### API Proxy in Development
 - Nuxt dev server proxies `/api`, `/admin`, `/static`, `/media` to Django at `127.0.0.1:8000`
 - Configured in `nuxt.config.ts` → `nitro.devProxy`
@@ -275,8 +281,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Location: `frontend/e2e/`
 - Structure: `admin/`, `auth/`, `blog/`, `layout/`, `platform/`, `proposal/`, `public/`, `visual/`
 - Spec files: **216 total**
-- Flow definitions: `frontend/e2e/flow-definitions.json` (must be updated for every new flow)
-- Flow tags: `frontend/e2e/helpers/flow-tags.js` (constants imported by spec files)
+- Flow definitions: one source shard per flow in `frontend/e2e/flows/*.json` (must be updated for every new flow)
+- Flow tags and `docs/USER_FLOW_MAP.md` are generated from shards/docs with `python3 scripts/generate_flow_registry.py --repo-root .`; never edit either aggregate by hand
 - Config: `frontend/playwright.config.js`
 - Helpers: `frontend/e2e/helpers/`
 - Run: `npx playwright test e2e/<specific_file>.spec.js` (max 2 files per invocation)

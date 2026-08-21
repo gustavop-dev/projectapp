@@ -20,7 +20,10 @@ class ProposalSectionView(models.Model):
         max_length=50,
         blank=True,
         default='',
-        help_text='Fragment key for technical document subsections (e.g. "stack", "architecture").',
+        help_text=(
+            'Fragment key for technical document subsections or legal '
+            'contract clauses.'
+        ),
     )
     time_spent_seconds = models.FloatField(
         default=0,
@@ -35,10 +38,14 @@ class ProposalSectionView(models.Model):
             ('executive', 'Executive'),
             ('detailed', 'Detailed'),
             ('technical', 'Technical'),
+            ('legal', 'Legal'),
             ('unknown', 'Unknown'),
         ],
         default='unknown',
-        help_text='Whether this section was viewed in executive, detailed, or technical mode.',
+        help_text=(
+            'Whether this section was viewed in executive, detailed, '
+            'technical, or legal mode.'
+        ),
     )
 
     class Meta:

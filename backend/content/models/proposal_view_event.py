@@ -27,10 +27,14 @@ class ProposalViewEvent(models.Model):
             ('executive', 'Executive'),
             ('detailed', 'Detailed'),
             ('technical', 'Technical'),
+            ('legal', 'Legal'),
             ('unknown', 'Unknown'),
         ],
         default='unknown',
-        help_text='Whether the client viewed in executive, detailed, or technical mode.',
+        help_text=(
+            'Whether the client viewed in executive, detailed, technical, '
+            'or legal mode.'
+        ),
     )
 
     class Meta:

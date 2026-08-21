@@ -167,6 +167,34 @@
             </div>
             <p class="text-[10px] text-text-subtle mt-1">Pausar emails automáticos (recordatorio, urgencia, inactividad).</p>
           </div>
+          <div>
+            <div class="flex items-center gap-1">
+              <span class="text-text-subtle text-xs">Contrato y condiciones</span>
+              <BaseTooltip position="right">
+                <template #trigger>
+                  <QuestionMarkCircleIcon class="w-3 h-3 text-text-subtle hover:text-text-muted transition-colors" />
+                </template>
+                Muestra al cliente la plantilla contractual global vigente, enmascarada y sin firmas. Solo está disponible en propuestas en español.
+              </BaseTooltip>
+            </div>
+            <div class="flex items-center gap-2 mt-1">
+              <BaseToggle
+                :model-value="form.show_contract_terms"
+                :disabled="form.language !== 'es'"
+                size="sm"
+                aria-label="Mostrar contrato y condiciones"
+                data-testid="proposal-contract-terms-toggle"
+                @update:model-value="emit('toggle-contract-terms')"
+              />
+              <span
+                class="text-xs"
+                :class="form.show_contract_terms && form.language === 'es' ? 'text-primary' : 'text-text-subtle'"
+              >
+                {{ form.language !== 'es' ? 'No disponible en inglés' : (form.show_contract_terms ? 'Visible' : 'Oculto') }}
+              </span>
+            </div>
+            <p class="text-[10px] text-text-subtle mt-1">No modifica el prompt ni las secciones JSON de la propuesta.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -777,6 +805,7 @@ const emit = defineEmits([
   'toggle-automations',
   'open-email-preview',
   'toggle-active',
+  'toggle-contract-terms',
   'next-action',
   'open-actions',
   'client-selected',
@@ -803,10 +832,20 @@ function formatInvestment(value, currency = 'COP') {
   return '$' + num.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' ' + currency;
 }
 
-const proposalModeLinks = [
-  { label: 'Propuesta completa', labelUrl: 'URL propuesta completa', mode: 'detailed' },
-  { label: 'Detalle técnico', labelUrl: 'URL detalle técnico', mode: 'technical' },
-];
+const proposalModeLinks = computed(() => {
+  const links = [
+    { label: 'Propuesta completa', labelUrl: 'URL propuesta completa', mode: 'detailed' },
+    { label: 'Detalle técnico', labelUrl: 'URL detalle técnico', mode: 'technical' },
+  ];
+  if (proposal.value?.language === 'es' && proposal.value?.show_contract_terms) {
+    links.push({
+      label: 'Contrato y condiciones',
+      labelUrl: 'URL contrato y condiciones',
+      mode: 'legal',
+    });
+  }
+  return links;
+});
 
 const publicIdentifier = computed(
   () => proposal.value?.slug || proposal.value?.uuid || ''

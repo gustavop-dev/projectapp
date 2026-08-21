@@ -99,7 +99,8 @@ from content.views.view_map import (
 )
 from content.views.proposal import (
     retrieve_public_proposal, retrieve_public_proposal_by_slug,
-    download_proposal_pdf,
+    download_proposal_pdf, retrieve_public_contract_terms,
+    download_public_draft_contract_pdf,
     list_proposals, retrieve_proposal, create_proposal,
     create_proposal_from_json, get_proposal_json_template,
     export_proposal_json, update_proposal_from_json,
@@ -235,6 +236,8 @@ urlpatterns = [
     path('proposals/<uuid:proposal_uuid>/', retrieve_public_proposal, name='retrieve-public-proposal'),
     path('proposals/by-slug/<slug:proposal_slug>/', retrieve_public_proposal_by_slug, name='retrieve-public-proposal-by-slug'),
     path('proposals/<uuid:proposal_uuid>/pdf/', download_proposal_pdf, name='download-proposal-pdf'),
+    path('proposals/<uuid:proposal_uuid>/contract-terms/', retrieve_public_contract_terms, name='retrieve-public-contract-terms'),
+    path('proposals/<uuid:proposal_uuid>/contract/draft-pdf/', download_public_draft_contract_pdf, name='download-public-draft-contract-pdf'),
     path('proposals/<uuid:proposal_uuid>/respond/', respond_to_proposal, name='respond-to-proposal'),
     path('proposals/<uuid:proposal_uuid>/comment/', comment_on_proposal, name='comment-on-proposal'),
     path('proposals/<uuid:proposal_uuid>/track/', track_proposal_engagement, name='track-proposal-engagement'),

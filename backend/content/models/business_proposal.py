@@ -129,6 +129,13 @@ class BusinessProposal(models.Model):
     urgency_reminder_days = models.PositiveIntegerField(default=15)
     discount_percent = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    show_contract_terms = models.BooleanField(
+        default=True,
+        help_text=(
+            'Whether Spanish public proposals expose the generic contract '
+            'terms module and its masked draft download.'
+        ),
+    )
     automations_paused = models.BooleanField(
         default=False,
         help_text='When true, no automatic emails (reminder, urgency, inactivity) are sent for this proposal. '

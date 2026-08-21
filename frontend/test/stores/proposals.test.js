@@ -262,6 +262,36 @@ describe('useProposalStore', () => {
     });
   });
 
+  describe('fetchContractTerms', () => {
+    it('returns the masked contract payload', async () => {
+      const data = { clauses: [{ id: 'clause-01', title: 'Objeto' }] };
+      get_request.mockResolvedValue({ data });
+
+      const result = await store.fetchContractTerms('proposal-uuid');
+
+      expect(get_request).toHaveBeenCalledWith(
+        'proposals/proposal-uuid/contract-terms/',
+      );
+      expect(result).toEqual({ success: true, data });
+    });
+
+    it('returns the API error without mutating proposal state', async () => {
+      store.currentProposal = { uuid: 'proposal-uuid' };
+      get_request.mockRejectedValue({
+        response: { status: 503, data: { error: 'No disponible' } },
+      });
+
+      const result = await store.fetchContractTerms('proposal-uuid');
+
+      expect(result).toEqual({
+        success: false,
+        status: 503,
+        error: 'No disponible',
+      });
+      expect(store.currentProposal).toEqual({ uuid: 'proposal-uuid' });
+    });
+  });
+
   describe('fetchProposals', () => {
     it('fetches all proposals without filter', async () => {
       get_request.mockResolvedValue({ data: [{ id: 1 }, { id: 2 }] });

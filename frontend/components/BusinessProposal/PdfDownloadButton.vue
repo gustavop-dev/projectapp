@@ -58,7 +58,9 @@ async function downloadPdf() {
       params.set('doc', 'technical');
     }
     const q = params.toString();
-    const pdfUrl = `/api/proposals/${uuid}/pdf/${q ? `?${q}` : ''}`;
+    const pdfUrl = props.viewMode === 'legal'
+      ? `/api/proposals/${uuid}/contract/draft-pdf/`
+      : `/api/proposals/${uuid}/pdf/${q ? `?${q}` : ''}`;
 
     const response = await fetch(pdfUrl);
     if (!response.ok) {
@@ -76,7 +78,11 @@ async function downloadPdf() {
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const yy = String(d.getFullYear()).slice(-2);
     const dateSuffix = `${dd}-${mm}-${yy}`;
-    const filePrefix = props.viewMode === 'technical' ? 'Detalle_Tecnico' : 'Propuesta_Comercial';
+    const filePrefix = props.viewMode === 'technical'
+      ? 'Detalle_Tecnico'
+      : props.viewMode === 'legal'
+        ? 'Borrador_Contrato'
+        : 'Propuesta_Comercial';
 
     const link = document.createElement('a');
     link.href = url;

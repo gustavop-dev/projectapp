@@ -144,7 +144,8 @@ class ProposalListSerializer(serializers.ModelSerializer):
             'id', 'uuid', 'title', 'client_name', 'client_email', 'status',
             'total_investment', 'currency', 'nationality', 'expires_at',
             'view_count', 'created_at', 'days_remaining', 'is_expired',
-            'is_active', 'automations_paused', 'responded_at', 'last_activity_at',
+            'is_active', 'show_contract_terms', 'automations_paused',
+            'responded_at', 'last_activity_at',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
             'cached_heat_score', 'engagement_declining',
@@ -199,7 +200,7 @@ class ProposalDetailSerializer(serializers.ModelSerializer):
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at',
             'reminder_days', 'urgency_reminder_days', 'discount_percent',
-            'is_active', 'automations_paused',
+            'is_active', 'show_contract_terms', 'automations_paused',
             'reminder_sent_at', 'urgency_email_sent_at',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
@@ -437,7 +438,8 @@ class ProposalCreateUpdateSerializer(serializers.ModelSerializer):
             'hosting_discount_nine_month',
             'hosting_discount_semiannual', 'hosting_discount_quarterly',
             'status', 'expires_at', 'reminder_days', 'urgency_reminder_days',
-            'discount_percent', 'is_active', 'automations_paused',
+            'discount_percent', 'is_active', 'show_contract_terms',
+            'automations_paused',
             'project_type', 'market_type', 'client_phone',
             'project_type_custom', 'market_type_custom',
             'email_intro', 'email_features', 'email_method_phases', 'email_signed_by',
@@ -675,6 +677,7 @@ class ProposalFromJSONSerializer(serializers.Serializer):
     reminder_days = serializers.IntegerField(required=False, default=10)
     urgency_reminder_days = serializers.IntegerField(required=False, default=15)
     discount_percent = serializers.IntegerField(required=False, default=0)
+    show_contract_terms = serializers.BooleanField(required=False, default=True)
     sections = serializers.DictField(child=serializers.DictField(), required=True)
 
     def validate_client_email(self, value):

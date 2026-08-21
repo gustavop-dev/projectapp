@@ -3,7 +3,13 @@ import ProposalViewGateway from '../../components/BusinessProposal/ProposalViewG
 
 function mountGateway(props = {}) {
   return mount(ProposalViewGateway, {
-    props: { language: 'es', clientName: '', showTechnical: false, ...props },
+    props: {
+      language: 'es',
+      clientName: '',
+      showTechnical: false,
+      showLegal: false,
+      ...props,
+    },
   });
 }
 
@@ -48,6 +54,26 @@ describe('ProposalViewGateway', () => {
     await wrapper.find('[data-testid="gateway-technical-card"]').trigger('click');
 
     expect(wrapper.emitted('select')).toEqual([['technical']]);
+  });
+
+  it('does not render the legal card when showLegal is false', () => {
+    const wrapper = mountGateway({ showLegal: false });
+
+    expect(wrapper.find('[data-testid="gateway-legal-card"]').exists()).toBe(false);
+  });
+
+  it('renders the legal card when showLegal is true', () => {
+    const wrapper = mountGateway({ showLegal: true });
+
+    expect(wrapper.find('[data-testid="gateway-legal-card"]').exists()).toBe(true);
+  });
+
+  it('emits select with "legal" when the legal card is clicked', async () => {
+    const wrapper = mountGateway({ showLegal: true });
+
+    await wrapper.find('[data-testid="gateway-legal-card"]').trigger('click');
+
+    expect(wrapper.emitted('select')).toEqual([['legal']]);
   });
 
   it('renders the English heading text when language is "en"', () => {

@@ -638,6 +638,15 @@ class TestProposalFromJSONSerializer:
         serializer = ProposalFromJSONSerializer(data=self._valid_payload())
         assert serializer.is_valid(), serializer.errors
 
+    def test_contract_visibility_is_top_level_metadata(self):
+        serializer = ProposalFromJSONSerializer(data=self._valid_payload(
+            show_contract_terms=False,
+        ))
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data['show_contract_terms'] is False
+        assert 'show_contract_terms' not in serializer.validated_data['sections']
+
     def test_missing_general_key_is_invalid(self):
         payload = self._valid_payload()
         payload['sections'] = {'executiveSummary': {'title': 'Summary'}}

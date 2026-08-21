@@ -123,6 +123,7 @@
           @toggle-automations="toggleAutomationsPaused"
           @open-email-preview="openEmailPreview"
           @toggle-active="handleToggleActive"
+          @toggle-contract-terms="toggleContractTerms"
           @next-action="handleNextAction"
           @open-actions="showActionsModal = true"
           @client-selected="onClientSelected"
@@ -830,6 +831,7 @@ const form = reactive({
   urgency_reminder_days: 15,
   discount_percent: 0,
   automations_paused: false,
+  show_contract_terms: true,
   email_intro: '',
   email_features: [],
   email_method_phases: [],
@@ -1104,6 +1106,7 @@ function hydrateFormFromProposal() {
     discount_percent: proposal.value.discount_percent ?? 0,
     // Backend default is False (automations enabled) — keep the fallback aligned.
     automations_paused: proposal.value.automations_paused ?? false,
+    show_contract_terms: proposal.value.show_contract_terms ?? true,
     email_intro: proposal.value.email_intro || '',
     email_features: Array.isArray(proposal.value.email_features) ? [...proposal.value.email_features] : [],
     email_method_phases: Array.isArray(proposal.value.email_method_phases) && proposal.value.email_method_phases.length
@@ -1188,6 +1191,24 @@ async function toggleAutomationsPaused() {
   } else {
     form.automations_paused = !form.automations_paused;
     notify.error({ title: 'Error al cambiar automatizaciones.' });
+  }
+}
+
+async function toggleContractTerms() {
+  const previousValue = form.show_contract_terms;
+  form.show_contract_terms = !previousValue;
+  const result = await proposalStore.updateProposal(proposal.value.id, {
+    show_contract_terms: form.show_contract_terms,
+  });
+  if (result.success) {
+    notify.success({
+      title: form.show_contract_terms
+        ? 'Contrato y condiciones visible.'
+        : 'Contrato y condiciones oculto.',
+    });
+  } else {
+    form.show_contract_terms = previousValue;
+    notify.error({ title: 'No se pudo cambiar la visibilidad del contrato.' });
   }
 }
 

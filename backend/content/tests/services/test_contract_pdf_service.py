@@ -12,6 +12,7 @@ from reportlab.pdfgen import canvas as rl_canvas
 from content.services.contract_pdf_service import (
     _build_params,
     _draw_title_page,
+    _get_contract_markdown,
     _render_block,
     _substitute_placeholders,
     generate_contract_pdf,
@@ -100,6 +101,20 @@ class TestSubstitutePlaceholders:
 
     def test_handles_empty_template(self):
         assert _substitute_placeholders('', {'key': 'val'}) == ''
+
+
+def test_force_default_contract_ignores_custom_markdown(contract_template):
+    result = _get_contract_markdown(
+        {
+            'contract_source': 'custom',
+            'custom_contract_markdown': 'PRIVATE CUSTOM CONTRACT',
+        },
+        _build_params({}, draft=True),
+        force_default=True,
+    )
+
+    assert 'PRIVATE CUSTOM CONTRACT' not in result
+    assert 'XXX-XXX-XXX' in result
 
 
 class TestGenerateContractPdf:

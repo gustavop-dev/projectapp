@@ -1,0 +1,14 @@
+{
+  "id": "proposal-contract-draft-download",
+  "name": "Proposal Contract Draft Download",
+  "module": "proposal",
+  "roles": [
+    "guest"
+  ],
+  "priority": "P2",
+  "description": "Client downloads the unsigned, watermarked draft from the Contract and terms introduction.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

@@ -294,6 +294,85 @@ def retrieve_public_proposal_by_slug(request, proposal_slug):
     return _serve_public_proposal(request, proposal)
 
 
+def _public_contract_terms_proposal(proposal_uuid):
+    """Resolve a proposal only when its generic legal module is available."""
+    proposal = get_object_or_404(BusinessProposal, uuid=proposal_uuid)
+    if not (
+        proposal.is_active
+        and proposal.language == BusinessProposal.Language.ES
+        and proposal.show_contract_terms
+    ):
+        return None
+    return proposal
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@throttle_classes([ProposalPdfThrottle])
+def retrieve_public_contract_terms(request, proposal_uuid):
+    """Return the current global contract as a masked, linkable preview."""
+    proposal = _public_contract_terms_proposal(proposal_uuid)
+    if proposal is None:
+        return Response(
+            {'error': 'Este contenido no está disponible.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    from content.services.contract_terms_service import (
+        build_contract_terms_payload,
+    )
+
+    payload = build_contract_terms_payload()
+    if payload is None:
+        return Response(
+            {'error': 'El borrador del contrato no está disponible temporalmente.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    response = Response(payload, status=status.HTTP_200_OK)
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+@throttle_classes([ProposalPdfThrottle])
+def download_public_draft_contract_pdf(request, proposal_uuid):
+    """Download the masked global contract with a BORRADOR watermark."""
+    proposal = _public_contract_terms_proposal(proposal_uuid)
+    if proposal is None:
+        return Response(
+            {'error': 'Este contenido no está disponible.'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    from content.models import ContractTemplate
+    from content.services.contract_pdf_service import generate_contract_pdf
+    from content.services.pdf_utils import add_watermark_to_pdf
+
+    if not ContractTemplate.get_default():
+        return Response(
+            {'error': 'El borrador del contrato no está disponible temporalmente.'},
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    pdf_bytes = generate_contract_pdf(
+        proposal,
+        draft=True,
+        force_default=True,
+    )
+    if not pdf_bytes:
+        return Response(
+            {'error': 'No fue posible generar el borrador del contrato.'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+    response = _contract_pdf_response(
+        add_watermark_to_pdf(pdf_bytes),
+        proposal,
+        'Borrador_Contrato',
+    )
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 @throttle_classes([ProposalPdfThrottle])
@@ -1016,6 +1095,7 @@ def update_proposal(request, proposal_id):
         'client_email', 'client_phone', 'discount_percent', 'status',
         'language', 'project_type', 'market_type', 'slug',
         'expires_at', 'reminder_days', 'urgency_reminder_days',
+        'show_contract_terms',
     ]
     old_values = {f: str(getattr(proposal, f, '')) for f in tracked_fields}
 
@@ -1199,6 +1279,7 @@ def duplicate_proposal(request, proposal_id):
             reminder_days=proposal.reminder_days,
             urgency_reminder_days=proposal.urgency_reminder_days,
             discount_percent=proposal.discount_percent,
+            show_contract_terms=proposal.show_contract_terms,
             is_active=True,
             view_count=0,
             first_viewed_at=None,

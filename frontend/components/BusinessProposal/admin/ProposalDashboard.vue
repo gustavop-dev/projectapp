@@ -328,18 +328,14 @@
               </BaseTooltip>
             </div>
             <p class="text-xs text-text-subtle mb-3">
-              Por propuesta cerrada se toma el modo con más eventos de tracking (ejecutiva, completa o técnica).
+              Por propuesta cerrada se toma el modo con más eventos de tracking (ejecutiva, completa, técnica o contractual).
             </p>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div
-                v-for="mode in ['executive', 'detailed', 'technical']"
+                v-for="mode in VIEW_MODES"
                 :key="mode"
                 class="rounded-lg border p-3"
-                :class="mode === 'executive'
-                  ? 'border-purple-100 bg-purple-50/40 dark:border-purple-900/40 dark:bg-purple-900/15'
-                  : mode === 'detailed'
-                    ? 'border-blue-100 bg-blue-50/40 dark:border-blue-900/40 dark:bg-blue-900/15'
-                    : 'border-teal-100 bg-teal-50/40 dark:border-teal-900/40 dark:bg-teal-900/15'"
+                :class="viewModeDashboardCardClass(mode)"
               >
                 <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                   {{ viewModeDashboardLabel(mode) }}
@@ -585,8 +581,24 @@ function projectTypeLabel(t) { return projectTypeLabels[t] || t; }
 function marketTypeLabel(t) { return marketTypeLabels[t] || t; }
 
 function viewModeDashboardLabel(mode) {
-  const map = { executive: 'Ejecutiva', detailed: 'Completa', technical: 'Técnica' };
+  const map = {
+    executive: 'Ejecutiva',
+    detailed: 'Completa',
+    technical: 'Técnica',
+    legal: 'Contractual',
+  };
   return map[mode] || mode;
+}
+
+const VIEW_MODES = ['executive', 'detailed', 'technical', 'legal'];
+function viewModeDashboardCardClass(mode) {
+  const map = {
+    executive: 'border-purple-100 bg-purple-50/40 dark:border-purple-900/40 dark:bg-purple-900/15',
+    detailed: 'border-blue-100 bg-blue-50/40 dark:border-blue-900/40 dark:bg-blue-900/15',
+    technical: 'border-teal-100 bg-teal-50/40 dark:border-teal-900/40 dark:bg-teal-900/15',
+    legal: 'border-warning-strong/30 bg-warning-soft',
+  };
+  return map[mode] || 'border-border-default bg-surface-raised';
 }
 
 const discountDelta = computed(() => {

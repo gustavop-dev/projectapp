@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 
 global.useProposalStore = jest.fn(() => ({
   currentProposal: {
@@ -26,6 +26,15 @@ function mountPdfDownloadButton(props = {}) {
 }
 
 describe('PdfDownloadButton', () => {
+  beforeEach(() => {
+    global.fetch.mockClear();
+    jest.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it('renders the download button', () => {
     const wrapper = mountPdfDownloadButton();
 
@@ -48,5 +57,16 @@ describe('PdfDownloadButton', () => {
     const wrapper = mountPdfDownloadButton();
 
     expect(wrapper.find('button').attributes('disabled')).toBeUndefined();
+  });
+
+  it('requests the public contract draft in legal mode', async () => {
+    const wrapper = mountPdfDownloadButton({ viewMode: 'legal' });
+
+    await wrapper.find('button').trigger('click');
+    await flushPromises();
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/proposals/test-uuid/contract/draft-pdf/',
+    );
   });
 });

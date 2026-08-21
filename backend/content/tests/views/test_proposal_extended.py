@@ -310,6 +310,34 @@ class TestTrackProposalEngagementEdgeCases:
         event = ProposalViewEvent.objects.get(proposal=p, session_id='sess-tech')
         assert event.view_mode == 'technical'
 
+    def test_view_mode_legal_persisted_on_track(
+        self, api_client, tracked_proposal, monkeypatch,
+    ):
+        from content.throttles import TrackingAnonThrottle
+
+        monkeypatch.setattr(
+            TrackingAnonThrottle,
+            'timer',
+            staticmethod(lambda: FROZEN_NOW.timestamp()),
+        )
+        p = tracked_proposal
+        url = reverse('track-proposal-engagement', kwargs={'proposal_uuid': p.uuid})
+
+        api_client.post(url, {
+            'session_id': 'sess-legal',
+            'sections': [{
+                'section_type': 'contract_terms_document',
+                'subsection_key': 'clause-03',
+                'time_spent_seconds': 8,
+            }],
+            'view_mode': 'legal',
+        }, format='json')
+
+        event = ProposalViewEvent.objects.get(proposal=p, session_id='sess-legal')
+        assert event.view_mode == 'legal'
+        clause_view = ProposalSectionView.objects.get(view_event=event)
+        assert clause_view.subsection_key == 'clause-03'
+
     def test_engagement_declining_reset_on_normal_engagement(
         self, api_client, tracked_proposal,
     ):
