@@ -112,11 +112,24 @@ export function buildProposalItemLinkOptions(sections) {
   if (!Array.isArray(sections)) return [];
   const fr = sections.find((s) => s?.section_type === 'functional_requirements');
   const cj = fr?.content_json || {};
-  const groups = [...(cj.groups || []), ...(cj.additionalModules || [])];
+  const baseGroups = (cj.groups || []).map((group) => ({
+    group,
+    isRequiredForCoverage: true,
+  }));
+  const additionalGroups = (cj.additionalModules || []).map((group) => ({
+    group,
+    // Optional catalog modules only become contractual coverage when the
+    // seller explicitly selected them (or a legacy proposal selected them by
+    // default). Unselected modules remain auditable without blocking a save.
+    isRequiredForCoverage: group?.selected === true
+      || (group?.selected == null && group?.default_selected === true),
+  }));
+  const groups = [...baseGroups, ...additionalGroups];
   const out = [];
 
-  for (const g of groups) {
+  for (const { group: g, isRequiredForCoverage } of groups) {
     if (!g || typeof g !== 'object') continue;
+    if (g.is_visible === false) continue;
     const groupId = g.id == null ? '' : String(g.id).trim();
     if (!groupId) continue;
     const items = [];
@@ -133,10 +146,57 @@ export function buildProposalItemLinkOptions(sections) {
     out.push({
       groupId,
       groupLabel: `${g.icon || ''} ${g.title || groupId}`.trim(),
+      isRequiredForCoverage,
       items,
     });
   }
   return out;
+}
+
+/**
+ * Compare commercial items with the requirement links in a technical document.
+ * Required items block saves; optional catalog items are reported as guidance.
+ *
+ * @param {Array<{ groupId: string, groupLabel: string, isRequiredForCoverage?: boolean, items: Array<{ id: string, label: string }> }>} itemLinkOptions
+ * @param {{ epics?: Array<{ requirements?: Array<{ linked_item_ids?: string[] }> }> }} technicalDocument
+ * @returns {{ missingRequired: Array<object>, missingOptional: Array<object>, requiredCount: number, coveredRequiredCount: number }}
+ */
+export function buildTechnicalItemCoverage(itemLinkOptions, technicalDocument) {
+  const linkedIds = new Set();
+  for (const epic of technicalDocument?.epics || []) {
+    for (const requirement of epic?.requirements || []) {
+      for (const itemId of requirement?.linked_item_ids || requirement?.linkedItemIds || []) {
+        if (typeof itemId === 'string' && itemId.trim()) linkedIds.add(itemId.trim());
+      }
+    }
+  }
+
+  const missingRequired = [];
+  const missingOptional = [];
+  let requiredCount = 0;
+  let coveredRequiredCount = 0;
+
+  for (const group of itemLinkOptions || []) {
+    const isRequired = group?.isRequiredForCoverage === true;
+    for (const item of group?.items || []) {
+      if (!item?.id) continue;
+      const entry = {
+        id: item.id,
+        label: item.label || item.id,
+        groupId: group.groupId || '',
+        groupLabel: group.groupLabel || group.groupId || '',
+      };
+      if (isRequired) {
+        requiredCount += 1;
+        if (linkedIds.has(item.id)) coveredRequiredCount += 1;
+        else missingRequired.push(entry);
+      } else if (!linkedIds.has(item.id)) {
+        missingOptional.push(entry);
+      }
+    }
+  }
+
+  return { missingRequired, missingOptional, requiredCount, coveredRequiredCount };
 }
 
 export function buildProposalModuleIdAliasMapFromOptions(options) {

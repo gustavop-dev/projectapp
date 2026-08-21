@@ -10,9 +10,7 @@
         </h2>
       </div>
 
-      <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-12">
-        {{ intro }}
-      </p>
+      <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-12" v-html="linkify(intro)" />
 
       <!-- Vertical timeline -->
       <div class="relative">
@@ -61,6 +59,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);

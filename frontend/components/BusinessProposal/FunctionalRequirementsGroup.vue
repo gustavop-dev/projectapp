@@ -19,9 +19,10 @@
 
         <!-- Description -->
         <div data-animate="fade-up" class="mb-10">
-          <p class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl max-w-3xl">
-            {{ group.description }}
-          </p>
+          <p
+            class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl"
+            v-html="linkify(group.description)"
+          />
         </div>
 
         <!-- Items grid -->
@@ -48,6 +49,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);

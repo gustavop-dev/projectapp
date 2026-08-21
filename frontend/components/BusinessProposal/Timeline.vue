@@ -13,9 +13,7 @@
       </div>
 
       <div class="timeline-intro mb-12">
-        <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-6">
-          {{ introText }}
-        </p>
+        <p data-animate="fade-up" class="text-text-default/80 font-light leading-relaxed text-lg md:text-xl mb-6" v-html="linkify(introText)" />
         <div data-animate="fade-up" class="duration-summary bg-primary-soft p-6 rounded-xl inline-block">
           <div class="flex items-center">
             <svg class="w-8 h-8 text-text-brand mr-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -93,6 +91,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 
 const sectionRef = ref(null);
 useSectionAnimations(sectionRef);

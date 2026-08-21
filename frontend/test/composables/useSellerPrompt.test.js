@@ -271,6 +271,31 @@ describe('useSellerPrompt DEFAULT_PROMPT coherence rules (regression guard)', ()
     expect(DEFAULT_PROMPT).not.toContain('7 grupos base')
   })
 
+  it('separates requirement discovery from QA and deployment', () => {
+    expect(DEFAULT_PROMPT).toContain('levantamiento de requerimientos')
+    expect(DEFAULT_PROMPT).toContain('QA y despliegue NUNCA se fusionan')
+  })
+
+  it('keeps warranty language tied to contractual context', () => {
+    expect(DEFAULT_PROMPT).toContain('copiarse del contexto contractual')
+    expect(DEFAULT_PROMPT).toContain('Nunca inventes un plazo')
+  })
+
+  it('prevents invented analytics summary cards', () => {
+    expect(DEFAULT_PROMPT).toContain('No agregues una tarjeta de reportes/analítica')
+    expect(DEFAULT_PROMPT).toContain('Resumen sin capacidades inventadas')
+  })
+
+  it('frames the functional requirements introduction around reviewable content', () => {
+    expect(DEFAULT_PROMPT).toContain('Introducción orientada al contenido')
+    expect(DEFAULT_PROMPT).toContain('No menciones módulos opcionales')
+  })
+
+  it('forbids inferred institutional scope', () => {
+    expect(DEFAULT_PROMPT).toContain('No derivar alcance institucional')
+    expect(DEFAULT_PROMPT).toContain('no inventes administración, autenticación, usuarios, roles, permisos')
+  })
+
   it('includes the pre-output checklist', () => {
     expect(DEFAULT_PROMPT).toContain('CHECKLIST ANTES DE RESPONDER')
     expect(DEFAULT_PROMPT).toContain('Ids de items:')

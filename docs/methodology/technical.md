@@ -192,6 +192,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Enables rich, structured content without a full CMS
 - Blog supports dual format: structured JSON (preferred) with HTML fallback
 
+### Proposal presentation and traceability contracts
+
+- `next_steps.content_json` has two public consumers. `steps` and `introMessage` feed the closed kickoff disclosure in `FinalNote`; `ctaMessage`, `primaryCTA`, `secondaryCTA` and `contactMethods` feed the synthetic `ProposalClosing` panel. Do not restore a standalone `next_steps` panel or duplicate these blocks.
+- Proposal descriptions may contain limited emphasis. Render them through `useLinkify.linkify`, whose whitelist preserves safe `<b>/<strong>/<i>/<em>/<br>` tags and escapes all other HTML; do not introduce raw `v-html` paths.
+- `buildProposalItemLinkOptions()` marks each commercial item as required, optional or ignored from its real group visibility/selection. `buildTechnicalItemCoverage()` compares those ids against technical `linked_item_ids`; the technical editor refuses to emit `save` while required gaps remain.
+- Public requirement cards receive `itemRequirementsMap` in detailed and executive modes. A base item is never filtered merely because it has no calculator selection; only uncontracted optional-module requirements are removed.
+- Commercial and technical generation prompts preserve scope discipline: requirement lifting, QA and deployment are distinct processes; warranty text comes from contractual context; analytics is never inferred; institutional users/roles/admin are not invented; requirements should normally fit a 1–3 point story and external feeds should model source, ingestion, resource version, health, cache/retention and last-valid-data semantics separately.
+
 ### API Proxy in Development
 - Nuxt dev server proxies `/api`, `/admin`, `/static`, `/media` to Django at `127.0.0.1:8000`
 - Configured in `nuxt.config.ts` → `nitro.devProxy`

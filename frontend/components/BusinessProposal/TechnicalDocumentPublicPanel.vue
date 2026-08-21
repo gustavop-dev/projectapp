@@ -21,10 +21,9 @@
           <p
             v-if="purposeText"
             data-animate="fade-up"
-            class="max-w-3xl text-text-default/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap mb-6"
-          >
-            {{ purposeText }}
-          </p>
+            class="text-text-default/80 font-light text-lg md:text-xl leading-relaxed whitespace-pre-wrap mb-6"
+            v-html="linkify(purposeText)"
+          />
 
           <p
             v-if="coverStatsLine"
@@ -620,6 +619,7 @@
 <script setup>
 import { computed, ref, watch, onUnmounted } from 'vue';
 import { useSectionAnimations } from '~/composables/useSectionAnimations';
+import { linkify } from '~/composables/useLinkify';
 import {
   technicalFragmentHasContent,
   technicalFragmentSummary,

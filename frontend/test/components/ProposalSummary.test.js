@@ -32,8 +32,30 @@ describe('ProposalSummary', () => {
   it('renders auto-generated cards when no content.cards are provided', () => {
     const wrapper = mountSummary({ content: {} });
 
-    // Auto-generates designer, analytics, and best_practices cards
+    // Auto-generates only genuinely universal proposal benefits.
     expect(wrapper.findAll('.summary-card').length).toBeGreaterThan(0);
+  });
+
+  it('does not invent a reports and analytics card', () => {
+    const wrapper = mountSummary({ content: {} });
+
+    expect(wrapper.findAll('[data-testid="proposal-summary-card"]')).toHaveLength(2);
+    expect(wrapper.text()).not.toContain('Reportes y analítica');
+  });
+
+  it('renders an explicit reports card from proposal content', () => {
+    const wrapper = mountSummary({
+      content: {
+        cards: [{
+          icon: '📊',
+          title: 'Reportes contratados',
+          source: 'analytics_dashboard',
+          description: 'Incluidos expresamente en este alcance.',
+        }],
+      },
+    });
+
+    expect(wrapper.text()).toContain('Reportes contratados');
   });
 
   it('renders investment modules card when investmentModules are provided', () => {

@@ -57,4 +57,16 @@ describe('FinalNote', () => {
 
     expect(wrapper.text()).toContain('Kickoff Plan');
   });
+
+  it('renders next steps inside a closed disclosure', () => {
+    const wrapper = mountNote({
+      nextStepsIntro: 'Necesitamos cerrar los insumos disponibles.',
+      nextSteps: [{ title: 'Entrega de insumos', description: 'Compartir muestras.' }],
+    });
+
+    const disclosure = wrapper.find('[data-testid="next-steps-disclosure"]');
+    expect(disclosure.exists()).toBe(true);
+    expect(disclosure.attributes('open')).toBeUndefined();
+    expect(disclosure.find('summary').text()).toContain('activar el cronograma');
+  });
 });

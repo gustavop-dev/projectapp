@@ -7,6 +7,33 @@
     </p>
 
     <div
+      v-if="itemLinkOptions.length"
+      data-testid="technical-item-coverage"
+      class="rounded-xl border p-4 space-y-2"
+      :class="coverageSummary.missingRequired.length
+        ? 'border-red-200 bg-red-50 text-red-900'
+        : 'border-emerald-200 bg-success-soft text-emerald-900'"
+    >
+      <p class="text-sm font-semibold">
+        Trazabilidad comercial ↔ técnica:
+        {{ coverageSummary.coveredRequiredCount }}/{{ coverageSummary.requiredCount }} items incluidos enlazados
+      </p>
+      <p v-if="coverageSummary.missingRequired.length" class="text-xs leading-relaxed">
+        Faltan {{ coverageSummary.missingRequired.length }} items obligatorios. El detalle no se puede guardar hasta enlazarlos desde al menos un requerimiento:
+        <span class="font-semibold">{{ missingRequiredLabels }}</span>.
+      </p>
+      <p v-else class="text-xs leading-relaxed">
+        Todos los items del alcance incluido tienen al menos un requerimiento técnico enlazado.
+      </p>
+      <details v-if="coverageSummary.missingOptional.length" class="text-xs">
+        <summary class="cursor-pointer font-medium">
+          {{ coverageSummary.missingOptional.length }} items opcionales aún no enlazados (no bloquean el guardado)
+        </summary>
+        <p class="mt-2 leading-relaxed opacity-80">{{ missingOptionalLabels }}</p>
+      </details>
+    </div>
+
+    <div
       v-if="moduleLinkOptions.length"
       class="rounded-xl border border-dashed border-emerald-200 bg-primary-soft p-4 space-y-2"
     >
@@ -561,6 +588,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { createGenericTechnicalEpicStub } from '~/utils/technicalModuleStub';
 import {
+  buildTechnicalItemCoverage,
   buildProposalModuleIdAliasMapFromOptions,
   normalizeLinkedModuleIds,
 } from '~/utils/proposalModuleLinkOptions';
@@ -571,7 +599,7 @@ const props = defineProps({
   section: { type: Object, required: true },
   /** { id, label }[] from proposal FR + investment modules */
   moduleLinkOptions: { type: Array, default: () => [] },
-  /** { groupId, groupLabel, items: { id, label }[] }[] from FR items, for linked_item_ids */
+  /** Grouped FR items plus isRequiredForCoverage, for linked_item_ids. */
   itemLinkOptions: { type: Array, default: () => [] },
   /** Render every collapsible/disclosure open (unit tests, defaults panel). */
   expandAll: { type: Boolean, default: false },
@@ -772,6 +800,15 @@ function mergeContent(src) {
 }
 
 const doc = reactive(mergeContent(props.section.content_json));
+const coverageSummary = computed(() => buildTechnicalItemCoverage(props.itemLinkOptions, doc));
+const missingRequiredLabels = computed(() => coverageSummary.value.missingRequired
+  .slice(0, 8)
+  .map((item) => `${item.groupLabel}: ${item.label}`)
+  .join(' · '));
+const missingOptionalLabels = computed(() => coverageSummary.value.missingOptional
+  .slice(0, 12)
+  .map((item) => `${item.groupLabel}: ${item.label}`)
+  .join(' · '));
 
 // Every external write path replaces the section object (store updateSection /
 // applySync splice a new section; fetchProposal swaps currentProposal), so a
@@ -930,6 +967,9 @@ function validate() {
         return 'Cada requerimiento con contenido debe tener título.';
       }
     }
+  }
+  if (coverageSummary.value.missingRequired.length) {
+    return `Faltan ${coverageSummary.value.missingRequired.length} items obligatorios por enlazar con requerimientos técnicos.`;
   }
   return '';
 }
