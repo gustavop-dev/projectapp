@@ -1,7 +1,6 @@
-// qa: draft-unvalidated (2026-08-22 — app_reachable=no)
 /**
- * Draft E2E coverage for failure outcomes in the admin hosting-cycle journey.
- * These cases require one green local or staging run before they count as coverage.
+ * E2E coverage for failure outcomes in the admin hosting-cycle journey.
+ * First live validation: GitHub CI run 32582448655 (2026-08-22).
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
