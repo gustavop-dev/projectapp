@@ -173,7 +173,7 @@
               <!-- Clúster derecho: reordenar (hover) + archivar + eliminar. -->
               <div class="flex items-center flex-shrink-0 pr-1.5">
                 <div
-                  class="folder-drag-handle w-5 flex items-center justify-center text-text-subtle dark:text-text-muted opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
+                  class="folder-drag-handle touch-reveal touch-drag-handle w-5 flex items-center justify-center text-text-subtle dark:text-text-muted opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
                   :class="{ invisible: isDragging }"
                   title="Arrastrar para reordenar"
                 >

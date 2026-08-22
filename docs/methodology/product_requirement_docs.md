@@ -247,6 +247,12 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
 - **Panel Login** (`/panel/login`) — dedicated login page for admin panel
 - **Panel Admins** (`/panel/admins`) — admin user management (invite, list, manage admin accounts)
 - **Internal Kanban Task Board** (`/panel/tasks`) — admin-only Kanban board for managing internal ProjectApp team work. Four columns: TO DO, In Progress, Blocked, Done. Tasks have title, description, status, priority (low/medium/high), assignee (FK to any admin User, optional), and due_date (optional). Cards display priority badge and due_date highlighted in red when overdue. Drag-and-drop between columns and reorder within columns via vuedraggable. Create/edit modal with confirm-guarded delete. Tasks are independent — no FK link to proposals or documents.
+- **Responsive panel contract** — the internal panel is validated at 412, 835,
+  1195, 1440 and 2560 px. Shared primitives own table column priorities,
+  tab/filter collapse, modal widths and stacking, navigation, bulk/row actions,
+  touch targets, typography and the 1440 px content ceiling. The canonical
+  standard and prioritized module inventory live in
+  `docs/methodology/responsive-standard.md`.
 
 ### 3.13 Internationalization (i18n)
 

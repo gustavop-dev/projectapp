@@ -78,33 +78,33 @@ describe('usePanelSidebar', () => {
     expect(isMobileOpen.value).toBe(false)
   })
 
-  it('handleResize closes mobile when width below breakpoint', () => {
+  it('handleResize keeps the drawer open inside the mobile navigation range', () => {
     const { setupResizeListener, openMobile, isMobileOpen } = usePanelSidebar()
     openMobile()
     window.innerWidth = 500
     setupResizeListener()
     window.dispatchEvent(new Event('resize'))
-    expect(isMobileOpen.value).toBe(false)
+    expect(isMobileOpen.value).toBe(true)
   })
 
-  it('handleResize keeps mobile open when width at or above breakpoint', () => {
+  it('handleResize closes the drawer when desktop navigation becomes available', () => {
     const { setupResizeListener, openMobile, isMobileOpen } = usePanelSidebar()
     openMobile()
     window.innerWidth = 1024
     setupResizeListener()
     window.dispatchEvent(new Event('resize'))
-    expect(isMobileOpen.value).toBe(true)
+    expect(isMobileOpen.value).toBe(false)
   })
 
-  it('hydrate defaults to collapsed when no stored value and width below 1024', () => {
-    window.innerWidth = 800
+  it.each([835, 1195, 1279])('hydrate defaults to collapsed at %ipx', (width) => {
+    window.innerWidth = width
     const { hydrate, isCollapsed } = usePanelSidebar()
     isCollapsed.value = false
     hydrate()
     expect(isCollapsed.value).toBe(true)
   })
 
-  it('hydrate defaults to expanded when no stored value and width at or above 1024', () => {
+  it('hydrate defaults to expanded at the desktop breakpoint', () => {
     window.innerWidth = 1440
     const { hydrate, isCollapsed } = usePanelSidebar()
     isCollapsed.value = true

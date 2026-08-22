@@ -163,21 +163,122 @@ prefer the bare class without `/N`.
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
-| `BaseModal`     | `modelValue`, `size` (`sm`/`md`/`lg`/`xl`/`2xl`/`5xl`/`full`), `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` |
+| `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 600 px |
+| `BaseModalActions` | Responsive footer: full-width stacked actions below 600 px, right-aligned row above it |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled` — label via default slot                             |
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
-| `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`sm`/`md`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
+| `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`portrait` by default; also `sm`/`md`/`landscape`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
 | `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId? }` or strings), `size` (`sm`/`md`), `fullWidth` — segmented control / pill tabs |
-| `BaseTabs`      | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — desktop tab bar with mobile `<select>` fallback |
-| `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — the mobile `<select>` every tab control collapses into below `md`. It hides itself above the breakpoint, so pair it with a `hidden md:flex` desktop strip. `nav` for module navigation, `filter` for a filter control: the two sit next to each other in most accounting views and must not read as the same thing |
+| `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1000 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
+| `BaseFilterTabs` | Saved-filter strip: same selector/strip breakpoint, wrapping, drag with touch delay, keyboard/menu reorder. `ProposalFilterTabs` remains as a compatibility alias |
+| `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1000 px), paired with `hidden panel-landscape:flex` |
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
+| `BaseActionMenu` | `items`, `label`, `disabled`, `placement`, `align`, `width`, `variant` — canonical row/action overflow menu |
+| `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`; emits `clear`/`select-all` |
+| `BaseResponsiveTable` | `columns`, `rows` plus the legacy accounting-table props. Each adopted column declares `responsive` with `keep`/`group`/`hide` by profile and exactly one `primary` |
+| `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps content at 1440 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
 | `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`. Trigger via `#trigger`, body via default slot. Click for touch, hover for desktop |
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
+
+## Responsive panel contract
+
+The source of truth shared by Tailwind, JavaScript and Playwright is
+`config/responsive.js`. Do not introduce a breakpoint local to one screen.
+
+| Profile | Range | Reference viewport | Canonical behavior |
+| --- | ---: | ---: | --- |
+| `compact` | `< 600px` | `412 × 915` | Drawer navigation, selectors for tabs/filters, stacked forms, fullscreen modal |
+| `portrait` | `600–999px` | `835 × 1194` | Same navigation/selectors, forms may use two columns, centered modal |
+| `landscape` | `1000–1279px` | `1195 × 835` | Collapsed sidebar by default, wrapping strips, priority table may scroll |
+| `desktop` | `1280–1919px` | `1440 × 900` | Expanded sidebar, all table columns available |
+| `wide` | `≥ 1920px` | `2560 × 1440` | Same desktop behavior; `BasePageShell` stops content at 1440 px |
+
+### Table adoption
+
+There is no automatic “least important” column. Every adopted table declares
+what happens, and exactly one kept column owns grouped details:
+
+```vue
+<script setup>
+const columns = [
+  {
+    key: 'project',
+    label: 'Proyecto',
+    responsive: {
+      primary: true,
+      compact: 'keep',
+      portrait: 'keep',
+      landscape: 'keep',
+    },
+  },
+  {
+    key: 'owner',
+    label: 'Responsable',
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'updated_at',
+    label: 'Actualizado',
+    format: 'date',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+  },
+]
+</script>
+
+<template>
+  <BaseResponsiveTable :columns="columns" :rows="rows" />
+</template>
+```
+
+- `keep`: remains a real column in that profile.
+- `group`: disappears as a column and renders label/value beneath the primary
+  cell, so the information stays reachable without horizontal hunting.
+- `hide`: is intentionally absent at that profile.
+- A table with no `responsive` declarations keeps the legacy horizontal-scroll
+  behavior. A mixed declaration warns in development; partial automatic
+  decisions are forbidden.
+
+### Tabs and filters
+
+Use `BaseResponsiveTabs` for module sections and `BaseFilterTabs` for saved
+filters. Both show a native selector below 1000 px and a wrapping strip above
+it. Do not combine `overflow-hidden` with a one-line strip: it creates controls
+that exist in the DOM but cannot be reached.
+
+```vue
+<BaseResponsiveTabs v-model="section" :tabs="sections" aria-label="Sección" />
+<BaseFilterTabs :tabs="filters" :active-tab-id="filter" @select="filter = $event" />
+```
+
+### Modal and action adoption
+
+Pick modal width by purpose, not a one-off pixel value. Put actions in
+`BaseModalActions`; compact screens become fullscreen and stack the buttons in
+document order.
+
+```vue
+<BaseModal v-model="open" kind="form">
+  <div class="p-4 panel-portrait:p-6">…</div>
+  <BaseModalActions>
+    <BaseButton variant="ghost" @click="open = false">Cancelar</BaseButton>
+    <BaseButton variant="primary" type="submit">Guardar</BaseButton>
+  </BaseModalActions>
+</BaseModal>
+```
+
+Use `BaseActionMenu` for row overflow and `BaseBulkActionBar` for selections;
+do not lay an unbounded number of actions side by side. `BaseButton` and
+`BaseDropdown` enforce a 44px target for coarse pointers.
+
+Hover may enhance an action, never be the only way to discover it. A control
+that is intentionally faded on mouse hover must also be keyboard-focusable and
+carry `touch-reveal`; use `touch-target` for a non-BaseButton control that needs
+the 44px coarse-pointer area.
 
 ### Form rows
 
@@ -207,8 +308,8 @@ Notes:
   no leftover reserved space.
 - More fields than columns is fine — they wrap and each line aligns on its own.
 - The fields must be **direct** children. A child that is not a field and should
-  sit alongside them needs the bands too: `class="sm:row-span-3"` (plus
-  `sm:col-span-2` to span the full width).
+  sit alongside them needs the bands too: `class="panel-portrait:row-span-3"` (plus
+  `panel-portrait:col-span-2` to span the full width).
 - A `BaseFormField` nested inside another component still renders correctly, it
   just does not align; pass `standalone` on it to say so explicitly.
 
@@ -216,14 +317,15 @@ Live demo: `/panel/styleguide`, section 4.
 
 ### Modals that hold a workspace, not a form
 
-By default the `BaseModal` panel grows to its content and scrolls as a whole
-(`max-h-[90vh] overflow-y-auto`) — right for every form modal. A modal that
+By default the `BaseModal` panel is fullscreen below 600 px, then grows to its
+content and scrolls as a whole (`panel-portrait:max-h-[90vh] overflow-y-auto`) — right for every form modal. A modal that
 embeds documents (an email preview, a PDF, a diff) needs the opposite: pass
 `full-height` and the panel becomes a fixed non-scrolling 90vh flex column, so
 the slot can pin its own header/footer and let each pane scroll independently.
 Nesting a panel scrollbar around scrollbars the embedded documents already
 bring is what makes neither of them readable. Pair it with `size="full"`
-(~90vw, capped at 1600px) when the content needs the width — see
+only for legacy consumers; new work uses `kind="workspace"` (~90vw, capped at
+1600px) when the content needs the width — see
 `components/accounting/CollectionAccountFormModal.vue`.
 
 ## Button variants

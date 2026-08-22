@@ -1,201 +1,498 @@
+<template>
+  <div
+    class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm"
+    :aria-busy="loading ? 'true' : undefined"
+  >
+    <p class="sr-only" aria-live="polite">
+      {{ loading ? 'Cargando registros...' : `${rows.length} registros en la tabla` }}
+    </p>
+    <!-- Priority-aware tables collapse declared columns on narrow screens.
+         Legacy tables without a responsive declaration keep horizontal scroll
+         until their module adopts the explicit contract. -->
+    <table
+      class="w-full text-sm"
+      :class="hasResponsivePolicy ? 'base-responsive-table--priority' : ''"
+      :style="tableStyle"
+    >
+      <thead>
+        <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
+          <th v-if="selectable" class="w-10 px-3 py-2">
+            <input
+              type="checkbox"
+              class="align-middle accent-primary"
+              aria-label="Seleccionar todas las filas de esta página"
+              data-testid="accounting-select-page"
+              :checked="allPageSelected"
+              :indeterminate.prop="somePageSelected && !allPageSelected"
+              @change="togglePage($event.target.checked)"
+            >
+          </th>
+          <th
+            v-for="col in resolved"
+            :key="col.key"
+            :style="{ width: col.width }"
+            :class="[col.headerPadClass, col.alignClass, col.nowrapClass, responsiveCellClass(col)]"
+            :aria-sort="ariaSort(col)"
+          >
+            <button
+              v-if="col.sortable"
+              type="button"
+              class="inline-flex items-center gap-1 uppercase tracking-wider rounded hover:text-text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+              :class="sortKey === col.key ? 'text-text-default' : ''"
+              :data-testid="`accounting-sort-${col.key}`"
+              @click="emit('sort', col.key)"
+            >
+              <span>{{ col.label }}</span>
+              <ChevronUpIcon
+                v-if="sortKey === col.key && sortDir === 'asc'"
+                class="w-3 h-3"
+              />
+              <ChevronDownIcon
+                v-else-if="sortKey === col.key && sortDir === 'desc'"
+                class="w-3 h-3"
+              />
+              <span v-else data-testid="sortable-hint" aria-hidden="true">
+                <ChevronUpDownIcon class="w-3 h-3 text-text-subtle" />
+              </span>
+            </button>
+            <template v-else>{{ col.label }}</template>
+          </th>
+          <th
+            v-if="showActions"
+            :style="{ width: actionsWidth }"
+            :class="[DENSITY.headerCell, 'text-center']"
+          >Acciones</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-border-muted">
+        <template v-if="showSkeleton">
+          <tr
+            v-for="n in skeletonRows"
+            :key="`skeleton-${n}`"
+            class="bg-surface"
+            data-testid="accounting-skeleton-row"
+          >
+            <td v-if="selectable" :class="DENSITY.cell" />
+            <td
+              v-for="(col, colIndex) in resolved"
+              :key="col.key"
+              :class="[col.padClass, col.alignClass, responsiveCellClass(col)]"
+            >
+              <div
+                class="h-3 rounded bg-surface-raised motion-safe:animate-pulse inline-block"
+                :class="skeletonWidthClass(n, colIndex)"
+              />
+            </td>
+            <td v-if="showActions" :class="DENSITY.cell" />
+          </tr>
+        </template>
+        <tr v-else-if="rows.length === 0">
+          <td :colspan="colspan" class="px-5 py-8 text-center text-sm text-text-subtle">
+            <slot name="empty">Sin registros.</slot>
+          </td>
+        </tr>
+        <tr
+          v-for="row in showSkeleton ? [] : rows"
+          :key="row[rowKey]"
+          :data-testid="`accounting-row-${row[rowKey]}`"
+          class="hover:bg-surface-raised transition-colors h-9"
+          :class="[
+            rowBgClass(row),
+            row[rowKey] === highlightId ? 'accounting-row-flash' : '',
+          ]"
+        >
+          <td v-if="selectable" class="w-10 px-3">
+            <input
+              type="checkbox"
+              class="align-middle accent-primary"
+              :aria-label="`Seleccionar fila ${row[rowKey]}`"
+              :data-testid="`accounting-select-${row[rowKey]}`"
+              :checked="selectedSet.has(row[rowKey])"
+              @change="toggleRow(row[rowKey], $event.target.checked)"
+            >
+          </td>
+          <td
+            v-for="col in resolved"
+            :key="col.key"
+            :class="cellClass(col)"
+          >
+            <!-- The wrapper is what caps the name column: a <td>'s own
+                 max-width is ignored under auto layout. -->
+            <div :class="col.contentClass">
+              <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
+                <template v-if="col.format === 'money'">
+                  {{ formatMoney(row[col.key], 'COP') }}
+                </template>
+                <template v-else-if="col.format === 'percent'">
+                  {{ formatPercent(row[col.key]) }}
+                </template>
+                <template v-else-if="col.format === 'date'">
+                  {{ formatDate(row[col.key]) }}
+                </template>
+                <span
+                  v-else-if="col.format === 'badge'"
+                  class="text-xs px-2.5 py-1 rounded-full font-medium"
+                  :class="badgeClass(col, row[col.key])"
+                >
+                  {{ row[col.key] }}
+                </span>
+                <HighlightText
+                  v-else-if="highlightQuery"
+                  :text="row[col.key] ?? ''"
+                  :query="highlightQuery"
+                />
+                <template v-else>
+                  {{ row[col.key] }}
+                </template>
+              </slot>
+
+              <dl
+                v-if="col.responsive?.primary && groupedColumns.compact.length"
+                class="mt-2 space-y-1 panel-portrait:hidden"
+                data-testid="responsive-group-compact"
+              >
+                <div
+                  v-for="detail in groupedColumns.compact"
+                  :key="detail.key"
+                  class="grid grid-cols-[minmax(5.5rem,auto)_1fr] gap-2 text-left text-xs"
+                >
+                  <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                  <dd class="min-w-0 text-text-muted">
+                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                      {{ formatGroupedValue(detail, row[detail.key]) }}
+                    </slot>
+                  </dd>
+                </div>
+              </dl>
+
+              <dl
+                v-if="col.responsive?.primary && groupedColumns.portrait.length"
+                class="mt-2 hidden space-y-1 panel-portrait:block panel-landscape:hidden"
+                data-testid="responsive-group-portrait"
+              >
+                <div
+                  v-for="detail in groupedColumns.portrait"
+                  :key="detail.key"
+                  class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
+                >
+                  <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                  <dd class="min-w-0 text-text-muted">
+                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                      {{ formatGroupedValue(detail, row[detail.key]) }}
+                    </slot>
+                  </dd>
+                </div>
+              </dl>
+
+              <dl
+                v-if="col.responsive?.primary && groupedColumns.landscape.length"
+                class="mt-2 hidden space-y-1 panel-landscape:block panel-desktop:hidden"
+                data-testid="responsive-group-landscape"
+              >
+                <div
+                  v-for="detail in groupedColumns.landscape"
+                  :key="detail.key"
+                  class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
+                >
+                  <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                  <dd class="min-w-0 text-text-muted">
+                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                      {{ formatGroupedValue(detail, row[detail.key]) }}
+                    </slot>
+                  </dd>
+                </div>
+              </dl>
+            </div>
+          </td>
+          <td
+            v-if="showActions"
+            :class="[DENSITY.cell, 'text-center whitespace-nowrap']"
+          >
+            <slot name="row-actions" :row="row" />
+            <button
+              type="button"
+              aria-label="Editar"
+              :data-testid="`accounting-edit-${row[rowKey]}`"
+              class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+              @click.stop="emit('edit', row)"
+            >
+              <PencilSquareIcon class="w-4 h-4" />
+            </button>
+            <BaseButton variant="danger-ghost" size="sm" icon-only aria-label="Eliminar" :data-testid="`accounting-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
+              <TrashIcon class="w-4 h-4" />
+            </BaseButton>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+
 <script setup>
-import { computed } from 'vue'
-import { useIsMobile } from '~/composables/useIsMobile'
+import { computed, watchEffect } from 'vue';
+import {
+  ChevronDownIcon,
+  ChevronUpDownIcon,
+  ChevronUpIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from '@heroicons/vue/24/outline';
+import HighlightText from '~/components/ui/HighlightText.vue';
+import { formatDate } from '~/utils/formatDate';
+import { formatMoney } from '~/utils/formatMoney';
+import { formatPercent } from '~/utils/percent';
+import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
+import {
+  TABLE_DENSITY,
+  actionsWidthFor,
+  minWidthFor,
+  resolveColumns,
+} from '~/utils/tableLayout';
 
 const props = defineProps({
   /**
-   * Every column declares `mobile`: primary | secondary | meta | hidden.
-   * The declaration is a business decision owned by the consuming table; this
-   * component never guesses which information is safe to remove.
+   * Column config: { key, label, format ('money'|'percent'|'date'|'text'|'badge'),
+   * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
+   * sortable (Boolean), size (see utils/tableLayout SIZE_NAMES),
+   * group (String — adjacent columns sharing one draw closer together),
+   * hideBelow ('md'|'lg' — legacy collapse rule), responsive: {
+   * primary?: Boolean, compact: 'keep'|'group'|'hide',
+   * portrait: 'keep'|'group'|'hide', landscape?: 'keep'|'group'|'hide' } }.
    */
-  columns: {
-    type: Array,
-    required: true,
-    validator: (columns) => columns.every((column) => (
-      ['primary', 'secondary', 'meta', 'hidden'].includes(column.mobile)
-    )),
-  },
+  columns: { type: Array, required: true },
   rows: { type: Array, default: () => [] },
   rowKey: { type: String, default: 'id' },
-  caption: { type: String, default: '' },
-  loading: { type: Boolean, default: false },
-  tableMinWidth: { type: String, default: '48rem' },
+  showActions: { type: Boolean, default: true },
+  /** Search text to highlight inside default text cells. */
+  highlightQuery: { type: String, default: '' },
+  /** Active sort state (controlled by the page via @sort). */
   sortKey: { type: String, default: '' },
   sortDir: { type: String, default: 'asc' },
-  showActions: { type: Boolean, default: true },
-  showSelection: { type: Boolean, default: false },
-  interactiveRows: { type: Boolean, default: false },
-  rowClass: { type: [String, Array, Object, Function], default: '' },
-  cardTestIdPrefix: { type: String, default: 'responsive-row' },
-})
+  /** When true, renders skeleton placeholder rows instead of data. */
+  loading: { type: Boolean, default: false },
+  skeletonRows: { type: Number, default: 5 },
+  /** Row key of the last created/edited record: flashes that row. */
+  highlightId: { type: [String, Number], default: null },
+  /**
+   * Optional (row) => 'success'|'warning'|null, tinting the row background.
+   * The tone REPLACES `bg-surface` rather than stacking on it: two
+   * background utilities of equal specificity would be decided by
+   * stylesheet order, not by this binding.
+   */
+  rowTone: { type: Function, default: null },
+  /** Opt-in checkbox column; every other tab keeps its current layout. */
+  selectable: { type: Boolean, default: false },
+  /** Selected row keys (v-model:selected). */
+  selected: { type: Array, default: () => [] },
+});
 
-const emit = defineEmits(['sort', 'row-click', 'row-auxclick'])
-const { isMobile } = useIsMobile()
+const DENSITY = TABLE_DENSITY;
 
-const primaryColumns = computed(() => props.columns.filter((column) => column.mobile === 'primary'))
-const detailColumns = computed(() => props.columns.filter((column) => ['secondary', 'meta'].includes(column.mobile)))
-const tableColspan = computed(() => props.columns.length
-  + (props.showActions ? 1 : 0)
-  + (props.showSelection ? 1 : 0))
+/**
+ * Widths come from what each column shows, and the slack is shared out in
+ * proportion to that — no single column absorbs it, which is what used to open
+ * one wide gap next to the name.
+ */
+const resolved = computed(() => resolveColumns(props.columns, { hasActions: props.showActions }));
 
-function displayValue(value) {
-  if (value === null || value === undefined || value === '') return '—'
-  return String(value)
+// Same scale as the data columns, so the actions column is one more share of
+// the total instead of a hardcoded width that disagreed with minWidthFor().
+const actionsWidth = computed(() => actionsWidthFor(resolved.value));
+
+const tableMinWidth = computed(
+  () => minWidthFor(resolved.value, { hasActions: props.showActions }),
+);
+
+const hasResponsivePolicy = computed(() =>
+  props.columns.some((column) => Boolean(column.responsive)),
+);
+
+const tableStyle = computed(() => (
+  hasResponsivePolicy.value
+    ? { '--table-min-width': tableMinWidth.value }
+    : { minWidth: tableMinWidth.value }
+));
+
+const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
+const POLICY_CLASSES = {
+  compact: {
+    keep: 'table-cell',
+    group: 'hidden',
+    hide: 'hidden',
+  },
+  portrait: {
+    keep: 'panel-portrait:table-cell',
+    group: 'panel-portrait:hidden',
+    hide: 'panel-portrait:hidden',
+  },
+  landscape: {
+    keep: 'panel-landscape:table-cell',
+    group: 'panel-landscape:hidden',
+    hide: 'panel-landscape:hidden',
+  },
+};
+
+function policyFor(column, profile) {
+  if (!column.responsive) return 'keep';
+  if (column.responsive[profile]) return column.responsive[profile];
+  if (profile === 'portrait') return column.responsive.compact || 'keep';
+  return 'keep';
 }
 
-function ariaSort(column) {
-  if (!column.sortable) return undefined
-  if (props.sortKey !== column.key) return 'none'
-  return props.sortDir === 'desc' ? 'descending' : 'ascending'
+function responsiveCellClass(column) {
+  if (!hasResponsivePolicy.value) return column.hideTableClass;
+  return [
+    ...PROFILE_ORDER.map((profile) => POLICY_CLASSES[profile][policyFor(column, profile)]),
+    'panel-desktop:table-cell',
+  ];
 }
 
-function classesForRow(row) {
-  return typeof props.rowClass === 'function' ? props.rowClass(row) : props.rowClass
+const groupedColumns = computed(() => Object.fromEntries(
+  PROFILE_ORDER.map((profile) => [
+    profile,
+    resolved.value.filter((column) => policyFor(column, profile) === 'group'),
+  ]),
+));
+
+if (process.env.NODE_ENV !== 'production') {
+  watchEffect(() => {
+    if (!hasResponsivePolicy.value) return;
+    const missing = props.columns.filter((column) => !column.responsive).map((column) => column.key);
+    const primaries = props.columns.filter((column) => column.responsive?.primary);
+    if (missing.length) {
+      console.warn(`[BaseResponsiveTable] Every column needs a responsive policy. Missing: ${missing.join(', ')}`);
+    }
+    if (primaries.length !== 1) {
+      console.warn('[BaseResponsiveTable] Declare exactly one responsive.primary column.');
+    } else if (policyFor(primaries[0], 'compact') !== 'keep' || policyFor(primaries[0], 'portrait') !== 'keep') {
+      console.warn('[BaseResponsiveTable] The primary column must stay visible in compact and portrait profiles.');
+    }
+  });
 }
 
-function activateCard(row, event) {
-  if (!props.interactiveRows) return
-  emit('row-click', row, event)
+/**
+ * Skeleton only when there is nothing to show yet.
+ *
+ * Every accounting mutation refetches, so binding the placeholders to
+ * `loading` alone made the whole table blank and come back after a delete or
+ * an edit — a refresh that read as a reload. With rows already on screen the
+ * update now happens in place; `aria-busy` still announces the fetch.
+ */
+const showSkeleton = computed(() => props.loading && props.rows.length === 0);
+
+const ROW_TONE_CLASSES = {
+  success: 'bg-success-soft',
+  warning: 'bg-warning-soft',
+};
+
+function rowBgClass(row) {
+  return ROW_TONE_CLASSES[props.rowTone?.(row)] || 'bg-surface';
+}
+
+const emit = defineEmits(['edit', 'delete', 'sort', 'update:selected']);
+
+// ── Row selection (opt-in via `selectable`) ──
+
+const selectedSet = computed(() => new Set(props.selected));
+
+const pageKeys = computed(() => props.rows.map((row) => row[props.rowKey]));
+
+const pageSummary = computed(() => selectionSummary(pageKeys.value, selectedSet.value));
+
+const allPageSelected = computed(() => pageSummary.value.all);
+
+const somePageSelected = computed(() => pageSummary.value.some);
+
+function toggleRow(key, checked) {
+  emit('update:selected', toggleKeys(props.selected, [key], checked));
+}
+
+/** The header checkbox works on the CURRENT page; the page owns any
+ *  "select every filtered row" affordance, which knows the full set. */
+function togglePage(checked) {
+  emit('update:selected', toggleKeys(props.selected, pageKeys.value, checked));
+}
+
+function ariaSort(col) {
+  if (!col.sortable) return undefined;
+  if (props.sortKey !== col.key) return 'none';
+  return props.sortDir === 'desc' ? 'descending' : 'ascending';
+}
+
+const TONE_CLASSES = {
+  success: 'bg-success-soft text-success-strong',
+  warning: 'bg-warning-soft text-warning-strong',
+  danger: 'bg-danger-soft text-danger-strong',
+  info: 'bg-primary-soft text-text-brand',
+  neutral: 'bg-surface-raised text-text-muted',
+};
+
+const colspan = computed(
+  () => props.columns.length
+    + (props.showActions ? 1 : 0)
+    + (props.selectable ? 1 : 0),
+);
+
+// Deterministic width variety for skeleton cells (no randomness so SSR
+// markup and snapshots stay stable).
+const SKELETON_WIDTHS = ['w-24', 'w-16', 'w-32', 'w-20'];
+
+function skeletonWidthClass(rowIndex, colIndex) {
+  return SKELETON_WIDTHS[(rowIndex + colIndex) % SKELETON_WIDTHS.length];
+}
+
+/** `col` here is already resolved, so alignment and padding come precomputed. */
+function cellClass(col) {
+  const classes = [col.padClass, col.alignClass, col.nowrapClass, responsiveCellClass(col)];
+  // `link: true` en la columna = acá va el enlace de la fila, y `relative` es
+  // el marco contra el que BaseRowLink se estira para cubrir toda la celda.
+  if (col.link) classes.push('relative');
+  if (col.format === 'money') classes.push('tabular-nums text-text-muted');
+  else if (col.format === 'percent') classes.push('tabular-nums text-text-subtle text-xs');
+  else if (col.format === 'date') classes.push('text-text-muted text-xs');
+  else classes.push('text-text-default');
+  return classes;
+}
+
+function badgeClass(col, value) {
+  const tone = col.badgeTones?.[value] || 'neutral';
+  return TONE_CLASSES[tone] || TONE_CLASSES.neutral;
+}
+
+function formatGroupedValue(col, value) {
+  if (col.format === 'money') return formatMoney(value, 'COP');
+  if (col.format === 'percent') return formatPercent(value);
+  if (col.format === 'date') return formatDate(value);
+  return value ?? '—';
 }
 </script>
 
-<template>
-  <div :aria-busy="loading ? 'true' : undefined">
-    <p class="sr-only" aria-live="polite">
-      {{ loading ? 'Cargando registros...' : `${rows.length} registros` }}
-    </p>
+<style scoped>
+/* Feedback flash for the row that was just created or edited. The color
+ * holds briefly and then decays; with reduced motion it stays solid until
+ * the page clears highlightId (the information is kept, not the motion). */
+@keyframes accounting-row-flash {
+  0%,
+  55% {
+    background-color: var(--color-primary-soft);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.accounting-row-flash {
+  animation: accounting-row-flash 2.5s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .accounting-row-flash {
+    animation: none;
+    background-color: var(--color-primary-soft);
+  }
+}
 
-    <div v-if="!isMobile" class="overflow-x-auto rounded-xl border border-border-default bg-surface shadow-card">
-      <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
-        <caption v-if="caption" class="sr-only">{{ caption }}</caption>
-        <thead class="bg-surface-raised text-left text-xs uppercase tracking-wider text-text-muted">
-          <tr>
-            <th v-if="showSelection" class="w-12 px-3 py-3">
-              <div @click.stop>
-                <slot name="select-all" />
-              </div>
-            </th>
-            <th
-              v-for="column in columns"
-              :key="column.key"
-              class="px-4 py-3"
-              :class="column.headerClass"
-              :aria-sort="ariaSort(column)"
-            >
-              <button
-                v-if="column.sortable"
-                type="button"
-                class="rounded uppercase tracking-wider hover:text-text-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
-                @click="emit('sort', column.key)"
-              >
-                {{ column.label }}
-                <span v-if="sortKey === column.key" aria-hidden="true">{{ sortDir === 'desc' ? '↓' : '↑' }}</span>
-              </button>
-              <template v-else>{{ column.label }}</template>
-            </th>
-            <th v-if="showActions" class="px-4 py-3 text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-muted">
-          <tr v-if="!loading && rows.length === 0">
-            <td :colspan="tableColspan" class="px-4 py-10 text-center text-text-muted">
-              <slot name="empty">Sin registros.</slot>
-            </td>
-          </tr>
-          <tr
-            v-for="row in rows"
-            :key="row[rowKey]"
-            :data-testid="`${cardTestIdPrefix}-${row[rowKey]}`"
-            class="transition-colors hover:bg-surface-raised"
-            :class="[classesForRow(row), interactiveRows ? 'cursor-pointer' : '']"
-            @click="interactiveRows && emit('row-click', row, $event)"
-            @auxclick.middle="interactiveRows && emit('row-auxclick', row, $event)"
-          >
-            <td v-if="showSelection" class="w-12 px-3 py-3" @click.stop>
-              <slot name="row-select" :row="row" />
-            </td>
-            <td
-              v-for="column in columns"
-              :key="column.key"
-              class="px-4 py-3 text-text-default"
-              :class="column.cellClass"
-            >
-              <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
-                {{ displayValue(row[column.key]) }}
-              </slot>
-            </td>
-            <td v-if="showActions" class="px-4 py-3 text-right" @click.stop>
-              <div class="flex flex-wrap items-center justify-end gap-1" @click.stop>
-                <slot name="row-actions" :row="row" />
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-else class="grid gap-3">
-      <div
-        v-if="loading && rows.length === 0"
-        class="h-32 rounded-xl border border-border-default bg-surface-raised motion-safe:animate-pulse"
-        data-testid="responsive-table-skeleton"
-      />
-      <div
-        v-else-if="rows.length === 0"
-        class="rounded-xl border border-border-default bg-surface px-4 py-10 text-center text-sm text-text-muted"
-      >
-        <slot name="empty">Sin registros.</slot>
-      </div>
-      <article
-        v-for="row in rows"
-        :key="row[rowKey]"
-        :data-testid="`${cardTestIdPrefix}-${row[rowKey]}`"
-        class="min-w-0 rounded-xl border border-border-default bg-surface p-4 shadow-card"
-        :class="[classesForRow(row), interactiveRows ? 'cursor-pointer' : '']"
-        :role="interactiveRows ? 'link' : undefined"
-        :tabindex="interactiveRows ? 0 : undefined"
-        @click="activateCard(row, $event)"
-        @auxclick.middle="interactiveRows && emit('row-auxclick', row, $event)"
-        @keydown.enter.prevent="activateCard(row, $event)"
-      >
-        <div class="flex min-w-0 items-start gap-3">
-          <div v-if="showSelection" class="shrink-0 pt-0.5" @click.stop @keydown.stop>
-            <slot name="row-select" :row="row" />
-          </div>
-          <div class="min-w-0 flex-1 space-y-1">
-            <div v-for="column in primaryColumns" :key="column.key" class="min-w-0">
-              <p v-if="primaryColumns.length > 1" class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">
-                {{ column.label }}
-              </p>
-              <div class="min-w-0 font-medium text-text-default" :class="column.cardClass">
-                <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
-                  {{ displayValue(row[column.key]) }}
-                </slot>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <dl v-if="detailColumns.length" class="mt-3 grid grid-cols-1 gap-x-4 gap-y-2 border-t border-border-muted pt-3 panel-portrait:grid-cols-2">
-          <div
-            v-for="column in detailColumns"
-            :key="column.key"
-            class="min-w-0"
-            :class="column.mobile === 'meta' ? 'text-xs' : 'text-sm'"
-          >
-            <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">{{ column.label }}</dt>
-            <dd class="mt-0.5 min-w-0 text-text-default" :class="column.cardClass">
-              <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
-                {{ displayValue(row[column.key]) }}
-              </slot>
-            </dd>
-          </div>
-        </dl>
-
-        <div v-if="showActions" class="mt-3 flex flex-wrap items-center justify-end gap-1 border-t border-border-muted pt-3" @click.stop @keydown.stop>
-          <slot name="row-actions" :row="row" />
-        </div>
-      </article>
-    </div>
-  </div>
-</template>
+@media (min-width: 1000px) {
+  .base-responsive-table--priority {
+    min-width: var(--table-min-width);
+  }
+}
+</style>

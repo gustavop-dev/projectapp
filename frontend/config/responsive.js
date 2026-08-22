@@ -1,8 +1,10 @@
 /**
  * Canonical responsive contract for the internal panel.
  *
- * CSS, runtime components and Playwright import the same breakpoints so a
- * view cannot validate itself against a different definition of "tablet".
+ * The ranges sit between the five real devices from PA-75. Components use
+ * the ranges; Playwright uses the exact reference viewports below. Keeping
+ * both here prevents CSS, JavaScript and acceptance tests from inventing
+ * their own idea of "tablet".
  */
 export const PANEL_BREAKPOINTS = Object.freeze({
   portrait: 600,
@@ -12,8 +14,9 @@ export const PANEL_BREAKPOINTS = Object.freeze({
 });
 
 /**
- * Tailwind reserves `portrait:` and `landscape:` for orientation queries.
- * Panel aliases are namespaced so they always mean width.
+ * Tailwind already reserves `portrait:` and `landscape:` for orientation
+ * queries. Panel aliases are therefore namespaced so their meaning stays tied
+ * to width everywhere they are used.
  */
 export const PANEL_SCREENS = Object.freeze({
   portrait: 'panel-portrait',

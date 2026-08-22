@@ -10,8 +10,13 @@
     <Transition name="drawer-slide">
       <aside
         v-if="isOpen"
+        ref="drawerRef"
+        tabindex="-1"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menú principal"
         :class="[
-          'fixed inset-y-0 left-0 z-50 flex w-[min(280px,calc(100vw-2rem))] flex-col border-r panel-landscape:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-[min(280px,calc(100vw-32px))] flex-col border-r panel-landscape:hidden focus:outline-none',
           'border-border-muted bg-surface',
         ]"
       >
@@ -19,8 +24,7 @@
           <span class="text-xl font-bold tracking-tight text-text-default">
             Project<span class="text-text-brand">App.</span>
           </span>
-          <BaseButton variant="ghost" size="md" @click="$emit('close')">
-            <span class="sr-only">Close menu</span>
+          <BaseButton variant="ghost" size="md" icon-only aria-label="Cerrar menú" @click="$emit('close')">
             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -90,22 +94,44 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
 import { useProposalStore } from '~/stores/proposals'
 import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
+import { useFocusTrap } from '~/composables/useFocusTrap'
 
-defineEmits(['close', 'toggle-theme'])
+const emit = defineEmits(['close', 'toggle-theme'])
 
 const { goToPlatform, isBridging } = usePanelToPlatformBridge()
 
-defineProps({
+const props = defineProps({
   isOpen: { type: Boolean, default: false },
   isDark: { type: Boolean, default: false },
 })
+
+const drawerRef = ref(null)
+useFocusTrap(drawerRef, { active: toRef(props, 'isOpen') })
+
+function onKeydown(event) {
+  if (event.key === 'Escape' && props.isOpen) emit('close')
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  if (typeof document !== 'undefined') document.body.style.overflow = ''
+})
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (typeof document !== 'undefined') document.body.style.overflow = open ? 'hidden' : ''
+  },
+  { immediate: true },
+)
 
 const localePath = useLocalePath()
 const route = useRoute()

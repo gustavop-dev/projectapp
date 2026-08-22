@@ -789,6 +789,24 @@ empty-field behavior, and regression-test every path. When correcting one live
 proposal, use an exact-match, reversible data migration so deployment cannot overwrite
 copy edited after the correction was prepared.
 
-## 31. Responsive breakpoints are product data, not framework defaults
+## 31. Responsive contracts need one width vocabulary and compiled-CSS proof
 
-ProjectApp is operated on five known screen classes, including the awkward portrait-tablet middle and a 27-inch monitor. A `md` or `lg` class is not acceptance evidence by itself: navigation must be chosen from the usable content width, and wide screens need a ceiling just as narrow screens need stacking. Keep the five profiles in one imported catalog, make shared components own the transition, and test the element the operator uses rather than inferring success from the viewport width.
+Do not derive breakpoints independently in Vue, Tailwind and Playwright. Keep
+the panel bands, `matchMedia` queries and five acceptance viewports in one
+configuration, then make shared components own adaptation. A table still needs
+an explicit per-column `keep/group/hide` policy: a generic “hide the last
+columns” rule cannot know business priority. Likewise, cap the content shell on
+wide monitors instead of treating responsiveness as only a small-screen issue.
+
+Framework vocabulary is part of the contract. Tailwind already means
+orientation when it sees `portrait:` or `landscape:`, so panel width aliases use
+the `panel-*` namespace. Unit tests can prove that a class string exists while
+missing a bad media query; every new breakpoint family must also be inspected
+in generated CSS and exercised at the boundary viewports.
+
+Those breakpoints are product data, not framework defaults. ProjectApp is
+operated on five known screen classes, including the awkward portrait-tablet
+middle and a 27-inch monitor. A `md` or `lg` class is not acceptance evidence
+by itself: choose navigation from usable content width, cap wide screens, and
+measure the element the operator uses instead of inferring success from the
+viewport alone.

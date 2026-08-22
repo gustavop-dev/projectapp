@@ -14,7 +14,7 @@
     >
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         aria-label="Abrir menú"
         @click="openMobile"
       >
@@ -36,7 +36,7 @@
 
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         :aria-label="themeToggleLabel(isDark)"
         @click="toggle"
       >
@@ -62,27 +62,30 @@
         // pb clears the fixed refresh button (48px + bottom-6): without it
         // the last row of a table that just overflows the viewport ends up
         // under the FAB, which swallows its action clicks.
-        'px-4 pt-6 pb-24 sm:px-6 lg:px-8',
+        'px-4 pt-6 pb-24 panel-portrait:px-6 panel-desktop:px-8',
         isCollapsed ? 'panel-landscape:ml-[64px]' : 'panel-landscape:ml-[240px]',
-        'text-text-default',
+        'text-panel-body text-text-default',
       ]"
     >
-      <div class="mx-auto w-full max-w-panel">
-        <!--
-          El título ya vive en la topbar compacta; la miga aparece cuando la
-          navegación lateral vuelve en tableta horizontal y escritorio.
-        -->
-        <div
-          v-if="_panelSectionLabel && _panelViewLabel"
-          class="mb-5 hidden panel-landscape:flex items-center gap-1.5 text-xs"
-          :class="isDark ? 'text-green-light/60' : 'text-green-light'"
-        >
-          <span>{{ _panelSectionLabel }}</span>
-          <span class="text-green-light/40 dark:text-green-light/30">›</span>
-          <span class="text-text-muted">{{ _panelViewLabel }}</span>
-        </div>
-        <slot />
+      <!--
+        Oculta por debajo de `md`: en un celular el nombre de la vista ya
+        aparece en la barra superior (que además es sticky, así que sobrevive al
+        scroll) y otra vez en el título de la propia vista. La miga era la
+        tercera copia del mismo dato, y el alto vertical es justo lo que se está
+        tratando de devolverle al contenido. En escritorio no cambia nada.
+      -->
+      <div
+        v-if="_panelSectionLabel && _panelViewLabel"
+        class="mb-5 hidden panel-landscape:flex items-center gap-1.5 text-panel-meta"
+        :class="isDark ? 'text-green-light/60' : 'text-green-light'"
+      >
+        <span>{{ _panelSectionLabel }}</span>
+        <span class="text-green-light/40 dark:text-green-light/30">›</span>
+        <span class="text-text-muted">{{ _panelViewLabel }}</span>
       </div>
+      <BasePageShell width="panel">
+        <slot />
+      </BasePageShell>
     </main>
 
     <PanelRefreshButton
@@ -106,6 +109,7 @@ import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
 import PanelNotificationHost from '~/components/panel/PanelNotificationHost.vue'
+import BasePageShell from '~/components/base/BasePageShell.vue'
 
 const refreshStore = usePanelRefreshStore()
 
