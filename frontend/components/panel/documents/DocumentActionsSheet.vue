@@ -3,10 +3,10 @@
     <Transition name="fade-modal">
       <div
         v-if="modelValue && document"
-        class="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+        class="fixed inset-0 z-[9990] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm panel-portrait:items-center panel-portrait:p-4"
         @click.self="close"
       >
-        <div class="bg-surface w-full sm:max-w-sm rounded-t-2xl sm:rounded-2xl shadow-2xl">
+        <div class="w-full rounded-t-2xl bg-surface shadow-2xl panel-portrait:max-w-sm panel-portrait:rounded-2xl">
           <!-- Header -->
           <div class="flex items-center justify-between px-5 py-4 border-b border-border-muted">
             <div class="min-w-0">

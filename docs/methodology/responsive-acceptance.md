@@ -1,7 +1,7 @@
 # Aceptación responsiva y guion de regresión
 
-**Estado:** obligatorio desde 2026-08-22  
-**Alcance:** panel interno, plataforma autenticada y vistas públicas  
+**Estado:** obligatorio desde 2026-08-22
+**Alcance:** panel interno, plataforma autenticada y vistas públicas
 **Contrato ejecutable:** `frontend/config/responsive.js` y `frontend/config/responsiveAcceptance.js`
 
 Este documento cierra el plan PA-75 → fase 4. Complementa el estándar de

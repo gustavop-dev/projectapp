@@ -128,7 +128,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" size="md" title-id="project-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form" title-id="project-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="project-form-title" class="text-lg font-bold text-text-default">{{ title }}</h3>
     </div>
@@ -238,7 +238,7 @@ function onSubmit() {
         />
       </BaseFormField>
 
-      <div class="flex items-center justify-end gap-3 pt-2">
+      <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col min-h-full">
+  <div :class="[PAGE_MAX_WIDTH, 'flex min-h-full flex-col']" data-testid="documents-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4" data-enter>
       <div>
@@ -20,6 +20,7 @@
       v-model:view-mode="viewMode"
       :scope="documentStore.archiveScope"
       :scope-locked="isSearching"
+      :compact="isPanelStacked"
       class="mb-5"
       data-enter
       style="--enter-delay: 60ms"
@@ -36,6 +37,25 @@
       </template>
     </DocumentsToolbar>
 
+    <BaseButton
+      v-if="isPanelStacked"
+      variant="secondary"
+      size="md"
+      class="mb-4 w-full justify-between"
+      data-testid="folder-drawer-trigger"
+      aria-haspopup="dialog"
+      :aria-expanded="showFolderDrawer"
+      @click="showFolderDrawer = true"
+    >
+      <span class="flex min-w-0 items-center gap-2">
+        <svg class="h-4 w-4 shrink-0 text-text-muted" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+        </svg>
+        <span class="truncate">{{ compactFolderLabel }}</span>
+      </span>
+      <span class="shrink-0 text-xs font-medium text-text-brand">Cambiar carpeta</span>
+    </BaseButton>
+
     <!--
       La columna del panel es una variable CSS que sólo `panel-landscape:` consume:
       bajo ese ancho el grid sigue siendo de una columna y el ancho guardado queda
@@ -49,6 +69,7 @@
       :style="folderPanelStyle"
     >
       <FolderSidebar
+        v-if="!isPanelStacked"
         data-testid="folder-panel"
         data-enter
         style="--enter-delay: 120ms"
@@ -329,8 +350,7 @@
         <Transition v-else-if="hasContent" name="view-swap" mode="out-in">
           <div :key="viewMode">
           <DocumentsTable
-            v-if="viewMode === 'list'"
-            class="hidden sm:block"
+            v-if="!isPanelStacked && viewMode === 'list'"
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
@@ -354,9 +374,9 @@
             @folder-dragleave="dragOverFolderId = null"
             @drop-on-folder="handleDropOnFolder"
           />
-          <!-- The grid IS the mobile view; on >=sm it appears in gallery mode -->
+          <!-- En compacto la tarjeta es la única representación interactiva. -->
           <DocumentsGrid
-            :class="viewMode === 'list' ? 'sm:hidden' : ''"
+            v-else
             :documents="pagedDocuments"
             :subfolders="currentSubfolders"
             :edit-to-for="editToFor"
@@ -399,6 +419,34 @@
 
       </section>
     </div>
+
+    <BaseDrawer
+      v-model="showFolderDrawer"
+      placement="left"
+      title="Carpetas"
+      test-id="folder-drawer"
+    >
+      <FolderSidebar
+        class="h-full rounded-none border-0 shadow-none"
+        :folders="sidebarFolders"
+        :active-id="documentStore.activeFolderId"
+        :archive-scope="documentStore.archiveScope"
+        :total-count="sidebarTotalCount"
+        :archived-count="documentStore.counts.documents.archived"
+        :unfiled-count="sidebarUnfiledCount"
+        :scope-locked="isSearching"
+        touch-mode
+        :is-dragging="false"
+        :dragging-folder-id="null"
+        @select="selectFolderFromDrawer"
+        @manage="openFolderManagerFromDrawer"
+        @edit="openFolderFormFromDrawer"
+        @delete="deleteFolderFromDrawer"
+        @archive="archiveFolderFromDrawer"
+        @view-archived="viewArchivedFolderFromDrawer"
+        @toggle-archived="handleToggleArchivedMode"
+      />
+    </BaseDrawer>
 
     <FolderManagerModal
       v-model="showFolderManager"
@@ -489,6 +537,7 @@ import DocumentsTable from '~/components/panel/documents/DocumentsTable.vue';
 import DocumentsGrid from '~/components/panel/documents/DocumentsGrid.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseDrawer from '~/components/base/BaseDrawer.vue';
 import { usePagination } from '~/composables/usePagination';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { isRootInScope, treeScopeFor } from '~/utils/archiveScope';
@@ -500,6 +549,8 @@ import { useDocumentFilterQuery } from '~/composables/useDocumentFilterQuery';
 import { useReducedMotion } from '~/composables/useReducedMotion';
 import { useRowNavigation } from '~/composables/useRowNavigation';
 import { useIsMobile } from '~/composables/useIsMobile';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import {
   FOLDER_PANEL_MAX, FOLDER_PANEL_MIN, useFolderPanelWidth,
 } from '~/composables/useFolderPanelWidth';
@@ -521,9 +572,9 @@ const {
 const { viewMode } = useDocumentViewMode();
 const { reducedMotion } = useReducedMotion();
 
-// Bajo lg el panel apila a ancho completo: la manija no aplica ahí, y se
-// quita con v-if (no clases hidden) para no duplicar nodos ante Playwright.
-const { isMobile: isPanelStacked } = useIsMobile();
+// Bajo el límite landscape canónico el panel apila a ancho completo: la manija
+// no aplica ahí, y se quita con v-if para no duplicar nodos ante Playwright.
+const { isMobile: isPanelStacked } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 const foldersGridRef = ref(null);
 const {
   width: panelWidth, dragging: panelDragging, gridStyle: folderPanelStyle,
@@ -555,6 +606,14 @@ const currentFolder = computed(() => (
     ? folderStore.folderById(documentStore.activeFolderId)
     : null
 ));
+
+const compactFolderLabel = computed(() => {
+  if (isSearching.value) return 'Resultados globales';
+  if (currentFolder.value) return currentFolder.value.name;
+  if (documentStore.activeFolderId === 'none') return 'Sin carpeta';
+  if (documentStore.activeFolderId === 'root') return 'Raíz de archivados';
+  return 'Todos los documentos';
+});
 
 // ── El panel lateral sigue al modo ───────────────────────────────────────────
 // Antes listaba siempre el árbol activo con contadores de activos, incluso con
@@ -745,6 +804,7 @@ onBeforeUnmount(() => {
 });
 
 const showFolderManager = ref(false);
+const showFolderDrawer = ref(false);
 const showFolderForm = ref(false);
 const editingFolder = ref(null);
 const showFolderCascade = ref(false);
@@ -851,6 +911,36 @@ function handleSelectFolder(id) {
   // Navegar entre carpetas NO toca el estado: el control de la barra dice qué
   // se está viendo y cambiarlo por debajo lo volvería mentiroso.
   documentStore.setFilters({ folder: id });
+}
+
+function selectFolderFromDrawer(id) {
+  handleSelectFolder(id);
+  showFolderDrawer.value = false;
+}
+
+function openFolderManagerFromDrawer() {
+  showFolderDrawer.value = false;
+  openFolderManager();
+}
+
+function openFolderFormFromDrawer(folder) {
+  showFolderDrawer.value = false;
+  openFolderForm(folder);
+}
+
+function deleteFolderFromDrawer(folder) {
+  showFolderDrawer.value = false;
+  handleDeleteFolder(folder);
+}
+
+function archiveFolderFromDrawer(folder) {
+  showFolderDrawer.value = false;
+  handleArchiveFolder(folder);
+}
+
+function viewArchivedFolderFromDrawer(folder) {
+  showFolderDrawer.value = false;
+  handleViewArchivedFolder(folder);
 }
 
 /** Devuelve los dos ejes a su posición de reposo. */

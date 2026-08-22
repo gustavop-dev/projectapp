@@ -811,7 +811,23 @@ by itself: choose navigation from usable content width, cap wide screens, and
 measure the element the operator uses instead of inferring success from the
 viewport alone.
 
-## 32. Mobile lists and comparative tables are different interaction problems
+## 32. Structural responsiveness needs one breakpoint owner and exact-device tests
+
+A two-zone page cannot be made compact by hiding random descendants: that leaves two
+focus trees, filters ahead of content and desktop assumptions inside a narrow main
+column. Choose the structural branch once
+(`useIsMobile(PANEL_BREAKPOINTS.landscape - 1)` here), render exactly
+one interactive DOM, and let smaller CSS breakpoints refine only the inside of that
+branch. The 835 px portrait tablet is the reason this boundary cannot simply inherit
+a library's `md`; the 1195 px landscape tablet is the reason it cannot be treated as
+a phone.
+
+Verification must name the real five viewport dimensions. For every module, navigate
+through the UI, assert concrete fixture data, exercise its transient zone, check page
+overflow and measure the large-screen cap. A generic “mobile” project plus one desktop
+project misses both the portrait-tablet failure and the over-stretched 27-inch layout.
+
+## 33. Mobile lists and comparative tables are different interaction problems
 
 A responsive table primitive should not turn every dataset into the same mobile
 shape. Transactional and comparative screens need stable column semantics, so
@@ -829,7 +845,7 @@ five profiles run on affected PRs and on a monthly full matrix. A semestral revi
 checks whether the devices themselves changed; individual pages never move a
 breakpoint without changing the shared contract and its evidence together.
 
-## 33. Responsive accounting must preserve business meaning, not table shape
+## 34. Responsive accounting must preserve business meaning, not table shape
 
 An accounting column cannot be hidden because it happens to be last. Declare a
 primary field, retained totals and grouped secondary facts for every table, then

@@ -5,9 +5,8 @@
  * Covers: default width fits the real longest folder names untruncated
  *         (22-char guarantee, measured from the live inventory), drag handle
  *         resize with clamp + localStorage persistence across reloads,
- *         double-click reset, keyboard resize, and the below-lg stacked
- *         layout where the handle does not render and the stored width is
- *         ignored.
+ *         double-click reset, keyboard resize, and the compact drawer where
+ *         the desktop handle does not render and the stored width is ignored.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -249,10 +248,9 @@ test.describe('Admin Document Folder Panel Resize', () => {
     await expect(page.getByTestId('folder-list').getByTestId('folder-subfolder-count')).toHaveText('1');
   });
 
-  test('stacks the panel full width without a handle below lg', {
+  test('ignores the saved desktop width when folders open in the compact drawer', {
     tag: [...ADMIN_DOCUMENT_FOLDER_PANEL_RESIZE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    // quality: allow-no-interaction (flujo display: asserta la AUSENCIA de la manija y el apilado bajo lg; no hay elemento con el cual interactuar)
     // quality: allow-deep-link (los specs del panel de documentos entran directo a la ruta, como toda la carpeta admin/*; la navegación por el sidebar la cubren los specs de layout)
     await page.addInitScript((key) => {
       window.localStorage.setItem(key, '480');
@@ -261,11 +259,18 @@ test.describe('Admin Document Folder Panel Resize', () => {
     await mockDocumentsApi(page);
     await page.goto('/panel/documents');
 
-    await expect(page.getByTestId('folder-panel')).toBeVisible({ timeout: 30_000 });
+    const trigger = page.getByTestId('folder-drawer-trigger');
+    await expect(trigger).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('folder-panel')).toHaveCount(0);
     await expect(page.getByTestId('folder-panel-resize-handle')).toHaveCount(0);
 
-    // Apilado: el panel toma el ancho del contenedor, no los 480 guardados.
-    const width = await panelWidth(page);
-    expect(width).toBeGreaterThan(600);
+    await trigger.click();
+    const drawer = page.getByTestId('folder-drawer');
+    await expect(drawer).toContainText(FOLDER_FUTUROS.name);
+
+    // El cajón usa su ancho canónico de 384px, no los 480px guardados para
+    // la columna de escritorio.
+    const box = await drawer.boundingBox();
+    expect(Math.abs(box.width - 384)).toBeLessThanOrEqual(2);
   });
 });

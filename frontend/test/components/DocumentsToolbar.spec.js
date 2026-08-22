@@ -9,11 +9,12 @@ import { mount } from '@vue/test-utils';
 import DocumentsToolbar from '../../components/panel/documents/DocumentsToolbar.vue';
 import BaseSegmented from '../../components/base/BaseSegmented.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
+import BaseSelect from '../../components/base/BaseSelect.vue';
 
 function mountToolbar(props = {}) {
   return mount(DocumentsToolbar, {
     props,
-    global: { components: { BaseSegmented, BaseInput } },
+    global: { components: { BaseSegmented, BaseInput, BaseSelect } },
   });
 }
 
@@ -72,5 +73,24 @@ describe('DocumentsToolbar', () => {
 
       expect(wrapper.emitted('update:viewMode')).toEqual([['grid']]);
     });
+
+    it('omits the view switch in compact mode', () => {
+      const wrapper = mountToolbar({ compact: true, viewMode: 'list' });
+
+      expect(segmentedByLabel(wrapper, 'Galería')).toBeUndefined();
+      expect(segmentedByLabel(wrapper, 'Lista')).toBeUndefined();
+    });
+  });
+
+  it('uses the state selector in compact mode', async () => {
+    const wrapper = mountToolbar({ compact: true, scope: 'active' });
+    const select = wrapper.get('[data-testid="doc-state-filter-mobile"]');
+
+    expect(select.findAll('option').map((option) => option.text()))
+      .toEqual(['Todos', 'Solo activos', 'Solo archivados']);
+
+    await select.setValue('archived');
+
+    expect(wrapper.emitted('update:scope')).toEqual([['archived']]);
   });
 });
