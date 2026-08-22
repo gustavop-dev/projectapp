@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="mb-6 flex items-center justify-between">
-      <div>
+    <div class="mb-6 flex flex-col items-start gap-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
+      <div class="min-w-0">
         <h1 class="text-2xl font-light text-text-default">Tarjetas QR</h1>
         <p class="text-sm text-text-subtle mt-1">
           Generá códigos QR con un link corto y cambiá su destino cuando quieras, sin reimprimir nada.
@@ -22,73 +22,53 @@
       description="Creá tu primera tarjeta QR para generar un link corto."
     />
 
-    <div v-else class="bg-surface border border-border-default rounded-xl shadow-card overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-surface-raised">
-          <tr>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Nombre</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Link corto</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Destino</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Activa</th>
-            <th class="text-right px-4 py-3 font-semibold text-text-muted">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-muted">
-          <tr v-for="card in store.cards" :key="card.id" :data-testid="`qr-card-row-${card.id}`">
-            <td class="px-4 py-3 text-text-default">{{ card.name }}</td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <code class="text-xs bg-surface-muted rounded px-2 py-1">{{ shortLinkFor(card) }}</code>
-                <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(card)">
-                  <ClipboardIcon class="h-4 w-4" />
-                </BaseButton>
-              </div>
-            </td>
-            <td class="px-4 py-3 text-text-muted">
-              <span v-if="card.destination_type === 'linktree' && card.linktree_handle">
-                Linktree: @{{ card.linktree_handle }}
-              </span>
-              <span v-else-if="card.destination_type === 'linktree'" class="text-text-subtle italic">
-                Linktree sin asignar
-              </span>
-              <span v-else-if="card.destination_url">{{ card.destination_url }}</span>
-              <span v-else class="text-text-subtle italic">Sin configurar</span>
-            </td>
-            <td class="px-4 py-3">
-              <BaseToggle
-                :model-value="card.is_active"
-                :aria-label="`Activar ${card.name}`"
-                :data-testid="`qr-card-toggle-${card.id}`"
-                @update:model-value="(value) => onToggleActive(card, value)"
-              />
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex items-center justify-end gap-2">
-                <BaseButton variant="secondary" size="sm" :data-testid="`qr-card-download-${card.id}`" @click="openDownloadModal(card)">
-                  Descargar QR
-                </BaseButton>
-                <BaseButton variant="ghost" size="sm" :data-testid="`qr-card-edit-${card.id}`" @click="openEditModal(card)">
-                  Editar
-                </BaseButton>
-                <BaseButton
-                  variant="danger-ghost"
-                  size="sm"
-                  icon-only
-                  aria-label="Eliminar tarjeta"
-                  :data-testid="`qr-card-delete-${card.id}`"
-                  @click="onDelete(card)"
-                >
-                  <TrashIcon class="h-4 w-4" />
-                </BaseButton>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <BaseExploratoryList
+      v-else
+      :columns="qrCardColumns"
+      :rows="store.cards"
+      caption="Tarjetas QR y sus destinos"
+      card-test-id-prefix="qr-card-row"
+      table-min-width="58rem"
+    >
+      <template #cell-short_link="{ row: card }">
+        <div class="flex min-w-0 items-center gap-2">
+          <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ shortLinkFor(card) }}</code>
+          <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(card)">
+            <ClipboardIcon class="h-4 w-4" />
+          </BaseButton>
+        </div>
+      </template>
+
+      <template #cell-destination="{ row: card }">
+        <span v-if="card.destination_type === 'linktree' && card.linktree_handle">
+          Linktree: @{{ card.linktree_handle }}
+        </span>
+        <span v-else-if="card.destination_type === 'linktree'" class="italic text-text-subtle">
+          Linktree sin asignar
+        </span>
+        <span v-else-if="card.destination_url" class="break-all">{{ card.destination_url }}</span>
+        <span v-else class="italic text-text-subtle">Sin configurar</span>
+      </template>
+
+      <template #cell-is_active="{ row: card }">
+        <BaseToggle
+          :model-value="card.is_active"
+          :aria-label="`Activar ${card.name}`"
+          :data-testid="`qr-card-toggle-${card.id}`"
+          @update:model-value="(value) => onToggleActive(card, value)"
+        />
+      </template>
+
+      <template #row-actions="{ row: card }">
+        <BaseActionMenu
+          :items="qrCardActionItems(card)"
+          :testid="`qr-card-actions-${card.id}`"
+        />
+      </template>
+    </BaseExploratoryList>
 
     <!-- Create / edit modal -->
-    <BaseModal v-model="formModal.open" size="md" padding="md">
+    <BaseModal v-model="formModal.open" kind="form" padding="md">
       <form data-testid="qr-card-form" @submit.prevent="onSubmit">
         <h3 class="text-lg font-bold text-text-default mb-4">
           {{ formModal.editingId ? 'Editar tarjeta' : 'Nueva tarjeta' }}
@@ -168,8 +148,9 @@
 
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
-import { ClipboardIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
@@ -177,6 +158,7 @@ import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import DownloadQrModal from '~/components/panel/qr-cards/DownloadQrModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -198,6 +180,13 @@ const formModal = reactive({
 const formErrors = reactive({ name: '', destination_url: '', linktree: '' });
 const downloadModal = reactive({ open: false, card: null });
 
+const qrCardColumns = [
+  { key: 'name', label: 'Nombre', mobile: 'primary' },
+  { key: 'short_link', label: 'Link corto', mobile: 'secondary' },
+  { key: 'destination', label: 'Destino', mobile: 'secondary', cardClass: 'break-words' },
+  { key: 'is_active', label: 'Activa', mobile: 'meta' },
+];
+
 const linktreeOptions = computed(() => [
   { value: '', label: 'Sin asignar' },
   ...linktreesStore.linktrees.map((tree) => ({
@@ -205,6 +194,28 @@ const linktreeOptions = computed(() => [
     label: `${tree.name} (@${tree.handle})`,
   })),
 ]);
+
+function qrCardActionItems(card) {
+  return [
+    {
+      label: 'Descargar QR',
+      testid: `qr-card-download-${card.id}`,
+      onClick: () => openDownloadModal(card),
+    },
+    {
+      label: 'Editar',
+      testid: `qr-card-edit-${card.id}`,
+      onClick: () => openEditModal(card),
+    },
+    { divider: true },
+    {
+      label: 'Eliminar',
+      danger: true,
+      testid: `qr-card-delete-${card.id}`,
+      onClick: () => onDelete(card),
+    },
+  ];
+}
 
 onMounted(() => {
   store.fetchCards();

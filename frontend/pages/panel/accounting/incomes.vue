@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -8,10 +8,11 @@
           Ingresos esperados y líquidos del negocio, con su reparto entre socios.
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex w-full flex-wrap items-center gap-2 panel-portrait:w-auto">
         <BaseButton
           variant="secondary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           data-testid="incomes-client-totals-button"
           @click="openTotalsModal"
         >
@@ -20,6 +21,7 @@
         <BaseButton
           variant="primary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           data-testid="incomes-new-button"
           @click="openCreateModal"
         >
@@ -32,48 +34,51 @@
     <AccountingSubnav active="incomes" />
 
     <!-- KPI cards (year scope, server-computed) -->
-    <div class="grid grid-cols-2 lg:grid-cols-7 gap-3 mb-6">
-      <AccountingStatCard
-        label="Total esperado (año)"
-        :value="money(incomesMeta.expected_total)"
-      />
-      <AccountingStatCard
-        label="Total líquido (año)"
-        :value="money(incomesMeta.liquid_total)"
-        :sub="incomesMeta.received_pct != null ? `${incomesMeta.received_pct}% recibido` : ''"
-        tone="success"
-      />
-      <AccountingStatCard
-        label="Mes actual (líquido)"
-        :value="money(incomesMeta.current_month_liquid)"
-      />
-      <AccountingStatCard
-        label="Mayor ingreso del año"
-        :value="incomesMeta.top_income ? money(incomesMeta.top_income.amount) : '—'"
-        :sub="incomesMeta.top_income?.concept || ''"
-        tone="brand"
-      />
-      <AccountingStatCard
-        label="Perdido (año)"
-        :value="money(incomesMeta.lost_total)"
-        :tone="Number(incomesMeta.lost_total) > 0 ? 'danger' : 'default'"
-      />
-      <AccountingStatCard
-        label="Sin cliente"
-        :value="String(incomesMeta.without_client_count ?? 0)"
-        :tone="(incomesMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Pendientes de vincular"
-      />
-      <!-- Válido pero visible: un vacío legítimo que igual se muestra como
-           pendiente. Cuenta sólo filas con cliente (sin cliente no hay
-           proyecto que proponer). -->
-      <AccountingStatCard
-        label="Sin proyecto"
-        :value="String(incomesMeta.without_project_count ?? 0)"
-        :tone="(incomesMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Con cliente, pendientes de proyecto"
-      />
-    </div>
+    <AccountingIndicatorGroup :columns="7" :secondary-count="4">
+      <template #primary>
+        <AccountingStatCard
+          label="Total esperado (año)"
+          :value="money(incomesMeta.expected_total)"
+        />
+        <AccountingStatCard
+          label="Total líquido (año)"
+          :value="money(incomesMeta.liquid_total)"
+          :sub="incomesMeta.received_pct != null ? `${incomesMeta.received_pct}% recibido` : ''"
+          tone="success"
+        />
+        <AccountingStatCard
+          label="Perdido (año)"
+          :value="money(incomesMeta.lost_total)"
+          :tone="Number(incomesMeta.lost_total) > 0 ? 'danger' : 'default'"
+        />
+      </template>
+      <template #secondary>
+        <AccountingStatCard
+          label="Mes actual (líquido)"
+          :value="money(incomesMeta.current_month_liquid)"
+        />
+        <AccountingStatCard
+          label="Mayor ingreso del año"
+          :value="incomesMeta.top_income ? money(incomesMeta.top_income.amount) : '—'"
+          :sub="incomesMeta.top_income?.concept || ''"
+          tone="brand"
+        />
+        <AccountingStatCard
+          label="Sin cliente"
+          :value="String(incomesMeta.without_client_count ?? 0)"
+          :tone="(incomesMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
+          sub="Pendientes de vincular"
+        />
+        <!-- Cuenta sólo filas con cliente: sin cliente todavía no hay
+             proyecto coherente que proponer. -->
+        <AccountingStatCard
+          label="Sin proyecto"
+          :value="String(incomesMeta.without_project_count ?? 0)"
+          :tone="(incomesMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
+          sub="Con cliente, pendientes de proyecto"
+        />
+      </template>
+    </AccountingIndicatorGroup>
 
     <!-- Quick + saved filter tabs -->
     <ProposalFilterTabs
@@ -91,7 +96,7 @@
     />
 
     <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -109,7 +114,7 @@
         v-model="viewMode"
         :options="viewModeOptions"
         size="sm"
-        class="ml-auto"
+        class="w-full panel-portrait:ml-auto panel-portrait:w-auto"
         data-testid="incomes-view-mode"
       />
     </div>
@@ -464,11 +469,10 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
@@ -482,6 +486,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
@@ -1078,14 +1083,38 @@ function unmuteIncome(record) {
 const columns = [
   // `link: true`: acá va el enlace al detalle, y la celda se vuelve `relative`
   // para que se estire a todo su ancho.
-  { key: 'concept', label: 'Concepto', size: 'name', sortable: true, link: true },
-  { key: 'client_name', label: 'Cliente', size: 'name', sortable: true, hideBelow: 'md' },
-  { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'lg' },
-  { key: 'kind_label', label: 'Tipo', size: 'badge' },
-  { key: 'payment_status', label: 'Cobro', size: 'text' },
-  { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
-  { key: 'total_amount', label: 'Total', format: 'money', sortable: true },
-  { key: 'row_actions', label: '', align: 'right' },
+  {
+    key: 'concept', label: 'Concepto', size: 'name', sortable: true, link: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'client_name', label: 'Cliente', size: 'name', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'kind_label', label: 'Tipo', size: 'badge',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'payment_status', label: 'Cobro', size: 'text',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'total_amount', label: 'Total', format: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'row_actions', label: '', align: 'right', size: 'icons',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
 ];
 
 // ── Vista agrupada por cliente ──

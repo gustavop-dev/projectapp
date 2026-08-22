@@ -11,7 +11,7 @@
       @cancel="handleCancelled"
     />
 
-    <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+    <header class="mb-8 flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-text-default">LinkedIn</h1>
         <p class="text-sm text-text-muted mt-1">
@@ -23,7 +23,7 @@
 
     <!-- Connection card -->
     <section class="bg-surface border border-border-default rounded-xl p-5 mb-6">
-      <div v-if="!connection.connected" class="flex flex-col sm:flex-row sm:items-center gap-3">
+      <div v-if="!connection.connected" class="flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-center">
         <span class="text-sm text-text-muted">LinkedIn no conectado.</span>
         <BaseButton variant="ghost" size="md" @click="connectLinkedIn">
           Conectar LinkedIn
@@ -65,150 +65,31 @@
         </p>
       </div>
 
-      <!-- Desktop table -->
-      <div
-        v-else-if="!isMobile"
-        class="bg-surface border border-border-default rounded-xl overflow-x-auto"
+      <BaseExploratoryList
+        v-else
+        :columns="linkedinColumns"
+        :rows="posts"
+        caption="Publicaciones de LinkedIn"
+        card-test-id-prefix="linkedin-post-row"
       >
-        <table class="w-full text-sm">
-          <thead>
-            <tr class="border-b border-border-default text-left text-xs uppercase tracking-wide text-text-subtle">
-              <th class="px-4 py-3 font-medium">Texto</th>
-              <th class="px-4 py-3 font-medium">Estado</th>
-              <th class="px-4 py-3 font-medium">Programado</th>
-              <th class="px-4 py-3 font-medium">Publicado</th>
-              <th class="px-4 py-3 font-medium text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="post in posts"
-              :key="post.id"
-              class="border-b border-border-default last:border-b-0 align-top"
-            >
-              <td class="px-4 py-3 text-text-default max-w-md">
-                <p class="line-clamp-2">{{ post.commentary }}</p>
-                <p
-                  v-if="post.status === 'failed' && post.error_message"
-                  class="text-xs text-danger-strong mt-1 truncate"
-                  :title="post.error_message"
-                >
-                  {{ post.error_message }}
-                </p>
-              </td>
-              <td class="px-4 py-3">
-                <span
-                  class="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-                  :class="statusClass(post.status)"
-                >
-                  {{ statusLabel(post.status) }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-text-muted whitespace-nowrap">
-                {{ post.scheduled_at ? formatDateTime(post.scheduled_at) : '—' }}
-              </td>
-              <td class="px-4 py-3 text-text-muted whitespace-nowrap">
-                <a
-                  v-if="post.status === 'published' && post.linkedin_post_id"
-                  :href="linkedinPostUrl(post)"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-text-brand hover:underline"
-                >
-                  {{ formatDateTime(post.published_at) }}
-                </a>
-                <template v-else>—</template>
-              </td>
-              <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
-                <button
-                  v-if="post.status !== 'published'"
-                  type="button"
-                  class="text-xs text-text-brand hover:underline"
-                  @click="openEdit(post)"
-                >
-                  Editar
-                </button>
-                <button
-                  v-if="post.status !== 'published'"
-                  type="button"
-                  class="text-xs text-text-brand hover:underline"
-                  :disabled="publishingId === post.id"
-                  @click="askPublish(post)"
-                >
-                  {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
-                </button>
-                <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
-                  Eliminar
-                </BaseButton>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- Mobile cards -->
-      <div v-else class="space-y-3">
-        <article
-          v-for="post in posts"
-          :key="post.id"
-          class="bg-surface border border-border-default rounded-xl p-4 space-y-2"
-        >
-          <div class="flex items-start justify-between gap-2">
-            <span
-              class="inline-block px-2 py-0.5 rounded-full text-xs font-medium"
-              :class="statusClass(post.status)"
-            >
-              {{ statusLabel(post.status) }}
-            </span>
-            <a
-              v-if="post.status === 'published' && post.linkedin_post_id"
-              :href="linkedinPostUrl(post)"
-              target="_blank"
-              rel="noopener"
-              class="text-xs text-text-brand hover:underline"
-            >
-              Ver en LinkedIn
-            </a>
-          </div>
-          <p class="text-sm text-text-default line-clamp-3">{{ post.commentary }}</p>
-          <p v-if="post.scheduled_at" class="text-xs text-text-subtle">
-            Programado: {{ formatDateTime(post.scheduled_at) }}
-          </p>
-          <p
-            v-if="post.status === 'failed' && post.error_message"
-            class="text-xs text-danger-strong truncate"
-            :title="post.error_message"
-          >
-            {{ post.error_message }}
-          </p>
-          <div class="flex gap-4 pt-1">
-            <button
-              v-if="post.status !== 'published'"
-              type="button"
-              class="text-xs text-text-brand hover:underline"
-              @click="openEdit(post)"
-            >
-              Editar
-            </button>
-            <button
-              v-if="post.status !== 'published'"
-              type="button"
-              class="text-xs text-text-brand hover:underline"
-              :disabled="publishingId === post.id"
-              @click="askPublish(post)"
-            >
-              {{ publishingId === post.id ? 'Publicando…' : 'Publicar ahora' }}
-            </button>
-            <BaseButton variant="danger-ghost" size="sm" @click="askDelete(post)">
-              Eliminar
-            </BaseButton>
-          </div>
-        </article>
-      </div>
+        <template #cell-commentary="{ row: post }">
+          <p class="line-clamp-3 break-words text-sm text-text-default">{{ post.commentary }}</p>
+          <p v-if="post.status === 'failed' && post.error_message" class="mt-1 truncate text-xs text-danger-strong" :title="post.error_message">{{ post.error_message }}</p>
+        </template>
+        <template #cell-status="{ row: post }"><span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(post.status)">{{ statusLabel(post.status) }}</span></template>
+        <template #cell-scheduled_at="{ row: post }">{{ post.scheduled_at ? formatDateTime(post.scheduled_at) : '—' }}</template>
+        <template #cell-published_at="{ row: post }">
+          <a v-if="post.status === 'published' && post.linkedin_post_id" :href="linkedinPostUrl(post)" target="_blank" rel="noopener noreferrer" class="text-text-brand hover:underline">{{ formatDateTime(post.published_at) }}</a>
+          <span v-else>—</span>
+        </template>
+        <template #row-actions="{ row: post }">
+          <BaseActionMenu :items="linkedinActionItems(post)" :testid="`linkedin-post-actions-${post.id}`" />
+        </template>
+      </BaseExploratoryList>
     </section>
 
     <!-- Create / edit modal -->
-    <BaseModal v-model="showModal" size="lg" padding="md">
+    <BaseModal v-model="showModal" kind="form" padding="md">
       <h2 class="text-lg font-semibold text-text-default mb-4">
         {{ editingPost ? 'Editar post' : 'Nuevo post' }}
       </h2>
@@ -278,19 +159,25 @@
 <script setup>
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { useLinkedInStore } from '~/stores/linkedin';
-import { useIsMobile } from '~/composables/useIsMobile';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import { formatDate, formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = useLinkedInStore();
-const { isMobile } = useIsMobile();
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const linkedinColumns = [
+  { key: 'commentary', label: 'Texto', mobile: 'primary' },
+  { key: 'status', label: 'Estado', mobile: 'secondary' },
+  { key: 'scheduled_at', label: 'Programado', mobile: 'meta' },
+  { key: 'published_at', label: 'Publicado', mobile: 'meta' },
+];
 
 const loaded = ref(false);
 const posts = computed(() => store.posts);
@@ -306,6 +193,27 @@ const saving = ref(false);
 const publishingId = ref(null);
 const actionMsg = ref('');
 const actionError = ref('');
+
+function linkedinActionItems(post) {
+  const items = [];
+  if (post.status !== 'published') {
+    items.push(
+      { label: 'Editar', onClick: () => openEdit(post) },
+      {
+        label: publishingId.value === post.id ? 'Publicando…' : 'Publicar ahora',
+        disabled: publishingId.value === post.id,
+        onClick: () => askPublish(post),
+      },
+    );
+  } else if (post.linkedin_post_id) {
+    items.push({ label: 'Ver en LinkedIn', href: linkedinPostUrl(post) });
+  }
+  items.push(
+    { divider: true },
+    { label: 'Eliminar', danger: true, onClick: () => askDelete(post) },
+  );
+  return items;
+}
 
 async function loadData() {
   await Promise.all([store.fetchLinkedInStatus(), store.fetchPosts()]);

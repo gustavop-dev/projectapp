@@ -7,7 +7,7 @@
       <div
         v-for="(count, key) in counts"
         :key="key"
-        class="bg-surface dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-2xl p-4 text-center shadow-sm"
+        class="bg-surface dark:bg-primary-soft border border-input-border rounded-2xl p-4 text-center shadow-sm"
       >
         <div
           class="text-3xl font-semibold"

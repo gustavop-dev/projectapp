@@ -52,6 +52,7 @@ const onClick = (event) => {
 /* Fixed brand palette by design (Linktree.dc.html): esmerald #001713,
    lemon #F0FF3D, muted #809490 — deliberately NOT theme tokens. */
 .lt-btn {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,6 +67,7 @@ const onClick = (event) => {
   transition: background 120ms ease-out, border-color 120ms ease-out,
     color 120ms ease-out, transform 120ms ease-out;
 }
+.lt-btn__label { min-width: 0; overflow-wrap: anywhere; }
 
 .lt-btn--primary {
   padding: 17px 24px;

@@ -6,14 +6,14 @@
     @close="emit('close')"
   >
     <div data-testid="stats-modal">
-      <div class="px-6 pt-6 pb-3">
+      <div class="px-4 pb-3 pt-5 panel-portrait:px-6 panel-portrait:pt-6">
         <h3 id="stats-modal-title" class="text-lg font-bold text-text-default">
           {{ title }}
         </h3>
         <p v-if="subtitle" class="text-sm text-text-muted mt-1">{{ subtitle }}</p>
       </div>
 
-      <div class="px-6 border-b border-border-muted">
+      <div class="border-b border-border-muted px-4 panel-portrait:px-6">
         <BaseTabs
           :model-value="modelValue"
           :tabs="tabs"
@@ -21,7 +21,7 @@
         />
       </div>
 
-      <div class="px-6 py-5 min-h-[340px]">
+      <div class="min-h-[340px] px-4 py-5 panel-portrait:px-6">
         <div v-if="loading" class="space-y-3" data-testid="stats-modal-loading">
           <div class="h-16 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
           <div class="h-64 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
@@ -29,7 +29,7 @@
         <slot v-else :active-tab="modelValue" />
       </div>
 
-      <div class="px-6 pb-6 flex items-center justify-end">
+      <div class="flex items-center justify-end px-4 pb-6 panel-portrait:px-6">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cerrar
         </BaseButton>

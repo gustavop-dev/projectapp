@@ -7,6 +7,7 @@
   -->
   <BaseModal
     :model-value="open"
+    kind="detail"
     size="xl"
     title-id="income-detail-title"
     :close-on-esc="!allocationsOpen"

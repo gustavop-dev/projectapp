@@ -71,7 +71,7 @@ function setupPublicMock(page, { found = true } = {}) {
 
 test.describe('Public Linktree', () => {
   test('renders identity, buttons and footer for a valid handle', {
-    tag: [...PUBLIC_LINKTREE_VIEW, '@role:visitor', '@outcome:display'],
+    tag: [...PUBLIC_LINKTREE_VIEW, '@role:visitor', '@outcome:display', '@responsive:public'],
   }, async ({ page }) => {
     // quality: allow-deep-link (public linktree is reached from a QR scan / external short link — there is no in-app navigation to it)
     // quality: allow-no-interaction (public display contract: the page renders API data; actions are covered by unit tests)

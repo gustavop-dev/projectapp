@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="form"
     size="lg"
     title-id="bulk-assign-title"
     @close="emit('close')"

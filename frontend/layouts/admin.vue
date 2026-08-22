@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-layout min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-primary-strong">
+  <div class="admin-layout min-h-screen bg-surface-muted transition-colors duration-200 dark:bg-primary-strong">
     <div class="hidden panel-landscape:block">
       <PanelSidebar
         :is-collapsed="isCollapsed"
@@ -9,7 +9,7 @@
     </div>
 
     <div
-      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 panel-landscape:hidden"
+      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border px-4 panel-landscape:hidden"
       :class="isDark ? 'bg-primary-strong/95 backdrop-blur-xl' : 'bg-surface/90 backdrop-blur-xl'"
     >
       <BaseButton
@@ -68,7 +68,7 @@
         // under the FAB, which swallows its action clicks.
         'px-4 pt-6 pb-24 panel-portrait:px-6 panel-desktop:px-8',
         isCollapsed ? 'panel-landscape:ml-[64px]' : 'panel-landscape:ml-[240px]',
-        'text-panel-body text-text-default',
+        'text-base text-text-default',
       ]"
     >
       <!--
@@ -80,7 +80,7 @@
       -->
       <div
         v-if="_panelSectionLabel && _panelViewLabel"
-        class="mb-5 hidden panel-landscape:flex items-center gap-1.5 text-panel-meta"
+        class="mb-5 hidden items-center gap-1.5 text-xs panel-landscape:flex"
         :class="isDark ? 'text-green-light/60' : 'text-green-light'"
       >
         <span>{{ _panelSectionLabel }}</span>

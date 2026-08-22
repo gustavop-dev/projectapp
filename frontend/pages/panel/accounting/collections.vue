@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -10,6 +10,7 @@
       </div>
       <BaseButton
         variant="primary"
+        class="w-full panel-portrait:w-auto"
         data-testid="collection-create-button"
         @click="openCreateModal"
       >
@@ -20,30 +21,34 @@
     <AccountingSubnav active="collections" />
 
     <!-- Status counters -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <AccountingStatCard
-        label="Emitidas"
-        :value="String(meta.issued_count ?? 0)"
-        :sub="`Por cobrar: ${money(meta.issued_total)}`"
-        tone="brand"
-      />
-      <AccountingStatCard
-        label="Pagadas"
-        :value="String(meta.paid_count ?? 0)"
-        :sub="`Recaudado: ${money(meta.paid_total)}`"
-        tone="success"
-      />
-      <AccountingStatCard
-        label="Vencidas"
-        :value="String(overdueCount)"
-        :tone="overdueCount > 0 ? 'warning' : 'default'"
-        sub="Emitidas con fecha límite pasada"
-      />
-      <AccountingStatCard
-        label="Anuladas"
-        :value="String(meta.cancelled_count ?? 0)"
-      />
-    </div>
+    <AccountingIndicatorGroup :columns="4" :secondary-count="1">
+      <template #primary>
+        <AccountingStatCard
+          label="Vencidas"
+          :value="String(overdueCount)"
+          :tone="overdueCount > 0 ? 'warning' : 'default'"
+          sub="Emitidas con fecha límite pasada"
+        />
+        <AccountingStatCard
+          label="Emitidas"
+          :value="String(meta.issued_count ?? 0)"
+          :sub="`Por cobrar: ${money(meta.issued_total)}`"
+          tone="brand"
+        />
+        <AccountingStatCard
+          label="Pagadas"
+          :value="String(meta.paid_count ?? 0)"
+          :sub="`Recaudado: ${money(meta.paid_total)}`"
+          tone="success"
+        />
+      </template>
+      <template #secondary>
+        <AccountingStatCard
+          label="Anuladas"
+          :value="String(meta.cancelled_count ?? 0)"
+        />
+      </template>
+    </AccountingIndicatorGroup>
 
     <!-- Quick + saved filter tabs -->
     <ProposalFilterTabs
@@ -60,7 +65,7 @@
     />
 
     <!-- Search + filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -81,7 +86,7 @@
         label="Estado"
         test-id-prefix="collections-status"
         size="sm"
-        class="ml-auto"
+        class="w-full panel-portrait:ml-auto panel-portrait:w-auto"
       />
     </div>
 
@@ -194,7 +199,21 @@
           </span>
         </template>
         <template #cell-row_actions="{ row }">
-          <div class="flex items-center justify-end gap-1">
+          <div v-if="isNarrowActions" class="flex items-center justify-end">
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Acciones de la cuenta de cobro"
+              title="Acciones"
+              :disabled="busyId === row.id"
+              :data-testid="`collection-actions-${row.id}`"
+              @click="actionsRow = row"
+            >
+              <EllipsisVerticalIcon class="h-5 w-5" />
+            </BaseButton>
+          </div>
+          <div v-else class="flex items-center justify-end gap-1">
             <BaseButton
               variant="ghost"
               icon-only
@@ -288,6 +307,21 @@
       </AccountingTable>
     </template>
 
+    <CollectionActionsModal
+      :open="actionsRow !== null"
+      :record="actionsRow"
+      :busy="busyId === actionsRow?.id"
+      @close="actionsRow = null"
+      @detail="openDetail"
+      @notes="notesRow = $event"
+      @download="downloadPdf"
+      @emails="goToCollectionEmails"
+      @resend="askResend"
+      @mark-paid="askMarkPaid"
+      @cancel="askCancel"
+      @delete="askDelete"
+    />
+
     <ConfirmModal
       v-model="confirmOpen"
       :title="confirmTitle"
@@ -323,7 +357,7 @@
     </ConfirmModal>
 
     <!-- Internal notes, read-only: written in the create form, never sent. -->
-    <BaseModal v-model="notesOpen" size="lg" @close="notesRow = null">
+    <BaseModal v-model="notesOpen" kind="detail" size="lg" @close="notesRow = null">
       <div class="p-6 space-y-3">
         <h3 class="text-lg font-bold text-text-default">
           Notas internas · {{ notesRow?.public_number || `#${notesRow?.id}` }}
@@ -368,11 +402,10 @@
       @close="closeLiquidate"
       @submit="handleLiquidateSubmit"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import {
   ChatBubbleBottomCenterTextIcon,
@@ -380,11 +413,13 @@ import {
   DocumentArrowDownIcon,
   EnvelopeIcon,
   EyeIcon,
+  EllipsisVerticalIcon,
   NoSymbolIcon,
   PaperAirplaneIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
@@ -392,6 +427,7 @@ import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import CollectionAccountFormModal from '~/components/accounting/CollectionAccountFormModal.vue';
 import CollectionAccountDetailModal from '~/components/accounting/CollectionAccountDetailModal.vue';
+import CollectionActionsModal from '~/components/accounting/CollectionActionsModal.vue';
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -408,12 +444,14 @@ import {
 } from '~/composables/useAccountingFilters';
 import { useTableSort } from '~/composables/useTableSort';
 import { useDetailQueryParam } from '~/composables/useDetailQueryParam';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { useAccountingStore } from '~/stores/accounting';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import {
   collectionStatusBadgeClass,
   originLabel,
@@ -425,6 +463,8 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 const store = useAccountingStore();
 const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
+const { isMobile: isNarrowActions } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const actionsRow = ref(null);
 
 const meta = computed(() => store.collectionAccountsMeta || {});
 
@@ -630,15 +670,42 @@ const overdueCount = computed(
 // shrinks to a badge: it used to smuggle the hosting's client / the income's
 // concept into its label, and both now have a column of their own.
 const columns = [
-  { key: 'public_number', label: 'Número', size: 'text', sortable: true, link: true },
-  { key: 'origin', label: 'Origen', size: 'badge', hideBelow: 'lg' },
-  { key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true },
-  { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md' },
-  { key: 'total', label: 'Total', format: 'money', sortable: true },
-  { key: 'issue_date', label: 'Emisión', format: 'date', sortable: true, hideBelow: 'md' },
-  { key: 'due_date', label: 'Vence', format: 'date', sortable: true },
-  { key: 'commercial_status', label: 'Estado' },
-  { key: 'row_actions', label: '', align: 'right' },
+  {
+    key: 'public_number', label: 'Número', size: 'text', sortable: true, link: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'origin', label: 'Origen', size: 'badge', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'total', label: 'Total', format: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'issue_date', label: 'Emisión', format: 'date', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'due_date', label: 'Vence', format: 'date', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'commercial_status', label: 'Estado',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'row_actions', label: '', align: 'right', size: 'icons',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
 ];
 
 const { sortKey, sortDir, toggleSort, sortedRecords: sortedRows } = useTableSort(

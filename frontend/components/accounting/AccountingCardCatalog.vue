@@ -164,7 +164,7 @@ function requestDelete(row) {
             />
             Activa
           </label>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center justify-end gap-2">
             <BaseButton variant="danger-ghost" size="sm" :aria-label="`Eliminar tarjeta ${row.name || 'nueva'}`" :data-testid="`card-catalog-delete-${row.key}`" @click="requestDelete(row)">
               <TrashIcon class="w-4 h-4" />
             </BaseButton>
@@ -185,6 +185,7 @@ function requestDelete(row) {
     <BaseButton
       variant="secondary"
       size="sm"
+      class="w-full panel-portrait:w-auto"
       data-testid="card-catalog-add"
       @click="addRow"
     >

@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :model-value="open" size="2xl" full-height @update:model-value="emit('close')">
+  <BaseModal :model-value="open" kind="detail" size="2xl" full-height @update:model-value="emit('close')">
     <div class="flex flex-col h-full" data-testid="email-body-modal">
       <header class="px-5 py-4 border-b border-border-muted">
         <h2 class="text-lg font-bold text-text-default">El correo como salió</h2>

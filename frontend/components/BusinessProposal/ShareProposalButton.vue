@@ -39,7 +39,8 @@
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-surface-raised flex items-center justify-center text-text-subtle hover:text-text-muted hover:bg-border-muted transition-colors"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-surface-raised text-text-subtle transition-colors hover:bg-border-muted hover:text-text-muted"
+                :aria-label="language === 'es' ? 'Cerrar' : 'Close'"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

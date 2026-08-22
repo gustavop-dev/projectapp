@@ -104,7 +104,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('shows disconnected state with connect button', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display', '@responsive:content'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the disconnected state from a mocked GET; no action toggles it)
     await setupPageMock(page, { linkedinStatus: disconnectedStatus, posts: [] });
@@ -158,7 +158,9 @@ test.describe('Admin LinkedIn module', () => {
     await setupPageMock(page);
     await gotoModule(page);
 
-    await page.getByRole('button', { name: 'Publicar ahora' }).click();
+    const postRow = page.getByTestId('linkedin-post-row-1');
+    await postRow.getByRole('button', { name: 'Acciones' }).click();
+    await postRow.getByRole('menuitem', { name: 'Publicar ahora' }).click();
     // Confirm modal
     await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
@@ -181,7 +183,9 @@ test.describe('Admin LinkedIn module', () => {
     });
     await gotoModule(page);
 
-    await page.getByRole('button', { name: 'Publicar ahora' }).click();
+    const postRow = page.getByTestId('linkedin-post-row-1');
+    await postRow.getByRole('button', { name: 'Acciones' }).click();
+    await postRow.getByRole('menuitem', { name: 'Publicar ahora' }).click();
     await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
     await expect(page.getByText(/LinkedIn API error/)).toBeVisible();

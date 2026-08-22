@@ -414,9 +414,9 @@ const shadowScale = [
         </p>
         <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-text-brand" data-testid="responsive-profile">
           Perfil activo:
-          <span data-responsive-profile="compact" class="panel-portrait:hidden">compact · &lt;600</span>
-          <span data-responsive-profile="portrait" class="hidden panel-portrait:inline panel-landscape:hidden">portrait · 600–999</span>
-          <span data-responsive-profile="landscape" class="hidden panel-landscape:inline panel-desktop:hidden">landscape · 1000–1279</span>
+          <span data-responsive-profile="compact" class="panel-portrait:hidden">compact · &lt;640</span>
+          <span data-responsive-profile="portrait" class="hidden panel-portrait:inline panel-landscape:hidden">portrait · 640–1023</span>
+          <span data-responsive-profile="landscape" class="hidden panel-landscape:inline panel-desktop:hidden">landscape · 1024–1279</span>
           <span data-responsive-profile="desktop" class="hidden panel-desktop:inline panel-wide:hidden">desktop · 1280–1919</span>
           <span data-responsive-profile="wide" class="hidden panel-wide:inline">wide · ≥1920</span>
         </p>

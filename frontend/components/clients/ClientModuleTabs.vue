@@ -65,7 +65,8 @@
  * On desktop it wraps instead of scrolling, so no module is ever cut off (there
  * are seven, all short). The overflow rule matters at level 2, where the set
  * grows. Below `md` seven pills still cost three rows of chrome before any
- * content, so there they collapse into a selector instead.
+ * content, so they stay collapsed through portrait tablet and expand at the
+ * canonical landscape-tablet breakpoint.
  */
 import { computed } from 'vue';
 import { CLIENT_MODULES } from '~/constants/clientFilters';

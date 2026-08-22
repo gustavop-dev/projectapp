@@ -231,7 +231,7 @@ test.describe('Admin Panel Projects', () => {
   });
 
   test('the scope segmented reveals archived projects', {
-    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
   }, async ({ page }) => {
     // quality: allow-deep-link (the sidebar entry path is covered by the search test; this one pins the scope segmented)
     await mockApi(page, buildHandler({ calls: [] }));

@@ -10,6 +10,7 @@ defineProps({
   actions: { type: Array, required: true },
   busy: { type: Boolean, default: false },
   testidPrefix: { type: String, default: 'records' },
+  testid: { type: String, default: '' },
 })
 
 defineEmits(['clear', 'select-all'])
@@ -19,7 +20,7 @@ defineEmits(['clear', 'select-all'])
   <div
     v-if="selectedCount > 0"
     class="sticky bottom-4 z-20 mt-4 flex flex-col gap-3 rounded-xl border border-border-default bg-surface-raised p-3 pr-20 shadow-lg panel-portrait:flex-row panel-portrait:items-center"
-    :data-testid="`${testidPrefix}-bulk-bar`"
+    :data-testid="testid || `${testidPrefix}-bulk-bar`"
   >
     <span class="text-sm text-text-default">
       <span class="whitespace-nowrap">

@@ -115,7 +115,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('renders email composer page with form fields', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display', '@responsive:emails'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
@@ -328,10 +328,7 @@ test.describe('Admin Standalone Email Composer — gaps', () => {
     await sections.first().fill('Se queda');
     await sections.nth(1).fill('Se va');
 
-    // The per-section delete button (svg-only) renders in the block header
-    // when there is more than one section; it is the block's last button.
-    await page.locator('div.bg-surface-muted').filter({ hasText: 'Sección 2' })
-      .getByRole('button').last().click();
+    await page.getByRole('button', { name: 'Eliminar' }).nth(1).click();
     await expect(sections).toHaveCount(1);
     await expect(sections.first()).toHaveValue('Se queda');
   });

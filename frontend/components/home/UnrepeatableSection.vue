@@ -56,7 +56,7 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card1Title || 'Architecture & Planning' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
+              <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
             </div>
           </div>
           <div 
@@ -68,7 +68,7 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card2Title || 'UI/UX Design' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
+              <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
             </div>
           </div>
           <div 
@@ -80,7 +80,7 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card3Title || 'Development & Implementation' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
+              <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
             </div>
           </div>
           <div 
@@ -93,7 +93,7 @@
             </div>
             <div class="relative z-10">
               <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card4Title || 'Deployment & Validation' }}</h4>
-              <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
+              <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
             </div>
           </div>
         </div>
@@ -118,7 +118,7 @@
                   </div>
                   <div class="relative z-10">
                     <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card1Title || 'Architecture & Planning' }}</h4>
-                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
+                    <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card1Description || '' }}</p>
                   </div>
                 </div>
               </swiper-slide>
@@ -132,7 +132,7 @@
                   </div>
                   <div class="relative z-10">
                     <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card2Title || 'UI/UX Design' }}</h4>
-                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
+                    <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card2Description || '' }}</p>
                   </div>
                 </div>
               </swiper-slide>
@@ -146,7 +146,7 @@
                   </div>
                   <div class="relative z-10">
                     <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card3Title || 'Development & Implementation' }}</h4>
-                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
+                    <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card3Description || '' }}</p>
                   </div>
                 </div>
               </swiper-slide>
@@ -160,7 +160,7 @@
                   </div>
                   <div class="relative z-10">
                     <h4 class="text-xl font-semibold mb-3">{{ messages?.unrepeatable?.card4Title || 'Deployment & Validation' }}</h4>
-                    <p class="text-sm text-gray-200 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
+                    <p class="text-sm text-white/80 leading-relaxed">{{ messages?.unrepeatable?.card4Description || '' }}</p>
                   </div>
                 </div>
               </swiper-slide>

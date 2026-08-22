@@ -167,6 +167,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Heavy vendor splitting belongs under `vite.$client.build.rollupOptions`; applying the same manual chunks to Nitro's server build can generate unusable server output.
 - The production build gate is zero emitted client chunks above 500,000 bytes. Current maximum after gzip-independent measurement is 448,634 bytes.
 
+### Canonical responsive profiles
+
+- Frontend responsive validation uses five named, real-device profiles: 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440.
+- `frontend/config/responsive.js` feeds Tailwind and Playwright; `responsiveAcceptance.js` assigns every catalog view to a repeatable module script. Individual pages must not invent alternative device matrices.
+- The portrait-tablet profile is an explicit acceptance target, and admin content is capped at 1400 px on the large-monitor profile.
+- The responsive Definition of Done, commands and periodic review live in `docs/methodology/responsive-acceptance.md`.
+
 ### Static payload and collection policy
 
 - Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.
@@ -277,10 +284,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - **Panel responsive contract** — import breakpoints/media/reference devices
   from `frontend/config/responsive.js`; use the `panel-*` Tailwind screens and
   shared base primitives instead of local `window.innerWidth` thresholds.
-  Acceptance runs at 412×915, 835×1194, 1195×835, 1440×900 and 2560×1440;
-  content is capped at 1440 px and touch actions expose at least 44 px targets.
+  Acceptance runs at 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440;
+  general content is capped at 1400 px and touch actions expose at least 44 px targets.
   Full decisions and the adoption inventory are in
-  `docs/methodology/responsive-standard.md`.
+  `docs/RESPONSIVE_STANDARD.md`.
+- **Accounting responsive acceptance** — the twelve accounting routes use
+  business-declared table/KPI priorities rather than positional hiding. The
+  executable representative checks live in
+  `frontend/e2e/admin/admin-accounting-pocket-recurring.spec.js`; the complete
+  repeatable 60-cell route/viewport matrix and long-modal scenarios are in
+  `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
 
 ---
 

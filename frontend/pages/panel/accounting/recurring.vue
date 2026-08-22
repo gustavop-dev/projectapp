@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -8,10 +8,11 @@
           Suscripciones y costos operativos que se repiten mes a mes o año a año.
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex w-full flex-wrap items-center gap-2 panel-portrait:w-auto">
         <BaseButton
           variant="secondary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           data-testid="recurring-manage-categories"
           @click="showCategoriesModal = true"
         >
@@ -21,6 +22,7 @@
         <BaseButton
           variant="primary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           data-testid="recurring-new-button"
           @click="openCreateModal"
         >
@@ -102,15 +104,16 @@
         v-model="viewMode"
         :options="viewModeOptions"
         size="sm"
-        class="ml-auto"
+        class="w-full panel-portrait:ml-auto panel-portrait:w-auto"
         data-testid="recurring-view-mode"
       />
       <!-- Divider, not a third segment: this opens a modal, it is not another
            way of listing the table. -->
-      <span class="w-px h-6 bg-border-muted" aria-hidden="true" />
+      <span class="hidden h-6 w-px bg-border-muted panel-portrait:block" aria-hidden="true" />
       <BaseButton
         variant="secondary"
         size="sm"
+        class="flex-1 panel-portrait:flex-none"
         data-testid="recurring-charts-button"
         @click="showChartsModal = true"
       >
@@ -360,11 +363,10 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { ChartPieIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -547,25 +549,58 @@ const exportParams = computed(() =>
 // `hideBelow` collapses the least load-bearing columns first — name, monthly
 // equivalent and status survive every width.
 const SHARED_COLUMNS = [
-  { key: 'name', label: 'Nombre', size: 'name', sortable: true },
-  { key: 'price', label: 'Precio', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
-  { key: 'monthly_price', label: 'Precio mensual', align: 'right', size: 'money', group: 'money', hideBelow: 'lg' },
-  { key: 'monthly_cop_cost', label: 'Equiv. COP mensual', format: 'money', group: 'money', sortable: true },
-  { key: 'frequency_label', label: 'Frecuencia', hideBelow: 'lg' },
-  { key: 'payment_method_label', label: 'Método', hideBelow: 'lg' },
-  { key: 'billing_day', label: 'Día', align: 'center', size: 'tiny', sortable: true, hideBelow: 'md' },
+  {
+    key: 'name', label: 'Nombre', size: 'name', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'price', label: 'Precio', align: 'right', size: 'money', group: 'money', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'monthly_price', label: 'Precio mensual', align: 'right', size: 'money', group: 'money', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'monthly_cop_cost', label: 'Equiv. COP mensual', format: 'money', group: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'frequency_label', label: 'Frecuencia', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'payment_method_label', label: 'Método', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'billing_day', label: 'Día', align: 'center', size: 'tiny', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
   // Preformatted by the API (like frequency_label), so both view modes render
   // it as plain text and neither has to format a date.
-  { key: 'next_charge_label', label: 'Próximo cobro', size: 'text', hideBelow: 'md' },
-  { key: 'cost_type_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
-  { key: 'is_active', label: 'Estado', size: 'badge' },
+  {
+    key: 'next_charge_label', label: 'Próximo cobro', size: 'text', hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'cost_type_label', label: 'Tipo', size: 'badge', hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'is_active', label: 'Estado', size: 'badge',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
 ];
 
 // Classic view needs the category as a column; the grouped view has it as a
 // group header, so repeating it in every row would be noise.
 const columns = [
   SHARED_COLUMNS[0],
-  { key: 'category_name', label: 'Categoría', hideBelow: 'lg' },
+  {
+    key: 'category_name', label: 'Categoría', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
   ...SHARED_COLUMNS.slice(1),
 ];
 

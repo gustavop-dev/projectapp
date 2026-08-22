@@ -37,7 +37,8 @@ test.describe('Admin Portfolio Delete', () => {
 
     const table = page.locator('table');
     await expect(table.getByText('Proyecto a Borrar')).toBeVisible();
-    await expect(table.getByText('Eliminar')).toBeVisible();
+    const row = table.getByRole('row', { name: /Proyecto a Borrar/ });
+    await expect(row.getByRole('button', { name: 'Acciones' })).toBeVisible();
   });
 
   test('delete button triggers confirm dialog', {
@@ -58,7 +59,9 @@ test.describe('Admin Portfolio Delete', () => {
     await page.goto('/panel/portfolio');
 
     const table = page.locator('table');
-    await table.getByText('Eliminar').click();
+    const row = table.getByRole('row', { name: /Proyecto a Borrar/ });
+    await row.getByRole('button', { name: 'Acciones' }).click();
+    await row.getByRole('menuitem', { name: 'Eliminar' }).click();
 
     const modal = page.locator('.fixed.inset-0');
     await expect(modal).toBeVisible();

@@ -24,7 +24,7 @@ const mockWork = {
 
 test.describe('Portfolio Works', () => {
   test('the portfolio listing renders published works', {
-    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO, '@role:guest'],
+    tag: ['@outcome:display', ...PUBLIC_PORTFOLIO, '@role:guest', '@responsive:public'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display flow — the listing renders published works fetched from the API)
     await mockApi(page, async ({ apiPath }) => {

@@ -454,7 +454,7 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await expect(page.getByTestId('accounting-stat-value')).toHaveText([
-      '2', '1', '1', '0',
+      '1', '2', '1', '0',
     ]);
     await expect(page.getByText('Por cobrar: $1.100.004')).toBeVisible();
     await expect(page.getByText('Recaudado: $550.002')).toBeVisible();
@@ -784,7 +784,9 @@ test.describe('Admin Accounting Collections', () => {
     // live FK (F7): the new row lands with its project visible, no reload.
     const newRow = page.getByTestId('accounting-row-9');
     await expect(newRow).toContainText('Vastago');
-    await expect(page.getByTestId('collection-project-space-9')).toBeVisible();
+    await expect(
+      page.getByTestId('collection-project-space-9').filter({ visible: true }),
+    ).toBeVisible();
   });
 
   test('the income list follows the chosen client through to the send', {
@@ -1183,7 +1185,9 @@ test.describe('Admin Accounting Collections', () => {
     await gotoCollections(page);
 
     await expect(page.getByTestId('accounting-row-2')).toContainText('Mimittos');
-    await expect(page.getByTestId('collection-no-project-3')).toHaveText('—');
+    await expect(
+      page.getByTestId('collection-no-project-3').filter({ visible: true }),
+    ).toHaveText('—');
 
     // The filter keys off the same live FK the cell shows: picking the
     // project keeps the linked cuenta and drops the blank sibling.
@@ -1198,7 +1202,9 @@ test.describe('Admin Accounting Collections', () => {
     // both rows return, each with its own cell).
     await page.reload({ waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('accounting-row-2')).toContainText('Mimittos');
-    await expect(page.getByTestId('collection-no-project-3')).toHaveText('—');
+    await expect(
+      page.getByTestId('collection-no-project-3').filter({ visible: true }),
+    ).toHaveText('—');
   });
 
   test('opening the detail shows the linked income and its settlement history', {

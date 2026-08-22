@@ -46,7 +46,7 @@ test.describe('Admin Portfolio List', () => {
   });
 
   test('the new-project button navigates to the create page', {
-    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_PORTFOLIO_LIST, '@role:admin', '@outcome:display', '@responsive:content'],
   }, async ({ page }) => {
     // Fails if the "Nuevo Proyecto" button stops linking to the create page.
     await setupMock(page);

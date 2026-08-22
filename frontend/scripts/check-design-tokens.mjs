@@ -243,6 +243,9 @@ const NON_COLOR_BY_UTILITY = {
     'left', 'center', 'right', 'justify', 'start', 'end',
     'balance', 'pretty', 'wrap', 'nowrap', 'clip', 'ellipsis',
     'base', 'xs', 'opacity',
+    // Shared panel typography scale from theme.extend.fontSize. These are
+    // sizes, not color-token references.
+    'panel-title', 'panel-heading', 'panel-body', 'panel-meta',
   ]),
   border: new Set([
     'solid', 'dashed', 'dotted', 'double', 'hidden', 'collapse', 'separate',
@@ -337,6 +340,12 @@ function findInvalidTokens(line) {
 
 // Files/dirs to skip entirely (decorative components, third-party shims, etc.).
 const ALLOWLIST = new Set([
+  // Token definition sources contain utility names as documentation and map
+  // keys; scanning them as consumers produces false positives such as reading
+  // the `text-default` color key as an unknown `text-*` utility.
+  'scripts/check-design-tokens.mjs',
+  'tailwind.config.js',
+  'assets/styles/theme.css',
   'components/ui/AnimatedTestimonials.vue',
   'components/ui/BackgroundGradientAnimation.vue',
   'components/ui/animations',

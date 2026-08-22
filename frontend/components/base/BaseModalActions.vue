@@ -8,7 +8,7 @@
 </template>
 
 <style scoped>
-@media (max-width: 599px) {
+@media (max-width: 639px) {
   :deep(.base-button:not(.base-button--link)) {
     width: 100%;
   }

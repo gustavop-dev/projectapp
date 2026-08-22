@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-light text-text-default">Configuración</h1>
@@ -64,6 +64,7 @@
           <BaseButton
             variant="primary"
             size="md"
+            class="w-full panel-portrait:w-auto"
             :disabled="store.isUpdating"
             data-testid="settings-save-button"
             @click="save"
@@ -291,11 +292,10 @@
       @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import AccountingCardCatalog from '~/components/accounting/AccountingCardCatalog.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
