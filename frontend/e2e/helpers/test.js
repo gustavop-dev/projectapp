@@ -1,4 +1,5 @@
 import { test as base, expect } from "@playwright/test";
+import { PANEL_CONTENT_MAX_PX } from "../../config/responsive.js";
 
 const shouldLogErrors = process.env.E2E_LOG_ERRORS === "1";
 const shouldValidateResponsive = process.env.E2E_RESPONSIVE === "1";
@@ -13,10 +14,16 @@ async function assertResponsiveContract(page, testInfo) {
 
   const pathname = new URL(page.url()).pathname;
   if (pathname.includes('/panel') && testInfo.project.use.viewport?.width >= 1920) {
-    const contentWidth = await page.getByTestId('panel-content-shell').evaluate((element) => (
-      element.getBoundingClientRect().width
+    const contentWidths = await page.getByTestId('panel-content-shell').evaluateAll((elements) => (
+      elements
+        .map((element) => element.getBoundingClientRect().width)
+        .filter((width) => width > 0)
     ));
-    expect(contentWidth, 'El contenido del panel supera 1440px en monitor wide').toBeLessThanOrEqual(1441);
+    expect(contentWidths.length, 'No hay un shell visible que limite el panel').toBeGreaterThan(0);
+    expect(
+      Math.max(...contentWidths),
+      `El contenido del panel supera ${PANEL_CONTENT_MAX_PX}px en monitor wide`,
+    ).toBeLessThanOrEqual(PANEL_CONTENT_MAX_PX + 1);
   }
 
   if (testInfo.project.use.hasTouch) {
