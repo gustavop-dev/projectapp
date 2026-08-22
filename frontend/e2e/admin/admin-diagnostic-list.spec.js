@@ -71,8 +71,8 @@ test.describe('Admin Diagnostic List', () => {
     await page.goto('/panel/diagnostics/');
 
     await expect(page.getByRole('main').getByRole('link', { name: /Nuevo diagnóstico/i })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByText('Acme Corp')).toBeVisible();
-    await expect(page.getByText('Beta Inc')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-2')).toBeVisible();
   });
 
   test('shows empty state message when no diagnostics exist', {
@@ -94,8 +94,8 @@ test.describe('Admin Diagnostic List', () => {
     await expect(searchInput).toBeVisible({ timeout: 15000 });
 
     await searchInput.fill('Acme');
-    await expect(page.getByText('Acme Corp')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toBeVisible();
     // Beta Inc should be filtered out
-    await expect(page.getByText('Beta Inc')).not.toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-2')).toHaveCount(0);
   });
 });
