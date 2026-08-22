@@ -13,7 +13,7 @@ async function assertResponsiveContract(page, testInfo) {
 
   const pathname = new URL(page.url()).pathname;
   if (pathname.includes('/panel') && testInfo.project.use.viewport?.width >= 1920) {
-    const contentWidth = await page.locator('.admin-layout main > div').evaluate((element) => (
+    const contentWidth = await page.getByTestId('panel-content-shell').evaluate((element) => (
       element.getBoundingClientRect().width
     ));
     expect(contentWidth, 'El contenido del panel supera 1440px en monitor wide').toBeLessThanOrEqual(1441);

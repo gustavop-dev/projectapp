@@ -12,7 +12,7 @@ const { Menu, MenuButton, MenuItems, MenuItem } = HeadlessUI
 const NuxtLinkComponent = resolveComponent('NuxtLink')
 
 defineProps({
-  // Items: [{ label, description?, onClick?, to?, icon?, disabled?, danger?, divider? }]
+  // Items: [{ label, description?, onClick?, to?, href?, icon?, disabled?, danger?, divider?, testid? }]
   //
   // `description` is a muted second line under the label. It exists so a
   // DISABLED item can explain itself: Headless UI's disabled MenuItems take no
@@ -65,10 +65,14 @@ function itemColorClass(danger, active) {
           <div v-if="item.divider" class="my-1 border-t border-border-muted" />
           <MenuItem v-else v-slot="{ active, disabled }" :disabled="item.disabled">
             <component
-              :is="item.to ? NuxtLinkComponent : 'button'"
+              :is="item.href ? 'a' : item.to ? NuxtLinkComponent : 'button'"
               :to="item.to"
-              :type="item.to ? undefined : 'button'"
+              :href="item.href"
+              :target="item.href ? (item.target || '_blank') : undefined"
+              :rel="item.href ? 'noopener noreferrer' : undefined"
+              :type="item.to || item.href ? undefined : 'button'"
               :disabled="disabled"
+              :data-testid="item.testid || undefined"
               :class="[
                 'base-dropdown-item flex min-h-11 w-full items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
                 disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',

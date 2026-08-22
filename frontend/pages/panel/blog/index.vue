@@ -10,15 +10,15 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+    <div class="mb-8 flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <h1 class="text-2xl font-light text-text-default">Blog Posts</h1>
-      <div class="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+      <div class="flex w-full items-center gap-2 panel-portrait:w-auto panel-portrait:gap-3">
         <BaseButton
           as="NuxtLink"
           variant="secondary"
           size="md"
           :to="localePath('/panel/blog/calendar')"
-          class="flex-1 sm:flex-initial justify-center"
+          class="flex-1 justify-center panel-portrait:flex-initial"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -30,7 +30,7 @@
           variant="primary"
           size="md"
           :to="localePath('/panel/blog/create')"
-          class="flex-1 sm:flex-initial justify-center"
+          class="flex-1 justify-center panel-portrait:flex-initial"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -51,106 +51,28 @@
         No hay posts aún. Crea el primero.
       </div>
 
-      <!-- Mobile cards -->
-      <div v-else class="space-y-3 panel-landscape:hidden">
-        <div
-          v-for="post in posts"
-          :key="post.id"
-          class="bg-surface rounded-xl shadow-sm border border-border-muted p-4"
-        >
-          <div class="flex items-start justify-between gap-3 mb-2">
-            <NuxtLink
-              :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight"
-            >
-              {{ post.title_es }}
-            </NuxtLink>
-            <span
-              class="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0"
-              :class="statusBadgeClass(post)"
-            >
-              {{ statusLabel(post) }}
-            </span>
-          </div>
-          <p class="text-xs text-text-subtle mb-3">{{ post.slug }} · {{ formatDate(post.published_at || post.created_at) }}</p>
-          <div class="flex items-center gap-3">
-            <NuxtLink
-              :to="localePath(`/panel/blog/${post.id}/edit`)"
-              class="text-xs text-text-brand font-medium"
-            >
-              Editar
-            </NuxtLink>
-            <button
-              class="text-xs text-text-muted hover:text-text-brand transition-colors"
-              @click="handleDuplicate(post)"
-            >
-              Duplicar
-            </button>
-            <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(post)">
-              Eliminar
-            </BaseButton>
-          </div>
-        </div>
-      </div>
-
-      <!-- Desktop table -->
-      <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-border-muted text-left">
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border-muted">
-              <tr v-for="post in posts" :key="post.id" class="hover:bg-surface-raised transition-colors">
-                <td class="px-6 py-4">
-                  <NuxtLink
-                    :to="localePath(`/panel/blog/${post.id}/edit`)"
-                    class="text-sm font-medium text-text-default hover:text-text-brand transition-colors"
-                  >
-                    {{ post.title_es }}
-                  </NuxtLink>
-                  <p class="text-xs text-text-subtle mt-0.5">{{ post.title_en }} · {{ post.slug }}</p>
-                </td>
-                <td class="px-6 py-4">
-                  <span
-                    class="text-xs px-2.5 py-1 rounded-full font-medium"
-                    :class="statusBadgeClass(post)"
-                  >
-                    {{ statusLabel(post) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-text-muted">
-                  {{ formatDate(post.published_at || post.created_at) }}
-                </td>
-                <td class="px-6 py-4 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <NuxtLink
-                      :to="localePath(`/panel/blog/${post.id}/edit`)"
-                      class="text-xs text-text-muted hover:text-text-brand transition-colors"
-                    >
-                      Editar
-                    </NuxtLink>
-                    <button
-                      class="text-xs text-text-muted hover:text-text-brand transition-colors"
-                      @click="handleDuplicate(post)"
-                    >
-                      Duplicar
-                    </button>
-                    <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(post)">
-                      Eliminar
-                    </BaseButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <BaseExploratoryList
+        v-else
+        :columns="blogColumns"
+        :rows="posts"
+        caption="Publicaciones del blog"
+        card-test-id-prefix="blog-post-row"
+      >
+        <template #cell-title_es="{ row: post }">
+          <NuxtLink
+            :to="localePath(`/panel/blog/${post.id}/edit`)"
+            class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand"
+          >{{ post.title_es }}</NuxtLink>
+          <p class="mt-0.5 break-words text-xs text-text-subtle">{{ post.title_en }} · {{ post.slug }}</p>
+        </template>
+        <template #cell-status="{ row: post }">
+          <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="statusBadgeClass(post)">{{ statusLabel(post) }}</span>
+        </template>
+        <template #cell-date="{ row: post }">{{ formatDate(post.published_at || post.created_at) }}</template>
+        <template #row-actions="{ row: post }">
+          <BaseActionMenu :items="blogActionItems(post)" :testid="`blog-post-actions-${post.id}`" />
+        </template>
+      </BaseExploratoryList>
 
       <!-- Pagination controls -->
       <BasePagination
@@ -160,7 +82,7 @@
         :total-items="blogStore.adminPagination.count"
         :range-from="blogRangeFrom"
         :range-to="blogRangeTo"
-        class="px-4 sm:px-6"
+        class="px-4 panel-portrait:px-6"
         @prev="goToPage(blogStore.adminPagination.page - 1)"
         @next="goToPage(blogStore.adminPagination.page + 1)"
         @go="goToPage"
@@ -175,6 +97,8 @@ import { useBlogStore } from '~/stores/blog';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import { formatDate } from '~/utils/formatDate';
 
 const localePath = useLocalePath();
@@ -184,6 +108,20 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const blogStore = useBlogStore();
 const posts = computed(() => blogStore.posts);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const blogColumns = [
+  { key: 'title_es', label: 'Título', mobile: 'primary' },
+  { key: 'status', label: 'Estado', mobile: 'secondary' },
+  { key: 'date', label: 'Fecha', mobile: 'meta' },
+];
+
+function blogActionItems(post) {
+  return [
+    { label: 'Editar', to: localePath(`/panel/blog/${post.id}/edit`) },
+    { label: 'Duplicar', onClick: () => handleDuplicate(post) },
+    { divider: true },
+    { label: 'Eliminar', danger: true, onClick: () => handleDelete(post) },
+  ];
+}
 
 const blogRangeFrom = computed(() => {
   const p = blogStore.adminPagination;

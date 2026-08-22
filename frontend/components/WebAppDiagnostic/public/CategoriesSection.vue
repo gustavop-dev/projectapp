@@ -7,7 +7,7 @@
       <details
         v-for="(cat, idx) in content.categories"
         :key="cat.key || idx"
-        class="group border-2 border-input-border/10 dark:border-input-border/15 rounded-2xl bg-primary/5 dark:bg-primary-soft/5 hover:border-input-border/30 dark:hover:border-input-border/30 transition-all"
+        class="group border-2 border-input-border rounded-2xl bg-primary/5 dark:bg-primary-soft hover:border-input-border dark:hover:border-input-border transition-all"
       >
         <summary class="px-6 py-5 cursor-pointer select-none flex items-center justify-between">
           <span class="font-semibold text-text-brand dark:text-text-brand text-base">
@@ -23,7 +23,7 @@
             </svg>
           </span>
         </summary>
-        <div class="px-6 pb-6 border-t border-input-border/15 dark:border-input-border/15 bg-surface/50 dark:bg-primary-soft/5 space-y-4 text-sm">
+        <div class="px-6 pb-6 border-t border-input-border bg-surface/50 dark:bg-primary-soft space-y-4 text-sm">
           <p v-if="cat.description" class="text-text-brand/70 dark:text-text-brand/70 leading-relaxed pt-3">{{ cat.description }}</p>
 
           <div v-if="cat.strengths?.length">

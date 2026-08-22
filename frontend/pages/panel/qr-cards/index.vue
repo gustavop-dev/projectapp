@@ -22,7 +22,7 @@
       description="Creá tu primera tarjeta QR para generar un link corto."
     />
 
-    <BaseResponsiveTable
+    <BaseExploratoryList
       v-else
       :columns="qrCardColumns"
       :rows="store.cards"
@@ -60,27 +60,15 @@
       </template>
 
       <template #row-actions="{ row: card }">
-        <BaseButton variant="secondary" size="sm" :data-testid="`qr-card-download-${card.id}`" @click="openDownloadModal(card)">
-          Descargar QR
-        </BaseButton>
-        <BaseButton variant="ghost" size="sm" :data-testid="`qr-card-edit-${card.id}`" @click="openEditModal(card)">
-          Editar
-        </BaseButton>
-        <BaseButton
-          variant="danger-ghost"
-          size="sm"
-          icon-only
-          aria-label="Eliminar tarjeta"
-          :data-testid="`qr-card-delete-${card.id}`"
-          @click="onDelete(card)"
-        >
-          <TrashIcon class="h-4 w-4" />
-        </BaseButton>
+        <BaseActionMenu
+          :items="qrCardActionItems(card)"
+          :testid="`qr-card-actions-${card.id}`"
+        />
       </template>
-    </BaseResponsiveTable>
+    </BaseExploratoryList>
 
     <!-- Create / edit modal -->
-    <BaseModal v-model="formModal.open" size="md" padding="md">
+    <BaseModal v-model="formModal.open" kind="form" padding="md">
       <form data-testid="qr-card-form" @submit.prevent="onSubmit">
         <h3 class="text-lg font-bold text-text-default mb-4">
           {{ formModal.editingId ? 'Editar tarjeta' : 'Nueva tarjeta' }}
@@ -160,8 +148,9 @@
 
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
-import { ClipboardIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
@@ -169,7 +158,7 @@ import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
-import BaseResponsiveTable from '~/components/base/BaseResponsiveTable.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import DownloadQrModal from '~/components/panel/qr-cards/DownloadQrModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -205,6 +194,28 @@ const linktreeOptions = computed(() => [
     label: `${tree.name} (@${tree.handle})`,
   })),
 ]);
+
+function qrCardActionItems(card) {
+  return [
+    {
+      label: 'Descargar QR',
+      testid: `qr-card-download-${card.id}`,
+      onClick: () => openDownloadModal(card),
+    },
+    {
+      label: 'Editar',
+      testid: `qr-card-edit-${card.id}`,
+      onClick: () => openEditModal(card),
+    },
+    { divider: true },
+    {
+      label: 'Eliminar',
+      danger: true,
+      testid: `qr-card-delete-${card.id}`,
+      onClick: () => onDelete(card),
+    },
+  ];
+}
 
 onMounted(() => {
   store.fetchCards();

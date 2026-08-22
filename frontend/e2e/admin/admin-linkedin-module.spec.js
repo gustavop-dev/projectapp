@@ -158,7 +158,9 @@ test.describe('Admin LinkedIn module', () => {
     await setupPageMock(page);
     await gotoModule(page);
 
-    await page.getByRole('button', { name: 'Publicar ahora' }).click();
+    const postRow = page.getByTestId('linkedin-post-row-1');
+    await postRow.getByRole('button', { name: 'Acciones' }).click();
+    await postRow.getByRole('menuitem', { name: 'Publicar ahora' }).click();
     // Confirm modal
     await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
@@ -181,7 +183,9 @@ test.describe('Admin LinkedIn module', () => {
     });
     await gotoModule(page);
 
-    await page.getByRole('button', { name: 'Publicar ahora' }).click();
+    const postRow = page.getByTestId('linkedin-post-row-1');
+    await postRow.getByRole('button', { name: 'Acciones' }).click();
+    await postRow.getByRole('menuitem', { name: 'Publicar ahora' }).click();
     await page.getByRole('button', { name: 'Publicar', exact: true }).click();
 
     await expect(page.getByText(/LinkedIn API error/)).toBeVisible();

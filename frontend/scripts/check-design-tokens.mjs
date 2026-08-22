@@ -333,6 +333,12 @@ function findInvalidTokens(line) {
 
 // Files/dirs to skip entirely (decorative components, third-party shims, etc.).
 const ALLOWLIST = new Set([
+  // Token definition sources contain utility names as documentation and map
+  // keys; scanning them as consumers produces false positives such as reading
+  // the `text-default` color key as an unknown `text-*` utility.
+  'scripts/check-design-tokens.mjs',
+  'tailwind.config.js',
+  'assets/styles/theme.css',
   'components/ui/AnimatedTestimonials.vue',
   'components/ui/BackgroundGradientAnimation.vue',
   'components/ui/animations',

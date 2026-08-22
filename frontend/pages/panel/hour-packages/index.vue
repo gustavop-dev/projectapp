@@ -10,7 +10,7 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <div class="mb-6 flex flex-col gap-4 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <h1 class="text-2xl font-light text-text-default">Paquetes de horas</h1>
       <BaseButton
         v-if="activeSection === 'catalog'"
@@ -32,7 +32,7 @@
 
     <!-- ══════════════ Catálogo ══════════════ -->
     <template v-if="activeSection === 'catalog'">
-      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
+      <div class="mb-6 flex flex-col gap-3 panel-portrait:flex-row panel-portrait:items-start panel-portrait:justify-between">
         <div>
           <!-- Nationality tabs: prices switch per country -->
           <BaseSegmented v-model="selectedNationality" :options="nationalityOptions" nowrap />
@@ -68,74 +68,30 @@
         />
 
         <template v-else>
-          <!-- Table mode: mobile cards -->
-          <div class="space-y-3 panel-landscape:hidden">
-            <div v-for="pkg in pagedPackages" :key="pkg.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-              <div class="flex items-start justify-between gap-3 mb-2">
-                <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight">
-                  {{ pkg.name_es }}
-                </NuxtLink>
-                <span class="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" :class="statusBadgeClass(pkg)">
-                  {{ pkg.is_active ? 'Activo' : 'Inactivo' }}
-                </span>
-              </div>
-              <p class="text-xs text-text-subtle mb-1">{{ pkg.hours }} h · {{ formatMoney(pkg.hourly_rate, pkg.currency) }}/h<span v-if="Number(pkg.discount_percent) > 0"> · -{{ pkg.discount_percent }}%</span></p>
-              <p class="text-xs text-text-muted mb-3">Efectiva: {{ formatMoney(effectiveRate(pkg), pkg.currency) }}/h · Total: {{ formatMoney(totalPrice(pkg), pkg.currency) }}</p>
-              <div class="flex items-center gap-3">
-                <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-xs text-text-brand font-medium">Editar</NuxtLink>
-                <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(pkg)">Eliminar</BaseButton>
-              </div>
-            </div>
-          </div>
-
-          <!-- Table mode: desktop table -->
-          <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b border-border-muted text-left">
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Paquete</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Horas</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Tarifa/h</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Desc.</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Tarifa efectiva</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Total</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-                    <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-border-muted">
-                  <tr v-for="pkg in pagedPackages" :key="pkg.id" class="hover:bg-surface-raised transition-colors">
-                    <td class="px-6 py-4">
-                      <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors">
-                        {{ pkg.name_es }}
-                      </NuxtLink>
-                      <p class="text-xs text-text-subtle mt-0.5">{{ pkg.name_en }} · Orden {{ pkg.order }}</p>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-text-muted">{{ pkg.hours }} h</td>
-                    <td class="px-6 py-4 text-sm text-text-muted">{{ formatMoney(pkg.hourly_rate, pkg.currency) }}</td>
-                    <td class="px-6 py-4 text-sm text-text-muted">
-                      <span v-if="Number(pkg.discount_percent) > 0" class="text-xs px-2 py-0.5 rounded-full font-medium bg-primary-soft text-text-brand">-{{ pkg.discount_percent }}%</span>
-                      <span v-else>—</span>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-text-muted">{{ formatMoney(effectiveRate(pkg), pkg.currency) }}</td>
-                    <td class="px-6 py-4 text-sm font-medium text-text-default">{{ formatMoney(totalPrice(pkg), pkg.currency) }}</td>
-                    <td class="px-6 py-4">
-                      <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusBadgeClass(pkg)">
-                        {{ pkg.is_active ? 'Activo' : 'Inactivo' }}
-                      </span>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                      <div class="flex items-center justify-end gap-2">
-                        <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors">Editar</NuxtLink>
-                        <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(pkg)">Eliminar</BaseButton>
-                      </div>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <BaseExploratoryList
+            :columns="packageColumns"
+            :rows="pagedPackages"
+            caption="Paquetes de horas y precios"
+            card-test-id-prefix="hour-package-row"
+            table-min-width="64rem"
+          >
+            <template #cell-name_es="{ row: pkg }">
+              <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand">{{ pkg.name_es }}</NuxtLink>
+              <p class="mt-0.5 break-words text-xs text-text-subtle">{{ pkg.name_en }} · Orden {{ pkg.order }}</p>
+            </template>
+            <template #cell-hours="{ row: pkg }">{{ pkg.hours }} h</template>
+            <template #cell-hourly_rate="{ row: pkg }">{{ formatMoney(pkg.hourly_rate, pkg.currency) }}/h</template>
+            <template #cell-discount_percent="{ row: pkg }">
+              <span v-if="Number(pkg.discount_percent) > 0" class="inline-flex rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-text-brand">-{{ pkg.discount_percent }}%</span>
+              <span v-else>—</span>
+            </template>
+            <template #cell-effective_rate="{ row: pkg }">{{ formatMoney(effectiveRate(pkg), pkg.currency) }}/h</template>
+            <template #cell-total="{ row: pkg }"><span class="font-medium">{{ formatMoney(totalPrice(pkg), pkg.currency) }}</span></template>
+            <template #cell-status="{ row: pkg }"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="statusBadgeClass(pkg)">{{ pkg.is_active ? 'Activo' : 'Inactivo' }}</span></template>
+            <template #row-actions="{ row: pkg }">
+              <BaseActionMenu :items="packageActionItems(pkg)" :testid="`hour-package-actions-${pkg.id}`" />
+            </template>
+          </BaseExploratoryList>
 
           <BasePagination
             v-if="packages.length > 0"
@@ -177,7 +133,7 @@
             Las propuestas en modo automático toman el catálogo al generar su PDF;
             las que están en modo manual no se modifican.
           </p>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <div class="mb-4 grid grid-cols-1 gap-4 panel-portrait:grid-cols-3">
             <div>
               <label for="hp-base-rate-col" class="block text-sm font-medium text-text-default mb-1">Colombia (COP)</label>
               <input
@@ -260,6 +216,8 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import BasePagination from '~/components/base/BasePagination.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import HourPackagesCards from '~/components/hour-packages/PackagesCards.vue';
 import HourPackagesCompare from '~/components/hour-packages/PackagesCompare.vue';
 import { usePagination } from '~/composables/usePagination';
@@ -287,6 +245,15 @@ const viewModeOptions = [
   { value: 'cards', label: 'Tarjetas', testId: 'hour-packages-view-cards' },
   { value: 'compare', label: 'Comparativa', testId: 'hour-packages-view-compare' },
 ];
+const packageColumns = [
+  { key: 'name_es', label: 'Paquete', mobile: 'primary' },
+  { key: 'hours', label: 'Horas', mobile: 'secondary' },
+  { key: 'hourly_rate', label: 'Tarifa/h', mobile: 'secondary' },
+  { key: 'discount_percent', label: 'Desc.', mobile: 'meta' },
+  { key: 'effective_rate', label: 'Tarifa efectiva', mobile: 'secondary' },
+  { key: 'total', label: 'Total', mobile: 'secondary' },
+  { key: 'status', label: 'Estado', mobile: 'meta' },
+];
 
 const hourPackagesStore = useHourPackagesStore();
 const notify = usePanelNotify();
@@ -296,6 +263,14 @@ const activeSection = ref('catalog');
 const viewMode = ref('table');
 const restoreNationality = ref('COL');
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+
+function packageActionItems(pkg) {
+  return [
+    { label: 'Editar', to: localePath(`/panel/hour-packages/${pkg.id}/edit`) },
+    { divider: true },
+    { label: 'Eliminar', danger: true, onClick: () => handleDelete(pkg) },
+  ];
+}
 
 const defaultViewMode = computed(() => hourPackagesStore.settings?.default_view_mode ?? 'table');
 

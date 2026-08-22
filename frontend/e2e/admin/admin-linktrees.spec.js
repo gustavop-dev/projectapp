@@ -158,6 +158,7 @@ test.describe('Admin Linktrees', () => {
     await page.goto('/panel/linktrees');
     await page.waitForLoadState('domcontentloaded');
 
+    await page.getByTestId(`linktree-actions-${TREE_ID}`).click();
     await page.getByTestId(`linktree-delete-${TREE_ID}`).click();
     await page.getByTestId('confirm-modal-confirm').click();
 
@@ -205,6 +206,7 @@ test.describe('Admin Linktrees', () => {
     await page.goto('/panel/qr-cards');
     await page.waitForLoadState('domcontentloaded');
 
+    await page.getByTestId(`qr-card-actions-${card.id}`).click();
     await page.getByTestId(`qr-card-edit-${card.id}`).click();
     await page.getByTestId('qr-card-destination-type').getByRole('tab', { name: 'Linktree' }).click();
     await page.getByTestId('qr-card-linktree-select').selectOption(TREE_ID);

@@ -10,7 +10,7 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-    <div class="flex items-center justify-between mb-8">
+    <div class="mb-8 flex flex-col items-start gap-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <h1 class="text-2xl font-light text-text-default">Portfolio Works</h1>
       <BaseButton
         as="NuxtLink"
@@ -35,66 +35,25 @@
         No hay proyectos aún. Crea el primero.
       </div>
 
-      <!-- Mobile cards -->
-      <div v-else class="space-y-3 panel-landscape:hidden">
-        <div v-for="work in pagedWorks" :key="work.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
-          <div class="flex items-start justify-between gap-3 mb-2">
-            <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight">
-              {{ work.title_es }}
-            </NuxtLink>
-            <span class="text-[10px] px-2 py-0.5 rounded-full font-medium flex-shrink-0" :class="statusBadgeClass(work)">
-              {{ statusLabel(work) }}
-            </span>
-          </div>
-          <p class="text-xs text-text-subtle mb-3">{{ work.slug }} · {{ formatDate(work.published_at || work.created_at) }}</p>
-          <div class="flex items-center gap-3">
-            <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-text-brand font-medium">Editar</NuxtLink>
-            <button class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors" @click="handleDuplicate(work)">Duplicar</button>
-            <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(work)">Eliminar</BaseButton>
-          </div>
-        </div>
-      </div>
-
-      <!-- Desktop table -->
-      <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-border-muted text-left">
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Orden</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
-                <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border-muted">
-              <tr v-for="work in pagedWorks" :key="work.id" class="hover:bg-surface-raised transition-colors">
-                <td class="px-6 py-4">
-                  <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors">
-                    {{ work.title_es }}
-                  </NuxtLink>
-                  <p class="text-xs text-text-subtle mt-0.5">{{ work.title_en }} · {{ work.slug }}</p>
-                </td>
-                <td class="px-6 py-4">
-                  <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusBadgeClass(work)">
-                    {{ statusLabel(work) }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 text-sm text-text-muted">{{ work.order }}</td>
-                <td class="px-6 py-4 text-sm text-text-muted">{{ formatDate(work.published_at || work.created_at) }}</td>
-                <td class="px-6 py-4 text-right">
-                  <div class="flex items-center justify-end gap-2">
-                    <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors">Editar</NuxtLink>
-                    <button class="text-xs text-text-muted hover:text-text-brand dark:hover:text-white transition-colors" @click="handleDuplicate(work)">Duplicar</button>
-                    <BaseButton variant="danger-ghost" size="sm" @click="handleDelete(work)">Eliminar</BaseButton>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <BaseExploratoryList
+        v-else
+        :columns="portfolioColumns"
+        :rows="pagedWorks"
+        caption="Trabajos del portafolio"
+        card-test-id-prefix="portfolio-work-row"
+      >
+        <template #cell-title_es="{ row: work }">
+          <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand">{{ work.title_es }}</NuxtLink>
+          <p class="mt-0.5 break-words text-xs text-text-subtle">{{ work.title_en }} · {{ work.slug }}</p>
+        </template>
+        <template #cell-status="{ row: work }">
+          <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="statusBadgeClass(work)">{{ statusLabel(work) }}</span>
+        </template>
+        <template #cell-date="{ row: work }">{{ formatDate(work.published_at || work.created_at) }}</template>
+        <template #row-actions="{ row: work }">
+          <BaseActionMenu :items="portfolioActionItems(work)" :testid="`portfolio-work-actions-${work.id}`" />
+        </template>
+      </BaseExploratoryList>
 
       <BasePagination
         v-if="works.length > 0"
@@ -118,6 +77,8 @@ import { usePortfolioWorksStore } from '~/stores/portfolio_works';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import { usePagination } from '~/composables/usePagination';
 import { formatDate } from '~/utils/formatDate';
 
@@ -128,6 +89,21 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 const portfolioStore = usePortfolioWorksStore();
 const works = computed(() => portfolioStore.works);
 const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
+const portfolioColumns = [
+  { key: 'title_es', label: 'Título', mobile: 'primary' },
+  { key: 'status', label: 'Estado', mobile: 'secondary' },
+  { key: 'order', label: 'Orden', mobile: 'meta' },
+  { key: 'date', label: 'Fecha', mobile: 'meta' },
+];
+
+function portfolioActionItems(work) {
+  return [
+    { label: 'Editar', to: localePath(`/panel/portfolio/${work.id}/edit`) },
+    { label: 'Duplicar', onClick: () => handleDuplicate(work) },
+    { divider: true },
+    { label: 'Eliminar', danger: true, onClick: () => handleDelete(work) },
+  ];
+}
 
 const {
   currentPage: worksPage,

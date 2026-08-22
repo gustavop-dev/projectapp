@@ -100,31 +100,14 @@
     />
 
     <!-- Batch actions bar -->
-    <div
-      v-if="selectedIds.length"
-      class="flex flex-wrap items-center gap-3 mb-3 px-4 py-2.5 bg-primary-soft border border-primary/20 rounded-xl"
-      data-testid="diagnostics-batch-bar"
-    >
-      <span class="text-sm font-medium text-text-brand">
-        {{ selectedIds.length }} seleccionado{{ selectedIds.length !== 1 ? 's' : '' }}
-      </span>
-      <BaseDropdown :items="diagnosticBulkItems" align="right" class="ml-auto panel-landscape:hidden">
-        <template #trigger>
-          <BaseButton variant="secondary" size="sm" :loading="store.isUpdating">
-            Acciones <span aria-hidden="true">⌄</span>
-          </BaseButton>
-        </template>
-      </BaseDropdown>
-      <div class="ml-auto hidden items-center gap-2 panel-landscape:flex">
-        <BaseButton variant="secondary" size="sm" :loading="store.isUpdating" @click="handleBulk('finish')">
-          Finalizar aceptados
-        </BaseButton>
-        <BaseButton variant="danger" size="sm" :loading="store.isUpdating" @click="handleBulk('delete')">
-          Eliminar
-        </BaseButton>
-        <BaseButton variant="ghost" size="sm" @click="clearSelection">Cancelar</BaseButton>
-      </div>
-    </div>
+    <BaseBulkActionBar
+      :selected-count="selectedIds.length"
+      :actions="diagnosticBulkItems"
+      :busy="store.isUpdating"
+      testid-prefix="diagnostics"
+      testid="diagnostics-batch-bar"
+      @clear="clearSelection"
+    />
 
     <!-- Loading skeleton -->
     <div
@@ -180,33 +163,19 @@
       <BaseResponsiveTable
         :columns="diagnosticColumns"
         :rows="paginatedDiagnostics"
+        v-model:selected="selectedIds"
         :sort-key="sortKey"
         :sort-dir="sortDir"
-        show-selection
+        :selection-label="(diagnostic) => `Seleccionar ${diagnostic.title}`"
+        selectable
         interactive-rows
+        :show-default-actions="false"
         caption="Diagnósticos técnicos por cliente"
-        card-test-id-prefix="diagnostic-row"
-        table-min-width="70rem"
+        test-id-prefix="diagnostic"
         @sort="toggleSort"
         @row-click="(diagnostic, event) => navigateToDiagnostic(diagnostic.id, event)"
         @row-auxclick="(diagnostic, event) => navigateToDiagnostic(diagnostic.id, event)"
       >
-        <template #select-all>
-          <BaseCheckbox
-            :model-value="pageAllSelected"
-            aria-label="Seleccionar los diagnósticos de esta página"
-            @update:model-value="toggleSelectPage"
-          />
-        </template>
-
-        <template #row-select="{ row: diagnostic }">
-          <BaseCheckbox
-            v-model="selectedIds"
-            :value="diagnostic.id"
-            :aria-label="`Seleccionar ${diagnostic.title}`"
-          />
-        </template>
-
         <template #cell-client_name="{ row: diagnostic }">
           <div :data-testid="`diagnostic-row-client-${diagnostic.id}`">
             <div class="text-sm font-medium text-text-default">{{ diagnostic.client?.name || '—' }}</div>
@@ -214,10 +183,10 @@
           </div>
         </template>
 
-        <template #cell-title="{ row: diagnostic }">
+        <template #cell-title="{ row: diagnostic, responsiveProfile }">
           <BaseRowLink
             :to="diagnosticHref(diagnostic.id)"
-            :data-testid="`diagnostic-open-${diagnostic.id}`"
+            :data-testid="responsiveProfile ? undefined : `diagnostic-open-${diagnostic.id}`"
             class="block break-words text-sm text-text-default transition-colors hover:text-text-brand"
             :title="diagnostic.title"
             @click.stop
@@ -267,7 +236,7 @@
             type="button"
             class="-m-1.5 rounded-lg p-3 text-text-subtle motion-safe:transition-colors motion-safe:duration-fast hover:bg-surface-raised hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
             :aria-label="`Acciones de ${diagnostic.title}`"
-            @click="actionsModalDiagnostic = diagnostic"
+            @click.stop="actionsModalDiagnostic = diagnostic"
           >
             <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
@@ -293,7 +262,7 @@
     </div>
 
     <!-- Actions modal -->
-    <BaseModal v-model="actionsModalOpen" size="md">
+    <BaseModal v-model="actionsModalOpen" kind="confirm">
       <template v-if="actionsModalDiagnostic">
         <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
           <div class="min-w-0">
@@ -420,13 +389,34 @@ const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
 const diagnosticColumns = [
-  { key: 'client_name', label: 'Cliente', mobile: 'primary', sortable: true },
-  { key: 'title', label: 'Título', mobile: 'primary' },
-  { key: 'status', label: 'Estado', mobile: 'secondary' },
-  { key: 'investment_amount', label: 'Inversión', mobile: 'secondary', sortable: true },
-  { key: 'created_at', label: 'Creado', mobile: 'meta', sortable: true },
-  { key: 'last_viewed_at', label: 'Última vista', mobile: 'meta', sortable: true },
-  { key: 'id', label: 'ID', mobile: 'hidden' },
+  {
+    key: 'client_name', label: 'Cliente', size: 'name', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'title', label: 'Título', size: 'name',
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'status', label: 'Estado', size: 'badge',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'investment_amount', label: 'Inversión', size: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'created_at', label: 'Creado', size: 'date', sortable: true,
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'last_viewed_at', label: 'Última vista', size: 'date', sortable: true,
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'id', label: 'ID', size: 'tiny',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+  },
 ];
 // Fed the FULL store list, not the page or the filtered rows: the selection
 // spans pages on purpose, so only a diagnostic that stopped existing may drop
@@ -535,21 +525,6 @@ const attentionById = computed(() => {
 });
 
 // ── Bulk selection ────────────────────────────────────────────────────
-const pageAllSelected = computed(() =>
-  paginatedDiagnostics.value.length > 0 &&
-  paginatedDiagnostics.value.every((d) => selectedIds.value.includes(d.id)),
-);
-
-function toggleSelectPage(checked) {
-  const pageIds = paginatedDiagnostics.value.map((d) => d.id);
-  if (checked) {
-    selectedIds.value = [...new Set([...selectedIds.value, ...pageIds])];
-  } else {
-    const pageSet = new Set(pageIds);
-    selectedIds.value = selectedIds.value.filter((id) => !pageSet.has(id));
-  }
-}
-
 const BULK_CONFIRM = {
   delete: {
     title: 'Eliminar diagnósticos',
@@ -595,7 +570,6 @@ const diagnosticBulkItems = computed(() => [
   { label: 'Finalizar aceptados', disabled: store.isUpdating, onClick: () => handleBulk('finish') },
   { divider: true },
   { label: 'Eliminar', danger: true, disabled: store.isUpdating, onClick: () => handleBulk('delete') },
-  { label: 'Cancelar selección', disabled: store.isUpdating, onClick: clearSelection },
 ]);
 
 function toggleSort(key) {

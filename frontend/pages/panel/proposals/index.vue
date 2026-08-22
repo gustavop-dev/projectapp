@@ -287,278 +287,120 @@
       <p class="text-text-muted text-sm">No hay propuestas{{ hasActiveFilters ? ' con los filtros seleccionados' : '' }}.</p>
     </div>
 
-    <!-- Batch action bar -->
-    <Transition name="fade-modal">
-      <div v-if="selectedIds.length > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 flex items-center justify-between gap-3 rounded-xl bg-primary-strong px-4 py-3 text-white shadow-raised sm:px-5">
-        <span class="text-sm font-medium">{{ selectedIds.length }} seleccionada(s)</span>
-        <BaseDropdown :items="bulkActionItems" placement="bottom" align="right" class="panel-landscape:hidden">
-          <template #trigger>
-            <BaseButton variant="ghost" size="sm" :disabled="isBulkActing">
-              Acciones
-              <span aria-hidden="true">⌄</span>
-            </BaseButton>
-          </template>
-        </BaseDropdown>
-        <div class="hidden items-center gap-2 panel-landscape:flex">
-          <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('resend')">
-            🔄 Re-enviar
-          </BaseButton>
-          <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('expire')">
-            ⏰ Expirar
-          </BaseButton>
-          <BaseButton variant="danger-ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('delete')">
-            🗑️ Eliminar
-          </BaseButton>
-          <BaseButton variant="ghost" size="sm" @click="clearSelection">
-            Cancelar
-          </BaseButton>
-        </div>
-      </div>
-    </Transition>
+    <BaseBulkActionBar
+      :selected-count="selectedIds.length"
+      :actions="bulkActionItems"
+      :busy="isBulkActing"
+      testid-prefix="proposal"
+      testid="batch-action-bar"
+      @clear="clearSelection"
+    />
 
-    <!-- Table / compact cards. Business priority on narrow screens:
-         client + title, status + investment, then activity + heat. -->
+    <!-- Business priority on narrow screens: client + title, status and
+         investment remain visible; activity is grouped and telemetry waits. -->
     <div v-if="!proposalStore.isLoading && proposals.length > 0">
-      <div class="grid gap-3 panel-landscape:hidden">
-        <article
-          v-for="p in paginatedProposals"
-          :key="`compact-${p.id}`"
-          :data-testid="`proposal-card-${p.id}`"
-          class="min-w-0 rounded-xl border border-border-default bg-surface p-4 shadow-card"
-          :class="[
-            p.is_active ? '' : 'opacity-60',
-            selectedSet.has(p.id) ? 'bg-primary-soft' : '',
-          ]"
-        >
-          <div class="flex min-w-0 items-start gap-3">
-            <input
-              type="checkbox"
-              class="mt-1 rounded border-input-border text-text-brand focus:ring-focus-ring/30"
-              :checked="selectedSet.has(p.id)"
-              :aria-label="`Seleccionar ${p.title || p.client_name}`"
-              @change="toggleSelect(p.id)"
-            />
-            <div class="min-w-0 flex-1">
-              <BaseRowLink
-                :to="proposalHref(p.id)"
-                :data-testid="`proposal-card-open-${p.id}`"
-                class="block break-words text-sm font-medium text-text-default transition-colors hover:text-text-brand"
-              >
-                {{ p.client_name }}
-              </BaseRowLink>
-              <p v-if="p.title" class="mt-0.5 break-words text-xs leading-snug text-text-muted">{{ p.title }}</p>
-              <p v-if="p.client_phone" class="mt-1 text-2xs text-text-subtle">📱 {{ p.client_phone }}</p>
-            </div>
-            <button
-              type="button"
-              class="-m-1.5 shrink-0 rounded-lg p-3 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-              :aria-label="`Acciones de ${p.title || p.client_name}`"
-              :data-testid="`proposal-card-actions-${p.id}`"
-              @click="actionsModalProposal = p"
-            >
-              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
-            </button>
-          </div>
+      <BaseResponsiveTable
+        :columns="proposalColumns"
+        :rows="paginatedProposals"
+        v-model:selected="selectedIds"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        :row-class="(proposal) => proposal.is_active ? '' : 'opacity-60'"
+        :selection-label="(proposal) => `Seleccionar ${proposal.title || proposal.client_name}`"
+        selectable
+        interactive-rows
+        :show-default-actions="false"
+        caption="Propuestas comerciales por cliente"
+        test-id-prefix="proposal"
+        @sort="toggleSort"
+        @row-click="(proposal, event) => navigateToProposal(proposal.id, event)"
+        @row-auxclick="(proposal, event) => navigateToProposal(proposal.id, event)"
+      >
+        <template #cell-id="{ row: proposal }">
+          <span :data-testid="`proposal-row-id-${proposal.id}`">#{{ proposal.id }}</span>
+        </template>
 
-          <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border-muted pt-3 text-sm">
-            <div class="min-w-0">
-              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Estado</dt>
-              <dd class="mt-1">
-                <ProposalStatusSelect
-                  :proposal="p"
-                  :updating="updatingStatusId === p.id"
-                  @change="(status) => onStatusSelect(p, status)"
-                />
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Inversión</dt>
-              <dd class="mt-1 break-words tabular-nums text-text-default">
-                ${{ effectiveInvestmentTotal(p).toLocaleString() }} {{ p.currency }}
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Actividad</dt>
-              <dd class="mt-1 text-xs text-text-muted">
-                <span v-if="isInactive(p)" class="text-danger-strong">{{ inactiveDays(p) }}d sin actividad</span>
-                <span v-else-if="p.last_activity_at">{{ timeAgo(p.last_activity_at) }}</span>
-                <span v-else-if="p.created_at">{{ timeAgo(p.created_at) }} (creada)</span>
-                <span v-else>—</span>
-              </dd>
-            </div>
-            <div class="min-w-0">
-              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Interés</dt>
-              <dd class="mt-1 flex items-center gap-2 text-xs text-text-muted">
-                <span
-                  v-if="p.heat_score > 0"
-                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  :class="heatScoreColor(p.heat_score)"
-                >{{ p.heat_score }}</span>
-                <span v-else>—</span>
-                <span>{{ p.view_count }} vista{{ p.view_count === 1 ? '' : 's' }}</span>
-              </dd>
-            </div>
-          </dl>
-        </article>
-      </div>
+        <template #cell-client_name="{ row: proposal }">
+          <BaseRowLink
+            :to="proposalHref(proposal.id)"
+            :data-testid="`proposal-open-${proposal.id}`"
+            class="block break-words transition-colors hover:text-text-brand"
+          >
+            <span class="block text-sm font-medium text-text-default">{{ proposal.client_name }}</span>
+            <span v-if="proposal.title" class="mt-0.5 block text-xs leading-snug text-text-muted">{{ proposal.title }}</span>
+          </BaseRowLink>
+          <div v-if="proposal.client_phone" class="mt-1 w-fit text-2xs text-text-subtle">📱 {{ proposal.client_phone }}</div>
+        </template>
 
-      <div class="hidden overflow-x-auto rounded-xl border border-border-default bg-surface shadow-card panel-landscape:block">
-      <table class="w-full min-w-[800px]">
-        <thead>
-          <tr class="border-b border-border-muted text-left">
-            <th class="px-3 py-3 w-10">
-              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedIds.length === paginatedProposals.length && paginatedProposals.length > 0" @change="toggleSelectAll" @click.stop />
-            </th>
-            <th class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-12">ID</th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('client_name')">
-              Cliente <span v-if="sortKey === 'client_name'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('total_investment')">
-              Inversión <span v-if="sortKey === 'total_investment'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider cursor-pointer hover:text-text-brand" @click="toggleSort('last_activity_at')">
-              Última actividad <span v-if="sortKey === 'last_activity_at'">{{ sortDir === 'asc' ? '↑' : '↓' }}</span>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Vistas</th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider text-center">
-              <BaseTooltip position="bottom" width="max-w-[220px]" minWidth="min-w-0">
-                <template #trigger><span class="cursor-help">🔥</span></template>
-                <p class="text-xs">Heat Score (1-10): indicador rápido de "temperatura" de engagement del cliente con la propuesta.</p>
-              </BaseTooltip>
-            </th>
-            <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-muted">
-          <tr v-for="(p, rowIdx) in paginatedProposals" :key="p.id" class="transition-colors cursor-pointer" :class="[p.is_active ? 'hover:bg-surface-muted' : 'bg-surface-muted opacity-60', selectedSet.has(p.id) ? 'bg-primary-soft' : '']" :data-testid="`proposal-row-${p.id}`" @click="navigateToProposal(p.id, $event)" @auxclick.middle="navigateToProposal(p.id, $event)">
-            <td class="px-3 py-4" @click.stop>
-              <input type="checkbox" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" :checked="selectedSet.has(p.id)" @change="toggleSelect(p.id)" />
-            </td>
-            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums" :data-testid="`proposal-row-id-${p.id}`">#{{ p.id }}</td>
-            <!-- `relative` es el marco contra el que se estira el enlace. -->
-            <td class="relative px-6 py-4">
-              <BaseRowLink
-                :to="proposalHref(p.id)"
-                stretch
-                :data-testid="`proposal-open-${p.id}`"
-                class="block hover:text-text-brand transition-colors"
-              >
-                <span class="block text-sm font-medium text-text-default">{{ p.client_name }}</span>
-                <span v-if="p.title" class="block text-xs text-text-muted mt-0.5 leading-snug">{{ p.title }}</span>
-              </BaseRowLink>
-              <!-- Fuera del enlace a propósito: un teléfono es un dato para
-                   copiar, no una dirección a seguir, y alargaría el nombre
-                   accesible del enlace. -->
-              <div v-if="p.client_phone" class="relative z-10 w-fit text-[10px] text-text-subtle">📱 {{ p.client_phone }}</div>
-            </td>
-            <td class="px-6 py-4">
-              <ProposalStatusSelect
-                :proposal="p"
-                :updating="updatingStatusId === p.id"
-                @change="(s) => onStatusSelect(p, s)"
-              />
-            </td>
-            <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
-              ${{ effectiveInvestmentTotal(p).toLocaleString() }} {{ p.currency }}
-            </td>
-            <td class="px-6 py-4 text-sm text-text-muted">
-              <template v-if="isInactive(p)">
-                <span class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-danger-soft text-danger-strong">
-                  {{ inactiveDays(p) }}d sin actividad
-                </span>
-              </template>
-              <template v-else-if="p.last_activity_at">
-                {{ timeAgo(p.last_activity_at) }}
-              </template>
-              <template v-else-if="p.created_at">
-                {{ timeAgo(p.created_at) }}
-                <span class="text-[10px] text-text-subtle ml-1">(creada)</span>
-              </template>
-              <span v-else class="text-text-subtle">—</span>
-            </td>
-            <td class="px-6 py-4 text-sm text-text-muted tabular-nums">{{ p.view_count }}</td>
-            <td class="px-6 py-4 text-center">
-              <BaseTooltip v-if="p.heat_score > 0 && p.engagement_summary" position="left" width="max-w-[260px]" minWidth="min-w-0">
-                <template #trigger>
-                  <span class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white cursor-help" :class="heatScoreColor(p.heat_score)">
-                    {{ p.heat_score }}
-                  </span>
-                </template>
-                <div class="space-y-1.5 text-xs">
-                  <div class="flex justify-between gap-3">
-                    <span class="text-text-subtle">Vistas</span>
-                    <span class="font-medium">{{ p.engagement_summary.views }}</span>
-                  </div>
-                  <div v-if="p.engagement_summary.last_activity" class="flex justify-between gap-3">
-                    <span class="text-text-subtle">Última visita</span>
-                    <span class="font-medium">{{ p.engagement_summary.last_activity }}</span>
-                  </div>
-                  <div class="flex justify-between gap-3">
-                    <span class="text-text-subtle">Inversión</span>
-                    <span class="font-medium">{{ formatInvestmentTime(p.engagement_summary.investment_time_sec) }}</span>
-                  </div>
-                  <div v-if="p.engagement_summary.technical_viewed" class="flex justify-between gap-3">
-                    <span class="text-teal-400">Det. técnico</span>
-                    <span class="font-medium text-teal-300">{{ formatInvestmentTime(p.engagement_summary.technical_time_sec) }}</span>
-                  </div>
-                  <div v-if="p.engagement_summary.unique_devices > 1" class="flex justify-between gap-3">
-                    <span class="text-text-subtle">Dispositivos</span>
-                    <span class="font-medium">{{ p.engagement_summary.unique_devices }}</span>
-                  </div>
-                  <div v-if="p.engagement_summary.skipped_sections && p.engagement_summary.skipped_sections.length" class="pt-1 border-t border-white/15">
-                    <span class="text-text-subtle">No revisó:</span>
-                    <span class="text-amber-400 ml-1">{{ p.engagement_summary.skipped_sections.map(s => sectionLabel(s)).join(', ') }}</span>
-                  </div>
-                </div>
-              </BaseTooltip>
-              <span v-else-if="p.heat_score > 0" class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white" :class="heatScoreColor(p.heat_score)">
-                {{ p.heat_score }}
+        <template #cell-status="{ row: proposal }">
+          <ProposalStatusSelect
+            :proposal="proposal"
+            :updating="updatingStatusId === proposal.id"
+            @change="(status) => onStatusSelect(proposal, status)"
+          />
+        </template>
+
+        <template #cell-total_investment="{ row: proposal }">
+          <span class="tabular-nums">${{ effectiveInvestmentTotal(proposal).toLocaleString() }} {{ proposal.currency }}</span>
+        </template>
+
+        <template #cell-last_activity_at="{ row: proposal }">
+          <span v-if="isInactive(proposal)" class="inline-flex rounded-full bg-danger-soft px-1.5 py-0.5 text-2xs font-medium text-danger-strong">
+            {{ inactiveDays(proposal) }}d sin actividad
+          </span>
+          <span v-else-if="proposal.last_activity_at">{{ timeAgo(proposal.last_activity_at) }}</span>
+          <span v-else-if="proposal.created_at">{{ timeAgo(proposal.created_at) }} <span class="text-2xs text-text-subtle">(creada)</span></span>
+          <span v-else class="text-text-subtle">—</span>
+        </template>
+
+        <template #cell-view_count="{ row: proposal }">
+          <span class="tabular-nums">{{ proposal.view_count }}</span>
+        </template>
+
+        <template #cell-heat_score="{ row: proposal }">
+          <BaseTooltip v-if="proposal.heat_score > 0 && proposal.engagement_summary" position="left" width="max-w-[260px]" minWidth="min-w-0">
+            <template #trigger>
+              <span class="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white" :class="heatScoreColor(proposal.heat_score)">
+                {{ proposal.heat_score }}
               </span>
-              <span v-else class="text-text-subtle text-xs">—</span>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex items-center gap-2">
-                <button
-                  type="button"
-                  class="p-1.5 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-muted"
-                  title="Acciones"
-                  :aria-label="`Acciones de ${p.title || p.client_name}`"
-                  @click.stop="actionsModalProposal = p"
-                >
-                  <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                  </svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
+            </template>
+            <div class="space-y-1.5 text-xs">
+              <div class="flex justify-between gap-3"><span class="text-text-subtle">Vistas</span><span class="font-medium">{{ proposal.engagement_summary.views }}</span></div>
+              <div v-if="proposal.engagement_summary.last_activity" class="flex justify-between gap-3"><span class="text-text-subtle">Última visita</span><span class="font-medium">{{ proposal.engagement_summary.last_activity }}</span></div>
+              <div class="flex justify-between gap-3"><span class="text-text-subtle">Inversión</span><span class="font-medium">{{ formatInvestmentTime(proposal.engagement_summary.investment_time_sec) }}</span></div>
+              <div v-if="proposal.engagement_summary.technical_viewed" class="flex justify-between gap-3"><span class="text-teal-400">Det. técnico</span><span class="font-medium text-teal-300">{{ formatInvestmentTime(proposal.engagement_summary.technical_time_sec) }}</span></div>
+              <div v-if="proposal.engagement_summary.unique_devices > 1" class="flex justify-between gap-3"><span class="text-text-subtle">Dispositivos</span><span class="font-medium">{{ proposal.engagement_summary.unique_devices }}</span></div>
+              <div v-if="proposal.engagement_summary.skipped_sections?.length" class="border-t border-white/15 pt-1"><span class="text-text-subtle">No revisó:</span><span class="ml-1 text-amber-400">{{ proposal.engagement_summary.skipped_sections.map(sectionLabel).join(', ') }}</span></div>
+            </div>
+          </BaseTooltip>
+          <span v-else-if="proposal.heat_score > 0" class="inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white" :class="heatScoreColor(proposal.heat_score)">{{ proposal.heat_score }}</span>
+          <span v-else class="text-xs text-text-subtle">—</span>
+        </template>
 
-    <!-- Actions modal -->
-    <Teleport to="body">
-      <Transition name="fade-modal">
-        <div
-          v-if="actionsModalProposal"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 p-0 backdrop-blur-sm sm:p-4"
-          @click.self="actionsModalProposal = null"
-        >
-          <div class="h-[100dvh] w-full overflow-y-auto bg-surface shadow-overlay sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-border-default">
-            <!-- Header -->
+        <template #row-actions="{ row: proposal }">
+          <button
+            type="button"
+            class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            :aria-label="`Acciones de ${proposal.title || proposal.client_name}`"
+            :data-testid="`proposal-actions-${proposal.id}`"
+            @click.stop="actionsModalProposal = proposal"
+          >
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
+          </button>
+        </template>
+      </BaseResponsiveTable>
+
+      <BaseModal v-model="actionsModalOpen" kind="confirm">
+        <template v-if="actionsModalProposal">
             <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
-              <div>
+              <div class="min-w-0">
                 <h3 class="text-base font-bold text-text-default truncate">{{ actionsModalProposal.title }}</h3>
                 <p class="text-xs text-text-muted mt-0.5">{{ actionsModalProposal.client_name }}</p>
               </div>
-              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors" @click="actionsModalProposal = null">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              <button type="button" class="flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/40" aria-label="Cerrar" @click="actionsModalProposal = null">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <!-- Actions list -->
             <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <template v-for="action in proposalActions" :key="action.key">
                 <component
@@ -606,49 +448,28 @@
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </Transition>
-    </Teleport>
+        </template>
+      </BaseModal>
 
-    <!-- Send confirmation modal -->
-    <Teleport to="body">
-      <Transition name="fade-modal">
-        <div
-          v-if="sendConfirmId"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          @click.self="sendConfirmId = null"
-        >
-          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6 text-center">
-            <div class="text-4xl mb-3">📤</div>
-            <h3 class="text-lg font-bold text-text-default mb-2">¿Enviar esta propuesta?</h3>
-            <p class="text-sm text-text-muted mb-6">Se enviará un email al cliente con el enlace de la propuesta.</p>
-            <div class="flex gap-3 justify-center">
-              <BaseButton variant="ghost" size="md" :disabled="isSending" @click="confirmSend">
-                {{ isSending ? 'Enviando...' : 'Sí, enviar' }}
-              </BaseButton>
-              <BaseButton variant="ghost" size="md" @click="sendConfirmId = null">
-                Cancelar
-              </BaseButton>
-            </div>
-          </div>
+      <BaseModal v-model="sendConfirmOpen" kind="confirm">
+        <div class="p-6 text-center">
+          <div class="mb-3 text-4xl">📤</div>
+          <h3 class="mb-2 text-lg font-bold text-text-default">¿Enviar esta propuesta?</h3>
+          <p class="text-sm text-text-muted">Se enviará un email al cliente con el enlace de la propuesta.</p>
         </div>
-      </Transition>
-    </Teleport>
+        <BaseModalActions>
+          <BaseButton variant="secondary" size="md" @click="sendConfirmId = null">Cancelar</BaseButton>
+          <BaseButton variant="primary" size="md" :disabled="isSending" @click="confirmSend">{{ isSending ? 'Enviando...' : 'Sí, enviar' }}</BaseButton>
+        </BaseModalActions>
+      </BaseModal>
 
-    <!-- Quick-log activity modal -->
-    <Teleport to="body">
-      <Transition name="fade-modal">
-        <div
-          v-if="quickLogProposal"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          @click.self="quickLogProposal = null"
-        >
-          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-sm w-full p-6">
+      <BaseModal v-model="quickLogOpen" kind="confirm">
+        <template v-if="quickLogProposal">
+          <div class="p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-bold text-text-default">Registrar actividad</h3>
-              <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised transition-colors" @click="quickLogProposal = null">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+              <button type="button" class="flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/40" aria-label="Cerrar" @click="quickLogProposal = null">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
             <p class="text-xs text-text-muted mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
@@ -667,18 +488,13 @@
                 <input v-model="quickLogMessage" type="text" placeholder="Ej: Llamada de seguimiento, cliente interesado..." class="bg-input-bg w-full px-3 py-2 border border-input-border rounded-lg text-sm text-input-text placeholder:text-input-placeholder outline-none focus:ring-1 focus:ring-focus-ring/30" @keyup.enter="confirmQuickLog" />
               </div>
             </div>
-            <div class="flex gap-3 mt-5">
-              <BaseButton variant="primary" size="md" class="flex-1" :disabled="!quickLogMessage.trim() || isQuickLogging" @click="confirmQuickLog">
-                {{ isQuickLogging ? 'Guardando...' : 'Registrar' }}
-              </BaseButton>
-              <BaseButton variant="ghost" size="md" @click="quickLogProposal = null">
-                Cancelar
-              </BaseButton>
-            </div>
           </div>
-        </div>
-      </Transition>
-    </Teleport>
+          <BaseModalActions>
+            <BaseButton variant="secondary" size="md" @click="quickLogProposal = null">Cancelar</BaseButton>
+            <BaseButton variant="primary" size="md" :disabled="!quickLogMessage.trim() || isQuickLogging" @click="confirmQuickLog">{{ isQuickLogging ? 'Guardando...' : 'Registrar' }}</BaseButton>
+          </BaseModalActions>
+        </template>
+      </BaseModal>
 
       <!-- Pagination -->
       <BasePagination
@@ -717,7 +533,6 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useProposalFilters } from '~/composables/useProposalFilters';
 import { useRowSelection } from '~/composables/useRowSelection';
 import { useRowNavigation } from '~/composables/useRowNavigation';
-import { toggleKeys } from '~/utils/rowSelection';
 
 const localePath = useLocalePath();
 const { openRow } = useRowNavigation();
@@ -780,6 +595,36 @@ const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
+const proposalColumns = [
+  {
+    key: 'client_name', label: 'Cliente', size: 'name', sortable: true, link: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'status', label: 'Estado', size: 'badge',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'total_investment', label: 'Inversión', size: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'last_activity_at', label: 'Última actividad', size: 'date', sortable: true,
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'view_count', label: 'Vistas', size: 'tiny',
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'heat_score', label: 'Interés', size: 'tiny', align: 'center',
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'id', label: 'ID', size: 'tiny',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+  },
+];
 const zombieExpanded = ref(false);
 const attentionExpanded = ref(true);
 const dismissedComputedAlertKeys = ref(new Set());
@@ -787,23 +632,24 @@ const expandedAlertGroups = ref(new Set());
 // Fed the FULL store list, not the page: the selection spans pages, so only a
 // proposal that stopped existing may drop out of it. Deleting one used to
 // leave its id behind and the batch bar went on counting it.
-const { selectedIds, selectedSet, clearSelection } = useRowSelection(
+const { selectedIds, clearSelection } = useRowSelection(
   () => proposalStore.proposals,
 );
 const isBulkActing = ref(false);
 const isRefreshing = ref(false);
 
-function toggleSelectAll() {
-  if (selectedIds.value.length === paginatedProposals.value.length) {
-    clearSelection();
-  } else {
-    selectedIds.value = paginatedProposals.value.map((p) => p.id);
-  }
-}
-
-function toggleSelect(id) {
-  selectedIds.value = toggleKeys(selectedIds.value, [id], !selectedSet.value.has(id));
-}
+const actionsModalOpen = computed({
+  get: () => actionsModalProposal.value !== null,
+  set: (open) => { if (!open) actionsModalProposal.value = null; },
+});
+const sendConfirmOpen = computed({
+  get: () => sendConfirmId.value !== null,
+  set: (open) => { if (!open) sendConfirmId.value = null; },
+});
+const quickLogOpen = computed({
+  get: () => quickLogProposal.value !== null,
+  set: (open) => { if (!open) quickLogProposal.value = null; },
+});
 
 function handleBulkAction(action) {
   const ids = [...selectedIds.value];
@@ -830,7 +676,6 @@ const bulkActionItems = computed(() => [
   { label: 'Expirar', disabled: isBulkActing.value, onClick: () => handleBulkAction('expire') },
   { divider: true },
   { label: 'Eliminar', danger: true, disabled: isBulkActing.value, onClick: () => handleBulkAction('delete') },
-  { label: 'Cancelar selección', disabled: isBulkActing.value, onClick: clearSelection },
 ]);
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];

@@ -92,6 +92,7 @@ test.describe('Admin QR Cards', () => {
     await page.goto('/panel/qr-cards');
     await page.waitForLoadState('domcontentloaded');
 
+    await page.getByTestId(`qr-card-actions-${existingCard.id}`).click();
     await page.getByTestId(`qr-card-edit-${existingCard.id}`).click();
     await page.getByTestId('qr-card-destination-input').fill('https://example.com/landing');
     await page.getByTestId('qr-card-save').click();
@@ -119,6 +120,7 @@ test.describe('Admin QR Cards', () => {
     await page.goto('/panel/qr-cards');
     await page.waitForLoadState('domcontentloaded');
 
+    await page.getByTestId(`qr-card-actions-${existingCard.id}`).click();
     await page.getByTestId(`qr-card-delete-${existingCard.id}`).click();
     await expect(page.getByText(/dejará de funcionar/)).toBeVisible();
     await page.getByRole('button', { name: 'Cancelar' }).click();
@@ -133,6 +135,7 @@ test.describe('Admin QR Cards', () => {
     await page.goto('/panel/qr-cards');
     await page.waitForLoadState('domcontentloaded');
 
+    await page.getByTestId(`qr-card-actions-${existingCard.id}`).click();
     await page.getByTestId(`qr-card-delete-${existingCard.id}`).click();
     await page.getByTestId('confirm-modal-confirm').click();
 

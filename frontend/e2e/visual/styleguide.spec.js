@@ -113,7 +113,7 @@ test.describe('design system styleguide visual regression', () => {
 
     await page.getByRole('button', { name: 'Abrir modal', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Demo modal' })).toBeVisible();
-    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page.getByTestId('base-modal-actions').getByRole('button', { name: 'Cancelar' }).click();
     await expect(page.getByRole('heading', { name: 'Demo modal' })).not.toBeVisible();
   });
 

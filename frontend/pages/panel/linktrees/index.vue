@@ -22,7 +22,7 @@
       description="Creá tu primer linktree para usarlo como destino de una tarjeta QR."
     />
 
-    <BaseResponsiveTable
+    <BaseExploratoryList
       v-else
       :columns="linktreeColumns"
       :rows="store.linktrees"
@@ -53,29 +53,15 @@
       </template>
 
       <template #row-actions="{ row: tree }">
-        <BaseButton
-          variant="ghost"
-          size="sm"
-          :data-testid="`linktree-edit-${tree.id}`"
-          @click="navigateTo(lp(`/panel/linktrees/${tree.id}/edit`))"
-        >
-          Editar
-        </BaseButton>
-        <BaseButton
-          variant="danger-ghost"
-          size="sm"
-          icon-only
-          aria-label="Eliminar linktree"
-          :data-testid="`linktree-delete-${tree.id}`"
-          @click="onDelete(tree)"
-        >
-          <TrashIcon class="h-4 w-4" />
-        </BaseButton>
+        <BaseActionMenu
+          :items="linktreeActionItems(tree)"
+          :testid="`linktree-actions-${tree.id}`"
+        />
       </template>
-    </BaseResponsiveTable>
+    </BaseExploratoryList>
 
     <!-- Create modal -->
-    <BaseModal v-model="formModal.open" size="md" padding="md">
+    <BaseModal v-model="formModal.open" kind="form" padding="md">
       <form data-testid="linktree-form" @submit.prevent="onSubmit">
         <h3 class="text-lg font-bold text-text-default mb-4">Nuevo linktree</h3>
 
@@ -135,15 +121,16 @@
 
 <script setup>
 import { onMounted, reactive } from 'vue';
-import { ClipboardIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
-import BaseResponsiveTable from '~/components/base/BaseResponsiveTable.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -167,6 +154,23 @@ const linktreeColumns = [
   { key: 'buttons_count', label: 'Botones', mobile: 'meta' },
   { key: 'is_active', label: 'Activo', mobile: 'meta' },
 ];
+
+function linktreeActionItems(tree) {
+  return [
+    {
+      label: 'Editar',
+      to: lp(`/panel/linktrees/${tree.id}/edit`),
+      testid: `linktree-edit-${tree.id}`,
+    },
+    { divider: true },
+    {
+      label: 'Eliminar',
+      danger: true,
+      testid: `linktree-delete-${tree.id}`,
+      onClick: () => onDelete(tree),
+    },
+  ];
+}
 
 onMounted(() => {
   store.fetchLinktrees();
