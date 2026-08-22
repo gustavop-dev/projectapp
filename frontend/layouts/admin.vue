@@ -15,7 +15,7 @@
       <BaseButton
         variant="secondary"
         icon-only
-        size="lg"
+        size="md"
         class="h-11 w-11 rounded-full"
         aria-label="Abrir menú"
         @click="openMobile"
@@ -39,7 +39,7 @@
       <BaseButton
         variant="secondary"
         icon-only
-        size="lg"
+        size="md"
         class="h-11 w-11 rounded-full"
         :aria-label="themeToggleLabel(isDark)"
         @click="toggle"
