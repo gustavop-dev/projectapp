@@ -21,6 +21,7 @@ describe('AccountingIndicatorGroup', () => {
   it('keeps the priority indicators outside the disclosed remainder', () => {
     const wrapper = mountGroup()
 
+    expect(wrapper.get('[data-testid="primary-kpi"]').text()).toBe('Prioritario')
     expect(wrapper.get('[data-testid="primary-kpi"]')
       .element.closest('[data-testid="accounting-secondary-indicators"]')).toBeNull()
     expect(wrapper.get('[data-testid="secondary-kpi"]')
