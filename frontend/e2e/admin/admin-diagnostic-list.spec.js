@@ -76,7 +76,7 @@ test.describe('Admin Diagnostic List', () => {
   });
 
   test('shows empty state message when no diagnostics exist', {
-    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display', '@responsive:commercial'],
   }, async ({ page }) => {
     await setupMock(page, []);
     await page.goto('/panel/diagnostics/');

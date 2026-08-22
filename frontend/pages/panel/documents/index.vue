@@ -37,14 +37,14 @@
     </DocumentsToolbar>
 
     <!--
-      La columna del panel es una variable CSS que sólo la clase `lg:` consume:
-      bajo lg el grid sigue siendo de una columna y el ancho guardado queda
+      La columna del panel es una variable CSS que sólo `panel-landscape:` consume:
+      bajo ese ancho el grid sigue siendo de una columna y el ancho guardado queda
       inerte (el panel apilado no lo lee). El track medio de 1.5rem es el gap-6
       de siempre, ahora habitado por la manija de redimensionado.
     -->
     <div
       ref="foldersGridRef"
-      class="grid grid-cols-1 gap-6 lg:gap-0 lg:grid-cols-[var(--folders-panel-w,24rem)_1.5rem_minmax(0,1fr)] items-stretch flex-1"
+      class="grid flex-1 grid-cols-1 items-stretch gap-6 panel-landscape:grid-cols-[var(--folders-panel-w,24rem)_1.5rem_minmax(0,1fr)] panel-landscape:gap-0"
       :class="panelDragging ? 'select-none' : ''"
       :style="folderPanelStyle"
     >
@@ -74,7 +74,7 @@
       <!--
         Manija de redimensionado: separator ARIA operable con teclado, con
         pointer capture para que el drag no se pierda al salir del track.
-        `touch-none` evita que un iPad apaisado (1024px = lg) scrollee en vez
+        `touch-none` evita que una tableta apaisada scrollee en vez
         de redimensionar. Persiste al soltar; doble clic vuelve al default.
       -->
       <div
@@ -523,7 +523,7 @@ const { reducedMotion } = useReducedMotion();
 
 // Bajo lg el panel apila a ancho completo: la manija no aplica ahí, y se
 // quita con v-if (no clases hidden) para no duplicar nodos ante Playwright.
-const { isMobile: isPanelStacked } = useIsMobile(1023);
+const { isMobile: isPanelStacked } = useIsMobile();
 const foldersGridRef = ref(null);
 const {
   width: panelWidth, dragging: panelDragging, gridStyle: folderPanelStyle,

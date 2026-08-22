@@ -274,6 +274,8 @@ flowchart TD
 
 ### 6.0 Design System
 
+Responsive behavior is part of the design-system contract rather than a page-level exception. The canonical device profiles live in frontend configuration and cover 412, 835, 1195, 1440 and 2560 px widths. Shared navigation stays compact through portrait tablet, modal geometry is centralized in `BaseModal`, repeated tables declare business-priority columns, and the admin content column stops growing on large monitors.
+
 Semantic theme tokens live in `frontend/assets/styles/theme.css` and are exposed
 as Tailwind colors (`bg-surface`, `text-text-default`, `border-input-border`,
 etc.). Light/dark values flip with the `.dark` class on `<html>`, toggled by

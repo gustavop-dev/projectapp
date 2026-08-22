@@ -304,7 +304,7 @@ test.describe('Admin Mini CRM Clients', () => {
   });
 
   test('empty state shows message when no clients exist', {
-    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_MINI_CRM_CLIENTS, '@role:admin', '@outcome:display', '@responsive:clients'],
   }, async ({ page }) => {
     await setupMock(page, { clients: [] });
     await gotoClients(page);

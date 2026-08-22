@@ -13,7 +13,7 @@
     <BaseTabs v-model="activeTab" :tabs="PAGE_TABS" variant="underline" />
 
     <!-- ── Email composer ── -->
-    <section v-if="activeTab === 'compose'" class="bg-surface border border-border-muted rounded-xl p-5  ">
+    <section v-if="activeTab === 'compose'" class="rounded-xl border border-border-muted bg-surface p-4 sm:p-5">
       <div class="flex items-center gap-2 mb-5">
         <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -71,7 +71,7 @@
             class="space-y-3">
             <template #item="{ element: section, index: idx }">
               <div class="bg-surface-muted  rounded-lg p-3 border border-border-muted ">
-                <div class="flex items-center gap-2 mb-2">
+                <div class="mb-2 flex flex-wrap items-center gap-2">
                   <span class="drag-handle cursor-grab text-text-subtle hover:text-text-muted select-none text-sm">⠿</span>
                   <span class="text-[10px] text-text-muted uppercase tracking-wide">Sección {{ idx + 1 }}</span>
                   <span class="ml-auto flex items-center gap-1.5">
@@ -112,12 +112,12 @@
           <label class="block text-xs text-text-muted mb-1">Adjuntos</label>
           <input ref="fileInput" type="file" multiple
             accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-            class="text-xs file:mr-2 file:py-1.5 file:px-3 file:border-0 file:text-xs file:font-medium file:bg-primary-soft file:text-text-brand file:rounded-lg hover:file:bg-primary-soft "
+            class="max-w-full text-xs file:mr-2 file:rounded-lg file:border-0 file:bg-primary-soft file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-text-brand hover:file:bg-primary-soft"
             @change="handleFilesChange" />
           <div v-if="attachments.length" class="mt-2 space-y-1">
             <div v-for="(file, idx) in attachments" :key="idx"
-              class="flex items-center justify-between py-1.5 px-3 bg-surface-muted  rounded-lg">
-              <span class="text-xs text-text-default truncate">{{ file.name }}</span>
+              class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-1.5">
+              <span class="min-w-0 truncate text-xs text-text-default">{{ file.name }}</span>
               <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -128,10 +128,10 @@
         </div>
 
         <!-- Send button -->
-        <div class="flex items-center justify-between pt-2">
-          <p v-if="sendError" class="text-xs text-danger-strong">{{ sendError }}</p>
+        <div class="flex flex-col items-stretch gap-3 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
+          <p v-if="sendError" class="break-words text-xs text-danger-strong">{{ sendError }}</p>
           <span v-else />
-          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
+          <BaseButton variant="primary" size="sm" class="panel-portrait:ml-auto" :disabled="!canSend || sending" @click="handleSend">
             <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
@@ -147,9 +147,9 @@
       <!-- ── Preview sub-tab ── -->
       <div v-else>
         <!-- Subject badge -->
-        <div class="flex items-center gap-2 bg-surface-muted  rounded-lg px-3 py-2 mb-4 text-xs text-text-muted">
+        <div class="mb-4 flex min-w-0 flex-col gap-1 rounded-lg bg-surface-muted px-3 py-2 text-xs text-text-muted panel-portrait:flex-row panel-portrait:items-center panel-portrait:gap-2">
           <span class="font-medium text-text-default">Asunto:</span>
-          <span>{{ subject || '(sin asunto)' }}</span>
+          <span class="min-w-0 break-words">{{ subject || '(sin asunto)' }}</span>
         </div>
 
         <!-- Server-rendered preview: the real branded template (emails/branded_email.html) -->
@@ -164,7 +164,7 @@
     </section>
 
     <!-- ── Defaults config ── -->
-    <section v-else-if="activeTab === 'defaults'" class="bg-surface border border-border-muted rounded-xl p-5">
+    <section v-else-if="activeTab === 'defaults'" class="rounded-xl border border-border-muted bg-surface p-4 sm:p-5">
       <div class="flex items-center gap-2 mb-2">
         <svg class="w-5 h-5 text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -222,7 +222,7 @@
     </section>
 
     <!-- ── History ── -->
-    <section v-else class="bg-surface border border-border-muted rounded-xl p-5  ">
+    <section v-else class="rounded-xl border border-border-muted bg-surface p-4 sm:p-5">
       <div class="flex items-center gap-2 mb-4">
         <svg class="w-5 h-5 text-info-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -241,11 +241,11 @@
           class="border border-border-muted  rounded-lg overflow-hidden">
           <!-- Summary row -->
           <button type="button" @click="toggleExpand(entry.id)"
-            class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface-muted transition-colors">
+            class="flex w-full min-w-0 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-muted sm:px-4">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-text-default truncate">{{ entry.subject }}</span>
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-medium"
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <span class="min-w-0 break-words text-xs font-medium text-text-default">{{ entry.subject }}</span>
+                <span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
                   :class="{
                     'bg-primary-soft text-text-brand ': entry.status === 'sent' || entry.status === 'delivered',
                     'bg-danger-soft text-danger-strong': entry.status === 'failed' || entry.status === 'bounced',
@@ -253,8 +253,8 @@
                   {{ statusLabel(entry.status) }}
                 </span>
               </div>
-              <div class="flex items-center gap-2 mt-0.5">
-                <span class="text-[11px] text-text-muted">{{ entry.recipient }}</span>
+              <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span class="break-all text-[11px] text-text-muted">{{ entry.recipient }}</span>
                 <span class="text-[10px] text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>

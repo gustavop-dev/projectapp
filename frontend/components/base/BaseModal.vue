@@ -25,21 +25,21 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'close'])
 
 const sizes = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-2xl',
-  xl: 'max-w-3xl',
-  '2xl': 'max-w-4xl',
-  '5xl': 'max-w-5xl',
+  sm: 'max-w-none sm:max-w-sm',
+  md: 'max-w-none sm:max-w-md',
+  lg: 'max-w-none sm:max-w-2xl',
+  xl: 'max-w-none sm:max-w-3xl',
+  '2xl': 'max-w-none sm:max-w-4xl',
+  '5xl': 'max-w-none sm:max-w-5xl',
   // Near-fullscreen, capped so it stops stretching on ultrawide monitors.
-  full: 'max-w-[min(90vw,1600px)]',
+  full: 'max-w-none sm:max-w-[min(90vw,1600px)]',
 }
 
 const sizeClass = computed(() => sizes[props.size] || sizes.md)
-const paddingClass = computed(() => (props.padding === 'md' ? 'p-6' : ''))
+const paddingClass = computed(() => (props.padding === 'md' ? 'p-4 sm:p-6' : ''))
 const heightClass = computed(() => (props.fullHeight
-  ? 'h-[90vh] overflow-hidden flex flex-col'
-  : 'max-h-[90vh] overflow-y-auto'))
+  ? 'h-[100dvh] sm:h-[90vh] overflow-hidden flex flex-col'
+  : 'h-[100dvh] max-h-none overflow-y-auto sm:h-auto sm:max-h-[90vh]'))
 
 const panelRef = ref(null)
 const autoTitleId = ref('')
@@ -105,7 +105,7 @@ watch(
     <Transition name="base-modal-fade">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-0 sm:p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="resolvedTitleId"
@@ -114,7 +114,7 @@ watch(
         <div
           ref="panelRef"
           tabindex="-1"
-          class="relative bg-surface rounded-2xl shadow-overlay w-full border border-border-default focus:outline-none"
+          class="relative w-full bg-surface rounded-none border-0 shadow-overlay focus:outline-none sm:rounded-2xl sm:border sm:border-border-default"
           :class="[sizeClass, paddingClass, heightClass]"
         >
           <slot />

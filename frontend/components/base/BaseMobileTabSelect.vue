@@ -5,7 +5,7 @@
     contable, BaseTabs y la tira de filtros guardados) colapsando en el mismo
     punto sin tener que acordarse de repetirlo.
   -->
-  <div class="md:hidden">
+  <div class="panel-landscape:hidden">
     <select
       :value="modelValue"
       :aria-label="ariaLabel"

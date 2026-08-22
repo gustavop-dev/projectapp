@@ -52,7 +52,7 @@
       </div>
 
       <!-- Mobile cards -->
-      <div v-else class="sm:hidden space-y-3">
+      <div v-else class="space-y-3 panel-landscape:hidden">
         <div
           v-for="post in posts"
           :key="post.id"
@@ -94,7 +94,7 @@
       </div>
 
       <!-- Desktop table -->
-      <div class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
+      <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>

@@ -104,7 +104,7 @@ test.describe('Admin LinkedIn module', () => {
   });
 
   test('shows disconnected state with connect button', {
-    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_LINKEDIN_MODULE, '@role:admin', '@outcome:display', '@responsive:content'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (renders the disconnected state from a mocked GET; no action toggles it)
     await setupPageMock(page, { linkedinStatus: disconnectedStatus, posts: [] });

@@ -788,3 +788,7 @@ field names exist. Keep a canonical field list in both `useSellerPrompt` and bac
 empty-field behavior, and regression-test every path. When correcting one live
 proposal, use an exact-match, reversible data migration so deployment cannot overwrite
 copy edited after the correction was prepared.
+
+## 31. Responsive breakpoints are product data, not framework defaults
+
+ProjectApp is operated on five known screen classes, including the awkward portrait-tablet middle and a 27-inch monitor. A `md` or `lg` class is not acceptance evidence by itself: navigation must be chosen from the usable content width, and wide screens need a ceiling just as narrow screens need stacking. Keep the five profiles in one imported catalog, make shared components own the transition, and test the element the operator uses rather than inferring success from the viewport width.

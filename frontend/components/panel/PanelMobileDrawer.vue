@@ -3,7 +3,7 @@
     <Transition name="drawer-overlay">
       <div
         v-if="isOpen"
-        class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
+        class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm panel-landscape:hidden"
         @click="$emit('close')"
       />
     </Transition>
@@ -11,7 +11,7 @@
       <aside
         v-if="isOpen"
         :class="[
-          'fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r md:hidden',
+          'fixed inset-y-0 left-0 z-50 flex w-[min(280px,calc(100vw-2rem))] flex-col border-r panel-landscape:hidden',
           'border-border-muted bg-surface',
         ]"
       >

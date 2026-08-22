@@ -91,7 +91,7 @@ test.describe('Panel MCPs', () => {
   });
 
   test('renders the blog connector card with its tools', {
-    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_MCPS, '@role:admin', '@outcome:display', '@responsive:mcp'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/mcps', { waitUntil: 'domcontentloaded' });

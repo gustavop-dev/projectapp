@@ -69,7 +69,7 @@
 
         <template v-else>
           <!-- Table mode: mobile cards -->
-          <div class="sm:hidden space-y-3">
+          <div class="space-y-3 panel-landscape:hidden">
             <div v-for="pkg in pagedPackages" :key="pkg.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
               <div class="flex items-start justify-between gap-3 mb-2">
                 <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight">
@@ -89,7 +89,7 @@
           </div>
 
           <!-- Table mode: desktop table -->
-          <div class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
+          <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
             <div class="overflow-x-auto">
               <table class="w-full">
                 <thead>

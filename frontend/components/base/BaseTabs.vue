@@ -58,7 +58,7 @@ function tabClass(tab) {
     <!-- Desktop: underline or pill -->
     <div
       :class="[
-        'hidden md:flex gap-1 mb-6',
+        'hidden panel-landscape:flex gap-1 mb-6',
         variant === 'underline' ? 'border-b border-border-default' : 'bg-surface-raised rounded-xl p-1',
         fullWidth ? 'w-full' : '',
       ]"

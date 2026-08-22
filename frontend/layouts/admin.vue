@@ -1,6 +1,6 @@
 <template>
   <div class="admin-layout min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-primary-strong">
-    <div class="hidden md:block">
+    <div class="hidden panel-landscape:block">
       <PanelSidebar
         :is-collapsed="isCollapsed"
         :is-dark="isDark"
@@ -9,7 +9,7 @@
     </div>
 
     <div
-      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 md:hidden"
+      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 panel-landscape:hidden"
       :class="isDark ? 'bg-primary-strong/95 backdrop-blur-xl' : 'bg-surface/90 backdrop-blur-xl'"
     >
       <button
@@ -63,27 +63,26 @@
         // the last row of a table that just overflows the viewport ends up
         // under the FAB, which swallows its action clicks.
         'px-4 pt-6 pb-24 sm:px-6 lg:px-8',
-        isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
+        isCollapsed ? 'panel-landscape:ml-[64px]' : 'panel-landscape:ml-[240px]',
         'text-text-default',
       ]"
     >
-      <!--
-        Oculta por debajo de `md`: en un celular el nombre de la vista ya
-        aparece en la barra superior (que además es sticky, así que sobrevive al
-        scroll) y otra vez en el título de la propia vista. La miga era la
-        tercera copia del mismo dato, y el alto vertical es justo lo que se está
-        tratando de devolverle al contenido. En escritorio no cambia nada.
-      -->
-      <div
-        v-if="_panelSectionLabel && _panelViewLabel"
-        class="mb-5 hidden md:flex items-center gap-1.5 text-xs"
-        :class="isDark ? 'text-green-light/60' : 'text-green-light'"
-      >
-        <span>{{ _panelSectionLabel }}</span>
-        <span class="text-green-light/40 dark:text-green-light/30">›</span>
-        <span class="text-text-muted">{{ _panelViewLabel }}</span>
+      <div class="mx-auto w-full max-w-panel">
+        <!--
+          El título ya vive en la topbar compacta; la miga aparece cuando la
+          navegación lateral vuelve en tableta horizontal y escritorio.
+        -->
+        <div
+          v-if="_panelSectionLabel && _panelViewLabel"
+          class="mb-5 hidden panel-landscape:flex items-center gap-1.5 text-xs"
+          :class="isDark ? 'text-green-light/60' : 'text-green-light'"
+        >
+          <span>{{ _panelSectionLabel }}</span>
+          <span class="text-green-light/40 dark:text-green-light/30">›</span>
+          <span class="text-text-muted">{{ _panelViewLabel }}</span>
+        </div>
+        <slot />
       </div>
-      <slot />
     </main>
 
     <PanelRefreshButton

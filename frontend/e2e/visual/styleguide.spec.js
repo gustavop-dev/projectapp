@@ -98,6 +98,20 @@ test.describe('design system styleguide visual regression', () => {
     await stubPanelApi(page);
   });
 
+  test('exposes the responsive foundation', {
+    tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@outcome:display', '@responsive:foundation'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (the styleguide is the direct acceptance surface)
+    await seedTheme(page, 'light');
+    await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
+
+    await page.getByRole('button', { name: 'Abrir modal', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Demo modal' })).toBeVisible();
+    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(page.getByRole('heading', { name: 'Demo modal' })).not.toBeVisible();
+  });
+
   test('light mode', {
     tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual', '@outcome:display'],
   }, async ({ page }) => {

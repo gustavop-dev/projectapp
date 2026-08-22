@@ -33,7 +33,7 @@
       :aria-selected="module.id === modelValue"
       :data-testid="`clients-module-${module.id}`"
       :class="[
-        'hidden md:inline-flex px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+        'hidden panel-landscape:inline-flex px-4 py-2 rounded-xl text-sm font-medium transition-colors',
         module.id === modelValue
           ? 'bg-primary text-white'
           : 'bg-surface-raised text-text-muted hover:bg-border-muted',
@@ -65,7 +65,8 @@
  * On desktop it wraps instead of scrolling, so no module is ever cut off (there
  * are seven, all short). The overflow rule matters at level 2, where the set
  * grows. Below `md` seven pills still cost three rows of chrome before any
- * content, so there they collapse into a selector instead.
+ * content, so they stay collapsed through portrait tablet and expand at the
+ * canonical landscape-tablet breakpoint.
  */
 import { computed } from 'vue';
 import { CLIENT_MODULES } from '~/constants/clientFilters';

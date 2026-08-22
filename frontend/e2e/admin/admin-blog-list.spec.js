@@ -64,7 +64,7 @@ test.describe('Admin Blog List', () => {
   });
 
   test('the calendar link navigates to the blog calendar', {
-    tag: [...ADMIN_BLOG_LIST, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_BLOG_LIST, '@role:admin', '@outcome:display', '@responsive:content'],
   }, async ({ page }) => {
     // Fails if the blog calendar link stops routing to the calendar page.
     await mockApi(page, async ({ apiPath }) => {

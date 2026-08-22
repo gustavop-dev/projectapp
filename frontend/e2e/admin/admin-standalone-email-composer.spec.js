@@ -115,7 +115,7 @@ test.describe('Admin Standalone Email Composer', () => {
   });
 
   test('renders email composer page with form fields', {
-    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_STANDALONE_EMAIL_COMPOSER, '@role:admin', '@outcome:display', '@responsive:emails'],
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });

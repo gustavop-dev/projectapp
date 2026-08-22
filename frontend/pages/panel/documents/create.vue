@@ -15,7 +15,7 @@
         <h1 class="text-2xl font-light text-text-default mt-2">Nuevo Documento</h1>
         <p class="text-sm text-text-muted mt-1">Crea un documento a partir de Markdown (pegado o subido).</p>
       </div>
-      <div class="hidden lg:flex items-center gap-3">
+      <div class="hidden items-center gap-3 panel-landscape:flex">
         <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
@@ -27,7 +27,7 @@
 
     <form
       id="doc-create-form"
-      class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
+      class="grid grid-cols-1 gap-6 panel-landscape:grid-cols-[20rem_minmax(0,1fr)] panel-desktop:grid-cols-[24rem_minmax(0,1fr)]"
       @submit.prevent="handleSubmit"
     >
       <!-- En un formulario de creación no hay versión guardada a la que
@@ -35,7 +35,7 @@
            guardar vive en el diálogo. -->
       <UnsavedChangesNotice
         v-if="hasChanges"
-        class="lg:col-span-2"
+        class="panel-landscape:col-span-2"
         :title="unsavedTitle"
         :detail="unsavedDetail"
         message="Este documento todavía no existe. Si sales de esta página, se pierde."
@@ -46,7 +46,7 @@
 
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
-               lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+               panel-landscape:sticky panel-landscape:top-6 panel-landscape:self-start panel-landscape:max-h-[calc(100vh-7rem)] panel-landscape:overflow-y-auto"
       >
         <div class="space-y-6">
           <div class="space-y-4">
@@ -259,19 +259,19 @@
               </button>
             </div>
           </div>
-          <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
+          <div :class="showPreview ? 'grid grid-cols-1 panel-desktop:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
             <textarea
               id="doc-markdown"
               v-model="form.content_markdown"
               placeholder="# Mi Documento&#10;&#10;Escribe o pega tu contenido en formato Markdown..."
               class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
                      focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-none
-                     min-h-[24rem] lg:h-[calc(100vh-20rem)]"
+                     min-h-[24rem] panel-desktop:h-[calc(100vh-20rem)]"
             ></textarea>
             <div
               v-if="showPreview"
               class="border border-border-default rounded-xl bg-surface overflow-y-auto
-                     min-h-[24rem] lg:h-[calc(100vh-20rem)]"
+                     min-h-[24rem] panel-desktop:h-[calc(100vh-20rem)]"
             >
               <div class="sticky top-0 px-3 py-2 border-b border-border-default bg-surface-raised rounded-t-xl z-10">
                 <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Vista previa</span>
@@ -333,7 +333,7 @@
           ></textarea>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center gap-4 lg:hidden">
+        <div class="mt-5 flex flex-wrap items-center gap-4 panel-landscape:hidden">
           <BaseButton variant="primary" size="md" type="submit" class="sm:px-6" :disabled="!canSubmit">
             {{ documentStore.isUpdating ? 'Creando...' : 'Crear Documento' }}
           </BaseButton>

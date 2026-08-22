@@ -36,7 +36,7 @@
       </div>
 
       <!-- Mobile cards -->
-      <div v-else class="sm:hidden space-y-3">
+      <div v-else class="space-y-3 panel-landscape:hidden">
         <div v-for="work in pagedWorks" :key="work.id" class="bg-surface rounded-xl shadow-sm border border-border-muted p-4">
           <div class="flex items-start justify-between gap-3 mb-2">
             <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="text-sm font-medium text-text-default hover:text-text-brand transition-colors leading-tight">
@@ -56,7 +56,7 @@
       </div>
 
       <!-- Desktop table -->
-      <div class="hidden sm:block bg-surface rounded-xl shadow-sm border border-border-muted overflow-hidden">
+      <div class="hidden overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-landscape:block">
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>

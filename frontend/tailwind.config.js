@@ -1,3 +1,9 @@
+import {
+  PANEL_BREAKPOINTS,
+  PANEL_CONTENT_MAX_PX,
+  PANEL_SCREENS,
+} from './config/responsive.js'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -13,6 +19,15 @@ export default {
   ],
   theme: {
     extend: {
+      screens: {
+        [PANEL_SCREENS.portrait]: `${PANEL_BREAKPOINTS.portrait}px`,
+        [PANEL_SCREENS.landscape]: `${PANEL_BREAKPOINTS.landscape}px`,
+        [PANEL_SCREENS.desktop]: `${PANEL_BREAKPOINTS.desktop}px`,
+        [PANEL_SCREENS.wide]: `${PANEL_BREAKPOINTS.wide}px`,
+      },
+      maxWidth: {
+        panel: `${PANEL_CONTENT_MAX_PX}px`,
+      },
       fontFamily: {
         'bold': ['Ubuntu-Bold', 'sans-serif'],
         'medium': ['Ubuntu-Medium', 'sans-serif'],

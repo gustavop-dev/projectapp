@@ -72,7 +72,7 @@ test.describe('Admin QR Cards', () => {
   });
 
   test('creates a new card with only a name', {
-    tag: [...ADMIN_QR_CARDS, '@role:admin', '@outcome:success'],
+    tag: [...ADMIN_QR_CARDS, '@role:admin', '@outcome:success', '@responsive:content'],
   }, async ({ page }) => {
     await setupQrCardsMock(page, { cards: [] });
     await page.goto('/panel/qr-cards');

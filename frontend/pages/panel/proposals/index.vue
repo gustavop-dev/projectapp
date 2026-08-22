@@ -19,7 +19,7 @@
     />
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
       <h1 class="text-2xl font-light text-text-default">Propuestas</h1>
-      <div class="flex items-center gap-3">
+      <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
         <BaseButton
           as="NuxtLink"
           variant="secondary"
@@ -289,9 +289,17 @@
 
     <!-- Batch action bar -->
     <Transition name="fade-modal">
-      <div v-if="selectedIds.length > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 bg-primary-strong text-white rounded-xl px-5 py-3 flex items-center justify-between shadow-raised">
+      <div v-if="selectedIds.length > 0" data-testid="batch-action-bar" class="sticky top-0 z-40 mb-3 flex items-center justify-between gap-3 rounded-xl bg-primary-strong px-4 py-3 text-white shadow-raised sm:px-5">
         <span class="text-sm font-medium">{{ selectedIds.length }} seleccionada(s)</span>
-        <div class="flex items-center gap-2">
+        <BaseDropdown :items="bulkActionItems" placement="bottom" align="right" class="panel-landscape:hidden">
+          <template #trigger>
+            <BaseButton variant="ghost" size="sm" :disabled="isBulkActing">
+              Acciones
+              <span aria-hidden="true">⌄</span>
+            </BaseButton>
+          </template>
+        </BaseDropdown>
+        <div class="hidden items-center gap-2 panel-landscape:flex">
           <BaseButton variant="ghost" size="sm" :disabled="isBulkActing" @click="handleBulkAction('resend')">
             🔄 Re-enviar
           </BaseButton>
@@ -308,8 +316,95 @@
       </div>
     </Transition>
 
-    <!-- Table -->
-    <div v-if="!proposalStore.isLoading && proposals.length > 0" class="bg-surface rounded-xl shadow-card border border-border-default overflow-x-auto">
+    <!-- Table / compact cards. Business priority on narrow screens:
+         client + title, status + investment, then activity + heat. -->
+    <div v-if="!proposalStore.isLoading && proposals.length > 0">
+      <div class="grid gap-3 panel-landscape:hidden">
+        <article
+          v-for="p in paginatedProposals"
+          :key="`compact-${p.id}`"
+          :data-testid="`proposal-card-${p.id}`"
+          class="min-w-0 rounded-xl border border-border-default bg-surface p-4 shadow-card"
+          :class="[
+            p.is_active ? '' : 'opacity-60',
+            selectedSet.has(p.id) ? 'bg-primary-soft' : '',
+          ]"
+        >
+          <div class="flex min-w-0 items-start gap-3">
+            <input
+              type="checkbox"
+              class="mt-1 rounded border-input-border text-text-brand focus:ring-focus-ring/30"
+              :checked="selectedSet.has(p.id)"
+              :aria-label="`Seleccionar ${p.title || p.client_name}`"
+              @change="toggleSelect(p.id)"
+            />
+            <div class="min-w-0 flex-1">
+              <BaseRowLink
+                :to="proposalHref(p.id)"
+                :data-testid="`proposal-card-open-${p.id}`"
+                class="block break-words text-sm font-medium text-text-default transition-colors hover:text-text-brand"
+              >
+                {{ p.client_name }}
+              </BaseRowLink>
+              <p v-if="p.title" class="mt-0.5 break-words text-xs leading-snug text-text-muted">{{ p.title }}</p>
+              <p v-if="p.client_phone" class="mt-1 text-2xs text-text-subtle">📱 {{ p.client_phone }}</p>
+            </div>
+            <button
+              type="button"
+              class="-m-1.5 shrink-0 rounded-lg p-3 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+              :aria-label="`Acciones de ${p.title || p.client_name}`"
+              :data-testid="`proposal-card-actions-${p.id}`"
+              @click="actionsModalProposal = p"
+            >
+              <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+          </div>
+
+          <dl class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border-muted pt-3 text-sm">
+            <div class="min-w-0">
+              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Estado</dt>
+              <dd class="mt-1">
+                <ProposalStatusSelect
+                  :proposal="p"
+                  :updating="updatingStatusId === p.id"
+                  @change="(status) => onStatusSelect(p, status)"
+                />
+              </dd>
+            </div>
+            <div class="min-w-0">
+              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Inversión</dt>
+              <dd class="mt-1 break-words tabular-nums text-text-default">
+                ${{ effectiveInvestmentTotal(p).toLocaleString() }} {{ p.currency }}
+              </dd>
+            </div>
+            <div class="min-w-0">
+              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Actividad</dt>
+              <dd class="mt-1 text-xs text-text-muted">
+                <span v-if="isInactive(p)" class="text-danger-strong">{{ inactiveDays(p) }}d sin actividad</span>
+                <span v-else-if="p.last_activity_at">{{ timeAgo(p.last_activity_at) }}</span>
+                <span v-else-if="p.created_at">{{ timeAgo(p.created_at) }} (creada)</span>
+                <span v-else>—</span>
+              </dd>
+            </div>
+            <div class="min-w-0">
+              <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">Interés</dt>
+              <dd class="mt-1 flex items-center gap-2 text-xs text-text-muted">
+                <span
+                  v-if="p.heat_score > 0"
+                  class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  :class="heatScoreColor(p.heat_score)"
+                >{{ p.heat_score }}</span>
+                <span v-else>—</span>
+                <span>{{ p.view_count }} vista{{ p.view_count === 1 ? '' : 's' }}</span>
+              </dd>
+            </div>
+          </dl>
+        </article>
+      </div>
+
+      <div class="hidden overflow-x-auto rounded-xl border border-border-default bg-surface shadow-card panel-landscape:block">
       <table class="w-full min-w-[800px]">
         <thead>
           <tr class="border-b border-border-muted text-left">
@@ -442,16 +537,17 @@
           </tr>
         </tbody>
       </table>
+      </div>
 
     <!-- Actions modal -->
     <Teleport to="body">
       <Transition name="fade-modal">
         <div
           v-if="actionsModalProposal"
-          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          class="fixed inset-0 z-[9990] flex items-center justify-center bg-black/40 p-0 backdrop-blur-sm sm:p-4"
           @click.self="actionsModalProposal = null"
         >
-          <div class="bg-surface rounded-2xl shadow-overlay border border-border-default max-w-md w-full">
+          <div class="h-[100dvh] w-full overflow-y-auto bg-surface shadow-overlay sm:h-auto sm:max-h-[90vh] sm:max-w-md sm:rounded-2xl sm:border sm:border-border-default">
             <!-- Header -->
             <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
               <div>
@@ -477,11 +573,12 @@
                   >
                     {{ action.icon }}
                   </span>
-                  <div class="flex-1 min-w-0">
+                  <div class="min-w-0 flex-1">
                     <span class="text-sm font-medium block" :class="action.danger ? 'text-danger-strong' : action.textClass || 'text-text-default'">{{ action.label }}</span>
+                    <span class="mt-0.5 block text-xs leading-snug text-text-muted panel-landscape:hidden">{{ action.info }}</span>
                   </div>
                   <!-- Info tooltip -->
-                  <div class="relative flex-shrink-0 group/info">
+                  <div class="relative hidden flex-shrink-0 panel-landscape:block group/info">
                     <span class="w-6 h-6 rounded-full bg-surface-raised group-hover/info:bg-primary-soft flex items-center justify-center text-text-subtle group-hover/info:text-text-brand text-[11px] cursor-help transition-colors">?</span>
                     <div class="absolute right-full top-1/2 -translate-y-1/2 mr-2 w-52 bg-primary-strong text-white text-xs rounded-xl px-3 py-2 shadow-raised opacity-0 pointer-events-none group-hover/info:opacity-100 group-hover/info:pointer-events-auto transition-opacity z-10 leading-relaxed">
                       {{ action.info }}
@@ -727,6 +824,14 @@ function handleBulkAction(action) {
     },
   });
 }
+
+const bulkActionItems = computed(() => [
+  { label: 'Re-enviar', disabled: isBulkActing.value, onClick: () => handleBulkAction('resend') },
+  { label: 'Expirar', disabled: isBulkActing.value, onClick: () => handleBulkAction('expire') },
+  { divider: true },
+  { label: 'Eliminar', danger: true, disabled: isBulkActing.value, onClick: () => handleBulkAction('delete') },
+  { label: 'Cancelar selección', disabled: isBulkActing.value, onClick: clearSelection },
+]);
 
 const ZOMBIE_TYPES = ['zombie', 'zombie_draft', 'zombie_sent_stale'];
 // Closed deals (accepted) and wrapped-up projects (finished) never "need attention".

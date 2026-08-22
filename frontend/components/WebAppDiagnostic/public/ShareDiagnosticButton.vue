@@ -4,9 +4,9 @@
       data-testid="share-diagnostic-btn"
       class="share-btn fixed bottom-[8.5rem] right-4 z-40 w-12 h-12
              bg-surface dark:bg-primary/90
-             border border-input-border/15 dark:border-input-border/20
+             border border-input-border dark:border-input-border
              rounded-full shadow-lg flex items-center justify-center
-             hover:bg-primary/5 dark:hover:bg-primary-soft/10 transition-colors group"
+             hover:bg-primary/5 dark:hover:bg-primary-soft transition-colors group"
       :title="t.shareTitle"
       @click="showModal = true"
     >
@@ -26,7 +26,7 @@
           <div class="share-modal-card bg-surface dark:bg-primary rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md sm:mx-4 p-6 sm:p-8 ring-1 ring-transparent dark:ring-esmerald-light/15">
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-primary/5 dark:bg-primary-soft/10 rounded-xl flex items-center justify-center">
+                <div class="w-10 h-10 bg-primary/5 dark:bg-primary-soft rounded-xl flex items-center justify-center">
                   <svg class="w-5 h-5 text-text-brand dark:text-text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
@@ -38,7 +38,8 @@
                 </div>
               </div>
               <button
-                class="w-8 h-8 rounded-full bg-primary/5 dark:bg-primary-soft/10 flex items-center justify-center text-text-brand/50 dark:text-text-brand/60 hover:text-text-brand dark:hover:text-text-brand hover:bg-primary/10 dark:hover:bg-primary-soft/15 transition-colors"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/5 text-text-brand/50 transition-colors hover:bg-primary/10 hover:text-text-brand dark:bg-primary-soft dark:text-text-brand/60 dark:hover:bg-primary-soft dark:hover:text-text-brand"
+                :aria-label="language === 'es' ? 'Cerrar' : 'Close'"
                 @click="closeModal"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +48,7 @@
               </button>
             </div>
 
-            <div class="bg-primary/5 dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
+            <div class="bg-primary/5 dark:bg-primary-soft border border-input-border dark:border-input-border rounded-xl p-3 sm:p-4 flex items-center gap-3 mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-[11px] text-text-brand/55 dark:text-text-brand/55 mb-0.5 font-medium uppercase tracking-wider">{{ t.linkLabel }}</p>
                 <p class="text-sm text-text-brand/80 dark:text-text-brand/80 truncate">{{ currentUrl }}</p>
@@ -55,7 +56,7 @@
               <button
                 class="flex-shrink-0 px-4 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap"
                 :class="copied
-                  ? 'bg-primary/10 dark:bg-primary-soft/15 text-text-brand dark:text-text-brand'
+                  ? 'bg-primary/10 dark:bg-primary-soft text-text-brand dark:text-text-brand'
                   : 'bg-primary dark:bg-accent-soft text-accent dark:text-text-brand hover:bg-primary-strong dark:hover:bg-accent-soft/90'"
                 @click="copyLink"
               >

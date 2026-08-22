@@ -196,7 +196,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('renders stat cards with the summary totals', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display', '@responsive:accounting'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });

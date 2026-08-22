@@ -1,7 +1,8 @@
 import { ref, onMounted, onUnmounted } from 'vue'
+import { PANEL_BREAKPOINTS } from '~/config/responsive'
 
 const STORAGE_KEY = 'panel_sidebar_collapsed'
-const MOBILE_BREAKPOINT = 768
+const DESKTOP_NAV_BREAKPOINT = PANEL_BREAKPOINTS.landscape
 
 const isCollapsed = ref(false)
 const isMobileOpen = ref(false)
@@ -62,7 +63,7 @@ export function usePanelSidebar() {
   function handleResize() {
     /* c8 ignore next */
     if (!isClient()) return
-    if (window.innerWidth < MOBILE_BREAKPOINT) {
+    if (window.innerWidth >= DESKTOP_NAV_BREAKPOINT) {
       isMobileOpen.value = false
     }
   }

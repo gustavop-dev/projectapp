@@ -24,6 +24,12 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 
 ## Known Issues
 
+### [KNOWN-003] Responsive behavior is split across incompatible breakpoints
+- **Date**: 2026-08-22
+- **Context**: Panel modules independently use `sm`, `md`, `lg`, JavaScript widths and fixed table minima; Playwright currently exposes only Desktop Chrome.
+- **Impact**: The 835 px portrait-tablet profile can receive desktop navigation with too little usable content width, while 2560 px pages can stretch related information too far apart.
+- **Resolution in progress**: PA-75 through responsive phase 4 centralizes the real-device matrix, shared component behavior, view registry and recurring five-width verification.
+
 _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new production incidents from the accounting-correctness / display-standards wave (#113–#116). KNOWN-001 and KNOWN-002 remain open (not re-verified this pass). The quality-gate DEFAULT-vs-strict mode pitfall surfaced by PR #113's red CI is a workflow lesson, captured in `lessons-learned.md` §21, not a runtime incident. Previous review: 2026-07-04._
 
 ### [KNOWN-001] kore_project Next.js server occupies port 3000

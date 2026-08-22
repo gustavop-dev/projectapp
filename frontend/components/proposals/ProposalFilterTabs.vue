@@ -33,7 +33,7 @@
     -->
     <div
       data-testid="filter-tabs-strip"
-      class="hidden md:flex flex-wrap items-center gap-1 mb-4 border-b border-border-default"
+      class="hidden panel-landscape:flex flex-wrap items-center gap-1 mb-4 border-b border-border-default"
     >
       <!-- "Todas" tab -->
       <button

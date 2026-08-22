@@ -67,7 +67,7 @@ test.describe('Proposal View', () => {
   });
 
   test('renders proposal greeting section on first load', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW, '@role:guest', '@outcome:display', '@responsive:public'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
