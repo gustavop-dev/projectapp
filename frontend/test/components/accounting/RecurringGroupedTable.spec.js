@@ -97,6 +97,26 @@ describe('RecurringGroupedTable', () => {
     expect(names).toEqual(['Claude Code 20x', 'Chat-GPT', 'Hostinger']);
   });
 
+  it('groups secondary business columns below the primary payment name', () => {
+    const wrapper = mountTable({
+      columns: [
+        {
+          ...columns[0],
+          responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+        },
+        {
+          ...columns[1],
+          responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+        },
+      ],
+    });
+
+    const details = wrapper.find('[data-testid="accounting-row-18"]')
+      .get('[data-testid="responsive-group-compact"]');
+    expect(details.text()).toContain('Equiv. COP mensual');
+    expect(details.text()).toContain('$800.000 COP');
+  });
+
   it('hides the drag handles when reordering is disabled', () => {
     const wrapper = mountTable({ dragEnabled: false });
 

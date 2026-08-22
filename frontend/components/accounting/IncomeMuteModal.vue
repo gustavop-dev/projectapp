@@ -67,7 +67,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :open="open" size="sm" title-id="income-mute-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="confirm" size="sm" title-id="income-mute-title" @close="emit('close')">
     <form data-testid="income-mute-modal" @submit.prevent="onSubmit">
       <div class="px-6 pt-5">
         <h3 id="income-mute-title" class="text-lg font-bold text-text-default">

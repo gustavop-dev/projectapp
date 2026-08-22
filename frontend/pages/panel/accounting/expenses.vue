@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -11,6 +11,7 @@
       <BaseButton
         variant="primary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="expenses-new-button"
         @click="openCreateModal"
       >
@@ -22,37 +23,41 @@
     <AccountingSubnav active="expenses" />
 
     <!-- KPI cards (year scope, server-computed) -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      <AccountingStatCard
-        label="Total año"
-        :value="money(expensesMeta.year_total)"
-      />
-      <AccountingStatCard
-        label="Mes actual"
-        :value="money(expensesMeta.current_month_total)"
-        :tone="expensesMeta.current_month_alert ? 'warning' : 'default'"
-        :sub="expensesMeta.current_month_alert
-          ? 'Inusualmente alto vs promedio mensual'
-          : ''"
-      />
-      <AccountingStatCard
-        label="Mayor gasto del año"
-        :value="expensesMeta.top_expense ? money(expensesMeta.top_expense.amount) : '—'"
-        :sub="expensesMeta.top_expense?.concept || ''"
-      />
-      <AccountingStatCard
-        label="Negocio (año)"
-        :value="money(expensesMeta.business_total)"
-        :sub="`Personal: ${money(expensesMeta.personal_total)}`"
-        tone="brand"
-      />
-      <AccountingStatCard
-        label="Deducciones (año)"
-        :value="money(expensesMeta.deductions_total)"
-        :sub="deductionsBreakdownSub"
-        data-testid="expenses-deductions-card"
-      />
-    </div>
+    <AccountingIndicatorGroup :columns="5" :secondary-count="2">
+      <template #primary>
+        <AccountingStatCard
+          label="Total año"
+          :value="money(expensesMeta.year_total)"
+        />
+        <AccountingStatCard
+          label="Mes actual"
+          :value="money(expensesMeta.current_month_total)"
+          :tone="expensesMeta.current_month_alert ? 'warning' : 'default'"
+          :sub="expensesMeta.current_month_alert
+            ? 'Inusualmente alto vs promedio mensual'
+            : ''"
+        />
+        <AccountingStatCard
+          label="Deducciones (año)"
+          :value="money(expensesMeta.deductions_total)"
+          :sub="deductionsBreakdownSub"
+          data-testid="expenses-deductions-card"
+        />
+      </template>
+      <template #secondary>
+        <AccountingStatCard
+          label="Mayor gasto del año"
+          :value="expensesMeta.top_expense ? money(expensesMeta.top_expense.amount) : '—'"
+          :sub="expensesMeta.top_expense?.concept || ''"
+        />
+        <AccountingStatCard
+          label="Negocio (año)"
+          :value="money(expensesMeta.business_total)"
+          :sub="`Personal: ${money(expensesMeta.personal_total)}`"
+          tone="brand"
+        />
+      </template>
+    </AccountingIndicatorGroup>
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
@@ -69,7 +74,7 @@
     />
 
     <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -238,17 +243,17 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
@@ -493,13 +498,34 @@ function deductionPillTitle(row) {
 // Same shape as Ingresos: concept on the widest floor, the three amounts grouped, and
 // the metadata columns collapsing first on narrow screens.
 const columns = [
-  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
-  { key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg' },
-  { key: 'category_label', label: 'Categoría', size: 'badge' },
-  { key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg' },
-  { key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true },
-  { key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
-  { key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md' },
+  {
+    key: 'concept', label: 'Concepto', size: 'name', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'period_label', label: 'Mes', sortable: true, hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'category_label', label: 'Categoría', size: 'badge',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'ledger_label', label: 'Contabilidad', hideBelow: 'lg',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'total_amount', label: 'Total', format: 'money', group: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'gustavo_amount', label: 'Gustavo', format: 'money', group: 'money', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'carlos_amount', label: 'Carlos', format: 'money', group: 'money', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
 ];
 
 async function loadRecords() {

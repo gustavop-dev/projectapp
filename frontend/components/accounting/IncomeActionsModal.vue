@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="confirm"
     size="sm"
     title-id="income-actions-title"
     @close="emit('close')"

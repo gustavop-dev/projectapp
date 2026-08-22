@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+  <div class="grid grid-cols-2 gap-3 panel-portrait:grid-cols-3 panel-landscape:grid-cols-4">
     <div
       v-for="month in months"
       :key="month.period"

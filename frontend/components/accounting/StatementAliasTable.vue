@@ -4,7 +4,7 @@
       Aún no hay alias aprendidos. Se crean al aprobar comercios en el chat.
     </p>
     <div v-else class="overflow-x-auto">
-      <table class="w-full">
+      <table class="statement-alias-table w-full">
         <thead>
           <tr class="border-b border-border-muted text-left">
             <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Texto a mapear</th>
@@ -17,7 +17,7 @@
           <tr
             v-for="alias in aliases"
             :key="alias.id"
-            class="hover:bg-surface-raised transition-colors h-9"
+            class="statement-alias-row h-9 transition-colors hover:bg-surface-raised"
             :data-testid="`statement-alias-${alias.id}`"
           >
             <td
@@ -25,6 +25,7 @@
               :title="alias.match_text"
               :data-testid="`alias-cell-match_text-${alias.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Texto a mapear</span>
               <AccountingInlineCell
                 :value="alias.match_text"
                 :saving="inlineSavingKey === `${alias.id}:match_text`"
@@ -37,6 +38,7 @@
               class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-default"
               :data-testid="`alias-cell-merchant_name-${alias.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Comercio</span>
               <AccountingInlineCell
                 type="merchant"
                 :value="alias.merchant_name"
@@ -51,6 +53,7 @@
               class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted"
               :data-testid="`alias-cell-default_category-${alias.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Categoría</span>
               <AccountingInlineCell
                 type="select"
                 :value="alias.default_category"
@@ -100,3 +103,57 @@ defineProps({
 
 defineEmits(['inline-save', 'delete']);
 </script>
+
+<style scoped>
+.statement-mobile-label {
+  display: block;
+  margin-bottom: 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 999px) {
+  .statement-alias-table,
+  .statement-alias-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .statement-alias-table thead {
+    display: none;
+  }
+
+  .statement-alias-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.625rem 1rem;
+    height: auto;
+    padding: 0.875rem 1rem;
+  }
+
+  .statement-alias-row > td {
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+  }
+
+  .statement-alias-row > td:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .statement-alias-row > td:nth-child(4) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .statement-alias-row > td:nth-child(2),
+  .statement-alias-row > td:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
+</style>

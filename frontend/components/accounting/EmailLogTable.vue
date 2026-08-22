@@ -1,13 +1,13 @@
 <template>
   <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
-    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
+    <table class="accounting-history-table w-full text-sm" :style="{ '--table-min-width': tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
             v-for="col in resolved"
             :key="col.key"
             :style="{ width: col.width }"
-            :class="[col.headerPadClass, col.alignClass, col.nowrapClass]"
+            :class="[col.headerPadClass, col.alignClass, col.nowrapClass, visibilityClass(col.key)]"
           >{{ col.label }}</th>
           <th class="px-3 py-2 text-right">Acciones</th>
         </tr>
@@ -21,17 +21,26 @@
         <template v-for="entry in entries" :key="entry.id">
           <tr
             :data-testid="`email-log-row-${entry.id}`"
-            class="hover:bg-surface-raised transition-colors bg-surface h-9"
+            class="accounting-history-row hover:bg-surface-raised transition-colors bg-surface h-9"
             :class="canExpand(entry) ? 'cursor-pointer' : ''"
             @click="toggleEntry(entry)"
           >
-            <td :class="[cell(0), 'text-text-muted text-xs tabular-nums']">
+            <td data-field="date" :class="[cell(0), 'text-text-muted text-xs tabular-nums']">
+              <span class="history-mobile-label panel-landscape:hidden">Fecha</span>
               {{ formatDateTime(entry.sent_at) }}
             </td>
-            <td :class="[cell(1), 'text-text-muted']">{{ entry.template_label }}</td>
-            <td :class="[cell(2), 'text-text-default font-medium']">{{ entry.recipient }}</td>
-            <td :class="[cell(3), 'text-text-muted']">{{ entry.subject || '—' }}</td>
-            <td :class="cell(4)">
+            <td data-field="notice" :class="[cell(1), 'text-text-muted']">
+              <span class="history-mobile-label panel-landscape:hidden">Aviso</span>
+              {{ entry.template_label }}
+            </td>
+            <td data-field="recipient" :class="[cell(2), 'min-w-0 text-text-default font-medium']">
+              <span class="break-all">{{ entry.recipient }}</span>
+            </td>
+            <td data-field="subject" :class="[cell(3), 'text-text-muted']">
+              <span class="history-mobile-label panel-landscape:hidden">Asunto</span>
+              {{ entry.subject || '—' }}
+            </td>
+            <td data-field="status" :class="cell(4)">
               <span
                 class="text-xs px-2.5 py-1 rounded-full font-medium"
                 :class="statusClass(entry.status)"
@@ -39,7 +48,7 @@
                 {{ entry.status_label }}
               </span>
             </td>
-            <td class="px-3 py-1">
+            <td data-field="actions" class="px-3 py-1">
               <div class="flex items-center justify-end gap-1">
                 <BaseButton
                   v-if="entry.has_body"
@@ -117,6 +126,10 @@ const COLUMNS = [
 const resolved = resolveColumns(COLUMNS, { hasActions: true });
 const tableMinWidth = minWidthFor(resolved, { hasActions: true });
 
+function visibilityClass() {
+  return '';
+}
+
 /** Padding + alignment for the nth column. */
 function cell(index) {
   const col = resolved[index];
@@ -172,3 +185,61 @@ function statusClass(status) {
   return STATUS_CLASSES[status] || 'bg-surface-raised text-text-muted';
 }
 </script>
+
+<style scoped>
+@media (max-width: 999px) {
+  .accounting-history-table thead {
+    display: none;
+  }
+
+  .accounting-history-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 1rem;
+    height: auto;
+    padding: 0.85rem 1rem;
+  }
+
+  .accounting-history-row > td {
+    padding: 0;
+    white-space: normal;
+  }
+
+  .accounting-history-row > [data-field="recipient"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .accounting-history-row > [data-field="status"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .accounting-history-row > [data-field="date"],
+  .accounting-history-row > [data-field="notice"],
+  .accounting-history-row > [data-field="subject"],
+  .accounting-history-row > [data-field="actions"] {
+    grid-column: 1 / -1;
+  }
+
+  .accounting-history-row > [data-field="actions"] > div {
+    justify-content: flex-start;
+  }
+
+  .history-mobile-label {
+    display: inline-block;
+    min-width: 4.5rem;
+    color: var(--color-text-subtle);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+@media (min-width: 1000px) {
+  .accounting-history-table {
+    min-width: var(--table-min-width);
+  }
+}
+</style>

@@ -6,7 +6,11 @@
   >
     <div class="bg-surface border border-border-default rounded-xl divide-y divide-border-muted">
       <div v-show="isOpen" class="flex flex-wrap items-center gap-x-4 gap-y-2.5 px-3 py-2.5">
-        <template v-for="field in fields" :key="field.key || `${field.minKey}-${field.maxKey}`">
+        <div
+          v-for="field in fields"
+          :key="field.key || `${field.minKey}-${field.maxKey}`"
+          class="w-full panel-portrait:w-auto"
+        >
           <ProposalFilterDropdown
             v-if="field.kind === 'multi'"
             :label="field.label"
@@ -36,25 +40,27 @@
             @update:min-value="setValue(field.minKey, $event)"
             @update:max-value="setValue(field.maxKey, $event)"
           />
-          <div v-else-if="field.kind === 'text'" class="flex items-center gap-2">
+          <div v-else-if="field.kind === 'text'" class="flex flex-col gap-2 panel-portrait:flex-row panel-portrait:items-center">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
               {{ field.label }}
             </span>
             <BaseInput
               size="sm"
-              class="w-44"
+              class="w-full panel-portrait:w-44"
               :placeholder="field.placeholder || ''"
               :data-testid="`accounting-filter-text-${field.key}`"
               :model-value="modelValue[field.key] || ''"
               @update:model-value="setValue(field.key, $event)"
             />
           </div>
-          <div v-else-if="field.kind === 'segmented'" class="flex items-center gap-2">
+          <div v-else-if="field.kind === 'segmented'" class="flex flex-col gap-2 panel-portrait:flex-row panel-portrait:items-center">
             <span class="text-[10px] font-semibold uppercase tracking-wider text-text-muted whitespace-nowrap">
               {{ field.label }}
             </span>
             <BaseSegmentedMulti
               size="sm"
+              full-width
+              nowrap
               :label="field.label"
               :model-value="asArray(modelValue[field.key])"
               :options="field.options"
@@ -62,7 +68,7 @@
               @update:model-value="setValue(field.key, $event)"
             />
           </div>
-        </template>
+        </div>
 
         <!-- Requisito: la lógica de combinación tiene que ser legible, porque el
              resultado sorprende cuando se marcan varias cosas a la vez. -->

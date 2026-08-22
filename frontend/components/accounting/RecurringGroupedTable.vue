@@ -27,7 +27,7 @@
           v-for="col in resolved"
           :key="col.key"
           role="columnheader"
-          :class="[col.headerPadClass, col.alignClass, col.hideGridClass]"
+          :class="[col.headerPadClass, col.alignClass, responsiveGridCellClass(col)]"
           :aria-sort="headerAriaSort(col)"
         >
           <button
@@ -153,7 +153,7 @@
                 >
                   <!-- Caps the name column's content so one long value cannot
                        widen its track past the rest of the table. -->
-                  <span :class="col.contentClass">
+                  <div :class="col.contentClass">
                     <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
                       <template v-if="col.format === 'money'">
                         {{ formatMoney(row[col.key], 'COP') }}
@@ -165,7 +165,64 @@
                       />
                       <template v-else>{{ row[col.key] }}</template>
                     </slot>
-                  </span>
+
+                    <dl
+                      v-if="col.responsive?.primary && groupedColumns.compact.length"
+                      class="mt-2 space-y-1 panel-portrait:hidden"
+                      data-testid="responsive-group-compact"
+                    >
+                      <div
+                        v-for="detail in groupedColumns.compact"
+                        :key="detail.key"
+                        class="grid grid-cols-[minmax(5.5rem,auto)_1fr] gap-2 text-left text-xs"
+                      >
+                        <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                        <dd class="min-w-0 text-text-muted">
+                          <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                            {{ formatGroupedValue(detail, row[detail.key]) }}
+                          </slot>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <dl
+                      v-if="col.responsive?.primary && groupedColumns.portrait.length"
+                      class="mt-2 hidden space-y-1 panel-portrait:block panel-landscape:hidden"
+                      data-testid="responsive-group-portrait"
+                    >
+                      <div
+                        v-for="detail in groupedColumns.portrait"
+                        :key="detail.key"
+                        class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
+                      >
+                        <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                        <dd class="min-w-0 text-text-muted">
+                          <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                            {{ formatGroupedValue(detail, row[detail.key]) }}
+                          </slot>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <dl
+                      v-if="col.responsive?.primary && groupedColumns.landscape.length"
+                      class="mt-2 hidden space-y-1 panel-landscape:block panel-desktop:hidden"
+                      data-testid="responsive-group-landscape"
+                    >
+                      <div
+                        v-for="detail in groupedColumns.landscape"
+                        :key="detail.key"
+                        class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
+                      >
+                        <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
+                        <dd class="min-w-0 text-text-muted">
+                          <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                            {{ formatGroupedValue(detail, row[detail.key]) }}
+                          </slot>
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
                 </span>
                 <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                   <button
@@ -239,7 +296,8 @@ import {
 } from '~/utils/tableLayout';
 
 const props = defineProps({
-  /** Same column config shape as AccountingTable ({ key, label, format, align, size, group, hideBelow }). */
+  /** Same column contract as AccountingTable, including the explicit
+   * responsive priority for compact, portrait and landscape profiles. */
   columns: { type: Array, required: true },
   /** [{ id, name, rows, monthlyCopTotal }] — already ordered and subtotaled. */
   groups: { type: Array, default: () => [] },
@@ -290,6 +348,44 @@ const DENSITY = TABLE_DENSITY;
 /** Widths by content, slack shared in proportion — see utils/tableLayout. */
 const resolved = computed(() => resolveColumns(props.columns));
 
+const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
+const POLICY_CLASSES = {
+  compact: { keep: 'block', group: 'hidden', hide: 'hidden' },
+  portrait: { keep: 'panel-portrait:block', group: 'panel-portrait:hidden', hide: 'panel-portrait:hidden' },
+  landscape: { keep: 'panel-landscape:block', group: 'panel-landscape:hidden', hide: 'panel-landscape:hidden' },
+};
+
+function policyFor(column, profile) {
+  if (!column.responsive) return 'keep';
+  if (column.responsive[profile]) return column.responsive[profile];
+  if (profile === 'portrait') return column.responsive.compact || 'keep';
+  return 'keep';
+}
+
+function responsiveGridCellClass(column) {
+  return [
+    ...PROFILE_ORDER.map((profile) => POLICY_CLASSES[profile][policyFor(column, profile)]),
+    'panel-desktop:block',
+  ];
+}
+
+const groupedColumns = computed(() => Object.fromEntries(
+  PROFILE_ORDER.map((profile) => [
+    profile,
+    resolved.value.filter((column) => policyFor(column, profile) === 'group'),
+  ]),
+));
+
+function visibleColumns(profile) {
+  return resolved.value
+    .filter((column) => policyFor(column, profile) === 'keep')
+    .map((column) => (
+      column.responsive?.primary
+        ? { ...column, track: 'minmax(0, 1fr)' }
+        : column
+    ));
+}
+
 /**
  * Header, rows and the drag handle must line up, so every row shares one track
  * list. CSS cannot drop a track from grid-template-columns, so each breakpoint
@@ -298,20 +394,20 @@ const resolved = computed(() => resolveColumns(props.columns));
  * rendering the same markup.
  */
 const gridVars = computed(() => {
-  const opts = { hasHandle: props.dragEnabled, hasActions: true };
+  const opts = { hasHandle: props.dragEnabled, hasActions: true, breakpoint: 'lg' };
   return {
-    '--cols-base': trackListFor(resolved.value, { ...opts, breakpoint: 'base' }),
-    '--cols-md': trackListFor(resolved.value, { ...opts, breakpoint: 'md' }),
-    '--cols-lg': trackListFor(resolved.value, { ...opts, breakpoint: 'lg' }),
+    '--cols-compact': trackListFor(visibleColumns('compact'), opts),
+    '--cols-portrait': trackListFor(visibleColumns('portrait'), opts),
+    '--cols-landscape': trackListFor(visibleColumns('landscape'), opts),
+    '--cols-desktop': trackListFor(resolved.value, opts),
   };
 });
 
 const containerVars = computed(() => {
-  const opts = { hasHandle: props.dragEnabled, hasActions: true };
+  const opts = { hasHandle: props.dragEnabled, hasActions: true, breakpoint: 'lg' };
   return {
-    '--minw-base': minWidthFor(resolved.value, { ...opts, breakpoint: 'base' }),
-    '--minw-md': minWidthFor(resolved.value, { ...opts, breakpoint: 'md' }),
-    '--minw-lg': minWidthFor(resolved.value, { ...opts, breakpoint: 'lg' }),
+    '--minw-landscape': minWidthFor(visibleColumns('landscape'), opts),
+    '--minw-desktop': minWidthFor(resolved.value, opts),
   };
 });
 
@@ -336,7 +432,7 @@ function isCollapsed(id) {
 
 /** `col` is already resolved, so alignment, padding and visibility come precomputed. */
 function cellClass(col) {
-  const classes = [col.padClass, col.alignClass, col.hideGridClass];
+  const classes = [col.padClass, col.alignClass, responsiveGridCellClass(col)];
   // Amounts must never wrap or clip; free text may truncate.
   if (col.format === 'money' || col.align === 'right') {
     classes.push('tabular-nums whitespace-nowrap');
@@ -345,6 +441,12 @@ function cellClass(col) {
     classes.push('truncate text-text-default');
   }
   return classes;
+}
+
+function formatGroupedValue(col, value) {
+  if (col.format === 'money') return formatMoney(value, 'COP');
+  if (col.format === 'percent') return formatPercent(value);
+  return value ?? '—';
 }
 
 /**
@@ -379,19 +481,25 @@ function onDragEnd() {
  * between values but cannot compute a track list from the column config; --cols
  * is the indirection that keeps that switch in one place. */
 .accounting-grid-scroll {
-  --cols: var(--cols-base);
-  min-width: var(--minw-base);
+  --cols: var(--cols-compact);
+  min-width: 100%;
 }
-@media (min-width: 768px) {
+@media (min-width: 600px) {
   .accounting-grid-scroll {
-    --cols: var(--cols-md);
-    min-width: var(--minw-md);
+    --cols: var(--cols-portrait);
+    min-width: 100%;
   }
 }
-@media (min-width: 1024px) {
+@media (min-width: 1000px) {
   .accounting-grid-scroll {
-    --cols: var(--cols-lg);
-    min-width: var(--minw-lg);
+    --cols: var(--cols-landscape);
+    min-width: var(--minw-landscape);
+  }
+}
+@media (min-width: 1280px) {
+  .accounting-grid-scroll {
+    --cols: var(--cols-desktop);
+    min-width: var(--minw-desktop);
   }
 }
 
@@ -443,9 +551,7 @@ function onDragEnd() {
   min-width: 100%;
 }
 
-/* Below sm the name owns its line and the figures ride together on the next. */
 .accounting-group-header > :first-child {
-  flex: 0 1 100%;
   min-width: 0;
 }
 
@@ -454,9 +560,19 @@ function onDragEnd() {
   flex: 0 0 auto;
 }
 
-@media (min-width: 640px) {
-  /* One line from sm up: wrapping would push the figures down instead of
-   * making the name yield to them — see IncomeGroupedTable. */
+@media (max-width: 999px) {
+  .accounting-group-header {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem 1rem;
+    align-items: start;
+  }
+  .accounting-group-header > :first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (min-width: 1000px) {
   .accounting-group-header {
     flex-wrap: nowrap;
   }

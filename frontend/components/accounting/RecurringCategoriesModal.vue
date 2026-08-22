@@ -51,6 +51,7 @@ function onDragEnd() {
 <template>
   <BaseModal
     :model-value="open"
+    kind="form"
     size="md"
     title-id="recurring-categories-title"
     @close="emit('close')"

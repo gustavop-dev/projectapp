@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -11,6 +11,7 @@
       <BaseButton
         variant="primary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="ads-new-button"
         @click="openCreateModal"
       >
@@ -163,11 +164,10 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -287,12 +287,30 @@ const exportParams = computed(() =>
 // Value and its share of the filtered total are one number in two readings,
 // so they group; the server-side accumulated column is another axis.
 const columns = [
-  { key: 'spend_date', label: 'Fecha', format: 'date', sortable: true },
-  { key: 'platform_label', label: 'Plataforma' },
-  { key: 'origin_card', label: 'Tarjeta' },
-  { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
-  { key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true },
-  { key: 'accumulated', label: 'Acumulado', align: 'right' },
+  {
+    key: 'spend_date', label: 'Fecha', format: 'date', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'platform_label', label: 'Plataforma',
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'origin_card', label: 'Tarjeta',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'accumulated', label: 'Acumulado', align: 'right',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
 ];
 
 const filteredRows = computed(() => applyFilters(store.adsRecords));
