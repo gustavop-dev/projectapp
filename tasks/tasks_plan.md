@@ -5,6 +5,7 @@
 | Feature | Status | Details |
 |---------|--------|---------|
 | Panel — Responsive Standard Phase 0 | ✅ Done | 2026-08-22. `docs/RESPONSIVE_STANDARD.md` define cinco viewports de aceptación (412/835/1195/1440/2560), máximos de 1400/1600 px, patrones canónicos por tipo y el censo de 47 superficies renderizables. Inventario: 16 hallazgos (1 P0, 11 P1, 4 P2); PA-45/61 quedan en sus olas, PA-66/73 se consolidan en el criterio compartido. Fase documental: sin cambios de producto. |
+| Panel — Responsive Final Audit Phase 5 | 🟡 Audited | 2026-08-22. Las cinco fases fueron auditadas sobre `main` con clasificación triestado. Se corrigieron Proyectos (fila/tarjeta + segmento/select), el breakpoint local de Blog edit y las acciones hover-only de Kanban/Perfil; QA independiente aprobó contrato 101/12/5, unit 7/7, matrices focales 20/20 (Proyectos 5 + Perfil/Kanban 15) y flujos de selector/guardado 2/2. El informe final registra RSP-01…16, PA-45/61/66/73, correcciones y RSP-F5-01…04. Permanece amarillo hasta certificar hardware físico y resolver/versionar overlays y harness/ledger residuales. |
 | Responsive Standard — PA-75 through Phase 4 | ✅ Done | 2026-08-22. The 101 Nuxt pages are owned by 12 responsive modules over the canonical 412/835/1195/1440/2560 matrix. Shared table/list, filter, modal, navigation, action and page-shell contracts were adopted through Commercial, Emails, Document Canvas, Dashboard, Content, MCP and public views; earlier PA-45/61/66/69/70/73 instances are governed by the same standard. Playwright supplies a written five-width script per module, PR CI runs affected modules, monthly CI runs all modules, and a February/August issue reviews device assumptions. No backend or schema changes. |
 | Business Proposal — Core Models | ✅ Done | BusinessProposal, ProposalSection, ProposalAlert, RequirementGroup/Item |
 | Business Proposal — Public View | ✅ Done | Fullscreen horizontal scroll, 12 section components, GSAP animations |
@@ -150,6 +151,10 @@
 
 | Issue | Priority | Notes |
 |-------|----------|-------|
+| RSP-F5-01 — Physical responsive certification | P0 | Backlog. Ejecutar el guion de 12 módulos en hardware real para los cinco perfiles y conservar evidencia de touch, teclado, barras/safe-area, portátil y monitor wide. Playwright no cierra este punto. |
+| RSP-F5-02 — Fleet responsive standard drift | P1 | Backlog externo en `vps-ops-toolkit`. El proyecto referencia `/responsive-module`, el canónico aún `/responsive-pass`; sincronizar y sembrar/medir el ledger sin degradar la copia vigente. |
+| RSP-F5-03 — Legacy overlay migration | P1 | Backlog. Clasificar cada `fixed inset-0`, migrar modales/drawers a primitives y justificar por escrito los workspaces/overlays públicos legítimos antes de declarar PA-45 completamente cerrada. |
+| RSP-F5-04 — Responsive E2E and ledger alignment | P1 | Backlog. Sustituir o versionar los cinco Playwright projects globales, llevar cada checklist a un E2E calificable y mapear módulos responsivos como `clients` a flows `admin`/`platform` medibles por QA. |
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
 | Port 3000 squatted by `kore_project` | Medium | A Windsurf terminal respawns `kore_project` Next.js on port 3000. Workaround: run Nuxt on 3001 with `E2E_PORT=3001`. Tracked as `KNOWN-001` in `error-documentation.md`. |
 | Large service files | Medium | `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large enough to justify future splitting |

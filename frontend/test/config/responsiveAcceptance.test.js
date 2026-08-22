@@ -4,6 +4,7 @@ import {
   modulesForChangedFiles,
   responsiveOwnerForView,
 } from '../../config/responsiveAcceptance';
+import { VIEWPORTS, viewportUse } from '../../e2e/helpers/viewports';
 
 describe('responsive acceptance registry', () => {
   it('keeps the five canonical viewport widths', () => {
@@ -14,6 +15,18 @@ describe('responsive acceptance registry', () => {
       1440,
       2560,
     ]);
+  });
+
+  it('exposes the project matrix through the E2E viewport helper', () => {
+    expect(VIEWPORTS).toBe(PANEL_VIEWPORTS);
+    expect(viewportUse('portrait')).toEqual({
+      viewport: { width: 835, height: 1195 },
+      hasTouch: true,
+    });
+  });
+
+  it('rejects an unknown E2E viewport alias', () => {
+    expect(() => viewportUse('tablet')).toThrow('Viewport responsivo desconocido: tablet');
   });
 
   it('runs only the owning module for a scoped page', () => {

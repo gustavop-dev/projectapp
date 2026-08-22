@@ -353,3 +353,24 @@ Desde esta fase, una solución responsiva es válida si:
 
 Si aparece un caso no cubierto, se añade primero al estándar y se decide si es
 una nueva clase de patrón. No se resuelve de forma aislada dentro del módulo.
+
+## 12. Conciliación final — Fase 5
+
+La auditoría sobre las cinco fases integradas en `main` cerró la contradicción
+entre este inventario histórico y el estado actual. El resultado detallado por
+criterio y módulo vive en
+`docs/audits/2026-08-22-responsive-phase-5-final.md`.
+
+- RSP-01–06 y RSP-08–16 cumplen el patrón canónico.
+- RSP-07 cumple de forma distinta: `BaseModal` es canónico y tiene adopción
+  mayoritaria, pero todavía existen overlays locales. Su migración queda en
+  RSP-F5-03.
+- PA-61, PA-66 y PA-73 tienen cierre técnico contra este estándar.
+- PA-45 conserva trazabilidad, pero no puede considerarse migrada por completo
+  hasta retirar o justificar los overlays residuales.
+- La matriz automatizada usa viewports/touch emulados. La certificación exigida
+  en hardware físico queda en RSP-F5-01 y no debe inferirse de Playwright.
+
+Esta sección es el estado vigente. Las secciones 5, 6, 8 y 10 conservan la
+fotografía de Fase 0 para trazabilidad y no describen deuda abierta actual salvo
+los residuales enumerados aquí.

@@ -189,7 +189,7 @@ test.describe('Platform Kanban Board — Admin', () => {
   });
 
   test('renders board with the kanban columns and cards distributed by status', {
-    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin', '@responsive:clients'],
   }, async ({ page }) => {
     await setupPlatformMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
@@ -203,6 +203,23 @@ test.describe('Platform Kanban Board — Admin', () => {
     await expect(page.getByText('Diseño de landing page')).toBeVisible();
     await expect(page.getByText('API de autenticación')).toBeVisible();
     await expect(page.getByText('Integración pasarela de pagos')).toBeVisible();
+  });
+
+  test('focusing the completion action makes it opaque', {
+    tag: ['@outcome:display', ...PLATFORM_KANBAN_BOARD, '@role:platform-admin', '@responsive:clients'],
+  }, async ({ page }) => {
+    // Bug caught: the touch completion action remained invisible when reached by keyboard focus.
+    // quality: allow-deep-link (focus behavior is local to the board action; board navigation is covered separately)
+    await setupPlatformMocks(page, { user: mockPlatformAdmin });
+    await page.goto('/platform/projects/1/board', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('heading', { name: 'Tablero' }).waitFor({ state: 'visible', timeout: 30000 });
+
+    const completeButton = page
+      .locator('[data-status="in_review"]')
+      .getByRole('button', { name: 'Marcar como completado' });
+    await expect(completeButton).toHaveCount(1);
+    await completeButton.focus();
+    await expect(completeButton).toHaveCSS('opacity', '1');
   });
 
   test('displays progress pill with percentage and done count', {
@@ -333,7 +350,7 @@ test.describe('Platform Kanban Board — Admin', () => {
 
     const inReviewColumn = page.locator('[data-status="in_review"]');
     const doneColumn = page.locator('[data-status="done"]');
-    const completeButton = inReviewColumn.getByTitle('Marcar como completado');
+    const completeButton = inReviewColumn.getByRole('button', { name: 'Marcar como completado' });
     await expect(completeButton).toHaveCount(1);
 
     const movePromise = page.waitForRequest(

@@ -1,0 +1,15 @@
+{
+  "id": "platform-profile-avatar-picker",
+  "name": "Platform Profile Avatar Picker",
+  "module": "platform",
+  "roles": [
+    "platform-admin",
+    "platform-client"
+  ],
+  "priority": "P2",
+  "description": "Open the native single-image file chooser from the accessible avatar action on the profile page.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "success"
+  ]
+}

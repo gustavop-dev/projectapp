@@ -1,8 +1,8 @@
 /**
  * Canonical responsive contract for the internal panel.
  *
- * The ranges sit between the five real devices from PA-75. Components use
- * the ranges; Playwright uses the exact reference viewports below. Keeping
+ * The ranges sit between the five reference viewports from PA-75. Components
+ * use the ranges; Playwright emulates the exact viewports below. Keeping
  * both here prevents CSS, JavaScript and acceptance tests from inventing
  * their own idea of "tablet".
  */

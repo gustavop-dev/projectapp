@@ -1,17 +1,16 @@
 import { defineConfig, devices } from '@playwright/test';
-import { PANEL_VIEWPORTS } from './config/responsive.js';
+import { VIEWPORTS, viewportUse } from './e2e/helpers/viewports.js';
 
 const PORT = process.env.E2E_PORT ? Number(process.env.E2E_PORT) : 3000;
 const baseURL = process.env.E2E_BASE_URL || `http://localhost:${PORT}`;
 const reuseExistingServer = !process.env.CI;
 const isResponsiveRun = process.env.E2E_RESPONSIVE === '1';
 
-const responsiveProjects = Object.entries(PANEL_VIEWPORTS).map(([name, viewport]) => ({
+const responsiveProjects = Object.keys(VIEWPORTS).map((name) => ({
   name: `responsive-${name}`,
   use: {
     ...devices['Desktop Chrome'],
-    viewport,
-    hasTouch: ['compact', 'portrait', 'landscape'].includes(name),
+    ...viewportUse(name),
     isMobile: name === 'compact',
   },
 }));

@@ -2,13 +2,17 @@
  * E2E tests for platform profile edit flow.
  *
  * @flow:platform-profile-edit
+ * @flow:platform-profile-avatar-picker
  * Covers: profile page render with avatar and form fields,
  *         save changes, validation error display,
  *         cancel navigation, role badge display.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
-import { PLATFORM_PROFILE_EDIT } from '../helpers/flow-tags.js';
+import {
+  PLATFORM_PROFILE_AVATAR_PICKER,
+  PLATFORM_PROFILE_EDIT,
+} from '../helpers/flow-tags.js';
 import {
   setPlatformAuth,
   mockPlatformAdmin,
@@ -43,7 +47,7 @@ test.describe('Platform Profile Edit — Admin', () => {
   });
 
   test('renders profile page with user data and editable fields', {
-    tag: ['@outcome:display', ...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
+    tag: ['@outcome:display', ...PLATFORM_PROFILE_EDIT, '@role:platform-admin', '@responsive:clients'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display — profile renders the user's data and editable fields; the edit interaction is covered by the save test)
     await setupProfileMocks(page, mockPlatformAdmin);
@@ -52,7 +56,47 @@ test.describe('Platform Profile Edit — Admin', () => {
     const main = page.locator('main');
     await expect(main.getByText('Admin E2E')).toBeVisible();
     await expect(main.getByText('admin@e2e-test.com')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Cambiar foto de perfil' })).toBeVisible();
     await expect(page.getByRole('button', { name: /guardar cambios/i })).toBeVisible();
+  });
+
+  test('opening the avatar picker keeps the image-only single-file contract', {
+    tag: ['@outcome:success', ...PLATFORM_PROFILE_AVATAR_PICKER, '@role:platform-admin'],
+  }, async ({ page }) => {
+    // Bug caught: the accessible avatar action stopped opening the image-only single-file picker.
+    // quality: allow-deep-link (the picker contract is local to the profile surface; profile navigation is covered separately)
+    await setupProfileMocks(page, mockPlatformAdmin);
+    await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
+
+    const avatarPicker = page.getByRole('button', { name: 'Cambiar foto de perfil' });
+    const [fileChooser] = await Promise.all([
+      page.waitForEvent('filechooser'),
+      avatarPicker.click(),
+    ]);
+
+    const avatarInput = fileChooser.element();
+    expect(await avatarInput.getAttribute('accept')).toBe('image/*');
+    expect(fileChooser.isMultiple()).toBe(false);
+  });
+
+  test('saving a changed first name confirms the update', {
+    tag: ['@outcome:success', ...PLATFORM_PROFILE_EDIT, '@role:platform-admin'],
+  }, async ({ page }) => {
+    // Bug caught: saving the profile stopped sending the edited name or stopped confirming the update.
+    await setupProfileMocks(page, mockPlatformAdmin);
+    await page.goto('/platform/profile', { waitUntil: 'domcontentloaded' });
+
+    const firstNameInput = page.getByLabel('Nombre', { exact: true });
+    await firstNameInput.fill('Ada');
+
+    const updateRequest = page.waitForRequest(
+      (request) => /accounts\/me\/$/.test(request.url()) && request.method() === 'PATCH',
+    );
+    await page.getByRole('button', { name: /guardar cambios/i }).click();
+    const request = await updateRequest;
+
+    expect(request.postDataJSON()).toMatchObject({ first_name: 'Ada' });
+    await expect(page.getByText('Perfil actualizado correctamente.')).toHaveText('Perfil actualizado correctamente.');
   });
 
   test('shows validation error on API failure', {

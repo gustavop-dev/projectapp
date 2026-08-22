@@ -42,10 +42,50 @@ reportDifference('Entradas obsoletas del catálogo', catalogFiles.filter((file) 
 const duplicates = [...new Set(catalogFiles.filter((file, index) => catalogFiles.indexOf(file) !== index))];
 reportDifference('Páginas duplicadas en el catálogo', duplicates);
 
+const panelPageSources = await Promise.all(
+  pages
+    .filter((file) => file.startsWith('frontend/pages/panel/'))
+    .map(async (file) => ({ file, source: await readFile(join(repoRoot, file), 'utf8') })),
+);
+const localPanelBreakpoints = panelPageSources
+  .filter(({ source }) => /window\.innerWidth|window\.matchMedia\s*\(/.test(source))
+  .map(({ file }) => file);
+reportDifference(
+  'Páginas del panel con breakpoints JS locales; usar config/responsive.js y useIsMobile',
+  localPanelBreakpoints,
+);
+
+const interactiveFiles = [
+  ...await walkVueFiles(join(frontendRoot, 'components')),
+  ...await walkVueFiles(join(frontendRoot, 'pages')),
+];
+const hoverOnlyControls = [];
+for (const path of interactiveFiles) {
+  const source = await readFile(path, 'utf8');
+  for (const match of source.matchAll(/<(?:button|a)\b[\s\S]*?>/g)) {
+    const openingTag = match[0];
+    const hidesUntilHover = /opacity-0/.test(openingTag) && /group-hover(?:\/[^:]+)?:opacity-100/.test(openingTag);
+    const hasAlternative = /touch-reveal|focus(?:-visible)?:opacity-100/.test(openingTag);
+    if (hidesUntilHover && !hasAlternative) {
+      const line = source.slice(0, match.index).split('\n').length;
+      hoverOnlyControls.push(`${relative(repoRoot, path).replaceAll('\\', '/')}:${line}`);
+    }
+  }
+}
+reportDifference(
+  'Controles ocultos hasta hover sin alternativa táctil o de foco',
+  hoverOnlyControls,
+);
+
 const viewportWidths = RESPONSIVE_VIEWPORT_NAMES.map((name) => PANEL_VIEWPORTS[name].width);
 const expectedWidths = [412, 835, 1195, 1440, 2560];
 if (JSON.stringify(viewportWidths) !== JSON.stringify(expectedWidths)) {
   throw new Error(`Los viewports canónicos deben ser ${expectedWidths.join(', ')}; recibidos: ${viewportWidths.join(', ')}`);
+}
+const viewportHeights = RESPONSIVE_VIEWPORT_NAMES.map((name) => PANEL_VIEWPORTS[name].height);
+const expectedHeights = [915, 1195, 835, 900, 1440];
+if (JSON.stringify(viewportHeights) !== JSON.stringify(expectedHeights)) {
+  throw new Error(`Las alturas canónicas deben ser ${expectedHeights.join(', ')}; recibidas: ${viewportHeights.join(', ')}`);
 }
 
 const withoutOwner = catalogEntries

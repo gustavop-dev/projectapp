@@ -200,6 +200,23 @@ async function gotoProjects(page) {
   ).toBeVisible({ timeout: 25_000 });
 }
 
+function projectListItem(page, projectId) {
+  return page.locator([
+    `[data-testid="accounting-row-${projectId}"]`,
+    `[data-testid="project-card-${projectId}"]`,
+  ].join(', '));
+}
+
+async function selectProjectScope(page, value) {
+  const mobileScope = page.getByTestId('projects-scope-mobile');
+  if (await mobileScope.isVisible()) {
+    await mobileScope.selectOption(value);
+    return;
+  }
+
+  await page.getByTestId(`projects-scope-${value}`).click();
+}
+
 test.describe('Admin Panel Projects', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -238,13 +255,13 @@ test.describe('Admin Panel Projects', () => {
     await gotoProjects(page);
 
     // Landing scope hides the archived row.
-    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
-    await expect(page.getByTestId('accounting-row-2')).toHaveCount(0);
+    await expect(projectListItem(page, 1)).toBeVisible();
+    await expect(projectListItem(page, 2)).toHaveCount(0);
 
-    await page.getByTestId('projects-scope-archived').click();
-    await expect(page.getByTestId('accounting-row-2')).toBeVisible();
-    await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
-    await expect(page.getByTestId('accounting-row-2')).toContainText('Archivado');
+    await selectProjectScope(page, 'archived');
+    await expect(projectListItem(page, 2)).toBeVisible();
+    await expect(projectListItem(page, 1)).toHaveCount(0);
+    await expect(projectListItem(page, 2)).toContainText('Archivado');
   });
 
   test('creates a project with the PA-38 minimum through the modal', {
