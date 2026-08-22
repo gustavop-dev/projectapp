@@ -177,7 +177,9 @@ test.describe('Admin Client Edit Modal', () => {
     await page.goto('/panel/clients', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Clientes' })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByTestId('client-edit-301').click();
+    await page.getByTestId('client-actions-301').click();
+    const actions = page.getByTestId('client-actions-drawer');
+    await actions.getByRole('button', { name: 'Editar cliente' }).click();
     await expect(page.getByTestId('clients-edit-nit')).toBeVisible({ timeout: 5_000 });
 
     const nit = await page.getByTestId('clients-edit-nit').boundingBox();

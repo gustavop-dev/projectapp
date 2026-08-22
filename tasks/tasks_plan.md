@@ -29,6 +29,7 @@
 | Business Proposal — Email Templates Editor | ✅ Done | View, edit, preview, reset email content |
 | Business Proposal — Default Config | ✅ Done | Per-language default section templates |
 | Business Proposal — Clients List | ✅ Done | Real `accounts.UserProfile` client entities power `/panel/clients/`, proposal autocomplete, orphan cleanup, and snapshot sync back to linked proposals |
+| Responsive Plan — Phase 3: Documents, Clients & Projects | ✅ Done | 2026-08-22. The three panel modules now consume the canonical responsive config and its five-viewport contract (412/835/1195/1440/2560): compact drawers and cards below `PANEL_BREAKPOINTS.landscape`, two-zone/table layouts at the landscape device, phone full-screen modals, touch-only alternatives for row actions/reassignment, and a 1400 px content cap. One Playwright matrix navigates through the panel and validates all 15 module/viewport combinations without page overflow. |
 | Portfolio Works — Public | ✅ Done | Listing and detail with bilingual structured JSON |
 | Portfolio Works — Admin CRUD | ✅ Done | Create, edit, delete, duplicate, cover image upload, JSON import |
 | Blog — Public | ✅ Done | Listing with featured hero, categories, pagination, detail with JSON/HTML |

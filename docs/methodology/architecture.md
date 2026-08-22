@@ -281,7 +281,7 @@ as Tailwind colors (`bg-surface`, `text-text-default`, `border-input-border`,
 etc.). Light/dark values flip with the `.dark` class on `<html>`, toggled by
 `useDiagnosticDarkMode`. Base components in `frontend/components/base/`
 (`BaseInput`, `BaseSelect`, `BaseTextarea`, `BaseButton`, `BaseBadge`,
-`BaseCard`) wrap native HTML using these tokens, so consumer markup does not
+`BaseCard`, `BaseDrawer`) wrap native HTML using these tokens, so consumer markup does not
 need `dark:` variants. New views must prefer these tokens and components;
 legacy code (with `bg-white dark:bg-gray-700` or `bg-esmerald` literals)
 coexists and migrates incrementally. See
@@ -316,6 +316,29 @@ stacked compact representation, while Pocket relocates the running balance
 inside the retained amount cell below 1024 px so the ledger keeps its meaning.
 Long modal flows declare a semantic `kind`, and hosting/collection row actions
 converge on one touch-safe menu when their inline controls no longer fit.
+
+`BaseDrawer` is the shared transient second zone for compact panel views: it
+teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll
+and supports left/right/bottom placement. `BaseModal` keeps the Phase 1 semantic
+size vocabulary and its canonical phone-fullscreen behavior; Phase 3 consumers
+only provide scrollable bodies and sticky actions where their workflow needs it.
+
+### 6.0.1 Responsive panel contract
+
+| Viewport | Layout role | Documentos | Clientes | Proyectos |
+|----------|-------------|------------|----------|-----------|
+| 412×915 | Phone | Folder drawer + gallery | Filter/action drawers + stacked records | One-column cards + secondary-KPI disclosure |
+| 835×1194 | Portrait tablet | Folder drawer + two-column gallery | Same progressive filters + full KPI row | Two-column cards |
+| 1195×835 | Landscape tablet | Two zones + prioritized table | Visible two-level filters | Sortable table |
+| 1440×900 | Laptop | Full desktop information | Full desktop information | Full desktop information |
+| 2560×1440 | Large monitor | 1400 px centered cap | 1400 px centered cap | 1400 px centered cap |
+
+The compact decision comes from
+`PANEL_BREAKPOINTS.landscape` in `frontend/config/responsive.js`, not a
+collection of independent CSS hides. Each branch owns one interactive DOM so
+drawers, rows and action menus are never duplicated for assistive technology or
+Playwright. Data, filters and URL state stay in the existing stores/composables;
+the responsive layer changes presentation only.
 
 ### 6.1 Page Routing
 

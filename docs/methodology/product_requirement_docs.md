@@ -251,8 +251,10 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   1195, 1440 and 2560 px. Shared primitives own table column priorities,
   tab/filter collapse, modal widths and stacking, navigation, bulk/row actions,
   touch targets, typography and the 1400 px general-content ceiling. The canonical
-  standard and prioritized module inventory live in
-  `docs/RESPONSIVE_STANDARD.md`.
+  fleet standard, project inventory and implementation contract live in
+  `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
+  `docs/methodology/responsive-standard.md`, respectively.
+- **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
 
 ### 3.13 Internationalization (i18n)
 

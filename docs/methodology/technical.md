@@ -174,6 +174,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - The portrait-tablet profile is an explicit acceptance target, and admin content is capped at 1400 px on the large-monitor profile.
 - The responsive Definition of Done, commands and periodic review live in `docs/methodology/responsive-acceptance.md`.
 
+### Responsive panel decisions are capability branches
+
+- The operational compact boundary is `useIsMobile(PANEL_BREAKPOINTS.landscape - 1)`: 412 px and 835 px use drawers/cards; the real 1195 px landscape tablet uses the two-zone/table branch. Tailwind remains responsible for inner density and card columns, not for duplicating whole interactive trees.
+- `BaseDrawer` owns modal semantics, focus containment, Escape/backdrop close and body-scroll lock. Use it for a transient folder/filter/action zone; do not rebuild those mechanics inside a page.
+- `BaseModal` already uses `100dvh` below `panel-portrait` and preserves its semantic size above that boundary. Long workflows keep a scrollable body and sticky footer actions; consumers do not introduce a second fullscreen prop.
+- Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
+- Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
+
 ### Static payload and collection policy
 
 - Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.
@@ -276,6 +284,8 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 - **Pinia Options API** — all stores use Options API (state, getters, actions), not Composition API
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
+- **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
+- **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
 - **Composables** — 59 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
 - **Component architecture** — 299 `.vue` components (307 files) under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
