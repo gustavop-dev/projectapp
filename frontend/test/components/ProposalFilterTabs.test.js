@@ -304,10 +304,10 @@ describe('ProposalFilterTabs restorable base', () => {
 
     it('wraps the strip onto several lines instead of clipping it', () => {
       const wrapper = mountTabs({ tabs: manyTabs });
-      const strip = wrapper.find('.md\\:flex');
+      const strip = wrapper.get('[data-testid="filter-tabs-strip"]');
 
       expect(strip.classes()).toEqual(
-        expect.arrayContaining(['flex-wrap', 'md:flex']),
+        expect.arrayContaining(['flex-wrap', 'panel-landscape:flex']),
       );
       expect(strip.classes()).not.toContain('overflow-x-auto');
     });
