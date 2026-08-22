@@ -243,6 +243,9 @@ const NON_COLOR_BY_UTILITY = {
     'left', 'center', 'right', 'justify', 'start', 'end',
     'balance', 'pretty', 'wrap', 'nowrap', 'clip', 'ellipsis',
     'base', 'xs', 'opacity',
+    // Shared panel typography scale from theme.extend.fontSize. These are
+    // sizes, not color-token references.
+    'panel-title', 'panel-heading', 'panel-body', 'panel-meta',
   ]),
   border: new Set([
     'solid', 'dashed', 'dotted', 'double', 'hidden', 'collapse', 'separate',

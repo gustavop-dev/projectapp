@@ -269,10 +269,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - **Panel responsive contract** — import breakpoints/media/reference devices
   from `frontend/config/responsive.js`; use the `panel-*` Tailwind screens and
   shared base primitives instead of local `window.innerWidth` thresholds.
-  Acceptance runs at 412×915, 835×1194, 1195×835, 1440×900 and 2560×1440;
-  content is capped at 1440 px and touch actions expose at least 44 px targets.
+  Acceptance runs at 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440;
+  general content is capped at 1400 px and touch actions expose at least 44 px targets.
   Full decisions and the adoption inventory are in
-  `docs/methodology/responsive-standard.md`.
+  `docs/RESPONSIVE_STANDARD.md`.
+- **Accounting responsive acceptance** — the twelve accounting routes use
+  business-declared table/KPI priorities rather than positional hiding. The
+  executable representative checks live in
+  `frontend/e2e/admin/admin-accounting-pocket-recurring.spec.js`; the complete
+  repeatable 60-cell route/viewport matrix and long-modal scenarios are in
+  `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
 
 ---
 

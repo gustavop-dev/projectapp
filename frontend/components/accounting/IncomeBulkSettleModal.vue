@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="detail"
     size="xl"
     title-id="income-bulk-settle-title"
     @close="emit('close')"
@@ -185,7 +186,7 @@
           >
             {{ saving ? '' : submitBlockReason }}
           </p>
-          <div class="flex items-center justify-end gap-2">
+          <div class="flex flex-col-reverse items-stretch gap-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
             <BaseButton type="button" variant="secondary" @click="emit('close')">
               Cancelar
             </BaseButton>

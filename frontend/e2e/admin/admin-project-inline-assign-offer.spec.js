@@ -199,7 +199,9 @@ test.describe('Admin Projects — inline create offers the client backlog', () =
     await expect(
       page.getByRole('heading', { name: 'Hostings', exact: true }),
     ).toBeVisible({ timeout: 25_000 });
-    await expect(page.getByTestId('hosting-no-project-21')).toBeVisible();
+    await expect(
+      page.getByTestId('hosting-no-project-21').filter({ visible: true }),
+    ).toBeVisible();
 
     // Inline create from the form's picker (crear al vuelo).
     await page.getByTestId('hostings-new-button').click();

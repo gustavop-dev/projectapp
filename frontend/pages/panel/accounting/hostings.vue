@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -11,6 +11,7 @@
       <BaseButton
         variant="primary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="hostings-new-button"
         @click="openCreateModal"
       >
@@ -22,43 +23,44 @@
     <AccountingSubnav active="hostings" />
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
-      <AccountingStatCard
-        label="Hostings activos"
-        :value="String(hostingsMeta.active_count ?? 0)"
-        tone="brand"
-      />
-      <AccountingStatCard
-        label="Ingreso mensual"
-        :value="formatMoney(hostingsMeta.monthly_income ?? 0)"
-        tone="success"
-      />
-      <AccountingStatCard
-        label="Por vencer en 30 días"
-        :value="String(hostingsMeta.expiring_soon_count ?? 0)"
-        :tone="(hostingsMeta.expiring_soon_count ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Activos con vigencia próxima"
-      />
-      <AccountingStatCard
-        label="Total pagado histórico"
-        :value="formatMoney(hostingsMeta.total_paid ?? 0)"
-      />
-      <AccountingStatCard
-        label="Sin cliente"
-        :value="String(hostingsMeta.without_client_count ?? 0)"
-        :tone="(hostingsMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Pendientes de vincular"
-      />
-      <!-- Válido pero visible: un vacío legítimo que igual se muestra como
-           pendiente. Cuenta sólo filas con cliente (sin cliente no hay
-           proyecto que proponer). -->
-      <AccountingStatCard
-        label="Sin proyecto"
-        :value="String(hostingsMeta.without_project_count ?? 0)"
-        :tone="(hostingsMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
-        sub="Con cliente, pendientes de proyecto"
-      />
-    </div>
+    <AccountingIndicatorGroup :columns="6" :secondary-count="3">
+      <template #primary>
+        <AccountingStatCard
+          label="Por vencer en 30 días"
+          :value="String(hostingsMeta.expiring_soon_count ?? 0)"
+          :tone="(hostingsMeta.expiring_soon_count ?? 0) > 0 ? 'warning' : 'default'"
+          sub="Activos con vigencia próxima"
+        />
+        <AccountingStatCard
+          label="Ingreso mensual"
+          :value="formatMoney(hostingsMeta.monthly_income ?? 0)"
+          tone="success"
+        />
+        <AccountingStatCard
+          label="Hostings activos"
+          :value="String(hostingsMeta.active_count ?? 0)"
+          tone="brand"
+        />
+      </template>
+      <template #secondary>
+        <AccountingStatCard
+          label="Total pagado histórico"
+          :value="formatMoney(hostingsMeta.total_paid ?? 0)"
+        />
+        <AccountingStatCard
+          label="Sin cliente"
+          :value="String(hostingsMeta.without_client_count ?? 0)"
+          :tone="(hostingsMeta.without_client_count ?? 0) > 0 ? 'warning' : 'default'"
+          sub="Pendientes de vincular"
+        />
+        <AccountingStatCard
+          label="Sin proyecto"
+          :value="String(hostingsMeta.without_project_count ?? 0)"
+          :tone="(hostingsMeta.without_project_count ?? 0) > 0 ? 'warning' : 'default'"
+          sub="Con cliente, pendientes de proyecto"
+        />
+      </template>
+    </AccountingIndicatorGroup>
 
     <!-- Saved filter tabs -->
     <ProposalFilterTabs
@@ -75,7 +77,7 @@
     />
 
     <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -144,6 +146,7 @@
         :highlight-id="lastMutatedId"
         :columns="columns"
         :rows="pagedRecords"
+        :show-actions="!isNarrowActions"
         :highlight-query="currentFilters.search"
         :sort-key="sortKey"
         :sort-dir="sortDir"
@@ -265,6 +268,21 @@
             </span>
           </div>
         </template>
+        <template #cell-row_actions="{ row }">
+          <div class="flex items-center justify-end">
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Acciones del hosting"
+              title="Acciones"
+              :data-testid="`hosting-actions-${row.id}`"
+              @click="hostingActionsRow = row"
+            >
+              <EllipsisVerticalIcon class="h-5 w-5" />
+            </BaseButton>
+          </div>
+        </template>
         <template #row-actions="{ row }">
           <BaseButton
             variant="ghost"
@@ -378,6 +396,18 @@
       @changed="onCyclesChanged"
     />
 
+    <HostingActionsModal
+      :open="hostingActionsRow !== null"
+      :record="hostingActionsRow"
+      :billing-busy="billingId === hostingActionsRow?.id"
+      @close="hostingActionsRow = null"
+      @cycles="openCyclesModal"
+      @send-billing="askSendBilling"
+      @emails="goToHostingEmails"
+      @edit="openEditModal"
+      @delete="confirmDeleteRecord"
+    />
+
     <ConfirmModal
       v-model="billingConfirmOpen"
       title="Enviar cuenta de cobro"
@@ -388,14 +418,13 @@
       @confirm="sendBilling"
       @cancel="billingRow = null"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref, watch } from 'vue';
 import {
-  ClockIcon, EnvelopeIcon, PaperAirplaneIcon, PlusIcon,
+  ClockIcon, EllipsisVerticalIcon, EnvelopeIcon, PaperAirplaneIcon, PlusIcon,
 } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
@@ -405,16 +434,20 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import AccountingExportButton from '~/components/accounting/AccountingExportButton.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingStatusSelect from '~/components/accounting/AccountingStatusSelect.vue';
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import HostingCyclesModal from '~/components/accounting/HostingCyclesModal.vue';
+import HostingActionsModal from '~/components/accounting/HostingActionsModal.vue';
 import HostingFormModal from '~/components/accounting/HostingFormModal.vue';
 import BulkAssignBar from '~/components/accounting/BulkAssignBar.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
@@ -442,6 +475,8 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] }
 const store = useAccountingStore();
 const projectsStore = usePanelProjectsStore();
 const notify = usePanelNotify();
+const { isMobile: isNarrowActions } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const hostingActionsRow = ref(null);
 
 /** Noun the bulk client bar uses in its confirmation and result copy. */
 const HOSTING_ENTITY = { singular: 'hosting', plural: 'hostings' };
@@ -714,19 +749,58 @@ const {
   sortDefaults: { monthly_value: 'desc', total_paid: 'desc' },
 });
 
-const columns = [
-  { key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true },
-  { key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md' },
-  { key: 'domain_url', label: 'Dominio' },
-  { key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true },
-  { key: 'payment_modality_label', label: 'Modalidad' },
-  { key: 'validity', label: 'Vigencia' },
+const baseColumns = [
+  {
+    key: 'client_display_name', label: 'Cliente', size: 'name', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'project_name', label: 'Proyecto', size: 'name', sortable: true, hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'domain_url', label: 'Dominio',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'monthly_value', label: 'Valor/mes', format: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'payment_modality_label', label: 'Modalidad',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'validity', label: 'Vigencia',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
   // `link: true`: el conteo de ciclos ES lo que el detalle despliega, así que
   // ahí va el enlace al histórico.
-  { key: 'cycles_count', label: 'Ciclos', align: 'center', link: true },
-  { key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true },
-  { key: 'is_active', label: 'Estado' },
+  {
+    key: 'cycles_count', label: 'Ciclos', align: 'center', link: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'total_paid', label: 'Total pagado', format: 'money', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
+  {
+    key: 'is_active', label: 'Estado',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
 ];
+
+const columns = computed(() => (
+  isNarrowActions.value
+    ? [
+      ...baseColumns,
+      {
+        key: 'row_actions', label: '', align: 'right', size: 'icons',
+        responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+      },
+    ]
+    : baseColumns
+));
 
 // Fed the FULL store list, not the filtered rows: the selection is meant to
 // survive a filter change, so only "this hosting no longer exists" may drop an

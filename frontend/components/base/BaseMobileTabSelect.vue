@@ -1,6 +1,6 @@
 <template>
   <!--
-    Sólo existe por debajo de `landscape` (1000px): el breakpoint vive acá y no en cada
+    Sólo existe por debajo de `landscape` (1024px): el breakpoint vive acá y no en cada
     consumidor, que es lo que mantiene a las tres superficies (navegación del
     contable, BaseTabs y la tira de filtros guardados) colapsando en el mismo
     punto sin tener que acordarse de repetirlo.

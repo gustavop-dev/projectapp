@@ -5,6 +5,7 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE } from '~/components/base/inputClasses';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePersistedRef } from '~/composables/usePersistedRef';
@@ -569,10 +570,10 @@ const SPLIT_MAX = 60;
 const SPLIT_DEFAULT = 40;
 const SPLIT_KEY = 'projectapp-collection-preview-split';
 
-// Below 1024px neither pane stays legible side by side, so both collapse into
-// tabs; below 640px the PDF is the one worth landing on.
-const { isMobile: isNarrow } = useIsMobile(1023);
-const { isMobile: isPhone } = useIsMobile(639);
+// Below the canonical landscape profile neither pane stays legible side by
+// side, so both collapse into tabs; compact opens on the PDF first.
+const { isMobile: isNarrow } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const { isMobile: isPhone } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
 const isSplit = computed(() => !isNarrow.value);
 
 function clampSplit(value) {
@@ -785,6 +786,7 @@ function downloadPdf() {
 <template>
   <BaseModal
     :model-value="open"
+    :kind="step === 'preview' ? 'workspace' : 'detail'"
     :size="step === 'preview' ? 'full' : '2xl'"
     :full-height="step === 'preview'"
     title-id="collection-form-title"
@@ -1192,7 +1194,7 @@ function downloadPdf() {
         />
       </BaseFormField>
 
-      <div class="flex items-center justify-end gap-3 pt-2">
+      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
         <BaseButton type="button" variant="secondary" @click="close">
           Cancelar
         </BaseButton>
@@ -1348,7 +1350,7 @@ function downloadPdf() {
 
       <!-- Fixed: the send decision never needs scrolling to reach. -->
       <div
-        class="shrink-0 flex items-center justify-between gap-3 px-6 py-4 mt-4 border-t border-border-muted"
+        class="mt-4 flex shrink-0 flex-col-reverse items-stretch gap-2 border-t border-border-muted px-6 py-4 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between"
       >
         <BaseButton
           type="button"

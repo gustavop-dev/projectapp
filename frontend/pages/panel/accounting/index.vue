@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -12,13 +12,14 @@
         <BaseSelect
           :model-value="String(store.selectedYear)"
           :options="yearOptions"
-          class="w-28"
+          class="w-full panel-portrait:w-28"
           data-testid="accounting-year-select"
           @update:model-value="onYearChange"
         />
         <BaseButton
           variant="secondary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           :disabled="isExportingWorkbook"
           data-testid="accounting-export-workbook-button"
           @click="exportWorkbook"
@@ -29,6 +30,7 @@
         <BaseButton
           variant="primary"
           size="md"
+          class="flex-1 panel-portrait:flex-none"
           data-testid="accounting-new-income-button"
           @click="openIncomeModal"
         >
@@ -48,6 +50,7 @@
           v-for="n in 4"
           :key="`kpi-skeleton-${n}`"
           class="h-24 rounded-xl border border-border-muted bg-surface-raised motion-safe:animate-pulse"
+          :class="n > 2 ? 'hidden panel-landscape:block' : ''"
         />
       </div>
     </div>
@@ -68,41 +71,47 @@
           stats-button
           @open-stats="showUtilityStats = true"
         />
-        <div
-          class="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:content-start"
+        <AccountingIndicatorGroup
+          :columns="1"
+          :secondary-count="2"
+          class="lg:content-start"
           data-enter
           style="--enter-delay: 80ms"
         >
-          <AccountingStatCard
-            data-testid="accounting-card-expected-month"
-            :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
-            :value="money(summary.expected_current_month?.total)"
-            clickable
-            @click="showExpectedDetail = true"
-          />
-          <AccountingStatCard
-            data-testid="accounting-card-liquid-income"
-            label="Ingresos líquidos"
-            :value="money(summary.liquid_total)"
-            :sub="receivedPct"
-            clickable
-            @click="openIncomeStats"
-          />
-          <AccountingStatCard
-            data-testid="accounting-card-debt"
-            label="Deuda tarjetas"
-            :value="money(summary.card_debt?.total)"
-            :sub="cardDebtSub"
-            tone="danger"
-            clickable
-            @click="openCardsStats"
-          />
-          <AccountingStatCard
-            label="Bolsillo ProjectApp"
-            :value="money(summary.pocket_balance)"
-            tone="brand"
-          />
-        </div>
+          <template #primary>
+            <AccountingStatCard
+              data-testid="accounting-card-expected-month"
+              :label="`Pendiente por cobrar · ${expectedMonthLabel}`"
+              :value="money(summary.expected_current_month?.total)"
+              clickable
+              @click="showExpectedDetail = true"
+            />
+            <AccountingStatCard
+              data-testid="accounting-card-debt"
+              label="Deuda tarjetas"
+              :value="money(summary.card_debt?.total)"
+              :sub="cardDebtSub"
+              tone="danger"
+              clickable
+              @click="openCardsStats"
+            />
+          </template>
+          <template #secondary>
+            <AccountingStatCard
+              data-testid="accounting-card-liquid-income"
+              label="Ingresos líquidos"
+              :value="money(summary.liquid_total)"
+              :sub="receivedPct"
+              clickable
+              @click="openIncomeStats"
+            />
+            <AccountingStatCard
+              label="Bolsillo ProjectApp"
+              :value="money(summary.pocket_balance)"
+              tone="brand"
+            />
+          </template>
+        </AccountingIndicatorGroup>
       </div>
 
       <!-- Row 3: partners -->
@@ -236,34 +245,16 @@
             Ver historial de tarjetas →
           </NuxtLink>
         </div>
-        <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
-          <table class="w-full min-w-[500px] text-sm">
-            <thead>
-              <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
-                <th class="px-5 py-3">Tarjeta</th>
-                <th class="px-4 py-3">Fecha</th>
-                <th class="px-4 py-3 text-right">Disponible</th>
-                <th class="px-4 py-3 text-right">Deuda</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border-muted">
-              <tr
-                v-for="snapshot in summary.latest_card_snapshots"
-                :key="snapshot.card_name"
-                class="hover:bg-surface-raised transition-colors bg-surface"
-              >
-                <td class="px-5 py-3 font-medium text-text-default">{{ snapshot.card_name }}</td>
-                <td class="px-4 py-3 text-text-muted text-xs">{{ snapshot.snapshot_date }}</td>
-                <td class="px-4 py-3 text-right tabular-nums text-text-muted">
-                  {{ money(snapshot.available_amount) }}
-                </td>
-                <td class="px-4 py-3 text-right tabular-nums text-danger-strong">
-                  {{ money(snapshot.debt_amount) }}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <AccountingTable
+          :columns="summaryCardColumns"
+          :rows="summary.latest_card_snapshots"
+          row-key="card_name"
+          :show-actions="false"
+        >
+          <template #cell-debt_amount="{ row }">
+            <span class="tabular-nums text-danger-strong">{{ money(row.debt_amount) }}</span>
+          </template>
+        </AccountingTable>
       </div>
     </template>
 
@@ -329,17 +320,18 @@
       :loading="cardsStatsLoading"
       @close="showCardsStats = false"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingHeroKpi from '~/components/accounting/AccountingHeroKpi.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
+import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingMonthlyTable from '~/components/accounting/AccountingMonthlyTable.vue';
 import AccountingMonthlyChart from '~/components/accounting/charts/AccountingMonthlyChart.vue';
 import CardDebtChart from '~/components/accounting/charts/CardDebtChart.vue';
@@ -367,6 +359,25 @@ const store = useAccountingStore();
 const notify = usePanelNotify();
 
 const summary = computed(() => store.summary);
+
+const summaryCardColumns = [
+  {
+    key: 'card_name', label: 'Tarjeta', size: 'name',
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'snapshot_date', label: 'Fecha', format: 'date',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'available_amount', label: 'Disponible', format: 'money',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'debt_amount', label: 'Deuda', format: 'money',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+];
 
 const yearOptions = computed(() => {
   const maxYear = new Date().getFullYear() + 1;

@@ -490,7 +490,7 @@ function formatGroupedValue(col, value) {
   }
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .base-responsive-table--priority {
     min-width: var(--table-min-width);
   }

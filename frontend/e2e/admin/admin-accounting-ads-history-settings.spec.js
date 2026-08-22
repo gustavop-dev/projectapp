@@ -270,7 +270,7 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(
-      page.getByTestId('accounting-row-2').getByText('$289.923'),
+      page.getByTestId('accounting-row-2').getByText('$289.923').filter({ visible: true }),
     ).toBeVisible();
   });
 
