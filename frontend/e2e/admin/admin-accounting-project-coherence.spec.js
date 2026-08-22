@@ -179,7 +179,9 @@ test.describe('Admin Accounting — client/project coherence across modules', ()
 
     // Same view, no reload: the row rebuilt from the mutation response.
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
-    await expect(page.getByTestId('hosting-no-project-1')).toBeVisible();
+    await expect(
+      page.getByTestId('hosting-no-project-1').filter({ visible: true }),
+    ).toBeVisible();
     expect(calls[0].body).toEqual({ hosting_ids: [1], client: 9 });
 
     // Another module, still no reload: the project's counter moved to 0, so
@@ -202,6 +204,8 @@ test.describe('Admin Accounting — client/project coherence across modules', ()
 
     await page.goto('/panel/accounting/hostings', { waitUntil: 'domcontentloaded' });
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
-    await expect(page.getByTestId('hosting-no-project-1')).toBeVisible();
+    await expect(
+      page.getByTestId('hosting-no-project-1').filter({ visible: true }),
+    ).toBeVisible();
   });
 });

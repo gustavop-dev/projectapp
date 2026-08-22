@@ -218,7 +218,9 @@ test.describe('Admin Accounting — bulk project assignment', () => {
     );
     await page.getByTestId('confirm-modal-confirm').click();
 
-    await expect(page.getByTestId('hosting-no-project-3')).toBeVisible();
+    await expect(
+      page.getByTestId('hosting-no-project-3').filter({ visible: true }),
+    ).toBeVisible();
     expect(calls[0].body).toEqual({ hosting_ids: [3], project: null });
   });
 });
