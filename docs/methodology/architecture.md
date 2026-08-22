@@ -284,7 +284,21 @@ need `dark:` variants. New views must prefer these tokens and components;
 legacy code (with `bg-white dark:bg-gray-700` or `bg-esmerald` literals)
 coexists and migrates incrementally. See
 `frontend/components/base/README.md` for the full token table and migration
-example.
+example. El contrato transversal de breakpoints, anchos máximos, tablas, tabs,
+filtros, modales, formularios, acciones y workspaces está en el
+[estándar responsivo del panel](../RESPONSIVE_STANDARD.md). Sus cinco viewports
+de aceptación son obligatorios para todo cambio de UI bajo `/panel/**`.
+
+Responsive behavior for the internal panel is a second design-system layer.
+`frontend/config/responsive.js` is the single source for width bands and the
+five reference viewports. Tailwind exposes those bands as namespaced
+`panel-portrait`, `panel-landscape`, `panel-desktop` and `panel-wide` screens;
+the names avoid Tailwind's built-in orientation variants. `BasePageShell`
+enforces the 1440 px content ceiling, while `BaseResponsiveTable`,
+`BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`, `BaseActionMenu` and
+`BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
+`BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
+implementations so modules can migrate without an all-at-once rewrite.
 
 ### 6.1 Page Routing
 

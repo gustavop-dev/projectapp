@@ -105,6 +105,18 @@ describe('PanelMobileDrawer', () => {
     expect(wrapper.emitted('close')).toEqual([[]]);
   });
 
+  it('exposes a modal navigation landmark and closes on Escape', async () => {
+    const wrapper = mountDrawer();
+    const drawer = wrapper.get('aside');
+
+    expect(drawer.attributes('role')).toBe('dialog');
+    expect(drawer.attributes('aria-modal')).toBe('true');
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await nextTick();
+
+    expect(wrapper.emitted('close')).toEqual([[]]);
+  });
+
   it('emits close and toggle-theme from the footer action', async () => {
     const wrapper = mountDrawer();
 

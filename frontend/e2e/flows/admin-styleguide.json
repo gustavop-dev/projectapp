@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P3",
-  "description": "Visual regression tests for the design system styleguide page (light and dark mode snapshots).",
+  "description": "Executable design-system contract: light/dark snapshots plus responsive behavior at 412, 835, 1195, 1440 and 2560 px.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

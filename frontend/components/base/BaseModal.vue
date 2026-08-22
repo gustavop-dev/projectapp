@@ -1,10 +1,18 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, useId, watch } from 'vue'
 import { useFocusTrap } from '~/composables/useFocusTrap'
+import { oneOf } from './propValidators'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
   size: { type: String, default: 'md' }, // sm | md | lg | xl | 2xl | 5xl | full
+  /** Semantic width contract for new consumers. `size` remains supported for
+   * legacy callers; when kind is set it is the source of truth. */
+  kind: {
+    type: String,
+    default: '',
+    validator: oneOf(['', 'confirm', 'form', 'detail', 'workspace']),
+  },
   closeOnBackdrop: { type: Boolean, default: true },
   closeOnEsc: { type: Boolean, default: true },
   padding: { type: String, default: 'none' }, // none | md
@@ -25,21 +33,30 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'close'])
 
 const sizes = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-2xl',
-  xl: 'max-w-3xl',
-  '2xl': 'max-w-4xl',
-  '5xl': 'max-w-5xl',
+  sm: 'max-w-none panel-portrait:max-w-sm',
+  md: 'max-w-none panel-portrait:max-w-md',
+  lg: 'max-w-none panel-portrait:max-w-2xl',
+  xl: 'max-w-none panel-portrait:max-w-3xl',
+  '2xl': 'max-w-none panel-portrait:max-w-4xl',
+  '5xl': 'max-w-none panel-portrait:max-w-5xl',
   // Near-fullscreen, capped so it stops stretching on ultrawide monitors.
-  full: 'max-w-[min(90vw,1600px)]',
+  full: 'max-w-none panel-portrait:max-w-[min(90vw,1600px)]',
 }
 
-const sizeClass = computed(() => sizes[props.size] || sizes.md)
+const kinds = {
+  confirm: 'max-w-none panel-portrait:max-w-md',       // 28rem
+  form: 'max-w-none panel-portrait:max-w-2xl',         // 42rem
+  detail: 'max-w-none panel-portrait:max-w-5xl',       // 64rem
+  workspace: 'max-w-none panel-portrait:max-w-[min(90vw,100rem)]',
+}
+
+const sizeClass = computed(() => (
+  props.kind ? kinds[props.kind] : (sizes[props.size] || sizes.md)
+))
 const paddingClass = computed(() => (props.padding === 'md' ? 'p-6' : ''))
 const heightClass = computed(() => (props.fullHeight
-  ? 'h-[90vh] overflow-hidden flex flex-col'
-  : 'max-h-[90vh] overflow-y-auto'))
+  ? 'h-dvh overflow-hidden flex flex-col panel-portrait:h-[90vh]'
+  : 'h-dvh overflow-y-auto panel-portrait:h-auto panel-portrait:max-h-[90vh]'))
 
 const panelRef = ref(null)
 const autoTitleId = ref('')
@@ -105,7 +122,7 @@ watch(
     <Transition name="base-modal-fade">
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        class="fixed inset-0 z-[9999] flex items-center justify-center p-0 panel-portrait:p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="resolvedTitleId"
@@ -114,8 +131,9 @@ watch(
         <div
           ref="panelRef"
           tabindex="-1"
-          class="relative bg-surface rounded-2xl shadow-overlay w-full border border-border-default focus:outline-none"
+          class="base-modal-panel relative w-full rounded-none border-0 border-border-default bg-surface shadow-overlay focus:outline-none panel-portrait:rounded-2xl panel-portrait:border"
           :class="[sizeClass, paddingClass, heightClass]"
+          :data-modal-kind="kind || size"
         >
           <slot />
         </div>
@@ -137,6 +155,12 @@ watch(
   .base-modal-fade-enter-active,
   .base-modal-fade-leave-active {
     transition: none;
+  }
+}
+
+@media (max-width: 599px) {
+  .base-modal-panel {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 }
 </style>

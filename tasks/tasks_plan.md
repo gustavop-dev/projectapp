@@ -4,6 +4,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Panel — Responsive Standard Phase 0 | ✅ Done | 2026-08-22. `docs/RESPONSIVE_STANDARD.md` define cinco viewports de aceptación (412/835/1195/1440/2560), máximos de 1400/1600 px, patrones canónicos por tipo y el censo de 47 superficies renderizables. Inventario: 16 hallazgos (1 P0, 11 P1, 4 P2); PA-45/61 quedan en sus olas, PA-66/73 se consolidan en el criterio compartido. Fase documental: sin cambios de producto. |
 | Business Proposal — Core Models | ✅ Done | BusinessProposal, ProposalSection, ProposalAlert, RequirementGroup/Item |
 | Business Proposal — Public View | ✅ Done | Fullscreen horizontal scroll, 12 section components, GSAP animations |
 | Business Proposal — Refined Closing & Technical Traceability | ✅ Done | 2026-08-21. `FinalNote` usa dos columnas desde `xl`, con ancho útil medido de más de 520 px por tarjeta a 1366 px; los prerrequisitos viven en un disclosure cerrado y CTA/contactos en `ProposalClosing`. Los pagos reservan una línea indivisible para monto, moneda e IVA. Los 14 campos introductorios tienen un contrato de uno o dos énfasis `<b>` seguros en ambos prompts; `0206` normaliza solo `ramon-emiliani` por coincidencia exacta. `ProposalSummary` no crea analítica implícita. Los items incluidos requieren al menos un `linked_item_ids` antes de guardar el detalle técnico; los opcionales no seleccionados solo generan advertencia. Los prompts mantienen levantamiento, QA/despliegue separados, garantía contractual, historias de 1–3 puntos y modelos resilientes de fuentes/caché. |
@@ -39,6 +40,7 @@
 | Internationalization (i18n) | ✅ Done | EN/ES with prefix routing, lazy loading, geo-detection |
 | Admin Auth Middleware | ✅ Done | Session/CSRF check, redirect to Django admin login |
 | CI/CD Pipeline | ✅ Done | GitHub Actions: pytest, Jest, Playwright (5 shards), quality gate |
+| Panel responsive plan — phases 0 and 1 | ✅ Done | 2026-08-22. Canonical bands/reference devices and a prioritized module inventory are documented in `docs/methodology/responsive-standard.md`. `frontend/config/responsive.js` drives namespaced Tailwind screens and Playwright viewports. Shared primitives cover page width, priority-declared tables, tabs/filters, modal kinds/form stacking, navigation/drawer accessibility, row/bulk actions, typography and touch discovery. Accounting/table/filter/tab compatibility aliases preserve current callers; `/panel/styleguide` is the executable example and `admin-styleguide` validates all five widths. Later module phases adopt these primitives rather than creating new responsive rules. |
 | Security & Build Warning Hardening | ✅ Done | 2026-08-19: `npm audit` y `pip-audit` en cero; cinco constraints opcionales compatibles con MySQL mediante `NULLIF`; autoimports de status sin colisiones; ApexCharts lazy/client-only y ningún chunk cliente supera 500 KB. El build estático mantiene payloads inline y limpia `staticfiles` antes de publicar para impedir payloads HTML, colisiones archivo/directorio y chunks huérfanos. |
 | Codex Ecosystem Methodology | ✅ Done | Codex-first runtime documented and implemented: `AGENTS.md` hierarchy, native repo skills in `.agents/skills/`, project config in `.codex/config.toml`, canonical guide + quickstart, legacy compatibility notes |
 | MCP Concurrent Startup Capacity | ✅ Done | DRF throttle buckets registered MCP connectors by client IP + connector slug, while every unknown slug shares one defensive bucket. Five legitimate connectors can initialize concurrently without consuming one another's quota. |
@@ -145,6 +147,7 @@
 
 | Issue | Priority | Notes |
 |-------|----------|-------|
+| Responsive immediate queue (RSP-01/02/04) | High | Follow-up separado a la Fase 0: extender drawer y selectores densos hasta 1023 px, activar sidebar/tiras desde 1024 px y verificar 412/835/1195. No resolver PA-66/73 con variantes locales; aplicar `docs/RESPONSIVE_STANDARD.md`. |
 | Credential rotation needed | High | MySQL password, email password, SECRET_KEY, CallMeBot key exposed in git history (see `docs/deployment-guide.md`) |
 | Port 3000 squatted by `kore_project` | Medium | A Windsurf terminal respawns `kore_project` Next.js on port 3000. Workaround: run Nuxt on 3001 with `E2E_PORT=3001`. Tracked as `KNOWN-001` in `error-documentation.md`. |
 | Large service files | Medium | `proposal_service.py`, `proposal_pdf_service.py`, `proposal_email_service.py`, and `pdf_utils.py` remain large enough to justify future splitting |
@@ -169,6 +172,7 @@
 
 | Document | Location | Status |
 |----------|----------|--------|
+| Responsive Standard | `docs/RESPONSIVE_STANDARD.md` | ✅ Phase 0 complete |
 | Product Requirements | `docs/methodology/product_requirement_docs.md` | ✅ Initialized |
 | Architecture | `docs/methodology/architecture.md` | ✅ Initialized |
 | Technical | `docs/methodology/technical.md` | ✅ Initialized |
