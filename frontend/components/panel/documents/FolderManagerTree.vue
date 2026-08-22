@@ -43,10 +43,10 @@
             {{ folder.document_count }} doc
           </span>
 
-          <div class="flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               type="button"
-              class="w-7 h-7 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
+              class="touch-target w-7 h-7 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
               title="Editar carpeta"
               @click="$emit('edit', folder)"
             >

@@ -286,6 +286,17 @@ coexists and migrates incrementally. See
 `frontend/components/base/README.md` for the full token table and migration
 example.
 
+Responsive behavior for the internal panel is a second design-system layer.
+`frontend/config/responsive.js` is the single source for width bands and the
+five reference viewports. Tailwind exposes those bands as namespaced
+`panel-portrait`, `panel-landscape`, `panel-desktop` and `panel-wide` screens;
+the names avoid Tailwind's built-in orientation variants. `BasePageShell`
+enforces the 1440 px content ceiling, while `BaseResponsiveTable`,
+`BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`, `BaseActionMenu` and
+`BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
+`BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
+implementations so modules can migrate without an all-at-once rewrite.
+
 ### 6.1 Page Routing
 
 ```mermaid

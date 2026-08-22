@@ -1,6 +1,6 @@
 <template>
   <div class="admin-layout min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-primary-strong">
-    <div class="hidden md:block">
+    <div class="hidden panel-landscape:block">
       <PanelSidebar
         :is-collapsed="isCollapsed"
         :is-dark="isDark"
@@ -9,12 +9,12 @@
     </div>
 
     <div
-      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 md:hidden"
+      class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border/[0.06] px-4 panel-landscape:hidden"
       :class="isDark ? 'bg-primary-strong/95 backdrop-blur-xl' : 'bg-surface/90 backdrop-blur-xl'"
     >
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         aria-label="Abrir menú"
         @click="openMobile"
       >
@@ -36,7 +36,7 @@
 
       <button
         type="button"
-        class="flex h-10 w-10 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
         :aria-label="themeToggleLabel(isDark)"
         @click="toggle"
       >
@@ -62,9 +62,9 @@
         // pb clears the fixed refresh button (48px + bottom-6): without it
         // the last row of a table that just overflows the viewport ends up
         // under the FAB, which swallows its action clicks.
-        'px-4 pt-6 pb-24 sm:px-6 lg:px-8',
-        isCollapsed ? 'md:ml-[64px]' : 'md:ml-[240px]',
-        'text-text-default',
+        'px-4 pt-6 pb-24 panel-portrait:px-6 panel-desktop:px-8',
+        isCollapsed ? 'panel-landscape:ml-[64px]' : 'panel-landscape:ml-[240px]',
+        'text-panel-body text-text-default',
       ]"
     >
       <!--
@@ -76,14 +76,16 @@
       -->
       <div
         v-if="_panelSectionLabel && _panelViewLabel"
-        class="mb-5 hidden md:flex items-center gap-1.5 text-xs"
+        class="mb-5 hidden panel-landscape:flex items-center gap-1.5 text-panel-meta"
         :class="isDark ? 'text-green-light/60' : 'text-green-light'"
       >
         <span>{{ _panelSectionLabel }}</span>
         <span class="text-green-light/40 dark:text-green-light/30">›</span>
         <span class="text-text-muted">{{ _panelViewLabel }}</span>
       </div>
-      <slot />
+      <BasePageShell width="panel">
+        <slot />
+      </BasePageShell>
     </main>
 
     <PanelRefreshButton
@@ -107,6 +109,7 @@ import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
 import PanelNotificationHost from '~/components/panel/PanelNotificationHost.vue'
+import BasePageShell from '~/components/base/BasePageShell.vue'
 
 const refreshStore = usePanelRefreshStore()
 

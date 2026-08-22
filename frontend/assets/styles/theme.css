@@ -246,3 +246,18 @@
   --shadow-raised:  0 4px 16px -2px rgb(0 0 0 / 0.55);
   --shadow-overlay: 0 25px 60px -12px rgb(0 0 0 / 0.70);
 }
+
+/* Touch has no hover state. Elements intentionally muted until hover on a
+   pointer device opt into touch-reveal; explicit handles can also request the
+   same 44px target guaranteed by BaseButton. */
+@media (pointer: coarse) {
+  .touch-reveal {
+    opacity: 1 !important;
+  }
+
+  .touch-target,
+  .touch-drag-handle {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

@@ -31,6 +31,73 @@ const baseTab = ref('a')
 const alertVisible = ref(true)
 const dropdownLog = ref('')
 const collapseOpen = ref(false)
+const responsiveTab = ref('overview')
+const responsiveFilterTab = ref('all')
+const responsiveBulkCount = ref(3)
+
+const responsiveFilterTabs = ref([
+  { id: 'pending', name: 'Pendientes de revisión', builtin: true },
+  { id: 'negotiating', name: 'En negociación', builtin: true },
+  { id: 'follow-up', name: 'Seguimiento comercial', builtin: true },
+  { id: 'archived', name: 'Archivadas', builtin: true },
+])
+
+const responsiveTableColumns = [
+  {
+    key: 'project',
+    label: 'Proyecto',
+    size: 'name',
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'owner',
+    label: 'Responsable',
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'amount',
+    label: 'Valor',
+    format: 'money',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'updated',
+    label: 'Actualizado',
+    format: 'date',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+  },
+  {
+    key: 'status',
+    label: 'Estado',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+]
+
+const responsiveTableRows = [
+  {
+    id: 1,
+    project: 'Sitio institucional Aurora',
+    owner: 'María Gómez',
+    amount: 4250000,
+    updated: '2026-08-20',
+    status: 'En curso',
+  },
+  {
+    id: 2,
+    project: 'Portal de clientes Boreal',
+    owner: 'Carlos Ruiz',
+    amount: 7800000,
+    updated: '2026-08-18',
+    status: 'Revisión',
+  },
+]
+
+const responsiveActions = [
+  { label: 'Editar selección', onClick: () => { dropdownLog.value = 'editar selección' } },
+  { label: 'Exportar', onClick: () => { dropdownLog.value = 'exportar selección' } },
+  { divider: true },
+  { label: 'Archivar', danger: true, onClick: () => { dropdownLog.value = 'archivar selección' } },
+]
 
 const tokenSwatches = [
   { group: 'Surface', items: ['bg-surface', 'bg-surface-muted', 'bg-surface-raised'] },
@@ -60,10 +127,10 @@ const shadowScale = [
 </script>
 
 <template>
-  <div class="space-y-10">
+  <div class="space-y-10" data-testid="styleguide-page">
     <header class="flex items-start justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-light text-text-default">Design System — Styleguide</h1>
+        <h1 class="text-panel-title font-light text-text-default">Design System — Styleguide</h1>
         <p class="text-sm text-text-muted mt-1">
           Catálogo visual de tokens y componentes base. Úsalo como referencia al construir vistas nuevas y para validar
           dark mode antes de publicar.
@@ -186,15 +253,15 @@ const shadowScale = [
               ]"
             />
           </BaseFormField>
-          <BaseFormField label="Textarea" hint="Soporta múltiples líneas" class="sm:col-span-2">
+          <BaseFormField label="Textarea" hint="Soporta múltiples líneas" class="panel-portrait:col-span-2">
             <BaseTextarea v-model="sampleTextarea" :rows="3" />
           </BaseFormField>
           <!-- Not fields: they claim the three bands so they line up beside them. -->
-          <div class="space-y-3 sm:row-span-3">
+          <div class="space-y-3 panel-portrait:row-span-3">
             <BaseCheckbox v-model="checkA">Acepto los términos</BaseCheckbox>
             <BaseCheckbox v-model="fieldError">Mostrar estado de error en el campo de arriba</BaseCheckbox>
           </div>
-          <div class="space-y-3 sm:row-span-3">
+          <div class="space-y-3 panel-portrait:row-span-3">
             <div class="flex items-center gap-3">
               <BaseToggle v-model="toggleA" aria-label="Activar A" />
               <span class="text-sm text-text-default">Toggle A — {{ toggleA ? 'on' : 'off' }}</span>
@@ -222,7 +289,7 @@ const shadowScale = [
           Sin la fila, cada columna se apila por su cuenta y queda torcida.
         </p>
 
-        <div class="max-w-sm space-y-5" data-testid="styleguide-form-rows">
+        <div class="max-w-xs space-y-5" data-testid="styleguide-form-rows">
           <div class="space-y-2">
             <p class="text-xs text-text-muted">Sólo una etiqueta se parte, y una sola lleva ayuda</p>
             <BaseFormRow data-testid="sg-row-one-wrapped">
@@ -307,10 +374,10 @@ const shadowScale = [
 
     <!-- Tabs -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">7. BaseTabs</h2>
+      <h2 class="text-lg font-semibold text-text-default">7. BaseResponsiveTabs</h2>
       <BaseCard padding="md">
         <p class="text-xs text-text-muted mb-3">Variant: underline (default)</p>
-        <BaseTabs
+        <BaseResponsiveTabs
           v-model="baseTab"
           :tabs="[
             { id: 'a', label: 'General' },
@@ -319,7 +386,7 @@ const shadowScale = [
           ]"
         />
         <p class="text-xs text-text-muted mb-3">Variant: pill</p>
-        <BaseTabs
+        <BaseResponsiveTabs
           v-model="baseTab"
           variant="pill"
           full-width
@@ -332,9 +399,98 @@ const shadowScale = [
       </BaseCard>
     </section>
 
+    <!-- Responsive foundations -->
+    <section
+      class="space-y-4"
+      data-testid="responsive-foundations"
+      aria-labelledby="responsive-foundations-title"
+    >
+      <div>
+        <h2 id="responsive-foundations-title" class="text-panel-section font-semibold text-text-default">
+          8. Fundamentos responsivos del panel
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">
+          Cambia el ancho del navegador: cada ejemplo usa el mismo contrato que las vistas de producto.
+        </p>
+        <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-text-brand" data-testid="responsive-profile">
+          Perfil activo:
+          <span data-responsive-profile="compact" class="panel-portrait:hidden">compact · &lt;600</span>
+          <span data-responsive-profile="portrait" class="hidden panel-portrait:inline panel-landscape:hidden">portrait · 600–999</span>
+          <span data-responsive-profile="landscape" class="hidden panel-landscape:inline panel-desktop:hidden">landscape · 1000–1279</span>
+          <span data-responsive-profile="desktop" class="hidden panel-desktop:inline panel-wide:hidden">desktop · 1280–1919</span>
+          <span data-responsive-profile="wide" class="hidden panel-wide:inline">wide · ≥1920</span>
+        </p>
+      </div>
+
+      <BaseCard padding="md" data-testid="responsive-tabs-example">
+        <h3 class="text-sm font-semibold text-text-default">Tabs de módulo</h3>
+        <p class="mb-3 mt-1 text-xs text-text-muted">
+          Selector nativo en compact/portrait; tira visible y reordenable desde landscape.
+        </p>
+        <BaseResponsiveTabs
+          v-model="responsiveTab"
+          aria-label="Sección de ejemplo"
+          :tabs="[
+            { id: 'overview', label: 'Resumen general' },
+            { id: 'deliverables', label: 'Entregables pendientes', badge: 4 },
+            { id: 'activity', label: 'Actividad reciente' },
+            { id: 'settings', label: 'Configuración del módulo' },
+          ]"
+        />
+
+        <h3 class="mt-2 text-sm font-semibold text-text-default">Filtros guardados</h3>
+        <p class="mb-3 mt-1 text-xs text-text-muted">
+          Mismo quiebre, wrap sin recortes y reordenamiento accesible por menú/teclado.
+        </p>
+        <BaseFilterTabs
+          :tabs="responsiveFilterTabs"
+          :active-tab-id="responsiveFilterTab"
+          :is-tab-limit-reached="false"
+          @select="responsiveFilterTab = $event"
+        />
+      </BaseCard>
+
+      <BaseCard padding="none" data-testid="responsive-table-example">
+        <div class="border-b border-border-muted px-4 py-3 panel-portrait:px-6">
+          <h3 class="text-sm font-semibold text-text-default">Tabla con prioridad declarada</h3>
+          <p class="mt-1 text-xs text-text-muted">
+            Proyecto y estado se conservan; responsable/valor se agrupan; actualizado se oculta hasta desktop.
+          </p>
+        </div>
+        <div class="p-3 panel-portrait:p-4">
+          <BaseResponsiveTable
+            :columns="responsiveTableColumns"
+            :rows="responsiveTableRows"
+            :show-actions="false"
+          />
+        </div>
+      </BaseCard>
+
+      <BaseCard padding="md" data-testid="responsive-actions-example">
+        <h3 class="text-sm font-semibold text-text-default">Acciones de fila y selección múltiple</h3>
+        <p class="mt-1 text-xs text-text-muted">
+          Un menú agrupa lo que no cabe; en táctil, botones e ítems mantienen un área mínima de 44 px.
+        </p>
+        <div class="mt-3 flex items-center gap-3">
+          <BaseActionMenu :items="responsiveActions" label="Acciones de fila" />
+          <span class="text-xs text-text-muted">Última acción: {{ dropdownLog || '—' }}</span>
+        </div>
+        <BaseBulkActionBar
+          :selected-count="responsiveBulkCount"
+          :outside-count="1"
+          :filtered-count="8"
+          :all-filtered-selected="false"
+          :actions="responsiveActions"
+          testid-prefix="styleguide"
+          @clear="responsiveBulkCount = 0"
+          @select-all="responsiveBulkCount = 8"
+        />
+      </BaseCard>
+    </section>
+
     <!-- Alert + EmptyState -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">8. BaseAlert / BaseEmptyState</h2>
+      <h2 class="text-lg font-semibold text-text-default">9. BaseAlert / BaseEmptyState</h2>
       <BaseCard padding="md">
         <div class="space-y-3">
           <BaseAlert v-if="alertVisible" variant="info" title="Información" dismissible @dismiss="alertVisible = false">
@@ -357,7 +513,7 @@ const shadowScale = [
 
     <!-- Dropdown -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">9. BaseDropdown</h2>
+      <h2 class="text-lg font-semibold text-text-default">10. BaseDropdown</h2>
       <BaseCard padding="md">
         <BaseDropdown
           :items="[
@@ -378,7 +534,7 @@ const shadowScale = [
 
     <!-- Existing UI components on tokens -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">10. UI components on tokens</h2>
+      <h2 class="text-lg font-semibold text-text-default">11. UI components on tokens</h2>
       <BaseCard padding="md">
         <h3 class="text-sm font-semibold text-text-default mb-3">FilterToggleButton</h3>
         <div class="flex items-center gap-3">
@@ -392,7 +548,7 @@ const shadowScale = [
 
     <!-- Modal -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">11. BaseModal</h2>
+      <h2 class="text-lg font-semibold text-text-default">12. BaseModal</h2>
       <BaseCard padding="md">
         <div class="flex flex-wrap items-center gap-3">
           <BaseButton variant="primary" @click="modalOpen = true">Abrir modal</BaseButton>
@@ -402,8 +558,8 @@ const shadowScale = [
           <span class="text-xs text-text-muted">El modal cierra con backdrop o tecla Esc.</span>
         </div>
       </BaseCard>
-      <BaseModal v-model="modalOpen" size="lg">
-        <div class="p-6 space-y-4">
+      <BaseModal v-model="modalOpen" kind="form">
+        <div class="space-y-4 p-4 panel-portrait:p-6">
           <h3 class="text-lg font-semibold text-text-default">Demo modal</h3>
           <p class="text-sm text-text-muted">
             Renderizado por <code>BaseModal</code> con tokens semánticos. Prueba abrirlo en light y dark.
@@ -411,17 +567,17 @@ const shadowScale = [
           <BaseFormField label="Campo dentro del modal">
             <BaseInput v-model="sampleText" />
           </BaseFormField>
-          <div class="flex justify-end gap-2 pt-3 border-t border-border-muted">
-            <BaseButton variant="ghost" @click="modalOpen = false">Cancelar</BaseButton>
-            <BaseButton variant="primary" @click="modalOpen = false">Aceptar</BaseButton>
-          </div>
         </div>
+        <BaseModalActions>
+          <BaseButton variant="ghost" @click="modalOpen = false">Cancelar</BaseButton>
+          <BaseButton variant="primary" @click="modalOpen = false">Aceptar</BaseButton>
+        </BaseModalActions>
       </BaseModal>
 
       <!-- size="full" + full-height: para modales que sostienen documentos
            (previsualizaciones, PDFs) en vez de un formulario. El panel no
            scrollea; cada columna trae su propio scroll. -->
-      <BaseModal v-model="workspaceModalOpen" size="full" full-height>
+      <BaseModal v-model="workspaceModalOpen" kind="workspace" full-height>
         <div class="shrink-0 px-6 pt-6 pb-3">
           <h3 class="text-lg font-semibold text-text-default">Modal de trabajo</h3>
           <p class="text-sm text-text-muted">
@@ -448,7 +604,7 @@ const shadowScale = [
 
     <!-- Tooltip -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">12. BaseTooltip</h2>
+      <h2 class="text-lg font-semibold text-text-default">13. BaseTooltip</h2>
       <BaseCard padding="md">
         <div class="flex items-center gap-3">
           <BaseTooltip position="right" width="max-w-xs" min-width="min-w-[200px]">
@@ -464,7 +620,7 @@ const shadowScale = [
 
     <!-- Collapse + Skeleton -->
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-text-default">13. BaseCollapse / BaseSkeleton</h2>
+      <h2 class="text-lg font-semibold text-text-default">14. BaseCollapse / BaseSkeleton</h2>
       <BaseCard padding="md">
         <button
           type="button"
