@@ -33,16 +33,17 @@ describe('BaseModal', () => {
   })
 
   it.each([
-    ['sm', 'max-w-sm'],
-    ['md', 'max-w-md'],
-    ['lg', 'max-w-2xl'],
-    ['xl', 'max-w-3xl'],
-    ['2xl', 'max-w-4xl'],
-    ['5xl', 'max-w-5xl'],
-    ['full', 'max-w-[min(90vw,1600px)]'],
+    ['sm', 'panel-portrait:max-w-sm'],
+    ['md', 'panel-portrait:max-w-md'],
+    ['lg', 'panel-portrait:max-w-2xl'],
+    ['xl', 'panel-portrait:max-w-3xl'],
+    ['2xl', 'panel-portrait:max-w-4xl'],
+    ['5xl', 'panel-portrait:max-w-5xl'],
+    ['full', 'panel-portrait:max-w-[min(90vw,1600px)]'],
   ])('maps size=%s to %s', (size, expected) => {
     const wrapper = mountModal({ size })
     const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    expect(panel.className).toContain('max-w-none')
     expect(panel.className).toContain(expected)
     wrapper.unmount()
   })
@@ -50,7 +51,8 @@ describe('BaseModal', () => {
   it('lets the panel grow and scroll as a whole by default', () => {
     const wrapper = mountModal()
     const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
-    expect(panel.className).toContain('max-h-[90vh]')
+    expect(panel.className).toContain('h-dvh')
+    expect(panel.className).toContain('panel-portrait:max-h-[90vh]')
     expect(panel.className).toContain('overflow-y-auto')
     expect(panel.className).not.toContain('overflow-hidden')
     wrapper.unmount()
@@ -61,7 +63,8 @@ describe('BaseModal', () => {
     // scroll on their own); a scrollbar on the panel would nest inside theirs.
     const wrapper = mountModal({ fullHeight: true })
     const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
-    expect(panel.className).toContain('h-[90vh]')
+    expect(panel.className).toContain('h-dvh')
+    expect(panel.className).toContain('panel-portrait:h-[90vh]')
     expect(panel.className).toContain('overflow-hidden')
     expect(panel.className).toContain('flex flex-col')
     expect(panel.className).not.toContain('overflow-y-auto')
@@ -72,6 +75,16 @@ describe('BaseModal', () => {
     const wrapper = mountModal()
     const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
     expect(panel.className).toContain('bg-surface')
+    wrapper.unmount()
+  })
+
+  it('uses the semantic modal kind as the width source of truth', () => {
+    const wrapper = mountModal({ kind: 'form', size: 'sm' })
+    const panel = document.body.querySelector('[role="dialog"] > div:nth-child(2)')
+    expect(panel.className).toContain('max-w-none')
+    expect(panel.className).toContain('panel-portrait:max-w-2xl')
+    expect(panel.className).not.toContain('panel-portrait:max-w-sm')
+    expect(panel.getAttribute('data-modal-kind')).toBe('form')
     wrapper.unmount()
   })
 

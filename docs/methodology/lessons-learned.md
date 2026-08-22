@@ -802,3 +802,18 @@ configured USD rate; `RecurringPayment.save()` owns row changes and
 the result, but they never become the source of truth. When introducing the invariant,
 ship a data migration and a stale-row regression so old data is brought under the same
 rule immediately.
+
+## 32. Responsive contracts need one width vocabulary and compiled-CSS proof
+
+Do not derive breakpoints independently in Vue, Tailwind and Playwright. Keep
+the panel bands, `matchMedia` queries and five acceptance viewports in one
+configuration, then make shared components own adaptation. A table still needs
+an explicit per-column `keep/group/hide` policy: a generic “hide the last
+columns” rule cannot know business priority. Likewise, cap the content shell on
+wide monitors instead of treating responsiveness as only a small-screen issue.
+
+Framework vocabulary is part of the contract. Tailwind already means
+orientation when it sees `portrait:` or `landscape:`, so panel width aliases use
+the `panel-*` namespace. Unit tests can prove that a class string exists while
+missing a bad media query; every new breakpoint family must also be inspected
+in generated CSS and exercised at the boundary viewports.

@@ -240,3 +240,24 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `backend/content/migrations/0205_merge_contract_terms_and_client_communication.py`.
 - **Verification**: `MigrationLoader.detect_conflicts()` returns `{}`, `content` has only the `0205` leaf, `makemigrations --check --dry-run` reports no changes, and Django's system check passes.
 - **Lesson**: Distinct migration filenames do not create a Git conflict. Parallel migration branches need a graph-conflict check in CI or pre-deploy, followed by an explicit merge migration after both leaves land; never rename or re-parent migrations already merged.
+
+### [ERR-020] Panel width aliases compiled as orientation queries
+- **Date**: 2026-08-22
+- **Context**: The first responsive styleguide run hid the compact profile at
+  412 px and showed desktop strips according to device orientation instead of
+  usable width.
+- **Root Cause**: Tailwind reserves `portrait:` and `landscape:` as built-in
+  orientation variants. Extending `theme.screens` under those same names did
+  not replace their meaning, so the generated CSS used
+  `@media (orientation: ...)`.
+- **Resolution**: Namespace panel screens as `panel-portrait:`,
+  `panel-landscape:`, `panel-desktop:` and `panel-wide:`. Keep profile names in
+  JavaScript, but map Tailwind aliases explicitly through `PANEL_SCREENS`.
+- **Files Affected**: `frontend/config/responsive.js`,
+  `frontend/tailwind.config.js`, shared panel/base components and responsive
+  styleguide tests.
+- **Verification**: The production bundle contains width media queries at
+  600/1000/1280/1920 px and Playwright selects the expected profile at every
+  reference viewport.
+- **Lesson**: Semantic breakpoint names must be checked against framework
+  variants; verify compiled CSS, not only class strings in unit tests.

@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!editing"
-    class="group flex items-center gap-1 min-w-0 cursor-pointer rounded px-1 -mx-1 hover:bg-surface-raised transition-colors"
+    class="touch-target group flex items-center gap-1 min-w-0 cursor-pointer rounded px-1 -mx-1 hover:bg-surface-raised transition-colors"
     :class="align === 'right' ? 'justify-end' : ''"
     role="button"
     tabindex="0"
@@ -18,7 +18,7 @@
       <slot>{{ value ?? '—' }}</slot>
     </span>
     <svg
-      class="w-3 h-3 flex-shrink-0 text-text-subtle opacity-0 group-hover:opacity-100 transition-opacity"
+      class="touch-reveal w-3 h-3 flex-shrink-0 text-text-subtle opacity-0 group-hover:opacity-100 transition-opacity"
       fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"
     >
       <path

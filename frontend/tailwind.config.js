@@ -1,3 +1,9 @@
+import {
+  PANEL_BREAKPOINTS,
+  PANEL_CONTENT_MAX_PX,
+  PANEL_SCREENS,
+} from './config/responsive.js'
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: 'class',
@@ -13,6 +19,17 @@ export default {
   ],
   theme: {
     extend: {
+      // Panel-specific aliases derived from the five real PA-75 devices.
+      // Existing sm/md/lg classes remain available for legacy/public UI.
+      screens: {
+        [PANEL_SCREENS.portrait]: `${PANEL_BREAKPOINTS.portrait}px`,
+        [PANEL_SCREENS.landscape]: `${PANEL_BREAKPOINTS.landscape}px`,
+        [PANEL_SCREENS.desktop]: `${PANEL_BREAKPOINTS.desktop}px`,
+        [PANEL_SCREENS.wide]: `${PANEL_BREAKPOINTS.wide}px`,
+      },
+      maxWidth: {
+        panel: `${PANEL_CONTENT_MAX_PX}px`,
+      },
       fontFamily: {
         'bold': ['Ubuntu-Bold', 'sans-serif'],
         'medium': ['Ubuntu-Medium', 'sans-serif'],
@@ -116,6 +133,11 @@ export default {
       // Meta text one step below text-xs (replaces ad-hoc text-[10px]/[11px]).
       fontSize: {
         '2xs': ['0.6875rem', { lineHeight: '1rem' }],
+        'panel-meta': ['0.75rem', { lineHeight: '1rem' }],
+        'panel-control': ['0.875rem', { lineHeight: '1.25rem' }],
+        'panel-body': ['1rem', { lineHeight: '1.5rem' }],
+        'panel-section': ['clamp(1.125rem, 1.05rem + 0.2vw, 1.25rem)', { lineHeight: '1.75rem' }],
+        'panel-title': ['clamp(1.5rem, 1.35rem + 0.4vw, 1.875rem)', { lineHeight: '2.25rem' }],
       },
       // Motion scale: fast → hovers/toggles; base → collapses/tab panels;
       // slow → progress bars/large reveals. Pair with motion-safe: variants.

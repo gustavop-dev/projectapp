@@ -1,69 +1,15 @@
 <template>
-  <!--
-    Sticky: the incomes grouped view renders the WHOLE filtered set with no
-    pagination, so a selection made at the bottom of a long list used to leave
-    the bar off screen. `pr-20` keeps the actions clear of the fixed refresh
-    FAB (bottom-6 right-6), which paints above this bar.
-  -->
-  <div
-    v-if="selected.length > 0"
-    class="sticky bottom-4 z-20 flex flex-col sm:flex-row sm:items-center gap-3 mt-4 p-3 pr-20 rounded-xl border border-border-default bg-surface-raised shadow-lg"
-    :data-testid="`${testidPrefix}-bulk-bar`"
-  >
-    <span class="text-sm text-text-default">
-      <span class="whitespace-nowrap">
-        <span class="font-semibold tabular-nums">{{ selected.length }}</span>
-        seleccionado{{ selected.length === 1 ? '' : 's' }}
-      </span>
-      <!--
-        Selecting survives a filter change, and the action runs on the whole
-        selection — so when part of it no longer passes the filter, the bar
-        says so instead of letting the count disagree with the table.
-      -->
-      <span
-        v-if="outsideCount > 0"
-        class="text-xs text-text-muted whitespace-nowrap"
-        title="Se marcaron con otro filtro activo. La acción los incluye igual; la confirmación los lista uno por uno."
-        :data-testid="`${testidPrefix}-bulk-outside`"
-      >
-        · {{ outsideCount }} fuera del filtro actual
-      </span>
-    </span>
-    <BaseButton
-      v-if="!allFilteredSelected"
-      variant="ghost"
-      size="sm"
-      :data-testid="`${testidPrefix}-select-all-filtered`"
-      @click="selectAllFiltered"
-    >
-      Seleccionar los {{ filteredIds.length }} filtrados
-    </BaseButton>
-
-    <div class="flex flex-wrap items-center gap-2 sm:ml-auto">
-      <BaseButton variant="secondary" size="sm" @click="clearSelection">
-        Cancelar
-      </BaseButton>
-      <!--
-        Un solo control en vez de los seis que había: vincular un registro y
-        mover dinero son operaciones de naturaleza distinta y convivían en la
-        misma fila, que quedó ilegible. El menú las agrupa con una división
-        clara entre vincular y cobrar, y crece sin desordenarse cuando lleguen
-        más acciones. Abre hacia ARRIBA porque la barra está pegada al fondo.
-      -->
-      <BaseDropdown :items="actionItems" placement="top" align="right" width="w-64">
-        <template #trigger>
-          <BaseButton
-            variant="primary"
-            size="sm"
-            :disabled="busy"
-            :data-testid="`${testidPrefix}-bulk-actions`"
-          >
-            Acciones ▾
-          </BaseButton>
-        </template>
-      </BaseDropdown>
-    </div>
-  </div>
+  <BaseBulkActionBar
+    :selected-count="selected.length"
+    :outside-count="outsideCount"
+    :filtered-count="filteredIds.length"
+    :all-filtered-selected="allFilteredSelected"
+    :actions="actionItems"
+    :busy="busy"
+    :testid-prefix="testidPrefix"
+    @select-all="selectAllFiltered"
+    @clear="clearSelection"
+  />
 
   <BulkAssignModal
     :open="assignTarget !== null"
@@ -112,8 +58,7 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import BulkAssignModal from '~/components/accounting/BulkAssignModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
 import ProjectBulkAssignSummary from '~/components/accounting/ProjectBulkAssignSummary.vue';
-import BaseButton from '~/components/base/BaseButton.vue';
-import BaseDropdown from '~/components/base/BaseDropdown.vue';
+import BaseBulkActionBar from '~/components/base/BaseBulkActionBar.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { isSettleEligible } from '~/utils/settleAllocation';
 import { buildAssignmentPlan, describeAssignmentPlan } from '~/utils/clientAssignment';

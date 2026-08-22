@@ -18,7 +18,7 @@
  * One nested inside another component still renders fine (it falls back to the
  * plain stacked field); pass `standalone` on it to say so explicitly. A child
  * that is not a field and should span the row needs the bands too, e.g.
- * `class="sm:col-span-2 sm:row-span-3"`.
+ * `class="panel-portrait:col-span-2 panel-portrait:row-span-3"`.
  */
 import { computed, provide } from 'vue'
 import { FORM_ROW_ALIGN, ROW_BANDS, ROW_COLS, ROW_COLS_LG, ROW_GAP } from './formRowClasses'
@@ -33,7 +33,11 @@ const props = defineProps({
   gap: { type: Number, default: 3, validator: oneOf([2, 3, 4, 6]) },
   /** Where the columns appear. `md` is here to preserve the breakpoint rows
    *  already had; new rows should stay on the default. */
-  at: { type: String, default: 'sm', validator: oneOf(['sm', 'md']) },
+  at: {
+    type: String,
+    default: 'portrait',
+    validator: oneOf(['sm', 'md', 'portrait', 'landscape']),
+  },
   /** The row is sometimes the `<form>` itself rather than a wrapper around it. */
   as: { type: String, default: 'div', validator: oneOf(['div', 'form']) },
 })

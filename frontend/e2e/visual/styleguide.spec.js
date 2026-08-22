@@ -31,9 +31,14 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
+import { PANEL_VIEWPORTS } from '../../config/responsive.js';
 
 const STYLEGUIDE_URL = '/panel/styleguide';
 const HEADING = 'Design System — Styleguide';
+
+// Nuxt compiles this unusually large reference page on first request. Serial
+// execution prevents five cold viewport requests from racing the dev server.
+test.describe.configure({ mode: 'serial' });
 
 const authCheck = {
   status: 200,
@@ -102,7 +107,7 @@ test.describe('design system styleguide visual regression', () => {
     tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@visual', '@outcome:display'],
   }, async ({ page }) => {
     await seedTheme(page, 'light');
-    await page.goto(STYLEGUIDE_URL);
+    await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
 
@@ -127,7 +132,7 @@ test.describe('design system styleguide visual regression', () => {
     // Start from light so the layout toggle click is the explicit user
     // gesture exercising `useDarkMode().toggle()`.
     await seedTheme(page, 'light');
-    await page.goto(STYLEGUIDE_URL);
+    await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
 
     await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
 
@@ -169,7 +174,7 @@ test.describe('styleguide form rows', () => {
     // quality: allow-no-interaction (display flow — the styleguide is a static
     // reference page; what is asserted is the laid-out geometry of the row)
     // quality: allow-deep-link (the styleguide has no in-app entry point)
-    await page.goto(STYLEGUIDE_URL);
+    await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId('styleguide-form-rows')).toBeVisible();
 
@@ -199,4 +204,77 @@ test.describe('styleguide form rows', () => {
     const rowB = await page.getByTestId('sg-row-both-b').boundingBox();
     expect(Math.abs(rowA.y - rowB.y)).toBeLessThanOrEqual(1);
   });
+});
+
+/**
+ * The reference widths are product inputs, not Playwright defaults. This
+ * matrix keeps the executable examples, navigation shell and max-width
+ * contract aligned at every device PA-75 names explicitly.
+ */
+test.describe('responsive foundations at the five reference widths', () => {
+  test.setTimeout(60_000);
+  test.use({ hasTouch: true });
+
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 8402, role: 'admin', is_staff: true },
+    });
+    await stubPanelApi(page);
+    await seedTheme(page, 'light');
+  });
+
+  for (const [profile, viewport] of Object.entries(PANEL_VIEWPORTS)) {
+    test(`${profile} renders the canonical panel behavior`, {
+      tag: ['@flow:admin-styleguide', '@module:admin', '@priority:P3', '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      // quality: allow-deep-link (the styleguide is the executable contract)
+      await page.goto(STYLEGUIDE_URL, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('heading', { name: HEADING })).toBeVisible({ timeout: 15_000 });
+      await expect(page.locator(`[data-responsive-profile="${profile}"]`)).toBeVisible();
+
+      const compactNavigation = viewport.width < 1000;
+      await expect(page.locator('.mobile-topbar'))[
+        compactNavigation ? 'toBeVisible' : 'toBeHidden'
+      ]();
+      await expect(page.locator('aside').first())[
+        compactNavigation ? 'toBeHidden' : 'toBeVisible'
+      ]();
+
+      const tabsExample = page.getByTestId('responsive-tabs-example');
+      const moduleSelect = tabsExample.locator('select').first();
+      const moduleStrip = tabsExample.getByRole('tablist').first();
+      await expect(moduleSelect)[compactNavigation ? 'toBeVisible' : 'toBeHidden']();
+      await expect(moduleStrip)[compactNavigation ? 'toBeHidden' : 'toBeVisible']();
+      await expect(tabsExample.getByTestId('filter-tabs-strip'))[
+        compactNavigation ? 'toBeHidden' : 'toBeVisible'
+      ]();
+
+      const tableExample = page.getByTestId('responsive-table-example');
+      if (profile === 'compact') {
+        await expect(tableExample.getByTestId('responsive-group-compact').first()).toBeVisible();
+      } else if (profile === 'portrait') {
+        await expect(tableExample.getByTestId('responsive-group-portrait').first()).toBeVisible();
+      }
+
+      // A touch-only device can discover the same actions: no hover is needed,
+      // and both the trigger and its first item keep the 44px target.
+      const rowActions = page.getByRole('button', { name: 'Acciones de fila' });
+      const triggerBox = await rowActions.boundingBox();
+      expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+      await rowActions.click();
+      const firstAction = page.getByRole('menuitem').first();
+      await expect(firstAction).toBeVisible();
+      // The dropdown itself scales from 95% during its 100ms entrance; assert
+      // the stable CSS hit target instead of sampling a fractional transition
+      // frame from boundingBox().
+      await expect(firstAction).toHaveCSS('min-height', '44px');
+
+      const shellBox = await page.getByTestId('panel-content-shell').boundingBox();
+      expect(shellBox.width).toBeLessThanOrEqual(1441);
+      const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(pageWidth).toBeLessThanOrEqual(viewport.width);
+    });
+  }
 });

@@ -62,6 +62,9 @@ const sizeClasses = computed(() => {
 })
 
 const classes = computed(() => [
+  'base-button',
+  props.iconOnly && 'base-button--icon',
+  props.variant === 'link' && 'base-button--link',
   'inline-flex items-center justify-center gap-2 font-medium transition-colors outline-none focus:ring-2 focus:ring-focus-ring/40 disabled:opacity-60 disabled:cursor-not-allowed',
   variants[props.variant] || variants.primary,
   sizeClasses.value,
@@ -135,3 +138,17 @@ if (process.env.NODE_ENV !== 'production') {
     <slot />
   </button>
 </template>
+
+<style scoped>
+/* The visual size may stay compact with a mouse; coarse pointers still get
+ * the canonical 44px hit area without every caller remembering it. */
+@media (pointer: coarse) {
+  .base-button:not(.base-button--link) {
+    min-height: 44px;
+  }
+
+  .base-button--icon {
+    min-width: 44px;
+  }
+}
+</style>

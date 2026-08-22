@@ -13,7 +13,7 @@
  */
 
 /**
- * Provided by `BaseFormRow`: the breakpoint (`sm`/`md`) at which the bands kick
+ * Provided by `BaseFormRow`: the breakpoint at which the bands kick
  * in, or `null` when the row is a single column and there is nothing to align.
  */
 export const FORM_ROW_ALIGN = Symbol('formRowAlign')
@@ -28,6 +28,18 @@ export const ROW_GAP = {
 export const ROW_COLS = {
   sm: { 1: '', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4' },
   md: { 1: '', 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' },
+  portrait: {
+    1: '',
+    2: 'panel-portrait:grid-cols-2',
+    3: 'panel-portrait:grid-cols-3',
+    4: 'panel-portrait:grid-cols-4',
+  },
+  landscape: {
+    1: '',
+    2: 'panel-landscape:grid-cols-2',
+    3: 'panel-landscape:grid-cols-3',
+    4: 'panel-landscape:grid-cols-4',
+  },
 }
 
 /** Optional second step, for the filter bars that widen again on large screens. */
@@ -48,6 +60,8 @@ export const ROW_COLS_LG = {
 export const ROW_BANDS = {
   sm: 'sm:grid-rows-[auto_auto_auto]',
   md: 'md:grid-rows-[auto_auto_auto]',
+  portrait: 'panel-portrait:grid-rows-[auto_auto_auto]',
+  landscape: 'panel-landscape:grid-rows-[auto_auto_auto]',
 }
 
 /**
@@ -65,6 +79,8 @@ export const ROW_BANDS = {
 export const FIELD_ALIGNED = {
   sm: 'sm:grid sm:grid-rows-subgrid sm:row-span-3 sm:gap-y-0',
   md: 'md:grid md:grid-rows-subgrid md:row-span-3 md:gap-y-0',
+  portrait: 'panel-portrait:grid panel-portrait:grid-rows-subgrid panel-portrait:row-span-3 panel-portrait:gap-y-0',
+  landscape: 'panel-landscape:grid panel-landscape:grid-rows-subgrid panel-landscape:row-span-3 panel-landscape:gap-y-0',
 }
 
 /**
@@ -75,4 +91,6 @@ export const FIELD_ALIGNED = {
 export const FIELD_CELL = {
   sm: 'contents sm:block',
   md: 'contents md:block',
+  portrait: 'contents panel-portrait:block',
+  landscape: 'contents panel-landscape:block',
 }
