@@ -788,3 +788,17 @@ field names exist. Keep a canonical field list in both `useSellerPrompt` and bac
 empty-field behavior, and regression-test every path. When correcting one live
 proposal, use an exact-match, reversible data migration so deployment cannot overwrite
 copy edited after the correction was prepared.
+
+## 31. A persisted derivative needs one backend owner and an explicit refresh graph
+
+`cop_equivalent` looked like ordinary editable accounting data, so creation initialized
+it once and later edits simply carried the stale value forward. Reloading could not help:
+the database itself was wrong, and every total faithfully summed that wrong cache. The
+repair pattern is broader than this field: declare the source inputs, choose the policy
+for time-sensitive inputs, make one backend boundary own the calculation, and trigger
+that boundary from every source change. Here the policy is the current manually
+configured USD rate; `RecurringPayment.save()` owns row changes and
+`AccountingSettings.save()` owns rate-wide synchronization. Client previews may explain
+the result, but they never become the source of truth. When introducing the invariant,
+ship a data migration and a stale-row regression so old data is brought under the same
+rule immediately.

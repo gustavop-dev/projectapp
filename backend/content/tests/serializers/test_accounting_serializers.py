@@ -468,23 +468,26 @@ class TestEntityDefaults:
         assert serializer.validated_data['client_email'] == profile.user.email
         assert serializer.validated_data['client_identification'] == '901234567'
 
-    def test_recurring_cop_equivalent_defaults_to_price_for_cop(self):
+    def test_recurring_cop_equivalent_is_derived_from_cop_price(self):
         serializer = RecurringPaymentCreateUpdateSerializer(data={
             'name': 'Netflix',
             'price': '39800.00',
             'currency': RecurringPayment.Currency.COP,
         })
         assert serializer.is_valid(), serializer.errors
-        assert serializer.validated_data['cop_equivalent'] == Decimal('39800.00')
+        payment = serializer.save()
+        assert payment.cop_equivalent == Decimal('39800.00')
 
-    def test_recurring_usd_does_not_default_cop_equivalent(self):
+    def test_recurring_supplied_cop_equivalent_cannot_override_usd_rate(self):
         serializer = RecurringPaymentCreateUpdateSerializer(data={
             'name': 'Claude Code 20x',
             'price': '200.00',
             'currency': RecurringPayment.Currency.USD,
+            'cop_equivalent': '1.00',
         })
         assert serializer.is_valid(), serializer.errors
-        assert 'cop_equivalent' not in serializer.validated_data
+        payment = serializer.save()
+        assert payment.cop_equivalent == Decimal('800000.00')
 
     def test_pocket_movement_amount_must_be_positive(self):
         serializer = PocketMovementCreateUpdateSerializer(data={

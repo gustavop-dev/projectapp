@@ -1,12 +1,20 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { CUSTOM_FREQUENCY, FREQUENCY_OPTIONS } from '~/utils/recurring'
+import { formatMoney } from '~/utils/formatMoney'
+import {
+  calculateRecurringCopEquivalent,
+  calculateRecurringMonthlyCop,
+  CUSTOM_FREQUENCY,
+  formatMonthlyCop,
+  FREQUENCY_OPTIONS,
+} from '~/utils/recurring'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   record: { type: Object, default: null },
   saving: { type: Boolean, default: false },
   categories: { type: Array, default: () => [] },
+  usdExchangeRate: { type: [Number, String], default: null },
 })
 
 const emit = defineEmits(['close', 'submit'])
@@ -46,7 +54,6 @@ function defaultForm() {
     name: '',
     price: '',
     currency: 'COP',
-    cop_equivalent: '',
     payment_method: 'cash',
     frequency: 'monthly',
     custom_months: '',
@@ -81,7 +88,6 @@ watch(
         name: props.record.name ?? '',
         price: props.record.price ?? '',
         currency: props.record.currency ?? 'COP',
-        cop_equivalent: props.record.cop_equivalent ?? '',
         payment_method: props.record.payment_method ?? 'cash',
         frequency: props.record.frequency ?? 'monthly',
         custom_months: props.record.custom_months ?? '',
@@ -99,11 +105,14 @@ watch(
   { immediate: true },
 )
 
-watch(
-  () => form.value.currency,
-  (currency) => {
-    if (currency === 'COP') form.value.cop_equivalent = ''
-  },
+const copEquivalentPreview = computed(() =>
+  calculateRecurringCopEquivalent(form.value, props.usdExchangeRate),
+)
+const monthlyCopPreview = computed(() =>
+  calculateRecurringMonthlyCop(form.value, props.usdExchangeRate),
+)
+const formattedRate = computed(() =>
+  formatMoney(Number(props.usdExchangeRate || 0), 'COP'),
 )
 
 function onSubmit() {
@@ -121,9 +130,6 @@ function onSubmit() {
     // '' is the "Sin categoría" option; the API expects an explicit null.
     category: form.value.category === '' ? null : form.value.category,
     is_active: form.value.is_active,
-  }
-  if (form.value.currency === 'USD' && form.value.cop_equivalent !== '') {
-    payload.cop_equivalent = form.value.cop_equivalent
   }
   payload.billing_day = form.value.billing_day === '' ? null : form.value.billing_day
   payload.cycle_anchor_date =
@@ -148,6 +154,7 @@ function onSubmit() {
           <BaseCurrencyInput
             v-model="form.price"
             :decimals="form.currency === 'USD' ? 2 : 0"
+            data-testid="recurring-payment-form-price"
             required
           />
         </BaseFormField>
@@ -156,20 +163,45 @@ function onSubmit() {
         </BaseFormField>
       </BaseFormRow>
 
-      <BaseFormField
-        v-if="form.currency === 'USD'"
-        label="Equivalente COP"
-        hint="Para COP se toma el precio automáticamente"
+      <div
+        class="rounded-xl border border-border-muted bg-surface-raised px-4 py-3"
+        data-testid="recurring-payment-cop-preview"
       >
-        <BaseCurrencyInput v-model="form.cop_equivalent" />
-      </BaseFormField>
+        <template v-if="copEquivalentPreview != null">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
+            <span class="text-text-muted">Equivalente COP</span>
+            <strong class="tabular-nums text-text-default">
+              {{ formatMonthlyCop(copEquivalentPreview) }}
+            </strong>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-2 mt-1 text-sm">
+            <span class="text-text-muted">Equivalente COP mensual</span>
+            <strong class="tabular-nums text-text-default">
+              {{ formatMonthlyCop(monthlyCopPreview) }}
+            </strong>
+          </div>
+          <p v-if="form.currency === 'USD'" class="mt-1 text-xs text-text-subtle">
+            Tasa vigente: {{ formattedRate }}/USD. El servidor recalcula este valor al guardar.
+          </p>
+          <p v-else class="mt-1 text-xs text-text-subtle">
+            En COP, el equivalente toma el precio automáticamente.
+          </p>
+        </template>
+        <p v-else class="text-sm text-warning-strong">
+          Configura una tasa USD válida para calcular el equivalente en COP.
+        </p>
+      </div>
 
       <BaseFormRow :cols="2" :gap="4">
         <BaseFormField label="Método de pago">
           <BaseSelect v-model="form.payment_method" :options="paymentMethodOptions" />
         </BaseFormField>
         <BaseFormField label="Frecuencia">
-          <BaseSelect v-model="form.frequency" :options="frequencyOptions" />
+          <BaseSelect
+            v-model="form.frequency"
+            :options="frequencyOptions"
+            data-testid="recurring-payment-form-frequency"
+          />
         </BaseFormField>
       </BaseFormRow>
 

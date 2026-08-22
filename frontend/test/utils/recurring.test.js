@@ -1,4 +1,6 @@
 import {
+  calculateRecurringCopEquivalent,
+  calculateRecurringMonthlyCop,
   formatMonthlyCop,
   formatMonthlyPrice,
   groupByCategory,
@@ -6,6 +8,26 @@ import {
   withGroupWeights,
   UNCATEGORIZED_KEY,
 } from '../../utils/recurring';
+
+describe('recurring COP calculations', () => {
+  it('converts a USD price with the current configured rate', () => {
+    expect(calculateRecurringCopEquivalent({
+      price: '200.00', currency: 'USD',
+    }, '4000.00')).toBe(800000);
+  });
+
+  it('keeps a COP price at a one-to-one equivalent', () => {
+    expect(calculateRecurringCopEquivalent({
+      price: '39800.00', currency: 'COP',
+    }, '4000.00')).toBe(39800);
+  });
+
+  it('prorates the converted charge by its frequency', () => {
+    expect(calculateRecurringMonthlyCop({
+      price: '200.00', currency: 'USD', frequency: 'annual',
+    }, '4000.00')).toBeCloseTo(66666.67, 2);
+  });
+});
 
 describe('formatMonthlyPrice', () => {
   it('keeps two decimals for foreign currencies so sub-dollar costs survive', () => {

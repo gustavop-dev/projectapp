@@ -1,9 +1,10 @@
 """API tests for the accounting change log and settings endpoints."""
+from decimal import Decimal
 from unittest.mock import patch
 
 import pytest
 
-from content.models import AccountingChangeLog
+from content.models import AccountingChangeLog, RecurringPayment
 from content.services import accounting_service
 
 
@@ -145,6 +146,39 @@ class TestSettingsEndpoints:
             format='json',
         )
         assert rejected.status_code == 400
+
+    def test_usd_rate_update_resynchronizes_recurring_equivalents(
+        self, super_client,
+    ):
+        payment = RecurringPayment.objects.create(
+            name='Chat-GPT', price='200.00', currency='USD',
+        )
+
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {'usd_exchange_rate': '4350.50'},
+            format='json',
+        )
+
+        payment.refresh_from_db()
+        assert response.status_code == 200
+        assert payment.cop_equivalent == Decimal('870100.00')
+
+    def test_usd_rate_update_leaves_cop_recurring_at_its_price(
+        self, super_client,
+    ):
+        payment = RecurringPayment.objects.create(
+            name='Netflix', price='39800.00', currency='COP',
+        )
+
+        super_client.patch(
+            '/api/accounting/settings/update/',
+            {'usd_exchange_rate': '4350.50'},
+            format='json',
+        )
+
+        payment.refresh_from_db()
+        assert payment.cop_equivalent == Decimal('39800.00')
 
     def test_income_view_mode_defaults_to_grouped(self, super_client):
         response = super_client.get('/api/accounting/settings/')
