@@ -43,7 +43,7 @@ describe('BaseFormRow', () => {
 
     // The row owns the bands...
     expect(bands(wrapper)).toEqual(
-      expect.arrayContaining(['sm:grid-cols-2', 'sm:grid-rows-[auto_auto_auto]']),
+      expect.arrayContaining(['panel-portrait:grid-cols-2', 'panel-portrait:grid-rows-[auto_auto_auto]']),
     );
 
     // ...and each field inherits them rather than stacking on its own, which is
@@ -52,7 +52,7 @@ describe('BaseFormRow', () => {
     expect(rendered).toHaveLength(2);
     rendered.forEach((field) => {
       expect(field.classes()).toEqual(
-        expect.arrayContaining(['sm:grid', 'sm:grid-rows-subgrid', 'sm:row-span-3']),
+        expect.arrayContaining(['panel-portrait:grid', 'panel-portrait:grid-rows-subgrid', 'panel-portrait:row-span-3']),
       );
     });
   });
@@ -63,7 +63,7 @@ describe('BaseFormRow', () => {
     // A subgrid inherits the row's gutters. Left inherited, the label would sit
     // a whole row-gap away from its own control instead of the 4px margin.
     fieldsOf(wrapper).forEach((field) => {
-      expect(field.classes()).toContain('sm:gap-y-0');
+      expect(field.classes()).toContain('panel-portrait:gap-y-0');
     });
 
     // The row keeps its own gap, which is what still separates one wrapped line
@@ -82,7 +82,7 @@ describe('BaseFormRow', () => {
     const rendered = fieldsOf(wrapper);
     expect(rendered).toHaveLength(4);
     rendered.forEach((field) => {
-      expect(field.classes()).toContain('sm:row-span-3');
+      expect(field.classes()).toContain('panel-portrait:row-span-3');
     });
   });
 
@@ -113,7 +113,7 @@ describe('BaseFormRow', () => {
 
     // The hint band is as tall as the tallest cell, so the row below stays square.
     fieldsOf(wrapper).forEach((field) => {
-      expect(field.classes()).toContain('sm:row-span-3');
+      expect(field.classes()).toContain('panel-portrait:row-span-3');
     });
     expect(wrapper.text()).toContain('Para cuentas de cobro');
   });
@@ -127,7 +127,7 @@ describe('BaseFormRow', () => {
     // Every band class is breakpoint-scoped, so nothing is reserved on mobile.
     row
       .filter((cls) => cls.includes('grid-rows') || cls.includes('gap-y'))
-      .forEach((cls) => expect(cls.startsWith('sm:')).toBe(true));
+      .forEach((cls) => expect(cls.startsWith('panel-portrait:')).toBe(true));
   });
 
   it('keeps the fields in document order when they stack', () => {
@@ -162,7 +162,7 @@ describe('BaseFormRow', () => {
     const wrapper = mountRow({ cols: 2, lg: 5 });
 
     expect(bands(wrapper)).toEqual(
-      expect.arrayContaining(['sm:grid-cols-2', 'lg:grid-cols-5', 'sm:grid-rows-[auto_auto_auto]']),
+      expect.arrayContaining(['panel-portrait:grid-cols-2', 'lg:grid-cols-5', 'panel-portrait:grid-rows-[auto_auto_auto]']),
     );
   });
 
@@ -170,14 +170,14 @@ describe('BaseFormRow', () => {
     const wrapper = mountRow({ as: 'form' });
 
     expect(wrapper.findComponent(BaseFormRow).element.tagName).toBe('FORM');
-    expect(bands(wrapper)).toContain('sm:grid-cols-2');
+    expect(bands(wrapper)).toContain('panel-portrait:grid-cols-2');
   });
 
   it('lets a field opt out when it is not a direct child of the row', () => {
     const wrapper = mountRow({}, [{ label: SHORT }, { label: LONG, standalone: true }]);
 
     const [joined, opted] = fieldsOf(wrapper);
-    expect(joined.classes()).toContain('sm:row-span-3');
+    expect(joined.classes()).toContain('panel-portrait:row-span-3');
     expect(opted.classes().join(' ')).not.toContain('row-span');
   });
 });

@@ -18,7 +18,7 @@
     />
 
     <nav
-      class="hidden md:flex flex-wrap items-center gap-2"
+      class="hidden panel-landscape:flex flex-wrap items-center gap-2"
       aria-label="Secciones de contabilidad"
     >
       <NuxtLink
