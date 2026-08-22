@@ -274,6 +274,8 @@ flowchart TD
 
 ### 6.0 Design System
 
+Responsive behavior is part of the design-system contract rather than a page-level exception. The canonical device profiles live in frontend configuration and cover 412, 835, 1195, 1440 and 2560 px widths. Shared navigation stays compact through portrait tablet, modal geometry is centralized in `BaseModal`, repeated tables declare business-priority columns, and the admin content column stops growing on large monitors.
+
 Semantic theme tokens live in `frontend/assets/styles/theme.css` and are exposed
 as Tailwind colors (`bg-surface`, `text-text-default`, `border-input-border`,
 etc.). Light/dark values flip with the `.dark` class on `<html>`, toggled by
@@ -294,11 +296,26 @@ Responsive behavior for the internal panel is a second design-system layer.
 five reference viewports. Tailwind exposes those bands as namespaced
 `panel-portrait`, `panel-landscape`, `panel-desktop` and `panel-wide` screens;
 the names avoid Tailwind's built-in orientation variants. `BasePageShell`
-enforces the 1440 px content ceiling, while `BaseResponsiveTable`,
-`BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`, `BaseActionMenu` and
-`BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
+enforces the 1400 px general-content ceiling, while `BaseResponsiveTable`,
+`BaseExploratoryList`, `BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`,
+`BaseActionMenu` and `BaseBulkActionBar` own the recurring adaptations. Legacy
+`AccountingTable`,
 `BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
 implementations so modules can migrate without an all-at-once rewrite.
+`responsiveAcceptance.js` assigns every catalog view to one of twelve module
+scripts. Pull requests execute affected modules at all five widths, the full
+matrix runs monthly, and a scheduled February/August issue forces review of the
+device assumptions instead of letting the contract age silently.
+
+Accounting is the reference adoption layer for those primitives. Its twelve
+pages render through `BasePageShell`; `AccountingSubnav` and saved filters use
+the shared compact navigation contract; `AccountingIndicatorGroup` preserves
+business-ranked KPIs; and each `AccountingTable` column carries an explicit
+`keep/group/hide` policy. Grouped-income and grouped-recurring headers own a
+stacked compact representation, while Pocket relocates the running balance
+inside the retained amount cell below 1024 px so the ledger keeps its meaning.
+Long modal flows declare a semantic `kind`, and hosting/collection row actions
+converge on one touch-safe menu when their inline controls no longer fit.
 
 `BaseDrawer` is the shared transient second zone for compact panel views: it
 teleports to `body`, traps focus, closes on backdrop/Escape, locks body scroll

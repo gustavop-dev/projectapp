@@ -100,9 +100,9 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await page.goto('/panel/diagnostics', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
 
-    await expect(page.getByText('Alpha Corp')).toBeVisible();
-    await expect(page.getByText('Beta Inc')).toBeVisible();
-    await expect(page.getByText('Gamma LLC')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-2')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-3')).toBeVisible();
   });
 
   test('filter toggle button opens filter panel with dimensions', {
@@ -152,9 +152,9 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await expect(page.getByRole('heading', { name: 'Diagnósticos de aplicaciones' })).toBeVisible({ timeout: 20_000 });
 
     await page.getByTestId('diagnostics-search-input').fill('Alpha');
-    await expect(page.getByText('Alpha Corp')).toBeVisible();
-    await expect(page.getByText('Beta Inc')).not.toBeVisible();
-    await expect(page.getByText('Gamma LLC')).not.toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-2')).toHaveCount(0);
+    await expect(page.getByTestId('diagnostic-open-3')).toHaveCount(0);
   });
 
   test('status dimension filters the list and shows an active chip', {
@@ -168,8 +168,8 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await page.getByRole('button', { name: 'Estado', exact: true }).click();
     await page.getByRole('option', { name: 'Borrador' }).or(page.getByText('Borrador', { exact: true })).first().click();
 
-    await expect(page.getByText('Beta Inc')).toBeVisible();
-    await expect(page.getByText('Alpha Corp')).not.toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-2')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toHaveCount(0);
   });
 
   test('Limpiar todo resets the active dimensions', {
@@ -182,12 +182,12 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await page.getByRole('button', { name: 'Filtros', exact: true }).click();
     await page.getByRole('button', { name: 'Estado', exact: true }).click();
     await page.getByText('Borrador', { exact: true }).first().click();
-    await expect(page.getByText('Alpha Corp')).not.toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Limpiar todo' }).click();
 
-    await expect(page.getByText('Alpha Corp')).toBeVisible();
-    await expect(page.getByText('Gamma LLC')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-1')).toBeVisible();
+    await expect(page.getByTestId('diagnostic-open-3')).toBeVisible();
   });
 
   test('saved tab selection syncs diagnosticTab into the URL', {
@@ -205,4 +205,3 @@ test.describe('Admin Diagnostics — Advanced Filter Tabs', () => {
     await expect(page).toHaveURL(/[?&]diagnosticTab=/);
   });
 });
-

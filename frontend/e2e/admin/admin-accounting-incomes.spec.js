@@ -867,9 +867,9 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     // Pending rows stay neutral.
     await expect(page.getByTestId('accounting-row-1')).toHaveClass(/bg-surface/);
 
-    await expect(page.getByTestId('income-payment-10')).toContainText('Pagado');
-    await expect(page.getByTestId('income-payment-11')).toContainText('Parcial');
-    await expect(page.getByTestId('income-payment-11')).toContainText('600.000');
+    await expect(page.getByTestId('income-payment-10').filter({ visible: true })).toContainText('Pagado');
+    await expect(page.getByTestId('income-payment-11').filter({ visible: true })).toContainText('Parcial');
+    await expect(page.getByTestId('income-payment-11').filter({ visible: true })).toContainText('600.000');
   });
 
   test('lands on Esperados por cobrar, keeping the partials and dropping the paid', {
@@ -898,7 +898,7 @@ test.describe('Admin Accounting Incomes: liquidation, write-off and paid state',
     // hiding it here is what made a just-registered abono look like it had
     // never been created.
     await expect(page.getByTestId('accounting-row-11')).toBeVisible();
-    await expect(page.getByTestId('income-payment-11')).toContainText('Parcial');
+    await expect(page.getByTestId('income-payment-11').filter({ visible: true })).toContainText('Parcial');
 
     // The saved "Todos los esperados" tab widens it back to every expected row,
     // the collected one included.
@@ -1332,7 +1332,7 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
 
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
     // The unassigned row wears the completion pill instead of an empty cell.
-    await expect(page.getByTestId('income-unlinked-2')).toContainText('sin vincular');
+    await expect(page.getByTestId('income-unlinked-2').filter({ visible: true })).toContainText('sin vincular');
 
     // The builtin tab is the completion group: only the unassigned survive.
     await page.getByTestId('filter-tabs-tab-no-client').click();

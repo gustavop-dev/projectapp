@@ -45,6 +45,15 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-021] Responsive behavior diverged across modules and breakpoints
+- **Date**: 2026-08-22
+- **Context**: Panel modules independently used `sm`, `md`, `lg`, JavaScript widths and fixed table minima; Playwright exposed no permanent real-device acceptance matrix.
+- **Root Cause**: Responsive behavior lived in individual pages, with no shared pattern declaration, complete view ownership registry or recurring five-width gate.
+- **Resolution**: PA-75 through phase 4 centralized the 412/835/1195/1440/2560 profiles in `responsive.js`, moved repeated behavior into base components, assigned all 101 Nuxt pages to 12 module scripts, and added affected-module PR CI, a monthly full run and a semestral standards review.
+- **Files Affected**: `frontend/config/responsive.js`, `frontend/config/responsiveAcceptance.js`, `frontend/components/base/`, `frontend/playwright.config.js`, `.github/workflows/responsive-acceptance.yml`, and `docs/methodology/responsive-*.md`.
+- **Verification**: Contract reports 101 views, 12 modules and 5 viewports; the view catalog has no orphan, stale, duplicate or invalid entries; all module matrices passed during implementation; the final post-merge Foundation/Documents slice passed 10/10 and the Nuxt production build completed.
+- **Lesson**: Responsive acceptance must be executable product policy. A breakpoint or page-specific CSS fix is incomplete until it shares the canonical component, has one accountable module and passes the same five device profiles.
+
 ### [ERR-020] Proposal closing columns and payment amounts were visually compressed
 - **Date**: 2026-08-21
 - **Context**: The public proposal at laptop and desktop widths showed two narrow closing cards despite available screen space, while payment amounts could wrap before `+ IVA` and the legal contract floated without a document boundary.
@@ -249,7 +258,16 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   `frontend/tailwind.config.js`, shared panel/base components and responsive
   styleguide tests.
 - **Verification**: The production bundle contains width media queries at
-  600/1000/1280/1920 px and Playwright selects the expected profile at every
+  640/1024/1280/1920 px and Playwright selects the expected profile at every
   reference viewport.
 - **Lesson**: Semantic breakpoint names must be checked against framework
   variants; verify compiled CSS, not only class strings in unit tests.
+
+### [ERR-021] Responsive dependency drifted from the canonical Phase 0 contract
+- **Date**: 2026-08-22
+- **Context**: The shared responsive components and the Phase 0 standard were developed concurrently. The dependency initially encoded provisional 600/1000 px bands and a 1440 px content cap, while the approved inventory fixed 640/1024 px and 1400 px.
+- **Root Cause**: Widths were duplicated in JavaScript, raw component media queries, documentation and E2E viewports before the canonical Phase 0 document landed.
+- **Resolution**: Make `frontend/config/responsive.js` the executable source, align every raw media query and reference viewport to 640/1024/1280/1920 and the 1400 px shell, and treat `docs/RESPONSIVE_STANDARD.md` as the decision source. Accounting tests exercise the five real widths, including the 835 px intermediate case and the 2560 px cap.
+- **Files Affected**: `frontend/config/responsive.js`, shared base components, accounting compact tables, responsive E2E specs and responsive documentation.
+- **Verification**: Vue compilation, focused unit slices, the production Nuxt build and five Playwright viewport scenarios all use the same contract.
+- **Lesson**: Parallel foundation and adoption work needs one named decision owner; merge the approved contract first, then mechanically audit all executable copies before accepting downstream behavior.

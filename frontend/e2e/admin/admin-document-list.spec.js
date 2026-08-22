@@ -62,7 +62,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('shows empty state when no documents exist', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display', '@responsive:documents'],
   }, async ({ page }) => {
     await mockApi(page, async ({ apiPath }) => {
       if (apiPath === 'auth/check/') return authCheck;

@@ -158,7 +158,7 @@ watch(
   }
 }
 
-@media (max-width: 599px) {
+@media (max-width: 639px) {
   .base-modal-panel {
     padding-bottom: env(safe-area-inset-bottom);
   }

@@ -121,6 +121,18 @@ describe('BaseDropdown', () => {
     expect(buttons[0].text()).toContain('Act')
   })
 
+  it('renders external href items safely and forwards their test id', () => {
+    const wrapper = mountDropdown({
+      items: [{ label: 'Ver publicación', href: 'https://www.linkedin.com/post/1', testid: 'external-post' }],
+    })
+    const link = wrapper.get('[data-testid="external-post"]')
+
+    expect(link.element.tagName).toBe('A')
+    expect(link.attributes('href')).toBe('https://www.linkedin.com/post/1')
+    expect(link.attributes('target')).toBe('_blank')
+    expect(link.attributes('rel')).toBe('noopener noreferrer')
+  })
+
   it('invokes onClick when an item is clicked', async () => {
     const onClick = jest.fn()
     const items = [{ label: 'Tap', onClick }]

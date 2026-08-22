@@ -110,7 +110,7 @@ test.describe('Admin Dashboard', () => {
   });
 
   test('renders pulse, radar and module sections for a superuser payload', {
-    tag: [...ADMIN_DASHBOARD, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_DASHBOARD, '@role:admin', '@outcome:display', '@responsive:dashboard'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (dashboard-composition smoke; the dashboard's interactions are covered by the stats-modal, quick-create and error-retry tests)
     await mockDashboard(page, summaryFixture);

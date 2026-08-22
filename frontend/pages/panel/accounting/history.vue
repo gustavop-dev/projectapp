@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="mb-6">
       <h1 class="text-2xl font-light text-text-default">Historial</h1>
@@ -19,7 +19,7 @@
     />
 
     <!-- Search + filter toggle -->
-    <div class="flex items-center gap-2 mb-3">
+    <div class="flex flex-wrap items-center gap-2 mb-3">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -34,7 +34,7 @@
         @click="isFilterPanelOpen = !isFilterPanelOpen"
       />
       <AccountingExportButton
-        class="ml-auto"
+        class="panel-portrait:ml-auto"
         :section="isChanges ? 'change_log' : 'email_log'"
         :params="activeParams()"
       />
@@ -115,11 +115,10 @@
       :entry="bodyEntry"
       @close="bodyModalOpen = false"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';

@@ -19,7 +19,7 @@
           {{ statusLabel }}{{ headerClientLabel ? ` · ${headerClientLabel}` : '' }}
         </p>
       </div>
-      <div v-if="documentStore.currentDocument && !loadError" class="hidden lg:flex items-center gap-3">
+      <div v-if="documentStore.currentDocument && !loadError" class="hidden items-center gap-3 panel-landscape:flex">
         <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">
           Cancelar
         </NuxtLink>
@@ -70,7 +70,7 @@
 
     <div
       v-if="documentStore.isLoading"
-      class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
+      class="grid grid-cols-1 gap-6 panel-landscape:grid-cols-[20rem_minmax(0,1fr)] panel-desktop:grid-cols-[24rem_minmax(0,1fr)]"
       role="status"
     >
       <span class="sr-only">Cargando documento...</span>
@@ -101,7 +101,7 @@
     <form
       v-else-if="documentStore.currentDocument"
       id="doc-edit-form"
-      class="grid grid-cols-1 lg:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)] gap-6"
+      class="grid grid-cols-1 gap-6 panel-landscape:grid-cols-[20rem_minmax(0,1fr)] panel-desktop:grid-cols-[24rem_minmax(0,1fr)]"
       @submit.prevent="handleSave"
     >
       <!-- Requisito 6: un documento emitido no se reasigna ni se reescribe.
@@ -110,7 +110,7 @@
       <BaseAlert
         v-if="lockedCuenta"
         variant="warning"
-        class="lg:col-span-2"
+        class="panel-landscape:col-span-2"
         data-testid="doc-locked-cuenta-alert"
       >
         Cuenta de cobro emitida: este documento es de sólo lectura aquí.
@@ -122,7 +122,7 @@
            lee como "te falta guardar", y nombra qué falta. -->
       <UnsavedChangesNotice
         v-if="hasChanges"
-        class="lg:col-span-2"
+        class="panel-landscape:col-span-2"
         :title="unsavedTitle"
         :detail="unsavedDetail"
         :message="lockedCuenta
@@ -137,7 +137,7 @@
 
       <aside
         class="bg-surface rounded-xl shadow-sm border border-border-muted p-5 sm:p-6
-               lg:sticky lg:top-6 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto"
+               panel-landscape:sticky panel-landscape:top-6 panel-landscape:self-start panel-landscape:max-h-[calc(100vh-7rem)] panel-landscape:overflow-y-auto"
       >
         <div class="space-y-6">
           <div class="space-y-4">
@@ -438,7 +438,7 @@
             </button>
           </div>
         </div>
-        <div :class="showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
+        <div :class="showPreview ? 'grid grid-cols-1 panel-desktop:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
           <textarea
             id="edit-markdown"
             ref="markdownTextareaRef"
@@ -446,12 +446,12 @@
             placeholder="# Contenido del documento..."
             class="w-full px-4 py-3 border border-border-default rounded-xl text-sm font-mono leading-relaxed bg-surface text-text-default placeholder:text-text-subtle
                    focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none resize-none
-                   min-h-[24rem] lg:h-[calc(100vh-18rem)]"
+                   min-h-[24rem] panel-desktop:h-[calc(100vh-18rem)]"
           ></textarea>
           <div
             v-if="showPreview"
             class="border border-border-default rounded-xl bg-surface overflow-y-auto
-                   min-h-[24rem] lg:h-[calc(100vh-18rem)]"
+                   min-h-[24rem] panel-desktop:h-[calc(100vh-18rem)]"
           >
             <div class="sticky top-0 px-3 py-2 border-b border-border-default bg-surface-raised rounded-t-xl z-10">
               <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Vista previa</span>
@@ -471,7 +471,7 @@
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center gap-3 lg:hidden">
+        <div class="mt-5 flex flex-wrap items-center gap-3 panel-landscape:hidden">
           <BaseButton
             variant="primary"
             size="md"

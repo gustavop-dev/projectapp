@@ -7,11 +7,11 @@
       <div
         v-for="(b, idx) in content.blocks"
         :key="idx"
-        class="bg-surface dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-input-border/20 dark:hover:border-input-border/25 transition"
+        class="bg-surface dark:bg-primary-soft border border-input-border rounded-2xl p-5 shadow-sm hover:shadow-md hover:border-input-border dark:hover:border-input-border transition"
       >
         <h3 class="font-semibold text-text-brand dark:text-text-brand mb-2">{{ b.title }}</h3>
         <p v-for="(p, i) in b.paragraphs" :key="i" class="text-sm text-text-brand/75 dark:text-text-brand/75 leading-relaxed">{{ p }}</p>
-        <blockquote v-if="b.example" class="mt-3 border-l-2 border-input-border/40 dark:border-input-border/40 pl-3 text-xs italic text-text-brand/80 dark:text-text-brand/80">
+        <blockquote v-if="b.example" class="mt-3 border-l-2 border-input-border pl-3 text-xs italic text-text-brand/80 dark:text-text-brand/80">
           Ejemplo: {{ b.example }}
         </blockquote>
       </div>

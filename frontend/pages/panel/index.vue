@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-8">
+    <div class="mb-8 flex flex-col justify-between gap-3 panel-portrait:flex-row panel-portrait:items-center">
       <div>
         <h1 class="text-2xl font-light text-text-default">Dashboard</h1>
         <p class="text-xs text-text-subtle mt-1 first-letter:uppercase">{{ todayLabel }}</p>
@@ -20,7 +20,7 @@
 
     <!-- Loading skeleton mirrors the real geometry -->
     <div v-if="loading && !summary" class="space-y-8" aria-hidden="true" data-testid="dashboard-skeleton">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="grid grid-cols-1 gap-4 panel-portrait:grid-cols-3">
         <div
           v-for="n in 3"
           :key="`pulse-${n}`"
@@ -35,7 +35,7 @@
           class="h-14 rounded-xl bg-surface-raised motion-safe:animate-pulse"
         />
       </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 gap-4 panel-desktop:grid-cols-2">
         <div class="h-64 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
         <div class="h-64 rounded-xl bg-surface-raised motion-safe:animate-pulse" />
       </div>
@@ -58,8 +58,8 @@
     <template v-else-if="summary">
       <!-- Pulse: the three vital signs -->
       <div
-        class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 dash-reveal"
-        :class="hasFinance ? 'lg:grid-cols-3' : ''"
+        class="mb-8 grid grid-cols-1 gap-4 dash-reveal panel-portrait:grid-cols-2"
+        :class="hasFinance ? 'panel-desktop:grid-cols-3' : ''"
         data-testid="dashboard-pulse"
       >
         <DashboardStatTile

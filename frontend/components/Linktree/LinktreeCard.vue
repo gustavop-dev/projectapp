@@ -218,4 +218,9 @@ const buttonGroups = computed(() => {
   color: #809490;
   text-align: center;
 }
+
+@media (max-width: 360px) {
+  .lt-card { padding-inline: 20px; }
+  .lt-pair-row { flex-direction: column; }
+}
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -11,6 +11,7 @@
       <BaseButton
         variant="primary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="cards-new-button"
         @click="openCreateModal"
       >
@@ -36,7 +37,7 @@
     />
 
     <!-- Search + Filter toggle + Export -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -165,11 +166,10 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -373,12 +373,30 @@ const {
 });
 
 const columns = [
-  { key: 'card_name', label: 'Tarjeta', sortable: true },
-  { key: 'snapshot_date', label: 'Fecha', sortable: true },
-  { key: 'available_amount', label: 'Disponible', format: 'money', sortable: true },
-  { key: 'debt_amount', label: 'Deuda', group: 'money', sortable: true },
-  { key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true },
-  { key: 'notes', label: 'Notas' },
+  {
+    key: 'card_name', label: 'Tarjeta', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'snapshot_date', label: 'Fecha', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'available_amount', label: 'Disponible', format: 'money', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'debt_amount', label: 'Deuda', format: 'money', group: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'weight_pct', label: '%', format: 'percent', group: 'money', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'notes', label: 'Notas',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'group' },
+  },
 ];
 
 async function loadRecords() {

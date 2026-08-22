@@ -196,7 +196,7 @@ test.describe('Admin Accounting Dashboard', () => {
   });
 
   test('renders stat cards with the summary totals', {
-    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display'],
+    tag: [...ADMIN_ACCOUNTING_DASHBOARD, '@role:admin', '@outcome:display', '@responsive:accounting'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler());
     await page.goto('/panel/accounting', { waitUntil: 'domcontentloaded' });
@@ -216,10 +216,11 @@ test.describe('Admin Accounting Dashboard', () => {
     await expect(cardDebt).toContainText('$4.150.954 COP');
     await expect(cardDebt).toContainText('1 tarjeta · 51.9% del cupo');
 
-    await expect(page.getByText('Ingresos líquidos')).toBeVisible();
-    await expect(page.getByText('$59.516.261 COP')).toBeVisible();
-    await expect(page.getByText('Bolsillo ProjectApp')).toBeVisible();
-    await expect(page.getByText('$1.147.378 COP').first()).toBeVisible();
+    const secondaryIndicators = page.getByTestId('accounting-secondary-indicators');
+    await expect(secondaryIndicators).toContainText('Ingresos líquidos');
+    await expect(secondaryIndicators).toContainText('$59.516.261 COP');
+    await expect(secondaryIndicators).toContainText('Bolsillo ProjectApp');
+    await expect(secondaryIndicators).toContainText('$1.147.378 COP');
   });
 
   test('expected-month card opens the read-only detail modal', {

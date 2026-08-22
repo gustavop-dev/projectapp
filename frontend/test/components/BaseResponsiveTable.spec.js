@@ -107,4 +107,50 @@ describe('BaseResponsiveTable', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Missing: owner'))
     warn.mockRestore()
   })
+
+  it('uses a consumer test id prefix', () => {
+    const wrapper = mountTable({ testIdPrefix: 'diagnostic' })
+
+    expect(wrapper.find('[data-testid="diagnostic-row-1"]').exists()).toBe(true)
+  })
+
+  it('omits legacy actions for custom action menus', () => {
+    const wrapper = mountTable({ showActions: true, showDefaultActions: false })
+
+    expect(wrapper.find('[aria-label="Editar"]').exists()).toBe(false)
+    expect(wrapper.find('[aria-label="Eliminar"]').exists()).toBe(false)
+  })
+
+  it('uses the selected background and consumer row classes together', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      selected: [1],
+      rowClass: () => 'opacity-60',
+    })
+    const row = wrapper.get('[data-testid="accounting-row-1"]')
+
+    expect(row.classes()).toContain('bg-primary-soft')
+    expect(row.classes()).toContain('opacity-60')
+  })
+
+  it('emits row gestures only when interactive rows are enabled', async () => {
+    const wrapper = mountTable({ interactiveRows: true })
+    const row = wrapper.get('[data-testid="accounting-row-1"]')
+
+    await row.trigger('click')
+    await row.trigger('auxclick', { button: 1 })
+
+    expect(wrapper.emitted('row-click')?.[0]?.[0]).toEqual(rows[0])
+    expect(wrapper.emitted('row-auxclick')?.[0]?.[0]).toEqual(rows[0])
+  })
+
+  it('uses a business label for selectable rows when declared', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      selectionLabel: (row) => `Seleccionar ${row.name}`,
+    })
+
+    expect(wrapper.get('[data-testid="accounting-select-1"]').attributes('aria-label'))
+      .toBe('Seleccionar Proyecto Aurora')
+  })
 })

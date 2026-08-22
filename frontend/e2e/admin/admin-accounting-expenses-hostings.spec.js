@@ -241,7 +241,9 @@ test.describe('Admin Accounting Expenses & Hostings', () => {
     ).toBeVisible({ timeout: 25_000 });
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByText('Claude Code 20x')).toBeVisible();
-    await expect(page.getByText('Negocio', { exact: true })).toBeVisible();
+    await expect(
+      page.getByText('Negocio', { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
   });
 
   test('deductions carry a typed pill and can be isolated with their totals', {

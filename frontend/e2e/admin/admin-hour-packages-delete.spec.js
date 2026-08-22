@@ -48,7 +48,9 @@ test.describe('Admin Hour Packages Delete', () => {
     const table = page.locator('table');
     await expect(table.getByRole('link', { name: 'Paquete Ágil', exact: true })).toBeVisible();
 
-    await table.getByRole('row', { name: /Paquete Ágil/ }).getByRole('button', { name: 'Eliminar' }).click();
+    const packageRow = table.getByRole('row', { name: /Paquete Ágil/ });
+    await packageRow.getByRole('button', { name: 'Acciones' }).click();
+    await packageRow.getByRole('menuitem', { name: 'Eliminar' }).click();
     await expect(page.getByText('¿Eliminar "Paquete Ágil"?')).toBeVisible();
     await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
 
@@ -64,7 +66,9 @@ test.describe('Admin Hour Packages Delete', () => {
     await page.goto('/panel/hour-packages');
 
     const table = page.locator('table');
-    await table.getByRole('row', { name: /Paquete Ágil/ }).getByRole('button', { name: 'Eliminar' }).click();
+    const packageRow = table.getByRole('row', { name: /Paquete Ágil/ });
+    await packageRow.getByRole('button', { name: 'Acciones' }).click();
+    await packageRow.getByRole('menuitem', { name: 'Eliminar' }).click();
     await expect(page.getByText('¿Eliminar "Paquete Ágil"?')).toBeVisible();
     await page.getByRole('button', { name: /Cancelar/ }).click();
 

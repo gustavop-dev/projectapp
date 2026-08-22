@@ -48,8 +48,8 @@
               variant="ghost"
               icon-only
               size="sm"
-              aria-label="Editar carpeta"
               title="Editar carpeta"
+              aria-label="Editar carpeta"
               @click="$emit('edit', folder)"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

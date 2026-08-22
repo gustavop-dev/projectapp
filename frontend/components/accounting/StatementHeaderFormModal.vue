@@ -61,7 +61,7 @@ function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :model-value="open" size="lg" title-id="statement-header-form-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="form" size="lg" title-id="statement-header-form-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="statement-header-form-title" class="text-lg font-bold text-text-default">
         Editar encabezado del extracto
@@ -100,7 +100,7 @@ function onSubmit() {
         <BaseTextarea v-model="form.notes" :rows="2" />
       </BaseFormField>
 
-      <div class="flex items-center justify-end gap-3 pt-2">
+      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>

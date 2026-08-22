@@ -25,7 +25,7 @@
         >
           {{ idx + 1 }}
         </span>
-        <div class="flex-1 min-w-0 border-l-2 border-input-border/15 dark:border-input-border/20 pl-4 pb-2">
+        <div class="flex-1 min-w-0 border-l-2 border-input-border pl-4 pb-2">
           <div class="font-semibold text-text-brand dark:text-text-brand">{{ d.dayRange }}</div>
           <div class="text-sm text-text-brand/70 dark:text-text-brand/70 leading-relaxed mt-0.5">{{ d.description }}</div>
         </div>

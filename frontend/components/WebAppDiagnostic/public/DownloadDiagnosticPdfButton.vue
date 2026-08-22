@@ -5,12 +5,12 @@
     class="pdf-download fixed bottom-[4.75rem] right-4 z-40
            w-12 h-12 rounded-full
            bg-surface/90 dark:bg-primary/90 backdrop-blur-sm shadow-lg
-           border border-input-border/15 dark:border-input-border/20
+           border border-input-border
            flex items-center justify-center
            text-text-brand/70 dark:text-text-brand/80
-           hover:bg-primary/5 dark:hover:bg-primary-soft/10
+           hover:bg-primary/5 dark:hover:bg-primary-soft
            hover:text-text-brand dark:hover:text-text-brand
-           hover:border-input-border/30 dark:hover:border-input-border/30
+           hover:border-input-border dark:hover:border-input-border
            transition-colors"
     :disabled="isGenerating"
     :title="isGenerating ? 'Generando...' : 'Descargar PDF'"

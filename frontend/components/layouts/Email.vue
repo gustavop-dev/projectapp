@@ -30,7 +30,7 @@
             ></button>
             <button
               @click="hideModal"
-              class="w-3 h-3 bg-gray-600 rounded-full cursor-pointer"
+              class="w-3 h-3 bg-surface-raised rounded-full cursor-pointer"
               aria-label="Close contact form"
             ></button>
           </div>

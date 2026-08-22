@@ -13,12 +13,12 @@
       data-testid="mcps-guide"
     >
       <summary
-        class="flex items-center gap-3 p-4 sm:p-5 cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
+        class="flex flex-wrap items-center gap-2 p-4 cursor-pointer select-none list-none marker:hidden panel-portrait:gap-3 panel-portrait:p-5 [&::-webkit-details-marker]:hidden"
       >
         <span class="text-sm font-semibold text-text-default">
           ¿Cómo conectar un conector a Claude?
         </span>
-        <BaseBadge variant="primary" size="sm">Guía paso a paso</BaseBadge>
+        <BaseBadge variant="primary" size="sm" class="shrink-0">Guía paso a paso</BaseBadge>
         <svg
           class="ml-auto h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-200 group-open:rotate-180"
           fill="none"
@@ -82,7 +82,7 @@
           tabindex="0"
           :aria-expanded="isExpanded(connector.slug)"
           :data-testid="`mcp-card-header-${connector.slug}`"
-          class="flex items-center gap-3 px-4 sm:px-5 py-4 cursor-pointer select-none transition-colors hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/30"
+          class="flex flex-wrap items-center gap-3 px-4 py-4 cursor-pointer select-none transition-colors hover:bg-surface-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/30 panel-portrait:flex-nowrap panel-portrait:px-5"
           @click="toggleRow(connector.slug)"
           @keydown.enter.prevent="toggleRow(connector.slug)"
           @keydown.space.prevent="toggleRow(connector.slug)"
@@ -98,12 +98,12 @@
           </svg>
           <h2 class="text-base font-bold text-text-default truncate">{{ connector.name }}</h2>
 
-          <div class="ml-auto flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          <div class="ml-7 flex w-full items-center justify-between gap-2 panel-portrait:ml-auto panel-portrait:w-auto panel-portrait:justify-end panel-portrait:gap-3 panel-portrait:flex-shrink-0">
             <!-- Connection status at a glance (hidden on narrow screens) -->
             <BaseBadge
               :variant="statusVariant(connector)"
               size="sm"
-              class="hidden sm:inline-flex"
+              class="hidden panel-portrait:inline-flex"
               :data-testid="`mcp-connection-badge-${connector.slug}`"
             >
               <span class="h-1.5 w-1.5 rounded-full" :class="statusFor(connector).dot" />
@@ -193,15 +193,15 @@
               <li
                 v-for="(event, index) in connector.recent_events"
                 :key="index"
-                class="flex items-start gap-2 text-xs"
+                class="flex flex-wrap items-start gap-x-2 gap-y-0.5 text-xs"
               >
                 <span
                   class="mt-1 h-1.5 w-1.5 rounded-full flex-shrink-0"
                   :class="event.ok ? 'bg-success-strong' : 'bg-danger-strong'"
                 />
-                <span class="text-text-subtle whitespace-nowrap">{{ formatDate(event.created_at) }}</span>
-                <span class="text-text-default">{{ eventLabel(event) }}</span>
-                <span v-if="showDetail(event)" class="text-text-muted truncate">{{ event.detail }}</span>
+                <span class="whitespace-nowrap text-text-subtle">{{ formatDate(event.created_at) }}</span>
+                <span class="break-words text-text-default">{{ eventLabel(event) }}</span>
+                <span v-if="showDetail(event)" class="min-w-0 break-words text-text-muted">{{ event.detail }}</span>
               </li>
             </ul>
           </details>
@@ -223,9 +223,9 @@
               Funciones disponibles ({{ connector.tools.length }})
             </summary>
             <ul class="mt-2 space-y-1 max-h-72 overflow-y-auto pr-1" :data-testid="`mcp-tools-list-${connector.slug}`">
-              <li v-for="tool in connector.tools" :key="tool.name" class="text-sm">
-                <code class="text-xs bg-surface-muted rounded px-1.5 py-0.5">{{ tool.name }}</code>
-                <span class="text-text-muted ml-1">{{ tool.description }}</span>
+              <li v-for="tool in connector.tools" :key="tool.name" class="min-w-0 text-sm">
+                <code class="break-all rounded bg-surface-muted px-1.5 py-0.5 text-xs">{{ tool.name }}</code>
+                <span class="ml-1 break-words text-text-muted">{{ tool.description }}</span>
               </li>
             </ul>
           </details>
@@ -257,7 +257,7 @@
           data-testid="mcp-token-url"
           class="block text-xs bg-surface-muted rounded p-3 break-all mb-4"
         >{{ tokenModal.url }}</code>
-        <div class="flex items-center justify-end gap-2">
+        <div class="flex flex-col-reverse items-stretch gap-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
           <BaseButton variant="secondary" size="sm" data-testid="mcp-token-copy" @click="copyTokenUrl">
             {{ tokenModal.copied ? 'Copiada ✓' : 'Copiar URL' }}
           </BaseButton>

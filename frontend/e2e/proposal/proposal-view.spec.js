@@ -67,13 +67,15 @@ test.describe('Proposal View', () => {
   });
 
   test('renders proposal greeting section on first load', {
-    tag: [...PROPOSAL_VIEW, '@role:guest'],
+    tag: [...PROPOSAL_VIEW, '@role:guest', '@outcome:display', '@responsive:public'],
   }, async ({ page }) => {
     await mockApi(page, buildMockHandler(mockProposalTwoSections));
+    // quality: allow-deep-link (the emailed proposal permalink is the documented public entry point)
     await page.goto(`/proposal/${MOCK_UUID}?mode=detailed`);
 
-    // Page loaded without errors
-    await expect(page.locator('body')).not.toContainText('Error');
+    await expect(page.getByRole('heading', {
+      name: 'Web Application Development, Acme Corp',
+    })).toBeVisible();
   });
 
   test('clicking next navigation button advances to second section', {

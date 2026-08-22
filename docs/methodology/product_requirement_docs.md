@@ -250,10 +250,11 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
 - **Responsive panel contract** — the internal panel is validated at 412, 835,
   1195, 1440 and 2560 px. Shared primitives own table column priorities,
   tab/filter collapse, modal widths and stacking, navigation, bulk/row actions,
-  touch targets, typography and the 1440 px content ceiling. The canonical
-  standard and prioritized module inventory live in
-  `docs/methodology/responsive-standard.md`.
-- **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1000 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
+  touch targets, typography and the 1400 px general-content ceiling. The canonical
+  fleet standard, project inventory and implementation contract live in
+  `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
+  `docs/methodology/responsive-standard.md`, respectively.
+- **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
 
 ### 3.13 Internationalization (i18n)
 
@@ -276,6 +277,7 @@ Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to super
 - **Display standards** (#115/#116): emails format COP with the millions apostrophe (`format_cop_email`) while the app uses dot grouping; all dates render as "Jue, 16 jul 2026" (abbreviated Spanish weekday + short month) via the backend Bogotá helpers and the frontend `utils/formatDate.js`.
 - **Credit-card catalog & statements** (#105/#106): registered cards with quota (debt computed server-side as quota − available), monthly statements with editable transactions + PDF and an 8-day reminder, plus summary cards for card debt and current-month expected income.
 - **Audit trail** (`AccountingChangeLog`) + notification-recipient settings.
+- **Responsive accounting workspace** (2026-08-22): the twelve tabs share one navigation contract, saved-filter strips collapse to selectors below 1024 px, KPI groups preserve the three business priorities and disclose secondary values, and every table declares which fields stay, group or hide. Grouped client headers stack their totals in narrow layouts; long workflows use semantic full-screen mobile modals and touch-safe action menus. Pocket never drops the running balance: compact rows relocate it below the movement amount and the independent column returns from landscape width. The repeatable 12-tab × 5-width acceptance script lives in `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
 
 ### 3.15 MCP Connectors (claude.ai)
 
@@ -318,6 +320,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 
 ## 5. Non-Functional Requirements
 
+- **Responsive acceptance**: Every panel and public view must pass the same five real-device profiles (phone 412 px, portrait tablet 835 px, landscape tablet 1195 px, laptop 1440 px, large monitor 2560 px). Shared components own repeated behavior; large-monitor content keeps an explicit readable maximum width.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)
 - **SEO**: Server-side rendered public pages, sitemap endpoints, meta tags, Google verification

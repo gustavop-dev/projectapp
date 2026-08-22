@@ -15,6 +15,8 @@
     "test:watch": "NODE_OPTIONS='--no-deprecation' jest --config jest.config.cjs --watch",
     "test:coverage": "NODE_OPTIONS='--no-deprecation' jest --config jest.config.cjs --coverage && node scripts/coverage-summary.cjs",
     "e2e": "playwright test",
+    "e2e:responsive": "E2E_RESPONSIVE=1 playwright test",
+    "e2e:responsive:changed": "node scripts/run-responsive-changed.mjs",
     "e2e:ui": "playwright test --ui",
     "e2e:coverage": "npm run e2e:clean && playwright test",
     "e2e:clean": "rm -rf e2e-results",
@@ -23,6 +25,7 @@
     "check:design-tokens:panel": "node scripts/check-design-tokens.mjs --scope=panel",
     "check:design-tokens:strict": "node scripts/check-design-tokens.mjs --strict",
     "check:design-tokens:rows": "node scripts/check-design-tokens.mjs --scope=panel --strict --strict-rows",
+    "check:responsive-contract": "node scripts/check-responsive-contract.mjs",
     "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs",
     "flow:registry": "python3 ../scripts/generate_flow_registry.py --repo-root ..",
     "flow:registry:check": "python3 ../scripts/generate_flow_registry.py --repo-root .. --check"

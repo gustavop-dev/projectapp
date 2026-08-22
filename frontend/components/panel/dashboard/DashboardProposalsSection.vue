@@ -4,7 +4,7 @@
     aria-labelledby="dashboard-proposals-title"
     data-testid="dashboard-proposals-section"
   >
-    <div class="mb-3 flex items-center justify-between">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <h2
         id="dashboard-proposals-title"
         class="text-xs font-semibold uppercase tracking-widest text-text-muted"
@@ -19,9 +19,9 @@
       </NuxtLink>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-2">
+    <div class="grid gap-4 panel-desktop:grid-cols-2">
       <div class="flex flex-col gap-4">
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 gap-4 panel-portrait:grid-cols-2">
           <DashboardStatTile
             label="Tasa de cierre"
             :value="proposals.conversion_rate"
@@ -48,7 +48,7 @@
         </div>
       </div>
 
-      <div class="bg-surface rounded-xl border border-border-muted shadow-card p-5">
+      <div class="rounded-xl border border-border-muted bg-surface p-4 shadow-card panel-portrait:p-5">
         <h3 class="text-sm font-medium text-text-default mb-3">
           Tendencia últimos 6 meses
         </h3>
@@ -57,7 +57,7 @@
     </div>
 
     <div class="mt-4 bg-surface rounded-xl shadow-card border border-border-muted">
-      <div class="px-5 py-4 border-b border-border-muted flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border-muted px-4 py-4 panel-portrait:px-5">
         <h3 class="text-sm font-medium text-text-default">Propuestas recientes</h3>
         <NuxtLink
           :to="localePath('/panel/proposals')"
@@ -75,7 +75,7 @@
         <li v-for="p in recent" :key="p.id">
           <NuxtLink
             :to="localePath(`/panel/proposals/${p.id}/edit`)"
-            class="flex items-center justify-between px-5 py-3.5 hover:bg-surface-raised transition-colors motion-reduce:transition-none
+            class="flex items-center justify-between px-4 py-3.5 hover:bg-surface-raised transition-colors motion-reduce:transition-none panel-portrait:px-5
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-focus-ring"
           >
             <span class="min-w-0">

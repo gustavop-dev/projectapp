@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="detail"
     size="lg"
     title-id="pocket-allocations-title"
     @close="emit('close')"

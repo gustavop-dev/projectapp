@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <ConfirmModal
       v-model="confirmState.open"
       :title="confirmState.title"
@@ -23,6 +23,7 @@
       <BaseButton
         variant="secondary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="statements-copy-prompt"
         @click="copyKickoffPrompt"
       >
@@ -39,7 +40,7 @@
         v-if="cardOptions.length > 1"
         v-model="selectedCard"
         :options="cardOptions"
-        class="w-56"
+        class="w-full panel-portrait:w-56"
         data-testid="statements-card-filter"
       />
     </div>
@@ -119,7 +120,7 @@
     />
 
     <!-- Transaction create/edit modal -->
-    <BaseModal v-model="txModalOpen" size="md" padding="md">
+    <BaseModal v-model="txModalOpen" kind="form" size="md" padding="md">
       <h3 class="text-base font-medium text-text-default mb-4">
         {{ txForm.id ? 'Editar transacción' : 'Agregar transacción' }}
       </h3>
@@ -181,11 +182,10 @@
         </BaseButton>
       </div>
     </BaseModal>
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingMerchantInput from '~/components/accounting/AccountingMerchantInput.vue';

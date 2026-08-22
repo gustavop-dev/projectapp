@@ -64,7 +64,7 @@
       </div>
 
       <!-- Week grid (md+) -->
-      <div v-else class="hidden md:grid grid-cols-7 divide-x divide-border-muted">
+      <div v-else class="hidden grid-cols-7 divide-x divide-border-muted panel-landscape:grid">
         <div
           v-for="day in weekDays"
           :key="day.date"
@@ -102,7 +102,7 @@
       </div>
 
       <!-- Mobile day list (vertical) -->
-      <div v-if="!isLoading" class="md:hidden divide-y divide-border-muted">
+      <div v-if="!isLoading" class="divide-y divide-border-muted panel-landscape:hidden">
         <div
           v-for="day in weekDays"
           :key="`m-${day.date}`"
