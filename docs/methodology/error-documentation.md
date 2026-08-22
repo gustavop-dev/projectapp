@@ -24,12 +24,6 @@ This file tracks known errors, their context, and resolutions. When a reusable f
 
 ## Known Issues
 
-### [KNOWN-003] Responsive behavior is split across incompatible breakpoints
-- **Date**: 2026-08-22
-- **Context**: Panel modules independently use `sm`, `md`, `lg`, JavaScript widths and fixed table minima; Playwright currently exposes only Desktop Chrome.
-- **Impact**: The 835 px portrait-tablet profile can receive desktop navigation with too little usable content width, while 2560 px pages can stretch related information too far apart.
-- **Resolution in progress**: PA-75 through responsive phase 4 centralizes the real-device matrix, shared component behavior, view registry and recurring five-width verification.
-
 _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new production incidents from the accounting-correctness / display-standards wave (#113–#116). KNOWN-001 and KNOWN-002 remain open (not re-verified this pass). The quality-gate DEFAULT-vs-strict mode pitfall surfaced by PR #113's red CI is a workflow lesson, captured in `lessons-learned.md` §21, not a runtime incident. Previous review: 2026-07-04._
 
 ### [KNOWN-001] kore_project Next.js server occupies port 3000
@@ -50,6 +44,15 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 ---
 
 ## Resolved Issues
+
+### [ERR-021] Responsive behavior diverged across modules and breakpoints
+- **Date**: 2026-08-22
+- **Context**: Panel modules independently used `sm`, `md`, `lg`, JavaScript widths and fixed table minima; Playwright exposed no permanent real-device acceptance matrix.
+- **Root Cause**: Responsive behavior lived in individual pages, with no shared pattern declaration, complete view ownership registry or recurring five-width gate.
+- **Resolution**: PA-75 through phase 4 centralized the 412/835/1195/1440/2560 profiles in `responsive.js`, moved repeated behavior into base components, assigned all 101 Nuxt pages to 12 module scripts, and added affected-module PR CI, a monthly full run and a semestral standards review.
+- **Files Affected**: `frontend/config/responsive.js`, `frontend/config/responsiveAcceptance.js`, `frontend/components/base/`, `frontend/playwright.config.js`, `.github/workflows/responsive-acceptance.yml`, and `docs/methodology/responsive-*.md`.
+- **Verification**: Contract reports 101 views, 12 modules and 5 viewports; the view catalog has no orphan, stale, duplicate or invalid entries; all module matrices passed during implementation; the final post-merge Foundation/Documents slice passed 10/10 and the Nuxt production build completed.
+- **Lesson**: Responsive acceptance must be executable product policy. A breakpoint or page-specific CSS fix is incomplete until it shares the canonical component, has one accountable module and passes the same five device profiles.
 
 ### [ERR-020] Proposal closing columns and payment amounts were visually compressed
 - **Date**: 2026-08-21

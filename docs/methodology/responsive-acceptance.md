@@ -9,6 +9,21 @@ componentes de `responsive-standard.md`: ese documento define cómo responde
 cada patrón; este define cómo demostrar que una vista está terminada y cómo
 evitar que una entrega posterior reconstruya el problema.
 
+## Estado de implementación
+
+El cierre del 2026-08-22 deja 101 páginas Nuxt asignadas sin ambigüedad a 12
+módulos de aceptación. Comercial, Emails, Canvas de Documentos, Dashboard,
+Contenido, MCP y Públicas completan la adopción iniciada por Fundamentos,
+Contabilidad, Documentos, Clientes y Proyectos. Las listas CRUD de exploración
+usan tarjetas debajo de 1000 px mediante `BaseExploratoryList`; las superficies
+comparativas usan `BaseResponsiveTable` y declaran la prioridad de cada columna.
+
+Las fichas PA-45, PA-61, PA-66, PA-69, PA-70 y PA-73 dejan de ser variantes
+independientes: su criterio de cierre es este contrato y sus primitives
+compartidas. La línea base quedó verificada con las matrices de los doce módulos,
+build de producción, contrato 101/12/5, catálogo 101/101 y flow-map fresco sin
+flows `junk-only` ni `missing`.
+
 ## Condición de aceptación
 
 Una vista nueva o modificada **no se considera terminada** hasta cumplir todo

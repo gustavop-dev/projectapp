@@ -810,3 +810,21 @@ middle and a 27-inch monitor. A `md` or `lg` class is not acceptance evidence
 by itself: choose navigation from usable content width, cap wide screens, and
 measure the element the operator uses instead of inferring success from the
 viewport alone.
+
+## 32. Mobile lists and comparative tables are different interaction problems
+
+A responsive table primitive should not turn every dataset into the same mobile
+shape. Transactional and comparative screens need stable column semantics, so
+they declare `keep/group/hide` by business priority. Exploratory CRUD screens are
+usually scanned one entity at a time, so a single card representation below the
+panel breakpoint is clearer. Rendering both versions and hiding one with CSS is
+not equivalent: it duplicates links, test IDs and accessibility targets in the
+DOM. `BaseExploratoryList` therefore chooses exactly one representation from the
+shared media-query source, while `BaseResponsiveTable` retains explicit column
+policy.
+
+The lasting control is ownership, not a one-time sweep. Every catalog page must
+map to one module script, each module must retain a real tagged E2E, and the same
+five profiles run on affected PRs and on a monthly full matrix. A semestral review
+checks whether the devices themselves changed; individual pages never move a
+breakpoint without changing the shared contract and its evidence together.

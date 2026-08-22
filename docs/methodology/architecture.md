@@ -297,10 +297,14 @@ five reference viewports. Tailwind exposes those bands as namespaced
 `panel-portrait`, `panel-landscape`, `panel-desktop` and `panel-wide` screens;
 the names avoid Tailwind's built-in orientation variants. `BasePageShell`
 enforces the 1440 px content ceiling, while `BaseResponsiveTable`,
-`BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`, `BaseActionMenu` and
-`BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
+`BaseExploratoryList`, `BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`,
+`BaseActionMenu` and `BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
 `BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
 implementations so modules can migrate without an all-at-once rewrite.
+`responsiveAcceptance.js` assigns every catalog view to one of twelve module
+scripts. Pull requests execute affected modules at all five widths, the full
+matrix runs monthly, and a scheduled February/August issue forces review of the
+device assumptions instead of letting the contract age silently.
 
 ### 6.1 Page Routing
 
