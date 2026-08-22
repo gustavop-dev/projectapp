@@ -153,7 +153,7 @@
               :data-testid="`client-note-custom-delete-${index}`"
               @click="removeCustomNote(index)"
             >
-              <span aria-hidden="true">🗑️</span>
+              <span aria-hidden="true">🚮</span>
             </BaseButton>
           </div>
 

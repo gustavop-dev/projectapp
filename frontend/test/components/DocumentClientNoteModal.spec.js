@@ -136,6 +136,14 @@ describe('DocumentClientNoteModal', () => {
       .toBe('El contenido es obligatorio.');
   });
 
+  it('shows a recognizable trash emoji for a custom note', () => {
+    const wrapper = mountModal({
+      customNotes: [{ title: 'Temporal', content: 'No conservar.' }],
+    });
+
+    expect(wrapper.find('[data-testid="client-note-custom-delete-0"]').text()).toBe('🚮');
+  });
+
   it('deletes a custom note from the draft', async () => {
     const wrapper = mountModal({
       customNotes: [{ title: 'Temporal', content: 'No conservar.' }],
