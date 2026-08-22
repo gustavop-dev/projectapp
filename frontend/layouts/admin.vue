@@ -12,16 +12,18 @@
       class="mobile-topbar sticky top-0 z-30 flex h-14 items-center justify-between border-b border-input-border px-4 panel-landscape:hidden"
       :class="isDark ? 'bg-primary-strong/95 backdrop-blur-xl' : 'bg-surface/90 backdrop-blur-xl'"
     >
-      <button
-        type="button"
-        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+      <BaseButton
+        variant="secondary"
+        icon-only
+        size="md"
+        class="h-11 w-11 rounded-full"
         aria-label="Abrir menú"
         @click="openMobile"
       >
         <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
-      </button>
+      </BaseButton>
 
       <span v-if="_panelViewLabel && route.path !== localePath('/panel')" class="text-sm font-medium text-text-brand dark:text-white truncate max-w-[180px]">
         {{ _panelViewLabel }}
@@ -34,9 +36,11 @@
         Project<span class="text-green-light dark:text-accent">App.</span>
       </NuxtLink>
 
-      <button
-        type="button"
-        class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-soft text-text-brand dark:bg-primary dark:text-white"
+      <BaseButton
+        variant="secondary"
+        icon-only
+        size="md"
+        class="h-11 w-11 rounded-full"
         :aria-label="themeToggleLabel(isDark)"
         @click="toggle"
       >
@@ -46,7 +50,7 @@
         <svg v-else class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
         </svg>
-      </button>
+      </BaseButton>
     </div>
 
     <PanelMobileDrawer
@@ -109,6 +113,7 @@ import PanelSidebar from '~/components/panel/PanelSidebar.vue'
 import PanelMobileDrawer from '~/components/panel/PanelMobileDrawer.vue'
 import PanelRefreshButton from '~/components/panel/PanelRefreshButton.vue'
 import PanelNotificationHost from '~/components/panel/PanelNotificationHost.vue'
+import BaseButton from '~/components/base/BaseButton.vue'
 import BasePageShell from '~/components/base/BasePageShell.vue'
 
 const refreshStore = usePanelRefreshStore()
