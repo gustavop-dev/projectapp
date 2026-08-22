@@ -1,4 +1,6 @@
 """Tests for create_fake_accounting and its delete_fake_data integration."""
+from decimal import Decimal
+
 import pytest
 from django.core import mail
 from django.core.management import call_command
@@ -19,6 +21,16 @@ from content.models import (
 
 @pytest.mark.django_db
 class TestCreateFakeAccounting:
+    def test_recurring_equivalents_use_the_configured_rate(self):
+        settings = AccountingSettings.load()
+        settings.usd_exchange_rate = Decimal('4350.50')
+        settings.save()
+
+        call_command('create_fake_accounting', '--count', '6')
+
+        payment = RecurringPayment.objects.get(name='Claude Code 20x')
+        assert payment.cop_equivalent == Decimal('870100.00')
+
     def test_creates_tagged_rows_for_every_entity(self):
         call_command('create_fake_accounting', '--count', '6')
         for model in (

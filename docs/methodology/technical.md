@@ -205,6 +205,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Schema migrations rename `hosting_discount_annual` to `hosting_discount_nine_month`. Data migrations update only current proposal/accounting/platform state, never paid cycles or payments, and guard Wompi-linked work before mutation.
 - Write serializers reject new monthly/annual accounting values but allow an unchanged legacy value when editing another field on a historical row.
 
+### Server-owned recurring COP projections
+
+- `RecurringPayment.cop_equivalent` remains persisted for consistent API, export, dashboard and MCP aggregation, but it is `editable=False` and read-only in write serializers.
+- `RecurringPayment.save()` derives COP from `price` and `currency`; USD uses the singleton `AccountingSettings.usd_exchange_rate`. `monthly_cop_cost` then divides that canonical charge by the normalized frequency length.
+- `AccountingSettings.save()` detects a persisted rate change inside one transaction and bulk-refreshes all recurring equivalents. This is an explicit current-rate policy; no external exchange-rate API is involved.
+- Migration `content.0208_recalculate_recurring_cop_equivalent` repairs every existing COP and USD row from its current inputs. Panel, MCP, fake-data and import writers do not accept `cop_equivalent` as an independent input.
+- Frontend calculations are previews only. The panel refetch after save remains authoritative and rebuilds both the category sums and the general monthly COP total from the server response.
+
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
 - Each proposal section's `content_json` matches the props schema of its Vue component

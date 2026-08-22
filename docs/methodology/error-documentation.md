@@ -45,6 +45,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-021] Editing a recurring payment left its monthly COP projection stale
+- **Date**: 2026-08-22
+- **Context**: Chat-GPT was edited from USD 20 to USD 200, but its stored COP equivalent remained 80,000. Reloading preserved the wrong value, which also understated the general and category monthly totals.
+- **Root Cause**: `cop_equivalent` was accepted as client input and only defaulted for new COP rows. The edit form resent the old stored USD value, while no model invariant recomputed it from price, currency or the configured rate.
+- **Resolution**: Make the field a server-owned cache derived on every model save, resynchronize all rows when the current USD rate changes, remove it from panel/MCP/import inputs, show a live read-only preview, and run migration `0208` to repair historical rows.
+- **Files Affected**: `content/models/recurring_payment.py`, `content/models/accounting_settings.py`, accounting serializers/MCP/import paths, `RecurringPaymentFormModal.vue`, recurring panel/settings pages.
+- **Regression coverage**: Separate backend, unit and E2E checks cover price-only, currency-only and frequency-only edits; settings tests cover USD-rate resynchronization; the migration test reproduces and repairs stale USD/COP rows.
+
 ### [ERR-020] Proposal closing columns and payment amounts were visually compressed
 - **Date**: 2026-08-21
 - **Context**: The public proposal at laptop and desktop widths showed two narrow closing cards despite available screen space, while payment amounts could wrap before `+ IVA` and the legal contract floated without a document boundary.

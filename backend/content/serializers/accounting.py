@@ -1415,14 +1415,13 @@ class RecurringPaymentCreateUpdateSerializer(serializers.ModelSerializer):
             'cycle_anchor_date',
             'cost_type', 'category', 'is_active', 'notes',
         )
+        # Kept in the accepted wire shape for rolling compatibility with old
+        # panel/MCP clients, but any submitted value is ignored.  The model is
+        # the single owner and derives it from price, currency and current rate.
+        read_only_fields = ('cop_equivalent',)
 
     def validate(self, data):
         data = super().validate(data)
-        # COP payments default their COP equivalent to the price itself.
-        if self.instance is None and 'cop_equivalent' not in data:
-            currency = data.get('currency', RecurringPayment.Currency.COP)
-            if currency == RecurringPayment.Currency.COP:
-                data['cop_equivalent'] = data.get('price', Decimal('0'))
         self._validate_custom_months(data)
         return data
 

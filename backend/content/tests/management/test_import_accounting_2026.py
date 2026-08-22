@@ -109,6 +109,19 @@ def fixture_file(tmp_path):
 
 @pytest.mark.django_db
 class TestImportAccounting2026:
+    def test_recurring_equivalent_ignores_the_imported_cache(
+        self, fixture_file, tmp_path,
+    ):
+        stale = json.loads(json.dumps(FIXTURE))
+        stale['recurring_payments'][0]['cop_equivalent'] = '1.00'
+        stale_path = tmp_path / 'stale.json'
+        stale_path.write_text(json.dumps(stale), encoding='utf-8')
+
+        call_command('import_accounting_2026', '--file', str(stale_path))
+
+        payment = RecurringPayment.objects.get(name='Claude Code 20x')
+        assert payment.cop_equivalent == Decimal('800000.00')
+
     def test_imports_every_section(self, fixture_file):
         call_command('import_accounting_2026', '--file', fixture_file)
         assert IncomeRecord.objects.filter(kind='expected').count() == 1

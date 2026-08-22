@@ -35,6 +35,7 @@
     <!-- Stat cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-6">
       <AccountingStatCard
+        data-testid="recurring-monthly-cop-total"
         label="Costo mensual (COP)"
         :value="money(monthlyCopTotal)"
         sub="Pagos activos prorrateados por mes"
@@ -318,6 +319,7 @@
       :record="editingRecord"
       :saving="store.isUpdating"
       :categories="store.recurringCategories"
+      :usd-exchange-rate="store.metaFor('recurring').usd_exchange_rate"
       @close="closeFormModal"
       @submit="submitForm"
     />

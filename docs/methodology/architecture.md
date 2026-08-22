@@ -667,3 +667,21 @@ The explicit `$proposal-create` / `/proposal-create` workflow can precede the pa
 3. Closed or inactive proposals keep their stored tiers for contractual history. Platform onboarding explicitly requests current terms when it turns an accepted proposal into a new `Project` snapshot.
 4. Current `HostingSubscription` and active accounting `HostingRecord` rows use `nine_month`; cancelled/archived subscriptions, paid `Payment`/`HostingCycle` rows and inactive records retain legacy values and historical labels.
 5. Data migrations abort before changing a subscription when an unpaid annual payment is processing or already linked to Wompi; safe pending payments are recalculated to nine months.
+
+### Recurring Inputs → Canonical COP Projections → Budget Totals
+
+```mermaid
+flowchart LR
+    Writers["Panel / MCP / import"] --> Save["RecurringPayment.save()"]
+    Inputs["price + currency"] --> Save
+    Rate["AccountingSettings.usd_exchange_rate"] --> Save
+    Save --> Equivalent["cop_equivalent (server-owned cache)"]
+    Equivalent --> Monthly["monthly_cop_cost ÷ frequency_months"]
+    Frequency["frequency / custom_months"] --> Monthly
+    Monthly --> General["API monthly_cop_total"]
+    Monthly --> Category["Frontend category totals"]
+    RateChange["AccountingSettings.save() rate change"] --> Sync["synchronize_cop_equivalents()"]
+    Sync --> Equivalent
+```
+
+The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.

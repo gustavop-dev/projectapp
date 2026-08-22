@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 
 from content.models import (
-    AccountingChangeLog, HostingRecord, IncomeRecord, PocketMovement,
-    RecurringPayment,
+    AccountingChangeLog, AccountingSettings, HostingRecord, IncomeRecord,
+    PocketMovement, RecurringPayment,
 )
 from content.services import accounting_service
 
@@ -606,6 +606,57 @@ class TestRecurringEndpoints:
         assert response.data['custom_months'] is None
         # The stale 7 must not survive to skew the proration.
         assert response.data['monthly_cop_cost'] == '116666.67'
+
+    def test_update_price_recalculates_usd_equivalent(self, super_client):
+        payment = RecurringPayment.objects.create(
+            name='Chat-GPT', price=Decimal('20.00'), currency='USD',
+            frequency='monthly',
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/recurring/{payment.id}/update/',
+            {'price': '200.00'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['cop_equivalent'] == '800000.00'
+        assert response.data['monthly_cop_cost'] == '800000.00'
+
+    def test_update_currency_recalculates_cop_equivalent(self, super_client):
+        payment = RecurringPayment.objects.create(
+            name='Chat-GPT', price=Decimal('200.00'), currency='USD',
+            frequency='monthly',
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/recurring/{payment.id}/update/',
+            {'currency': 'COP'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['cop_equivalent'] == '200.00'
+        assert response.data['monthly_cop_cost'] == '200.00'
+
+    def test_update_frequency_recalculates_monthly_cop_cost(self, super_client):
+        AccountingSettings.objects.update_or_create(
+            pk=1, defaults={'usd_exchange_rate': Decimal('4000.00')},
+        )
+        payment = RecurringPayment.objects.create(
+            name='Chat-GPT', price=Decimal('200.00'), currency='USD',
+            frequency='monthly',
+        )
+
+        response = super_client.patch(
+            f'/api/accounting/recurring/{payment.id}/update/',
+            {'frequency': 'annual'},
+            format='json',
+        )
+
+        assert response.status_code == 200
+        assert response.data['cop_equivalent'] == '800000.00'
+        assert response.data['monthly_cop_cost'] == '66666.67'
 
 
 @pytest.mark.django_db
