@@ -61,6 +61,7 @@ function mountPage() {
   return mount(PanelClientsIndex, {
     global: {
       stubs: {
+        Teleport: true,
         ConfirmModal: {
           template: '<div />',
         },
