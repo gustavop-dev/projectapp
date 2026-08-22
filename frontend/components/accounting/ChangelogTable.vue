@@ -145,7 +145,7 @@ function changeText(action, change) {
 </script>
 
 <style scoped>
-@media (max-width: 999px) {
+@media (max-width: 1023px) {
   .accounting-history-table thead {
     display: none;
   }
@@ -190,7 +190,7 @@ function changeText(action, change) {
   }
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .accounting-history-table {
     min-width: var(--table-min-width);
   }

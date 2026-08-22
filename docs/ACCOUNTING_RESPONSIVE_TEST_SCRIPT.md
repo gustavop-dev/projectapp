@@ -27,7 +27,7 @@ anchos oficiales. No se reemplaza un ancho por “se ve parecido”.
 | Perfil | Viewport | Navegación esperada |
 |---|---:|---|
 | Celular | 412 × 915 | selector de sección y selector de filtros guardados |
-| Tableta vertical | 835 × 1194 | selector de sección y selector de filtros guardados |
+| Tableta vertical | 835 × 1195 | selector de sección y selector de filtros guardados |
 | Tableta horizontal | 1195 × 835 | tira de 12 secciones y tira de filtros |
 | Portátil | 1440 × 900 | tiras completas; columnas de escritorio según espacio |
 | Monitor 27″ | 2560 × 1440 | contenido centrado, sin estirarse más allá del máximo |
@@ -86,7 +86,7 @@ componente base o el propio modal.
 
 | Caso | Pasos y resultado esperado |
 |---|---|
-| Nueva cuenta de cobro | Completar cliente e ingreso, llegar a Previsualizar, alternar Correo/PDF en angosto, volver a editar y regresar al paso 2. Nunca aparecen dos paneles ilegibles lado a lado por debajo de 1000 px. Confirmar y enviar permanece alcanzable. |
+| Nueva cuenta de cobro | Completar cliente e ingreso, llegar a Previsualizar, alternar Correo/PDF en angosto, volver a editar y regresar al paso 2. Nunca aparecen dos paneles ilegibles lado a lado por debajo de 1024 px. Confirmar y enviar permanece alcanzable. |
 | Liquidar ingreso | Abrir un esperado, registrar abono parcial, desplegar bloques condicionales y agregar un siguiente ingreso esperado. Fechas, valores, errores y CTA no se cortan. |
 | Registrar abono múltiple | Seleccionar varios ingresos, repartir un valor, provocar una suma inválida y corregirla. El motivo de bloqueo y las acciones se leen sin scroll lateral. |
 | Nuevo ingreso | Cambiar entre Esperado, Líquido y Perdido; alternar origen, cliente/proyecto, reparto de socios y registro en Bolsillo. Los campos aparecen en un orden estable y no desplazan las acciones fuera del modal. |

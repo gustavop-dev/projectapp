@@ -225,24 +225,26 @@
                   </div>
                 </span>
                 <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
-                  <button
-                    type="button"
+                  <BaseButton
+                    variant="ghost"
+                    icon-only
+                    size="sm"
                     aria-label="Editar"
                     :data-testid="`accounting-edit-${row.id}`"
-                    class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
                     @click.stop="emit('edit', row)"
                   >
                     <PencilSquareIcon class="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
+                  </BaseButton>
+                  <BaseButton
+                    variant="danger-ghost"
+                    icon-only
+                    size="sm"
                     aria-label="Eliminar"
                     :data-testid="`accounting-delete-${row.id}`"
-                    class="p-1.5 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
                     @click.stop="emit('delete', row)"
                   >
                     <TrashIcon class="w-4 h-4" />
-                  </button>
+                  </BaseButton>
                 </span>
               </div>
             </template>
@@ -484,13 +486,13 @@ function onDragEnd() {
   --cols: var(--cols-compact);
   min-width: 100%;
 }
-@media (min-width: 600px) {
+@media (min-width: 640px) {
   .accounting-grid-scroll {
     --cols: var(--cols-portrait);
     min-width: 100%;
   }
 }
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .accounting-grid-scroll {
     --cols: var(--cols-landscape);
     min-width: var(--minw-landscape);
@@ -560,7 +562,7 @@ function onDragEnd() {
   flex: 0 0 auto;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1023px) {
   .accounting-group-header {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -572,7 +574,7 @@ function onDragEnd() {
   }
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .accounting-group-header {
     flex-wrap: nowrap;
   }

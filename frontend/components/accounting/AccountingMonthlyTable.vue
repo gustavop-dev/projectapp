@@ -158,7 +158,7 @@ function utilityClass(value) {
 </script>
 
 <style scoped>
-@media (min-width: 1000px) {
+@media (min-width: 1024px) {
   .accounting-monthly-table {
     min-width: var(--table-min-width);
   }

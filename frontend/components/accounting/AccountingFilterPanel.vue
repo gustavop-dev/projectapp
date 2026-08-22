@@ -100,13 +100,15 @@
             :key="value.id"
             class="inline-flex items-center gap-1"
             data-testid="accounting-filter-chip-value"
-          >{{ index > 0 ? ', ' : '' }}{{ value.label }}<button
-            type="button"
-            class="rounded-full hover:bg-info-strong/10 transition-colors"
+          >{{ index > 0 ? ', ' : '' }}{{ value.label }}<BaseButton
+            variant="ghost"
+            icon-only
+            size="sm"
+            class="-my-1 -mr-1"
             :aria-label="`Quitar filtro ${chip.label} ${value.label}`.trim()"
             :data-testid="`accounting-filter-chip-remove-${chip.id}-${value.token}`"
             @click="value.clear()"
-          ><XMarkIcon class="w-3 h-3" /></button></span>
+          ><XMarkIcon class="w-3 h-3" /></BaseButton></span>
         </span>
 
         <span v-if="appliedChips.length === 0 && resultsCount !== null" class="text-xs text-text-subtle">

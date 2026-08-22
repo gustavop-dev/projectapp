@@ -103,15 +103,16 @@ function onDragEnd() {
             <span class="text-xs text-text-subtle tabular-nums w-16 text-right">
               {{ category.payment_count }} pago{{ category.payment_count === 1 ? '' : 's' }}
             </span>
-            <button
-              type="button"
-              class="p-2 rounded-lg text-text-subtle hover:text-danger-strong hover:bg-danger-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
+            <BaseButton
+              variant="danger-ghost"
+              icon-only
+              size="md"
               :aria-label="`Eliminar ${category.name}`"
               :data-testid="`recurring-category-delete-${category.id}`"
               @click="emit('delete', category)"
             >
               <TrashIcon class="w-5 h-5" />
-            </button>
+            </BaseButton>
           </div>
         </template>
       </draggable>

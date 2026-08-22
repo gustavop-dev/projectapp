@@ -384,7 +384,7 @@ function formatDate(iso) {
   letter-spacing: 0.05em;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1023px) {
   .statement-transactions-table,
   .statement-transactions-table tbody {
     display: block;

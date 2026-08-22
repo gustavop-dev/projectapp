@@ -294,11 +294,21 @@ Responsive behavior for the internal panel is a second design-system layer.
 five reference viewports. Tailwind exposes those bands as namespaced
 `panel-portrait`, `panel-landscape`, `panel-desktop` and `panel-wide` screens;
 the names avoid Tailwind's built-in orientation variants. `BasePageShell`
-enforces the 1440 px content ceiling, while `BaseResponsiveTable`,
+enforces the 1400 px general-content ceiling, while `BaseResponsiveTable`,
 `BaseResponsiveTabs`, `BaseFilterTabs`, `BaseModal`, `BaseActionMenu` and
 `BaseBulkActionBar` own the recurring adaptations. Legacy `AccountingTable`,
 `BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
 implementations so modules can migrate without an all-at-once rewrite.
+
+Accounting is the reference adoption layer for those primitives. Its twelve
+pages render through `BasePageShell`; `AccountingSubnav` and saved filters use
+the shared compact navigation contract; `AccountingIndicatorGroup` preserves
+business-ranked KPIs; and each `AccountingTable` column carries an explicit
+`keep/group/hide` policy. Grouped-income and grouped-recurring headers own a
+stacked compact representation, while Pocket relocates the running balance
+inside the retained amount cell below 1024 px so the ledger keeps its meaning.
+Long modal flows declare a semantic `kind`, and hosting/collection row actions
+converge on one touch-safe menu when their inline controls no longer fit.
 
 ### 6.1 Page Routing
 

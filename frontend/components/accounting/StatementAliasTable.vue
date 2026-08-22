@@ -116,7 +116,7 @@ defineEmits(['inline-save', 'delete']);
   letter-spacing: 0.05em;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1023px) {
   .statement-alias-table,
   .statement-alias-table tbody {
     display: block;

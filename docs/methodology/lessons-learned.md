@@ -803,3 +803,21 @@ orientation when it sees `portrait:` or `landscape:`, so panel width aliases use
 the `panel-*` namespace. Unit tests can prove that a class string exists while
 missing a bad media query; every new breakpoint family must also be inspected
 in generated CSS and exercised at the boundary viewports.
+
+## 32. Responsive accounting must preserve business meaning, not table shape
+
+An accounting column cannot be hidden because it happens to be last. Declare a
+primary field, retained totals and grouped secondary facts for every table, then
+verify the choice against the operation users perform. In Ingresos that means
+concept and total survive while collection state, month and origin can share a
+compact detail block; grouped client headers stack identity and totals instead
+of compressing four meanings into one line.
+
+Some data must change location rather than disappear. Pocket's running balance
+is the clearest case: its independent column is too expensive below 1024 px, but
+without it the ledger becomes a list of unrelated movements. Relocating the
+balance below each retained amount preserves chronology and frees horizontal
+space. Apply the same rule to secondary KPIs: show the three ranked decisions,
+then disclose the rest on demand. A repeatable matrix needs all twelve routes
+and all five real widths; representative Playwright checks pin the breakpoint
+semantics while the written 12×5 script preserves business review tab by tab.

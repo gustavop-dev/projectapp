@@ -914,7 +914,7 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
   });
 
   test.describe('en tableta vertical', () => {
-    test.use({ viewport: { width: 835, height: 1194 } });
+    test.use({ viewport: { width: 835, height: 1195 } });
 
     test('mantiene los dos selectores y no recupera la parrilla de doce tabs', {
       tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
@@ -928,6 +928,8 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
         .toBeVisible({ timeout: 25_000 });
       await expect(page.getByTestId('filter-tabs-select')).toBeVisible();
       await expect(page.getByTestId('accounting-subnav-incomes')).toBeHidden();
+      await expect(page.getByTestId('accounting-row-1'))
+        .toContainText('Vastago (Fase 1) - Inicio 40%');
       expect(await page.evaluate(() => (
         document.documentElement.scrollWidth <= document.documentElement.clientWidth
       ))).toBe(true);
@@ -948,11 +950,55 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       await expect(page.getByTestId('accounting-subnav-incomes'))
         .toBeVisible({ timeout: 25_000 });
       await expect(page.getByTestId('accounting-subnav-select')).toBeHidden();
-      await expect(page.getByRole('columnheader', { name: 'Saldo después' })).toBeVisible();
+      await expect(page.getByRole('columnheader', { name: 'Saldo', exact: true })).toBeVisible();
       await expect(page.getByTestId('pocket-running-balance-1')).toHaveCount(0);
       expect(await page.evaluate(() => (
         document.documentElement.scrollWidth <= document.documentElement.clientWidth
       ))).toBe(true);
+    });
+  });
+
+  test.describe('en portátil', () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test('conserva la representación ancha sin desbordar', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (el resultado es el layout de llegada)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-incomes'))
+        .toBeVisible({ timeout: 25_000 });
+      await expect(page.getByTestId('accounting-subnav-select')).toBeHidden();
+      await expect(page.getByRole('columnheader', { name: 'Saldo', exact: true })).toBeVisible();
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      ))).toBe(true);
+    });
+  });
+
+  test.describe('en monitor de 27 pulgadas', () => {
+    test.use({ viewport: { width: 2560, height: 1440 } });
+
+    test('limita el contenido general a 1400 píxeles', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (mide el tope del layout al llegar)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-incomes'))
+        .toBeVisible({ timeout: 25_000 });
+      const shellWidths = await page.getByTestId('panel-content-shell')
+        .evaluateAll((elements) => elements.map((element) => (
+          element.getBoundingClientRect().width
+        )));
+      expect(Math.max(...shellWidths)).toBeLessThanOrEqual(1401);
+      await expect(page.getByTestId('accounting-row-1'))
+        .toContainText('Vastago (Fase 1) - Inicio 40%');
     });
   });
 });

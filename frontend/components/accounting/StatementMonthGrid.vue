@@ -19,6 +19,7 @@
         </span>
       </div>
       <div v-if="month.statements.length" class="space-y-1.5">
+        <!-- design-tokens: allow-raw-button — each statement is a selectable list row, not an action. -->
         <button
           v-for="statement in month.statements"
           :key="statement.id"
