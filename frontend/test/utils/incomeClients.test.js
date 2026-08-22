@@ -112,19 +112,22 @@ describe('withClientWeights', () => {
 });
 
 describe('sumClientGroups', () => {
-  it('adds every column for the footer row', () => {
+  it('adds every column for the footer row including lost revenue', () => {
     const groups = groupByClient([
       income({ id: 1, client: 5, client_name: 'A', total_amount: '1000', pending_amount: '400' }),
       income({ id: 2, client: 7, client_name: 'B', kind: 'liquid', total_amount: '600' }),
       income({ id: 3, client: null, client_name: null, total_amount: '200', pending_amount: '200' }),
+      income({ id: 4, client: 9, client_name: 'C', kind: 'lost', total_amount: '750', pending_amount: null }),
     ]);
 
+    // Fails if sumClientGroups stops accumulating group.lost, hiding
+    // written-off income from the client-totals footer.
     expect(sumClientGroups(groups)).toEqual({
-      count: 3,
+      count: 4,
       billed: 1200,
       collected: 600,
       pending: 600,
-      lost: 0,
+      lost: 750,
     });
   });
 });
