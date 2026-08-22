@@ -44,16 +44,18 @@
           </span>
 
           <div class="touch-reveal flex items-center gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button
-              type="button"
-              class="touch-target w-7 h-7 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
+            <BaseButton
+              variant="ghost"
+              icon-only
+              size="sm"
+              aria-label="Editar carpeta"
               title="Editar carpeta"
               @click="$emit('edit', folder)"
             >
               <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-            </button>
+            </BaseButton>
             <!-- Archivar entre editar y eliminar: el único sitio donde esas dos
                  ya conviven y hay espacio, a diferencia de la fila del sidebar. -->
             <BaseButton variant="ghost" icon-only size="sm" aria-label="Archivar carpeta" title="Archivar carpeta" data-testid="folder-manager-archive" @click="$emit('archive', folder)">
