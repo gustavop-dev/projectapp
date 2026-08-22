@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <BasePageShell>
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -13,6 +13,7 @@
       <BaseButton
         variant="primary"
         size="md"
+        class="w-full panel-portrait:w-auto"
         data-testid="pocket-new-button"
         @click="openCreateModal"
       >
@@ -67,7 +68,7 @@
     />
 
     <!-- Search + Filter toggle -->
-    <div class="flex items-center gap-2 mb-5">
+    <div class="flex flex-wrap items-center gap-2 mb-5">
       <BaseInput
         v-model="searchInput"
         type="text"
@@ -182,6 +183,19 @@
           >
             {{ (row.direction === 'out' ? '-' : '') + formatMoney(row.amount) }}
           </span>
+          <span
+            v-if="isNarrowTable"
+            class="mt-1 block text-xs font-normal tabular-nums text-text-muted"
+            :data-testid="`pocket-running-balance-${row.id}`"
+          >
+            {{ hasActiveFilters ? 'Acumulado filtrado' : 'Saldo después' }}:
+            {{ formatMoney(row.running_balance) }}
+          </span>
+        </template>
+        <template #cell-running_balance="{ row }">
+          <span v-if="!isNarrowTable" class="tabular-nums">
+            {{ formatMoney(row.running_balance) }}
+          </span>
         </template>
       </AccountingTable>
 
@@ -228,11 +242,10 @@
       @confirm="handleConfirmed"
       @cancel="handleCancelled"
     />
-  </div>
+  </BasePageShell>
 </template>
 
 <script setup>
-import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref } from 'vue';
 import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
@@ -247,6 +260,8 @@ import AccountingExportButton from '~/components/accounting/AccountingExportButt
 import PocketMovementFormModal from '~/components/accounting/PocketMovementFormModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import {
@@ -264,6 +279,7 @@ import { withRunningBalance } from '~/utils/pocketRunningBalance';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth', 'superuser-only'] });
 
 const store = useAccountingStore();
+const { isMobile: isNarrowTable } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 
 // -------------------------------------------------------------------
 // Filters
@@ -460,10 +476,22 @@ const {
 // Value and running balance are the same number in two readings, so they group.
 // Date, concept and value are what a ledger is for; the rest can collapse.
 const columns = computed(() => [
-  { key: 'movement_date', label: 'Fecha', format: 'date', sortable: true },
-  { key: 'concept', label: 'Concepto', size: 'name', sortable: true },
-  { key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md' },
-  { key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true },
+  {
+    key: 'movement_date', label: 'Fecha', format: 'date', sortable: true,
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'concept', label: 'Concepto', size: 'name', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'direction_label', label: 'Tipo', size: 'badge', hideBelow: 'md',
+    responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'amount', label: 'Valor', format: 'money', group: 'money', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
   {
     key: 'running_balance',
     // Under a filter the column stops being the pocket's balance: it is the
@@ -472,6 +500,7 @@ const columns = computed(() => [
     format: 'money',
     group: 'money',
     hideBelow: 'md',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'keep' },
   },
 ]);
 

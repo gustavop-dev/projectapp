@@ -1,6 +1,6 @@
 <template>
   <section class="bg-surface rounded-xl border border-border-muted shadow-sm" data-testid="statement-detail">
-    <header class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-5 py-4 border-b border-border-muted">
+    <header class="flex flex-col gap-3 border-b border-border-muted px-5 py-4 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
       <div>
         <h2 class="text-base font-medium text-text-default">
           {{ statement.card_name }} · <span class="capitalize">{{ statement.period_label }}</span>
@@ -9,13 +9,21 @@
           {{ statement.transactions.length }} transacciones · registrado {{ formatDate(statement.created_at) }}
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <span
           class="text-xs px-2.5 py-1 rounded-full font-medium"
           :class="isProcessed ? 'bg-success-soft text-success-strong' : 'bg-warning-soft text-warning-strong'"
         >
           {{ statement.status_label }}
         </span>
+        <BaseActionMenu
+          v-if="isNarrowActions"
+          :items="statementActions"
+          :disabled="isUpdating"
+          label="Acciones"
+          testid="statement-actions"
+        />
+        <template v-else>
         <BaseButton
           v-if="!isProcessed"
           variant="secondary"
@@ -65,18 +73,25 @@
         >
           Eliminar
         </BaseButton>
+        </template>
       </div>
     </header>
 
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 p-5">
-      <AccountingStatCard label="Compras" :value="money(statement.purchases_total)" tone="brand" />
-      <AccountingStatCard label="Pagos y abonos" :value="money(statement.payments_total)" tone="success" />
-      <AccountingStatCard label="Intereses y comisiones" :value="money(statement.interest_and_fees)" tone="warning" />
-      <AccountingStatCard
-        label="Saldo de cierre"
-        :value="money(statement.closing_balance)"
-        :sub="statement.due_date ? `Pago mínimo ${money(statement.minimum_payment)} · vence ${statement.due_date}` : ''"
-      />
+    <div class="p-5">
+      <AccountingIndicatorGroup :columns="4" :secondary-count="1">
+        <template #primary>
+          <AccountingStatCard
+            label="Saldo de cierre"
+            :value="money(statement.closing_balance)"
+            :sub="statement.due_date ? `Pago mínimo ${money(statement.minimum_payment)} · vence ${statement.due_date}` : ''"
+          />
+          <AccountingStatCard label="Intereses y comisiones" :value="money(statement.interest_and_fees)" tone="warning" />
+          <AccountingStatCard label="Pagos y abonos" :value="money(statement.payments_total)" tone="success" />
+        </template>
+        <template #secondary>
+          <AccountingStatCard label="Compras" :value="money(statement.purchases_total)" tone="brand" />
+        </template>
+      </AccountingIndicatorGroup>
     </div>
 
     <!-- Bank PDF kept as documentation -->
@@ -90,7 +105,7 @@
               : 'Adjunta el PDF del banco para dejarlo como documentación.' }}
           </p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <a
             v-if="statement.pdf_file_url"
             :href="statement.pdf_file_url"
@@ -158,7 +173,7 @@
     </p>
 
     <div class="overflow-x-auto">
-      <table class="w-full">
+      <table class="statement-transactions-table w-full">
         <thead>
           <tr class="border-b border-border-muted text-left">
             <th class="px-2.5 py-2 first:pl-4 last:pr-4 text-xs font-medium text-text-muted uppercase tracking-wider">Fecha</th>
@@ -174,13 +189,14 @@
           <tr
             v-for="tx in statement.transactions"
             :key="tx.id"
-            class="hover:bg-surface-raised transition-colors h-9"
+            class="statement-transaction-row h-9 transition-colors hover:bg-surface-raised"
             :data-testid="`statement-tx-${tx.id}`"
           >
             <td
               class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted whitespace-nowrap"
               :data-testid="`tx-cell-transaction_date-${tx.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Fecha</span>
               <AccountingInlineCell
                 type="date"
                 :value="tx.transaction_date"
@@ -195,6 +211,7 @@
               :title="tx.raw_description"
               :data-testid="`tx-cell-raw_description-${tx.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Descripción</span>
               <AccountingInlineCell
                 :value="tx.raw_description"
                 :saving="inlineSavingKey === `${tx.id}:raw_description`"
@@ -204,6 +221,7 @@
               </AccountingInlineCell>
             </td>
             <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm" :data-testid="`tx-cell-merchant_name-${tx.id}`">
+              <span class="statement-mobile-label panel-landscape:hidden">Comercio</span>
               <AccountingInlineCell
                 type="merchant"
                 :value="tx.merchant_name || ''"
@@ -221,6 +239,7 @@
               </AccountingInlineCell>
             </td>
             <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted" :data-testid="`tx-cell-category-${tx.id}`">
+              <span class="statement-mobile-label panel-landscape:hidden">Categoría</span>
               <AccountingInlineCell
                 type="select"
                 :value="tx.category"
@@ -232,6 +251,7 @@
               </AccountingInlineCell>
             </td>
             <td class="px-2.5 py-1.5 first:pl-4 last:pr-4 text-sm text-text-muted" :data-testid="`tx-cell-installment_label-${tx.id}`">
+              <span class="statement-mobile-label panel-landscape:hidden">Cuota</span>
               <AccountingInlineCell
                 type="installments"
                 :value="tx.installment_label || ''"
@@ -246,6 +266,7 @@
               :class="Number(tx.amount) < 0 ? 'text-success-strong' : 'text-text-default'"
               :data-testid="`tx-cell-amount-${tx.id}`"
             >
+              <span class="statement-mobile-label panel-landscape:hidden">Valor</span>
               <AccountingInlineCell
                 type="money"
                 align="right"
@@ -262,13 +283,13 @@
               </span>
             </td>
             <td class="px-2.5 py-1.5 last:pr-4 text-center whitespace-nowrap">
-              <button
-                class="text-xs text-text-muted hover:text-text-brand transition-colors"
-                :class="isProcessed ? '' : 'mr-2'"
+              <BaseButton
+                variant="ghost"
+                size="sm"
                 @click="$emit('edit-tx', tx)"
               >
                 Editar
-              </button>
+              </BaseButton>
               <BaseButton variant="danger-ghost" size="sm" v-if="!isProcessed" @click="$emit('delete-tx', tx)">
                 Eliminar
               </BaseButton>
@@ -284,7 +305,11 @@
 import { computed, ref } from 'vue';
 import AccountingInlineCell from '~/components/accounting/AccountingInlineCell.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
+import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
+import { useIsMobile } from '~/composables/useIsMobile';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatDate as formatDateBase } from '~/utils/formatDate';
 
@@ -305,6 +330,7 @@ const emit = defineEmits([
 ]);
 
 const pdfInput = ref(null);
+const { isMobile: isNarrowActions } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
 
 function onPdfChosen(event) {
   const file = event.target.files?.[0];
@@ -313,6 +339,21 @@ function onPdfChosen(event) {
 }
 
 const isProcessed = computed(() => props.statement.status === 'processed');
+
+const statementActions = computed(() => {
+  const actions = [];
+  if (!isProcessed.value) {
+    actions.push(
+      { label: 'Editar encabezado', onClick: () => emit('edit-header') },
+      { label: 'Agregar transacción', onClick: () => emit('add-tx') },
+      { label: 'Finalizar', onClick: () => emit('finalize') },
+    );
+  } else {
+    actions.push({ label: 'Reabrir', onClick: () => emit('reopen') });
+  }
+  actions.push({ label: 'Eliminar', danger: true, onClick: () => emit('delete') });
+  return actions;
+});
 
 const maxCategoryTotal = computed(() =>
   Math.max(...props.statement.category_totals.map((row) => Math.abs(Number(row.total))), 1),
@@ -331,3 +372,66 @@ function formatDate(iso) {
   return formatDateBase(iso, { fallback: '' });
 }
 </script>
+
+<style scoped>
+.statement-mobile-label {
+  margin-bottom: 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1rem;
+  color: var(--color-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+@media (max-width: 1023px) {
+  .statement-transactions-table,
+  .statement-transactions-table tbody {
+    display: block;
+    width: 100%;
+  }
+
+  .statement-transactions-table thead {
+    display: none;
+  }
+
+  .statement-transaction-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.5rem 1rem;
+    height: auto;
+    padding: 0.875rem 1rem;
+  }
+
+  .statement-transaction-row > td {
+    min-width: 0;
+    padding: 0;
+  }
+
+  .statement-transaction-row > td:nth-child(3) {
+    grid-column: 1;
+    grid-row: 1;
+    font-weight: 600;
+  }
+
+  .statement-transaction-row > td:nth-child(6) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .statement-transaction-row > td:nth-child(2),
+  .statement-transaction-row > td:nth-child(1),
+  .statement-transaction-row > td:nth-child(4),
+  .statement-transaction-row > td:nth-child(5),
+  .statement-transaction-row > td:nth-child(7) {
+    grid-column: 1 / -1;
+  }
+
+  .statement-transaction-row > td:nth-child(7) {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
+  }
+}
+</style>

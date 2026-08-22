@@ -7,8 +7,8 @@
  * their own idea of "tablet".
  */
 export const PANEL_BREAKPOINTS = Object.freeze({
-  portrait: 600,
-  landscape: 1000,
+  portrait: 640,
+  landscape: 1024,
   desktop: 1280,
   wide: 1920,
 });
@@ -25,11 +25,11 @@ export const PANEL_SCREENS = Object.freeze({
   wide: 'panel-wide',
 });
 
-export const PANEL_CONTENT_MAX_PX = 1440;
+export const PANEL_CONTENT_MAX_PX = 1400;
 
 export const PANEL_VIEWPORTS = Object.freeze({
   compact: Object.freeze({ width: 412, height: 915 }),
-  portrait: Object.freeze({ width: 835, height: 1194 }),
+  portrait: Object.freeze({ width: 835, height: 1195 }),
   landscape: Object.freeze({ width: 1195, height: 835 }),
   desktop: Object.freeze({ width: 1440, height: 900 }),
   wide: Object.freeze({ width: 2560, height: 1440 }),

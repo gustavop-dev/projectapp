@@ -18,9 +18,9 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['open', 'size', 'titleId'],
+          props: ['modelValue', 'kind', 'size', 'titleId'],
           emits: ['close'],
-          template: '<div v-if="open"><slot /></div>',
+          template: '<div v-if="modelValue"><slot /></div>',
         },
         BaseFormField: {
           props: ['label', 'hint', 'error', 'required'],

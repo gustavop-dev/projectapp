@@ -829,9 +829,9 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
    * navegación y el saldo — el dato por el que se entró — quedaba debajo del
    * pliegue. La medida de éxito del requerimiento es esa, y es lo que afirma el
    * primer test.
-   */
+  */
   test.describe('en un celular', () => {
-    test.use({ viewport: { width: 375, height: 667 } });
+    test.use({ viewport: { width: 412, height: 915 } });
 
     test('el saldo del bolsillo se ve sin desplazarse', {
       tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
@@ -849,16 +849,30 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       const scrolled = await page.evaluate(() => window.scrollY);
       expect(scrolled).toBe(0);
       const box = await balance.boundingBox();
-      expect(box.y + box.height).toBeLessThanOrEqual(667);
+      expect(box.y + box.height).toBeLessThanOrEqual(915);
 
-      // Y entra holgado, que es lo que de verdad mide el cambio. Números
-      // medidos en esta misma vista y viewport: con las doce pastillas
-      // envolviendo, el saldo arrancaba en y=495; con la navegación en una
-      // línea arranca en y=333. Son 162px que la navegación le devolvió al
-      // contenido. El tope deja aire para que un subtítulo más largo no vuelva
-      // frágil el test, pero no tanto como para que la parrilla pueda volver
-      // sin que esto se ponga rojo.
+      // Y entra holgado, que es lo que de verdad mide el cambio: el tope deja
+      // aire para un subtítulo más largo, pero no permite que vuelva una
+      // parrilla de cuatro filas sin poner el test rojo.
       expect(box.y).toBeLessThanOrEqual(420);
+    });
+
+    test('cada movimiento conserva el saldo corrido sin ensanchar la tabla', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (verifica la lectura compacta al llegar)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      const runningBalance = page.getByTestId('pocket-running-balance-1');
+      await expect(runningBalance).toBeVisible({ timeout: 25_000 });
+      await expect(runningBalance).toContainText('Saldo después');
+      await expect(runningBalance).toContainText('$2.123.000');
+
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      ))).toBe(true);
     });
 
     test('la sección se cambia desde el selector, sin la parrilla de tabs', {
@@ -896,6 +910,95 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       // Cada uno dice qué hace, y no dicen lo mismo.
       await expect(nav).toHaveAttribute('aria-label', 'Sección de contabilidad');
       await expect(filters).toHaveAttribute('aria-label', 'Filtro guardado');
+    });
+  });
+
+  test.describe('en tableta vertical', () => {
+    test.use({ viewport: { width: 835, height: 1195 } });
+
+    test('mantiene los dos selectores y no recupera la parrilla de doce tabs', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (el resultado es el layout de llegada)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-select'))
+        .toBeVisible({ timeout: 25_000 });
+      await expect(page.getByTestId('filter-tabs-select')).toBeVisible();
+      await expect(page.getByTestId('accounting-subnav-incomes')).toBeHidden();
+      await expect(page.getByTestId('accounting-row-1'))
+        .toContainText('Vastago (Fase 1) - Inicio 40%');
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      ))).toBe(true);
+    });
+  });
+
+  test.describe('en tableta horizontal', () => {
+    test.use({ viewport: { width: 1195, height: 835 } });
+
+    test('recupera las tiras y la columna independiente de saldo', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (el resultado es el layout de llegada)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-incomes'))
+        .toBeVisible({ timeout: 25_000 });
+      await expect(page.getByTestId('accounting-subnav-select')).toBeHidden();
+      await expect(page.getByRole('columnheader', { name: 'Saldo', exact: true })).toBeVisible();
+      await expect(page.getByTestId('pocket-running-balance-1')).toHaveCount(0);
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      ))).toBe(true);
+    });
+  });
+
+  test.describe('en portátil', () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test('conserva la representación ancha sin desbordar', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (el resultado es el layout de llegada)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-incomes'))
+        .toBeVisible({ timeout: 25_000 });
+      await expect(page.getByTestId('accounting-subnav-select')).toBeHidden();
+      await expect(page.getByRole('columnheader', { name: 'Saldo', exact: true })).toBeVisible();
+      expect(await page.evaluate(() => (
+        document.documentElement.scrollWidth <= document.documentElement.clientWidth
+      ))).toBe(true);
+    });
+  });
+
+  test.describe('en monitor de 27 pulgadas', () => {
+    test.use({ viewport: { width: 2560, height: 1440 } });
+
+    test('limita el contenido general a 1400 píxeles', {
+      tag: [...ADMIN_ACCOUNTING_POCKET, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (mide el tope del layout al llegar)
+      // quality: allow-deep-link (la vista es el escenario)
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/pocket', { waitUntil: 'domcontentloaded' });
+
+      await expect(page.getByTestId('accounting-subnav-incomes'))
+        .toBeVisible({ timeout: 25_000 });
+      const shellWidths = await page.getByTestId('panel-content-shell')
+        .evaluateAll((elements) => elements.map((element) => (
+          element.getBoundingClientRect().width
+        )));
+      expect(Math.max(...shellWidths)).toBeLessThanOrEqual(1401);
+      await expect(page.getByTestId('accounting-row-1'))
+        .toContainText('Vastago (Fase 1) - Inicio 40%');
     });
   });
 });

@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="detail"
     size="xl"
     title-id="income-client-totals-title"
     @close="emit('close')"

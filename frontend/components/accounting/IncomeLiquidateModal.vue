@@ -356,6 +356,7 @@ function onSubmit() {
 <template>
   <BaseModal
     :model-value="open"
+    kind="form"
     size="lg"
     title-id="income-liquidate-title"
     @close="emit('close')"
@@ -689,7 +690,7 @@ function onSubmit() {
         >
           {{ saving ? '' : submitBlockReason }}
         </p>
-        <div class="flex items-center justify-end gap-3">
+        <div class="flex flex-col-reverse items-stretch gap-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
           <BaseButton type="button" variant="secondary" @click="emit('close')">
             Cancelar
           </BaseButton>

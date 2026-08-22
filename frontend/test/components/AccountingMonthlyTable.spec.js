@@ -22,6 +22,18 @@ describe('AccountingMonthlyTable', () => {
     expect(enero.text()).toContain('$800.000')
   })
 
+  it('groups secondary month figures below the month for narrow profiles', () => {
+    const wrapper = mount(AccountingMonthlyTable, { props: { monthly: ROWS } })
+    const details = wrapper.get('[data-testid="accounting-monthly-grouped-2026-01"]')
+
+    expect(details.text()).toContain('Esperado')
+    expect(details.text()).toContain('$1.000.000')
+    expect(details.text()).toContain('Líquido')
+    expect(details.text()).toContain('$800.000')
+    expect(details.text()).toContain('Gastos')
+    expect(details.text()).toContain('$300.000')
+  })
+
   it('sums the totals row across numeric strings and numbers', () => {
     const wrapper = mount(AccountingMonthlyTable, { props: { monthly: ROWS } })
     const totals = wrapper.get('tfoot').text()

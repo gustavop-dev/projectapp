@@ -1,13 +1,13 @@
 <template>
   <div class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm">
-    <table class="w-full text-sm" :style="{ minWidth: tableMinWidth }">
+    <table class="accounting-history-table w-full text-sm" :style="{ '--table-min-width': tableMinWidth }">
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th
             v-for="col in resolved"
             :key="col.key"
             :style="{ width: col.width }"
-            :class="[col.headerPadClass, col.alignClass, col.nowrapClass]"
+            :class="[col.headerPadClass, col.alignClass, col.nowrapClass, visibilityClass(col.key)]"
           >{{ col.label }}</th>
         </tr>
       </thead>
@@ -20,18 +20,25 @@
         <template v-for="entry in entries" :key="entry.id">
           <tr
             :data-testid="`changelog-row-${entry.id}`"
-            class="hover:bg-surface-raised transition-colors bg-surface cursor-pointer h-9"
+            class="accounting-history-row hover:bg-surface-raised transition-colors bg-surface cursor-pointer h-9"
             @click="toggleEntry(entry.id)"
           >
-            <td :class="[cell(0), 'text-text-muted text-xs tabular-nums']">
+            <td data-field="date" :class="[cell(0), 'text-text-muted text-xs tabular-nums']">
+              <span class="history-mobile-label panel-landscape:hidden">Fecha</span>
               {{ formatDateTime(entry.created_at) }}
             </td>
-            <td :class="[cell(1), 'text-text-default']">
+            <td data-field="actor" :class="[cell(1), 'text-text-default']">
+              <span class="history-mobile-label panel-landscape:hidden">Usuario</span>
               {{ entry.actor_username || 'Sistema' }}
             </td>
-            <td :class="[cell(2), 'text-text-muted']">{{ entry.entity_type_label }}</td>
-            <td :class="[cell(3), 'text-text-default font-medium']">{{ entry.object_repr }}</td>
-            <td :class="cell(4)">
+            <td data-field="entity" :class="[cell(2), 'text-text-muted']">
+              <span class="history-mobile-label panel-landscape:hidden">Entidad</span>
+              {{ entry.entity_type_label }}
+            </td>
+            <td data-field="record" :class="[cell(3), 'min-w-0 text-text-default font-medium']">
+              <span class="break-words">{{ entry.object_repr }}</span>
+            </td>
+            <td data-field="action" :class="cell(4)">
               <span
                 class="text-xs px-2.5 py-1 rounded-full font-medium"
                 :class="actionClass(entry.action)"
@@ -88,6 +95,10 @@ const COLUMNS = [
 const resolved = resolveColumns(COLUMNS, { hasActions: false });
 const tableMinWidth = minWidthFor(resolved, { hasActions: false });
 
+function visibilityClass() {
+  return '';
+}
+
 /** Padding + alignment for the nth column. */
 function cell(index) {
   const col = resolved[index];
@@ -132,3 +143,56 @@ function changeText(action, change) {
   return `${displayValue(change.old)} → ${displayValue(change.new)}`;
 }
 </script>
+
+<style scoped>
+@media (max-width: 1023px) {
+  .accounting-history-table thead {
+    display: none;
+  }
+
+  .accounting-history-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem 1rem;
+    height: auto;
+    padding: 0.85rem 1rem;
+  }
+
+  .accounting-history-row > td {
+    padding: 0;
+    white-space: normal;
+  }
+
+  .accounting-history-row > [data-field="record"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .accounting-history-row > [data-field="action"] {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .accounting-history-row > [data-field="date"],
+  .accounting-history-row > [data-field="actor"],
+  .accounting-history-row > [data-field="entity"] {
+    grid-column: 1 / -1;
+  }
+
+  .history-mobile-label {
+    display: inline-block;
+    min-width: 4.5rem;
+    color: var(--color-text-subtle);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+}
+
+@media (min-width: 1024px) {
+  .accounting-history-table {
+    min-width: var(--table-min-width);
+  }
+}
+</style>

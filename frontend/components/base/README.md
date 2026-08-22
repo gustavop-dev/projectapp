@@ -163,22 +163,22 @@ prefer the bare class without `/N`.
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
-| `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 600 px |
-| `BaseModalActions` | Responsive footer: full-width stacked actions below 600 px, right-aligned row above it |
+| `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
+| `BaseModalActions` | Responsive footer: full-width stacked actions below 640 px, right-aligned row above it |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled` — label via default slot                             |
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
 | `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`portrait` by default; also `sm`/`md`/`landscape`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
 | `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId? }` or strings), `size` (`sm`/`md`), `fullWidth` — segmented control / pill tabs |
-| `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1000 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
+| `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1024 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
 | `BaseFilterTabs` | Saved-filter strip: same selector/strip breakpoint, wrapping, drag with touch delay, keyboard/menu reorder. `ProposalFilterTabs` remains as a compatibility alias |
-| `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1000 px), paired with `hidden panel-landscape:flex` |
+| `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1024 px), paired with `hidden panel-landscape:flex` |
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, href?, testid?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
 | `BaseActionMenu` | `items`, `label`, `disabled`, `placement`, `align`, `width`, `variant` — canonical row/action overflow menu |
 | `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
-| `BaseResponsiveTable` | Comparative table with explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
-| `BaseExploratoryList` | Exploratory CRUD list: one table from 1000 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` |
-| `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps content at 1440 px; the admin layout applies it globally |
+| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
+| `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` |
+| `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
 | `BaseTooltip`   | `position` (`top`/`bottom`/`left`/`right`), `backgroundColor`, `textColor`, `width`, `minWidth`. Trigger via `#trigger`, body via default slot. Click for touch, hover for desktop |
@@ -193,11 +193,11 @@ The source of truth shared by Tailwind, JavaScript and Playwright is
 
 | Profile | Range | Reference viewport | Canonical behavior |
 | --- | ---: | ---: | --- |
-| `compact` | `< 600px` | `412 × 915` | Drawer navigation, selectors for tabs/filters, stacked forms, fullscreen modal |
-| `portrait` | `600–999px` | `835 × 1194` | Same navigation/selectors, forms may use two columns, centered modal |
-| `landscape` | `1000–1279px` | `1195 × 835` | Collapsed sidebar by default, wrapping strips, priority table may scroll |
+| `compact` | `< 640px` | `412 × 915` | Drawer navigation, selectors for tabs/filters, stacked forms, fullscreen modal |
+| `portrait` | `640–1023px` | `835 × 1195` | Same navigation/selectors, forms may use two columns, centered modal |
+| `landscape` | `1024–1279px` | `1195 × 835` | Collapsed sidebar by default, wrapping strips, priority table may scroll |
 | `desktop` | `1280–1919px` | `1440 × 900` | Expanded sidebar, all table columns available |
-| `wide` | `≥ 1920px` | `2560 × 1440` | Same desktop behavior; `BasePageShell` stops content at 1440 px |
+| `wide` | `≥ 1920px` | `2560 × 1440` | Same desktop behavior; `BasePageShell` stops general content at 1400 px |
 
 ### Table adoption
 
@@ -264,7 +264,7 @@ role explicitly:
 ### Tabs and filters
 
 Use `BaseResponsiveTabs` for module sections and `BaseFilterTabs` for saved
-filters. Both show a native selector below 1000 px and a wrapping strip above
+filters. Both show a native selector below 1024 px and a wrapping strip above
 it. Do not combine `overflow-hidden` with a one-line strip: it creates controls
 that exist in the DOM but cannot be reached.
 
@@ -335,7 +335,7 @@ Live demo: `/panel/styleguide`, section 4.
 
 ### Modals that hold a workspace, not a form
 
-By default the `BaseModal` panel is fullscreen below 600 px, then grows to its
+By default the `BaseModal` panel is fullscreen below 640 px, then grows to its
 content and scrolls as a whole (`panel-portrait:max-h-[90vh] overflow-y-auto`) — right for every form modal. A modal that
 embeds documents (an email preview, a PDF, a diff) needs the opposite: pass
 `full-height` and the panel becomes a fixed non-scrolling 90vh flex column, so

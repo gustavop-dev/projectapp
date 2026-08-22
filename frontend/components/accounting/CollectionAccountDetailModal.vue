@@ -1,6 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
+    kind="workspace"
     size="full"
     full-height
     title-id="collection-detail-title"

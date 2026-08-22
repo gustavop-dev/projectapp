@@ -15,7 +15,7 @@ El cierre del 2026-08-22 deja 101 páginas Nuxt asignadas sin ambigüedad a 12
 módulos de aceptación. Comercial, Emails, Canvas de Documentos, Dashboard,
 Contenido, MCP y Públicas completan la adopción iniciada por Fundamentos,
 Contabilidad, Documentos, Clientes y Proyectos. Las listas CRUD de exploración
-usan tarjetas debajo de 1000 px mediante `BaseExploratoryList`; las superficies
+usan tarjetas debajo de 1024 px mediante `BaseExploratoryList`; las superficies
 comparativas usan `BaseResponsiveTable` y declaran la prioridad de cada columna.
 
 Las fichas PA-45, PA-61, PA-66, PA-69, PA-70 y PA-73 dejan de ser variantes
@@ -32,10 +32,10 @@ lo siguiente en los cinco viewports canónicos:
 | Perfil | Viewport | Riesgo que valida |
 | --- | ---: | --- |
 | `compact` | 412 × 915 | Lectura, orden, targets táctiles y overlays |
-| `portrait` | 835 × 1194 | Tableta vertical; transición entre móvil y escritorio |
+| `portrait` | 835 × 1195 | Tableta vertical; transición entre móvil y escritorio |
 | `landscape` | 1195 × 835 | Tableta horizontal y altura limitada |
 | `desktop` | 1440 × 900 | Portátil de uso diario |
-| `wide` | 2560 × 1440 | Relación visual y ancho útil máximo de 1440 px |
+| `wide` | 2560 × 1440 | Relación visual y ancho útil máximo de 1400 px |
 
 La comprobación exige:
 
@@ -45,7 +45,7 @@ La comprobación exige:
 4. formularios en orden de lectura y overlays que caben o tienen scroll interno;
 5. ninguna acción disponible únicamente por hover o drag;
 6. targets táctiles de al menos 44 × 44 px cuando se declaran para aceptación;
-7. contenido del panel limitado a 1440 px en `wide`;
+7. contenido del panel limitado a 1400 px en `wide`;
 8. un E2E de resultado real con tags `@flow:*` y `@responsive:<módulo>`.
 
 `npm run check:responsive-contract` falla si una página Nuxt no está en el

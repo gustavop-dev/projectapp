@@ -187,7 +187,7 @@ function requestDelete(row) {
     </ul>
 
     <BaseFormField label="Agregar correo" :error="newEmailError">
-      <div class="flex items-start gap-2">
+      <div class="flex flex-col items-stretch gap-2 panel-portrait:flex-row panel-portrait:items-start">
         <BaseInput
           v-model="newEmail"
           type="email"
@@ -200,6 +200,7 @@ function requestDelete(row) {
         <BaseButton
           variant="secondary"
           size="md"
+          class="w-full panel-portrait:w-auto"
           :disabled="isAdding"
           data-testid="recipients-add"
           @click="addRecipient"

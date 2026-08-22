@@ -156,6 +156,26 @@ describe('IncomeGroupedTable', () => {
     ]);
   });
 
+  it('groups secondary business columns below the primary concept', () => {
+    const wrapper = mountTable({
+      columns: [
+        {
+          ...columns[0],
+          responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+        },
+        {
+          ...columns[1],
+          responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+        },
+      ],
+    });
+
+    const details = wrapper.find('[data-testid="accounting-row-217"]')
+      .get('[data-testid="responsive-group-compact"]');
+    expect(details.text()).toContain('Total');
+    expect(details.text()).toContain('$6.000.000 COP');
+  });
+
   it('emits edit and delete with the clicked row', async () => {
     const wrapper = mountTable();
 

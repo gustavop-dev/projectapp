@@ -828,3 +828,21 @@ map to one module script, each module must retain a real tagged E2E, and the sam
 five profiles run on affected PRs and on a monthly full matrix. A semestral review
 checks whether the devices themselves changed; individual pages never move a
 breakpoint without changing the shared contract and its evidence together.
+
+## 33. Responsive accounting must preserve business meaning, not table shape
+
+An accounting column cannot be hidden because it happens to be last. Declare a
+primary field, retained totals and grouped secondary facts for every table, then
+verify the choice against the operation users perform. In Ingresos that means
+concept and total survive while collection state, month and origin can share a
+compact detail block; grouped client headers stack identity and totals instead
+of compressing four meanings into one line.
+
+Some data must change location rather than disappear. Pocket's running balance
+is the clearest case: its independent column is too expensive below 1024 px, but
+without it the ledger becomes a list of unrelated movements. Relocating the
+balance below each retained amount preserves chronology and frees horizontal
+space. Apply the same rule to secondary KPIs: show the three ranked decisions,
+then disclose the rest on demand. A repeatable matrix needs all twelve routes
+and all five real widths; representative Playwright checks pin the breakpoint
+semantics while the written 12×5 script preserves business review tab by tab.

@@ -258,7 +258,16 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   `frontend/tailwind.config.js`, shared panel/base components and responsive
   styleguide tests.
 - **Verification**: The production bundle contains width media queries at
-  600/1000/1280/1920 px and Playwright selects the expected profile at every
+  640/1024/1280/1920 px and Playwright selects the expected profile at every
   reference viewport.
 - **Lesson**: Semantic breakpoint names must be checked against framework
   variants; verify compiled CSS, not only class strings in unit tests.
+
+### [ERR-021] Responsive dependency drifted from the canonical Phase 0 contract
+- **Date**: 2026-08-22
+- **Context**: The shared responsive components and the Phase 0 standard were developed concurrently. The dependency initially encoded provisional 600/1000 px bands and a 1440 px content cap, while the approved inventory fixed 640/1024 px and 1400 px.
+- **Root Cause**: Widths were duplicated in JavaScript, raw component media queries, documentation and E2E viewports before the canonical Phase 0 document landed.
+- **Resolution**: Make `frontend/config/responsive.js` the executable source, align every raw media query and reference viewport to 640/1024/1280/1920 and the 1400 px shell, and treat `docs/RESPONSIVE_STANDARD.md` as the decision source. Accounting tests exercise the five real widths, including the 835 px intermediate case and the 2560 px cap.
+- **Files Affected**: `frontend/config/responsive.js`, shared base components, accounting compact tables, responsive E2E specs and responsive documentation.
+- **Verification**: Vue compilation, focused unit slices, the production Nuxt build and five Playwright viewport scenarios all use the same contract.
+- **Lesson**: Parallel foundation and adoption work needs one named decision owner; merge the approved contract first, then mechanically audit all executable copies before accepting downstream behavior.

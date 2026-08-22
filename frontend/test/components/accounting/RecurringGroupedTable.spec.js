@@ -97,6 +97,26 @@ describe('RecurringGroupedTable', () => {
     expect(names).toEqual(['Claude Code 20x', 'Chat-GPT', 'Hostinger']);
   });
 
+  it('groups secondary business columns below the primary payment name', () => {
+    const wrapper = mountTable({
+      columns: [
+        {
+          ...columns[0],
+          responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+        },
+        {
+          ...columns[1],
+          responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+        },
+      ],
+    });
+
+    const details = wrapper.find('[data-testid="accounting-row-18"]')
+      .get('[data-testid="responsive-group-compact"]');
+    expect(details.text()).toContain('Equiv. COP mensual');
+    expect(details.text()).toContain('$800.000 COP');
+  });
+
   it('hides the drag handles when reordering is disabled', () => {
     const wrapper = mountTable({ dragEnabled: false });
 
@@ -137,7 +157,11 @@ describe('RecurringGroupedTable', () => {
     // The whole point: a row that carries its own track list resolves it
     // against its own cells, so the one row with a wider value drifts out of
     // column. The container declares them and the rows inherit.
-    expect(container.attributes('style')).toContain('--cols-lg');
+    const containerStyle = container.attributes('style');
+    expect(containerStyle).toContain('--cols-compact');
+    expect(containerStyle).toContain('--cols-portrait');
+    expect(containerStyle).toContain('--cols-landscape');
+    expect(containerStyle).toContain('--cols-desktop');
     expect(headerRow.attributes('style')).toBeUndefined();
     expect(bodyRow.attributes('style')).toBeUndefined();
     expect(headerRow.classes()).toContain('accounting-grid-row');
@@ -171,7 +195,7 @@ describe('RecurringGroupedTable', () => {
     const wide = wrapper
       .find('.accounting-grid-scroll')
       .attributes('style')
-      .match(/--cols-lg:([^;]*)/)[1];
+      .match(/--cols-desktop:([^;]*)/)[1];
 
     // No single track hoards the slack: each one floors at its content and
     // grows by its own weight, so a two-character day stays narrow while an
@@ -189,11 +213,12 @@ describe('RecurringGroupedTable', () => {
       dragEnabled: true,
       columns: [{ key: 'name', label: 'Nombre', size: 'name' }, columns[1]],
     });
-    const nameCell = Array.from(
-      wrapper.find('[data-testid="accounting-row-18"]').element.children,
-    ).find((cell) => cell.textContent.includes('Claude Code 20x'));
+    const nameCell = wrapper
+      .find('[data-testid="accounting-row-18"]')
+      .findAll('[role="cell"]')
+      .find((cell) => cell.text().includes('Claude Code 20x'));
 
-    expect(nameCell.querySelector('span').className).toContain('max-w-[22rem]');
+    expect(nameCell.get('div').classes()).toContain('max-w-[22rem]');
   });
 
   it('emits the full board with category and order after a drag', async () => {
