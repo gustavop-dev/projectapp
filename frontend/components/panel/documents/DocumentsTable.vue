@@ -63,16 +63,16 @@ function onFolderLink(event, sub) {
 </script>
 
 <template>
-  <div class="bg-surface rounded-xl shadow-sm border border-border-muted overflow-x-auto">
+  <div class="overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-desktop:overflow-x-auto">
     <table class="w-full">
       <caption class="sr-only">Documentos y subcarpetas de la carpeta actual</caption>
       <thead>
         <tr class="border-b border-border-muted text-left">
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Cliente</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Proyecto</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Etiquetas</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
+          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
+          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
+          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Etiquetas</th>
+          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estado</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
@@ -168,8 +168,23 @@ function onFolderLink(event, sub) {
                 📁 {{ doc.folder_name }}
               </span>
             </div>
+            <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted panel-desktop:hidden">
+              <span v-if="doc.client_display_name || doc.client_name">
+                {{ doc.client_display_name || doc.client_name }}
+              </span>
+              <span v-if="doc.project_name">{{ doc.project_name }}</span>
+              <span
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium"
+                :class="doc.is_archived ? 'bg-surface-raised text-text-muted' : documentStatusBadgeClass(doc.status)"
+              >
+                {{ doc.is_archived ? 'Archivado' : documentStatusLabel(doc.status) }}
+              </span>
+              <span v-if="doc.tag_details?.length" class="text-text-subtle">
+                {{ doc.tag_details.map((tag) => tag.name).join(', ') }}
+              </span>
+            </div>
           </td>
-          <td class="px-6 py-4 text-sm" :data-testid="`doc-client-cell-${doc.id}`">
+          <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
             <span v-if="doc.client_display_name" class="text-text-default">{{ doc.client_display_name }}</span>
             <!-- Nombre libre heredado, sin cliente vinculado: en itálica para
                  que se note que aún no es una relación. -->
@@ -180,11 +195,11 @@ function onFolderLink(event, sub) {
             >{{ doc.client_name }}</span>
             <span v-else class="text-text-subtle">—</span>
           </td>
-          <td class="px-6 py-4 text-sm" :data-testid="`doc-project-cell-${doc.id}`">
+          <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-project-cell-${doc.id}`">
             <span v-if="doc.project_name" class="text-text-default">{{ doc.project_name }}</span>
             <span v-else class="text-text-subtle">—</span>
           </td>
-          <td class="px-6 py-4">
+          <td class="hidden px-6 py-4 panel-desktop:table-cell">
             <div class="flex flex-wrap gap-1">
               <span
                 v-for="tag in doc.tag_details"
@@ -198,7 +213,7 @@ function onFolderLink(event, sub) {
               <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-text-subtle">—</span>
             </div>
           </td>
-          <td class="px-6 py-4">
+          <td class="hidden px-6 py-4 panel-desktop:table-cell">
             <span
               v-if="doc.is_archived"
               class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle"

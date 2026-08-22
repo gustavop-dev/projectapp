@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
-    size="md"
+    kind="detail"
     title-id="project-assign-unlinked-title"
     @close="emit('close')"
   >
@@ -97,7 +97,7 @@
       </template>
     </div>
 
-    <div class="px-6 pb-6 pt-2 flex items-center justify-end gap-2">
+    <div class="sticky bottom-0 flex items-center justify-end gap-2 border-t border-border-muted bg-surface px-6 pb-6 pt-4">
       <BaseButton
         variant="secondary"
         size="sm"

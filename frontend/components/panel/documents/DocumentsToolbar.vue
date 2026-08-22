@@ -9,6 +9,7 @@ defineProps({
   // inerte mientras hay consulta: dejarlo activo sería ofrecer un filtro que
   // no filtra.
   scopeLocked: { type: Boolean, default: false },
+  compact: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['update:search', 'update:viewMode', 'update:scope'])
@@ -34,7 +35,20 @@ const SCOPE_OPTIONS = [
     />
     <!-- Visible también en móvil, al revés que el toggle de vista: cambia QUÉ
          se ve, no CÓMO. -->
+    <BaseSelect
+      v-if="compact"
+      :model-value="scope"
+      :options="SCOPE_OPTIONS"
+      size="sm"
+      class="w-full"
+      aria-label="Estado de los documentos"
+      :disabled="scopeLocked"
+      :title="scopeLocked ? 'La búsqueda recorre activos y archivados' : undefined"
+      data-testid="doc-state-filter-mobile"
+      @update:model-value="emit('update:scope', $event)"
+    />
     <BaseSegmented
+      v-else
       :model-value="scope"
       :options="SCOPE_OPTIONS"
       size="sm"
@@ -46,10 +60,11 @@ const SCOPE_OPTIONS = [
       @update:model-value="emit('update:scope', $event)"
     />
     <BaseSegmented
+      v-if="!compact"
       :model-value="viewMode"
       :options="VIEW_OPTIONS"
       size="sm"
-      class="hidden sm:inline-flex flex-shrink-0"
+      class="flex-shrink-0"
       aria-label="Modo de vista"
       @update:model-value="emit('update:viewMode', $event)"
     />

@@ -803,3 +803,19 @@ orientation when it sees `portrait:` or `landscape:`, so panel width aliases use
 the `panel-*` namespace. Unit tests can prove that a class string exists while
 missing a bad media query; every new breakpoint family must also be inspected
 in generated CSS and exercised at the boundary viewports.
+
+## 32. Structural responsiveness needs one breakpoint owner and exact-device tests
+
+A two-zone page cannot be made compact by hiding random descendants: that leaves two
+focus trees, filters ahead of content and desktop assumptions inside a narrow main
+column. Choose the structural branch once
+(`useIsMobile(PANEL_BREAKPOINTS.landscape - 1)` here), render exactly
+one interactive DOM, and let smaller CSS breakpoints refine only the inside of that
+branch. The 835 px portrait tablet is the reason this boundary cannot simply inherit
+a library's `md`; the 1195 px landscape tablet is the reason it cannot be treated as
+a phone.
+
+Verification must name the real five viewport dimensions. For every module, navigate
+through the UI, assert concrete fixture data, exercise its transient zone, check page
+overflow and measure the large-screen cap. A generic “mobile” project plus one desktop
+project misses both the portrait-tablet failure and the over-stretched 27-inch layout.

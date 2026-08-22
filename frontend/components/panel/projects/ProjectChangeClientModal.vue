@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="open"
-    size="lg"
+    kind="detail"
     title-id="project-change-client-title"
     @close="emit('close')"
   >
@@ -36,7 +36,7 @@
         Calculando el impacto...
       </p>
 
-      <template v-if="preview && !isLoadingPreview">
+      <div v-if="preview && !isLoadingPreview" class="grid gap-4 panel-landscape:grid-cols-[minmax(0,1.15fr)_minmax(16rem,0.85fr)]">
         <div
           class="rounded-lg border border-border-muted bg-surface-muted divide-y divide-border-muted"
           data-testid="project-change-client-preview"
@@ -46,7 +46,7 @@
               Registros del proyecto ({{ movable.length }})
             </p>
             <ul class="text-xs text-text-default space-y-0.5 max-h-40 overflow-y-auto">
-              <li v-for="row in movable" :key="`m-${row.entity}-${row.id}`" class="truncate">
+              <li v-for="row in movable" :key="`m-${row.entity}-${row.id}`" class="break-words">
                 {{ row.label }}
               </li>
             </ul>
@@ -61,7 +61,7 @@
               se desvinculan del proyecto y conservan su cliente.
             </p>
             <ul class="text-xs text-text-muted space-y-0.5 max-h-24 overflow-y-auto">
-              <li v-for="row in preview.incomes_blocked" :key="`b-${row.id}`" class="truncate">
+              <li v-for="row in preview.incomes_blocked" :key="`b-${row.id}`" class="break-words">
                 {{ row.label }} · {{ row.period_label }}
               </li>
             </ul>
@@ -71,7 +71,7 @@
               Borradores de cuenta ({{ preview.draft_accounts.length }})
             </p>
             <ul class="text-xs text-text-muted space-y-0.5">
-              <li v-for="row in preview.draft_accounts" :key="`d-${row.id}`" class="truncate">
+              <li v-for="row in preview.draft_accounts" :key="`d-${row.id}`" class="break-words">
                 {{ row.public_number || row.title }}
               </li>
             </ul>
@@ -86,7 +86,7 @@
               Si hubo un error, anula y emite una nueva.
             </p>
             <ul class="text-xs text-text-muted space-y-0.5">
-              <li v-for="row in preview.issued_accounts" :key="`i-${row.id}`" class="truncate">
+              <li v-for="row in preview.issued_accounts" :key="`i-${row.id}`" class="break-words">
                 {{ row.public_number || row.title }} · {{ row.status_label }}
               </li>
             </ul>
@@ -108,6 +108,7 @@
         <!-- Sin preselección a propósito: la decisión de arrastrar o
              desvincular se toma en cada cascada, nunca por default. -->
         <BaseFormField
+          class="self-start rounded-xl border border-border-muted bg-surface-muted p-4 panel-landscape:sticky panel-landscape:top-4"
           label="¿Qué hacemos con los registros?"
           hint="Mover: siguen al proyecto con el nuevo cliente. Desvincular: conservan su cliente y pierden el proyecto."
         >
@@ -120,10 +121,10 @@
             data-testid="project-change-client-mode"
           />
         </BaseFormField>
-      </template>
+      </div>
     </div>
 
-    <div class="px-6 pb-6 pt-2 flex items-center justify-end gap-2">
+    <div class="sticky bottom-0 flex flex-wrap items-center justify-end gap-2 border-t border-border-muted bg-surface px-6 pb-6 pt-4">
       <BaseButton
         variant="secondary"
         size="sm"
