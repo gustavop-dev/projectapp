@@ -1,16 +1,16 @@
 <template>
   <!--
-    Sólo existe por debajo de `md`: el breakpoint vive acá y no en cada
+    Sólo existe por debajo de `landscape` (1000px): el breakpoint vive acá y no en cada
     consumidor, que es lo que mantiene a las tres superficies (navegación del
     contable, BaseTabs y la tira de filtros guardados) colapsando en el mismo
     punto sin tener que acordarse de repetirlo.
   -->
-  <div class="md:hidden">
+  <div class="panel-landscape:hidden">
     <select
       :value="modelValue"
       :aria-label="ariaLabel"
       :data-testid="testId"
-      class="w-full px-4 py-2.5 rounded-xl text-sm font-medium border
+      class="min-h-11 w-full px-4 py-2.5 rounded-xl text-sm font-medium border
              appearance-none cursor-pointer outline-none
              focus:ring-2 focus:ring-focus-ring/30"
       :class="variant === 'nav'

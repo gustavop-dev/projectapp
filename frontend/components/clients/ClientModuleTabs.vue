@@ -33,7 +33,7 @@
       :aria-selected="module.id === modelValue"
       :data-testid="`clients-module-${module.id}`"
       :class="[
-        'hidden md:inline-flex px-4 py-2 rounded-xl text-sm font-medium transition-colors',
+        'hidden panel-landscape:inline-flex px-4 py-2 rounded-xl text-sm font-medium transition-colors',
         module.id === modelValue
           ? 'bg-primary text-white'
           : 'bg-surface-raised text-text-muted hover:bg-border-muted',

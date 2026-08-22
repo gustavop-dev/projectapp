@@ -161,21 +161,19 @@ const COLOR_UTILITIES = [
   'fill', 'stroke', 'outline', 'placeholder', 'caret', 'accent', 'shadow',
 ];
 
-function extractDefinedColors() {
+function extractDefinedThemeKeys(sectionName) {
   const configPath = path.join(FRONTEND_ROOT, 'tailwind.config.js');
   const tokens = new Set();
   if (!fs.existsSync(configPath)) return tokens;
   const src = fs.readFileSync(configPath, 'utf8');
 
-  // Find the `colors: { ... }` block inside theme.extend. We grab from the
-  // first `colors:` after `extend:` to its matching closing brace, then pull
-  // quoted keys out of that slice. This is a simple parser — it assumes the
-  // config doesn't have nested objects inside `colors` (the current shape).
+  // Find the requested block inside theme.extend. We grab its matching closing
+  // brace, then pull quoted keys out of that slice without evaluating config.
   const extendIdx = src.indexOf('extend:');
   if (extendIdx < 0) return tokens;
-  const colorsIdx = src.indexOf('colors:', extendIdx);
-  if (colorsIdx < 0) return tokens;
-  const braceStart = src.indexOf('{', colorsIdx);
+  const sectionIdx = src.indexOf(`${sectionName}:`, extendIdx);
+  if (sectionIdx < 0) return tokens;
+  const braceStart = src.indexOf('{', sectionIdx);
   if (braceStart < 0) return tokens;
   let depth = 0;
   let braceEnd = -1;
@@ -204,6 +202,10 @@ function extractDefinedColors() {
   return tokens;
 }
 
+function extractDefinedColors() {
+  return extractDefinedThemeKeys('colors');
+}
+
 function buildValidColorSet() {
   const set = new Set(TAILWIND_KEYWORDS);
   for (const fam of TAILWIND_SCALED_FAMILIES) {
@@ -218,6 +220,7 @@ function buildValidColorSet() {
 }
 
 const VALID_COLOR_TOKENS = buildValidColorSet();
+const VALID_TEXT_SIZE_TOKENS = extractDefinedThemeKeys('fontSize');
 
 // Per-utility blocklist: tokens that follow `bg-`/`text-`/etc. but are NOT
 // color references (sizing, style, layout modifiers, SVG attribute names,
@@ -325,6 +328,7 @@ function findInvalidTokens(line) {
     if (utilityBlock && (utilityBlock.has(firstSeg) || utilityBlock.has(token))) continue;
     if (NON_COLOR_BY_UTILITY.common.has(firstSeg) || NON_COLOR_BY_UTILITY.common.has(token)) continue;
 
+    if (utility === 'text' && VALID_TEXT_SIZE_TOKENS.has(token)) continue;
     if (VALID_COLOR_TOKENS.has(token)) continue;
     found.push({ match: `${utility}-${m[2]}`, token });
   }

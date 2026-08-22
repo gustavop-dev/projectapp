@@ -62,6 +62,7 @@ describe('BaseButton', () => {
     expect(cls).toContain('p-2')
     expect(cls).not.toContain('px-4')
     expect(cls).not.toContain('py-2')
+    expect(cls).toContain('base-button--icon')
   })
 
   it('renders link variant as bare text with no padding or radius', () => {
@@ -70,6 +71,7 @@ describe('BaseButton', () => {
     expect(cls).toContain('hover:underline')
     expect(cls.some((c) => c.startsWith('px-') || c.startsWith('py-'))).toBe(false)
     expect(cls.some((c) => c.startsWith('rounded'))).toBe(false)
+    expect(cls).toContain('base-button--link')
   })
 
   describe('iconOnly accessibility warning', () => {

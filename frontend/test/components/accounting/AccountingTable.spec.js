@@ -66,9 +66,9 @@ describe('AccountingTable', () => {
 
     // A <td>'s own max-width is ignored under auto layout, so the cap has to
     // live on the wrapper around the content.
-    expect(concept.find('span').classes()).toContain('max-w-[22rem]');
+    expect(concept.find('div').classes()).toContain('max-w-[22rem]');
     expect(concept.text()).toBe('Página web');
-    expect(amount.find('span').classes()).not.toContain('max-w-[22rem]');
+    expect(amount.find('div').classes()).not.toContain('max-w-[22rem]');
   });
 
   it('fills its card edge to edge — the width ceiling lives on the page, not the table', () => {

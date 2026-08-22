@@ -70,7 +70,7 @@ function itemColorClass(danger, active) {
               :type="item.to ? undefined : 'button'"
               :disabled="disabled"
               :class="[
-                'flex w-full items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
+                'base-dropdown-item flex min-h-11 w-full items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors text-left',
                 disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
                 itemColorClass(item.danger, active),
               ]"

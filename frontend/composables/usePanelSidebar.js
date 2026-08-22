@@ -1,7 +1,9 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
+import { PANEL_BREAKPOINTS } from '~/config/responsive'
 
 const STORAGE_KEY = 'panel_sidebar_collapsed'
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = PANEL_BREAKPOINTS.landscape
+const EXPANDED_BREAKPOINT = PANEL_BREAKPOINTS.desktop
 
 const isCollapsed = ref(false)
 const isMobileOpen = ref(false)
@@ -22,7 +24,9 @@ export function usePanelSidebar() {
     } else if (stored === 'false') {
       isCollapsed.value = false
     } else {
-      isCollapsed.value = window.innerWidth < 1024
+      // Tablet landscape keeps the desktop navigation available but collapsed;
+      // a laptop and larger starts expanded.
+      isCollapsed.value = window.innerWidth < EXPANDED_BREAKPOINT
     }
   }
 
@@ -62,7 +66,7 @@ export function usePanelSidebar() {
   function handleResize() {
     /* c8 ignore next */
     if (!isClient()) return
-    if (window.innerWidth < MOBILE_BREAKPOINT) {
+    if (window.innerWidth >= MOBILE_BREAKPOINT) {
       isMobileOpen.value = false
     }
   }

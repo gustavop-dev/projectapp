@@ -266,6 +266,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes
+- **Panel responsive contract** — import breakpoints/media/reference devices
+  from `frontend/config/responsive.js`; use the `panel-*` Tailwind screens and
+  shared base primitives instead of local `window.innerWidth` thresholds.
+  Acceptance runs at 412×915, 835×1194, 1195×835, 1440×900 and 2560×1440;
+  content is capped at 1440 px and touch actions expose at least 44 px targets.
+  Full decisions and the adoption inventory are in
+  `docs/methodology/responsive-standard.md`.
 
 ---
 

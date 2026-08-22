@@ -71,6 +71,7 @@ describe('BaseDropdown', () => {
     expect(menuItems).toHaveLength(3)
     expect(menuItems[0].text()).toContain('One')
     expect(menuItems[2].text()).toContain('Three')
+    expect(menuItems[0].find('.base-dropdown-item').classes()).toContain('min-h-11')
   })
 
   it('renders divider items as a separator <div> instead of a MenuItem', () => {
