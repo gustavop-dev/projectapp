@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div :class="PAGE_MAX_WIDTH" data-testid="clients-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -22,6 +22,7 @@
     <!-- Level 1: business module. It groups the subfilters below; the cut
          itself happens at level 2. -->
     <ClientModuleTabs
+      v-if="!isCompact"
       :model-value="activeModule"
       @update:model-value="selectModule"
     >
@@ -43,6 +44,16 @@
     </ClientModuleTabs>
 
     <!-- Settings tab replaces the list area -->
+    <BaseButton
+      v-if="isCompact && isConfigOpen"
+      variant="secondary"
+      kind="form"
+      class="mb-4 w-full"
+      @click="isConfigOpen = false"
+    >
+      Volver al listado de clientes
+    </BaseButton>
+
     <ViewSettingsPanel
       v-if="isConfigOpen"
       :filter-views="[{ value: 'client', label: 'Clientes' }]"
@@ -63,6 +74,7 @@
     <template v-if="!isConfigOpen">
     <!-- Level 2: the subfilters of the selected module, plus its saved tabs -->
     <ProposalFilterTabs
+      v-if="!isCompact"
       :tabs="displayTabs"
       :active-tab-id="filterTabId"
       :counts="subfilterCounts"
@@ -89,7 +101,23 @@
         class="w-full sm:max-w-xs"
         @input="onSearchInput"
       />
+      <BaseButton
+        v-if="isCompact"
+        variant="secondary"
+        size="md"
+        class="w-full justify-between panel-portrait:w-auto"
+        data-testid="clients-mobile-filters"
+        aria-haspopup="dialog"
+        :aria-expanded="showMobileFilters"
+        @click="showMobileFilters = true"
+      >
+        <span class="min-w-0 truncate">{{ mobileFilterSummary }}</span>
+        <BaseBadge v-if="mobileFilterCount" variant="primary" size="sm">
+          {{ mobileFilterCount }}
+        </BaseBadge>
+      </BaseButton>
       <BaseSegmented
+        v-else
         :model-value="clientStatus"
         :options="clientStatusOptions"
         size="sm"
@@ -97,6 +125,7 @@
         @update:model-value="setClientStatus"
       />
       <UiFilterToggleButton
+        v-if="!isCompact"
         :open="isFilterPanelOpen"
         :count="activeFilterCount"
         data-testid="clients-filter-toggle"
@@ -106,6 +135,7 @@
 
     <!-- Filter panel -->
     <ClientFilterPanel
+      v-if="!isCompact"
       :model-value="currentFilters"
       :is-open="isFilterPanelOpen"
       :filter-count="activeFilterCount"
@@ -153,7 +183,10 @@
             </div>
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
-                <p class="text-sm font-semibold text-text-default truncate">{{ client.name }}</p>
+                <p
+                  class="text-sm font-semibold text-text-default"
+                  :class="isCompact ? 'break-words' : 'truncate'"
+                >{{ client.name }}</p>
                 <span class="text-xs text-text-subtle tabular-nums">#{{ client.id }}</span>
                 <span
                   v-if="client.is_email_placeholder"
@@ -177,14 +210,61 @@
                   Inactivo
                 </span>
               </div>
-              <p class="text-xs text-text-subtle mt-0.5 truncate">
+              <p
+                class="mt-0.5 text-xs text-text-subtle"
+                :class="isCompact ? 'break-words' : 'truncate'"
+              >
                 {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
                 <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
               </p>
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3 flex-shrink-0 w-full sm:w-auto">
+          <div v-if="isCompact" class="w-full">
+            <dl class="grid grid-cols-3 gap-2 rounded-lg bg-surface-muted p-3 text-center">
+              <div>
+                <dt class="text-2xs uppercase tracking-wide text-text-subtle">Propuestas</dt>
+                <dd class="mt-1 text-sm font-semibold tabular-nums text-text-default">{{ client.total_proposals }}</dd>
+              </div>
+              <div>
+                <dt class="text-2xs uppercase tracking-wide text-text-subtle">Proyectos</dt>
+                <dd class="mt-1 text-sm font-semibold tabular-nums text-text-default">{{ client.projects_count }}</dd>
+              </div>
+              <div>
+                <dt class="text-2xs uppercase tracking-wide text-text-subtle">Diagnósticos</dt>
+                <dd class="mt-1 text-sm font-semibold tabular-nums text-text-default">{{ client.diagnostics_count }}</dd>
+              </div>
+            </dl>
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <span class="min-w-0 break-words text-xs font-medium text-text-muted">
+                {{ compactContextLabel(client) }}
+              </span>
+              <div class="flex shrink-0 items-center gap-2">
+                <BaseButton
+                  variant="secondary"
+                  size="md"
+                  class="min-h-11"
+                  :data-testid="`client-actions-${client.id}`"
+                  :aria-label="`Acciones de ${client.name}`"
+                  @click.stop="openClientActions(client)"
+                >
+                  Acciones
+                </BaseButton>
+                <svg
+                  class="h-5 w-5 shrink-0 text-text-subtle transition-transform"
+                  :class="{ 'rotate-180': expandedClients.has(client.id) }"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="flex items-center justify-end gap-3 flex-shrink-0 w-full sm:w-auto">
             <!-- Stats pills -->
             <span
               class="text-xs px-2.5 py-1 rounded-full bg-surface-raised text-text-muted font-medium"
@@ -343,8 +423,8 @@
               >
                 Sin propuestas.
               </div>
-              <div v-else class="overflow-x-auto">
-                <table class="w-full min-w-[600px] text-sm">
+              <div v-else :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[600px]'">
                   <thead>
                     <tr
                       class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider"
@@ -361,14 +441,14 @@
                     <tr
                       v-for="p in detailCache[client.id].proposals"
                       :key="p.id"
-                      draggable="true"
+                      :draggable="!isCompact"
                       :data-testid="`client-proposal-row-${p.id}`"
                       class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
                       :class="{ 'opacity-50': draggingItem?.type === 'proposal' && draggingItem?.id === p.id }"
                       @dragstart="onRowDragStart($event, client, 'proposal', p)"
                       @dragend="onRowDragEnd"
                     >
-                      <td class="px-5 py-3">
+                      <td class="px-5 py-3" data-label="Propuesta" data-card-full>
                         <NuxtLink
                           :to="localePath(`/panel/proposals/${p.id}/edit`)"
                           draggable="false"
@@ -377,22 +457,31 @@
                           {{ p.title }}
                         </NuxtLink>
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3" data-label="Estado">
                         <ProposalStatusSelect
                           :proposal="p"
                           :updating="updatingProposalStatusId === p.id"
                           @change="(s) => onProposalStatusSelect(client, p, s)"
                         />
                       </td>
-                      <td class="px-4 py-3 text-text-muted/60 tabular-nums">
+                      <td class="px-4 py-3 text-text-muted/60 tabular-nums" data-label="Inversión">
                         ${{ Number(p.total_investment).toLocaleString() }} {{ p.currency }}
                       </td>
-                      <td class="px-4 py-3 text-center text-text-muted/60">{{ p.view_count }}</td>
-                      <td class="px-4 py-3 text-text-muted text-xs">
+                      <td class="px-4 py-3 text-center text-text-muted/60" data-label="Vistas">{{ p.view_count }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Enviada">
                         {{ p.sent_at ? formatDate(p.sent_at) : '—' }}
                       </td>
-                      <td class="px-4 py-3 text-right">
-                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-proposal-delete-${p.id}`" title="Eliminar propuesta" @click.stop="confirmDeleteProposal(client, p)">
+                      <td class="px-4 py-3 text-right" data-label="Acciones" data-card-full>
+                        <BaseButton
+                          v-if="isCompact"
+                          variant="secondary"
+                          size="sm"
+                          :data-testid="`client-proposal-move-${p.id}`"
+                          @click.stop="openTouchReassign(client, 'proposal', p)"
+                        >
+                          Mover
+                        </BaseButton>
+                        <BaseButton variant="danger-ghost" size="sm" :class="isCompact ? 'min-h-11 min-w-11' : ''" :data-testid="`client-proposal-delete-${p.id}`" title="Eliminar propuesta" @click.stop="confirmDeleteProposal(client, p)">
                           <TrashIcon class="w-4 h-4" />
                         </BaseButton>
                       </td>
@@ -407,8 +496,8 @@
               <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
                 <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Proyectos de plataforma</p>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[500px] text-sm">
+              <div :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[500px]'">
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Proyecto</th>
@@ -423,14 +512,14 @@
                       :key="proj.id"
                       class="hover:bg-surface-raised transition-colors bg-surface"
                     >
-                      <td class="px-5 py-3 font-medium text-text-default">{{ proj.name }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-5 py-3 font-medium text-text-default" data-label="Proyecto" data-card-full>{{ proj.name }}</td>
+                      <td class="px-4 py-3" data-label="Estado">
                         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proj.status)">
                           {{ proj.status }}
                         </span>
                       </td>
-                      <td class="px-4 py-3 text-center text-text-muted/60">{{ proj.progress }}%</td>
-                      <td class="px-4 py-3 text-text-muted text-xs">
+                      <td class="px-4 py-3 text-center text-text-muted/60" data-label="Progreso">{{ proj.progress }}%</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Inicio" data-card-full>
                         {{ proj.start_date ? formatDate(proj.start_date) : '—' }}
                       </td>
                     </tr>
@@ -451,8 +540,8 @@
               <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
                 <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Diagnósticos web</p>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[500px] text-sm">
+              <div :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[500px]'">
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Diagnóstico</th>
@@ -465,24 +554,33 @@
                     <tr
                       v-for="diag in detailCache[client.id].diagnostics"
                       :key="diag.id"
-                      draggable="true"
+                      :draggable="!isCompact"
                       :data-testid="`client-diagnostic-row-${diag.id}`"
                       class="hover:bg-surface-raised transition-colors bg-surface cursor-grab active:cursor-grabbing select-none"
                       :class="{ 'opacity-50': draggingItem?.type === 'diagnostic' && draggingItem?.id === diag.id }"
                       @dragstart="onRowDragStart($event, client, 'diagnostic', diag)"
                       @dragend="onRowDragEnd"
                     >
-                      <td class="px-5 py-3 font-medium text-text-default">{{ diag.title }}</td>
-                      <td class="px-4 py-3">
+                      <td class="px-5 py-3 font-medium text-text-default" data-label="Diagnóstico" data-card-full>{{ diag.title }}</td>
+                      <td class="px-4 py-3" data-label="Estado">
                         <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(diag.status)">
                           {{ diag.status }}
                         </span>
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs">
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Creado">
                         {{ diag.created_at ? formatDate(diag.created_at) : '—' }}
                       </td>
-                      <td class="px-4 py-3 text-right">
-                        <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-diagnostic-delete-${diag.id}`" title="Eliminar diagnóstico" @click.stop="confirmDeleteDiagnostic(client, diag)">
+                      <td class="px-4 py-3 text-right" data-label="Acciones" data-card-full>
+                        <BaseButton
+                          v-if="isCompact"
+                          variant="secondary"
+                          size="sm"
+                          :data-testid="`client-diagnostic-move-${diag.id}`"
+                          @click.stop="openTouchReassign(client, 'diagnostic', diag)"
+                        >
+                          Mover
+                        </BaseButton>
+                        <BaseButton variant="danger-ghost" size="sm" :class="isCompact ? 'min-h-11 min-w-11' : ''" :data-testid="`client-diagnostic-delete-${diag.id}`" title="Eliminar diagnóstico" @click.stop="confirmDeleteDiagnostic(client, diag)">
                           <TrashIcon class="w-4 h-4" />
                         </BaseButton>
                       </td>
@@ -500,8 +598,8 @@
                   {{ formatMoney(detailCache[client.id].hostings_monthly_total) }} /mes activos
                 </p>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[500px] text-sm">
+              <div :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[500px]'">
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Hosting</th>
@@ -518,22 +616,23 @@
                       class="border-t border-border-muted"
                       :data-testid="`client-hosting-${hosting.id}`"
                     >
-                      <td class="px-5 py-3 text-text-default">
+                      <td class="px-5 py-3 text-text-default" data-label="Hosting" data-card-full>
                         {{ hosting.domain_url || hosting.client_name }}
                       </td>
                       <td
                         class="px-4 py-3 text-text-muted text-xs"
+                        data-label="Proyecto"
                         :data-testid="`client-hosting-project-${hosting.id}`"
                       >
                         {{ hosting.project_name || '—' }}
                       </td>
-                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                      <td class="px-4 py-3 tabular-nums text-text-muted" data-label="Valor por mes">
                         {{ formatMoney(hosting.monthly_value) }}
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs">
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Vence">
                         {{ hosting.valid_to ? formatDate(hosting.valid_to) : '—' }}
                       </td>
-                      <td class="px-4 py-3">
+                      <td class="px-4 py-3" data-label="Estado" data-card-full>
                         <span
                           class="text-xs px-2.5 py-1 rounded-full font-medium"
                           :class="hosting.is_active
@@ -553,8 +652,8 @@
               <div class="px-5 pt-4 pb-1 border-t border-border-muted mt-2">
                 <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider">Ingresos</p>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[500px] text-sm">
+              <div :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[500px]'">
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Concepto</th>
@@ -571,18 +670,19 @@
                       class="border-t border-border-muted"
                       :data-testid="`client-income-${income.id}`"
                     >
-                      <td class="px-5 py-3 text-text-default">{{ income.concept }}</td>
+                      <td class="px-5 py-3 text-text-default" data-label="Concepto" data-card-full>{{ income.concept }}</td>
                       <td
                         class="px-4 py-3 text-text-muted text-xs"
+                        data-label="Proyecto"
                         :data-testid="`client-income-project-${income.id}`"
                       >
                         {{ income.project_name || '—' }}
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs">{{ income.period_label }}</td>
-                      <td class="px-4 py-3 tabular-nums text-text-muted">
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Mes">{{ income.period_label }}</td>
+                      <td class="px-4 py-3 tabular-nums text-text-muted" data-label="Total">
                         {{ formatMoney(income.total_amount) }}
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs">
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Cobro" data-card-full>
                         {{ income.payment_status_label || income.kind_label }}
                       </td>
                     </tr>
@@ -606,8 +706,8 @@
                   Ver todos ({{ detailCache[client.id].documents_total }})
                 </button>
               </div>
-              <div class="overflow-x-auto">
-                <table class="w-full min-w-[500px] text-sm">
+              <div :class="isCompact ? 'overflow-visible' : 'overflow-x-auto'">
+                <table class="w-full text-sm" :class="isCompact ? 'client-detail-cards' : 'min-w-[500px]'">
                   <thead>
                     <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
                       <th class="px-5 py-3">Documento</th>
@@ -623,7 +723,7 @@
                       class="border-t border-border-muted"
                       :data-testid="`client-document-row-${doc.id}`"
                     >
-                      <td class="px-5 py-3">
+                      <td class="px-5 py-3" data-label="Documento" data-card-full>
                         <NuxtLink
                           :to="localePath(`/panel/documents/${doc.id}/edit`)"
                           class="text-text-default hover:text-text-brand hover:underline"
@@ -632,9 +732,9 @@
                           {{ doc.title }}
                         </NuxtLink>
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs">{{ doc.project_name || '—' }}</td>
-                      <td class="px-4 py-3 text-text-muted text-xs">{{ documentStatusLabel(doc.status) }}</td>
-                      <td class="px-4 py-3 text-text-muted text-xs">{{ formatDate(doc.created_at) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Proyecto">{{ doc.project_name || '—' }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Estado">{{ documentStatusLabel(doc.status) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Creado" data-card-full>{{ formatDate(doc.created_at) }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -660,15 +760,144 @@
     />
     </template>
 
-    <!-- New client modal -->
-    <div
-      v-if="showCreateModal"
-      class="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      @click.self="closeCreateModal"
+    <BaseDrawer
+      v-model="showMobileFilters"
+      placement="bottom"
+      title="Filtros de clientes"
+      test-id="clients-filters-drawer"
     >
-      <div class="bg-surface border border-border-muted rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div class="space-y-5 p-4 panel-portrait:p-6">
+        <BaseFormField label="Estado del cliente">
+          <BaseSelect
+            :model-value="clientStatus"
+            :options="clientStatusOptions"
+            data-testid="clients-status-selector-mobile"
+            @update:model-value="setClientStatus"
+          />
+        </BaseFormField>
+
+        <BaseFormField label="Módulo de negocio">
+          <BaseSelect
+            :model-value="activeModule"
+            :options="mobileModuleOptions"
+            data-testid="clients-module-selector-mobile"
+            @update:model-value="selectModule"
+          />
+        </BaseFormField>
+
+        <BaseFormField label="Filtro guardado">
+          <BaseSelect
+            :model-value="String(filterTabId)"
+            :options="mobileSubfilterOptions"
+            data-testid="clients-subfilter-selector-mobile"
+            @update:model-value="onSelectFilterTab"
+          />
+        </BaseFormField>
+
+        <div>
+          <h3 class="mb-2 text-sm font-semibold text-text-default">Filtros avanzados</h3>
+          <ClientFilterPanel
+            :model-value="currentFilters"
+            :is-open="true"
+            :filter-count="activeFilterCount"
+            @update:model-value="onFiltersUpdate"
+            @reset="handleResetFilters"
+          />
+        </div>
+
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="w-full"
+          data-testid="clients-mobile-settings"
+          @click="openMobileSettings"
+        >
+          Configuraciones de la vista
+        </BaseButton>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-between gap-3">
+          <BaseButton variant="ghost" size="md" @click="clearMobileFilters">
+            Limpiar
+          </BaseButton>
+          <BaseButton
+            variant="primary"
+            size="md"
+            data-testid="clients-mobile-filter-results"
+            @click="showMobileFilters = false"
+          >
+            Ver {{ filteredClients.length }} {{ filteredClients.length === 1 ? 'cliente' : 'clientes' }}
+          </BaseButton>
+        </div>
+      </template>
+    </BaseDrawer>
+
+    <BaseDrawer
+      v-model="showClientActions"
+      placement="bottom"
+      :title="clientActionTarget?.name || 'Acciones del cliente'"
+      test-id="client-actions-drawer"
+    >
+      <div v-if="clientActionTarget" class="space-y-2 p-4 panel-portrait:p-6">
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="editClientFromActions">
+          Editar cliente
+        </BaseButton>
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="emailsFromActions">
+          Ver correos
+        </BaseButton>
+        <BaseButton
+          v-if="Number(clientActionTarget.documents_count || 0) > 0"
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="documentsFromActions"
+        >
+          Ver documentos
+        </BaseButton>
+        <BaseButton
+          v-if="canOpenHostings && Number(clientActionTarget.hostings_count || 0) > 0"
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="hostingsFromActions"
+        >
+          Ver hostings
+        </BaseButton>
+        <BaseButton
+          v-if="clientActionTarget.accepted_count > 0"
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="platformFromActions"
+        >
+          Ver en plataforma
+        </BaseButton>
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="toggleInactiveFromActions">
+          {{ clientActionTarget.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo' }}
+        </BaseButton>
+        <BaseButton variant="danger-ghost" size="md" class="min-h-11 w-full justify-start" @click="deleteClientFromActions">
+          Eliminar cliente
+        </BaseButton>
+      </div>
+    </BaseDrawer>
+
+    <ClientReassignModal
+      v-model="showTouchReassign"
+      :item="touchReassignItem"
+      :busy="isTouchReassigning"
+      @confirm="confirmTouchReassign"
+    />
+
+    <!-- New client modal -->
+    <BaseModal
+      :model-value="showCreateModal"
+      kind="form"
+      title-id="clients-create-title"
+      @close="closeCreateModal"
+    >
         <div class="px-6 pt-6 pb-2">
-          <h3 class="text-lg font-bold text-text-default">Nuevo cliente</h3>
+          <h3 id="clients-create-title" class="text-lg font-bold text-text-default">Nuevo cliente</h3>
           <p class="mt-1 text-sm text-text-muted">
             Crea un perfil sin propuesta. Si no agregas email, generaremos uno temporal y las
             automatizaciones quedarán pausadas para este cliente.
@@ -681,7 +910,7 @@
             @update:model-value="Object.assign(createForm, $event)"
           />
           <p v-if="createError" class="text-xs text-danger-strong">{{ createError }}</p>
-          <div class="flex items-center justify-end gap-3 pt-2">
+          <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
             <BaseButton variant="ghost" size="md" @click="closeCreateModal">
               Cancelar
             </BaseButton>
@@ -690,18 +919,17 @@
             </BaseButton>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
 
     <!-- Edit client modal -->
-    <div
-      v-if="editingClient"
-      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-      @click.self="closeEditModal"
+    <BaseModal
+      :model-value="Boolean(editingClient)"
+      size="md"
+      title-id="clients-edit-title"
+      @close="closeEditModal"
     >
-      <div class="bg-surface border border-border-muted rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         <div class="px-6 pt-6 pb-2">
-          <h3 class="text-lg font-bold text-text-default">Editar cliente</h3>
+          <h3 id="clients-edit-title" class="text-lg font-bold text-text-default">Editar cliente</h3>
           <p class="mt-1 text-sm text-text-muted">
             Los cambios se propagarán a todas las propuestas vinculadas a este cliente.
           </p>
@@ -713,7 +941,7 @@
             @update:model-value="Object.assign(editForm, $event)"
           />
           <p v-if="editError" class="text-xs text-danger-strong">{{ editError }}</p>
-          <div class="flex items-center justify-end gap-3 pt-2">
+          <div class="sticky bottom-0 -mx-6 flex items-center justify-end gap-3 border-t border-border-muted bg-surface px-6 pb-2 pt-4">
             <BaseButton variant="ghost" size="md" @click="closeEditModal">
               Cancelar
             </BaseButton>
@@ -722,8 +950,7 @@
             </BaseButton>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
 
     <!-- The client's emails, and the viewer for one of them. Siblings rather
          than nested: BaseModal has no stacking manager, so DOM order is what
@@ -771,18 +998,22 @@ import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import ClientModuleTabs from '~/components/clients/ClientModuleTabs.vue';
+import ClientReassignModal from '~/components/clients/ClientReassignModal.vue';
 import ClientEmailsModal from '~/components/clients/ClientEmailsModal.vue';
 import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import ViewSettingsPanel from '~/components/panel/ViewSettingsPanel.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
+import BaseModal from '~/components/base/BaseModal.vue';
 import ProposalStatusSelect from '~/components/panel/proposal/ProposalStatusSelect.vue';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useProposalStatusChange } from '~/composables/useProposalStatusChange';
 import { useAccountingFilters } from '~/composables/useAccountingFilters';
 import {
   CLIENT_FILTERS_CONFIG,
+  CLIENT_MODULES,
+  clientModuleName,
   clientSubfiltersFor,
   documentsPill,
   findClientSubfilter,
@@ -792,15 +1023,20 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 import { usePagination } from '~/composables/usePagination';
+import { useIsMobile } from '~/composables/useIsMobile';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 import { useProposalStore } from '~/stores/proposals';
 import { useDiagnosticsStore } from '~/stores/diagnostics';
+import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 
 const localePath = useLocalePath();
 const { goToPlatform, isBridging } = usePanelToPlatformBridge();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const clientsStore = useProposalClientsStore();
+const { isMobile: isCompact } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const showMobileFilters = ref(false);
 
 /** COP money from the API's string amounts. */
 function formatMoney(value) {
@@ -852,6 +1088,24 @@ const {
 
 const filteredClients = computed(() => applyFilters(clientsStore.clients));
 
+const mobileModuleOptions = CLIENT_MODULES.map((module) => ({
+  value: module.id,
+  label: module.name,
+}));
+
+const mobileSubfilterOptions = computed(() => [
+  { value: 'all', label: 'Todos los clientes del módulo' },
+  ...displayTabs.value
+    .filter((tab) => !tab.is_hidden)
+    .map((tab) => {
+      const count = subfilterCounts.value[String(tab.id)];
+      return {
+        value: String(tab.id),
+        label: `${tab.name}${typeof count === 'number' ? ` (${count})` : ''}`,
+      };
+    }),
+]);
+
 /**
  * The per-row hosting count only earns its space while the Hosting module is
  * the one being read — that is the moment the question "cuántos" is being
@@ -899,6 +1153,52 @@ function fetchEmailBody(logId) {
  * click the pill straight into a redirect.
  */
 const canOpenHostings = computed(() => proposalStore.isSuperuser);
+
+const clientActionTarget = ref(null);
+const showClientActions = computed({
+  get: () => Boolean(clientActionTarget.value),
+  set: (isOpen) => {
+    if (!isOpen) clientActionTarget.value = null;
+  },
+});
+
+function openClientActions(client) {
+  clientActionTarget.value = client;
+}
+
+function takeClientAction(callback) {
+  const client = clientActionTarget.value;
+  clientActionTarget.value = null;
+  if (client) callback(client);
+}
+
+function editClientFromActions() {
+  takeClientAction(openEditModal);
+}
+
+function emailsFromActions() {
+  takeClientAction(openEmails);
+}
+
+function documentsFromActions() {
+  takeClientAction(goToClientDocuments);
+}
+
+function hostingsFromActions() {
+  takeClientAction(goToClientHostings);
+}
+
+function platformFromActions() {
+  takeClientAction((client) => goToPlatform(`/platform/clients/${client.user_id}`));
+}
+
+function toggleInactiveFromActions() {
+  takeClientAction(toggleInactive);
+}
+
+function deleteClientFromActions() {
+  takeClientAction(confirmDelete);
+}
 
 function goToClientHostings(client) {
   navigateTo({
@@ -1036,6 +1336,38 @@ const clientStatusOptions = computed(() =>
   }),
 );
 
+const mobileFilterCount = computed(() => (
+  activeFilterCount.value
+  + (activeModule.value === 'all' ? 0 : 1)
+  + (String(filterTabId.value) === 'all' ? 0 : 1)
+  + (clientStatus.value === 'all' ? 0 : 1)
+));
+
+const mobileFilterSummary = computed(() => {
+  const parts = [];
+  if (clientStatus.value !== 'all') {
+    parts.push(CLIENT_STATUSES.find((status) => status.id === clientStatus.value)?.label);
+  }
+  if (activeModule.value !== 'all') parts.push(clientModuleName(activeModule.value));
+  if (String(filterTabId.value) !== 'all') {
+    const tab = displayTabs.value.find((entry) => String(entry.id) === String(filterTabId.value));
+    if (tab) parts.push(tab.name);
+  }
+  return parts.filter(Boolean).join(' · ') || 'Filtros';
+});
+
+function clearMobileFilters() {
+  resetFilters();
+  selectModule('all');
+  selectFilterTab('all');
+  setClientStatus('all');
+}
+
+function openMobileSettings() {
+  showMobileFilters.value = false;
+  isConfigOpen.value = true;
+}
+
 const search = ref('');
 const expandedClients = ref(new Set());
 const loadingDetails = ref(new Set());
@@ -1118,6 +1450,31 @@ async function toggleInactive(client) {
   } else {
     notify.error('No se pudo actualizar el estado del cliente.');
   }
+}
+
+function compactContextLabel(client) {
+  if (activeModule.value === 'hosting') {
+    return `${client.hostings_count || 0} hosting${client.hostings_count === 1 ? '' : 's'}`;
+  }
+  if (activeModule.value === 'documents') {
+    return documentsPillFor(client)?.label || 'Sin documentos';
+  }
+  if (activeModule.value === 'emails') {
+    return `${client.emails_sent_count || 0} correo${client.emails_sent_count === 1 ? '' : 's'}`;
+  }
+  if (activeModule.value === 'accounting') {
+    return `${client.incomes_count || 0} ingreso${client.incomes_count === 1 ? '' : 's'}`;
+  }
+  if (activeModule.value === 'projects') {
+    return `${client.active_projects_count || 0} proyecto${client.active_projects_count === 1 ? '' : 's'} activo${client.active_projects_count === 1 ? '' : 's'}`;
+  }
+  if (activeModule.value === 'diagnostics') {
+    return `${client.diagnostics_count || 0} diagnóstico${client.diagnostics_count === 1 ? '' : 's'}`;
+  }
+  if (activeModule.value === 'proposals') {
+    return `${client.accepted_count || 0} propuesta${client.accepted_count === 1 ? '' : 's'} aceptada${client.accepted_count === 1 ? '' : 's'}`;
+  }
+  return `${client.incomes_count || 0} ingresos · ${client.hostings_count || 0} hostings`;
 }
 
 function onSearchInput() {
@@ -1336,6 +1693,33 @@ async function refreshClientDetail(clientId) {
 const draggingItem = ref(null); // { type, id, title, sourceClientId, sourceClientName }
 const dragOverClientId = ref(null);
 const dragOverZoneKey = ref(null); // `${clientId}:${type}` for the proposals/diagnostics zones
+const touchReassignItem = ref(null);
+const isTouchReassigning = ref(false);
+const showTouchReassign = computed({
+  get: () => Boolean(touchReassignItem.value),
+  set: (isOpen) => {
+    if (!isOpen && !isTouchReassigning.value) touchReassignItem.value = null;
+  },
+});
+
+function openTouchReassign(client, type, item) {
+  touchReassignItem.value = {
+    type,
+    id: item.id,
+    title: item.title,
+    sourceClientId: client.id,
+    sourceClientName: client.name,
+  };
+}
+
+async function confirmTouchReassign(target) {
+  const dragged = touchReassignItem.value;
+  if (!dragged) return;
+  isTouchReassigning.value = true;
+  await reassignItem(dragged, target);
+  isTouchReassigning.value = false;
+  touchReassignItem.value = null;
+}
 
 function onRowDragStart(event, client, type, item) {
   draggingItem.value = {
@@ -1505,3 +1889,73 @@ function statusClass(s) {
   return map[s] || 'bg-surface-raised text-text-muted';
 }
 </script>
+
+<style scoped>
+.client-detail-cards {
+  display: block;
+  min-width: 0;
+}
+
+.client-detail-cards thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.client-detail-cards tbody {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0 1.25rem 1rem;
+}
+
+.client-detail-cards tbody tr {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--color-border-muted);
+  border-radius: 0.75rem;
+  background: var(--color-surface);
+}
+
+.client-detail-cards tbody td {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.client-detail-cards tbody td[data-card-full] {
+  grid-column: 1 / -1;
+}
+
+.client-detail-cards tbody td::before {
+  content: attr(data-label);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+
+.client-detail-cards tbody td[data-label='Acciones'] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.client-detail-cards tbody td[data-label='Acciones']::before {
+  width: 100%;
+}
+</style>

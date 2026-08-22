@@ -48,7 +48,7 @@
         <button
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-          :class="entryClass('all')"
+          :class="[entryClass('all'), touchMode ? 'min-h-11' : '']"
           :aria-current="ariaCurrent('all')"
           @click="$emit('select', 'all')"
         >
@@ -63,7 +63,7 @@
         <button
           type="button"
           class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-          :class="[entryClass('none'), dropZoneClass('none')]"
+          :class="[entryClass('none'), dropZoneClass('none'), touchMode ? 'min-h-11' : '']"
           :aria-current="ariaCurrent('none')"
           @click="$emit('select', 'none')"
           @dragover.prevent="dragOverId = 'none'"
@@ -116,6 +116,7 @@
               <button
                 type="button"
                 class="flex-1 min-w-0 flex items-center gap-1 px-3 py-2 text-sm text-left"
+                :class="touchMode ? 'min-h-11' : ''"
                 :aria-current="ariaCurrent(folder.id)"
                 :aria-label="rowLabel(folder)"
                 @click="$emit('select', folder.id)"
@@ -173,8 +174,11 @@
               <!-- Clúster derecho: reordenar (hover) + archivar + eliminar. -->
               <div class="flex items-center flex-shrink-0 pr-1.5">
                 <div
-                  class="folder-drag-handle touch-reveal touch-drag-handle w-5 flex items-center justify-center text-text-subtle dark:text-text-muted opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing transition-opacity"
-                  :class="{ invisible: isDragging }"
+                  class="folder-drag-handle touch-reveal touch-drag-handle flex cursor-grab items-center justify-center text-text-subtle transition-opacity active:cursor-grabbing dark:text-text-muted"
+                  :class="[
+                    touchMode ? 'w-8 min-h-11 opacity-100' : 'w-5 opacity-0 group-hover:opacity-100',
+                    { invisible: isDragging },
+                  ]"
                   title="Arrastrar para reordenar"
                 >
                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
@@ -192,7 +196,7 @@
                       icon-only
                       size="sm"
                       :aria-label="`Editar carpeta ${folder.name}`"
-                      class="opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
                       data-testid="folder-edit"
                       @click="$emit('edit', folder)"
                     >
@@ -214,7 +218,7 @@
                       icon-only
                       size="sm"
                       :aria-label="`Archivar carpeta ${folder.name}`"
-                      class="opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
                       data-testid="folder-archive"
                       @click="$emit('archive', folder)"
                     >
@@ -237,7 +241,7 @@
                       size="sm"
                       :disabled="hasContent(folder)"
                       :aria-label="`Eliminar carpeta ${folder.name}`"
-                      class="opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+                      :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
                       data-testid="folder-delete"
                       @click="$emit('delete', folder)"
                     >
@@ -286,6 +290,7 @@ const props = defineProps({
   // mientras hay consulta — misma regla que el control de la barra, porque dos
   // mandos del mismo eje que se comportan distinto vuelven a mentir.
   scopeLocked: { type: Boolean, default: false },
+  touchMode: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([

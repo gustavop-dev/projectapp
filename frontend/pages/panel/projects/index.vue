@@ -1,5 +1,5 @@
 <template>
-  <div :class="PAGE_MAX_WIDTH">
+  <div :class="PAGE_MAX_WIDTH" data-testid="projects-page">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
       <div>
@@ -21,17 +21,12 @@
     </div>
 
     <!-- Meta cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+    <div class="mb-3 grid grid-cols-2 gap-3 panel-landscape:grid-cols-4">
       <AccountingStatCard
         label="Proyectos activos"
         :value="String(store.meta.active ?? 0)"
         tone="brand"
         data-testid="panel-projects-stat-active"
-      />
-      <AccountingStatCard
-        label="Archivados"
-        :value="String(store.meta.archived ?? 0)"
-        data-testid="panel-projects-stat-archived"
       />
       <AccountingStatCard
         label="Clientes sin proyecto"
@@ -43,6 +38,13 @@
         @click="openOrphansPanel"
       />
       <AccountingStatCard
+        v-if="!isPhone || showSecondaryStats"
+        label="Archivados"
+        :value="String(store.meta.archived ?? 0)"
+        data-testid="panel-projects-stat-archived"
+      />
+      <AccountingStatCard
+        v-if="!isPhone || showSecondaryStats"
         label="Registros sin proyecto"
         :value="String(store.meta.records_without_project ?? 0)"
         :tone="(store.meta.records_without_project ?? 0) > 0 ? 'warning' : 'default'"
@@ -50,6 +52,18 @@
         data-testid="panel-projects-stat-unlinked"
       />
     </div>
+    <BaseButton
+      v-if="isPhone"
+      variant="ghost"
+      size="sm"
+      class="mb-5 w-full"
+      data-testid="projects-stats-toggle"
+      :aria-expanded="showSecondaryStats"
+      @click="showSecondaryStats = !showSecondaryStats"
+    >
+      {{ showSecondaryStats ? 'Ocultar indicadores secundarios' : 'Ver los otros 2 indicadores' }}
+    </BaseButton>
+    <div v-else class="mb-6" />
 
     <!-- Search + scope -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-5">
@@ -60,7 +74,16 @@
         data-testid="projects-search-input"
         class="w-full sm:max-w-xs"
       />
+      <BaseSelect
+        v-if="isCompact"
+        v-model="scope"
+        :options="SCOPE_OPTIONS"
+        size="sm"
+        aria-label="Estado de los proyectos"
+        data-testid="projects-scope-mobile"
+      />
       <BaseSegmented
+        v-else
         v-model="scope"
         :options="SCOPE_OPTIONS"
         size="sm"
@@ -101,7 +124,43 @@
 
     <!-- Table -->
     <template v-else>
+      <div v-if="isCompact" class="space-y-4">
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-2 rounded-xl border border-border-muted bg-surface p-3">
+          <BaseSelect
+            :model-value="sortKey"
+            :options="MOBILE_SORT_OPTIONS"
+            size="sm"
+            aria-label="Ordenar proyectos por"
+            data-testid="projects-sort-mobile"
+            @update:model-value="setMobileSortKey"
+          />
+          <BaseButton
+            variant="secondary"
+            size="md"
+            :disabled="!sortKey"
+            :aria-label="sortDir === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
+            data-testid="projects-sort-direction"
+            @click="toggleMobileSortDirection"
+          >
+            {{ sortDir === 'asc' ? 'A → Z' : 'Z → A' }}
+          </BaseButton>
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 panel-portrait:grid-cols-2" data-testid="projects-card-list">
+          <ProjectCard
+            v-for="row in pagedRecords"
+            :key="row.id"
+            :project="row"
+            :is-superuser="isSuperuser"
+            :highlighted="row.id === (lastMutatedId ?? queryHighlightId)"
+            @assign="openAssign"
+            @actions="projectActionTarget = $event"
+          />
+        </div>
+      </div>
+
       <AccountingTable
+        v-else
         :show-actions="false"
         :loading="store.isLoading"
         :highlight-id="lastMutatedId ?? queryHighlightId"
@@ -230,6 +289,43 @@
       />
     </template>
 
+    <BaseDrawer
+      v-model="showProjectActions"
+      placement="bottom"
+      :title="projectActionTarget?.name || 'Acciones del proyecto'"
+      test-id="project-actions-drawer"
+    >
+      <div v-if="projectActionTarget" class="space-y-2 p-4 panel-portrait:p-6">
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          :disabled="projectActionTarget.status === 'archived'"
+          @click="editProjectFromActions"
+        >
+          Editar proyecto
+        </BaseButton>
+        <BaseButton
+          v-if="projectActionTarget.status !== 'archived'"
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="archiveProjectFromActions"
+        >
+          Archivar proyecto
+        </BaseButton>
+        <BaseButton
+          v-else
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="restoreProjectFromActions"
+        >
+          Restaurar proyecto
+        </BaseButton>
+      </div>
+    </BaseDrawer>
+
     <!-- Create/edit modal -->
     <ProjectFormModal
       :open="isModalOpen"
@@ -342,10 +438,13 @@ import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
 import ProjectAssignUnlinkedModal from '~/components/panel/projects/ProjectAssignUnlinkedModal.vue';
+import ProjectCard from '~/components/panel/projects/ProjectCard.vue';
 import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
+import { useIsMobile } from '~/composables/useIsMobile';
+import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { useProposalStore } from '~/stores/proposals';
 import { normalizeName } from '~/utils/clientMatch';
@@ -354,6 +453,9 @@ import { formatDate } from '~/utils/formatDate';
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = usePanelProjectsStore();
+const { isMobile: isCompact } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
+const { isMobile: isPhone } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
+const showSecondaryStats = ref(false);
 // The count links point at superuser-only accounting pages; hide them from
 // plain admins (same flag the sidebar uses).
 const proposalStore = useProposalStore();
@@ -366,6 +468,16 @@ const SCOPE_OPTIONS = [
   { value: 'active', label: 'Activos', testId: 'projects-scope-active' },
   { value: 'archived', label: 'Archivados', testId: 'projects-scope-archived' },
   { value: 'all', label: 'Todos', testId: 'projects-scope-all' },
+];
+
+const MOBILE_SORT_OPTIONS = [
+  { value: '', label: 'Orden original' },
+  { value: 'name', label: 'Nombre del proyecto' },
+  { value: 'client_name', label: 'Cliente' },
+  { value: 'status_label', label: 'Estado' },
+  { value: 'created_at', label: 'Fecha de creación' },
+  { value: 'hostings_count', label: 'Cantidad de hostings' },
+  { value: 'incomes_count', label: 'Cantidad de ingresos' },
 ];
 
 const scope = ref('active');
@@ -463,6 +575,42 @@ const columns = computed(() => [
   { key: 'incomes_count', label: 'Ingresos', sortable: true, size: 'text', align: 'right' },
   { key: 'row_actions', label: 'Acciones', size: 'icons', align: 'center' },
 ]);
+
+function setMobileSortKey(key) {
+  sortKey.value = key;
+  sortDir.value = 'asc';
+}
+
+function toggleMobileSortDirection() {
+  if (!sortKey.value) return;
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+}
+
+const projectActionTarget = ref(null);
+const showProjectActions = computed({
+  get: () => Boolean(projectActionTarget.value),
+  set: (isOpen) => {
+    if (!isOpen) projectActionTarget.value = null;
+  },
+});
+
+function editProjectFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) openEditModal(row);
+}
+
+function archiveProjectFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) askArchive(row);
+}
+
+function restoreProjectFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) doRestore(row);
+}
 
 // ── Archive / restore (PA-29: never delete) ──
 
