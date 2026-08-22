@@ -11,7 +11,7 @@
       <div
         v-for="(item, idx) in parsedBullets"
         :key="idx"
-        class="bg-surface dark:bg-primary-soft/5 border border-input-border/10 dark:border-input-border/15 rounded-2xl p-5 shadow-sm"
+        class="bg-surface dark:bg-primary-soft border border-input-border rounded-2xl p-5 shadow-sm"
       >
         <div class="flex items-start gap-3">
           <span class="mt-1 shrink-0 size-2 rounded-full bg-accent-soft" aria-hidden="true" />
@@ -25,7 +25,7 @@
 
     <div
       v-if="hasInvestmentCard"
-      class="my-6 relative overflow-hidden bg-surface dark:bg-primary-soft/5 text-text-brand dark:text-text-brand rounded-2xl p-6 shadow-sm border border-input-border/10 dark:border-input-border/15"
+      class="my-6 relative overflow-hidden bg-surface dark:bg-primary-soft text-text-brand dark:text-text-brand rounded-2xl p-6 shadow-sm border border-input-border"
       data-testid="cost-investment-card"
     >
       <div class="absolute inset-0 bg-gradient-to-br from-lemon/0 via-lemon/5 to-lemon/10 pointer-events-none" />
@@ -44,7 +44,7 @@
           </div>
           <div
             v-if="durationLabel"
-            class="inline-flex items-center gap-1.5 text-xs text-text-brand/70 dark:text-text-brand/70 bg-primary/5 dark:bg-primary-soft/10 ring-1 ring-esmerald/10 dark:ring-esmerald-light/15 rounded-full px-3 py-1"
+            class="inline-flex items-center gap-1.5 text-xs text-text-brand/70 dark:text-text-brand/70 bg-primary/5 dark:bg-primary-soft ring-1 ring-esmerald/10 dark:ring-esmerald-light/15 rounded-full px-3 py-1"
           >
             <span class="size-1.5 rounded-full bg-accent-soft" aria-hidden="true" />
             <span>{{ durationLabel }}</span>
@@ -101,7 +101,7 @@
 
     <aside
       v-if="content.note"
-      class="mt-6 flex gap-3 border-l-4 border-lemon/70 bg-primary/5 dark:bg-primary-soft/5 text-text-brand/80 dark:text-text-brand/80 px-4 py-3 rounded-r-lg text-sm"
+      class="mt-6 flex gap-3 border-l-4 border-lemon/70 bg-primary/5 dark:bg-primary-soft text-text-brand/80 dark:text-text-brand/80 px-4 py-3 rounded-r-lg text-sm"
     >
       <span class="shrink-0 inline-flex items-center text-[10px] font-semibold uppercase tracking-wider text-text-brand dark:text-accent bg-accent-soft/30 dark:bg-accent-soft/15 rounded px-1.5 py-0.5 h-fit">Nota</span>
       <span class="leading-relaxed">{{ content.note }}</span>

@@ -4,7 +4,7 @@
     aria-labelledby="dashboard-finance-title"
     data-testid="dashboard-finance-section"
   >
-    <div class="mb-3 flex items-center justify-between">
+    <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
       <h2
         id="dashboard-finance-title"
         class="text-xs font-semibold uppercase tracking-widest text-text-muted"
@@ -19,9 +19,9 @@
       </NuxtLink>
     </div>
 
-    <div class="grid gap-4 lg:grid-cols-3">
+    <div class="grid gap-4 panel-desktop:grid-cols-3">
       <AccountingHeroKpi
-        class="lg:col-span-2"
+        class="panel-desktop:col-span-2"
         :label="`Utilidad líquida ${finance.year}`"
         :value="Number(finance.liquid_utility) || 0"
         :sub="`Ingresos líquidos menos gastos de la empresa en ${finance.year}`"
@@ -47,7 +47,7 @@
       </div>
     </div>
 
-    <div class="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
+    <div class="mt-4 grid grid-cols-1 gap-4 panel-portrait:grid-cols-2 panel-desktop:grid-cols-3">
       <DashboardStatTile
         label="Por cobrar este mes"
         :value="Number(finance.expected_current_month?.total)"

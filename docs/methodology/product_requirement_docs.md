@@ -318,6 +318,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 
 ## 5. Non-Functional Requirements
 
+- **Responsive acceptance**: Every panel and public view must pass the same five real-device profiles (phone 412 px, portrait tablet 835 px, landscape tablet 1195 px, laptop 1440 px, large monitor 2560 px). Shared components own repeated behavior; large-monitor content keeps an explicit readable maximum width.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)
 - **SEO**: Server-side rendered public pages, sitemap endpoints, meta tags, Google verification

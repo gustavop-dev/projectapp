@@ -16,7 +16,7 @@
         <h1 class="text-2xl font-light text-text-default">Diagnósticos de aplicaciones</h1>
         <p class="text-sm text-text-subtle mt-0.5">Seguimiento de diagnósticos técnicos por cliente</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:gap-3">
         <BaseButton
           as="NuxtLink"
           variant="secondary"
@@ -100,24 +100,14 @@
     />
 
     <!-- Batch actions bar -->
-    <div
-      v-if="selectedIds.length"
-      class="flex flex-wrap items-center gap-3 mb-3 px-4 py-2.5 bg-primary-soft border border-primary/20 rounded-xl"
-      data-testid="diagnostics-batch-bar"
-    >
-      <span class="text-sm font-medium text-text-brand">
-        {{ selectedIds.length }} seleccionado{{ selectedIds.length !== 1 ? 's' : '' }}
-      </span>
-      <div class="ml-auto flex items-center gap-2">
-        <BaseButton variant="secondary" size="sm" :loading="store.isUpdating" @click="handleBulk('finish')">
-          Finalizar aceptados
-        </BaseButton>
-        <BaseButton variant="danger" size="sm" :loading="store.isUpdating" @click="handleBulk('delete')">
-          Eliminar
-        </BaseButton>
-        <BaseButton variant="ghost" size="sm" @click="clearSelection">Cancelar</BaseButton>
-      </div>
-    </div>
+    <BaseBulkActionBar
+      :selected-count="selectedIds.length"
+      :actions="diagnosticBulkItems"
+      :busy="store.isUpdating"
+      testid-prefix="diagnostics"
+      testid="diagnostics-batch-bar"
+      @clear="clearSelection"
+    />
 
     <!-- Loading skeleton -->
     <div
@@ -167,166 +157,94 @@
       </template>
     </BaseEmptyState>
 
-    <!-- Table -->
-    <div
-      v-else
-      class="bg-surface rounded-xl shadow-card border border-border-muted overflow-x-auto"
-    >
-      <table class="w-full min-w-[900px]">
-        <thead class="sticky top-0 z-10 bg-surface">
-          <tr class="border-b border-border-muted text-left">
-            <th scope="col" class="pl-4 pr-1 py-3 w-10">
-              <BaseCheckbox
-                :model-value="pageAllSelected"
-                aria-label="Seleccionar los diagnósticos de esta página"
-                @update:model-value="toggleSelectPage"
-              />
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
-              :class="sortKey === 'client_name' ? 'text-text-brand' : 'text-text-muted'"
-              :aria-sort="ariaSortFor('client_name')"
-            >
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
-                @click="toggleSort('client_name')"
-              >
-                Cliente
-                <SortIcon :active="sortKey === 'client_name'" :asc="sortDir === 'asc'" />
-              </button>
-            </th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Estado</th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
-              :class="sortKey === 'investment_amount' ? 'text-text-brand' : 'text-text-muted'"
-              :aria-sort="ariaSortFor('investment_amount')"
-            >
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
-                @click="toggleSort('investment_amount')"
-              >
-                Inversión
-                <SortIcon :active="sortKey === 'investment_amount'" :asc="sortDir === 'asc'" />
-              </button>
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider hidden sm:table-cell"
-              :class="sortKey === 'created_at' ? 'text-text-brand' : 'text-text-muted'"
-              :aria-sort="ariaSortFor('created_at')"
-            >
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
-                @click="toggleSort('created_at')"
-              >
-                Creado
-                <SortIcon :active="sortKey === 'created_at'" :asc="sortDir === 'asc'" />
-              </button>
-            </th>
-            <th
-              scope="col"
-              class="px-6 py-3 text-xs font-medium uppercase tracking-wider"
-              :class="sortKey === 'last_viewed_at' ? 'text-text-brand' : 'text-text-muted'"
-              :aria-sort="ariaSortFor('last_viewed_at')"
-            >
-              <button
-                type="button"
-                class="inline-flex items-center gap-1 uppercase tracking-wider hover:text-text-brand rounded focus:outline-none focus:ring-2 focus:ring-focus-ring/40 motion-safe:transition-colors motion-safe:duration-fast"
-                @click="toggleSort('last_viewed_at')"
-              >
-                Última vista
-                <SortIcon :active="sortKey === 'last_viewed_at'" :asc="sortDir === 'asc'" />
-              </button>
-            </th>
-            <th scope="col" class="px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider w-14 hidden lg:table-cell">ID</th>
-            <th scope="col" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-muted">
-          <tr
-            v-for="d in paginatedDiagnostics"
-            :key="d.id"
-            class="transition-colors cursor-pointer hover:bg-surface-muted"
-            :data-testid="`diagnostic-row-${d.id}`"
-            @click="navigateToDiagnostic(d.id, $event)"
-            @auxclick.middle="navigateToDiagnostic(d.id, $event)"
-          >
-            <td class="pl-4 pr-1 py-4" @click.stop>
-              <BaseCheckbox
-                v-model="selectedIds"
-                :value="d.id"
-                :aria-label="`Seleccionar ${d.title}`"
-              />
-            </td>
-            <td class="px-6 py-4" :data-testid="`diagnostic-row-client-${d.id}`">
-              <div class="text-sm font-medium text-text-default">{{ d.client?.name || '—' }}</div>
-              <div v-if="d.client?.email" class="text-xs text-text-muted mt-0.5">{{ d.client.email }}</div>
-            </td>
-            <!-- `relative` es el marco contra el que se estira el enlace. -->
-            <td class="relative px-6 py-4 text-sm text-text-default">
-              <BaseRowLink
-                :to="diagnosticHref(d.id)"
-                stretch
-                :data-testid="`diagnostic-open-${d.id}`"
-                class="block truncate max-w-[22rem] hover:text-text-brand transition-colors"
-                :title="d.title"
-              >{{ d.title }}</BaseRowLink>
-            </td>
-            <td class="px-6 py-4">
-              <div class="flex flex-col items-start gap-1">
-                <DiagnosticStatusBadge :status="d.status" />
-                <span
-                  v-if="attentionById[d.id]"
-                  class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium"
-                  :class="ATTENTION_TONE_CLASSES[attentionById[d.id].tone]"
-                  :data-testid="`diagnostic-attention-${d.id}`"
-                >{{ attentionById[d.id].label }}</span>
-                <DiagnosticExpirationChip
-                  :expires-at="d.expires_at"
-                  :is-expired="d.is_expired"
-                  :days-remaining="d.days_remaining"
-                />
-              </div>
-            </td>
-            <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
-              <span v-if="d.investment_amount">{{ formatMoney(d.investment_amount) }} {{ d.currency }}</span>
-              <span v-else class="text-text-subtle">—</span>
-            </td>
-            <td class="px-6 py-4 text-xs text-text-muted hidden sm:table-cell">
-              <span v-if="d.created_at">{{ formatDate(d.created_at) }}</span>
-              <span v-else class="text-text-subtle">—</span>
-            </td>
-            <td class="px-6 py-4 text-xs text-text-muted">
-              <span v-if="d.last_viewed_at">
-                {{ formatDate(d.last_viewed_at) }}
-                <span class="text-2xs text-text-subtle ml-1">({{ d.view_count }} vistas)</span>
-              </span>
-              <span v-else class="text-text-subtle">—</span>
-            </td>
-            <td class="px-4 py-4 text-xs text-text-subtle tabular-nums hidden lg:table-cell">#{{ d.id }}</td>
-            <td class="px-6 py-4" @click.stop>
-              <button
-                type="button"
-                class="p-3 -m-1.5 rounded-lg hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast text-text-subtle hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-                :aria-label="`Acciones de ${d.title}`"
-                @click.stop="actionsModalDiagnostic = d"
-              >
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- La prioridad móvil es explícita: cliente/título; estado e inversión;
+         fechas como metadato. El ID no desplaza información de negocio. -->
+    <div v-else>
+      <BaseResponsiveTable
+        :columns="diagnosticColumns"
+        :rows="paginatedDiagnostics"
+        v-model:selected="selectedIds"
+        :sort-key="sortKey"
+        :sort-dir="sortDir"
+        :selection-label="(diagnostic) => `Seleccionar ${diagnostic.title}`"
+        selectable
+        interactive-rows
+        :show-default-actions="false"
+        caption="Diagnósticos técnicos por cliente"
+        test-id-prefix="diagnostic"
+        @sort="toggleSort"
+        @row-click="(diagnostic, event) => navigateToDiagnostic(diagnostic.id, event)"
+        @row-auxclick="(diagnostic, event) => navigateToDiagnostic(diagnostic.id, event)"
+      >
+        <template #cell-client_name="{ row: diagnostic }">
+          <div :data-testid="`diagnostic-row-client-${diagnostic.id}`">
+            <div class="text-sm font-medium text-text-default">{{ diagnostic.client?.name || '—' }}</div>
+            <div v-if="diagnostic.client?.email" class="mt-0.5 break-all text-xs text-text-muted">{{ diagnostic.client.email }}</div>
+          </div>
+        </template>
 
-      <!-- Pagination -->
+        <template #cell-title="{ row: diagnostic, responsiveProfile }">
+          <BaseRowLink
+            :to="diagnosticHref(diagnostic.id)"
+            :data-testid="responsiveProfile ? undefined : `diagnostic-open-${diagnostic.id}`"
+            class="block break-words text-sm text-text-default transition-colors hover:text-text-brand"
+            :title="diagnostic.title"
+            @click.stop
+          >{{ diagnostic.title }}</BaseRowLink>
+        </template>
+
+        <template #cell-status="{ row: diagnostic }">
+          <div class="flex flex-col items-start gap-1">
+            <DiagnosticStatusBadge :status="diagnostic.status" />
+            <span
+              v-if="attentionById[diagnostic.id]"
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium"
+              :class="ATTENTION_TONE_CLASSES[attentionById[diagnostic.id].tone]"
+              :data-testid="`diagnostic-attention-${diagnostic.id}`"
+            >{{ attentionById[diagnostic.id].label }}</span>
+            <DiagnosticExpirationChip
+              :expires-at="diagnostic.expires_at"
+              :is-expired="diagnostic.is_expired"
+              :days-remaining="diagnostic.days_remaining"
+            />
+          </div>
+        </template>
+
+        <template #cell-investment_amount="{ row: diagnostic }">
+          <span v-if="diagnostic.investment_amount" class="tabular-nums">
+            {{ formatMoney(diagnostic.investment_amount) }} {{ diagnostic.currency }}
+          </span>
+          <span v-else class="text-text-subtle">—</span>
+        </template>
+
+        <template #cell-created_at="{ row: diagnostic }">
+          {{ diagnostic.created_at ? formatDate(diagnostic.created_at) : '—' }}
+        </template>
+
+        <template #cell-last_viewed_at="{ row: diagnostic }">
+          <span v-if="diagnostic.last_viewed_at">
+            {{ formatDate(diagnostic.last_viewed_at) }}
+            <span class="text-2xs text-text-subtle">({{ diagnostic.view_count }} vistas)</span>
+          </span>
+          <span v-else class="text-text-subtle">—</span>
+        </template>
+
+        <template #cell-id="{ row: diagnostic }">#{{ diagnostic.id }}</template>
+
+        <template #row-actions="{ row: diagnostic }">
+          <button
+            type="button"
+            class="-m-1.5 rounded-lg p-3 text-text-subtle motion-safe:transition-colors motion-safe:duration-fast hover:bg-surface-raised hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
+            :aria-label="`Acciones de ${diagnostic.title}`"
+            @click.stop="actionsModalDiagnostic = diagnostic"
+          >
+            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+            </svg>
+          </button>
+        </template>
+      </BaseResponsiveTable>
+
       <BasePagination
         v-if="sortedDiagnostics.length"
         :always-show="true"
@@ -336,7 +254,7 @@
         :range-from="paginationStart"
         :range-to="paginationEnd"
         aria-label="Paginación de diagnósticos"
-        class="px-6 border-t border-border-muted"
+        class="mt-3"
         @prev="goToPage(currentPage - 1)"
         @next="goToPage(currentPage + 1)"
         @go="goToPage"
@@ -344,7 +262,7 @@
     </div>
 
     <!-- Actions modal -->
-    <BaseModal v-model="actionsModalOpen" size="md">
+    <BaseModal v-model="actionsModalOpen" kind="confirm">
       <template v-if="actionsModalDiagnostic">
         <div class="px-6 py-4 border-b border-border-muted flex items-center justify-between">
           <div class="min-w-0">
@@ -442,6 +360,7 @@ import DiagnosticDashboard from '~/components/WebAppDiagnostic/admin/DiagnosticD
 import DiagnosticFilterPanel from '~/components/WebAppDiagnostic/DiagnosticFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
 import BasePagination from '~/components/base/BasePagination.vue';
+import BaseResponsiveTable from '~/components/base/BaseResponsiveTable.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { getDiagnosticAttention, ATTENTION_TONE_CLASSES } from '~/utils/diagnosticAttention';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -453,18 +372,6 @@ import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { formatDateTime } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
-
-/** Inline sort icon — chevron up/down SVG */
-const SortIcon = {
-  props: { active: Boolean, asc: Boolean },
-  template: `
-    <svg class="w-3 h-3 shrink-0 transition-opacity" :class="active ? 'opacity-100' : 'opacity-30'"
-         fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path v-if="!active || asc" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/>
-      <path v-if="active && !asc" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
-    </svg>
-  `,
-};
 
 const moneyFormatter = new Intl.NumberFormat('es-CO', { maximumFractionDigits: 0 });
 
@@ -481,6 +388,36 @@ const sortKey = ref('created_at');
 const sortDir = ref('desc');
 const currentPage = ref(1);
 const pageSize = 15;
+const diagnosticColumns = [
+  {
+    key: 'client_name', label: 'Cliente', size: 'name', sortable: true,
+    responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'title', label: 'Título', size: 'name',
+    responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'status', label: 'Estado', size: 'badge',
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'investment_amount', label: 'Inversión', size: 'money', sortable: true,
+    responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+  },
+  {
+    key: 'created_at', label: 'Creado', size: 'date', sortable: true,
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'last_viewed_at', label: 'Última vista', size: 'date', sortable: true,
+    responsive: { compact: 'hide', portrait: 'group', landscape: 'keep' },
+  },
+  {
+    key: 'id', label: 'ID', size: 'tiny',
+    responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+  },
+];
 // Fed the FULL store list, not the page or the filtered rows: the selection
 // spans pages on purpose, so only a diagnostic that stopped existing may drop
 // out of it.
@@ -490,11 +427,6 @@ const actionsModalOpen = computed({
   get: () => actionsModalDiagnostic.value !== null,
   set: (open) => { if (!open) actionsModalDiagnostic.value = null; },
 });
-
-function ariaSortFor(key) {
-  if (sortKey.value !== key) return undefined;
-  return sortDir.value === 'asc' ? 'ascending' : 'descending';
-}
 
 const {
   currentFilters,
@@ -593,21 +525,6 @@ const attentionById = computed(() => {
 });
 
 // ── Bulk selection ────────────────────────────────────────────────────
-const pageAllSelected = computed(() =>
-  paginatedDiagnostics.value.length > 0 &&
-  paginatedDiagnostics.value.every((d) => selectedIds.value.includes(d.id)),
-);
-
-function toggleSelectPage(checked) {
-  const pageIds = paginatedDiagnostics.value.map((d) => d.id);
-  if (checked) {
-    selectedIds.value = [...new Set([...selectedIds.value, ...pageIds])];
-  } else {
-    const pageSet = new Set(pageIds);
-    selectedIds.value = selectedIds.value.filter((id) => !pageSet.has(id));
-  }
-}
-
 const BULK_CONFIRM = {
   delete: {
     title: 'Eliminar diagnósticos',
@@ -648,6 +565,12 @@ function handleBulk(action) {
     },
   });
 }
+
+const diagnosticBulkItems = computed(() => [
+  { label: 'Finalizar aceptados', disabled: store.isUpdating, onClick: () => handleBulk('finish') },
+  { divider: true },
+  { label: 'Eliminar', danger: true, disabled: store.isUpdating, onClick: () => handleBulk('delete') },
+]);
 
 function toggleSort(key) {
   if (sortKey.value === key) {

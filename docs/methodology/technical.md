@@ -167,6 +167,13 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Heavy vendor splitting belongs under `vite.$client.build.rollupOptions`; applying the same manual chunks to Nitro's server build can generate unusable server output.
 - The production build gate is zero emitted client chunks above 500,000 bytes. Current maximum after gzip-independent measurement is 448,634 bytes.
 
+### Canonical responsive profiles
+
+- Frontend responsive validation uses five named, real-device profiles: 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440.
+- `frontend/config/responsive.js` feeds Tailwind and Playwright; `responsiveAcceptance.js` assigns every catalog view to a repeatable module script. Individual pages must not invent alternative device matrices.
+- The portrait-tablet profile is an explicit acceptance target, and admin content is capped at 1400 px on the large-monitor profile.
+- The responsive Definition of Done, commands and periodic review live in `docs/methodology/responsive-acceptance.md`.
+
 ### Static payload and collection policy
 
 - Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.

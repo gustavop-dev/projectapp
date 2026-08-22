@@ -38,7 +38,9 @@ test.describe('Admin Blog Delete', () => {
     const table = page.locator('table');
     await expect(table.getByText('Post a Borrar')).toBeVisible();
 
-    await table.getByText('Eliminar').click();
+    const row = table.getByRole('row', { name: /Post a Borrar/ });
+    await row.getByRole('button', { name: 'Acciones' }).click();
+    await row.getByRole('menuitem', { name: 'Eliminar' }).click();
     const modal = page.locator('.fixed.inset-0');
     await expect(modal).toBeVisible();
 

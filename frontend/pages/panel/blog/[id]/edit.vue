@@ -323,7 +323,7 @@
       <!-- Preview panel: desktop (inline) -->
       <aside
         v-if="showPreview"
-        class="hidden lg:block w-[45%] flex-shrink-0 sticky top-20 self-start max-h-[calc(100vh-6rem)] overflow-y-auto rounded-xl border border-border-default bg-surface shadow-sm"
+        class="sticky top-20 hidden max-h-[calc(100vh-6rem)] w-[45%] flex-shrink-0 self-start overflow-y-auto rounded-xl border border-border-default bg-surface shadow-sm panel-landscape:block"
       >
         <div class="p-4 border-b border-border-muted flex items-center justify-between">
           <span class="text-sm font-medium text-text-default">Vista previa</span>

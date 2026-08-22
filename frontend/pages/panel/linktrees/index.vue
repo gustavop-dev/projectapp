@@ -1,7 +1,7 @@
 <template>
   <div>
-    <div class="mb-6 flex items-center justify-between">
-      <div>
+    <div class="mb-6 flex flex-col items-start gap-3 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
+      <div class="min-w-0">
         <h1 class="text-2xl font-light text-text-default">Linktrees</h1>
         <p class="text-sm text-text-subtle mt-1">
           Páginas de links personalizables con URL propia (/lk/@handle) — usalas como destino de las tarjetas QR.
@@ -22,68 +22,46 @@
       description="Creá tu primer linktree para usarlo como destino de una tarjeta QR."
     />
 
-    <div v-else class="bg-surface border border-border-default rounded-xl shadow-card overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-surface-raised">
-          <tr>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Nombre</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">URL pública</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Tipo</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Botones</th>
-            <th class="text-left px-4 py-3 font-semibold text-text-muted">Activo</th>
-            <th class="text-right px-4 py-3 font-semibold text-text-muted">Acciones</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-muted">
-          <tr v-for="tree in store.linktrees" :key="tree.id" :data-testid="`linktree-row-${tree.id}`">
-            <td class="px-4 py-3 text-text-default">{{ tree.name }}</td>
-            <td class="px-4 py-3">
-              <div class="flex items-center gap-2">
-                <code class="text-xs bg-surface-muted rounded px-2 py-1">{{ publicLinkFor(tree) }}</code>
-                <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(tree)">
-                  <ClipboardIcon class="h-4 w-4" />
-                </BaseButton>
-              </div>
-            </td>
-            <td class="px-4 py-3 text-text-muted">{{ tree.kind === 'company' ? 'Empresa' : 'Personal' }}</td>
-            <td class="px-4 py-3 text-text-muted">{{ tree.buttons_count }}</td>
-            <td class="px-4 py-3">
-              <BaseToggle
-                :model-value="tree.is_active"
-                :aria-label="`Activar ${tree.name}`"
-                :data-testid="`linktree-toggle-${tree.id}`"
-                @update:model-value="(value) => onToggleActive(tree, value)"
-              />
-            </td>
-            <td class="px-4 py-3">
-              <div class="flex items-center justify-end gap-2">
-                <BaseButton
-                  variant="ghost"
-                  size="sm"
-                  :data-testid="`linktree-edit-${tree.id}`"
-                  @click="navigateTo(lp(`/panel/linktrees/${tree.id}/edit`))"
-                >
-                  Editar
-                </BaseButton>
-                <BaseButton
-                  variant="danger-ghost"
-                  size="sm"
-                  icon-only
-                  aria-label="Eliminar linktree"
-                  :data-testid="`linktree-delete-${tree.id}`"
-                  @click="onDelete(tree)"
-                >
-                  <TrashIcon class="h-4 w-4" />
-                </BaseButton>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <BaseExploratoryList
+      v-else
+      :columns="linktreeColumns"
+      :rows="store.linktrees"
+      caption="Linktrees y estado de publicación"
+      card-test-id-prefix="linktree-row"
+      table-min-width="58rem"
+    >
+      <template #cell-public_url="{ row: tree }">
+        <div class="flex min-w-0 items-center gap-2">
+          <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ publicLinkFor(tree) }}</code>
+          <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(tree)">
+            <ClipboardIcon class="h-4 w-4" />
+          </BaseButton>
+        </div>
+      </template>
+
+      <template #cell-kind="{ row: tree }">
+        {{ tree.kind === 'company' ? 'Empresa' : 'Personal' }}
+      </template>
+
+      <template #cell-is_active="{ row: tree }">
+        <BaseToggle
+          :model-value="tree.is_active"
+          :aria-label="`Activar ${tree.name}`"
+          :data-testid="`linktree-toggle-${tree.id}`"
+          @update:model-value="(value) => onToggleActive(tree, value)"
+        />
+      </template>
+
+      <template #row-actions="{ row: tree }">
+        <BaseActionMenu
+          :items="linktreeActionItems(tree)"
+          :testid="`linktree-actions-${tree.id}`"
+        />
+      </template>
+    </BaseExploratoryList>
 
     <!-- Create modal -->
-    <BaseModal v-model="formModal.open" size="md" padding="md">
+    <BaseModal v-model="formModal.open" kind="form" padding="md">
       <form data-testid="linktree-form" @submit.prevent="onSubmit">
         <h3 class="text-lg font-bold text-text-default mb-4">Nuevo linktree</h3>
 
@@ -143,14 +121,16 @@
 
 <script setup>
 import { onMounted, reactive } from 'vue';
-import { ClipboardIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
+import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseFormField from '~/components/base/BaseFormField.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';
 import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
+import BaseExploratoryList from '~/components/base/BaseExploratoryList.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useConfirmModal } from '~/composables/useConfirmModal';
@@ -166,6 +146,31 @@ const lp = (path) => localePath(path);
 
 const formModal = reactive({ open: false, name: '', handle: '', kind: 'personal' });
 const formErrors = reactive({ name: '', handle: '' });
+
+const linktreeColumns = [
+  { key: 'name', label: 'Nombre', mobile: 'primary' },
+  { key: 'public_url', label: 'URL pública', mobile: 'secondary' },
+  { key: 'kind', label: 'Tipo', mobile: 'secondary' },
+  { key: 'buttons_count', label: 'Botones', mobile: 'meta' },
+  { key: 'is_active', label: 'Activo', mobile: 'meta' },
+];
+
+function linktreeActionItems(tree) {
+  return [
+    {
+      label: 'Editar',
+      to: lp(`/panel/linktrees/${tree.id}/edit`),
+      testid: `linktree-edit-${tree.id}`,
+    },
+    { divider: true },
+    {
+      label: 'Eliminar',
+      danger: true,
+      testid: `linktree-delete-${tree.id}`,
+      onClick: () => onDelete(tree),
+    },
+  ];
+}
 
 onMounted(() => {
   store.fetchLinktrees();

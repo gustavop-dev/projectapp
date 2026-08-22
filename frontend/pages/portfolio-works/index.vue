@@ -4,7 +4,7 @@
     <section itemscope itemtype="https://schema.org/WPHeader">
       <div class="p-3 h-svh">
         <div class="w-full h-full grid rounded-xl overflow-hidden lg:grid-cols-2">
-          <div class="absolute z-10 bottom-0 flex items-center bg-transparent px-16 py-24 order-2 xl:bg-accent xl:top-0 xl:relative xl:z-0">
+          <div class="absolute bottom-0 z-10 order-2 flex items-center bg-transparent px-6 py-16 sm:px-16 sm:py-24 xl:relative xl:top-0 xl:z-0 xl:bg-accent">
             <h1 itemprop="headline">
               <span class="text-4xl font-light text-text-brand lg:text-6xl">{{ messages.header_title }}</span>
               <span class="sr-only"> - Project App. Portfolio</span><br />
@@ -24,11 +24,11 @@
     <!-- Transforming Ideas section -->
     <section class="px-3" itemscope itemtype="https://schema.org/CreativeWorkSeries">
       <div class="mt-32 max-w-7xl mx-auto sm:px-6 lg:mt-52 lg:px-8">
-        <h1 class="text-5xl font-light text-text-brand" itemprop="name">
+        <h1 class="text-4xl font-light text-text-brand sm:text-5xl" itemprop="name">
           {{ messages.section_title }}
           <span class="sr-only">by Project App.</span>
         </h1>
-        <h2 class="text-4xl font-light text-text-brand mt-20" itemprop="alternativeHeadline">
+        <h2 class="mt-14 text-3xl font-light text-text-brand sm:mt-20 sm:text-4xl" itemprop="alternativeHeadline">
           {{ messages.section_subtitle }}
           <span class="sr-only">Project App. portfolio</span>
         </h2>
@@ -50,15 +50,14 @@
         </div>
 
         <!-- Awwwards-style project grid (replaces old simple cards) -->
-        <div v-else ref="worksGrid" class="mt-12 grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4 lg:mt-24" role="list" aria-label="Portfolio projects">
+        <div v-else ref="worksGrid" class="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:mt-24 lg:grid-cols-4" role="list" aria-label="Portfolio projects">
           <article
             v-for="work in works"
             :key="work.id"
-            class="group cursor-pointer"
+            class="group min-w-0"
             itemscope
             itemtype="https://schema.org/CreativeWork"
             itemprop="workExample"
-            @click="navigateTo(localePath(`/portfolio-works/${work.slug}`))"
           >
             <!-- Card image with hover overlay -->
             <div class="relative border border-border-default rounded-lg overflow-hidden">
@@ -80,11 +79,12 @@
               </div>
 
               <!-- Hover overlay with share + open-in-new-tab -->
-              <div class="absolute inset-0 bg-primary-strong/0 group-hover:bg-primary-strong/40 transition-all duration-300 flex items-start justify-end p-3 opacity-0 group-hover:opacity-100">
+              <div class="absolute inset-0 flex items-start justify-end bg-primary-strong/10 p-3 opacity-100 transition-all duration-300 group-hover:bg-primary-strong/40">
                 <div class="flex items-center gap-2">
                   <button
-                    class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center text-text-brand hover:bg-surface hover:scale-110 transition-all shadow-lg"
+                    class="flex h-11 w-11 items-center justify-center rounded-full bg-surface/90 text-text-brand shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-surface"
                     :title="isEnglish ? 'Share' : 'Compartir'"
+                    :aria-label="isEnglish ? `Share ${work.title}` : `Compartir ${work.title}`"
                     @click.stop="handleShare(work)"
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,11 +92,13 @@
                     </svg>
                   </button>
                   <a
+                    v-if="work.project_url"
                     :href="work.project_url"
                     target="_blank"
                     rel="noopener noreferrer"
-                    class="w-9 h-9 rounded-full bg-surface/90 backdrop-blur-sm flex items-center justify-center text-text-brand hover:bg-surface hover:scale-110 transition-all shadow-lg"
+                    class="flex h-11 w-11 items-center justify-center rounded-full bg-surface/90 text-text-brand shadow-lg backdrop-blur-sm transition-all hover:scale-110 hover:bg-surface"
                     :title="isEnglish ? 'Open live site' : 'Abrir sitio en vivo'"
+                    :aria-label="isEnglish ? `Open ${work.title} live site` : `Abrir sitio de ${work.title}`"
                     @click.stop
                   >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,9 +109,11 @@
               </div>
             </div>
 
-            <h3 class="mt-2 sm:mt-4 font-regular text-text-brand text-sm sm:text-md group-hover:text-green-light transition-colors leading-tight" itemprop="name">
-              {{ work.title }}
-              <span class="sr-only">- Project App. portfolio showcase</span>
+            <h3 class="mt-3 font-regular text-sm leading-tight text-text-brand transition-colors group-hover:text-green-light sm:mt-4 sm:text-md" itemprop="name">
+              <NuxtLink :to="localePath(`/portfolio-works/${work.slug}`)" class="inline-flex min-h-11 items-center">
+                {{ work.title }}
+                <span class="sr-only">- Project App. portfolio showcase</span>
+              </NuxtLink>
             </h3>
             <meta itemprop="creator" content="Project App." />
             <link itemprop="url" :href="`/portfolio-works/${work.slug}`" />

@@ -1,0 +1,130 @@
+name: Responsive acceptance
+
+on:
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - 'docs/methodology/responsive-**'
+      - '.github/workflows/responsive-acceptance.yml'
+  push:
+    branches: [main, master]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/responsive-acceptance.yml'
+  schedule:
+    - cron: '0 6 1 * *'
+    - cron: '0 7 1 2,8 *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: responsive-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify responsive ownership and five-width contract
+        working-directory: frontend
+        run: npm run check:responsive-contract
+
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.modules.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Resolve affected modules
+        id: modules
+        working-directory: frontend
+        env:
+          RESPONSIVE_ALL: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '1' || '0' }}
+          RESPONSIVE_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          RESPONSIVE_HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/run-responsive-changed.mjs --github-output
+
+  responsive-e2e:
+    needs: [contract, discover]
+    if: needs.discover.outputs.modules != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        module: ${{ fromJSON(needs.discover.outputs.modules) }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run ${{ matrix.module }} at the five canonical widths
+        run: npm run e2e:responsive -- --grep "@responsive:${{ matrix.module }}"
+        env:
+          CI: 'true'
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: responsive-${{ matrix.module }}-evidence
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          retention-days: 7
+
+  standards-review:
+    if: github.event_name == 'schedule' && github.event.schedule == '0 7 1 2,8 *'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const period = new Date().toISOString().slice(0, 7)
+            const title = `Revisión semestral del estándar responsivo — ${period}`
+            const existing = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })
+            if (!existing.some((issue) => issue.title === title)) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body: [
+                  'Revisar `docs/methodology/responsive-acceptance.md`.',
+                  '',
+                  '- Confirmar que los cinco equipos de referencia siguen vigentes.',
+                  '- Revisar analytics de viewport y dispositivos soportados.',
+                  '- Ejecutar la matriz completa y clasificar hallazgos por módulo.',
+                  '- Actualizar estándar, inventario y guiones en el mismo PR.',
+                ].join('\n'),
+              })
+            }

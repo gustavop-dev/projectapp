@@ -86,7 +86,8 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
     await expect(batchBar).toBeVisible();
     await expect(batchBar).toContainText('2 seleccionados');
 
-    await batchBar.getByRole('button', { name: 'Eliminar' }).click();
+    await batchBar.getByRole('button', { name: /Acciones/ }).click();
+    await batchBar.getByRole('menuitem', { name: 'Eliminar' }).click();
 
     // ConfirmModal
     await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();

@@ -1,4 +1,5 @@
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { PANEL_BREAKPOINTS } from '~/config/responsive'
 
 /**
  * Breakpoint móvil reactivo.
@@ -11,7 +12,7 @@ import { onBeforeUnmount, onMounted, ref } from 'vue'
  * versiones quedan en el DOM (una con `display:none`), lo que duplica el texto y
  * rompe los `getByText(...)` en modo estricto de los E2E.
  */
-export function useIsMobile(maxWidth = 767) {
+export function useIsMobile(maxWidth = PANEL_BREAKPOINTS.landscape - 1) {
   const isMobile = ref(false)
   let mql = null
   const update = () => { isMobile.value = !!mql && mql.matches }

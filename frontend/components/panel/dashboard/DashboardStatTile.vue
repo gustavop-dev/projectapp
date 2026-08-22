@@ -3,9 +3,9 @@
     :is="rootTag"
     :to="to || undefined"
     :type="isButton ? 'button' : undefined"
-    class="block bg-surface rounded-xl border border-border-muted shadow-card"
+    class="block min-w-0 rounded-xl border border-border-muted bg-surface shadow-card"
     :class="[
-      size === 'lg' ? 'p-5 sm:p-6' : 'p-4',
+      size === 'lg' ? 'p-5 panel-portrait:p-6' : 'p-4',
       to || isButton
         ? 'transition-shadow duration-base motion-reduce:transition-none hover:shadow-raised hover:border-border-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring'
         : '',
@@ -19,8 +19,8 @@
       {{ label }}
     </p>
     <p
-      class="font-light tabular-nums"
-      :class="[toneClass, size === 'lg' ? 'text-3xl sm:text-4xl' : 'text-2xl']"
+      class="break-words font-light tabular-nums [overflow-wrap:anywhere]"
+      :class="[toneClass, size === 'lg' ? 'text-3xl panel-portrait:text-4xl' : 'text-xl panel-portrait:text-2xl']"
       data-testid="dashboard-stat-value"
     >
       {{ displayValue }}

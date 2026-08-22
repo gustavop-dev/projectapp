@@ -173,10 +173,11 @@ prefer the bare class without `/N`.
 | `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1024 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
 | `BaseFilterTabs` | Saved-filter strip: same selector/strip breakpoint, wrapping, drag with touch delay, keyboard/menu reorder. `ProposalFilterTabs` remains as a compatibility alias |
 | `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1024 px), paired with `hidden panel-landscape:flex` |
-| `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
+| `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, href?, testid?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
 | `BaseActionMenu` | `items`, `label`, `disabled`, `placement`, `align`, `width`, `variant` — canonical row/action overflow menu |
-| `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`; emits `clear`/`select-all` |
-| `BaseResponsiveTable` | `columns`, `rows` plus the legacy accounting-table props. Each adopted column declares `responsive` with `keep`/`group`/`hide` by profile and exactly one `primary` |
+| `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
+| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
+| `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` |
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
@@ -242,6 +243,23 @@ const columns = [
 - A table with no `responsive` declarations keeps the legacy horizontal-scroll
   behavior. A mixed declaration warns in development; partial automatic
   decisions are forbidden.
+
+Exploratory CRUD lists use a different primitive because their mobile task is
+scanning entities, not comparing columns. `BaseExploratoryList` renders only
+one representation in the DOM and requires every field to declare its card
+role explicitly:
+
+```vue
+<BaseExploratoryList :columns="[
+  { key: 'name', label: 'Nombre', mobile: 'primary' },
+  { key: 'status', label: 'Estado', mobile: 'secondary' },
+  { key: 'internal_id', label: 'ID', mobile: 'hidden' },
+]" :rows="rows">
+  <template #row-actions="{ row }">
+    <BaseActionMenu :items="actionsFor(row)" />
+  </template>
+</BaseExploratoryList>
+```
 
 ### Tabs and filters
 

@@ -43,7 +43,7 @@
             </span>
           </span>
           <span
-            class="text-xs font-medium text-text-subtle group-hover:text-text-brand transition-colors motion-reduce:transition-none"
+            class="hidden text-xs font-medium text-text-subtle transition-colors group-hover:text-text-brand motion-reduce:transition-none panel-portrait:inline"
             aria-hidden="true"
           >
             Resolver →

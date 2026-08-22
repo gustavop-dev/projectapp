@@ -112,7 +112,7 @@ test.describe('Diagnostic Public View — JSON sections', () => {
   test.setTimeout(60_000);
 
   test('initial phase renders initial/both sections and hides executive_summary', {
-    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest'],
+    tag: ['@outcome:display', ...DIAGNOSTIC_PUBLIC_VIEW, '@role:guest', '@responsive:public'],
   }, async ({ page }) => {
     const diagnostic = buildPublicDiagnostic({ phase: 'initial' });
     await mockPublicApi(page, diagnostic);

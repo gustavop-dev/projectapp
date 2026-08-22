@@ -14,6 +14,7 @@
       :class="hasResponsivePolicy ? 'base-responsive-table--priority' : ''"
       :style="tableStyle"
     >
+      <caption v-if="caption" class="sr-only">{{ caption }}</caption>
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th v-if="selectable" class="w-10 px-3 py-2">
@@ -21,7 +22,7 @@
               type="checkbox"
               class="align-middle accent-primary"
               aria-label="Seleccionar todas las filas de esta página"
-              data-testid="accounting-select-page"
+              :data-testid="`${testIdPrefix}-select-page`"
               :checked="allPageSelected"
               :indeterminate.prop="somePageSelected && !allPageSelected"
               @change="togglePage($event.target.checked)"
@@ -39,7 +40,7 @@
               type="button"
               class="inline-flex items-center gap-1 uppercase tracking-wider rounded hover:text-text-default transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               :class="sortKey === col.key ? 'text-text-default' : ''"
-              :data-testid="`accounting-sort-${col.key}`"
+              :data-testid="`${testIdPrefix}-sort-${col.key}`"
               @click="emit('sort', col.key)"
             >
               <span>{{ col.label }}</span>
@@ -70,7 +71,7 @@
             v-for="n in skeletonRows"
             :key="`skeleton-${n}`"
             class="bg-surface"
-            data-testid="accounting-skeleton-row"
+            :data-testid="`${testIdPrefix}-skeleton-row`"
           >
             <td v-if="selectable" :class="DENSITY.cell" />
             <td
@@ -94,19 +95,23 @@
         <tr
           v-for="row in showSkeleton ? [] : rows"
           :key="row[rowKey]"
-          :data-testid="`accounting-row-${row[rowKey]}`"
+          :data-testid="`${testIdPrefix}-row-${row[rowKey]}`"
           class="hover:bg-surface-raised transition-colors h-9"
           :class="[
             rowBgClass(row),
+            rowClassValue(row),
+            interactiveRows ? 'cursor-pointer' : '',
             row[rowKey] === highlightId ? 'accounting-row-flash' : '',
           ]"
+          @click="interactiveRows && emit('row-click', row, $event)"
+          @auxclick.middle="interactiveRows && emit('row-auxclick', row, $event)"
         >
-          <td v-if="selectable" class="w-10 px-3">
+          <td v-if="selectable" class="w-10 px-3" @click.stop @auxclick.stop>
             <input
               type="checkbox"
               class="align-middle accent-primary"
-              :aria-label="`Seleccionar fila ${row[rowKey]}`"
-              :data-testid="`accounting-select-${row[rowKey]}`"
+              :aria-label="rowSelectionLabel(row)"
+              :data-testid="`${testIdPrefix}-select-${row[rowKey]}`"
               :checked="selectedSet.has(row[rowKey])"
               @change="toggleRow(row[rowKey], $event.target.checked)"
             >
@@ -119,7 +124,12 @@
             <!-- The wrapper is what caps the name column: a <td>'s own
                  max-width is ignored under auto layout. -->
             <div :class="col.contentClass">
-              <slot :name="`cell-${col.key}`" :row="row" :value="row[col.key]">
+              <slot
+                :name="`cell-${col.key}`"
+                :row="row"
+                :value="row[col.key]"
+                :responsive-profile="null"
+              >
                 <template v-if="col.format === 'money'">
                   {{ formatMoney(row[col.key], 'COP') }}
                 </template>
@@ -158,7 +168,12 @@
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd class="min-w-0 text-text-muted">
-                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                    <slot
+                      :name="`cell-${detail.key}`"
+                      :row="row"
+                      :value="row[detail.key]"
+                      responsive-profile="compact"
+                    >
                       {{ formatGroupedValue(detail, row[detail.key]) }}
                     </slot>
                   </dd>
@@ -177,7 +192,12 @@
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd class="min-w-0 text-text-muted">
-                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                    <slot
+                      :name="`cell-${detail.key}`"
+                      :row="row"
+                      :value="row[detail.key]"
+                      responsive-profile="portrait"
+                    >
                       {{ formatGroupedValue(detail, row[detail.key]) }}
                     </slot>
                   </dd>
@@ -196,7 +216,12 @@
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
                   <dd class="min-w-0 text-text-muted">
-                    <slot :name="`cell-${detail.key}`" :row="row" :value="row[detail.key]">
+                    <slot
+                      :name="`cell-${detail.key}`"
+                      :row="row"
+                      :value="row[detail.key]"
+                      responsive-profile="landscape"
+                    >
                       {{ formatGroupedValue(detail, row[detail.key]) }}
                     </slot>
                   </dd>
@@ -207,18 +232,21 @@
           <td
             v-if="showActions"
             :class="[DENSITY.cell, 'text-center whitespace-nowrap']"
+            @click.stop
+            @auxclick.stop
           >
             <slot name="row-actions" :row="row" />
             <button
+              v-if="showDefaultActions"
               type="button"
               aria-label="Editar"
-              :data-testid="`accounting-edit-${row[rowKey]}`"
+              :data-testid="`${testIdPrefix}-edit-${row[rowKey]}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               @click.stop="emit('edit', row)"
             >
               <PencilSquareIcon class="w-4 h-4" />
             </button>
-            <BaseButton variant="danger-ghost" size="sm" icon-only aria-label="Eliminar" :data-testid="`accounting-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
+            <BaseButton v-if="showDefaultActions" variant="danger-ghost" size="sm" icon-only aria-label="Eliminar" :data-testid="`${testIdPrefix}-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
               <TrashIcon class="w-4 h-4" />
             </BaseButton>
           </td>
@@ -262,7 +290,10 @@ const props = defineProps({
   columns: { type: Array, required: true },
   rows: { type: Array, default: () => [] },
   rowKey: { type: String, default: 'id' },
+  caption: { type: String, default: '' },
+  testIdPrefix: { type: String, default: 'accounting' },
   showActions: { type: Boolean, default: true },
+  showDefaultActions: { type: Boolean, default: true },
   /** Search text to highlight inside default text cells. */
   highlightQuery: { type: String, default: '' },
   /** Active sort state (controlled by the page via @sort). */
@@ -280,8 +311,14 @@ const props = defineProps({
    * stylesheet order, not by this binding.
    */
   rowTone: { type: Function, default: null },
+  /** Extra row classes, either static or resolved from the current row. */
+  rowClass: { type: [String, Array, Object, Function], default: '' },
+  /** Emit pointer gestures from non-interactive row cells as a convenience. */
+  interactiveRows: { type: Boolean, default: false },
   /** Opt-in checkbox column; every other tab keeps its current layout. */
   selectable: { type: Boolean, default: false },
+  /** Accessible label for each row checkbox. */
+  selectionLabel: { type: Function, default: null },
   /** Selected row keys (v-model:selected). */
   selected: { type: Array, default: () => [] },
 });
@@ -386,10 +423,22 @@ const ROW_TONE_CLASSES = {
 };
 
 function rowBgClass(row) {
+  if (selectedSet.value.has(row[props.rowKey])) return 'bg-primary-soft';
   return ROW_TONE_CLASSES[props.rowTone?.(row)] || 'bg-surface';
 }
 
-const emit = defineEmits(['edit', 'delete', 'sort', 'update:selected']);
+function rowClassValue(row) {
+  return typeof props.rowClass === 'function' ? props.rowClass(row) : props.rowClass;
+}
+
+const emit = defineEmits([
+  'edit',
+  'delete',
+  'sort',
+  'update:selected',
+  'row-click',
+  'row-auxclick',
+]);
 
 // ── Row selection (opt-in via `selectable`) ──
 
@@ -405,6 +454,10 @@ const somePageSelected = computed(() => pageSummary.value.some);
 
 function toggleRow(key, checked) {
   emit('update:selected', toggleKeys(props.selected, [key], checked));
+}
+
+function rowSelectionLabel(row) {
+  return props.selectionLabel?.(row) || `Seleccionar fila ${row[props.rowKey]}`;
 }
 
 /** The header checkbox works on the CURRENT page; the page owns any

@@ -104,7 +104,7 @@
         <!-- Restart tutorial button -->
         <button
           v-if="viewMode && !isDocumentView"
-          class="restart-tutorial-btn fixed bottom-[68px] left-6 z-[9990] w-10 h-10 rounded-full shadow-raised flex items-center justify-center transition-all hover:scale-110 bg-surface text-text-brand border border-border-default hover:bg-surface-muted"
+          class="restart-tutorial-btn fixed bottom-[72px] left-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-text-brand shadow-raised transition-all hover:scale-110 hover:bg-surface-muted sm:left-6"
           :title="pLang === 'es' ? 'Reiniciar tutorial' : 'Restart tutorial'"
           @click="onboardingRef?.forceStart()"
         >
@@ -116,7 +116,7 @@
         <!-- Dark mode toggle -->
         <button
           v-if="viewMode"
-          class="dark-mode-toggle fixed bottom-6 left-6 z-[9990] w-10 h-10 rounded-full shadow-raised flex items-center justify-center text-lg transition-all hover:scale-110 bg-surface text-text-muted border border-border-default hover:bg-surface-muted"
+          class="dark-mode-toggle fixed bottom-4 left-4 z-[9990] flex h-11 w-11 items-center justify-center rounded-full border border-border-default bg-surface text-lg text-text-muted shadow-raised transition-all hover:scale-110 hover:bg-surface-muted sm:bottom-6 sm:left-6"
           :title="pLang === 'es' ? 'Cambiar tema' : 'Toggle theme'"
           @click="toggleProposalDarkMode"
         >

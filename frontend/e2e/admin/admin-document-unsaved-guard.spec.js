@@ -71,7 +71,7 @@ test.describe('Admin Document — Unsaved Changes Guard', () => {
     // La red contra falsos positivos: un aviso que aparece solo enseña a
     // ignorarlo, y es exactamente lo que haría un baseline mal tomado.
     test('a form nobody touched shows no warning and cannot be saved', {
-      tag: [...ADMIN_DOCUMENT_UNSAVED_GUARD, '@role:admin', '@outcome:display'],
+      tag: [...ADMIN_DOCUMENT_UNSAVED_GUARD, '@role:admin', '@outcome:display', '@responsive:canvas'],
     }, async ({ page }) => {
       // quality: allow-deep-link (el editor se alcanza por URL en todo el spec)
       await mockApi(page, baseHandler());

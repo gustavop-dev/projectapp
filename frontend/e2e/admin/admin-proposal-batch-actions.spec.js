@@ -53,7 +53,7 @@ test.describe('Batch Actions on Proposals', () => {
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     // Batch bar should NOT be visible (no selections)
-    await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible();
+    await expect(page.getByTestId('batch-action-bar')).not.toBeVisible();
   });
 
   test('selecting a checkbox shows the bulk action bar', {
@@ -63,12 +63,10 @@ test.describe('Batch Actions on Proposals', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
-    const checkboxes = page.locator('tbody input[type="checkbox"]');
-    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
-    await checkboxes.first().check();
+    await page.getByTestId('proposal-select-1').check();
 
     // Batch bar should appear with count
-    await expect(page.getByText('1 seleccionada(s)')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('1 seleccionado')).toBeVisible({ timeout: 5000 });
   });
 
   test('bulk action bar shows resend, expire, delete, and cancel buttons', {
@@ -78,16 +76,15 @@ test.describe('Batch Actions on Proposals', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
-    const checkboxes = page.locator('tbody input[type="checkbox"]');
-    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
-    await checkboxes.first().check();
+    await page.getByTestId('proposal-select-1').check();
 
-    // Scope assertions to the sticky batch bar
+    // Scope assertions to the canonical sticky batch bar and its menu.
     const batchBar = page.getByTestId('batch-action-bar');
     await expect(batchBar).toBeVisible({ timeout: 5000 });
-    await expect(batchBar.getByRole('button', { name: /Re-enviar/ })).toBeVisible();
-    await expect(batchBar.getByRole('button', { name: /Expirar/ })).toBeVisible();
-    await expect(batchBar.getByRole('button', { name: /Eliminar/ })).toBeVisible();
+    await batchBar.getByRole('button', { name: /Acciones/ }).click();
+    await expect(batchBar.getByRole('menuitem', { name: /Re-enviar/ })).toBeVisible();
+    await expect(batchBar.getByRole('menuitem', { name: /Expirar/ })).toBeVisible();
+    await expect(batchBar.getByRole('menuitem', { name: /Eliminar/ })).toBeVisible();
     await expect(batchBar.getByRole('button', { name: /Cancelar/ })).toBeVisible();
   });
 
@@ -98,16 +95,14 @@ test.describe('Batch Actions on Proposals', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
-    const checkboxes = page.locator('tbody input[type="checkbox"]');
-    // quality: allow-fragile-selector (table row checkboxes have no testid, first row is the target)
-    await checkboxes.first().check();
-    await expect(page.getByText('1 seleccionada(s)')).toBeVisible({ timeout: 5000 });
+    await page.getByTestId('proposal-select-1').check();
+    await expect(page.getByText('1 seleccionado')).toBeVisible({ timeout: 5000 });
 
     // Click cancel
     await page.getByRole('button', { name: /Cancelar/ }).click();
 
     // Bar should hide
-    await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('batch-action-bar')).not.toBeVisible({ timeout: 5000 });
   });
 
   // Catches: a bulk-delete button that's visually present but not wired, or
@@ -143,14 +138,13 @@ test.describe('Batch Actions on Proposals', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
-    const checkboxes = page.locator('tbody input[type="checkbox"]');
-    // quality: allow-fragile-selector (table row checkboxes have no testid, first two rows are the target)
-    await checkboxes.nth(0).check();
-    await checkboxes.nth(1).check();
-    await expect(page.getByText('2 seleccionada(s)')).toBeVisible({ timeout: 5000 });
+    await page.getByTestId('proposal-select-1').check();
+    await page.getByTestId('proposal-select-2').check();
+    await expect(page.getByText('2 seleccionados')).toBeVisible({ timeout: 5000 });
 
     const batchBar = page.getByTestId('batch-action-bar');
-    await batchBar.getByRole('button', { name: /Eliminar/ }).click();
+    await batchBar.getByRole('button', { name: /Acciones/ }).click();
+    await batchBar.getByRole('menuitem', { name: /Eliminar/ }).click();
 
     // Deleting proposals routes through the shared confirm modal.
     await page.getByTestId('confirm-modal-confirm').click();
@@ -159,7 +153,7 @@ test.describe('Batch Actions on Proposals', () => {
     expect([...bulkActionBody.ids].sort()).toEqual([1, 2]);
     expect(bulkActionBody.action).toBe('delete');
 
-    await expect(page.getByText(/seleccionada\(s\)/)).not.toBeVisible({ timeout: 5000 });
+    await expect(page.getByTestId('batch-action-bar')).not.toBeVisible({ timeout: 5000 });
   });
 
   test('deleting one selected proposal drops it from the bar and keeps the rest', {
@@ -192,23 +186,20 @@ test.describe('Batch Actions on Proposals', () => {
     await page.goto('/panel/proposals');
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
-    // nth(0) is the header select-all; the rows follow. Alpha and Gamma are
-    // picked so the row deleted below (Gamma, the last one) is one of them.
-    const checkboxes = page.locator('table input[type="checkbox"]');
-    await checkboxes.nth(1).check();
-    await checkboxes.nth(3).check();
+    await page.getByTestId('proposal-select-1').check();
+    await page.getByTestId('proposal-select-3').check();
     const batchBar = page.getByTestId('batch-action-bar');
-    await expect(batchBar).toContainText('2 seleccionada(s)');
+    await expect(batchBar).toContainText('2 seleccionados');
 
     // Same trigger the actions-modal spec uses: the row kebab carries no
     // label of its own. The bar has its own "Eliminar" too, so the modal item
     // is matched by its description instead.
-    await page.locator('table button').filter({ has: page.locator('svg') }).last().click();
+    await page.getByTestId('proposal-actions-3').click();
     await page.getByRole('button', { name: /Elimina permanentemente/ }).click();
     await page.getByTestId('confirm-type-input').fill('DELETE');
     await page.getByTestId('confirm-modal-confirm').click();
 
-    await expect(batchBar).toContainText('1 seleccionada(s)');
+    await expect(batchBar).toContainText('1 seleccionado');
   });
 
   test('select-all header checkbox selects all visible rows', {
@@ -219,10 +210,9 @@ test.describe('Batch Actions on Proposals', () => {
     await expect(page.getByText('Client A')).toBeVisible({ timeout: 10000 });
 
     // Click header checkbox (select all)
-    const headerCheckbox = page.locator('thead input[type="checkbox"]');
-    await headerCheckbox.check();
+    await page.getByTestId('proposal-select-page').check();
 
     // Should show count matching total proposals
-    await expect(page.getByText('3 seleccionada(s)')).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText('3 seleccionados')).toBeVisible({ timeout: 5000 });
   });
 });

@@ -314,7 +314,7 @@
       </div>
 
       <!-- Live preview (desktop only) -->
-      <aside class="hidden lg:block w-[440px] shrink-0 sticky top-6" data-testid="linktree-preview">
+      <aside class="sticky top-6 hidden w-[440px] shrink-0 panel-landscape:block" data-testid="linktree-preview">
         <div class="bg-surface border border-border-default rounded-xl shadow-card p-4">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-sm font-semibold text-text-default">Vista previa</h2>

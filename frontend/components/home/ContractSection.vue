@@ -24,7 +24,7 @@
             <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
               <button
                 @click="openVideoModal"
-                class="bg-gray-400/40 backdrop-blur-md text-white px-6 py-3 rounded-full font-semibold hover:bg-gray-400/50 transition-all flex items-center gap-2"
+                class="bg-black/40 backdrop-blur-md text-white px-6 py-3 rounded-full font-semibold hover:bg-black/50 transition-all flex items-center gap-2"
               >
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/>

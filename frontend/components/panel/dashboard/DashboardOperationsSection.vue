@@ -16,7 +16,7 @@
       title="Sin actividad operativa aún"
       description="Cuando existan tareas, documentos, emails o diagnósticos verás sus indicadores aquí."
     />
-    <div v-else class="grid grid-cols-2 gap-4 lg:grid-cols-5">
+    <div v-else class="grid grid-cols-1 gap-4 panel-portrait:grid-cols-2 panel-desktop:grid-cols-5">
       <DashboardStatTile
         label="Tareas abiertas"
         :value="tasks.open"
