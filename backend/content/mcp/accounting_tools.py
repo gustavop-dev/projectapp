@@ -424,7 +424,6 @@ _ENTITY_FIELDS = {
             'name': {'type': 'string'},
             'price': {'type': ['number', 'string']},
             'currency': {'type': 'string', 'enum': ['COP', 'USD']},
-            'cop_equivalent': {'type': ['number', 'string']},
             'payment_method': {'type': 'string', 'enum': ['cash', 'credit_card']},
             'frequency': {
                 'type': 'string',

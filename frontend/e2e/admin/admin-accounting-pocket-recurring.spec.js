@@ -4,8 +4,7 @@
  * FLOWS: admin-accounting-pocket, admin-accounting-recurring
  * Covers: pocket balance card, running-balance ledger, linked-movement
  *         editing (ledger prefill + locked direction); recurring totals
- *         cards and the currency-dependent COP-equivalent field in the
- *         modal.
+ *         cards and the server-owned COP-equivalent preview in the modal.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -74,6 +73,39 @@ function recurringRow(overrides) {
     created_at: '2026-01-01T10:00:00Z',
     updated_at: '2026-01-01T10:00:00Z',
     ...overrides,
+  };
+}
+
+const FREQUENCY_MONTHS = {
+  monthly: 1,
+  bimonthly: 2,
+  quarterly: 3,
+  four_monthly: 4,
+  semiannual: 6,
+  annual: 12,
+  biennial: 24,
+  triennial: 36,
+};
+
+function deriveRecurring(row, rate = 4000) {
+  const months = row.frequency === 'custom'
+    ? Number(row.custom_months || 1)
+    : (FREQUENCY_MONTHS[row.frequency] || 1);
+  const price = Number(row.price || 0);
+  const copEquivalent = row.currency === 'USD' ? price * rate : price;
+  return {
+    ...row,
+    price: price.toFixed(2),
+    cop_equivalent: copEquivalent.toFixed(2),
+    monthly_price: (price / months).toFixed(2),
+    monthly_cop_cost: (copEquivalent / months).toFixed(2),
+    frequency_label: row.frequency === 'custom'
+      ? `Cada ${months} meses`
+      : ({
+        monthly: 'Mensual', bimonthly: 'Bimestral', quarterly: 'Trimestral',
+        four_monthly: 'Cuatrimestral', semiannual: 'Semestral', annual: 'Anual',
+        biennial: 'Cada 2 años', triennial: 'Cada 3 años',
+      }[row.frequency] || row.frequency_label),
   };
 }
 
@@ -155,6 +187,7 @@ const OUTLIER_ROWS = [
 ];
 
 function buildHandler({ calls, reorderStatus = 200, rows = RECURRING_ROWS }) {
+  let currentRows = rows.map((row) => ({ ...row }));
   return async ({ route, apiPath, method }) => {
     if (apiPath.startsWith('accounting/recurring-categories/') && apiPath.endsWith('/delete/')) {
       calls.push({ apiPath, method });
@@ -206,22 +239,44 @@ function buildHandler({ calls, reorderStatus = 200, rows = RECURRING_ROWS }) {
       };
     }
     if (apiPath === 'accounting/recurring/' && method === 'GET') {
+      const monthlyTotal = currentRows
+        .filter((row) => row.is_active)
+        .reduce((total, row) => total + Number(row.monthly_cop_cost || 0), 0);
       return {
         status: 200,
         contentType: 'application/json',
         body: JSON.stringify({
-          results: rows,
-          meta: { monthly_cop_total: '912900.00' },
+          results: currentRows,
+          meta: {
+            monthly_cop_total: monthlyTotal.toFixed(2),
+            usd_exchange_rate: '4000.00',
+          },
         }),
+      };
+    }
+    const updateMatch = apiPath.match(/^accounting\/recurring\/(\d+)\/update\/$/);
+    if (updateMatch && method === 'PATCH') {
+      const id = Number(updateMatch[1]);
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      const current = currentRows.find((row) => row.id === id);
+      const updated = deriveRecurring({ ...current, ...body });
+      currentRows = currentRows.map((row) => row.id === id ? updated : row);
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(updated),
       };
     }
     if (apiPath === 'accounting/recurring/create/' && method === 'POST') {
       const body = route.request().postDataJSON();
       calls.push({ apiPath, method, body });
+      const created = deriveRecurring({ ...RECURRING_ROWS[0], id: 99, ...body });
+      currentRows = [created, ...currentRows];
       return {
         status: 201,
         contentType: 'application/json',
-        body: JSON.stringify({ ...RECURRING_ROWS[0], id: 99, ...body }),
+        body: JSON.stringify(created),
       };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -700,10 +755,12 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
     expect(calls.some((c) => c.apiPath.endsWith('/delete/'))).toBe(true);
   });
 
-  test('cop_equivalent field only appears for USD payments in the modal', {
+  test('the modal previews the server-owned COP equivalent', {
     tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
+    // quality: allow-deep-link (accounting subnav navigation is covered by
+    // admin-accounting-filters; this display test targets the modal preview)
     await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
     await expect(
       page.getByRole('heading', { name: 'Pagos recurrentes', exact: true }),
@@ -714,11 +771,74 @@ test.describe('Admin Accounting Pocket & Recurring', () => {
       page.getByRole('heading', { name: 'Nuevo pago recurrente' }),
     ).toBeVisible();
 
-    // COP by default: no COP-equivalent field.
-    await expect(page.getByText('Equivalente COP')).toHaveCount(0);
+    const preview = page.getByTestId('recurring-payment-cop-preview');
+    await expect(preview).toContainText('En COP, el equivalente toma el precio automáticamente.');
 
     await page.getByRole('tab', { name: 'USD' }).click();
-    await expect(page.getByText('Equivalente COP')).toBeVisible();
+    await expect(preview).toContainText('Tasa vigente: $4.000 COP/USD');
+  });
+
+  test.describe('derived recurring values', () => {
+    // Three cold navigations compiling the same Nuxt route in parallel can
+    // starve one another before the first row mounts. The behaviors remain
+    // isolated, but this small group runs sequentially for deterministic UI
+    // readiness.
+    test.describe.configure({ mode: 'serial' });
+
+    test('editing only the price refreshes every recurring projection', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      const calls = [];
+      await mockApi(page, buildHandler({ calls }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId('accounting-edit-2').click();
+      await page.getByTestId('recurring-payment-form-price').fill('200');
+      await expect(page.getByTestId('recurring-payment-cop-preview'))
+        .toContainText('$800.000 COP');
+      await page.getByTestId('recurring-payment-form-submit').click();
+
+      await expect(page.getByTestId('accounting-row-2')).toContainText('$800.000 COP');
+      await expect(page.getByTestId('recurring-group-total-1')).toHaveText('$1.600.000 COP');
+      await expect(page.getByTestId('recurring-monthly-cop-total'))
+        .toContainText('$1.632.900 COP');
+      expect(calls.find((call) => call.method === 'PATCH').body.price).toBe(200);
+    });
+
+    test('editing only the currency refreshes every recurring projection', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId('accounting-edit-2').click();
+      await page.getByRole('dialog').getByRole('tab', { name: 'COP', exact: true }).click();
+      await expect(page.getByTestId('recurring-payment-cop-preview')).toContainText('$20 COP');
+      await page.getByTestId('recurring-payment-form-submit').click();
+
+      await expect(page.getByTestId('accounting-row-2')).toContainText('$20 COP');
+      await expect(page.getByTestId('recurring-group-total-1')).toHaveText('$800.020 COP');
+      await expect(page.getByTestId('recurring-monthly-cop-total')).toContainText('$832.920 COP');
+    });
+
+    test('editing only the frequency refreshes every recurring projection', {
+      tag: [...ADMIN_ACCOUNTING_RECURRING, '@role:admin', '@outcome:success'],
+    }, async ({ page }) => {
+      await mockApi(page, buildHandler({ calls: [] }));
+      await page.goto('/panel/accounting/recurring', { waitUntil: 'domcontentloaded' });
+      await expect(page.getByTestId('accounting-row-2')).toBeVisible({ timeout: 25_000 });
+
+      await page.getByTestId('accounting-edit-2').click();
+      await page.getByTestId('recurring-payment-form-frequency').selectOption('annual');
+      await expect(page.getByTestId('recurring-payment-cop-preview')).toContainText('$6.667 COP');
+      await page.getByTestId('recurring-payment-form-submit').click();
+
+      await expect(page.getByTestId('accounting-row-2')).toContainText('$6.667 COP');
+      await expect(page.getByTestId('recurring-group-total-1')).toHaveText('$806.667 COP');
+      await expect(page.getByTestId('recurring-monthly-cop-total')).toContainText('$839.567 COP');
+    });
   });
 
   test('creates a recurring payment through the modal', {

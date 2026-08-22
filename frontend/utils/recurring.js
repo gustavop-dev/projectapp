@@ -45,6 +45,35 @@ export const FREQUENCY_MONTHS = {
   triennial: 36,
 };
 
+/** Resolve the proration divisor for a catalog or custom frequency. */
+export function recurringFrequencyMonths(row = {}) {
+  if (row.frequency === CUSTOM_FREQUENCY) {
+    const customMonths = Number(row.custom_months);
+    return Number.isFinite(customMonths) && customMonths > 0 ? customMonths : 1;
+  }
+  return FREQUENCY_MONTHS[row.frequency] || 1;
+}
+
+/**
+ * Preview the server-owned COP equivalent under the configured current rate.
+ * Returns null only when a USD amount has no usable rate yet.
+ */
+export function calculateRecurringCopEquivalent(row = {}, usdExchangeRate = 0) {
+  const price = Number(row.price ?? 0);
+  if (!Number.isFinite(price)) return 0;
+  if ((row.currency || 'COP') !== 'USD') return price;
+  const rate = Number(usdExchangeRate);
+  if (!Number.isFinite(rate) || rate <= 0) return null;
+  return price * rate;
+}
+
+/** Preview the canonical monthly COP cost shown after saving. */
+export function calculateRecurringMonthlyCop(row = {}, usdExchangeRate = 0) {
+  const equivalent = calculateRecurringCopEquivalent(row, usdExchangeRate);
+  if (equivalent == null) return null;
+  return equivalent / recurringFrequencyMonths(row);
+}
+
 /**
  * Format a monthly price in the record's own currency.
  *
