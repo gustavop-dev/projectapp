@@ -288,6 +288,29 @@ class TestListFilterBranches:
         response = super_client.get('/api/accounting/pocket/?date_to=2026-03-31')
         assert response.data['meta']['balance'] == '100.00'
 
+    def test_pocket_meta_balance_without_date_to_subtracts_outflows(
+        self, super_client,
+    ):
+        """Fails if an unbounded pocket balance stops subtracting outflows."""
+        make_pocket(amount=Decimal('100.00'))
+        make_pocket(
+            concept='Retiro bolsillo',
+            direction=PocketMovement.Direction.OUT,
+            amount=Decimal('40.00'),
+        )
+
+        response = super_client.get('/api/accounting/pocket/')
+
+        assert response.status_code == 200
+        assert response.data['meta']['balance'] == '60.00'
+
+    def test_pocket_list_rejects_invalid_date_to(self, super_client):
+        """Fails if malformed date_to reaches the pocket balance query."""
+        response = super_client.get('/api/accounting/pocket/?date_to=not-a-date')
+
+        assert response.status_code == 400
+        assert 'date_to' in str(response.data)
+
     def test_q_filter_multi_value_filters_as_or(self, super_client):
         """`attribution` shares the comma-OR vocabulary of `choice_filters`."""
         make_pocket(concept='Sin espejo')

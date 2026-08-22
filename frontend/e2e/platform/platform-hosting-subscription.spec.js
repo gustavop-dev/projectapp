@@ -241,7 +241,7 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     // Bug this catches: the frequencyEditable gate regressing so a PENDING
     // subscription's frequency becomes locked (the client could never fix a
     // wrong initial pick before the first payment settles).
-    tag: ['@outcome:display', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
+    tag: ['@outcome:success', ...PLATFORM_HOSTING_SUBSCRIPTION, '@role:platform-client'],
   }, async ({ page }) => {
     const mockPendingSubscription = {
       ...mockSubscription,
@@ -284,12 +284,11 @@ test.describe('Platform Hosting Subscription — Client selects plan', () => {
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
     const projectRow = page.getByTestId('project-row-1');
     await expect(projectRow).toBeVisible();
-    // quality: allow-fragile-selector (the SSR row can be visible just before
-    // Nuxt attaches its @click listener; this short hydration buffer prevents
-    // a no-op click while keeping the user entry path intact)
-    await page.waitForTimeout(500);
+    const projectDetailNavigation = page.waitForURL(/\/platform\/projects\/1$/, {
+      waitUntil: 'domcontentloaded',
+    });
     await projectRow.click();
-    await page.waitForURL(/\/platform\/projects\/1$/, { waitUntil: 'domcontentloaded' });
+    await projectDetailNavigation;
     await page.getByRole('link', { name: 'Hosting' }).click();
     await page.waitForURL(/\/platform\/projects\/1\/payments/, { waitUntil: 'domcontentloaded' });
     await page.getByRole('heading', { name: /hosting trimestral/i }).waitFor({ state: 'visible', timeout: 30000 });

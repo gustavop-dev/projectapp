@@ -1,8 +1,9 @@
 """Aggregation tests for accounting_service (dashboard, pocket, ads)."""
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 import pytest
+from django.utils import timezone
 from freezegun import freeze_time
 
 from content.models import (
@@ -501,6 +502,26 @@ class TestAdsAndCards:
         )
         assert records[0].spend_date == date(2026, 1, 17)
         assert records[0].accumulated == Decimal('146103.00')
+        assert records[1].accumulated == Decimal('289923.00')
+
+    def test_ads_running_accumulated_uses_id_for_equal_timestamps(self):
+        """Fails if equal-date ads lose their deterministic id tie-break."""
+        first = AdsSpendRecord.objects.create(
+            spend_date=date(2026, 1, 17), amount=Decimal('146103.00'),
+        )
+        second = AdsSpendRecord.objects.create(
+            spend_date=date(2026, 1, 17), amount=Decimal('143820.00'),
+        )
+        equal_created_at = timezone.make_aware(datetime(2026, 1, 17, 9, 0))
+        AdsSpendRecord.objects.filter(pk__in=[first.pk, second.pk]).update(
+            created_at=equal_created_at,
+        )
+
+        records = accounting_service.ads_with_accumulated(
+            AdsSpendRecord.objects.all(),
+        )
+
+        assert [record.pk for record in records] == [first.pk, second.pk]
         assert records[1].accumulated == Decimal('289923.00')
 
     def test_latest_card_snapshot_per_card(self):
