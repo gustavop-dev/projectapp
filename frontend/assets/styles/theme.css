@@ -69,14 +69,14 @@
 
   /* Semantic surfaces — light */
   --color-surface: #FFFFFF;
-  --color-surface-muted: #FAF3E0;    /* bone */
+  --color-surface-muted: #F1F5F9;    /* slate-100 */
   --color-surface-raised: #F8FAFC;
   --color-border: #E5E7EB;           /* gray-200 */
   --color-border-muted: #F3F4F6;     /* gray-100 */
 
   /* Surfaces RGB triplets — light */
   --color-surface-rgb: 255 255 255;        /* #FFFFFF */
-  --color-surface-muted-rgb: 250 243 224;  /* #FAF3E0 */
+  --color-surface-muted-rgb: 241 245 249;  /* #F1F5F9 */
   --color-surface-raised-rgb: 248 250 252; /* #F8FAFC */
   --color-border-rgb: 229 231 235;         /* #E5E7EB */
   --color-border-muted-rgb: 243 244 246;   /* #F3F4F6 */
