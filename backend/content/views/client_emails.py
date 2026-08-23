@@ -29,6 +29,7 @@ from content.api_errors import error_response
 from content.models import EmailLog
 from content.serializers.client_emails import ClientEmailLogSerializer
 from content.services import accounting_email_retry_service
+from content.services.email_log_service import attach_delivery_copies
 from content.views.history_pagination import (
     email_body_response,
     paginated_history_response,
@@ -86,6 +87,7 @@ def list_client_emails(request, client_id):
 
     return paginated_history_response(
         logs, request.query_params, ClientEmailLogSerializer,
+        row_enricher=attach_delivery_copies,
     )
 
 

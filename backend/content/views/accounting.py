@@ -89,6 +89,7 @@ from content.services import (
     accounting_service,
     accounting_settlement_service,
 )
+from content.services.email_log_service import attach_delivery_copies
 from content.utils import today_bogota
 from content.views.history_pagination import (
     email_body_response,
@@ -1794,6 +1795,7 @@ def list_accounting_email_logs(request):
 
     return _paginated_history_response(
         logs.prefetch_related('targets'), params, EmailLogSerializer,
+        row_enricher=attach_delivery_copies,
     )
 
 
