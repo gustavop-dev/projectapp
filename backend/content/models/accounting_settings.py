@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from django.db import models
+from django.db import models, transaction
 
 
 class AccountingSettings(models.Model):
@@ -84,7 +84,19 @@ class AccountingSettings(models.Model):
 
     def save(self, *args, **kwargs):
         self.pk = 1
-        super().save(*args, **kwargs)
+        with transaction.atomic():
+            previous_rate = type(self).objects.filter(pk=1).values_list(
+                'usd_exchange_rate', flat=True,
+            ).first()
+            super().save(*args, **kwargs)
+            persisted_rate = type(self).objects.values_list(
+                'usd_exchange_rate', flat=True,
+            ).get(pk=1)
+            if previous_rate != persisted_rate:
+                # Local import avoids a model-module cycle at Django startup.
+                from .recurring_payment import RecurringPayment
+
+                RecurringPayment.synchronize_cop_equivalents(persisted_rate)
 
     @classmethod
     def load(cls):

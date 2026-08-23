@@ -200,21 +200,19 @@ async function gotoProjects(page) {
   ).toBeVisible({ timeout: 25_000 });
 }
 
-function projectListItem(page, projectId) {
-  return page.locator([
-    `[data-testid="accounting-row-${projectId}"]`,
-    `[data-testid="project-card-${projectId}"]`,
-  ].join(', '));
+function getProjectResult(page, projectId) {
+  return page.getByTestId(new RegExp(`^(?:accounting-row|project-card)-${projectId}$`));
 }
 
-async function selectProjectScope(page, value) {
-  const mobileScope = page.getByTestId('projects-scope-mobile');
-  if (await mobileScope.isVisible()) {
-    await mobileScope.selectOption(value);
-    return;
-  }
+const ARCHIVED_SCOPE_ACTIONS = {
+  'responsive-compact': (page) => page.getByTestId('projects-scope-mobile').selectOption('archived'),
+  'responsive-portrait': (page) => page.getByTestId('projects-scope-mobile').selectOption('archived'),
+};
 
-  await page.getByTestId(`projects-scope-${value}`).click();
+async function chooseArchivedScope(page, projectName) {
+  const action = ARCHIVED_SCOPE_ACTIONS[projectName]
+    ?? ((currentPage) => currentPage.getByTestId('projects-scope-archived').click());
+  await action(page);
 }
 
 test.describe('Admin Panel Projects', () => {
@@ -247,21 +245,21 @@ test.describe('Admin Panel Projects', () => {
     await expect(page.getByText('Sin resultados con esos filtros')).toBeVisible();
   });
 
-  test('the scope segmented reveals archived projects', {
+  test('the scope control reveals archived projects', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
-  }, async ({ page }) => {
-    // quality: allow-deep-link (the sidebar entry path is covered by the search test; this one pins the scope segmented)
+  }, async ({ page }, testInfo) => {
+    // quality: allow-deep-link (the sidebar entry path is covered by the search test; this one pins the scope control)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoProjects(page);
 
     // Landing scope hides the archived row.
-    await expect(projectListItem(page, 1)).toBeVisible();
-    await expect(projectListItem(page, 2)).toHaveCount(0);
+    await expect(getProjectResult(page, 1)).toBeVisible();
+    await expect(getProjectResult(page, 2)).toHaveCount(0);
 
-    await selectProjectScope(page, 'archived');
-    await expect(projectListItem(page, 2)).toBeVisible();
-    await expect(projectListItem(page, 1)).toHaveCount(0);
-    await expect(projectListItem(page, 2)).toContainText('Archivado');
+    await chooseArchivedScope(page, testInfo.project.name);
+    await expect(getProjectResult(page, 2)).toBeVisible();
+    await expect(getProjectResult(page, 1)).toHaveCount(0);
+    await expect(getProjectResult(page, 2)).toContainText('Archivado');
   });
 
   test('creates a project with the PA-38 minimum through the modal', {

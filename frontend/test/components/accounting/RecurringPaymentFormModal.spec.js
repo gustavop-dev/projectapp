@@ -215,4 +215,70 @@ describe('RecurringPaymentFormModal', () => {
       custom_months: null,
     });
   });
+
+  it('updates the COP preview when only the USD price changes', async () => {
+    const wrapper = mountModal({
+      usdExchangeRate: '4000.00',
+      record: {
+        name: 'Chat-GPT', price: '20.00', currency: 'USD',
+        frequency: 'monthly', payment_method: 'credit_card',
+        cost_type: 'fixed', is_active: true, notes: '',
+      },
+    });
+
+    await wrapper.get('[data-testid="recurring-payment-form-price"]')
+      .setValue('200');
+
+    expect(wrapper.get('[data-testid="recurring-payment-cop-preview"]').text())
+      .toContain('$800.000 COP');
+  });
+
+  it('updates the COP preview when only the currency changes', async () => {
+    const wrapper = mountModal({
+      usdExchangeRate: '4000.00',
+      record: {
+        name: 'Chat-GPT', price: '200.00', currency: 'COP',
+        frequency: 'monthly', payment_method: 'credit_card',
+        cost_type: 'fixed', is_active: true, notes: '',
+      },
+    });
+
+    await wrapper.findAll('button').find((button) => button.text() === 'USD').trigger('click');
+
+    expect(wrapper.get('[data-testid="recurring-payment-cop-preview"]').text())
+      .toContain('$800.000 COP');
+  });
+
+  it('updates the monthly COP preview when only the frequency changes', async () => {
+    const wrapper = mountModal({
+      usdExchangeRate: '4000.00',
+      record: {
+        name: 'Chat-GPT', price: '200.00', currency: 'USD',
+        frequency: 'monthly', payment_method: 'credit_card',
+        cost_type: 'fixed', is_active: true, notes: '',
+      },
+    });
+
+    await frequencySelect(wrapper).setValue('annual');
+
+    const preview = wrapper.get('[data-testid="recurring-payment-cop-preview"]').text();
+    expect(preview).toContain('$66.667 COP');
+  });
+
+  it('never submits the stale COP equivalent received on an edit', async () => {
+    const wrapper = mountModal({
+      usdExchangeRate: '4000.00',
+      record: {
+        name: 'Chat-GPT', price: '200.00', currency: 'USD',
+        cop_equivalent: '80000.00', frequency: 'monthly',
+        payment_method: 'credit_card', cost_type: 'fixed',
+        is_active: true, notes: '',
+      },
+    });
+
+    await wrapper.find('form').trigger('submit');
+
+    expect(wrapper.emitted('submit')).toHaveLength(1);
+    expect(wrapper.emitted('submit')[0][0]).not.toHaveProperty('cop_equivalent');
+  });
 });

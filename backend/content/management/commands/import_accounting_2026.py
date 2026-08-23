@@ -240,7 +240,6 @@ class Command(BaseCommand):
                     'name': row['name'],
                     'price': Decimal(row['price']),
                     'currency': row.get('currency', 'COP'),
-                    'cop_equivalent': Decimal(row.get('cop_equivalent', '0')),
                     'payment_method': row.get('payment_method', 'credit_card'),
                     'frequency': row.get('frequency', 'monthly'),
                     'billing_day': row.get('billing_day'),

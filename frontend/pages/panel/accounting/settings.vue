@@ -211,8 +211,8 @@
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Tasa de cambio USD</h2>
         <p class="text-sm text-text-muted mb-4">
-          Pesos por dólar de referencia, usada para el KPI de costo mensual en
-          USD de los pagos recurrentes. Se guarda con "Guardar cambios".
+          Pesos por dólar vigentes para todos los pagos recurrentes en USD.
+          Al guardar una tasa nueva se recalculan sus equivalentes y totales COP.
         </p>
         <div class="max-w-xs">
           <BaseCurrencyInput

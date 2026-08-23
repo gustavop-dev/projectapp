@@ -392,25 +392,25 @@ class Command(BaseCommand):
         # The frequency mix is deliberate: it spans a catalog entry per order of
         # magnitude plus a custom cycle, so the monthly-equivalent column and the
         # percentage weights get exercised by the fake dataset.
-        for name, price, currency, cop, category_name, frequency, months in [
+        for name, price, currency, category_name, frequency, months in [
             (
-                'Claude Code 20x', '200.00', 'USD', '800000.00',
+                'Claude Code 20x', '200.00', 'USD',
                 'Suscripciones de IA', frequencies.MONTHLY, None,
             ),
             (
-                'Netflix', '39800.00', 'COP', '39800.00',
+                'Netflix', '39800.00', 'COP',
                 'Extras / otros', frequencies.MONTHLY, None,
             ),
             (
-                'NameCheap', '10.98', 'USD', '43920.00',
+                'NameCheap', '10.98', 'USD',
                 'Arquitectura e infraestructura', frequencies.ANNUAL, None,
             ),
             (
-                'Plan Figma equipo', '270000.00', 'COP', '270000.00',
+                'Plan Figma equipo', '270000.00', 'COP',
                 'Extras / otros', frequencies.QUARTERLY, None,
             ),
             (
-                'Mantenimiento servidor', '500000.00', 'COP', '500000.00',
+                'Mantenimiento servidor', '500000.00', 'COP',
                 'Arquitectura e infraestructura', frequencies.CUSTOM, 5,
             ),
         ]:
@@ -421,7 +421,6 @@ class Command(BaseCommand):
                 name=name,
                 price=Decimal(price),
                 currency=currency,
-                cop_equivalent=Decimal(cop),
                 frequency=frequency,
                 custom_months=months,
                 billing_day=rng.randrange(1, 29),

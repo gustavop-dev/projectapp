@@ -57,8 +57,11 @@ class RecurringPayment(AccountingRecordBase):
         max_length=3, choices=Currency.choices, default=Currency.COP,
     )
     # Approximate COP value used for aggregation (equals price when COP).
+    # Server-owned cache: ``save()`` refreshes it from price/currency and the
+    # current accounting USD rate.  It stays persisted because the accounting
+    # dashboard, exports and MCP all aggregate the same canonical amount.
     cop_equivalent = models.DecimalField(
-        max_digits=14, decimal_places=2, default=Decimal('0'),
+        max_digits=14, decimal_places=2, default=Decimal('0'), editable=False,
     )
     payment_method = models.CharField(
         max_length=12,
@@ -152,10 +155,59 @@ class RecurringPayment(AccountingRecordBase):
             )
 
     def save(self, *args, **kwargs):
-        # Normalizing here and not only in the serializer keeps every write
-        # path consistent: panel, MCP tools, admin, imports and fixtures.
+        # Normalizing and deriving here — not only in the serializer — keeps
+        # every ordinary write path consistent: panel, MCP tools, admin and
+        # import commands.  ``cop_equivalent`` is never an independent input.
         self.normalize_frequency()
+        self.recalculate_cop_equivalent()
+        update_fields = kwargs.get('update_fields')
+        if update_fields is not None:
+            kwargs['update_fields'] = set(update_fields) | {'cop_equivalent'}
         return super().save(*args, **kwargs)
+
+    def calculate_cop_equivalent(self, usd_exchange_rate=None):
+        """Return the charge value in COP under the current rate policy."""
+        # Model constructors accept decimal strings before the field's DB
+        # adapter normalizes them; deriving during ``save()`` must support that
+        # ordinary ORM path too.
+        price = Decimal(str(self.price or '0'))
+        if self.currency != self.Currency.USD:
+            return price.quantize(Decimal('0.01'))
+        if usd_exchange_rate is None:
+            # Local import avoids a model-module cycle at Django startup.
+            from .accounting_settings import AccountingSettings
+
+            usd_exchange_rate = AccountingSettings.load().usd_exchange_rate
+        rate = Decimal(str(usd_exchange_rate or '0'))
+        return (price * rate).quantize(
+            Decimal('0.01')
+        )
+
+    def recalculate_cop_equivalent(self, usd_exchange_rate=None):
+        """Refresh the persisted cache and return its new value."""
+        self.cop_equivalent = self.calculate_cop_equivalent(usd_exchange_rate)
+        return self.cop_equivalent
+
+    @classmethod
+    def synchronize_cop_equivalents(cls, usd_exchange_rate):
+        """Bulk-refresh every row after the configured USD rate changes.
+
+        ``bulk_update`` intentionally leaves each record's ``updated_at`` and
+        audit history alone: the audited event is the settings-rate change,
+        while these values are merely its derived projection.
+        """
+        changed = []
+        payments = cls.objects.only(
+            'id', 'price', 'currency', 'cop_equivalent',
+        )
+        for payment in payments:
+            expected = payment.calculate_cop_equivalent(usd_exchange_rate)
+            if payment.cop_equivalent != expected:
+                payment.cop_equivalent = expected
+                changed.append(payment)
+        if changed:
+            cls.objects.bulk_update(changed, ['cop_equivalent'], batch_size=500)
+        return len(changed)
 
     @property
     def frequency_months(self):
