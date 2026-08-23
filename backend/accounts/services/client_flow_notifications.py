@@ -10,11 +10,15 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from accounts.models import Notification
 from accounts.services.notifications import notify_project_admins
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +85,11 @@ def _send_team_email(event, user, project=None, document=None):
             to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=f'client_flow_{event}_team',
+            classification=DeliveryClassification.INTERNAL,
+        )
         logger.info('Sent client-flow email (%s) for user %s', event, user.id)
         return True
     except Exception as exc:
@@ -146,19 +154,43 @@ def _send_client_signed_confirmation(user, document):
         'signed_at': document.signed_at,
     }
     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co')
+    subject = f'Firma registrada · {document.title} · ProjectApp'
+    text_body = html_body = ''
+
+    def record(status, error_message=''):
+        from content.models import EmailLog
+        from content.services.proposal_email_service import ProposalEmailService
+
+        ProposalEmailService._log_email(
+            'document_signed_client',
+            user.email,
+            subject=subject,
+            status=status,
+            error_message=error_message,
+            metadata={'document_id': document.pk},
+            client=getattr(user, 'profile', None),
+            audience=EmailLog.Audience.CLIENT,
+            html_body=html_body,
+            text_body=text_body,
+        )
+
     try:
         text_body = render_to_string('emails/document_signed_client.txt', context)
         html_body = render_to_string('emails/document_signed_client.html', context)
         email = EmailMultiAlternatives(
-            subject=f'Firma registrada · {document.title} · ProjectApp',
+            subject=subject,
             body=text_body,
             from_email=from_email,
             to=[user.email],
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email, template_key='document_signed_client',
+        )
+        record('sent')
         return True
     except Exception as exc:
+        record('failed', str(exc)[:1000])
         logger.warning('Failed to send client signed confirmation for doc %s: %s', document.id, exc)
         return False
 

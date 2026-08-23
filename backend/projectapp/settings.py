@@ -215,9 +215,6 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='team@projectapp.co')
 NOTIFICATION_EMAIL = config('NOTIFICATION_EMAIL', default='dev.gustavo.perezp@gmail.com')
-# Inbox that receives a copy of every automated client-facing proposal email
-# (reminder, urgency, followups, re-engagement) with a client-tagged subject.
-AUTOMATED_EMAIL_TEAM_COPY = config('AUTOMATED_EMAIL_TEAM_COPY', default='team@projectapp.co')
 # Hosting payment outcomes (approved / failed) go to the accounting module's
 # administrable recipient list (content.NotificationRecipient), not to a fixed
 # inbox — see accounts/services/payment_notifications.py.

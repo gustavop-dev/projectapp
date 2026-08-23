@@ -16,10 +16,14 @@ Usage:
 """
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.core.management.base import BaseCommand
 
 from content.models import BusinessProposal
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.proposal_email_service import ProposalEmailService
 
 
@@ -202,7 +206,11 @@ class Command(BaseCommand):
                 from_email=ProposalEmailService._get_from_email(),
                 to=to,
             )
-            msg.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                msg,
+                template_key='proposal_notification_diagnostic',
+                classification=DeliveryClassification.INTERNAL,
+            )
             self._ok(f'Test email sent to {", ".join(to)} without raising.')
         except Exception as exc:
             self._err(f'SMTP send failed: {exc!r}')

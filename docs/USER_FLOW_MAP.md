@@ -4336,6 +4336,34 @@ Two transitions that were previously bundled into other flows now have their own
 - **E2E Spec:** `e2e/admin/admin-email-templates.spec.js`
 - **Backend Tests:** `content/tests/views/test_email_template_views.py`
 
+### FLOW: `admin-client-email-copy-settings`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=defaults`
+- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias a clientes separada de los destinatarios de avisos contables. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, y permite segmentar cada dirección por Propuestas, Diagnósticos, Documentos y correos manuales, Cuentas de cobro y Plataforma.
+- **Interacciones y outcomes:**
+  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, familias, modo BCC y advertencia de volumen con los datos reales de la respuesta.
+  2. **success:** agregar una dirección, cambiar sus familias, pausarla/reactivarla o eliminarla; cada acción persiste por su endpoint propio y actualiza la fila.
+  3. **error:** intentar agregar un duplicado o guardar una selección inválida muestra el detalle de validación del backend.
+  4. **failure:** un fallo 5xx al mutar conserva el estado anterior y muestra que la operación no se completó.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-client-email-copy-history`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/emails?tab=history` y los historiales compartidos de propuestas, diagnósticos, clientes y contabilidad.
+- **Description:** El administrador expande el envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección, estado y, si falló sólo la copia, el error SMTP, sin convertirla en otra fila principal ni habilitar reintento.
+- **Interacciones y outcomes:**
+  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatario BCC, estado y error independiente.
+  2. **success:** n/a; consultar la traza no muta datos.
+  3. **error:** n/a; no hay entrada de usuario que validar en este bloque de lectura.
+  4. **failure:** n/a como acción del usuario; el fallo SMTP de la copia es precisamente el dato persistido que cubre el outcome `display`.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
 ### FLOW: `admin-mini-crm-clients`
 
 - **Module:** admin
@@ -5934,6 +5962,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-client-document-signed-notification` | admin | P2 | — | 0 |
 | `admin-client-drag-reassign` | admin | P2 | success,failure | 1 |
 | `admin-client-edit` | admin | P2 | display,success,error | 1 |
+| `admin-client-email-copy-history` | admin | P2 | display | 1 |
+| `admin-client-email-copy-settings` | admin | P1 | display,success,error,failure | 7 |
 | `admin-client-email-validated-notification` | admin | P2 | — | 0 |
 | `admin-client-first-login-notification` | admin | P2 | — | 0 |
 | `admin-client-inactive-tab` | admin | P2 | display,success,failure | 1 |

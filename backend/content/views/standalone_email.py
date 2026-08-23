@@ -55,6 +55,7 @@ def _parse_standalone_email(request):
     one_min_ago = timezone.now() - timedelta(minutes=1)
     if EmailLog.objects.filter(
         proposal__isnull=True, template_key=_TEMPLATE_KEY,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
         sent_at__gte=one_min_ago,
     ).exists():
         return None, Response(
@@ -337,6 +338,7 @@ def list_standalone_emails(request):
     logs = EmailLog.objects.filter(
         proposal__isnull=True,
         template_key=_TEMPLATE_KEY,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).order_by('-sent_at')
 
     total = logs.count()
@@ -347,6 +349,12 @@ def list_standalone_emails(request):
     page_size = 20
     offset = (page - 1) * page_size
 
+    from content.services.email_log_service import (
+        attach_delivery_copies,
+        delivery_copy_payloads,
+    )
+
+    page_logs = attach_delivery_copies(logs[offset:offset + page_size])
     data = [
         {
             'id': log.pk,
@@ -355,8 +363,9 @@ def list_standalone_emails(request):
             'status': log.status,
             'sent_at': log.sent_at.isoformat(),
             'metadata': log.metadata,
+            'copies': delivery_copy_payloads(log),
         }
-        for log in logs[offset:offset + page_size]
+        for log in page_logs
     ]
     return Response({
         'results': data,

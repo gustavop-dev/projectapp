@@ -127,7 +127,10 @@ def _diagnostics_summary():
 
 
 def _emails_summary(now):
-    last_30d = EmailLog.objects.filter(sent_at__gte=now - timedelta(days=30))
+    last_30d = EmailLog.objects.filter(
+        sent_at__gte=now - timedelta(days=30),
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
+    )
     totals = last_30d.aggregate(
         total=Count('id'),
         sent_count=Count('id', filter=Q(status__in=EMAIL_OK_STATUSES)),
@@ -138,7 +141,10 @@ def _emails_summary(now):
         if totals['total'] else None
     )
     trend_rows = (
-        EmailLog.objects.filter(sent_at__gte=now - timedelta(days=14))
+        EmailLog.objects.filter(
+            sent_at__gte=now - timedelta(days=14),
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        )
         .annotate(day=TruncDate('sent_at'))
         .values('day')
         .annotate(
@@ -222,6 +228,7 @@ def _attention_block(operations, today, now, *, include_finance):
     failed_emails_7d = EmailLog.objects.filter(
         sent_at__gte=now - timedelta(days=7),
         status__in=EMAIL_FAILED_STATUSES,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).count()
     if failed_emails_7d:
         items.append({

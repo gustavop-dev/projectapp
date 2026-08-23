@@ -1,5 +1,4 @@
-"""Tests for the manual discount-offer send, team-copy of automated emails,
-and the automations-enabled-by-default behavior."""
+"""Tests for discount sends, configured client copies and automations."""
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -7,7 +6,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from content.models import BusinessProposal
+from content.models import BusinessProposal, ClientEmailCopyRecipient, EmailLog
 from content.services.proposal_email_service import ProposalEmailService
 
 pytestmark = pytest.mark.django_db
@@ -66,29 +65,33 @@ class TestSendDiscountOfferEndpoint:
         assert resp.status_code in (401, 403)
 
 
-class TestTeamCopy:
-    def test_reminder_sends_client_and_team_copy(self, mailoutbox):
+class TestClientEmailCopy:
+    def test_reminder_sends_configured_hidden_copy(self, mailoutbox):
+        ClientEmailCopyRecipient.objects.create(email='audit@projectapp.co')
         proposal = _proposal(discount_percent=0)  # plain reminder, no discount
+
         ProposalEmailService.send_reminder(proposal)
 
-        # One email to the client + one copy to the team inbox.
         assert len(mailoutbox) == 2
-        team = [m for m in mailoutbox if 'team@projectapp.co' in m.to]
-        assert len(team) == 1
-        assert team[0].subject.startswith('[Cliente: Ana Cliente]')
+        copy_message = mailoutbox[1]
+        assert copy_message.to == []
+        assert copy_message.bcc == ['audit@projectapp.co']
 
-    def test_team_copy_helper_prefixes_subject(self, mailoutbox, settings):
-        settings.AUTOMATED_EMAIL_TEAM_COPY = 'team@projectapp.co'
-        proposal = _proposal()
-        ProposalEmailService._send_team_copy(
-            subject='Tu propuesta expira pronto',
-            text_body='texto',
-            html_body='<p>html</p>',
-            proposal=proposal,
+    def test_reminder_history_links_copy_to_primary_delivery(self, mailoutbox):
+        ClientEmailCopyRecipient.objects.create(email='audit@projectapp.co')
+        proposal = _proposal(discount_percent=0)
+
+        ProposalEmailService.send_reminder(proposal)
+
+        primary = EmailLog.objects.get(
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
         )
-        assert len(mailoutbox) == 1
-        assert mailoutbox[0].to == ['team@projectapp.co']
-        assert mailoutbox[0].subject == '[Cliente: Ana Cliente] Tu propuesta expira pronto'
+        copy_log = EmailLog.objects.get(
+            delivery_role=EmailLog.DeliveryRole.COPY,
+        )
+
+        assert copy_log.delivery_id == primary.delivery_id
+        assert copy_log.recipient == 'audit@projectapp.co'
 
 
 class TestAutomationsDefault:

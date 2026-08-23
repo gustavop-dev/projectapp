@@ -48,7 +48,9 @@ def _log_or_404(client_id, log_id, queryset=None):
     second check to forget, and another client's row is simply not found.
     """
     return get_object_or_404(
-        queryset if queryset is not None else EmailLog.objects.all(),
+        (
+            queryset if queryset is not None else EmailLog.objects.all()
+        ).filter(delivery_role=EmailLog.DeliveryRole.PRIMARY),
         id=log_id,
         client_id=client_id,
     )
@@ -67,7 +69,10 @@ def list_client_emails(request, client_id):
     _client_or_404(client_id)
     logs = (
         EmailLog.objects
-        .filter(client_id=client_id)
+        .filter(
+            client_id=client_id,
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        )
         .select_related('body')
         .prefetch_related('targets')
         # The -id tiebreaker is not decoration: sent_at is auto_now_add, so a

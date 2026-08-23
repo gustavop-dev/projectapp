@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.84.0
+// Registry version: 2.85.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -66,6 +66,8 @@ export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protect
 export const ADMIN_CLIENT_DOCUMENT_SIGNED_NOTIFICATION = ['@flow:admin-client-document-signed-notification', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DRAG_REASSIGN = ['@flow:admin-client-drag-reassign', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_EDIT = ['@flow:admin-client-edit', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_EMAIL_COPY_HISTORY = ['@flow:admin-client-email-copy-history', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_EMAIL_COPY_SETTINGS = ['@flow:admin-client-email-copy-settings', '@module:admin', '@priority:P1'];
 export const ADMIN_CLIENT_EMAIL_VALIDATED_NOTIFICATION = ['@flow:admin-client-email-validated-notification', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_FIRST_LOGIN_NOTIFICATION = ['@flow:admin-client-first-login-notification', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_INACTIVE_TAB = ['@flow:admin-client-inactive-tab', '@module:admin', '@priority:P2'];

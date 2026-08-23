@@ -1,0 +1,80 @@
+import re
+from pathlib import Path
+
+import pytest
+
+from content.email_copy_families import (
+    COLLECTIONS,
+    DIAGNOSTICS,
+    DOCUMENTS_MANUAL,
+    PLATFORM,
+    PROPOSALS,
+)
+from content.services.client_email_inventory import (
+    CLIENT_EMAIL_CHANNELS,
+    client_email_family,
+)
+from content.services.proposal_email_service import CLIENT_FACING_TEMPLATE_KEYS
+
+
+EXPECTED_CHANNELS = (
+    ('proposal_sent_client', PROPOSALS),
+    ('proposal_multi_sent_client', PROPOSALS),
+    ('proposal_reminder', PROPOSALS),
+    ('proposal_urgency', PROPOSALS),
+    ('proposal_urgency_no_discount', PROPOSALS),
+    ('proposal_accepted_client', PROPOSALS),
+    ('proposal_finished_client', PROPOSALS),
+    ('proposal_rejected_client', PROPOSALS),
+    ('proposal_reengagement', PROPOSALS),
+    ('proposal_abandonment_followup', PROPOSALS),
+    ('proposal_investment_interest_followup', PROPOSALS),
+    ('proposal_scheduled_followup', PROPOSALS),
+    ('proposal_negotiation_confirmation', PROPOSALS),
+    ('magic_link', PROPOSALS),
+    ('diagnostic_initial_sent', DIAGNOSTICS),
+    ('diagnostic_final_sent', DIAGNOSTICS),
+    ('diagnostic_custom_email', DIAGNOSTICS),
+    ('diagnostic_documents_sent', DIAGNOSTICS),
+    ('proposal_documents_sent', DOCUMENTS_MANUAL),
+    ('branded_email', DOCUMENTS_MANUAL),
+    ('proposal_email', DOCUMENTS_MANUAL),
+    ('collection_account_sent', COLLECTIONS),
+    ('document_signed_client', PLATFORM),
+)
+
+
+@pytest.mark.parametrize(('template_key', 'family'), EXPECTED_CHANNELS)
+def test_client_channel_resolves_copy_family(template_key, family):
+    assert client_email_family(template_key) == family
+
+
+def test_proposal_audience_set_matches_inventory():
+    assert CLIENT_FACING_TEMPLATE_KEYS == frozenset(CLIENT_EMAIL_CHANNELS)
+
+
+def _mail_io_offenders():
+    backend = Path(__file__).resolve().parents[3]
+    gateway = backend / 'content/services/email_delivery_service.py'
+    offenders = []
+    for path in backend.rglob('*.py'):
+        if path == gateway or 'tests' in path.parts or 'migrations' in path.parts:
+            continue
+        source = path.read_text(encoding='utf-8')
+        if re.search(r'^\s*(?:from|import)\s+django\.core\.mail', source, re.M):
+            offenders.append(str(path.relative_to(backend)))
+        if re.search(r'\b(?:send_mail|mail_admins)\s*\(', source):
+            offenders.append(str(path.relative_to(backend)))
+        for line in source.splitlines():
+            is_direct_send = (
+                re.search(r'\.send\s*\(', line)
+                and 'EmailDeliveryGateway.send' not in line
+            )
+            if is_direct_send:
+                offenders.append(str(path.relative_to(backend)))
+                break
+    return sorted(set(offenders))
+
+
+def test_smtp_io_is_confined_to_gateway():
+    assert _mail_io_offenders() == []

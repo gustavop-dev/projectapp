@@ -7,10 +7,14 @@ from zoneinfo import ZoneInfo
 
 import dns.resolver
 from django.conf import settings
-from django.core.mail import send_mail
 from django.utils import timezone as dj_timezone
 from django.utils.text import slugify
 from rest_framework.fields import BooleanField
+
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -250,11 +254,13 @@ def send_email_notification(subject, message, recipient_email=None):
     
     try:
         print(f"📧 Sending email notification to {recipient_email}...")
-        send_mail(
+        EmailDeliveryGateway.send_plain(
             subject=subject,
-            message=message,
+            body=message,
             from_email=from_email,
-            recipient_list=[recipient_email],
+            recipients=[recipient_email],
+            template_key='generic_internal_notification',
+            classification=DeliveryClassification.INTERNAL,
             fail_silently=False,
         )
         print(f"✅ Email notification sent successfully!")

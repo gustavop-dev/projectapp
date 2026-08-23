@@ -190,6 +190,10 @@ from content.views.client_emails import (
     list_client_emails,
     retry_client_email,
 )
+from content.views.client_email_copy import (
+    client_email_copy_recipient_detail,
+    client_email_copy_recipients,
+)
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
@@ -403,6 +407,15 @@ urlpatterns = [
     path('emails/preview/', preview_composed_email, name='preview-composed-email'),
     path('emails/defaults/', standalone_email_defaults, name='standalone-email-defaults'),
     path('emails/history/', list_standalone_emails, name='list-standalone-emails'),
+    path(
+        'emails/copy-recipients/', client_email_copy_recipients,
+        name='client-email-copy-recipients',
+    ),
+    path(
+        'emails/copy-recipients/<int:recipient_id>/',
+        client_email_copy_recipient_detail,
+        name='client-email-copy-recipient-detail',
+    ),
 
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),

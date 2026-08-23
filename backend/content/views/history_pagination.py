@@ -25,9 +25,12 @@ def paginated_history_response(queryset, params, serializer_class):
     offset = (page - 1) * HISTORY_PAGE_SIZE
     num_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
 
-    serializer = serializer_class(
-        queryset[offset:offset + HISTORY_PAGE_SIZE], many=True,
+    from content.services.email_log_service import attach_delivery_copies
+
+    page_rows = attach_delivery_copies(
+        queryset[offset:offset + HISTORY_PAGE_SIZE],
     )
+    serializer = serializer_class(page_rows, many=True)
     return Response({
         'results': serializer.data,
         'count': total,

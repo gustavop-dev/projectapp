@@ -20,10 +20,15 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.mail import EmailMultiAlternatives
 from django.core.management import call_command
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +110,12 @@ def _notify_failure(detail):
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=recipients,
     )
-    email.send(fail_silently=True)
+    EmailDeliveryGateway.send(
+        email,
+        template_key='frontend_build_failure',
+        classification=DeliveryClassification.INTERNAL,
+        fail_silently=True,
+    )
     logger.info('[FrontendRebuild] failure alert sent to %s', ', '.join(recipients))
 
 

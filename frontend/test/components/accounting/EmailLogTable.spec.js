@@ -23,6 +23,7 @@ const SENT = {
   is_retryable: false,
   retry_blocked_reason: '',
   retry_of: null,
+  copies: [],
 };
 
 const FAILED = {
@@ -123,5 +124,25 @@ describe('EmailLogTable', () => {
     await wrapper.get('[data-testid="email-log-row-1"]').trigger('click');
 
     expect(wrapper.find('[data-testid="email-log-detail-1"]').exists()).toBe(false);
+  });
+
+  it('shows BCC delivery status after expanding the primary row', async () => {
+    const entry = {
+      ...SENT,
+      targets: [],
+      copies: [{
+        id: 21,
+        recipient: 'audit@example.com',
+        status: 'sent',
+        status_label: 'Enviado',
+        error_message: '',
+      }],
+    };
+    const wrapper = mountTable([entry]);
+
+    await wrapper.get('[data-testid="email-log-row-1"]').trigger('click');
+
+    expect(wrapper.get('[data-testid="email-log-copies-1"]').text())
+      .toContain('audit@example.com');
   });
 });

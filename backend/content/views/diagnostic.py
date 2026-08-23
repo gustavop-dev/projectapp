@@ -1176,6 +1176,7 @@ def _parse_diagnostic_email(request, diagnostic):
     recent = EmailLog.objects.filter(
         template_key=DiagnosticEmailService.TEMPLATE_CUSTOM,
         metadata__diagnostic_uuid=str(diagnostic.uuid),
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
         sent_at__gte=one_min_ago,
     ).exists()
     if recent:

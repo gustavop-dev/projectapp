@@ -98,6 +98,19 @@
               <p v-if="entry.retry_of" class="text-xs text-text-muted">
                 Reintento del envío #{{ entry.retry_of }}.
               </p>
+              <div v-if="entry.copies?.length" :data-testid="`email-log-copies-${entry.id}`" class="space-y-1.5 pt-1">
+                <p class="text-xs font-medium text-text-default">Copias internas (BCC)</p>
+                <div
+                  v-for="copy in entry.copies"
+                  :key="copy.id"
+                  class="flex flex-col gap-1 rounded-lg border border-border-muted bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <span class="break-all text-xs text-text-muted">{{ copy.recipient }}</span>
+                  <span class="text-xs" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                    {{ copy.status_label }}<span v-if="copy.error_message"> · {{ copy.error_message }}</span>
+                  </span>
+                </div>
+              </div>
             </td>
           </tr>
         </template>
@@ -160,7 +173,8 @@ const expandedIds = ref(new Set());
 
 function canExpand(entry) {
   return Boolean(
-    entry.error_message || entry.retry_of || (entry.targets || []).length,
+    entry.error_message || entry.retry_of || (entry.targets || []).length
+      || (entry.copies || []).length,
   );
 }
 

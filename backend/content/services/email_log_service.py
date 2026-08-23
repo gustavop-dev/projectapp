@@ -101,6 +101,8 @@ def record_send(
     proposal=None,
     client=None,
     audience=None,
+    delivery_id=None,
+    delivery_role=None,
 ):
     """Write one ``EmailLog`` per recipient and return them.
 
@@ -114,15 +116,28 @@ def record_send(
     contact count, which is the harmless direction to be wrong in.
     """
     from content.models import EmailBody, EmailLog, EmailLogTarget
+    from content.services.email_delivery_service import (
+        complete_delivery_log_write,
+        DeliveryClassification,
+        matching_delivery_trace,
+    )
 
     client_id = getattr(client, 'pk', client)
     audience = audience or EmailLog.Audience.INTERNAL
+    delivery_role = delivery_role or EmailLog.DeliveryRole.PRIMARY
+    trace = None
+    if delivery_role == EmailLog.DeliveryRole.PRIMARY:
+        trace = matching_delivery_trace(template_key, recipients)
+    if trace is not None:
+        delivery_id = delivery_id or trace.delivery_id
 
-    body = None
-    if html_body or text_body:
+    body = trace.body if trace is not None else None
+    if body is None and (html_body or text_body):
         body = EmailBody.objects.create(
             html=html_body or '', text=text_body or '',
         )
+    if trace is not None and body is not None:
+        trace.body = body
 
     logs = [
         EmailLog.objects.create(
@@ -138,6 +153,8 @@ def record_send(
             proposal=proposal,
             client_id=client_id,
             audience=audience,
+            delivery_id=delivery_id,
+            delivery_role=delivery_role,
         )
         for recipient in recipients
     ]
@@ -155,4 +172,101 @@ def record_send(
             for entity_type, object_id, object_repr in rows
         ])
 
+    # The gateway deliberately does not write history before the primary
+    # caller has recorded its own result. Folding copy attempts in here gives
+    # primary and copies one body, target set and delivery id, and avoids a
+    # second logging dialect in every sender.
+    if (
+        trace is not None
+        and trace.classification == DeliveryClassification.CLIENT
+        and not trace.copies_recorded
+    ):
+        copy_logs = []
+        for attempt in trace.copy_attempts:
+            copy_metadata = dict(metadata or {})
+            copy_metadata['client_email_copy'] = {
+                'family': trace.family,
+                'primary_recipients': list(trace.primary_recipients),
+                'attempted_at': attempt.attempted_at,
+            }
+            copy_logs.append(EmailLog.objects.create(
+                template_key=template_key,
+                recipient=attempt.recipient,
+                subject=subject,
+                status=attempt.status,
+                error_message=attempt.error_message,
+                metadata=copy_metadata,
+                body=body,
+                origin_action=origin_action or '',
+                retry_of=None,
+                proposal=proposal,
+                client_id=client_id,
+                audience=EmailLog.Audience.INTERNAL,
+                delivery_id=trace.delivery_id,
+                delivery_role=EmailLog.DeliveryRole.COPY,
+            ))
+        if rows and copy_logs:
+            EmailLogTarget.objects.bulk_create([
+                EmailLogTarget(
+                    email_log=log,
+                    entity_type=entity_type,
+                    object_id=object_id,
+                    object_repr=object_repr,
+                )
+                for log in copy_logs
+                for entity_type, object_id, object_repr in rows
+            ])
+        trace.copies_recorded = True
+
+    if trace is not None:
+        complete_delivery_log_write(trace)
+
     return logs
+
+
+def attach_delivery_copies(logs):
+    """Batch-load copy attempts and attach them to primary log instances."""
+    from content.models import EmailLog
+
+    logs = list(logs)
+    delivery_ids = {
+        log.delivery_id for log in logs
+        if log.delivery_id and log.delivery_role == EmailLog.DeliveryRole.PRIMARY
+    }
+    copies_by_delivery = {delivery_id: [] for delivery_id in delivery_ids}
+    if delivery_ids:
+        copies = EmailLog.objects.filter(
+            delivery_id__in=delivery_ids,
+            delivery_role=EmailLog.DeliveryRole.COPY,
+        ).order_by('sent_at', 'id')
+        for copy_log in copies:
+            copies_by_delivery.setdefault(copy_log.delivery_id, []).append(copy_log)
+    for log in logs:
+        log._delivery_copies = copies_by_delivery.get(log.delivery_id, [])
+    return logs
+
+
+def delivery_copy_payloads(log):
+    """Serialize the internal attempts belonging to one primary delivery."""
+    from content.models import EmailLog
+
+    copies = getattr(log, '_delivery_copies', None)
+    if copies is None:
+        if not log.delivery_id or log.delivery_role != EmailLog.DeliveryRole.PRIMARY:
+            copies = []
+        else:
+            copies = EmailLog.objects.filter(
+                delivery_id=log.delivery_id,
+                delivery_role=EmailLog.DeliveryRole.COPY,
+            ).order_by('sent_at', 'id')
+    return [
+        {
+            'id': copy_log.pk,
+            'recipient': copy_log.recipient,
+            'status': copy_log.status,
+            'status_label': copy_log.get_status_display(),
+            'error_message': copy_log.error_message,
+            'sent_at': copy_log.sent_at,
+        }
+        for copy_log in copies
+    ]

@@ -1,9 +1,12 @@
-from django.core.mail import send_mail
 from django.conf import settings
 from django.template import TemplateDoesNotExist
 from django.template.loader import render_to_string
 
 from accounts.models import VerificationCode
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+)
 
 
 # Map OTP purpose -> (template_base, subject)
@@ -41,12 +44,14 @@ def create_and_send_otp(user, purpose=VerificationCode.PURPOSE_ONBOARDING):
     except TemplateDoesNotExist:
         plain_message = f'Tu código de verificación es: {otp.code}'
 
-    send_mail(
+    EmailDeliveryGateway.send_plain(
         subject=subject,
-        message=plain_message,
+        body=plain_message,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
+        recipients=[user.email],
+        html_body=html_message,
+        template_key=f'verification_code_{purpose}',
+        classification=DeliveryClassification.SECURITY,
         fail_silently=False,
     )
 

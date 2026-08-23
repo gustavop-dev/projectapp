@@ -2,11 +2,16 @@ import logging
 import uuid
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 
 from accounts.models import UserProfile
+from content.services.client_email_inventory import CLIENT_EMAIL_CHANNELS
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.utils import format_bogota_date, format_cop_email, safe_slug
 
 logger = logging.getLogger(__name__)
@@ -17,26 +22,7 @@ logger = logging.getLogger(__name__)
 # proposal_email, diagnostic_custom_email) are deliberately absent: they go
 # to whatever address the panel typed, so they state their audience at the
 # call site. `team_copy` is absent for the opposite reason: it never does.
-CLIENT_FACING_TEMPLATE_KEYS = frozenset({
-    'proposal_sent_client',
-    'proposal_multi_sent_client',
-    'proposal_reminder',
-    'proposal_urgency',
-    'proposal_urgency_no_discount',
-    'proposal_accepted_client',
-    'proposal_finished_client',
-    'proposal_rejected_client',
-    'proposal_reengagement',
-    'proposal_abandonment_followup',
-    'proposal_investment_interest_followup',
-    'proposal_scheduled_followup',
-    'proposal_negotiation_confirmation',
-    'proposal_documents_sent',
-    'magic_link',
-    'diagnostic_initial_sent',
-    'diagnostic_final_sent',
-    'diagnostic_documents_sent',
-})
+CLIENT_FACING_TEMPLATE_KEYS = frozenset(CLIENT_EMAIL_CHANNELS)
 
 
 # Fallback de marca cuando una propuesta no tiene email_method_phases diligenciado.
@@ -143,41 +129,6 @@ class ProposalEmailService:
         return cls.FROM_EMAIL or getattr(
             settings, 'DEFAULT_FROM_EMAIL', 'team@projectapp.co'
         )
-
-    @classmethod
-    def _send_team_copy(cls, *, subject, text_body, html_body, proposal):
-        """Send a copy of an automated client email to the team inbox.
-
-        Same body as the client received, but with a subject prefixed with the
-        client's name so the team can tell whose email it is. Best-effort:
-        never raises (a failure here must not break the client send).
-        """
-        recipient = getattr(settings, 'AUTOMATED_EMAIL_TEAM_COPY', 'team@projectapp.co')
-        if not recipient:
-            return
-        who = proposal.client_name or proposal.client_email or 'cliente'
-        team_subject = f'[Cliente: {who}] {subject}'
-        try:
-            # Uses send_mail (not EmailMultiAlternatives) so it is a genuinely
-            # separate send: the client-facing send stays the single, testable
-            # message and this copy rides alongside it.
-            send_mail(
-                subject=team_subject,
-                message=text_body,
-                from_email=cls._get_from_email(),
-                recipient_list=[recipient],
-                html_message=html_body,
-                fail_silently=True,
-            )
-            cls._log_email(
-                'team_copy', recipient, subject=team_subject,
-                proposal=proposal, status='sent', metadata={'team_copy': True},
-            )
-        except Exception:
-            logger.warning(
-                'Failed to send team copy for proposal %s',
-                getattr(proposal, 'uuid', proposal.pk),
-            )
 
     @classmethod
     def _get_notification_recipients(cls):
@@ -491,7 +442,9 @@ class ProposalEmailService:
 
             pdf_attached = cls._attach_commercial_pdf(email, proposal)
 
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_sent_client',
+            )
 
             cls._log_email(
                 'proposal_sent_client', proposal.client_email,
@@ -596,7 +549,11 @@ class ProposalEmailService:
                 if cls._attach_commercial_pdf(email, proposal)
             )
 
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_multi_sent_client',
+                primary_log_writes=len(proposals),
+            )
 
             # One email, one stored body: the rows share `group_uuid`, so
             # only the first carries it and the others point the reader at
@@ -699,11 +656,8 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_reminder',
             )
 
             proposal.reminder_sent_at = timezone.now()
@@ -817,12 +771,7 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
-            )
+            EmailDeliveryGateway.send(email, template_key=template_key)
 
             proposal.urgency_email_sent_at = timezone.now()
             proposal.save(update_fields=['urgency_email_sent_at'])
@@ -908,7 +857,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_response_notification',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent %s notification for proposal %s',
@@ -1032,7 +985,9 @@ class ProposalEmailService:
                     exc_info=True,
                 )
 
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_accepted_client',
+            )
 
             cls._log_email(
                 'proposal_accepted_client', proposal.client_email,
@@ -1108,7 +1063,9 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_finished_client',
+            )
 
             cls._log_email(
                 'proposal_finished_client', proposal.client_email,
@@ -1183,7 +1140,9 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_rejected_client',
+            )
 
             cls._log_email(
                 'proposal_rejected_client', proposal.client_email,
@@ -1273,7 +1232,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_first_view_notification',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent first-view notification for proposal %s',
@@ -1333,7 +1296,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_comment_notification',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent comment notification for proposal %s',
@@ -1411,11 +1378,8 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_reengagement',
             )
 
             cls._log_email(
@@ -1492,7 +1456,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_revisit_alert',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             proposal.revisit_alert_sent_at = timezone.now()
             proposal.save(update_fields=['revisit_alert_sent_at'])
@@ -1563,11 +1531,8 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_abandonment_followup',
             )
 
             proposal.abandonment_email_sent_at = timezone.now()
@@ -1655,11 +1620,9 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_investment_interest_followup',
             )
 
             proposal.investment_interest_email_sent_at = timezone.now()
@@ -1732,7 +1695,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_share_notification',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent share notification for proposal %s (shared by %s)',
@@ -1797,11 +1764,8 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
-
-            cls._send_team_copy(
-                subject=subject, text_body=text_content,
-                html_body=html_content, proposal=proposal,
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_scheduled_followup',
             )
 
             cls._log_email(
@@ -1879,7 +1843,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_stakeholder_detected',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent stakeholder detection notification for proposal %s',
@@ -1952,7 +1920,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='seller_inactivity_escalation',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent seller inactivity escalation for proposal %s (%d days)',
@@ -2017,7 +1989,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_negotiation_notification',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent negotiation notification for proposal %s',
@@ -2084,7 +2060,9 @@ class ProposalEmailService:
                 to=[proposal.client_email],
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email, template_key='proposal_negotiation_confirmation',
+            )
 
             cls._log_email(
                 'proposal_negotiation_confirmation', proposal.client_email,
@@ -2164,7 +2142,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='post_rejection_revisit_alert',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent post-rejection revisit alert for proposal %s (%d days)',
@@ -2222,7 +2204,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='daily_pipeline_digest',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info('Sent daily pipeline digest for %s', digest_data['date'])
             return True
@@ -2280,7 +2266,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key='proposal_post_expiration_visit',
+                classification=DeliveryClassification.INTERNAL,
+            )
 
             logger.info(
                 'Sent post-expiration visit alert for proposal %s',
@@ -2362,9 +2352,6 @@ class ProposalEmailService:
             + '\n\nProject App — projectapp.co'
         )
 
-        # Bound before the try: the failure path logs from the except,
-        # and a render error must not turn into a NameError there.
-        html_content = text_content = ''
         try:
             email_msg = EmailMultiAlternatives(
                 subject=subject,
@@ -2373,7 +2360,9 @@ class ProposalEmailService:
                 to=[email],
             )
             email_msg.attach_alternative(html_content, 'text/html')
-            email_msg.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email_msg, template_key='magic_link',
+            )
 
             cls._log_email(
                 'magic_link', email, subject=subject,
@@ -2479,7 +2468,7 @@ class ProposalEmailService:
             for filename, data, mime_type in attachments:
                 email.attach(filename, data, mime_type)
 
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(email, template_key=template_key)
 
             cls._log_email(
                 template_key, proposal.client_email,
@@ -2612,7 +2601,16 @@ class ProposalEmailService:
                 for filename, data, mime_type in attachments:
                     email.attach(filename, data, mime_type)
 
-            email.send(fail_silently=False)
+            classification = (
+                DeliveryClassification.CLIENT
+                if proposal is None or audience == EmailLog.Audience.CLIENT
+                else DeliveryClassification.INTERNAL
+            )
+            EmailDeliveryGateway.send(
+                email,
+                template_key=template_key,
+                classification=classification,
+            )
 
             cls._log_email(
                 template_key, recipient_email,
@@ -2744,7 +2742,11 @@ class ProposalEmailService:
                 to=cls._get_notification_recipients(),
             )
             email.attach_alternative(html_content, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(
+                email,
+                template_key=template_key,
+                classification=DeliveryClassification.INTERNAL,
+            )
             logger.info(
                 'Sent %s for proposal %s stage %s',
                 template_key, proposal.uuid, stage.stage_key,

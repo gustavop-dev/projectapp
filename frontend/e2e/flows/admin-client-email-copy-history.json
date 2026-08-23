@@ -1,0 +1,14 @@
+{
+  "id": "admin-client-email-copy-history",
+  "name": "Admin Client Email Copy History",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Admin expands a primary client-email history row and sees every internal BCC recipient, its independent delivery status and any copy-only SMTP error. The primary result remains separate and is not duplicated as another top-level history row.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}
