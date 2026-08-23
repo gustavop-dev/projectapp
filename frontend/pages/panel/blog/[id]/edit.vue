@@ -428,6 +428,7 @@ import BlogContentRenderer from '~/components/blog/BlogContentRenderer.vue';
 import { resolveBlogPublishMode } from '~/utils/blogPublishMode.js';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
+import { useIsMobile } from '~/composables/useIsMobile';
 import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
@@ -445,14 +446,11 @@ const isUploading = ref(false);
 
 const showPreview = ref(false);
 const previewLang = ref('es');
-const windowWidth = ref(1024);
-const isMobilePreview = computed(() => windowWidth.value < 1024);
+const { isMobile: isMobilePreview } = useIsMobile();
 
 const publishMode = ref('draft');
 const scheduledDate = ref('');
 const scheduledOverdue = ref(false);
-
-function handleResize() { windowWidth.value = window.innerWidth; }
 
 function togglePreview() { showPreview.value = !showPreview.value; }
 
@@ -571,8 +569,6 @@ async function reloadPost() {
 usePanelRefresh(guardedReload);
 
 onMounted(async () => {
-  windowWidth.value = window.innerWidth;
-  window.addEventListener('resize', handleResize);
   window.addEventListener('message', handleLinkedInMessage);
   blogStore.fetchCategories();
 
@@ -591,7 +587,6 @@ function handleLinkedInMessage(event) {
 }
 
 onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
   window.removeEventListener('message', handleLinkedInMessage);
 });
 

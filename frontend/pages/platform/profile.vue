@@ -23,7 +23,13 @@
       <!-- Avatar card -->
       <div class="rounded-3xl border border-border-default bg-surface p-6 shadow-sm">
         <div class="flex flex-col items-center gap-4">
-          <div class="group relative h-24 w-24 cursor-pointer" @click="triggerFileInput">
+          <button
+            type="button"
+            class="touch-target group relative h-24 w-24 cursor-pointer rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring focus-visible:ring-offset-2"
+            aria-label="Cambiar foto de perfil"
+            data-responsive-touch-target
+            @click="triggerFileInput"
+          >
             <div class="h-full w-full overflow-hidden rounded-full border-2 border-border-default">
               <img
                 v-if="avatarPreview || avatarUrl"
@@ -36,7 +42,7 @@
               </div>
             </div>
             <!-- Pencil overlay -->
-            <div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100">
+            <div class="touch-reveal absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 transition group-hover:opacity-100 group-focus-visible:opacity-100">
               <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
                 <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
@@ -46,7 +52,7 @@
             <div v-if="isUploadingAvatar" class="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
               <div class="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             </div>
-          </div>
+          </button>
           <input
             ref="fileInput"
             type="file"
@@ -78,8 +84,9 @@
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
+            <label for="profile-first-name" class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Nombre</label>
             <input
+              id="profile-first-name"
               v-model="form.first_name"
               type="text"
               class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition placeholder:text-green-light/50 focus:border-border-default dark:bg-primary-strong dark:text-white dark:focus:border-lemon/40"

@@ -43,3 +43,52 @@ banned_tokens:
   - "cov"
   - "deep"
 flow_definitions_dir: flows
+
+# Responsive overrides consumed by the fleet's responsive ledger. ProjectApp
+# intentionally uses its panel vocabulary and the 835x1195 portrait viewport;
+# leaving these implicit made the ledger report the generic 835x1194 matrix and
+# only the eight flow-registry modules instead of the twelve acceptance owners.
+responsive_widths:
+  - compact=412x915
+  - portrait=835x1195
+  - landscape=1195x835
+  - desktop=1440x900
+  - wide=2560x1440
+
+responsive_breakpoints:
+  - panel-portrait=640
+  - panel-landscape=1024
+  - panel-desktop=1280
+  - panel-wide=1920
+
+responsive_breakpoints_source: frontend/config/responsive.js
+responsive_project_doc: docs/methodology/responsive-standard.md
+responsive_viewport_helper: frontend/e2e/helpers/viewports.js
+
+responsive_modules:
+  - foundation
+  - accounting
+  - documents
+  - clients
+  - projects
+  - commercial
+  - emails
+  - canvas
+  - dashboard
+  - content
+  - mcp
+  - public
+
+responsive_module_paths:
+  - "foundation=frontend/assets/styles,frontend/components/base,frontend/components/panel/PanelMobileDrawer.vue,frontend/components/panel/PanelSidebar.vue,frontend/composables/usePanelSidebar.js,frontend/config/responsive.js,frontend/layouts/admin.vue,frontend/pages/panel/styleguide.vue,frontend/tailwind.config.js"
+  - "accounting=frontend/components/accounting,frontend/pages/panel/accounting"
+  - "documents=frontend/components/panel/documents,frontend/pages/panel/documents/index.vue"
+  - "clients=frontend/components/clients,frontend/components/platform,frontend/layouts/platform.vue,frontend/pages/panel/clients,frontend/pages/platform"
+  - "projects=frontend/components/panel/projects,frontend/pages/panel/projects"
+  - "commercial=frontend/components/BusinessProposal/admin,frontend/components/WebAppDiagnostic/admin,frontend/components/proposals,frontend/pages/panel/defaults.vue,frontend/pages/panel/diagnostics,frontend/pages/panel/hour-packages,frontend/pages/panel/proposals"
+  - "emails=frontend/components/email,frontend/pages/panel/emails,frontend/pages/panel/proposals/email-deliverability.vue,frontend/pages/panel/proposals/email-templates.vue"
+  - "canvas=frontend/components/panel/documents/DocumentEditor,frontend/components/panel/documents/DocumentPreview,frontend/pages/panel/documents/create.vue,frontend/pages/panel/documents/[id]/edit.vue"
+  - "dashboard=frontend/components/panel/dashboard,frontend/components/stats,frontend/pages/panel/admins,frontend/pages/panel/index.vue,frontend/pages/panel/tasks,frontend/pages/panel/views.vue"
+  - "content=frontend/components/panel/qr-cards,frontend/pages/panel/blog,frontend/pages/panel/linkedin,frontend/pages/panel/linktrees,frontend/pages/panel/portfolio,frontend/pages/panel/qr-cards"
+  - "mcp=frontend/pages/panel/mcps"
+  - "public=frontend/components/BusinessProposal,frontend/components/Linktree,frontend/components/WebAppDiagnostic/public,frontend/components/home,frontend/components/landing,frontend/components/pages,frontend/layouts/default.vue,frontend/pages/about-us.vue,frontend/pages/blog,frontend/pages/contact,frontend/pages/diagnostic,frontend/pages/index.vue,frontend/pages/landing-,frontend/pages/lk,frontend/pages/portfolio-works,frontend/pages/privacy-policy.vue,frontend/pages/proposal,frontend/pages/terms-and-conditions.vue"

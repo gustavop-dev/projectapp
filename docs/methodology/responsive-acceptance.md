@@ -4,10 +4,12 @@
 **Alcance:** panel interno, plataforma autenticada y vistas públicas
 **Contrato ejecutable:** `frontend/config/responsive.js` y `frontend/config/responsiveAcceptance.js`
 
-Este documento cierra el plan PA-75 → fase 4. Complementa el estándar de
-componentes de `responsive-standard.md`: ese documento define cómo responde
-cada patrón; este define cómo demostrar que una vista está terminada y cómo
-evitar que una entrega posterior reconstruya el problema.
+Este documento define la aceptación implementada por PA-75 → fase 4.
+Complementa el estándar de componentes de `responsive-standard.md`: ese
+documento define cómo responde cada patrón; este define cómo demostrar que una
+vista está terminada y cómo evitar que una entrega posterior reconstruya el
+problema. La auditoría de Fase 5 y sus límites están en
+`docs/audits/2026-08-22-responsive-phase-5-final.md`.
 
 ## Estado de implementación
 
@@ -23,6 +25,11 @@ independientes: su criterio de cierre es este contrato y sus primitives
 compartidas. La línea base quedó verificada con las matrices de los doce módulos,
 build de producción, contrato 101/12/5, catálogo 101/101 y flow-map fresco sin
 flows `junk-only` ni `missing`.
+
+Esa línea base es automatizada: Playwright emula viewport y capacidades de
+entrada. No prueba por sí sola teclado en pantalla, barras del sistema, safe
+areas ni particularidades de hardware. La certificación física obligatoria
+permanece abierta como RSP-F5-01.
 
 ## Condición de aceptación
 
@@ -85,6 +92,12 @@ npm run e2e:responsive:changed
 La segunda orden ejecuta un módulo en los cinco anchos. La tercera resuelve el
 diff contra `origin/main`; un cambio transversal ejecuta todos los módulos.
 
+La implementación actual materializa los cinco anchos como `projects` de
+Playwright. Funciona y es el contrato que ejecuta CI, pero difiere del estándar
+fleet, que pide matrices acotadas por spec. RSP-F5-04 debe migrar ese harness o
+versionar formalmente la excepción; mientras tanto no se replica este patrón en
+otro proyecto.
+
 ## Cierre de fichas adelantadas
 
 Una ficha previa de responsividad sólo se cierra cuando:
@@ -114,3 +127,11 @@ dispositivos reales, revisar errores de CI por perfil, actualizar breakpoints
 sólo desde `responsive.js` y dejar cualquier cambio de patrón en el estándar,
 el styleguide y sus pruebas dentro del mismo PR. Cambiar un ancho en CSS sin
 actualizar esa fuente no es una revisión válida.
+
+## Certificación física
+
+El cierre automatizado y el cierre físico son evidencias distintas. Para cerrar
+RSP-F5-01 se recorre este mismo guion en hardware real y se adjuntan, como
+mínimo, navegador/sistema, viewport útil, orientación, teclado abierto donde
+haya formularios, barras/safe-area y resultado de touch. La ausencia de
+overflow en Chromium emulado no autoriza registrar esa pasada como realizada.

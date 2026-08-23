@@ -283,6 +283,7 @@ export const PLATFORM_LAYOUT_TITLE_MAPPING = ['@flow:platform-layout-title-mappi
 export const PLATFORM_LOGIN = ['@flow:platform-login', '@module:platform', '@priority:P1'];
 export const PLATFORM_NOTIFICATIONS = ['@flow:platform-notifications', '@module:platform', '@priority:P2'];
 export const PLATFORM_PASSWORD_RESET = ['@flow:platform-password-reset', '@module:platform', '@priority:P1'];
+export const PLATFORM_PROFILE_AVATAR_PICKER = ['@flow:platform-profile-avatar-picker', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROFILE_EDIT = ['@flow:platform-profile-edit', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_COLLECTION_ACCOUNTS = ['@flow:platform-project-collection-accounts', '@module:platform', '@priority:P2'];
 export const PLATFORM_PROJECT_DATA_MODEL = ['@flow:platform-project-data-model', '@module:platform', '@priority:P2'];

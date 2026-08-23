@@ -9,7 +9,7 @@
 
 ## 1. Equipos y perfiles canónicos
 
-Los breakpoints se ubican entre los cinco equipos reales. Los números exactos
+Los breakpoints se ubican entre los cinco viewports de referencia. Los números exactos
 son viewports de aceptación; los perfiles son las reglas que usa el producto.
 
 | Perfil | Rango | Viewport de aceptación | Uso esperado |
@@ -155,3 +155,19 @@ Una pantalla sólo cuenta como adoptada cuando:
 
 El ejemplo completo y manipulable vive en `/panel/styleguide`. La API detallada
 y snippets de adopción están en `frontend/components/base/README.md`.
+
+## 6. Estado vigente después de la auditoría final
+
+Las tablas de las secciones 3 y 4 son el worklist de la fase base y se conservan
+como historia. La Fase 5 las concilió contra las cinco fases ya integradas:
+
+- PA-61, PA-66 y PA-73 cumplen técnicamente la solución compartida;
+- PA-45 cumple de forma distinta mientras existan overlays locales;
+- el breakpoint local de Blog edit y dos acciones dependientes de hover fueron
+  corregidos y protegidos por el contrato;
+- la certificación en dispositivos físicos y los rediseños de overlays/harness
+  permanecen como RSP-F5-01…04.
+
+El informe normativo vigente es
+`docs/audits/2026-08-22-responsive-phase-5-final.md`; ninguna fila “por adoptar”
+de esta fotografía debe interpretarse por sí sola como estado actual.

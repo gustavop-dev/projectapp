@@ -169,14 +169,14 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### Canonical responsive profiles
 
-- Frontend responsive validation uses five named, real-device profiles: 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440.
+- Frontend responsive automation uses five named reference viewports: 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440. Physical-device certification is a separate acceptance step.
 - `frontend/config/responsive.js` feeds Tailwind and Playwright; `responsiveAcceptance.js` assigns every catalog view to a repeatable module script. Individual pages must not invent alternative device matrices.
 - The portrait-tablet profile is an explicit acceptance target, and admin content is capped at 1400 px on the large-monitor profile.
 - The responsive Definition of Done, commands and periodic review live in `docs/methodology/responsive-acceptance.md`.
 
 ### Responsive panel decisions are capability branches
 
-- The operational compact boundary is `useIsMobile(PANEL_BREAKPOINTS.landscape - 1)`: 412 px and 835 px use drawers/cards; the real 1195 px landscape tablet uses the two-zone/table branch. Tailwind remains responsible for inner density and card columns, not for duplicating whole interactive trees.
+- The operational compact boundary is `useIsMobile(PANEL_BREAKPOINTS.landscape - 1)`: the 412 px and 835 px reference viewports use drawers/cards; the 1195 px landscape reference uses the two-zone/table branch. Tailwind remains responsible for inner density and card columns, not for duplicating whole interactive trees.
 - `BaseDrawer` owns modal semantics, focus containment, Escape/backdrop close and body-scroll lock. Use it for a transient folder/filter/action zone; do not rebuild those mechanics inside a page.
 - `BaseModal` already uses `100dvh` below `panel-portrait` and preserves its semantic size above that boundary. Long workflows keep a scrollable body and sticky footer actions; consumers do not introduce a second fullscreen prop.
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.

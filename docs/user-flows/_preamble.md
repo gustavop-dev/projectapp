@@ -409,6 +409,20 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/platform/platform-profile.spec.js`
 
+#### FLOW: `platform-profile-avatar-picker`
+
+- **Module:** platform
+- **Role:** platform-admin / platform-client
+- **Priority:** P2
+- **Routes:** `/platform/profile`
+- **Description:** Open the native image picker from the accessible avatar action without changing the single-image upload contract.
+- **Steps:**
+  1. User navigates to `/platform/profile`.
+  2. User activates “Cambiar foto de perfil”.
+  3. The browser opens a single-file chooser restricted to `image/*`.
+- **Coverage:** ✅ Covered
+- **E2E Spec:** `e2e/platform/platform-profile.spec.js`
+
 ### 8.7 Change Requests, Bug Reports & Deliverables
 
 #### FLOW: `platform-change-requests`
@@ -787,6 +801,7 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `platform-admin-client-list` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-list.spec.js` |
 | `platform-admin-client-detail` | platform | platform-admin | P2 | ✅ Covered | `e2e/platform/platform-admin-client-detail.spec.js` |
 | `platform-profile-edit` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
+| `platform-profile-avatar-picker` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-profile.spec.js` |
 | `platform-change-requests` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-change-requests.spec.js` |
 | `platform-bug-reports` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-bug-reports.spec.js` |
 | `platform-deliverables` | platform | platform-admin/client | P2 | ✅ Covered | `e2e/platform/platform-deliverables.spec.js` |
