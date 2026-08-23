@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { TrashIcon } from '@heroicons/vue/24/outline';
 
 import DocumentClientNoteModal from '../../components/panel/documents/DocumentClientNoteModal.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
@@ -136,12 +137,16 @@ describe('DocumentClientNoteModal', () => {
       .toBe('El contenido es obligatorio.');
   });
 
-  it('shows a recognizable trash emoji for a custom note', () => {
+  it('marks the custom note delete action with the shared trash icon', () => {
     const wrapper = mountModal({
       customNotes: [{ title: 'Temporal', content: 'No conservar.' }],
     });
 
-    expect(wrapper.find('[data-testid="client-note-custom-delete-0"]').text()).toBe('🚮');
+    const remove = wrapper.find('[data-testid="client-note-custom-delete-0"]');
+    // The panel uses one delete affordance everywhere (heroicons TrashIcon,
+    // see BaseResponsiveTable), never a bare emoji glyph.
+    expect(remove.findComponent(TrashIcon).exists()).toBe(true);
+    expect(remove.text()).toBe('');
   });
 
   it('deletes a custom note from the draft', async () => {

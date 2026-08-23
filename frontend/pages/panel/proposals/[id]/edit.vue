@@ -325,7 +325,7 @@
             </BaseButton>
           </div>
         </div>
-        <div class="flex-1 overflow-hidden bg-[#f4f1ea]">
+        <div class="flex-1 overflow-hidden bg-surface-muted">
           <div v-if="previewLoading" class="flex items-center justify-center h-full text-text-muted text-sm">
             Generando vista previa…
           </div>
@@ -376,7 +376,7 @@
             </BaseButton>
           </div>
         </div>
-        <div class="flex-1 overflow-hidden bg-[#f4f1ea]">
+        <div class="flex-1 overflow-hidden bg-surface-muted">
           <div v-if="discountPreviewLoading" class="flex items-center justify-center h-full text-text-muted text-sm">
             Generando vista previa…
           </div>

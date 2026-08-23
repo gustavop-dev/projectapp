@@ -153,7 +153,7 @@
               :data-testid="`client-note-custom-delete-${index}`"
               @click="removeCustomNote(index)"
             >
-              <span aria-hidden="true">🚮</span>
+              <TrashIcon class="w-4 h-4" />
             </BaseButton>
           </div>
 
@@ -252,6 +252,7 @@
 
 <script setup>
 import { reactive, ref, watch } from 'vue';
+import { TrashIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 
 const props = defineProps({

@@ -92,13 +92,13 @@ const FORBIDDEN = [
 ];
 
 // Forbidden patterns that are tolerated only in specific files. Keeps the
-// rule strict everywhere except documented exceptions (e.g. `bg-gray-50` is
-// the panel page-wash, paired with `dark:bg-primary-strong` in the layout).
+// rule strict everywhere except documented exceptions. The panel page-wash is
+// `bg-surface-muted` (assets/styles/theme.css), so no file needs a raw gray now.
 const FORBIDDEN_CONDITIONAL = [
   {
     pattern: /\bbg-gray-50\b(?!\/[0-9])/,
     suggest: 'bg-surface-muted (page wash, auto-flips to primary-strong in dark)',
-    allowedIn: new Set(['layouts/admin.vue']),
+    allowedIn: new Set([]),
   },
   {
     pattern: /\bbg-gray-100\b(?!\/[0-9])/,
