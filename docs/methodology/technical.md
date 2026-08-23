@@ -194,6 +194,26 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Registered connectors receive independent per-IP buckets keyed by slug, allowing Codex to initialize the configured domains in parallel.
 - Unknown slugs share one `unknown` bucket. Never key untrusted paths directly without first checking them against `TOOLS_BY_SLUG`.
 
+### Single outbound email gateway
+
+- Production code may perform Django mail I/O only through
+  `content.services.email_delivery_service.EmailDeliveryGateway`; a focused
+  static test scans every backend Python file and rejects direct alternatives.
+- Every call carries a stable `template_key`. A customer delivery must also be
+  registered in `client_email_inventory.CLIENT_EMAIL_CHANNELS`; unknown client
+  keys raise before SMTP. Internal and security messages require an explicit
+  classification and never receive customer-copy BCCs.
+- The primary envelope is sent before any copy lookup or copy SMTP attempt.
+  Configured internal recipients then receive independent BCC-only envelopes.
+  A lookup/copy failure is logged independently and cannot alter or retry the
+  already-successful primary delivery.
+- `EmailLog.delivery_id` groups primary and copy attempts;
+  `delivery_role=primary|copy` keeps dashboards, cooldowns, contact counts and
+  retry endpoints from treating internal copies as new customer sends.
+- Copy recipients are database configuration, separate from
+  `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
+  more stable families. See `docs/client-email-copy-inventory.md`.
+
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
 - **Platform (`/platform/`)**: JWT via SimpleJWT (access + refresh tokens); middleware `platform-auth.js`; platform stores use `composables/usePlatformApi.js` (axios with JWT interceptors)

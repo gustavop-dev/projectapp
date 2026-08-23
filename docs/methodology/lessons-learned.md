@@ -331,25 +331,25 @@ This supersedes the earlier rule "stores self-maintain state after CRUD, parents
 
 ## 12. Internal Team Notifications vs Client-Facing Sends
 
-### `_log_email` is for client-facing emails only
+Every outbound message uses `EmailDeliveryGateway`, but its policy is explicit:
 
-`backend/content/services/proposal_email_service.py` has a `_log_email()` helper that creates `EmailLog` rows. Use it ONLY for sends to a single client recipient (`proposal.client_email`). For team-facing internal alerts that fan out to multiple ops emails, **do not** call `_log_email()` — match the convention of:
-- `send_first_view_notification`
-- `send_comment_notification`
-- `send_share_notification`
-- `send_stakeholder_detected_notification`
-- `send_seller_inactivity_escalation`
-- `send_stage_warning` / `send_stage_overdue`
+- `client`: the stable key must be in `CLIENT_EMAIL_CHANNELS`; after the
+  primary succeeds, configured customer-copy BCCs are attempted.
+- `internal`: team/operations traffic is delivered once and never triggers the
+  customer-copy audience.
+- `security`: OTPs, invitations, temporary credentials and password links are
+  deliberately excluded from copies.
 
-These use `logger.info(...)` and `logger.exception(...)` only.
+The recipient catalogs are separate by design. Operational notifications use
+`NotificationRecipient` and legacy `NOTIFICATION_EMAIL(S)` consumers; customer
+communication copies use `ClientEmailCopyRecipient` and its family selection.
+Never infer one list from the other — volume, privacy and responsibility differ.
 
-### Why
-
-Per-recipient `_log_email` loops produce one EmailLog row per addressee for a single SMTP `send()` call. SMTP failures are per-connection, not per-recipient — so the loop encodes a lie ("recipient A failed AND recipient B failed AND…") that you can't distinguish from reality. Single-row internal logging via `logger` is honest about what actually happened.
-
-### Recipient list
-
-All internal team notifications resolve recipients via `cls._get_notification_recipients()`, which reads `NOTIFICATION_EMAIL` (CSV-supported) and `NOTIFICATION_EMAILS` (list/CSV). To target a different audience for one feature, change the env var — do NOT add a per-feature recipient setting.
+`EmailLog` may contain both client and internal business traffic. For a copied
+customer delivery it stores the customer row as `primary` and each independent
+BCC attempt as `copy`. Readers that calculate deliverability, cooldowns, contact
+counts or retries must filter to `primary`; history readers may nest the copy
+rows using their shared `delivery_id`.
 
 ---
 
@@ -876,3 +876,26 @@ space. Apply the same rule to secondary KPIs: show the three ranked decisions,
 then disclose the rest on demand. A repeatable matrix needs all twelve routes
 and all five real widths; representative Playwright checks pin the breakpoint
 semantics while the written 12×5 script preserves business review tab by tab.
+
+## 35. Customer email policy belongs at the transport boundary
+
+Adding a BCC inside every template is not durable: template registries describe
+content, while sends also originate in services, views, tasks and both Django
+apps. The enforceable boundary is the last abstraction before Django's email
+backend. Make that gateway the only permitted mail-I/O owner and require every
+caller to declare a stable key plus client/internal/security intent.
+
+The client inventory is executable policy, not documentation alone. A new
+customer key must enter that mapping before the gateway accepts it, and a static
+test must fail if a future caller bypasses the gateway. Keep operational and
+security traffic in the same transport path but outside the customer-copy
+audience; otherwise OTPs, temporary passwords or internal digests can leak into
+an unrelated inbox.
+
+Failure isolation requires separate envelopes. Deliver the customer message
+first, then create one BCC-only envelope per configured copy recipient. Group
+those attempts with the primary via a delivery identifier, but give each its own
+status row. Reader queries must explicitly select `primary` so a copy neither
+inflates contact counts nor triggers cooldowns/retries; history surfaces can
+then attach `copy` rows underneath without changing the meaning of existing
+metrics.
