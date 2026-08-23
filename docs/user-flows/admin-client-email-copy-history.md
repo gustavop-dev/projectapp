@@ -11,4 +11,3 @@
   3. **error:** n/a; no hay entrada de usuario que validar en este bloque de lectura.
   4. **failure:** n/a como acción del usuario; el fallo SMTP de la copia es precisamente el dato persistido que cubre el outcome `display`.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
-

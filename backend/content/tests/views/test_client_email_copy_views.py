@@ -87,4 +87,3 @@ def test_delete_recipient_removes_configuration(admin_client):
 
     assert response.status_code == 204
     assert ClientEmailCopyRecipient.objects.count() == 0
-

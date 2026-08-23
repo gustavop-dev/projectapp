@@ -55,4 +55,3 @@ def client_email_copy_recipient_detail(request, recipient_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     serializer.save()
     return Response(serializer.data)
-

@@ -11,4 +11,3 @@
   3. **error:** intentar agregar un duplicado o guardar una selección inválida muestra el detalle de validación del backend.
   4. **failure:** un fallo 5xx al mutar conserva el estado anterior y muestra que la operación no se completó.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
-

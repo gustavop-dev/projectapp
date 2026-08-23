@@ -60,4 +60,3 @@ class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
     def get_family_labels(self, obj):
         labels = dict(CLIENT_EMAIL_FAMILY_CHOICES)
         return [labels[family] for family in obj.families if family in labels]
-

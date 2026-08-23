@@ -1,7 +1,7 @@
 # Inventario de correos enviados a clientes
 
-**Actualizado:** 2026-08-23  
-**Fuente ejecutable:** `backend/content/services/client_email_inventory.py`  
+**Actualizado:** 2026-08-23
+**Fuente ejecutable:** `backend/content/services/client_email_inventory.py`
 **Punto único de salida:** `backend/content/services/email_delivery_service.py`
 
 Este documento enumera todas las salidas que ProjectApp clasifica como correo

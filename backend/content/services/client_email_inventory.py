@@ -54,4 +54,3 @@ CLIENT_EMAIL_CHANNELS = {
 def client_email_family(template_key):
     """Return the configured family for a client template, or ``None``."""
     return CLIENT_EMAIL_CHANNELS.get(template_key)
-

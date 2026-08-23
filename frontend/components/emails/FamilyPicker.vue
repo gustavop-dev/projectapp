@@ -39,4 +39,3 @@ function toggle(value) {
   );
 }
 </script>
-
