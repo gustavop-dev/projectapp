@@ -81,7 +81,7 @@ test.describe('Admin Panel — Unsaved Changes Guard', () => {
     await expect(page.getByTestId('confirm-modal-confirm')).toBeHidden();
 
     // Y lo pendiente sigue ahí al volver: cambiar de pestaña no descarta nada.
-    await page.getByRole('tab', { name: 'Valores por defecto' }).click();
+    await page.getByRole('tab', { name: 'Configuración' }).click();
     await expect(greetingField(page)).toHaveValue('Buenas');
   });
 

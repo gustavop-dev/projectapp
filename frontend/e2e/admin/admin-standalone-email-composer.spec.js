@@ -250,7 +250,7 @@ test.describe('Admin Standalone Email Composer', () => {
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole('tab', { name: 'Valores por defecto' }).click();
+    await page.getByRole('tab', { name: 'Configuración' }).click();
 
     await expect(page.getByPlaceholder('Hola {client_name}')).toHaveValue('Hola {client_name}');
     await expect(page.getByPlaceholder('Texto de cierre...')).toHaveValue(mockDefaults.config.footer);
@@ -265,7 +265,7 @@ test.describe('Admin Standalone Email Composer', () => {
     await page.goto('/panel/emails', { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
 
-    await page.getByRole('tab', { name: 'Valores por defecto' }).click();
+    await page.getByRole('tab', { name: 'Configuración' }).click();
 
     await page.getByPlaceholder('Hola {client_name}').fill('Buen día {client_name}');
     await page.getByRole('combobox').selectOption('gustavo');
@@ -287,7 +287,7 @@ test.describe('Admin Standalone Email Composer', () => {
   }, async ({ page }) => {
     await setupMocks(page);
     await page.goto('/panel/emails?tab=defaults', { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('heading', { name: 'Emails' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: 'Emails', exact: true })).toBeVisible({ timeout: 20_000 });
 
     await expect(page.getByRole('button', { name: 'Guardar valores' })).toBeVisible();
     await expect(page.getByPlaceholder('correo@ejemplo.com')).not.toBeVisible();
