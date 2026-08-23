@@ -175,7 +175,8 @@ erDiagram
 | **DiagnosticDefaultConfig** | Per-language defaults applied at `WebAppDiagnostic` creation | language (unique), sections_json, payment_initial_pct (60), payment_final_pct (40), default_currency, default_investment_amount, default_duration_label, expiration_days, reminder_days, urgency_reminder_days. `clean()` enforces payment sum = 100. Read by `diagnostic_service.create_diagnostic` and surfaced through `/api/diagnostics/defaults/`. |
 | **ProposalProjectStage** | Internal project execution tracking (Cronograma) — internal-only, gated by `is_admin` in serializer | proposal_fk, stage_key (`design`/`development`), order, start_date, end_date, completed_at, warning_sent_at, last_overdue_reminder_at |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
-| **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField) |
+| **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy) |
+| **ClientEmailCopyRecipient** | Separate administrable BCC audience for customer communication | email (unique), is_active, families (JSON list), created_at, updated_at |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
@@ -229,7 +230,10 @@ flowchart TD
     Views --> PST["ProposalStageTracker"]
 
     PS -->|CRUD, lifecycle, analytics| Models["Django Models"]
-    PES -->|send emails| SMTP["Django Email Backend"]
+    PES -->|construct messages| EDG["EmailDeliveryGateway"]
+    Views -->|other outbound messages| EDG
+    EDG -->|primary first; BCC copies after success| SMTP["Django Email Backend"]
+    EDG -->|active recipients by family| CECR["ClientEmailCopyRecipient"]
     PES -->|get content| ETR
     PST -->|get_or_create_stage / ensure_stages| Models
     PST -->|send_stage_warning / send_stage_overdue| PES
@@ -254,6 +258,8 @@ flowchart TD
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
 | **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Shared helpers: `_attach_commercial_pdf(email, proposal)` (used by `send_proposal_to_client`, `send_acceptance_confirmation`, `send_multi_proposal_to_client`), `_build_initial_email_context(proposal)` (per-proposal phase context), `_send_stage_notification`. |
+| **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires an explicit client/internal/security policy, sends the primary envelope first, resolves segmented BCC recipients only after success, isolates copy failures and exposes one delivery trace to `EmailLog`. |
+| **ClientEmailInventory** | Small | Authoritative mapping of every customer-facing template key to one configurable copy family. Unknown client keys fail closed; static tests reject mail calls outside the gateway. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **ContractPdfService** | Medium | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |

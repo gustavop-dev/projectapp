@@ -16,6 +16,10 @@ class EmailLog(models.Model):
         CLIENT = 'client', 'Al cliente'
         INTERNAL = 'internal', 'Interno'
 
+    class DeliveryRole(models.TextChoices):
+        PRIMARY = 'primary', 'Envío principal'
+        COPY = 'copy', 'Copia interna'
+
     proposal = models.ForeignKey(
         'BusinessProposal',
         on_delete=models.SET_NULL,
@@ -87,6 +91,15 @@ class EmailLog(models.Model):
         choices=Audience.choices,
         default=Audience.INTERNAL,
     )
+    # One UUID groups the primary row(s) and every independent internal-copy
+    # attempt of the same physical customer delivery. Nullable preserves old
+    # history without inventing associations during the migration.
+    delivery_id = models.UUIDField(null=True, blank=True)
+    delivery_role = models.CharField(
+        max_length=10,
+        choices=DeliveryRole.choices,
+        default=DeliveryRole.PRIMARY,
+    )
     sent_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -97,6 +110,10 @@ class EmailLog(models.Model):
             models.Index(fields=['template_key', 'sent_at']),
             models.Index(fields=['status', 'sent_at']),
             models.Index(fields=['recipient']),
+            models.Index(
+                fields=['delivery_id', 'delivery_role'],
+                name='emaillog_delivery_role',
+            ),
             # Serves all three per-client annotations of the clients list:
             # the two counts seek on the (client, audience) prefix, and
             # `last_email_at` is a backwards scan of the sent_at suffix that

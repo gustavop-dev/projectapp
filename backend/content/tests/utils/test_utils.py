@@ -283,35 +283,37 @@ class TestSendWhatsappNotification:
 
 
 class TestSendEmailNotification:
-    @patch('content.utils.send_mail')
+    @patch('content.utils.EmailDeliveryGateway.send_plain')
     @patch('content.utils.settings')
-    def test_sends_email_with_configured_recipient(self, mock_settings, mock_send_mail):
+    def test_sends_email_with_configured_recipient(self, mock_settings, mock_send):
         """Verify send_email_notification uses NOTIFICATION_EMAIL from settings."""
         mock_settings.NOTIFICATION_EMAIL = 'team@test.com'
         mock_settings.DEFAULT_FROM_EMAIL = 'no-reply@test.com'
-        mock_send_mail.return_value = 1
+        mock_send.return_value = 1
 
         result = send_email_notification('Subject', 'Body')
 
         assert result is True
-        mock_send_mail.assert_called_once_with(
+        mock_send.assert_called_once_with(
             subject='Subject',
-            message='Body',
+            body='Body',
             from_email='no-reply@test.com',
-            recipient_list=['team@test.com'],
+            recipients=['team@test.com'],
+            template_key='generic_internal_notification',
+            classification='internal',
             fail_silently=False,
         )
 
-    @patch('content.utils.send_mail')
+    @patch('content.utils.EmailDeliveryGateway.send_plain')
     @patch('content.utils.settings')
-    def test_sends_email_with_explicit_recipient(self, mock_settings, mock_send_mail):
+    def test_sends_email_with_explicit_recipient(self, mock_settings, mock_send):
         mock_settings.DEFAULT_FROM_EMAIL = 'no-reply@test.com'
-        mock_send_mail.return_value = 1
+        mock_send.return_value = 1
 
         result = send_email_notification('Subject', 'Body', recipient_email='custom@test.com')
 
         assert result is True
-        assert mock_send_mail.call_args[1]['recipient_list'] == ['custom@test.com']
+        assert mock_send.call_args.kwargs['recipients'] == ['custom@test.com']
 
     @patch('content.utils.settings')
     def test_returns_false_when_recipient_not_configured(self, mock_settings):
@@ -334,12 +336,12 @@ class TestSendEmailNotification:
 
         assert result is False
 
-    @patch('content.utils.send_mail')
+    @patch('content.utils.EmailDeliveryGateway.send_plain')
     @patch('content.utils.settings')
-    def test_returns_false_on_send_mail_exception(self, mock_settings, mock_send_mail):
+    def test_returns_false_on_send_exception(self, mock_settings, mock_send):
         mock_settings.NOTIFICATION_EMAIL = 'team@test.com'
         mock_settings.DEFAULT_FROM_EMAIL = 'no-reply@test.com'
-        mock_send_mail.side_effect = Exception('SMTP error')
+        mock_send.side_effect = Exception('SMTP error')
 
         result = send_email_notification('Subject', 'Body')
 

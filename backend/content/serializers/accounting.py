@@ -1685,6 +1685,7 @@ class EmailLogSerializer(serializers.ModelSerializer):
     has_body = serializers.SerializerMethodField()
     is_retryable = serializers.SerializerMethodField()
     retry_blocked_reason = serializers.SerializerMethodField()
+    copies = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailLog
@@ -1693,6 +1694,7 @@ class EmailLogSerializer(serializers.ModelSerializer):
             'status', 'status_label', 'error_message', 'sent_at',
             'origin_action', 'origin_action_label', 'targets', 'has_body',
             'is_retryable', 'retry_blocked_reason', 'retry_of',
+            'delivery_id', 'delivery_role', 'copies',
         )
 
     def get_template_label(self, obj):
@@ -1703,17 +1705,25 @@ class EmailLogSerializer(serializers.ModelSerializer):
 
     def get_is_retryable(self, obj):
         return (
-            obj.status == EmailLog.Status.FAILED
+            obj.delivery_role == EmailLog.DeliveryRole.PRIMARY
+            and obj.status == EmailLog.Status.FAILED
             and obj.template_key in RETRYABLE_TEMPLATE_KEYS
         )
 
     def get_retry_blocked_reason(self, obj):
         # Delegated so the tooltip and the endpoint's 400 cannot disagree,
         # and so a proposal row gets its own sentence instead of the digest's.
+        if obj.delivery_role == EmailLog.DeliveryRole.COPY:
+            return 'Las copias internas no se reintentan.'
         from content.services.accounting_email_retry_service import (
             retry_blocked_reason,
         )
         return retry_blocked_reason(obj.template_key)
+
+    def get_copies(self, obj):
+        from content.services.email_log_service import delivery_copy_payloads
+
+        return delivery_copy_payloads(obj)
 
 
 # ── Change log & settings ──

@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-08-23 — Copias BCC configurables para toda salida al cliente:** el
+backend quedó cerrado alrededor de `EmailDeliveryGateway`, único dueño de
+Django mail I/O. Un inventario ejecutable de 23 claves cliente cubre propuestas
+(14), diagnósticos (4), documentos/correos manuales (3), cuentas de cobro (1,
+incluye emisión/reenvío/retry) y plataforma (1). La configuración vive separada
+de los avisos internos en Panel → Emails → Configuración, admite destinatarios
+activos/pausados y segmentación por las cinco familias, con todas seleccionadas
+al crear. El primario sale primero y las copias se envían después como sobres
+BCC independientes; fallas de copia no cambian ni reintentan el primario.
+`EmailLog.delivery_id`/`delivery_role` agrupa y muestra destinatario, estado y
+error de cada copia en historiales, excluyéndolas de dashboards, rate limits,
+contact counts y retries. Invitaciones, OTP y credenciales se clasifican como
+seguridad y nunca se copian. La migración es `content.0209`; inventario y rollout
+están en `docs/client-email-copy-inventory.md`. Falta, después del despliegue,
+crear desde Configuración la fila `carlos18bp@gmail.com` con las cinco familias;
+no se sembró en código por decisión explícita de administrabilidad.
+
 **2026-08-22 — Auditoría final responsiva Fase 5 sobre `main`:** las fases 0–4 quedaron integradas antes de iniciar el censo. La revisión triestado corrigió el E2E de Proyectos para sus representaciones fila/tarjeta y segmento/select, eliminó el breakpoint local de Blog edit y dio paridad táctil/teclado a completar tarjeta en Kanban y al avatar de Perfil. El contrato ahora fija también alturas, rechaza breakpoints JS locales del panel y detecta acciones interactivas ocultas sólo por hover; `.testquality.yml` expone al ledger los 12 módulos, breakpoints y viewports exactos. Verificación focal aprobada por QA independiente: contrato 101/12/5, 7/7 unitarias de configuración, Proyectos 5/5, Perfil/Kanban 15/15 y flujos de selector/guardado 2/2. El veredicto permanece amarillo: no hubo acceso a dispositivos físicos; PA-45 conserva overlays locales; el estándar fleet del toolkit está desfasado y el harness/ledger modela los módulos de forma distinta. El informe `docs/audits/2026-08-22-responsive-phase-5-final.md` y las fichas RSP-F5-01…04 registran esos pendientes.
 
 **2026-08-22 — Recurrentes con equivalente mensual COP canónico:** se descartó el patrón de vista desactualizada: el PATCH ya refetcheaba y el valor seguía mal después de recargar porque `cop_equivalent` estaba persistido y el formulario reenviaba el cache anterior. La política queda explícita como **tasa vigente configurada manualmente**. `RecurringPayment.save()` deriva el equivalente desde precio/moneda, `monthly_cop_cost` lo prorratea con la frecuencia y `AccountingSettings.save()` resincroniza todos los USD cuando cambia la tasa; serializers, MCP, fake data e importación dejaron de aceptarlo como entrada. La migración `0208` barre COP y USD históricos. En producción, la auditoría read-only encontró un único desalineado: Chat-GPT a USD 200 conservaba COP 80.000 en vez de COP 800.000; el costo activo general estaba COP 720.000 por debajo y la categoría Suscripciones de IA también. El modal ahora enseña una previsualización de equivalente/costo mensual de solo lectura y la página reconstruye fila, subtotal y total general tras guardar. Verificación: 27 pytest, 31 unitarias frontend y 3 E2E sin retries; Django check/migraciones sin drift, tokens limpios, build Nuxt aprobado, flow-map fresh (`admin-accounting-recurring` cubierto; global 257 covered, 39 partial, 0 junk-only, 0 missing) y quality gate file-scoped aprobado sin errores. Despliegue y aplicación de la migración siguen pendientes del flujo de integración.

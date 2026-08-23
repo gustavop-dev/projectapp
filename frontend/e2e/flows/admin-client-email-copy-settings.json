@@ -1,0 +1,17 @@
+{
+  "id": "admin-client-email-copy-settings",
+  "name": "Admin Client Email Copy Settings",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin manages the independent BCC recipient catalog under /panel/emails?tab=defaults. Each recipient can be added, paused, activated, removed and segmented across proposals, diagnostics, manual documents, collection accounts and platform confirmations. The view explains hidden-copy privacy and volume impact. Validation and server failures remain visible without claiming a change succeeded.",
+  "expectedSpecs": 7,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

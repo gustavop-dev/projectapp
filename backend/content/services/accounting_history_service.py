@@ -121,6 +121,7 @@ def email_log_queryset(params):
 
     logs = EmailLog.objects.filter(
         template_key__in=EMAIL_TEMPLATE_LABELS,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).select_related('body')
 
     if params.get('template_key'):

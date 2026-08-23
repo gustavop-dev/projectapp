@@ -8,10 +8,14 @@ inboxes). Best-effort: never raises; every attempt is recorded in EmailLog.
 import logging
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from content.services import email_log_service
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.notification_recipient_service import (
     active_recipient_emails,
 )
@@ -121,7 +125,11 @@ def send_accounting_change_email(change_log_id, *, recipients=None, retry_of=Non
             to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=TEMPLATE_KEY,
+            classification=DeliveryClassification.INTERNAL,
+        )
     except Exception as exc:
         logger.warning(
             'Failed to send accounting change email for change_log %s: %s',

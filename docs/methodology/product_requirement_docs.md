@@ -21,6 +21,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | Proposals sent as static PDFs with no tracking | Interactive fullscreen web experience with engagement analytics |
 | No visibility into client interest or behavior | View tracking, section-level time analytics, heat score, engagement signals |
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
+| The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
 | Company portfolio hard to maintain | Admin CRUD panel for portfolio works with bilingual content |
 | No blog for SEO/content marketing | Full blog system with structured JSON content, categories, calendar, sitemap |
 | Language barrier for international clients | i18n with prefix routing (`/en-us/`, `/es-co/`) for all public pages |
@@ -81,6 +82,14 @@ DRAFT → SENT → VIEWED → ACCEPTED
 **24h cooldown** enforced between automated client-facing emails per proposal. **Automations can be paused** per proposal (`automations_paused` flag). **Internal team notifications** (stage warning, stage overdue, first view, comment, seller inactivity, etc.) bypass the cooldown — per-event dedup is handled by dedicated timestamp fields on the source model.
 
 **Internal team recipients** are read from the `NOTIFICATION_EMAIL` env var (CSV-supported). One env var, all internal notifications. To target a different audience for stage tracking specifically, change the env var — there is no per-feature recipient setting.
+
+**Copies of client communication** use a separate administrable list under
+`/panel/emails` and never reuse `NOTIFICATION_EMAIL`. The starting behavior is
+all client email, with optional segmentation by Propuestas, Diagnósticos,
+Documentos/correos manuales, Cuentas de cobro and Plataforma. Copies are sent
+as separate BCC-only envelopes after the customer delivery succeeds; their
+success or failure is nested in the same delivery history. The authoritative
+23-channel inventory is `docs/client-email-copy-inventory.md`.
 
 #### Admin Panel — Proposals
 

@@ -1,16 +1,27 @@
 import { defineStore } from 'pinia';
-import { get_request, create_request, put_request } from './services/request_http';
+import {
+  get_request,
+  create_request,
+  put_request,
+  patch_request,
+  delete_request,
+} from './services/request_http';
 
 export const useEmailStore = defineStore('emails', {
   state: () => ({
     history: [],
     historyPagination: { total: 0, page: 1, has_next: false },
     defaults: { greeting: '', footer: '' },
+    copyRecipients: [],
+    copyFamilies: [],
+    copyMode: 'bcc',
     isSending: false,
     isLoadingHistory: false,
     isLoadingDefaults: false,
     isSavingDefaults: false,
     isLoadingPreview: false,
+    isLoadingCopyRecipients: false,
+    isSavingCopyRecipient: false,
     error: null,
   }),
 
@@ -104,6 +115,69 @@ export const useEmailStore = defineStore('emails', {
       /* c8 ignore next 3 */
       } finally {
         this.isSending = false;
+      }
+    },
+
+    async fetchCopyRecipients() {
+      this.isLoadingCopyRecipients = true;
+      this.error = null;
+      try {
+        const response = await get_request('emails/copy-recipients/');
+        this.copyRecipients = response.data.results || [];
+        this.copyFamilies = response.data.families || [];
+        this.copyMode = response.data.copy_mode || 'bcc';
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'fetch_copy_recipients_failed';
+        console.error('Error fetching client email copy recipients:', error);
+        return { success: false, error: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isLoadingCopyRecipients = false;
+      }
+    },
+
+    async createCopyRecipient(payload) {
+      this.isSavingCopyRecipient = true;
+      try {
+        const response = await create_request('emails/copy-recipients/', payload);
+        this.copyRecipients.push(response.data);
+        this.copyRecipients.sort((a, b) => a.email.localeCompare(b.email));
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, error: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isSavingCopyRecipient = false;
+      }
+    },
+
+    async updateCopyRecipient(id, payload) {
+      this.isSavingCopyRecipient = true;
+      try {
+        const response = await patch_request(`emails/copy-recipients/${id}/`, payload);
+        const index = this.copyRecipients.findIndex(item => item.id === id);
+        if (index !== -1) this.copyRecipients[index] = response.data;
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, error: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isSavingCopyRecipient = false;
+      }
+    },
+
+    async deleteCopyRecipient(id) {
+      this.isSavingCopyRecipient = true;
+      try {
+        await delete_request(`emails/copy-recipients/${id}/`);
+        this.copyRecipients = this.copyRecipients.filter(item => item.id !== id);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: error.response?.data };
+      /* c8 ignore next 3 */
+      } finally {
+        this.isSavingCopyRecipient = false;
       }
     },
   },

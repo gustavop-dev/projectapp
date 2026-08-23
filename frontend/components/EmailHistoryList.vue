@@ -103,6 +103,24 @@ function toggleExpand(id) {
               </span>
             </div>
           </div>
+          <div v-if="entry.copies?.length" :data-testid="`email-copy-list-${entry.id}`">
+            <p class="text-2xs text-text-subtle uppercase tracking-wide mb-1">Copias internas (BCC)</p>
+            <div class="space-y-1.5">
+              <div
+                v-for="copy in entry.copies"
+                :key="copy.id"
+                class="rounded-lg border border-border-muted bg-surface px-3 py-2"
+              >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                  <span class="break-all text-xs text-text-default">{{ copy.recipient }}</span>
+                  <span class="text-2xs font-medium" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                    {{ statusLabel(copy.status) }}
+                  </span>
+                </div>
+                <p v-if="copy.error_message" class="mt-1 text-2xs text-danger-strong">{{ copy.error_message }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </BaseCollapse>
     </div>

@@ -15,8 +15,14 @@ from content.api_errors import error_response
 HISTORY_PAGE_SIZE = 20
 
 
-def paginated_history_response(queryset, params, serializer_class):
-    """Serialize one 20-row page of a history queryset."""
+def paginated_history_response(
+    queryset,
+    params,
+    serializer_class,
+    *,
+    row_enricher=None,
+):
+    """Serialize one 20-row page, optionally enriching the sliced rows."""
     total = queryset.count()
     try:
         page = max(1, int(params.get('page', 1)))
@@ -25,9 +31,10 @@ def paginated_history_response(queryset, params, serializer_class):
     offset = (page - 1) * HISTORY_PAGE_SIZE
     num_pages = max(1, -(-total // HISTORY_PAGE_SIZE))
 
-    serializer = serializer_class(
-        queryset[offset:offset + HISTORY_PAGE_SIZE], many=True,
-    )
+    page_rows = queryset[offset:offset + HISTORY_PAGE_SIZE]
+    if row_enricher is not None:
+        page_rows = row_enricher(page_rows)
+    serializer = serializer_class(page_rows, many=True)
     return Response({
         'results': serializer.data,
         'count': total,

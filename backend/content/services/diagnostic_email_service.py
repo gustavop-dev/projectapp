@@ -10,11 +10,15 @@ from __future__ import annotations
 import logging
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import EmailLog, WebAppDiagnostic
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.proposal_email_service import (
     ProposalEmailService,
     _is_unsendable_client_email,
@@ -68,7 +72,7 @@ class DiagnosticEmailService:
                 to=[recipient],
             )
             email.attach_alternative(html_body, 'text/html')
-            email.send(fail_silently=False)
+            EmailDeliveryGateway.send(email, template_key=template_key)
             ProposalEmailService._log_email(
                 template_key, recipient, subject=subject, status='sent',
                 metadata={'diagnostic_uuid': str(diagnostic.uuid)},
@@ -172,7 +176,16 @@ class DiagnosticEmailService:
             email.attach_alternative(html_body, 'text/html')
             for filename, data, mime_type in (attachments or []):
                 email.attach(filename, data, mime_type)
-            email.send(fail_silently=False)
+            classification = (
+                DeliveryClassification.CLIENT
+                if audience == EmailLog.Audience.CLIENT
+                else DeliveryClassification.INTERNAL
+            )
+            EmailDeliveryGateway.send(
+                email,
+                template_key=cls.TEMPLATE_CUSTOM,
+                classification=classification,
+            )
 
             ProposalEmailService._log_email(
                 cls.TEMPLATE_CUSTOM, recipient_email,
@@ -210,11 +223,18 @@ class DiagnosticEmailService:
         logs = EmailLog.objects.filter(
             proposal__isnull=True,
             metadata__diagnostic_uuid=str(diagnostic.uuid),
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
         ).order_by('-sent_at')
 
         total = logs.count()
         page = max(1, int(page or 1))
         offset = (page - 1) * page_size
+        from content.services.email_log_service import (
+            attach_delivery_copies,
+            delivery_copy_payloads,
+        )
+
+        page_logs = attach_delivery_copies(logs[offset:offset + page_size])
         results = [
             {
                 'id': log.pk,
@@ -224,8 +244,9 @@ class DiagnosticEmailService:
                 'template_key': log.template_key,
                 'sent_at': log.sent_at.isoformat(),
                 'metadata': log.metadata,
+                'copies': delivery_copy_payloads(log),
             }
-            for log in logs[offset:offset + page_size]
+            for log in page_logs
         ]
         return {
             'results': results,

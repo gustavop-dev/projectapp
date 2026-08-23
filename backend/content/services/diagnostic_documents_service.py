@@ -12,12 +12,15 @@ import logging
 import mimetypes
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import DiagnosticAttachment, WebAppDiagnostic
 from content.services.diagnostic_email_service import DiagnosticEmailService
+from content.services.email_delivery_service import (
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.proposal_email_service import (
     ProposalEmailService,
     _is_unsendable_client_email,
@@ -115,7 +118,7 @@ def send_attachments_to_client(
         email.attach_alternative(html_body, 'text/html')
         for filename, data, mime_type in files_payload:
             email.attach(filename, data, mime_type)
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(email, template_key=TEMPLATE_KEY)
     except Exception as exc:
         ProposalEmailService._log_email(
             TEMPLATE_KEY, recipient, subject=email_subject, status='failed',

@@ -20,11 +20,15 @@ digest tomorrow instead of losing the notice.
 import logging
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.db.models import F, Q
 from django.template.loader import render_to_string
 
 from content.services import accounting_service, email_log_service
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.accounting_notice_cadence import is_notice_due
 from content.services.hosting_expiry_service import (
     collect_hosting_notices,
@@ -378,7 +382,11 @@ def _send_digest(today, incomes, recurring, hostings, recipients, config):
             subject=subject, body=text_body, from_email=from_email, to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=TEMPLATE_KEY,
+            classification=DeliveryClassification.INTERNAL,
+        )
     except Exception as exc:
         logger.warning('Failed to send the payment calendar: %s', exc)
         email_log_service.record_send(

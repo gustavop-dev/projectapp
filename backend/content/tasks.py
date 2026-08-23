@@ -1322,9 +1322,13 @@ def _send_task_deadline_email(task, threshold_pct=None, days_overdue=None):
     threshold_pct: 40, 70, or 100 (percentage of time elapsed).
     days_overdue: number of days past due_date (for recurring overdue reminders).
     """
-    from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from content.models import Task
+    from content.services.email_delivery_service import (
+        DeliveryClassification,
+        EmailDeliveryGateway,
+        EmailMultiAlternatives,
+    )
 
     if threshold_pct is not None:
         cfg = _THRESHOLD_CONFIGS[threshold_pct]
@@ -1377,7 +1381,11 @@ def _send_task_deadline_email(task, threshold_pct=None, days_overdue=None):
         to=TASK_NOTIFICATION_RECIPIENTS,
     )
     msg.attach_alternative(html_body, 'text/html')
-    msg.send(fail_silently=False)
+    EmailDeliveryGateway.send(
+        msg,
+        template_key='task_deadline_notification',
+        classification=DeliveryClassification.INTERNAL,
+    )
 
 
 @periodic_task(crontab(hour='8', minute='5'))
@@ -1461,9 +1469,13 @@ def _check_single_task_deadlines(task, today):
 
 def _send_task_alert_email(alert):
     """Send a manual-alert email for a single TaskAlert instance."""
-    from django.core.mail import EmailMultiAlternatives
     from django.template.loader import render_to_string
     from content.models import Task
+    from content.services.email_delivery_service import (
+        DeliveryClassification,
+        EmailDeliveryGateway,
+        EmailMultiAlternatives,
+    )
 
     task = alert.task
     subject = f'[ProjectApp] Alerta de tarea: {task.title}'
@@ -1501,7 +1513,11 @@ def _send_task_alert_email(alert):
         to=TASK_NOTIFICATION_RECIPIENTS,
     )
     msg.attach_alternative(html_body, 'text/html')
-    msg.send(fail_silently=False)
+    EmailDeliveryGateway.send(
+        msg,
+        template_key='task_alert_notification',
+        classification=DeliveryClassification.INTERNAL,
+    )
 
 
 @periodic_task(crontab(hour='8', minute='10'))

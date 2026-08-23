@@ -279,3 +279,20 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `frontend/config/responsive.js`, shared base components, accounting compact tables, responsive E2E specs and responsive documentation.
 - **Verification**: Vue compilation, focused unit slices, the production Nuxt build and five Playwright viewport scenarios all use the same contract.
 - **Lesson**: Parallel foundation and adoption work needs one named decision owner; merge the approved contract first, then mechanically audit all executable copies before accepting downstream behavior.
+
+### [ERR-022] Proposal magic-link email discarded its rendered body
+- **Date**: 2026-08-23
+- **Context**: While routing every email through the common delivery gateway,
+  the magic-link path was reviewed as one of the 23 client channels.
+- **Root Cause**: `send_magic_link_email` built its HTML and text bodies, then
+  reset both local variables to empty strings immediately before constructing
+  `EmailMultiAlternatives`. SMTP therefore received an empty primary body and
+  an empty HTML alternative even though rendering had succeeded.
+- **Resolution**: Remove the stale reset and pass the already-rendered values to
+  both the outbound message and `EmailLog`.
+- **Files Affected**: `backend/content/services/proposal_email_service.py`.
+- **Verification**: The client-channel inventory includes `magic_link`; focused
+  proposal tests and the gateway HTML/body preservation test cover the path.
+- **Lesson**: Variables initialized for an exception path must be bound before
+  rendering, not reinitialized after rendering. Centralizing transport is a
+  useful audit point because every caller's final envelope becomes visible.

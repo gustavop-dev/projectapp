@@ -8,6 +8,7 @@ const entry = {
   status: 'sent',
   sent_at: '2026-04-01T10:00:00Z',
   metadata: { greeting: 'Hola Ana', sections: ['Primer bloque'], footer: 'Saludos', attachment_names: ['x.pdf'] },
+  copies: [],
 };
 
 describe('EmailHistoryList', () => {
@@ -47,5 +48,23 @@ describe('EmailHistoryList', () => {
       slots: { 'entry-meta': '<span>· Plantilla</span>' },
     });
     expect(wrapper.text()).toContain('· Plantilla');
+  });
+
+  it('shows a failed BCC attempt inside the expanded entry', async () => {
+    const copy = {
+      id: 12,
+      recipient: 'audit@example.com',
+      status: 'failed',
+      error_message: 'SMTP timeout',
+    };
+    const wrapper = mount(EmailHistoryList, {
+      props: { history: [{ ...entry, copies: [copy] }] },
+    });
+
+    await wrapper.find('button').trigger('click');
+
+    const copies = wrapper.get('[data-testid="email-copy-list-7"]');
+    expect(copies.text()).toContain('audit@example.com');
+    expect(copies.text()).toContain('SMTP timeout');
   });
 });

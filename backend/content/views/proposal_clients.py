@@ -203,6 +203,7 @@ def _base_queryset():
                     .filter(
                         client=OuterRef('pk'),
                         audience=EmailLog.Audience.CLIENT,
+                        delivery_role=EmailLog.DeliveryRole.PRIMARY,
                     )
                     .order_by()
                     .values('client')
@@ -219,6 +220,7 @@ def _base_queryset():
                         client=OuterRef('pk'),
                         audience=EmailLog.Audience.CLIENT,
                         status=EmailLog.Status.FAILED,
+                        delivery_role=EmailLog.DeliveryRole.PRIMARY,
                     )
                     .order_by()
                     .values('client')
@@ -238,6 +240,7 @@ def _base_queryset():
                 .filter(
                     client=OuterRef('pk'),
                     audience=EmailLog.Audience.CLIENT,
+                    delivery_role=EmailLog.DeliveryRole.PRIMARY,
                 )
                 .order_by('-sent_at')
                 .values('sent_at')[:1],

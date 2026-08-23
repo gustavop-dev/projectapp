@@ -11,7 +11,6 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.utils import timezone
 from rest_framework_simplejwt.exceptions import TokenError
@@ -27,6 +26,10 @@ from accounts.services.tokens import (
     get_tokens_for_user,
 )
 from accounts.services.verification import create_and_send_otp
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+)
 
 logger = logging.getLogger('accounts.services.password_reset')
 User = get_user_model()
@@ -180,11 +183,13 @@ def send_password_changed_notification(user) -> None:
     }
     html_message = render_to_string('emails/password_reset_completed.html', context)
     text_message = render_to_string('emails/password_reset_completed.txt', context)
-    send_mail(
+    EmailDeliveryGateway.send_plain(
         subject='Se restableció la contraseña de tu cuenta — ProjectApp',
-        message=text_message,
+        body=text_message,
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
+        recipients=[user.email],
+        html_body=html_message,
+        template_key='password_changed',
+        classification=DeliveryClassification.SECURITY,
         fail_silently=False,
     )

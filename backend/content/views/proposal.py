@@ -2756,6 +2756,7 @@ def request_magic_link(request):
         recent = EmailLog.objects.filter(
             template_key='magic_link',
             recipient=email,
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
             sent_at__gte=five_min_ago,
         ).exists()
         if recent:
@@ -3486,7 +3487,9 @@ def email_deliverability_dashboard(request):
     now = timezone.now()
     thirty_days_ago = now - timedelta(days=30)
 
-    all_logs = EmailLog.objects.all()
+    all_logs = EmailLog.objects.filter(
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
+    )
     recent_logs = all_logs.filter(sent_at__gte=thirty_days_ago)
 
     # Overall counts
@@ -4091,6 +4094,7 @@ def _parse_composed_email(request, proposal, template_key):
     one_min_ago = timezone.now() - timedelta(minutes=1)
     if EmailLog.objects.filter(
         proposal=proposal, template_key=template_key,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
         sent_at__gte=one_min_ago,
     ).exists():
         return None, Response(
@@ -4229,6 +4233,7 @@ def _list_emails_view(request, proposal_id, template_key):
     logs = EmailLog.objects.filter(
         proposal=proposal,
         template_key=template_key,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     ).order_by('-sent_at')
 
     total = logs.count()
@@ -4239,6 +4244,12 @@ def _list_emails_view(request, proposal_id, template_key):
     page_size = 20
     offset = (page - 1) * page_size
 
+    from content.services.email_log_service import (
+        attach_delivery_copies,
+        delivery_copy_payloads,
+    )
+
+    page_logs = attach_delivery_copies(logs[offset:offset + page_size])
     data = [
         {
             'id': log.pk,
@@ -4247,8 +4258,9 @@ def _list_emails_view(request, proposal_id, template_key):
             'status': log.status,
             'sent_at': log.sent_at.isoformat(),
             'metadata': log.metadata,
+            'copies': delivery_copy_payloads(log),
         }
-        for log in logs[offset:offset + page_size]
+        for log in page_logs
     ]
     return Response({
         'results': data,

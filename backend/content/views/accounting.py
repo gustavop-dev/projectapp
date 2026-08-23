@@ -89,6 +89,7 @@ from content.services import (
     accounting_service,
     accounting_settlement_service,
 )
+from content.services.email_log_service import attach_delivery_copies
 from content.utils import today_bogota
 from content.views.history_pagination import (
     email_body_response,
@@ -1794,6 +1795,7 @@ def list_accounting_email_logs(request):
 
     return _paginated_history_response(
         logs.prefetch_related('targets'), params, EmailLogSerializer,
+        row_enricher=attach_delivery_copies,
     )
 
 
@@ -1810,6 +1812,7 @@ def accounting_email_log_body(request, log_id):
         EmailLog.objects.select_related('body'),
         id=log_id,
         template_key__in=EMAIL_TEMPLATE_LABELS,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     )
     return email_body_response(log)
 
@@ -1819,7 +1822,10 @@ def accounting_email_log_body(request, log_id):
 def retry_accounting_email_log(request, log_id):
     """Re-send a failed notice to the address on the row, and only to it."""
     log = get_object_or_404(
-        EmailLog, id=log_id, template_key__in=EMAIL_TEMPLATE_LABELS,
+        EmailLog,
+        id=log_id,
+        template_key__in=EMAIL_TEMPLATE_LABELS,
+        delivery_role=EmailLog.DeliveryRole.PRIMARY,
     )
     try:
         attempt = accounting_email_retry_service.retry_send(log)

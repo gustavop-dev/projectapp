@@ -12,8 +12,13 @@ Best-effort: never raises.
 import logging
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -134,7 +139,11 @@ def send_payment_status_team_email(
             to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=TEMPLATE_KEY,
+            classification=DeliveryClassification.INTERNAL,
+        )
     except Exception as exc:
         logger.warning(
             'Failed to send payment status email for payment %s: %s',

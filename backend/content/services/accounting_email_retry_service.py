@@ -123,6 +123,8 @@ def retry_send(log):
     """
     from content.models import EmailLog
 
+    if log.delivery_role == EmailLog.DeliveryRole.COPY:
+        raise RetryError('Las copias internas no se reintentan.')
     if log.status != EmailLog.Status.FAILED:
         raise RetryError('Solo se reintentan los envíos que fallaron.')
 

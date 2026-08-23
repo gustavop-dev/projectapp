@@ -40,6 +40,7 @@ from .models import (
     WebAppDiagnostic,
     DiagnosticSection,
     EmailLog,
+    ClientEmailCopyRecipient,
     LinkedInToken,
     LinkedInPost,
     Task,
@@ -446,6 +447,7 @@ admin_site.register(ProposalShareLink)
 admin_site.register(WebAppDiagnostic)
 admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
+admin_site.register(ClientEmailCopyRecipient)
 admin_site.register(LinkedInToken)
 
 

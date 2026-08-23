@@ -9,8 +9,13 @@ import logging
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.core.mail import EmailMultiAlternatives
 from django.utils import timezone
+
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +60,11 @@ def check_linkedin_token_expiry() -> str:
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=recipients,
     )
-    email.send(fail_silently=True)
+    EmailDeliveryGateway.send(
+        email,
+        template_key='linkedin_token_expiry',
+        classification=DeliveryClassification.INTERNAL,
+        fail_silently=True,
+    )
     logger.info('LinkedIn expiry warning sent to %s', ', '.join(recipients))
     return 'warned'

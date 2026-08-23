@@ -15,7 +15,6 @@ import logging
 import re
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from content.models import EmailLog
@@ -24,6 +23,10 @@ from content.services.collection_account_pdf_service import (
     CollectionAccountPdfService,
 )
 from content.services.email_markdown import markdown_to_email_html
+from content.services.email_delivery_service import (
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.utils import format_bogota_date, format_cop_email
 
 logger = logging.getLogger(__name__)
@@ -191,7 +194,7 @@ def send_collection_account_email(
         email.attach(
             email_parts['attachment_name'], pdf_bytes, 'application/pdf',
         )
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(email, template_key=TEMPLATE_KEY)
     except Exception as exc:
         logger.warning(
             'Failed to send collection account %s to %s: %s',

@@ -4,11 +4,14 @@ import string
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.db.models import Q
-from django.core.mail import send_mail
 from django.conf import settings
 from django.template.loader import render_to_string
 
 from accounts.models import UserProfile
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+)
 
 User = get_user_model()
 
@@ -124,9 +127,9 @@ def _send_invitation_email(user, temp_password):
     invitation_context.update(_build_design_context())
     html_message = render_to_string('emails/invitation.html', invitation_context)
 
-    send_mail(
+    EmailDeliveryGateway.send_plain(
         subject=subject,
-        message=(
+        body=(
             f'Hola {user.first_name},\n\n'
             f'Tu cuenta en ProjectApp ha sido creada.\n'
             f'Email: {user.email}\n'
@@ -136,8 +139,10 @@ def _send_invitation_email(user, temp_password):
             f'y configurar tu contraseña definitiva.'
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
+        recipients=[user.email],
+        html_body=html_message,
+        template_key='client_invitation',
+        classification=DeliveryClassification.SECURITY,
         fail_silently=False,
     )
 
@@ -153,9 +158,9 @@ def _send_admin_invitation_email(user, temp_password):
         'platform_url': platform_url,
     })
 
-    send_mail(
+    EmailDeliveryGateway.send_plain(
         subject=subject,
-        message=(
+        body=(
             f'Hola {user.first_name},\n\n'
             f'Has sido agregado como administrador en ProjectApp.\n'
             f'Email: {user.email}\n'
@@ -165,7 +170,9 @@ def _send_admin_invitation_email(user, temp_password):
             f'y configurar tu contraseña definitiva.'
         ),
         from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        html_message=html_message,
+        recipients=[user.email],
+        html_body=html_message,
+        template_key='admin_invitation',
+        classification=DeliveryClassification.SECURITY,
         fail_silently=False,
     )

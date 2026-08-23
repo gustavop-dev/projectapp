@@ -171,15 +171,16 @@
             d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
-        <h3 class="text-sm font-semibold text-text-default">Valores por defecto</h3>
+        <h3 class="text-sm font-semibold text-text-default">Configuración de emails</h3>
       </div>
       <p class="text-xs text-text-muted mb-5">
-        Estos valores se precargan automáticamente al redactar un correo nuevo.
+        Administra los valores de redacción y las copias internas de los correos enviados a clientes.
       </p>
 
       <div v-if="emailStore.isLoadingDefaults" class="text-xs text-text-subtle py-4 text-center">Cargando valores...</div>
 
       <div v-else class="space-y-4 max-w-xl">
+        <h4 class="text-sm font-semibold text-text-default">Valores por defecto</h4>
         <UnsavedChangesNotice
           v-if="hasChanges"
           :title="unsavedTitle"
@@ -219,6 +220,8 @@
           </BaseButton>
         </div>
       </div>
+
+      <ClientEmailCopySettings class="mt-8" />
     </section>
 
     <!-- ── History ── -->
@@ -292,6 +295,24 @@
                 </span>
               </div>
             </div>
+            <div v-if="entry.copies?.length" :data-testid="`email-copy-list-${entry.id}`">
+              <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-1">Copias internas (BCC)</p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="copy in entry.copies"
+                  :key="copy.id"
+                  class="rounded-lg border border-border-muted bg-surface px-3 py-2"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="break-all text-xs text-text-default">{{ copy.recipient }}</span>
+                    <span class="text-[10px] font-medium" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                      {{ statusLabel(copy.status) }}
+                    </span>
+                  </div>
+                  <p v-if="copy.error_message" class="mt-1 text-[10px] text-danger-strong">{{ copy.error_message }}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -328,6 +349,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
+import ClientEmailCopySettings from '~/components/emails/ClientEmailCopySettings.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { vAutoResize } from '~/utils/autoResizeDirective';
@@ -348,7 +370,7 @@ const router = useRouter();
 const PAGE_TABS = [
   { id: 'compose', label: 'Redactar' },
   { id: 'history', label: 'Historial' },
-  { id: 'defaults', label: 'Valores por defecto' },
+  { id: 'defaults', label: 'Configuración' },
 ];
 const TAB_IDS = PAGE_TABS.map(t => t.id);
 const activeTab = ref(TAB_IDS.includes(route.query.tab) ? route.query.tab : 'compose');

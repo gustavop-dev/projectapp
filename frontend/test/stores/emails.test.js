@@ -11,9 +11,17 @@ jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
   create_request: jest.fn(),
   put_request: jest.fn(),
+  patch_request: jest.fn(),
+  delete_request: jest.fn(),
 }));
 
-const { get_request, create_request, put_request } = require('../../stores/services/request_http');
+const {
+  get_request,
+  create_request,
+  put_request,
+  patch_request,
+  delete_request,
+} = require('../../stores/services/request_http');
 
 describe('useEmailStore', () => {
   let store;
@@ -341,6 +349,88 @@ describe('useEmailStore', () => {
 
       expect(store.error).toBe('preview_failed');
       expect(result).toEqual({ success: false, error: undefined });
+    });
+  });
+
+  describe('copy recipients', () => {
+    const recipient = {
+      id: 8,
+      email: 'audit@example.com',
+      is_active: true,
+      families: ['proposals'],
+    };
+
+    it('loads copy configuration from the emails endpoint', async () => {
+      const payload = {
+        results: [recipient],
+        families: [{ value: 'proposals', label: 'Propuestas' }],
+        copy_mode: 'bcc',
+      };
+      get_request.mockResolvedValue({ data: payload });
+
+      const result = await store.fetchCopyRecipients();
+
+      expect(get_request).toHaveBeenCalledWith('emails/copy-recipients/');
+      expect(store.copyRecipients).toEqual([recipient]);
+      expect(store.copyFamilies).toEqual(payload.families);
+      expect(result.success).toBe(true);
+    });
+
+    it('creates a copy recipient through the configuration endpoint', async () => {
+      create_request.mockResolvedValue({ data: recipient });
+
+      const result = await store.createCopyRecipient({
+        email: recipient.email,
+        families: recipient.families,
+      });
+
+      expect(create_request).toHaveBeenCalledWith(
+        'emails/copy-recipients/',
+        { email: recipient.email, families: recipient.families },
+      );
+      expect(store.copyRecipients).toEqual([recipient]);
+      expect(result.success).toBe(true);
+    });
+
+    it('updates the configured family selection', async () => {
+      store.copyRecipients = [recipient];
+      const updated = { ...recipient, families: ['collections'] };
+      patch_request.mockResolvedValue({ data: updated });
+
+      const result = await store.updateCopyRecipient(8, {
+        families: ['collections'],
+      });
+
+      expect(patch_request).toHaveBeenCalledWith(
+        'emails/copy-recipients/8/',
+        { families: ['collections'] },
+      );
+      expect(store.copyRecipients).toEqual([updated]);
+      expect(result.success).toBe(true);
+    });
+
+    it('deletes a configured copy recipient', async () => {
+      store.copyRecipients = [recipient];
+      delete_request.mockResolvedValue({ data: null });
+
+      const result = await store.deleteCopyRecipient(8);
+
+      expect(delete_request).toHaveBeenCalledWith('emails/copy-recipients/8/');
+      expect(store.copyRecipients).toEqual([]);
+      expect(result.success).toBe(true);
+    });
+
+    it('returns validation details from recipient creation', async () => {
+      create_request.mockRejectedValue({
+        response: { data: { email: ['Ese correo ya está en la lista.'] } },
+      });
+
+      const result = await store.createCopyRecipient({ email: recipient.email });
+
+      expect(result).toEqual({
+        success: false,
+        error: { email: ['Ese correo ya está en la lista.'] },
+      });
     });
   });
 });

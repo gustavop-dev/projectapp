@@ -80,6 +80,8 @@
         "admin-proposal-defaults-config",
         "admin-proposal-defaults-slug-pattern",
         "admin-email-templates-config",
+        "admin-client-email-copy-settings",
+        "admin-client-email-copy-history",
         "admin-mini-crm-clients",
         "admin-client-create-standalone",
         "admin-client-delete-orphan",

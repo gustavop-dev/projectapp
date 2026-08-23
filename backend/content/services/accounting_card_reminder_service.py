@@ -13,10 +13,14 @@ import logging
 from datetime import timedelta
 
 from django.conf import settings
-from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 
 from content.services import email_log_service
+from content.services.email_delivery_service import (
+    DeliveryClassification,
+    EmailDeliveryGateway,
+    EmailMultiAlternatives,
+)
 from content.services.notification_recipient_service import (
     active_recipient_emails,
 )
@@ -111,7 +115,11 @@ def run_card_reminder(today=None):
             to=recipients,
         )
         email.attach_alternative(html_body, 'text/html')
-        email.send(fail_silently=False)
+        EmailDeliveryGateway.send(
+            email,
+            template_key=TEMPLATE_KEY,
+            classification=DeliveryClassification.INTERNAL,
+        )
     except Exception as exc:
         logger.warning('Failed to send card-debt reminder: %s', exc)
         email_log_service.record_send(
