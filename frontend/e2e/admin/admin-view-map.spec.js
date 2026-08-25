@@ -140,7 +140,7 @@ test.describe('Admin View Map', () => {
     const copyButton = viewCard.getByTitle('Copiar referencia');
     await copyButton.click();
 
-    await expect(viewCard.getByTitle('Copiado!')).toBeVisible({ timeout: 5000 });
+    await expect(viewCard.getByRole('button', { name: 'Copiado: referencia' })).toBeVisible({ timeout: 5000 });
   });
 
   test('seeded filter tabs render and selecting Dashboards filters the catalog', {

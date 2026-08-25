@@ -97,7 +97,7 @@ test.describe('Admin Proposal Manual Alerts', () => {
     await setupMock(page);
     await gotoProposalPanel(page);
 
-    const formToggle = page.getByText('+ Crear recordatorio');
+    const formToggle = page.getByRole('button', { name: 'Crear recordatorio' });
     await expect(formToggle).toBeVisible();
 
     await formToggle.click();
@@ -116,7 +116,7 @@ test.describe('Admin Proposal Manual Alerts', () => {
     await setupMock(page);
     await gotoProposalPanel(page);
 
-    await page.getByText('+ Crear recordatorio').click();
+    await page.getByRole('button', { name: 'Crear recordatorio' }).click();
 
     // Fill form
     await page.locator('select').filter({ hasText: 'Seleccionar...' }).selectOption('1');

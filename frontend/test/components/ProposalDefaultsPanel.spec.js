@@ -164,7 +164,9 @@ function defaultStubs() {
     BaseTextarea: BaseTextareaStub,
     BaseButton: BaseButtonStub,
     BaseTabs: BaseTabsStub,
-    BaseTooltip: { template: '<div><slot /></div>' },
+    BaseTooltip: {
+      template: '<div><slot name="trigger" tooltip-id="test-tooltip" /><slot /></div>',
+    },
     BaseFormField: { template: '<div><slot /></div>' },
     BaseBadge: { template: '<span><slot /></span>' },
     BaseToggle: { template: '<input type="checkbox" />' },
@@ -817,7 +819,7 @@ describe('ProposalDefaultsPanel', () => {
       const wrapper = mountPanel('sections');
       await flushPromises();
 
-      await wrapper.find('button[title="Vista previa"]').trigger('click');
+      await wrapper.find('button[aria-label="Vista previa"]').trigger('click');
 
       expect(wrapper.vm.showSectionPreview).toBe(true);
     });

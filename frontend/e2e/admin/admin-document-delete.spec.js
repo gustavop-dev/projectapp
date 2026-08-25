@@ -30,7 +30,7 @@ function baseRoutes(apiPath) {
 
 async function openDeleteConfirm(page) {
   await page.goto('/panel/documents');
-  await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
+  await page.getByRole('row', { name: /Contrato de Servicios/i }).getByRole('button', { name: /^Acciones de / }).click();
   await page.getByRole('button', { name: /^Eliminar/ }).click();
   await expect(page.getByText('Eliminar documento')).toBeVisible();
 }

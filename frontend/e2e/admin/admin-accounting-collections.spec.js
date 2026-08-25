@@ -1037,7 +1037,7 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Marcar pagada').click();
+    await page.getByTestId('accounting-row-2').getByLabel('Registrar pago (liquidar)').click();
 
     // Never a silent mark-paid: the Liquidar modal takes over.
     await expect(
@@ -1098,7 +1098,7 @@ test.describe('Admin Accounting Collections', () => {
     });
     await gotoCollections(page);
 
-    await page.getByTestId('accounting-row-2').getByLabel('Marcar pagada').click();
+    await page.getByTestId('accounting-row-2').getByLabel('Registrar pago (liquidar)').click();
     await expect(page.getByTestId('income-liquidate-period-start'))
       .toHaveValue('2026-10-01');
 

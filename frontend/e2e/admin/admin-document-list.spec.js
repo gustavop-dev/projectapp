@@ -103,9 +103,9 @@ test.describe('Admin Document List', () => {
     await page.goto('/panel/documents');
 
     const row = page.getByRole('row', { name: /Contrato de Servicios/i });
-    await expect(row.locator('button[title="Acciones"]')).toHaveCount(1);
+    await expect(row.getByRole('button', { name: /^Acciones de / })).toHaveCount(1);
 
-    await row.locator('button[title="Acciones"]').click();
+    await row.getByRole('button', { name: /^Acciones de / }).click();
 
     await expect(page.getByRole('button', { name: /Editar contenido/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /Renombrar/i })).toBeVisible();
@@ -124,7 +124,7 @@ test.describe('Admin Document List', () => {
     });
     await page.goto('/panel/documents');
 
-    await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
+    await page.getByRole('row', { name: /Contrato de Servicios/i }).getByRole('button', { name: /^Acciones de / }).click();
     await page.getByRole('button', { name: /Editar contenido/i }).click();
 
     await expect(page).toHaveURL(/\/panel\/documents\/1\/edit/);

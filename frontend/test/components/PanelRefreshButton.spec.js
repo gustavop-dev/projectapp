@@ -14,13 +14,15 @@ describe('PanelRefreshButton', () => {
     const wrapper = mount(PanelRefreshButton, { props: { loading: true } });
     const btn = wrapper.find('button');
     expect(btn.attributes('disabled')).toBeDefined();
-    expect(btn.attributes('title')).toBe('Actualizando...');
+    expect(btn.attributes('title')).toBe('Actualizando datos');
     expect(wrapper.find('svg').classes()).toContain('animate-spin');
   });
 
   it('uses the floating layout classes that anchor it to the bottom-right', () => {
     const wrapper = mount(PanelRefreshButton);
-    const cls = wrapper.find('button').classes();
-    expect(cls).toEqual(expect.arrayContaining(['fixed', 'bottom-6', 'right-6', 'rounded-full']));
+    const floatingClasses = wrapper.find('div').classes();
+    const buttonClasses = wrapper.find('button').classes();
+    expect(floatingClasses).toEqual(expect.arrayContaining(['fixed', 'bottom-6', 'right-6']));
+    expect(buttonClasses).toContain('rounded-full');
   });
 });

@@ -93,14 +93,13 @@ test.describe('Admin Document Create', () => {
     await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
       .fill('# Informe\n\nCaso resuelto.');
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('📝');
+    await expect(noteButton).toHaveAttribute('data-panel-action', 'notes');
     await expect(noteButton).toHaveAccessibleName('Agregar notas');
     await noteButton.click();
     await page.getByTestId('client-note-subject').fill('Caso resuelto');
     await page.getByTestId('client-note-email').fill('Hola Ana,\n\nEl caso fue resuelto.');
     await page.getByTestId('client-note-whatsapp').fill('Hola Ana, el caso ya fue resuelto.');
     await page.getByTestId('client-note-apply').click();
-    await expect(noteButton).toHaveText('✏️');
     await expect(noteButton).toHaveAccessibleName('Editar notas');
 
     await page.getByRole('button', { name: /Crear Documento/i }).click();

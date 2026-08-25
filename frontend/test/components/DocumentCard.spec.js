@@ -11,7 +11,7 @@ const NuxtLink = {
 const BaseTooltip = {
   name: 'BaseTooltip',
   props: ['text'],
-  template: '<span :data-tooltip="text"><slot /></span>',
+  template: '<span :data-tooltip="text"><slot name="trigger" tooltip-id="test-tooltip" /><slot /></span>',
 }
 
 const baseDocument = {
@@ -71,7 +71,7 @@ describe('DocumentCard', () => {
     await wrapper.trigger('click')
     expect(wrapper.emitted('open')).toHaveLength(1)
 
-    await wrapper.find('button[title="Acciones"]').trigger('click')
+    await wrapper.find('button[aria-label="Acciones de Contrato de Servicios"]').trigger('click')
     expect(wrapper.emitted('action')).toHaveLength(1)
     // The kebab click must not also open the card.
     expect(wrapper.emitted('open')).toHaveLength(1)
@@ -103,7 +103,7 @@ describe('DocumentCard', () => {
 
   it('exposes an accessible name for the kebab', async () => {
     const wrapper = await mountCard()
-    const kebab = wrapper.find('button[title="Acciones"]')
+    const kebab = wrapper.find('button[aria-label="Acciones de Contrato de Servicios"]')
     expect(kebab.attributes('aria-label')).toBe('Acciones de Contrato de Servicios')
   })
 

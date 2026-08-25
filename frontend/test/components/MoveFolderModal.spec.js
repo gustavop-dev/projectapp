@@ -174,9 +174,7 @@ describe('MoveFolderModal', () => {
 
     it('emits update:modelValue false when the header close button is clicked', async () => {
       const wrapper = mountModal();
-      const closeBtn = wrapper.find('button svg path[d*="M6 18L18"]').element.closest('button');
-      await closeBtn.dispatchEvent(new Event('click'));
-      await wrapper.vm.$nextTick();
+      await wrapper.find('button[aria-label="Cerrar"]').trigger('click');
 
       expect(wrapper.emitted('update:modelValue')).toEqual([[false]]);
     });

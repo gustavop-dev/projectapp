@@ -157,7 +157,7 @@ describe('DiagnosticFilterPanel', () => {
       isOpen: true,
       modelValue: { ...emptyFilter(), statuses: ['draft'] },
     });
-    const chipClose = wrapper.find('button[aria-label="Quitar"]');
+    const chipClose = wrapper.find('button[aria-label^="Quitar filtro Estado:"]');
 
     await chipClose.trigger('click');
 
@@ -171,7 +171,7 @@ describe('DiagnosticFilterPanel', () => {
       isOpen: true,
       modelValue: { ...emptyFilter(), investmentMin: 200, investmentMax: 800 },
     });
-    const chipClose = wrapper.find('button[aria-label="Quitar"]');
+    const chipClose = wrapper.find('button[aria-label^="Quitar filtro Inversión:"]');
 
     await chipClose.trigger('click');
 
