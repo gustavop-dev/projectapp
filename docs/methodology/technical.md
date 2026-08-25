@@ -64,6 +64,22 @@ npm install
 npm run dev                             # http://localhost:3000
 ```
 
+#### Documents navigation URL contract
+
+`useDocumentFilterQuery` synchronizes the list with these canonical query keys:
+`folder`, `scope`, `tags`, `client`, `project`, `q`, `order`, `view`, `page` and
+`focus`. Defaults are omitted, tag ids are normalized, and interactive filter
+changes use `router.replace` so browser history represents meaningful list states.
+Global search uses an effective all-documents scope without overwriting the scope
+that must be restored when the search is cleared or revisited.
+
+Editor links carry `from=<localized documents-list URL>`. All editor exits resolve
+that value through `documentReturnNavigation.js`, whose allowlist accepts only the
+Documents list in the current application. The explicit return adds `focus` and
+restores the owning page before focusing its row/card; native browser Back consumes
+the original route entry. A direct, malformed or cross-module `from` falls back to
+the localized Documents root.
+
 ### Codex Runtime Surfaces (ProjectApp)
 
 - Always-on instructions:
