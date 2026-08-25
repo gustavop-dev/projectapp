@@ -108,6 +108,28 @@ flowchart TD
     ContentURLs --> EmailTemplateViews["Email Template Views"]
 ```
 
+### Documents list-detail navigation
+
+The Documents list owns its navigation state in the route query. Filters, global
+search, normal/archived scope, list/grid mode and pagination are therefore
+shareable and restorable browser history entries rather than component memory.
+Opening an editor copies the complete localized list route into `from` and adds the
+document id as `focus` for the explicit return path.
+
+```mermaid
+flowchart LR
+    List["Documents list URL\nfilters + mode + page"] -->|"edit link: from + focus"| Editor[Document editor URL]
+    Editor -->|"validated explicit return"| Focused["Same list URL\nfocused row/card"]
+    Editor -->|"browser Back"| List
+    Direct[Direct/untrusted entry] --> Root[Localized Documents root]
+```
+
+`frontend/utils/documentReturnNavigation.js` accepts only same-application routes
+whose localized path resolves to `/panel/documents`; it rejects protocol-relative,
+external and cross-module destinations. `useDocumentFilterQuery` owns bidirectional
+route/state synchronization. This flow is frontend-only and does not change the
+Documents API or schema.
+
 ### MCP ingress and throttling
 
 Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.

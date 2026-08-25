@@ -82,7 +82,7 @@ const LISTINGS = [
     handler: handlers.documents,
     inertCell: 'doc-client-cell-1',
     titleLink: 'document-open-1',
-    href: '/panel/documents/1/edit',
+    hrefPattern: /\/panel\/documents\/1\/edit\?from=\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?panel\/documents\?focus=1$/,
     detail: /\/panel\/documents\/1\/edit/,
   },
   {
@@ -92,7 +92,7 @@ const LISTINGS = [
     handler: handlers.proposals,
     inertCell: 'proposal-row-id-1',
     titleLink: 'proposal-open-1',
-    href: '/panel/proposals/1/edit',
+    hrefPattern: /\/panel\/proposals\/1\/edit$/,
     detail: /\/panel\/proposals\/1\/edit/,
   },
   {
@@ -102,7 +102,7 @@ const LISTINGS = [
     handler: handlers.diagnostics,
     inertCell: 'diagnostic-row-client-1',
     titleLink: 'diagnostic-open-1',
-    href: '/panel/diagnostics/1/edit',
+    hrefPattern: /\/panel\/diagnostics\/1\/edit$/,
     detail: /\/panel\/diagnostics\/1\/edit/,
   },
 ];
@@ -124,7 +124,7 @@ for (const listing of LISTINGS) {
       const link = page.getByTestId(listing.titleLink);
       // La precondición de "abrir en pestaña nueva" y "copiar dirección" del
       // menú contextual: sin este href, ninguna de las dos existe.
-      await expect(link).toHaveAttribute('href', new RegExp(`${listing.href}$`), { timeout: 20_000 });
+      await expect(link).toHaveAttribute('href', listing.hrefPattern, { timeout: 20_000 });
 
       await link.press('Enter');
 

@@ -18,7 +18,7 @@
     <DocumentsToolbar
       v-model:search="searchQuery"
       v-model:view-mode="viewMode"
-      :scope="documentStore.archiveScope"
+      :scope="effectiveScope"
       :scope-locked="isSearching"
       :compact="isPanelStacked"
       class="mb-5"
@@ -75,7 +75,7 @@
         style="--enter-delay: 120ms"
         :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
-        :archive-scope="documentStore.archiveScope"
+        :archive-scope="effectiveScope"
         :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
@@ -351,7 +351,7 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
-            :scope="documentStore.archiveScope"
+            :scope="effectiveScope"
             :folder-summary="subfolderSummary"
             :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
@@ -377,7 +377,7 @@
             :dragging-doc-id="draggingDoc?.id ?? null"
             :drag-over-folder-id="dragOverFolderId"
             :newly-created-id="newlyCreatedId"
-            :scope="documentStore.archiveScope"
+            :scope="effectiveScope"
             :folder-summary="subfolderSummary"
             :updating="folderStore.isUpdating || documentStore.isUpdating"
             @open="openDocument"
@@ -405,9 +405,9 @@
           :range-from="docRangeFrom"
           :range-to="docRangeTo"
           class="mt-4"
-          @prev="docPrev"
-          @next="docNext"
-          @go="docGoTo"
+          @prev="goToPreviousDocumentPage"
+          @next="goToNextDocumentPage"
+          @go="goToDocumentPage"
         />
 
       </section>
@@ -423,7 +423,7 @@
         class="h-full rounded-none border-0 shadow-none"
         :folders="sidebarFolders"
         :active-id="documentStore.activeFolderId"
-        :archive-scope="documentStore.archiveScope"
+        :archive-scope="effectiveScope"
         :total-count="sidebarTotalCount"
         :archived-count="documentStore.counts.documents.archived"
         :unfiled-count="sidebarUnfiledCount"
@@ -509,7 +509,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import FolderSidebar from '~/components/panel/documents/FolderSidebar.vue';
 import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue';
 import FolderHeader from '~/components/panel/documents/FolderHeader.vue';
@@ -544,12 +544,14 @@ import { useRowNavigation } from '~/composables/useRowNavigation';
 import { useIsMobile } from '~/composables/useIsMobile';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
+import { documentOriginWithFocus } from '~/utils/documentReturnNavigation';
 import {
   FOLDER_PANEL_MAX, FOLDER_PANEL_MIN, useFolderPanelWidth,
 } from '~/composables/useFolderPanelWidth';
 
 const localePath = useLocalePath();
 const route = useRoute();
+const router = useRouter();
 const { openRow } = useRowNavigation();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
@@ -575,13 +577,18 @@ const {
 } = useFolderPanelWidth(foldersGridRef);
 
 const searchQuery = ref('');
+const focusedDocumentId = ref(null);
 const newlyCreatedId = ref(null);
 let newlyCreatedTimer = null;
 // El estado es un eje propio: `activeFolderId` dice DÓNDE ('all' | 'root' |
 // 'none' | id) y `archiveScope` dice EN QUÉ ESTADO. Antes compartían campo, y
 // por eso no se podía entrar a una carpeta archivada ni filtrar dentro de ella.
-const isArchived = computed(() => documentStore.archiveScope === 'archived');
 const isSearching = computed(() => searchQuery.value.trim().length > 0);
+// La búsqueda es global sin destruir el scope de origen. La interfaz muestra
+// el ámbito efectivo ('all'), mientras la URL conserva el modo que reaparece
+// al limpiar el término o al volver desde el editor.
+const effectiveScope = computed(() => (isSearching.value ? 'all' : documentStore.archiveScope));
+const isArchived = computed(() => effectiveScope.value === 'archived');
 const archivedOrder = computed(() => documentStore.archivedOrder);
 const ARCHIVED_ORDER_OPTIONS = [
   { value: 'recent', label: 'Recientes', testId: 'archived-order-recent' },
@@ -617,7 +624,7 @@ const compactFolderLabel = computed(() => {
 // puede bajar. Importarla en los dos sitios es lo que garantiza que la suma de
 // las filas más «Sin carpeta» dé exactamente «Todos»: las raíces que se listan
 // y los subárboles que se suman son la misma partición del árbol.
-const treeScope = computed(() => treeScopeFor(documentStore.archiveScope));
+const treeScope = computed(() => treeScopeFor(effectiveScope.value));
 
 const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.value));
 
@@ -626,15 +633,15 @@ const sidebarFolders = computed(() => folderStore.scopedRootFolders(treeScope.va
 // menos que la suma de sus propias carpetas.
 const sidebarTotalCount = computed(() => {
   const { active, archived } = documentStore.counts.documents;
-  if (documentStore.archiveScope === 'archived') return archived;
-  if (documentStore.archiveScope === 'all') return active + archived;
+  if (effectiveScope.value === 'archived') return archived;
+  if (effectiveScope.value === 'all') return active + archived;
   return active;
 });
 
 const sidebarUnfiledCount = computed(() => {
   const { unfiled_active: unfiledActive, unfiled_archived: unfiledArchived } = documentStore.counts.documents;
-  if (documentStore.archiveScope === 'archived') return unfiledArchived;
-  if (documentStore.archiveScope === 'all') return unfiledActive + unfiledArchived;
+  if (effectiveScope.value === 'archived') return unfiledArchived;
+  if (effectiveScope.value === 'all') return unfiledActive + unfiledArchived;
   return unfiledActive;
 });
 
@@ -654,7 +661,7 @@ const SCOPE_NOTICES = {
   },
 };
 
-const scopeNotice = computed(() => SCOPE_NOTICES[documentStore.archiveScope] || null);
+const scopeNotice = computed(() => SCOPE_NOTICES[effectiveScope.value] || null);
 
 const filteredDocuments = computed(() => {
   if (isSearching.value) return documentStore.searchResults;
@@ -662,7 +669,7 @@ const filteredDocuments = computed(() => {
   // En la cima del árbol sólo se listan los documentos que no cuelgan de una
   // carpeta visible: los demás se ven entrando a su carpeta.
   return documentStore.documents.filter(
-    (d) => isRootInScope(d.folder, folderStore.folderById, documentStore.archiveScope),
+    (d) => isRootInScope(d.folder, folderStore.folderById, effectiveScope.value),
   );
 });
 
@@ -671,9 +678,9 @@ const filteredDocuments = computed(() => {
 const currentSubfolders = computed(() => {
   if (isSearching.value) return searchFolders.value;
   const id = documentStore.activeFolderId;
-  if (id === 'root') return folderStore.scopedRootFolders(documentStore.archiveScope);
+  if (id === 'root') return folderStore.scopedRootFolders(effectiveScope.value);
   if (typeof id !== 'number') return [];
-  return folderStore.childrenOf(id, documentStore.archiveScope);
+  return folderStore.childrenOf(id, effectiveScope.value);
 });
 
 const hasContent = computed(
@@ -707,25 +714,48 @@ const {
   reset: docResetPage,
 } = usePagination(filteredDocuments, { pageSize: viewMode.value === 'grid' ? 12 : 10 });
 
+let filterQuery;
+
+function resetDocumentListPosition() {
+  if (filterQuery?.isApplyingQuery.value) return;
+  focusedDocumentId.value = null;
+  docResetPage();
+}
+
 // 12 divides evenly into the 2/3/4-column grid; 10 matches the table rhythm.
 watch(viewMode, (mode) => {
   docPageSize.value = mode === 'grid' ? 12 : 10;
-  docResetPage();
+  resetDocumentListPosition();
 });
 
-watch(searchQuery, () => docResetPage());
-watch(archivedOrder, () => docResetPage());
-watch(() => documentStore.activeFolderId, () => docResetPage());
-watch(() => documentStore.archiveScope, () => docResetPage());
-watch(() => documentStore.activeTagIds, () => docResetPage(), { deep: true });
+watch(searchQuery, resetDocumentListPosition);
+watch(archivedOrder, resetDocumentListPosition);
+watch(() => documentStore.activeFolderId, resetDocumentListPosition);
+watch(() => documentStore.archiveScope, resetDocumentListPosition);
+watch(() => documentStore.activeTagIds, resetDocumentListPosition, { deep: true });
+watch(() => documentStore.activeClientId, resetDocumentListPosition);
+watch(() => documentStore.activeProjectId, resetDocumentListPosition);
+
+function goToDocumentPage(page) {
+  focusedDocumentId.value = null;
+  docGoTo(page);
+}
+
+function goToNextDocumentPage() {
+  focusedDocumentId.value = null;
+  docNext();
+}
+
+function goToPreviousDocumentPage() {
+  focusedDocumentId.value = null;
+  docPrev();
+}
 
 // ── Búsqueda global ──────────────────────────────────────────────────────────
 // Recorre todo el gestor y los dos estados: buscar sirve para encontrar algo
 // cuya ubicación no se recuerda, y acotarlo a la vista era justo lo que impedía
 // dar con lo archivado.
 const searchFolders = ref([]);
-const scopeBeforeSearch = ref(null);
-const scopeTouchedDuringSearch = ref(false);
 let searchTimer = null;
 
 async function runSearch(term) {
@@ -740,26 +770,16 @@ async function runSearch(term) {
 }
 
 watch(searchQuery, (value) => {
-  const term = value.trim();
   clearTimeout(searchTimer);
+  // La hidratación desde la URL tiene su propio camino de carga: disparar el
+  // debounce acá duplicaría la búsqueda al entrar o usar atrás/adelante.
+  if (filterQuery?.isApplyingQuery.value) return;
+  const term = value.trim();
   if (!term) {
     searchFolders.value = [];
+    documentStore.searchResults = [];
     documentStore.isSearchLoading = false;
-    // Al limpiar se devuelve el control a donde estaba, salvo que el usuario lo
-    // haya movido él mismo mientras buscaba: ahí manda su elección.
-    if (scopeBeforeSearch.value && !scopeTouchedDuringSearch.value) {
-      documentStore.setFilters({ scope: scopeBeforeSearch.value });
-    }
-    scopeBeforeSearch.value = null;
-    scopeTouchedDuringSearch.value = false;
     return;
-  }
-  if (!scopeBeforeSearch.value) {
-    scopeBeforeSearch.value = documentStore.archiveScope;
-    scopeTouchedDuringSearch.value = false;
-    // El control se mueve a la vista: la búsqueda ensancha el eje, y dejarlo en
-    // «Solo activos» mientras devuelve archivados sería una interfaz mentirosa.
-    if (documentStore.archiveScope !== 'all') documentStore.archiveScope = 'all';
   }
   // Los resultados de la búsqueda anterior no sobreviven al debounce: verlos
   // mientras se escribe otro término los hace pasar por resultados nuevos.
@@ -772,23 +792,16 @@ watch(searchQuery, (value) => {
 /**
  * Sale de la búsqueda y navega en un solo gesto.
  *
- * El watcher de `searchQuery` restaura el scope previo al limpiar (flush pre,
- * corre DESPUÉS de este handler): anular `scopeBeforeSearch` antes de vaciar el
- * término convierte esa rama en no-op y el destino de la navegación sobrevive.
- * Nunca "reordenar" las líneas como fix — es exactamente lo que fallaba.
+ * Como la búsqueda ya no muta el scope de origen, navegar desde un resultado
+ * sólo limpia `q` y cambia explícitamente los ejes pedidos.
  */
 function exitSearchAndNavigate({ folder, scope } = {}) {
   clearTimeout(searchTimer);
-  const targetScope = scope
-    ?? ((scopeTouchedDuringSearch.value || !scopeBeforeSearch.value)
-      ? documentStore.archiveScope
-      : scopeBeforeSearch.value);
-  scopeBeforeSearch.value = null;
-  scopeTouchedDuringSearch.value = false;
   searchFolders.value = [];
+  documentStore.searchResults = [];
   documentStore.isSearchLoading = false;
   searchQuery.value = '';
-  return documentStore.setFilters({ folder, scope: targetScope });
+  return documentStore.setFilters({ folder, scope: scope ?? documentStore.archiveScope });
 }
 
 onBeforeUnmount(() => {
@@ -874,13 +887,48 @@ function loadDocuments() {
   return refreshView({ tags: true });
 }
 
-// Carpeta y scope viven en la URL (?folder=&scope=): F5 y los deep links
-// reconstruyen la vista. El query se aplica ANTES del primer fetch.
-const filterQuery = useDocumentFilterQuery(documentStore, {
-  isSearching,
-  // Atrás/adelante cambian carpeta y estado, no el árbol ni los contadores:
-  // basta con volver a pedir la lista, igual que al navegar por el panel.
-  onNavigate: () => documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
+async function restoreFocusedDocument() {
+  const id = focusedDocumentId.value;
+  if (!id || typeof document === 'undefined') return;
+  await nextTick();
+  const item = document.querySelector(
+    `[data-testid="document-row-${id}"], [data-testid="document-card-${id}"]`,
+  );
+  if (!item) return;
+  item.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+  const link = item.querySelector(
+    `[data-testid="document-open-${id}"], [data-testid="document-card-open-${id}"]`,
+  );
+  link?.focus({ preventScroll: true });
+}
+
+async function handleQueryNavigation(summary) {
+  clearTimeout(searchTimer);
+  if (summary.filtersChanged) {
+    await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
+  }
+  if (isSearching.value) {
+    await runSearch(searchQuery.value.trim());
+  } else {
+    searchFolders.value = [];
+    documentStore.searchResults = [];
+    documentStore.isSearchLoading = false;
+  }
+  // El total se conoce después del fetch/búsqueda: recién ahí se puede
+  // normalizar una página vieja y recuperar la fila si sigue en el resultado.
+  await nextTick();
+  docGoTo(docPage.value);
+  await restoreFocusedDocument();
+}
+
+// La URL describe la vista completa: filtros, búsqueda, modo, página y foco.
+// Se aplica ANTES del primer fetch y el mismo contrato gobierna popstate.
+filterQuery = useDocumentFilterQuery(documentStore, {
+  searchQuery,
+  viewMode,
+  currentPage: docPage,
+  focusedDocumentId,
+  onNavigate: handleQueryNavigation,
 });
 
 onMounted(async () => {
@@ -890,6 +938,8 @@ onMounted(async () => {
   if (filterQuery.validateFolder(folderStore)) {
     await documentStore.fetchDocuments({ scope: documentStore.archiveScope });
   }
+  docGoTo(docPage.value);
+  await restoreFocusedDocument();
 });
 usePanelRefresh(loadDocuments);
 
@@ -966,7 +1016,6 @@ function handleViewArchivedFolder(folder) {
 }
 
 function handleScopeChange(scope) {
-  if (isSearching.value) scopeTouchedDuringSearch.value = true;
   documentStore.setFilters({ scope });
 }
 
@@ -1197,7 +1246,12 @@ function handleMoved() {
 // Fuente única de la dirección: la lee el <a> del título de cada fila/tarjeta
 // y la lee el atajo de clic, así que no pueden apuntar a lugares distintos.
 function editToFor(doc) {
-  return doc ? localePath(`/panel/documents/${doc.id}/edit`) : null;
+  if (!doc) return null;
+  const origin = documentOriginWithFocus(route, router, doc.id);
+  return localePath({
+    path: `/panel/documents/${doc.id}/edit`,
+    query: { from: origin },
+  });
 }
 
 /**
@@ -1209,7 +1263,10 @@ function editToFor(doc) {
  */
 function folderToFor(sub) {
   if (!sub || isSearching.value) return null;
-  return localePath({ path: route.path, query: { ...route.query, folder: String(sub.id) } });
+  const query = { ...route.query };
+  delete query.page;
+  delete query.focus;
+  return localePath({ path: route.path, query: { ...query, folder: String(sub.id) } });
 }
 
 function handleEditDoc(doc) {

@@ -19,6 +19,20 @@ schema. Cobertura focal: primitives/engine/Documentos, flow P2
 registro derivado sincronizado; quality gates focales 100/100 y build Nuxt de
 producción aprobada.
 
+**2026-08-25 — Retorno contextual desde la edición de Documentos:** se confirmó
+que las cuatro salidas del editor estaban fijadas a la raíz y que el listado sólo
+persistía una parte de su contexto. La URL del listado ahora canoniza carpeta,
+scope normal/archivado, tags, cliente/proyecto, búsqueda global, orden, vista,
+página y foco. Los enlaces de edición llevan un `from` interno validado; todos los
+estados del editor vuelven al mismo destino con rótulo contextual, mientras una
+entrada directa/externa cae a la raíz localizada. El enlace explícito agrega el id
+como foco, recupera la página y enfoca la fila/tarjeta; Back del navegador consume
+la ruta original. La búsqueda global ya no destruye el scope que debe restaurarse.
+Verificación: 32 unitarias focalizadas, 3 E2E Playwright sin retries y build Nuxt
+aprobado. La revisión transversal dejó Propuestas y Diagnósticos como P1, Blog y
+Paquetes de horas como P2, y Portfolio/Linktrees como P3, sin ampliar este cambio;
+detalle en `docs/audits/2026-08-25-list-detail-return-navigation.md`.
+
 **2026-08-23 — Copias BCC configurables para toda salida al cliente:** el
 backend quedó cerrado alrededor de `EmailDeliveryGateway`, único dueño de
 Django mail I/O. Un inventario ejecutable de 23 claves cliente cubre propuestas

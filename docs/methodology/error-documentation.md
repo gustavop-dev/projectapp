@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-023] A display utility disabled two-line clipping in document cards
+### [ERR-024] A display utility disabled two-line clipping in document cards
 - **Date**: 2026-08-25
 - **Context**: The desktop document row exposed the conditional full-title control, but the same long title in the portrait-tablet card never showed **Ver completo**.
 - **Root Cause**: The card passed Tailwind's `block` utility into the same link that `BaseOverflowText` marked `line-clamp-2`. The competing display rule disabled WebKit line clamping, so the title expanded naturally and the overflow measurement correctly reported no clipping.
@@ -53,6 +53,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `frontend/components/base/BaseOverflowText.vue`, `frontend/components/panel/documents/DocumentCard.vue`.
 - **Verification**: The five-case Playwright flow passed the clipped-only desktop hint, compact in-place expansion, drag persistence, fixed tracks and double-click reset; focused component tests remain green.
 - **Lesson**: A clipping primitive must own every CSS property that establishes clipping. Consumer typography classes cannot include competing display or overflow utilities.
+
+### [ERR-023] Document editor exits discarded the originating list context
+- **Date**: 2026-08-25
+- **Context**: Leaving `/panel/documents/{id}/edit` always opened the Documents root, losing folders, search, archived mode, filters and pagination.
+- **Root Cause**: All four editor exits hardcoded the root route, while the list query synchronized only folder, scope, client and project; no complete origin existed to restore.
+- **Resolution**: Make the list URL canonical for every meaningful state, carry it in a validated internal `from` query, add `focus` to the explicit return, and route every editor exit through the same contextual target. Keep native browser Back intact and use the localized root only for direct or rejected origins.
+- **Files Affected**: `frontend/composables/useDocumentFilterQuery.js`, Documents list/editor pages, `frontend/utils/documentReturnNavigation.js`.
+- **Regression coverage**: Unit tests cover query round trips, browser history, validation, labels and focus; Playwright covers explicit return, native Back and an untrusted-origin fallback.
 
 ### [ERR-022] Editing a recurring payment left its monthly COP projection stale
 - **Date**: 2026-08-22
