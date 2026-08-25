@@ -40,10 +40,11 @@ export const RESPONSIVE_MODULES = Object.freeze({
   documents: module('documents', [
     'frontend/components/panel/documents/',
     'frontend/pages/panel/documents/index.vue',
+    'frontend/pages/panel/documents/statuses.vue',
   ], [
     'Abrir y cerrar el selector de carpetas.',
     'Cambiar entre activos y archivados y operar una fila.',
-    'Abrir las acciones de carpeta y documento.',
+    'Abrir las acciones de carpeta y documento y administrar el catálogo de estados.',
   ]),
   clients: module('clients', [
     'frontend/components/clients/',
@@ -217,7 +218,7 @@ export function responsiveOwnerForView(sectionId, view) {
   if (url === '/panel/login' || url === '/panel/styleguide') return 'foundation';
   if (url === '/panel/clients') return 'clients';
   if (url === '/panel/projects') return 'projects';
-  if (url === '/panel/documents') return 'documents';
+  if (url === '/panel/documents' || url === '/panel/documents/statuses') return 'documents';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';
   if (url === '/panel/emails' || url.includes('/email-')) return 'emails';
   if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url === '/panel/defaults') return 'commercial';

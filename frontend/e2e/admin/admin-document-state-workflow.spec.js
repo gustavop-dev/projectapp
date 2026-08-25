@@ -154,6 +154,7 @@ test.describe('Admin Document State Workflow', () => {
   test('renders a complete episode timeline', {
     tag: [...ADMIN_DOCUMENT_STATE_WORKFLOW, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the documented module entry; this test exercises the episode timeline after opening a document through the list)
     const note = {
       id: 50,
       document: 1,
@@ -355,6 +356,7 @@ test.describe('Admin Document State Filters', () => {
   test('renders the actionable-state age in the list', {
     tag: [...ADMIN_DOCUMENT_STATE_FILTERS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the documented module entry and the behavior under test is rendered directly in its list)
     const document = makeDocument([
       episode(100, 11, 1036800),
       episode(101, 20, 259200),
@@ -384,10 +386,13 @@ test.describe('Admin Document State Filters', () => {
     await expect.poll(() => queries.at(-1)).toContain('states=11');
     await page.getByTestId('document-state-filter-20').click();
     await expect.poll(() => decodeURIComponent(queries.at(-1))).toContain('states=11,20');
+    await expect(page).toHaveURL(/(?:\?|&)states=11(?:%2C|,)20(?:&|$)/);
     await page.getByTestId('document-state-without-13').click();
     await expect.poll(() => decodeURIComponent(queries.at(-1))).toContain('without_states=13');
+    await expect(page).toHaveURL(/(?:\?|&)without_states=13(?:&|$)/);
     await page.getByTestId('document-state-preset-needs_fix').click();
     await expect.poll(() => queries.at(-1)).toContain('preset=needs_fix');
+    await expect(page).toHaveURL(/(?:\?|&)preset=needs_fix(?:&|$)/);
     expect(queries.at(-1)).not.toContain('states=');
     expect(queries.at(-1)).not.toContain('without_states=');
   });

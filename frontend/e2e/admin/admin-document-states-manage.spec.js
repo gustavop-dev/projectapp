@@ -87,6 +87,7 @@ test.describe('Admin Document States Manage', () => {
   test('renders the seeded catalog inventory', {
     tag: [...ADMIN_DOCUMENT_STATES_MANAGE, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (/panel/documents is the documented module entry; this test reaches the catalog through its visible administration link)
     const catalog = initialStates();
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, catalog));
 
