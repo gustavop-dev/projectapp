@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-024] A Playwright run reused another worktree's Nuxt server
+### [ERR-025] A Playwright run reused another worktree's Nuxt server
 
 - **Symptom**: every communications E2E case timed out on the page heading and
   the captured DOM showed Nuxt's `Page not found`.
@@ -55,6 +55,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
   session-unique `E2E_PORT`. Never terminate or reuse another session's server.
 - **Prevention**: allocate a unique port per worktree before interpreting a
   route-level 404 as an application regression.
+
+### [ERR-024] Aplicar una nota no la persistía hasta guardar otra vez el documento
+- **Date**: 2026-08-25
+- **Context**: El modal de notas decía “Aplicar al documento”, cerraba y actualizaba el formulario local, pero el operador todavía debía usar el guardado general de la pantalla para persistir la nota.
+- **Root Cause**: El modal sólo emitía datos al formulario padre; no existía una operación de persistencia propia ni una confirmación que distinguiera un cambio aplicado localmente de uno guardado en el servidor.
+- **Resolution**: En edición, el modal ejecuta un PATCH exclusivo de los cuatro campos privados, confirma el éxito de forma visible y actualiza sólo su porción de la baseline de cambios. En creación conserva el paso diferido por necesidad —el documento aún no tiene ID—, pero lo nombra “Aplicar al borrador” y avisa explícitamente que falta crear el documento.
+- **Files Affected**: `DocumentClientNoteModal.vue`, páginas de creación/edición de documentos y `useUnsavedGuard.js`.
+- **Regression coverage**: Unitarias fijan etiquetas, modo borrador, bloqueo durante guardado y baseline parcial; E2E verifica el PATCH mínimo, la confirmación, la conservación de otros cambios pendientes y los estados 4xx/5xx.
 
 ### [ERR-023] Document editor exits discarded the originating list context
 - **Date**: 2026-08-25

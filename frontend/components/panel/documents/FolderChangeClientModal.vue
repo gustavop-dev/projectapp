@@ -112,7 +112,7 @@
           data-testid="folder-change-client-confirm"
           @click="confirmChange"
         >
-          Confirmar
+          Cambiar cliente
         </BaseButton>
       </div>
     </div>

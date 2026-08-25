@@ -128,6 +128,17 @@ describe('useUnsavedGuard — naming what is unsaved', () => {
     expect(api.hasChanges.value).toBe(false);
   });
 
+  it('keeps unrelated dirty fields after a partial commit', () => {
+    const { api, form } = setup();
+    api.commit();
+    form.title = 'B';
+    form.client = 2;
+
+    api.commit(['client']);
+
+    expect(api.dirtyLabels.value).toEqual(['título']);
+  });
+
   // Excluir un campo que el servidor ya persistió (una portada subida) se hace
   // dejándolo fuera del snapshot: sin esto el aviso lo nombraría para siempre.
   it('ignores fields the snapshot does not expose', () => {
