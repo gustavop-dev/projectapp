@@ -85,7 +85,7 @@ test.describe('Admin Document — Unsaved Changes Guard', () => {
 
       await expect(titleField(page)).toHaveValue('Contrato de Servicios');
       await expect(notice(page)).toBeHidden();
-      await expect(page.getByTestId('doc-save-desktop')).toBeDisabled();
+      await expect(page.getByTestId('doc-save')).toBeDisabled();
     });
 
     test('editing the title raises a warning that names that field', {
@@ -97,7 +97,7 @@ test.describe('Admin Document — Unsaved Changes Guard', () => {
       await titleField(page).fill('Contrato Actualizado');
 
       await expect(notice(page)).toContainText('Título sin guardar');
-      await expect(page.getByTestId('doc-save-desktop')).toBeEnabled();
+      await expect(page.getByTestId('doc-save')).toBeEnabled();
     });
 
     test('leaving with pending changes saves them and then navigates', {
