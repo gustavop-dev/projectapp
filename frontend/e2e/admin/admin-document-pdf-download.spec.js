@@ -116,8 +116,8 @@ test.describe('Admin Document — Descargar PDF', () => {
     await openEditor(page);
     await portadaToggle(page).click();
 
-    await page.getByRole('button', { name: /Descargar PDF/i }).first().click();
-    await page.getByRole('menuitem', { name: /Descargar · Profesional/i }).click();
+    await page.getByTestId('doc-document-actions-trigger').click();
+    await page.getByRole('menuitem', { name: 'Descargar PDF · Profesional', exact: true }).click();
     await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByTestId('doc-unsaved-notice')).toBeHidden();
@@ -141,8 +141,8 @@ test.describe('Admin Document — Descargar PDF', () => {
     await openEditor(page);
     await portadaToggle(page).click();
 
-    await page.getByRole('button', { name: /Descargar PDF/i }).first().click();
-    await page.getByRole('menuitem', { name: /Descargar · Profesional/i }).click();
+    await page.getByTestId('doc-document-actions-trigger').click();
+    await page.getByRole('menuitem', { name: 'Descargar PDF · Profesional', exact: true }).click();
     await page.getByTestId('confirm-modal-secondary').click();
 
     expect(patchCalled).toBe(false);
@@ -160,8 +160,8 @@ test.describe('Admin Document — Descargar PDF', () => {
     await openEditor(page);
     await portadaToggle(page).click();
 
-    await page.getByRole('button', { name: /Descargar PDF/i }).first().click();
-    await page.getByRole('menuitem', { name: /Descargar · Profesional/i }).click();
+    await page.getByTestId('doc-document-actions-trigger').click();
+    await page.getByRole('menuitem', { name: 'Descargar PDF · Profesional', exact: true }).click();
     await page.getByRole('button', { name: 'Seguir editando' }).click();
 
     expect(pdfCalls).toEqual([]);
@@ -177,8 +177,8 @@ test.describe('Admin Document — Descargar PDF', () => {
     await openEditor(page);
     await expect(pagesLine(page)).toContainText('portada');
 
-    await page.getByRole('button', { name: /Descargar PDF/i }).first().click();
-    await page.getByRole('menuitem', { name: /Descargar · Amigable/i }).click();
+    await page.getByTestId('doc-document-actions-trigger').click();
+    await page.getByRole('menuitem', { name: 'Descargar PDF · Amigable', exact: true }).click();
 
     await expect.poll(() => pdfCalls.length).toBe(1);
     expect(pdfCalls[0]).toContain('template=friendly');
