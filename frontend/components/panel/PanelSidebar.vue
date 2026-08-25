@@ -94,18 +94,13 @@
         :title="isCollapsed ? 'Plataforma' : undefined"
         @click="goToPlatform('/platform/dashboard')"
       >
-        <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
+        <BaseActionIcon action="open-platform" />
         <span v-if="!isCollapsed" class="truncate">{{ isBridging ? 'Abriendo...' : 'Plataforma' }}</span>
       </button>
 
       <!-- Theme toggle with label (expanded only) -->
       <BaseButton variant="secondary" size="sm" class="mb-1.5 w-full" v-if="!isCollapsed" :aria-label="themeToggleLabel(isDark)" @click="$emit('toggle-theme')">
-        <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-        <svg v-else class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-        </svg>
+        <BaseActionIcon :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'" />
         <span class="truncate">{{ isDark ? 'Modo claro' : 'Modo oscuro' }}</span>
       </BaseButton>
 
@@ -117,40 +112,22 @@
         ]"
       >
         <!-- Icon-only theme toggle (collapsed only) -->
-        <button
+        <BaseActionButton
           v-if="isCollapsed"
-          type="button"
+          :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'"
+          :label="themeToggleLabel(isDark)"
           :class="sidebarActionClass"
-          title="Light / dark mode"
-          :aria-label="themeToggleLabel(isDark)"
           @click="$emit('toggle-theme')"
-        >
-          <svg v-if="isDark" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-          <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-          </svg>
-        </button>
+        />
 
         <!-- Collapse toggle -->
-        <button
+        <BaseActionButton
           v-if="toggleSidebar"
-          type="button"
+          :action="isCollapsed ? 'expand-sidebar' : 'collapse-sidebar'"
+          :label="isCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'"
           :class="sidebarActionClass"
-          :title="isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
           @click="toggleSidebar"
-        >
-          <svg
-            class="h-4 w-4 transition-transform duration-300"
-            :class="isCollapsed ? 'rotate-180' : ''"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-          </svg>
-        </button>
+        />
       </div>
     </div>
   </aside>
@@ -163,7 +140,6 @@ import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
 import { themeToggleLabel } from '~/composables/useDarkMode'
 import { useProposalStore } from '~/stores/proposals'
-import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 
 defineEmits(['toggle-theme'])

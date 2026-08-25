@@ -15,7 +15,7 @@
         data-testid="projects-new-button"
         @click="openCreate"
       >
-        <PlusIcon class="w-4 h-4" />
+        <BaseActionIcon action="create" />
         <span>Nuevo proyecto</span>
       </BaseButton>
     </div>
@@ -116,7 +116,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreate">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo proyecto</span>
         </BaseButton>
       </template>
@@ -142,7 +142,8 @@
             data-testid="projects-sort-direction"
             @click="toggleMobileSortDirection"
           >
-            {{ sortDir === 'asc' ? 'A → Z' : 'Z → A' }}
+          <BaseActionIcon :action="sortDir === 'asc' ? 'sort-ascending' : 'sort-descending'" />
+          {{ sortDir === 'asc' ? 'A a Z' : 'Z a A' }}
           </BaseButton>
         </div>
 
@@ -234,44 +235,37 @@
             :project-id="row.id"
             :data-testid="`project-space-${row.id}`"
           />
-          <BaseButton
+          <BaseActionButton
+            action="edit"
             variant="ghost"
             size="sm"
-            icon-only
-            aria-label="Editar"
+            label="Editar proyecto"
             :data-testid="`project-edit-${row.id}`"
             :disabled="row.status === 'archived'"
             :title="row.status === 'archived'
               ? 'Restaura el proyecto para editarlo'
               : 'Editar proyecto'"
             @click.stop="openEditModal(row)"
-          >
-            <PencilSquareIcon class="w-4 h-4" />
-          </BaseButton>
-          <BaseButton
+          />
+          <BaseActionButton
             v-if="row.status !== 'archived'"
+            action="archive"
             variant="ghost"
             size="sm"
-            icon-only
-            aria-label="Archivar"
-            title="Archivar proyecto (sale de la vista, nunca se elimina)"
+            label="Archivar proyecto"
+            tooltip="Archivar proyecto (sale de la vista, nunca se elimina)"
             :data-testid="`project-archive-${row.id}`"
             @click.stop="askArchive(row)"
-          >
-            <ArchiveBoxArrowDownIcon class="w-4 h-4" />
-          </BaseButton>
-          <BaseButton
+          />
+          <BaseActionButton
             v-else
+            action="restore"
             variant="ghost"
             size="sm"
-            icon-only
-            aria-label="Restaurar"
-            title="Restaurar proyecto"
+            label="Restaurar proyecto"
             :data-testid="`project-unarchive-${row.id}`"
             @click.stop="doRestore(row)"
-          >
-            <ArrowUturnLeftIcon class="w-4 h-4" />
-          </BaseButton>
+          />
         </template>
       </AccountingTable>
 
@@ -424,12 +418,6 @@
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref, watch } from 'vue';
-import {
-  ArchiveBoxArrowDownIcon,
-  ArrowUturnLeftIcon,
-  PencilSquareIcon,
-  PlusIcon,
-} from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';

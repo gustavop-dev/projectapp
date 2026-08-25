@@ -301,7 +301,7 @@
           data-testid="collection-detail-go-to-income"
           @click="emit('go-to-income', record.income_record_id)"
         >
-          Ver en Ingresos →
+        <BaseActionIcon action="forward" /> Ver en Ingresos
         </BaseButton>
         <span v-else></span>
         <div class="flex items-center gap-2">

@@ -20,17 +20,15 @@
       </div>
       <div class="flex items-center gap-2 flex-shrink-0">
         <BaseButton variant="secondary" size="sm" :disabled="jsonExportLoading" @click="refreshExportJson">
-          <svg class="w-3.5 h-3.5" :class="{ 'animate-spin': jsonExportLoading }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
+          <BaseActionIcon action="refresh" :class="{ 'animate-spin': jsonExportLoading }" />
           Actualizar
         </BaseButton>
         <BaseButton variant="secondary" size="sm" @click="copyExportJson">
-          <DocumentDuplicateIcon class="w-3.5 h-3.5" />
+          <BaseActionIcon action="copy" />
           {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
         </BaseButton>
         <BaseButton variant="secondary" size="sm" @click="downloadExportJson">
-          <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+          <BaseActionIcon action="download" />
           Descargar
         </BaseButton>
       </div>
@@ -65,9 +63,7 @@
         class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default rounded-lg text-xs
                text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
+        <BaseActionIcon action="upload" />
         Subir .json
         <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
       </label>
@@ -110,11 +106,8 @@
 
     <!-- Apply button -->
     <div v-if="jsonImportParsed && !jsonImportError && !jsonImportLegacyIssues.length" class="mt-4 flex flex-wrap items-center gap-3">
-      <BaseButton variant="primary" size="md" :disabled="proposalStore.isUpdating" @click="handleApplyImportJson">
-        <svg v-if="proposalStore.isUpdating" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
+        <BaseButton variant="primary" size="md" :loading="proposalStore.isUpdating" @click="handleApplyImportJson">
+          <BaseActionIcon v-if="!proposalStore.isUpdating" action="import" />
         {{ proposalStore.isUpdating ? 'Aplicando...' : 'Aplicar JSON' }}
       </BaseButton>
       <p class="text-xs text-text-subtle">Esto reemplazará la metadata y todas las secciones de la propuesta.</p>
@@ -127,7 +120,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { DocumentDuplicateIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import JsonStatsPanel from '~/components/BusinessProposal/admin/JsonStatsPanel.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
 import LegacyFormatWarning from '~/components/panel/LegacyFormatWarning.vue';

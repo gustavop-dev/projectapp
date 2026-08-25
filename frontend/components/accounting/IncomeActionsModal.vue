@@ -35,7 +35,7 @@
             :data-testid="`income-action-${action.id}-${record?.id}`"
             @click="run(action)"
           >
-            <component :is="action.icon" class="w-5 h-5 shrink-0" />
+            <BaseActionIcon :action="action.action" class="h-5 w-5" />
             <span>{{ action.label }}</span>
           </button>
         </li>
@@ -50,19 +50,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import {
-  ArrowTopRightOnSquareIcon,
-  BanknotesIcon,
-  BellAlertIcon,
-  BellSlashIcon,
-  DocumentDuplicateIcon,
-  DocumentPlusIcon,
-  EnvelopeIcon,
-  EyeIcon,
-  PencilSquareIcon,
-  TrashIcon,
-  XCircleIcon,
-} from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { formatMoney } from '~/utils/formatMoney';
 
@@ -94,55 +81,55 @@ const actions = computed(() => {
   const row = props.record;
   if (!row) return [];
   const list = [
-    { id: 'detail', label: 'Ver detalle', icon: EyeIcon, event: 'detail' },
-    { id: 'edit', label: 'Editar', icon: PencilSquareIcon, event: 'edit' },
+    { id: 'detail', action: 'view', label: 'Ver detalle', event: 'detail' },
+    { id: 'edit', action: 'edit', label: 'Editar', event: 'edit' },
     // Offered whatever the state is: the frequent case is duplicating an
     // already collected income to open its next period.
     {
-      id: 'duplicate', label: 'Duplicar', icon: DocumentDuplicateIcon,
+      id: 'duplicate', action: 'duplicate', label: 'Duplicar',
       event: 'duplicate',
     },
   ];
   if (row.kind === 'expected') {
     list.push({
-      id: 'liquidate', label: 'Liquidar', icon: BanknotesIcon, event: 'liquidate',
+      id: 'liquidate', action: 'settle', label: 'Liquidar', event: 'liquidate',
     });
   }
   if (row.kind !== 'lost') {
     list.push(row.has_collection_account
       ? {
         id: 'view-collection',
+        action: 'open-external',
         label: `Ver cuenta de cobro ${row.collection_account_number || ''}`.trim(),
-        icon: ArrowTopRightOnSquareIcon,
         event: 'view-collection',
       }
       : {
         id: 'generate-collection',
+        action: 'generate',
         label: 'Generar cuenta de cobro',
-        icon: DocumentPlusIcon,
         event: 'generate-collection',
       });
   }
   if (row.kind === 'expected' && row.payment_status !== 'paid') {
     list.push({
       id: 'toggle-mute',
+      action: row.reminders_muted ? 'unmute' : 'mute',
       label: row.reminders_muted ? 'Reactivar avisos' : 'Silenciar avisos',
-      icon: row.reminders_muted ? BellSlashIcon : BellAlertIcon,
       event: 'toggle-mute',
     });
   }
   if (row.kind === 'expected' && row.payment_status === 'pending') {
     list.push({
-      id: 'write-off', label: 'Marcar como perdido', icon: XCircleIcon,
+      id: 'write-off', action: 'write-off', label: 'Marcar como perdido',
       event: 'write-off',
     });
   }
   list.push({
     id: 'view-emails', label: 'Ver correos de este ingreso',
-    icon: EnvelopeIcon, event: 'view-emails',
+    action: 'email-history', event: 'view-emails',
   });
   list.push({
-    id: 'delete', label: 'Eliminar', icon: TrashIcon, event: 'delete',
+    id: 'delete', action: 'delete', label: 'Eliminar', event: 'delete',
     danger: true,
   });
   return list;

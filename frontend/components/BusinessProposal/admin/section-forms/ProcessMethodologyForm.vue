@@ -25,7 +25,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })">+ Agregar paso</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.steps.push({ icon: '', title: '', description: '', clientAction: '' })"><BaseActionIcon action="create" /> Agregar paso</button>
   </div>
 </template>
 

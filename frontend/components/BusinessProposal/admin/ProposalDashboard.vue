@@ -6,12 +6,7 @@
         class="flex items-center gap-2 text-sm text-text-muted hover:text-text-default transition-colors"
         @click="isOpen = !isOpen"
       >
-        <svg
-          class="w-4 h-4 transition-transform" :class="{ 'rotate-180': isOpen }"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon :action="isOpen ? 'collapse' : 'expand'" />
         {{ isOpen ? 'Ocultar Dashboard' : 'Mostrar Dashboard KPI' }}
       </button>
       <button
@@ -19,9 +14,7 @@
         class="flex items-center gap-1 text-xs text-text-subtle hover:text-text-brand transition-colors"
         @click="refreshDashboard"
       >
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
+        <BaseActionIcon action="refresh" />
         Actualizar
       </button>
       <span v-if="isOpen && lastRefresh" class="text-[10px] text-text-subtle">{{ lastRefreshLabel }}</span>

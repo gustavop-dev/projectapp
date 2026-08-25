@@ -7,16 +7,12 @@
           Selecciona una acción para esta propuesta.
         </p>
       </div>
-      <BaseButton
-        variant="ghost"
-        icon-only
-        size="md"
+      <BaseActionButton
+        action="close"
+        label="Cerrar acciones de la propuesta"
         class="w-11 h-11 -m-2"
-        aria-label="Cerrar"
         @click="$emit('close')"
-      >
-        ✕
-      </BaseButton>
+      />
     </div>
 
     <div class="px-4 sm:px-6 py-4 space-y-2">
@@ -32,7 +28,9 @@
         class="w-full flex items-start gap-3 p-3 rounded-xl border border-border-muted hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast text-left focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
         @click="handleActionClick(action)"
       >
-        <span :class="['inline-block w-2 h-2 mt-2 rounded-full flex-shrink-0', action.dotClass]"></span>
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-raised text-text-subtle">
+          <BaseActionIcon :action="action.action" />
+        </span>
         <span class="flex-1 min-w-0">
           <span class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-medium text-text-default">{{ action.label }}</span>
@@ -101,6 +99,7 @@ const actions = computed(() => {
   if (status === 'draft' && hasEmail) {
     list.push({
       key: 'send',
+      action: 'send',
       label: 'Enviar al Cliente',
       description: 'Envía por email la propuesta al cliente.',
       dotClass: 'bg-info-strong',
@@ -109,6 +108,7 @@ const actions = computed(() => {
   if (['sent', 'viewed'].includes(status) && hasEmail) {
     list.push({
       key: 'resend',
+      action: 'resend',
       label: 'Re-enviar al Cliente',
       description: 'Vuelve a enviar el email manteniendo la misma fecha de expiración.',
       dotClass: 'bg-info-strong',
@@ -117,6 +117,7 @@ const actions = computed(() => {
   if (hasEmail) {
     list.push({
       key: 'send-multi',
+      action: 'send',
       label: 'Enviar varias propuestas como un solo correo',
       description: 'Selecciona otras propuestas del mismo cliente y envíalas en un único email con sus PDFs.',
       dotClass: 'bg-info-strong',
@@ -125,6 +126,7 @@ const actions = computed(() => {
   if (transitions.includes('negotiating')) {
     list.push({
       key: 'negotiate',
+      action: 'negotiate',
       label: 'Pasar a Negociación',
       description: 'Genera el contrato y mueve la propuesta al estado Negociación.',
       dotClass: 'bg-warning-strong',
@@ -133,6 +135,7 @@ const actions = computed(() => {
   if (transitions.includes('accepted')) {
     list.push({
       key: 'approve',
+      action: 'approve',
       label: 'Aprobar',
       description: 'Marca la propuesta como aceptada por el cliente.',
       dotClass: 'bg-success-strong',
@@ -141,6 +144,7 @@ const actions = computed(() => {
   if (['accepted', 'negotiating'].includes(status)) {
     list.push({
       key: 'launch',
+      action: 'launch',
       label: p.platform_onboarding_completed_at ? 'Re-lanzar a Plataforma' : 'Lanzar a Plataforma',
       description: 'Ejecuta el onboarding: crea proyecto, entregables y requerimientos.',
       dotClass: 'bg-primary',
@@ -149,6 +153,7 @@ const actions = computed(() => {
   if (Number(p.discount_percent) > 0 && hasEmail) {
     list.push({
       key: 'discount-offer',
+      action: 'discount-offer',
       label: 'Enviar oferta de descuento',
       description: `Ofrece el descuento del ${p.discount_percent}% al cliente, con previsualización antes de enviar.`,
       dotClass: 'bg-danger-strong',
@@ -157,6 +162,7 @@ const actions = computed(() => {
   if (transitions.includes('finished')) {
     list.push({
       key: 'finish',
+      action: 'finish',
       label: 'Marcar como finalizada',
       description: 'Cierra la propuesta como finalizada y notifica al cliente.',
       dotClass: 'bg-primary',
@@ -165,6 +171,7 @@ const actions = computed(() => {
   if (transitions.includes('rejected')) {
     list.push({
       key: 'reject',
+      action: 'reject',
       label: 'Rechazar',
       description: 'Registra que la propuesta fue rechazada.',
       dotClass: 'bg-danger-strong',
@@ -173,6 +180,7 @@ const actions = computed(() => {
   if (p.uuid) {
     list.push({
       key: 'preview',
+      action: 'open-external',
       label: 'Vista previa pública',
       description: 'Abre la propuesta en una nueva pestaña tal como la ve el cliente.',
       dotClass: 'bg-surface-raised border border-border-default',

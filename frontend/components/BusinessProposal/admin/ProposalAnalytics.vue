@@ -19,9 +19,7 @@
       <!-- CSV Export button -->
       <div class="flex justify-end">
         <BaseButton variant="secondary" size="md" @click="downloadCSV">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
+        <BaseActionIcon action="export" />
           Exportar CSV
         </BaseButton>
       </div>
@@ -43,9 +41,7 @@
               {{ tt.engagementScore }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="p-5 flex items-center gap-5">
           <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold text-white"
@@ -70,9 +66,7 @@
               {{ tt.summary }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-4 p-4">
           <div class="bg-surface rounded-xl border border-border-muted shadow-sm p-4">
@@ -178,9 +172,7 @@
               Paneles en modo técnico y sección técnica se unifican en métricas.
             </p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="flex flex-wrap gap-6 p-4 text-sm">
           <div>
@@ -199,6 +191,7 @@
         <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
+              <!-- panel-action-icons: allow-content-glyph — identifies this analytics dataset, not the disclosure action. -->
               <h3 class="text-sm font-medium text-text-default">📊 Comparación por Modo de Vista</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
@@ -209,9 +202,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Engagement por vista ejecutiva, completa, técnica o contractual</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="px-4 sm:px-6 py-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -252,9 +243,7 @@
               {{ tt.globalComparison }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4">
           <div class="flex items-center gap-3 p-3 rounded-lg" :class="comparisonClass('ttfv')">
@@ -311,9 +300,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Porcentaje de sesiones que alcanzaron cada sección</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="px-4 sm:px-6 pt-4">
           <div class="inline-flex rounded-lg p-0.5 bg-surface-raised">
@@ -402,9 +389,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Tracking de propuestas compartidas con otros stakeholders</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="overflow-x-auto rounded-b-xl overflow-hidden">
           <table class="w-full text-sm">
@@ -447,9 +432,7 @@
               {{ tt.devices }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="flex gap-6 text-sm p-4">
           <div class="flex items-center gap-2">
@@ -471,6 +454,7 @@
       <details v-if="suggestions.length" class="group bg-amber-50 rounded-xl border border-amber-100 shadow-sm">
         <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-amber-100">
           <div class="flex items-center gap-1.5">
+            <!-- panel-action-icons: allow-content-glyph — identifies recommendation content, not the disclosure action. -->
             <h3 class="text-sm font-medium text-amber-900">💡 Acciones sugeridas</h3>
             <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
@@ -479,9 +463,7 @@
               {{ tt.suggestedActions }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-amber-600 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-amber-600 transition-transform group-open:rotate-180" />
         </summary>
         <ul class="space-y-2 p-4">
           <li
@@ -499,6 +481,7 @@
       <details v-if="analytics.skipped_sections?.length" class="group bg-red-50 rounded-xl border border-red-100 shadow-sm">
         <summary class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-red-100">
           <div class="flex items-center gap-1.5">
+            <!-- panel-action-icons: allow-content-glyph — identifies warning content, not the disclosure action. -->
             <h3 class="text-sm font-medium text-red-800">⚠️ Secciones no visitadas</h3>
             <BaseTooltip position="right" width="max-w-2xl">
               <template #trigger>
@@ -507,9 +490,7 @@
               {{ tt.skippedSections }}
             </BaseTooltip>
           </div>
-          <svg class="w-4 h-4 text-red-500 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-red-500 transition-transform group-open:rotate-180" />
         </summary>
         <div class="p-4">
           <p class="text-xs text-red-600 mb-3">El cliente nunca visitó estas secciones — información accionable para follow-up.</p>
@@ -530,6 +511,7 @@
         <summary class="flex items-center justify-between gap-3 px-4 sm:px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden border-b border-border-muted">
           <div>
             <div class="flex items-center gap-1.5">
+              <!-- panel-action-icons: allow-content-glyph — identifies heatmap content, not the disclosure action. -->
               <h3 class="text-sm font-medium text-text-default">🔥 Heatmap de Interés</h3>
               <BaseTooltip position="right" width="max-w-2xl">
                 <template #trigger>
@@ -540,9 +522,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Secciones ordenadas por tiempo total — las más calientes son las que más le importan al cliente</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div class="px-4 sm:px-6 py-4 space-y-3">
           <div v-for="(section, idx) in sortedSections" :key="section.section_type" class="flex items-center gap-3">
@@ -593,9 +573,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Tiempo que el cliente pasó en cada sección</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div v-if="analytics.sections.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
           <table class="w-full text-sm">
@@ -652,9 +630,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Timeline cronológico de eventos de la propuesta</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div v-if="analytics.timeline?.length" class="px-4 sm:px-6 py-4">
           <div class="relative">
@@ -678,7 +654,8 @@
                   class="text-xs text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium focus:outline-none"
                   @click="toggleCalcDetail(idx)"
                 >
-                  {{ expandedCalcEvents[idx] ? '▾ Ocultar detalle de módulos' : '▸ Ver detalle de módulos' }}
+                  <BaseActionIcon :action="expandedCalcEvents[idx] ? 'collapse' : 'expand'" />
+                  {{ expandedCalcEvents[idx] ? 'Ocultar detalle de módulos' : 'Ver detalle de módulos' }}
                 </button>
                 <div v-if="expandedCalcEvents[idx]" class="mt-2 ml-2 space-y-2 text-xs">
                   <div v-if="calcDetail(event).selected_names?.length">
@@ -718,9 +695,7 @@
             </div>
             <p class="text-xs text-text-subtle mt-0.5">Últimas 50 sesiones de navegación</p>
           </div>
-          <svg class="w-4 h-4 text-text-subtle transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform group-open:rotate-180" />
         </summary>
         <div v-if="analytics.sessions.length" class="overflow-x-auto rounded-b-xl overflow-hidden">
           <table class="w-full text-sm">

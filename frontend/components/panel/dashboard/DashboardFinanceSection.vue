@@ -15,7 +15,7 @@
         :to="localePath('/panel/accounting')"
         class="text-xs text-text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded"
       >
-        Ver contabilidad →
+        <BaseActionIcon action="forward" /> Ver contabilidad
       </NuxtLink>
     </div>
 

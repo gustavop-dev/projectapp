@@ -2,6 +2,8 @@
 
 ## Current State
 
+**2026-08-25 — iconos de acción del panel unificados:** las 50 páginas bajo `/panel` y sus componentes alcanzables resuelven 83 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 272 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 260 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
+
 **2026-08-25 — Retorno contextual desde la edición de Documentos:** se confirmó
 que las cuatro salidas del editor estaban fijadas a la raíz y que el listado sólo
 persistía una parte de su contexto. La URL del listado ahora canoniza carpeta,

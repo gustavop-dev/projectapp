@@ -45,7 +45,8 @@
       data-testid="add-section-button"
       @click="showAddSectionModal = true"
     >
-      ＋ Agregar sección
+      <BaseActionIcon action="create" />
+      Agregar sección
     </BaseButton>
   </div>
 
@@ -115,17 +116,12 @@
             <span class="text-text-muted">Visible</span>
           </label>
           <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar sección" :data-testid="`section-delete-${section.section_type}`" title="Eliminar sección" @click.stop="handleDeleteSection(section)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+              <BaseActionIcon action="delete" />
           </BaseButton>
-          <svg
-            class="w-4 h-4 text-text-subtle transition-transform"
-            :class="{ 'rotate-180': expandedSections.has(section.id) }"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon
+            :action="expandedSections.has(section.id) ? 'collapse' : 'expand'"
+            class="text-text-subtle"
+          />
         </div>
       </div>
 
@@ -149,7 +145,7 @@
   <!-- Sticky send bar for sections tab -->
   <div v-if="proposal.client_email" class="sticky bottom-0 mt-4 bg-surface/95 backdrop-blur-sm border border-border-muted rounded-xl shadow-lg px-5 py-3 flex items-center justify-between gap-3 z-10">
     <div class="flex items-center gap-2 text-xs text-text-muted">
-      <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank" class="text-text-brand hover:underline">Preview →</a>
+      <a :href="'/proposal/' + proposal.uuid + '?preview=1'" target="_blank" class="inline-flex items-center gap-1 text-text-brand hover:underline"><BaseActionIcon action="open-external" /> Preview</a>
     </div>
     <div class="flex items-center gap-3">
       <BaseButton
@@ -159,7 +155,7 @@
         class="!bg-info-strong hover:!bg-info-strong/90"
         @click="emit('send')"
       >
-        📤 Enviar al Cliente
+        <BaseActionIcon action="send" /> Enviar al Cliente
       </BaseButton>
       <BaseButton
         v-else-if="['sent', 'viewed'].includes(proposal.status)"
@@ -168,7 +164,7 @@
         class="!bg-info-strong hover:!bg-info-strong/90"
         @click="emit('resend')"
       >
-        🔄 Re-enviar al Cliente
+        <BaseActionIcon action="resend" /> Re-enviar al Cliente
       </BaseButton>
     </div>
   </div>

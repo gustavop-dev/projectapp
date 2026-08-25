@@ -1,22 +1,18 @@
 <template>
-  <BaseButton
+  <BaseActionButton
     v-if="projectId != null"
+    action="open-platform"
     variant="ghost"
     size="sm"
-    icon-only
-    aria-label="Abrir el espacio del proyecto"
-    title="Abrir el espacio en la plataforma (pestaña nueva)"
+    label="Abrir el espacio del proyecto"
+    tooltip="Abrir el espacio en la plataforma (pestaña nueva)"
     :disabled="isBridging"
     :data-testid="dataTestid"
     @click.stop="openSpace"
-  >
-    <ArrowTopRightOnSquareIcon class="w-4 h-4" />
-  </BaseButton>
+  />
 </template>
 
 <script setup>
-import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline';
-import BaseButton from '~/components/base/BaseButton.vue';
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge';
 
 /**

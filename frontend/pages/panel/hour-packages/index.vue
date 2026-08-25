@@ -19,9 +19,7 @@
         size="md"
         :to="localePath({ path: '/panel/hour-packages/create', query: { nationality: selectedNationality } })"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <BaseActionIcon action="create" />
         Nuevo paquete
       </BaseButton>
     </div>
@@ -266,9 +264,9 @@ const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useCo
 
 function packageActionItems(pkg) {
   return [
-    { label: 'Editar', to: localePath(`/panel/hour-packages/${pkg.id}/edit`) },
+    { action: 'edit', label: 'Editar', to: localePath(`/panel/hour-packages/${pkg.id}/edit`) },
     { divider: true },
-    { label: 'Eliminar', danger: true, onClick: () => handleDelete(pkg) },
+    { action: 'delete', label: 'Eliminar', danger: true, onClick: () => handleDelete(pkg) },
   ];
 }
 

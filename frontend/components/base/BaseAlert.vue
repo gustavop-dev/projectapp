@@ -33,16 +33,12 @@ const cls = computed(() => variants[props.variant] || variants.info)
         <slot />
       </div>
     </div>
-    <button
+    <BaseActionButton
       v-if="dismissible"
-      type="button"
-      aria-label="Cerrar"
+      action="close"
+      label="Cerrar alerta"
       class="flex-shrink-0 -mr-1 -mt-1 p-1 rounded-lg hover:bg-surface-raised transition-colors"
       @click="$emit('dismiss')"
-    >
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-      </svg>
-    </button>
+    />
   </div>
 </template>

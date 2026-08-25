@@ -1,6 +1,5 @@
 <script setup>
 import { onMounted, ref } from 'vue'
-import { TrashIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
 import { usePanelNotify } from '~/composables/usePanelNotify'
@@ -165,9 +164,14 @@ function requestDelete(row) {
             Activa
           </label>
           <div class="flex flex-wrap items-center justify-end gap-2">
-            <BaseButton variant="danger-ghost" size="sm" :aria-label="`Eliminar tarjeta ${row.name || 'nueva'}`" :data-testid="`card-catalog-delete-${row.key}`" @click="requestDelete(row)">
-              <TrashIcon class="w-4 h-4" />
-            </BaseButton>
+            <BaseActionButton
+              action="delete"
+              variant="danger-ghost"
+              size="sm"
+              :label="`Eliminar tarjeta ${row.name || 'nueva'}`"
+              :data-testid="`card-catalog-delete-${row.key}`"
+              @click="requestDelete(row)"
+            />
             <BaseButton
               variant="primary"
               size="sm"
@@ -189,7 +193,7 @@ function requestDelete(row) {
       data-testid="card-catalog-add"
       @click="addRow"
     >
-      <PlusIcon class="w-4 h-4" />
+      <BaseActionIcon action="create" />
       <span>Agregar tarjeta</span>
     </BaseButton>
   </div>

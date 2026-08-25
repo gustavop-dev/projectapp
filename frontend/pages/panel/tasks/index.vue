@@ -12,9 +12,7 @@
         data-testid="new-task-btn"
         @click="openCreate('todo')"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <BaseActionIcon action="create" />
         Nueva tarea
       </BaseButton>
     </div>
@@ -40,13 +38,7 @@
             <span class="text-base font-semibold text-text-default">{{ board.label }}</span>
             <span class="text-xs text-text-subtle">{{ boardTaskCount(board.key) }} tarea{{ boardTaskCount(board.key) === 1 ? '' : 's' }}</span>
           </div>
-          <svg
-            class="w-4 h-4 text-text-subtle transition-transform"
-            :class="openBoards[board.key] ? 'rotate-180' : ''"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon :action="openBoards[board.key] ? 'collapse' : 'expand'" />
         </button>
 
         <!-- Board content -->
@@ -82,7 +74,7 @@
               type="button"
               class="mt-3 text-xs text-text-brand hover:underline"
               @click="openCreateOnBoard('macro', 'todo')"
-            >+ Agregar macro-tarea</button>
+            ><BaseActionIcon action="create" /> Agregar macro-tarea</button>
           </div>
 
           <!-- Kanban boards -->
@@ -112,13 +104,7 @@
             <span class="text-sm font-semibold text-text-muted">Archivadas</span>
             <span v-if="taskStore.archivedTasks.length" class="text-xs text-text-subtle">{{ taskStore.archivedTasks.length }}</span>
           </div>
-          <svg
-            class="w-4 h-4 text-text-subtle transition-transform"
-            :class="archiveOpen ? 'rotate-180' : ''"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon :action="archiveOpen ? 'collapse' : 'expand'" />
         </button>
 
         <div v-if="archiveOpen" class="p-4">

@@ -30,10 +30,11 @@
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
         aria-label="Quitar proyecto"
+        title="Quitar proyecto"
         :data-testid="`${testId}-clear`"
         @click="clearSelection"
       >
-        <XMarkIcon class="w-4 h-4" />
+        <BaseActionIcon action="clear" />
       </button>
     </div>
 
@@ -80,7 +81,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
-import { MagnifyingGlassIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { normalizeName } from '~/utils/clientMatch';
 

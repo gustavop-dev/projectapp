@@ -63,7 +63,7 @@
             data-testid="recurring-charts-download"
             @click="downloadActiveChart"
           >
-            <ArrowDownTrayIcon class="w-4 h-4" />
+            <BaseActionIcon action="download" />
             <span>PNG</span>
           </BaseButton>
         </div>
@@ -100,7 +100,7 @@
             data-testid="recurring-charts-back"
             @click="clearDrill"
           >
-            <ArrowLeftIcon class="w-4 h-4" />
+            <BaseActionIcon action="back" />
             <span>Todas las categorías</span>
           </BaseButton>
         </div>
@@ -241,7 +241,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { ArrowDownTrayIcon, ArrowLeftIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseSelect from '~/components/base/BaseSelect.vue';

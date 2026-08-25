@@ -99,9 +99,9 @@
                 :data-testid="`income-group-toggle-${group.id}`"
                 @click="emit('toggle-group', group.id)"
               >
-                <ChevronDownIcon
-                  class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
-                  :class="isCollapsed(group.id) ? '-rotate-90' : ''"
+                <BaseActionIcon
+                  :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
+                  class="text-text-subtle"
                 />
                 <span class="truncate">{{ group.name }}</span>
                 <span
@@ -277,26 +277,22 @@
               <span v-if="showActions" role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
                 <slot name="row-actions" :row="row" />
                 <template>
-                  <BaseButton
+                  <BaseActionButton
+                    action="edit"
                     variant="ghost"
-                    icon-only
                     size="sm"
-                    aria-label="Editar"
+                    label="Editar ingreso"
                     :data-testid="`accounting-edit-${row.id}`"
                     @click.stop="emit('edit', row)"
-                  >
-                    <PencilSquareIcon class="w-4 h-4" />
-                  </BaseButton>
-                  <BaseButton
+                  />
+                  <BaseActionButton
+                    action="delete"
                     variant="danger-ghost"
-                    icon-only
                     size="sm"
-                    aria-label="Eliminar"
+                    label="Eliminar ingreso"
                     :data-testid="`accounting-delete-${row.id}`"
                     @click.stop="emit('delete', row)"
-                  >
-                    <TrashIcon class="w-4 h-4" />
-                  </BaseButton>
+                  />
                 </template>
               </span>
             </div>
@@ -353,11 +349,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import {
-  ChevronDownIcon,
-  PencilSquareIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';

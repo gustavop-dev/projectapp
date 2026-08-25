@@ -12,19 +12,15 @@
           <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-lg bg-info-soft flex items-center justify-center">
-                <svg class="w-4 h-4 text-info-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                </svg>
+                <BaseActionIcon action="move" class="text-info-strong" />
               </div>
               <div class="min-w-0">
                 <h3 class="text-base font-semibold text-text-default">Mover documento</h3>
                 <p class="text-xs text-text-muted truncate max-w-[200px]">{{ document.title }}</p>
               </div>
             </div>
-            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" title="Cerrar" @click="close">
+              <BaseActionIcon action="close" />
             </BaseButton>
           </div>
 
@@ -42,19 +38,15 @@
               @click="moveToFolder(null)"
             >
               <div class="w-7 h-7 rounded-lg bg-surface-raised flex items-center justify-center flex-shrink-0">
-                <svg class="w-3.5 h-3.5 text-text-subtle" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+                <BaseActionIcon action="unlink" class="text-text-subtle" />
               </div>
               <span class="flex-1 text-sm font-medium text-text-default">Sin carpeta</span>
-              <svg
+              <!-- panel-action-icons: allow-status-glyph — marks the currently selected destination. -->
+              <CheckIcon
                 v-if="document.folder === null"
                 class="w-4 h-4 text-info-strong flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-              </svg>
+                aria-hidden="true"
+              />
             </button>
 
             <!-- Folder entries -->
@@ -72,23 +64,19 @@
               @click="moveToFolder(folder.id)"
             >
               <div class="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center flex-shrink-0">
-                <svg class="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                </svg>
+                <BaseActionIcon action="folders" class="text-amber-500 dark:text-amber-400" />
               </div>
               <span class="flex-1 min-w-0 text-sm font-medium text-text-default truncate">{{ folder.name }}</span>
               <!-- Directo: el selector lista muchos niveles a la vez e indentados
                    (igual que el gestor), y para elegir destino «cuánto hay acá»
                    significa esta carpeta, no su rama entera. -->
               <span class="flex-shrink-0 text-xs text-text-subtle">{{ folder.document_count }}</span>
-              <svg
+              <!-- panel-action-icons: allow-status-glyph — marks the currently selected destination. -->
+              <CheckIcon
                 v-if="document.folder === folder.id"
                 class="w-4 h-4 text-info-strong flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-              </svg>
+                aria-hidden="true"
+              />
             </button>
 
             <div v-if="!folderStore.activeFolders.length" class="text-center py-4">
@@ -155,6 +143,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { CheckIcon } from '@heroicons/vue/24/outline';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },

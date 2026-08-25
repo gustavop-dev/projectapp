@@ -34,16 +34,7 @@
         >
           {{ visibilityLabel }}
         </span>
-        <svg
-          class="w-4 h-4 text-text-subtle motion-safe:transition-transform motion-safe:duration-fast"
-          :class="{ 'rotate-180': expanded }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon :action="expanded ? 'collapse' : 'expand'" />
       </div>
     </button>
 

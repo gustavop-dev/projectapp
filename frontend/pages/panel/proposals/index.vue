@@ -27,11 +27,7 @@
           :to="localePath('/panel/defaults?mode=proposal')"
           title="Configurar valores por defecto de las propuestas"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <BaseActionIcon action="settings" />
           Valores por Defecto
         </BaseButton>
         <BaseButton
@@ -40,9 +36,7 @@
           size="md"
           :to="localePath('/panel/proposals/create')"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <BaseActionIcon action="create" />
           Nueva Propuesta
         </BaseButton>
       </div>
@@ -61,7 +55,7 @@
           <span class="text-lg">🧟</span>
           <h3 class="text-sm font-semibold text-text-default">Propuestas zombie ({{ zombieAlerts.length }})</h3>
         </div>
-        <span class="text-xs text-text-subtle">{{ zombieExpanded ? '▲' : '▼' }}</span>
+        <BaseActionIcon :action="zombieExpanded ? 'collapse' : 'expand'" class="text-text-subtle" />
       </div>
       <div v-if="zombieExpanded" class="space-y-2">
         <!-- Sin controles adentro: la tarjeta entera es el enlace. -->
@@ -93,12 +87,11 @@
             Propuestas que necesitan atención
             <span class="ml-1 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-warning-strong text-warning-soft text-[11px] font-bold">{{ groupedActiveAlerts.length }}</span>
           </h3>
-          <svg class="h-3.5 w-3.5 shrink-0 text-warning-strong/70 transition-transform" :class="{ 'rotate-180': !attentionExpanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon :action="attentionExpanded ? 'collapse' : 'expand'" class="text-warning-strong/70" />
         </div>
         <BaseButton variant="ghost" size="sm" class="shrink-0" @click.stop="toggleAlertForm">
-          {{ showAlertForm ? 'Cancelar' : '+ Crear recordatorio' }}
+          <BaseActionIcon :action="showAlertForm ? 'close' : 'create'" />
+          {{ showAlertForm ? 'Cancelar' : 'Crear recordatorio' }}
         </BaseButton>
       </div>
       <div class="px-4 pb-4 pt-1">
@@ -154,9 +147,11 @@
             @click="openAlertGroup(group, $event)"
           >
             <div class="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
-              <span v-if="group.isMulti" class="text-[10px] text-text-subtle w-3 shrink-0 mt-1 sm:mt-0">
-                {{ expandedAlertGroups.has(group.key) ? '▼' : '▶' }}
-              </span>
+              <BaseActionIcon
+                v-if="group.isMulti"
+                :action="expandedAlertGroups.has(group.key) ? 'collapse' : 'expand'"
+                class="text-text-subtle mt-1 sm:mt-0"
+              />
               <span class="text-base shrink-0 mt-0.5 sm:mt-0">{{ group.icon }}</span>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -184,7 +179,7 @@
                   {{ formatAlertDate(group.refDate) }}
                 </span>
               </div>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Descartar" title="Descartar" @click.stop="handleDismissAlertGroup(group)">✕</BaseButton>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Descartar" title="Descartar" @click.stop="handleDismissAlertGroup(group)"><BaseActionIcon action="close" /></BaseButton>
             </div>
           </div>
 
@@ -378,15 +373,13 @@
         </template>
 
         <template #row-actions="{ row: proposal }">
-          <button
-            type="button"
-            class="inline-flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-muted focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-            :aria-label="`Acciones de ${proposal.title || proposal.client_name}`"
+          <BaseActionButton
+            action="more"
+            :label="`Acciones de ${proposal.title || proposal.client_name}`"
             :data-testid="`proposal-actions-${proposal.id}`"
+            size="md"
             @click.stop="actionsModalProposal = proposal"
-          >
-            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" /></svg>
-          </button>
+          />
         </template>
       </BaseResponsiveTable>
 
@@ -397,9 +390,7 @@
                 <h3 class="text-base font-bold text-text-default truncate">{{ actionsModalProposal.title }}</h3>
                 <p class="text-xs text-text-muted mt-0.5">{{ actionsModalProposal.client_name }}</p>
               </div>
-              <button type="button" class="flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/40" aria-label="Cerrar" @click="actionsModalProposal = null">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <BaseActionButton action="close" label="Cerrar acciones" size="md" @click="actionsModalProposal = null" />
             </div>
             <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <template v-for="action in proposalActions" :key="action.key">
@@ -410,10 +401,10 @@
                   :class="action.danger ? 'hover:bg-danger-soft' : 'hover:bg-surface-raised'"
                   @click="action.onClick ? action.onClick() : null"
                 >
-                  <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0"
+                  <span class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                     :class="action.danger ? 'bg-danger-soft text-danger-strong' : action.bgClass || 'bg-surface-raised'"
                   >
-                    {{ action.icon }}
+                    <BaseActionIcon :action="action.action" />
                   </span>
                   <div class="min-w-0 flex-1">
                     <span class="text-sm font-medium block" :class="action.danger ? 'text-danger-strong' : action.textClass || 'text-text-default'">{{ action.label }}</span>
@@ -434,7 +425,7 @@
               <div class="mt-2 pt-3 border-t border-border-muted px-4 pb-2">
                 <div class="flex items-center justify-between gap-3">
                   <div class="flex items-center gap-3 min-w-0">
-                    <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg flex-shrink-0 bg-surface-raised">🔁</span>
+                    <span class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-surface-raised"><BaseActionIcon action="change-status" /></span>
                     <div class="min-w-0">
                       <span class="text-sm font-medium block text-text-default">Cambiar estado</span>
                       <span class="text-[11px] text-text-subtle block leading-tight">Fuera del flujo normal no se envían correos ni automatizaciones.</span>
@@ -468,9 +459,7 @@
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-base font-bold text-text-default">Registrar actividad</h3>
-              <button type="button" class="flex h-11 w-11 items-center justify-center rounded-lg text-text-subtle transition-colors hover:bg-surface-raised focus:outline-none focus:ring-2 focus:ring-focus-ring/40" aria-label="Cerrar" @click="quickLogProposal = null">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <BaseActionButton action="close" label="Cerrar registro de actividad" size="md" @click="quickLogProposal = null" />
             </div>
             <p class="text-xs text-text-muted mb-4">{{ quickLogProposal.client_name }} — {{ quickLogProposal.title }}</p>
             <div class="space-y-3">
@@ -850,7 +839,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'edit',
-    icon: '✏️',
+    action: 'edit',
     label: 'Editar propuesta',
     info: 'Abre el editor para modificar secciones, precios y contenido de la propuesta.',
     // Con prefijo de idioma: i18n corre con strategy 'prefix', así que una ruta
@@ -866,7 +855,7 @@ const proposalActions = computed(() => {
   // acción existe también en pantallas táctiles, donde ctrl+clic no está.
   actions.push({
     key: 'edit-new-tab',
-    icon: '↗️',
+    action: 'open-external',
     label: 'Abrir en pestaña nueva',
     info: 'Abre el editor en otra pestaña, sin salir del listado. Igual que ctrl/cmd + clic sobre la fila.',
     href: proposalHref(p.id),
@@ -877,7 +866,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'preview',
-    icon: '👁️',
+    action: 'view',
     label: 'Ver preview',
     info: 'Abre la propuesta tal como la ve el cliente, sin registrar vistas.',
     href: `/proposal/${p.slug || p.uuid}?preview=1`,
@@ -888,7 +877,7 @@ const proposalActions = computed(() => {
   if (p.status === 'draft') {
     actions.push({
       key: 'send',
-      icon: '📤',
+      action: 'send',
       label: 'Enviar al cliente',
       info: 'Envía un email al cliente con el enlace de la propuesta. Cambia el estado a "enviada".',
       bgClass: 'bg-info-soft text-info-strong',
@@ -900,7 +889,7 @@ const proposalActions = computed(() => {
   if (['sent', 'viewed'].includes(p.status)) {
     actions.push({
       key: 'resend',
-      icon: '🔄',
+      action: 'resend',
       label: 'Re-enviar email',
       info: 'Envía nuevamente el email al cliente. Mantiene la misma fecha de expiración.',
       bgClass: 'bg-info-soft text-info-strong',
@@ -911,7 +900,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'copy',
-    icon: copiedId.value === p.id ? '✅' : '🔗',
+    action: 'copy',
     label: copiedId.value === p.id ? '¡Enlace copiado!' : 'Copiar enlace',
     info: 'Copia el enlace público de la propuesta al portapapeles para compartir manualmente.',
     bgClass: copiedId.value === p.id ? 'bg-primary-soft text-text-brand ' : 'bg-surface-raised',
@@ -921,7 +910,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'whatsapp',
-    icon: '💬',
+    action: 'message',
     label: 'Enviar por WhatsApp',
     info: 'Abre WhatsApp con un mensaje pre-escrito incluyendo el enlace de la propuesta.',
     href: buildWhatsAppUrl(p),
@@ -931,7 +920,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'quick-log',
-    icon: '📝',
+    action: 'log-activity',
     label: 'Registrar actividad',
     info: 'Registra rápidamente una llamada, reunión o nota sin entrar a la propuesta.',
     bgClass: 'bg-success-soft text-success-strong',
@@ -941,7 +930,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'duplicate',
-    icon: '📋',
+    action: 'duplicate',
     label: 'Duplicar propuesta',
     info: 'Crea una copia exacta de esta propuesta para reutilizar con otro cliente.',
     bgClass: 'bg-info-soft text-info-strong',
@@ -951,7 +940,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'toggle',
-    icon: p.is_active ? '⏸️' : '▶️',
+    action: p.is_active ? 'deactivate' : 'activate',
     label: p.is_active ? 'Desactivar' : 'Activar',
     info: p.is_active
       ? 'Desactiva la propuesta. El cliente no podrá acceder al enlace.'
@@ -963,7 +952,7 @@ const proposalActions = computed(() => {
 
   actions.push({
     key: 'delete',
-    icon: '🗑️',
+    action: 'delete',
     label: 'Eliminar',
     info: 'Elimina permanentemente la propuesta. Esta acción no se puede deshacer.',
     danger: true,

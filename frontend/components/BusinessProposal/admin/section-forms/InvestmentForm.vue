@@ -28,7 +28,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.whatsIncluded.push({ icon: '', title: '', description: '' })">+ Agregar item</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.whatsIncluded.push({ icon: '', title: '', description: '' })"><BaseActionIcon action="create" /> Agregar item</button>
   </div>
   <div>
     <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Opciones de pago</label>
@@ -49,7 +49,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.paymentOptions.push({ label: '', description: '' })">+ Agregar opción</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.paymentOptions.push({ label: '', description: '' })"><BaseActionIcon action="create" /> Agregar opción</button>
   </div>
   <FieldTextarea v-model="form.paymentMethods" label="Métodos de pago" help="Uno por línea" :rows="3" />
   <FieldTextarea v-model="form.valueReasons" label="Razones de valor" help="Una por línea" :rows="3" />
@@ -59,9 +59,7 @@
     <div class="flex items-center justify-between px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
          @click="hostingCollapsed = !hostingCollapsed">
       <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
-        <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !hostingCollapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon :action="hostingCollapsed ? 'expand' : 'collapse'" class="text-text-subtle" />
         ☁️ Plan de Hosting
       </h4>
     </div>
@@ -88,7 +86,7 @@
             </div>
           </template>
         </draggable>
-        <button type="button" class="text-xs text-text-brand font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })">+ Agregar especificación</button>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.hostingPlan.specs.push({ icon: '', label: '', value: '' })"><BaseActionIcon action="create" /> Agregar especificación</button>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FieldInput v-model.number="form.hostingPlan.hostingPercent" label="% de inversión total" type="number" placeholder="70" />

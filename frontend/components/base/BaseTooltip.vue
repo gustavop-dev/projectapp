@@ -3,10 +3,13 @@
     <div
       @pointerenter="handlePointerEnter"
       @pointerleave="handlePointerLeave"
-      @click.stop="handleClick"
-      class="cursor-help"
+      @focusin="showTooltip = true"
+      @focusout="handleFocusOut"
+      @click="handleClick"
+      @keydown.esc="showTooltip = false"
+      :class="triggerClass"
     >
-      <slot name="trigger">
+      <slot name="trigger" :tooltip-id="tooltipId">
         <QuestionMarkCircleIcon class="w-5 h-5 text-text-subtle" />
       </slot>
     </div>
@@ -21,6 +24,8 @@
     >
       <div
         v-if="showTooltip"
+        :id="tooltipId"
+        role="tooltip"
         :class="[
           'absolute z-10 px-3 py-2 text-sm rounded-lg shadow-raised whitespace-normal break-words',
           backgroundColor,
@@ -30,7 +35,7 @@
           positionClasses,
         ]"
       >
-        <slot />
+        <slot>{{ text }}</slot>
         <div
           :class="[
             'absolute w-2 h-2 transform rotate-45',
@@ -44,7 +49,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, useId } from 'vue'
 import { QuestionMarkCircleIcon } from '@heroicons/vue/24/outline'
 import { onClickOutside } from '@vueuse/core'
 import { oneOf } from './propValidators'
@@ -74,11 +79,15 @@ const props = defineProps({
     type: String,
     default: 'min-w-[260px] sm:min-w-[420px] lg:min-w-[560px]',
   },
+  text: { type: String, default: '' },
+  triggerClass: { type: String, default: 'cursor-help' },
+  toggleOnClick: { type: Boolean, default: true },
 })
 
 const showTooltip = ref(false)
 const rootEl = ref(null)
 const touchActive = ref(false)
+const tooltipId = useId()
 
 const handlePointerEnter = (e) => {
   if (e.pointerType !== 'touch') showTooltip.value = true
@@ -88,9 +97,15 @@ const handlePointerLeave = (e) => {
   if (e.pointerType !== 'touch') showTooltip.value = false
 }
 
-const handleClick = () => {
+const handleClick = (event) => {
+  if (!props.toggleOnClick) return
+  event.stopPropagation()
   touchActive.value = true
   showTooltip.value = !showTooltip.value
+}
+
+const handleFocusOut = (event) => {
+  if (!rootEl.value?.contains(event.relatedTarget)) showTooltip.value = false
 }
 
 onClickOutside(rootEl, () => {

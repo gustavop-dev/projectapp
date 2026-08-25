@@ -1,11 +1,7 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink :to="localePath('/panel/portfolio')" class="text-text-subtle hover:text-text-muted transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </NuxtLink>
+      <BaseActionButton as="NuxtLink" :to="localePath('/panel/portfolio')" action="back" label="Volver al portafolio" />
       <h1 class="text-2xl font-light text-text-default">Nuevo Proyecto</h1>
     </div>
 
@@ -111,7 +107,7 @@
             <p class="text-xs text-text-subtle mt-0.5">Descarga la plantilla con la estructura problem/solution/results.</p>
           </div>
           <BaseButton variant="primary" size="md" :disabled="isDownloading" @click="downloadTemplate">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+          <BaseActionIcon action="download" />
             {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
           </BaseButton>
         </div>
@@ -122,7 +118,7 @@
         <h3 class="text-sm font-medium text-text-default mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
           <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm text-text-default hover:bg-surface-muted cursor-pointer transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+          <BaseActionIcon action="upload" />
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
           </label>

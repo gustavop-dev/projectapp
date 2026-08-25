@@ -17,7 +17,7 @@
 
     <div class="flex items-center justify-between pt-2">
       <span class="text-xs font-medium text-text-muted">Categorías evaluadas ({{ form.categories.length }})</span>
-      <button type="button" class="text-xs text-text-brand hover:underline" @click="addCategory">+ Nueva categoría</button>
+      <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addCategory"><BaseActionIcon action="create" /> Nueva categoría</button>
     </div>
 
     <div class="space-y-3">
@@ -53,7 +53,7 @@
           <div class="pt-2 border-t border-border-muted">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs font-medium text-text-muted">Hallazgos</span>
-              <button type="button" class="text-xs text-text-brand hover:underline" @click="addFinding(cat)">+ Agregar</button>
+              <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addFinding(cat)"><BaseActionIcon action="create" /> Agregar</button>
             </div>
             <div class="space-y-2">
               <div
@@ -67,7 +67,7 @@
                 </select>
                 <input v-model="f.title" type="text" placeholder="Título" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
                 <textarea v-model="f.detail" rows="2" placeholder="Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-                <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="cat.findings.splice(fi,1)">×</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar hallazgo" size="sm" @click="cat.findings.splice(fi,1)" />
               </div>
             </div>
           </div>
@@ -75,7 +75,7 @@
           <div class="pt-2 border-t border-border-muted">
             <div class="flex items-center justify-between mb-1">
               <span class="text-xs font-medium text-text-muted">Recomendaciones</span>
-              <button type="button" class="text-xs text-text-brand hover:underline" @click="addRec(cat)">+ Agregar</button>
+              <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addRec(cat)"><BaseActionIcon action="create" /> Agregar</button>
             </div>
             <div class="space-y-2">
               <div
@@ -89,7 +89,7 @@
                 </select>
                 <input v-model="r.title" type="text" placeholder="Sugerencia" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
                 <textarea v-model="r.detail" rows="2" placeholder="Relación/Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-                <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="r.recommendations?.splice(ri,1); cat.recommendations.splice(ri,1)">×</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar recomendación" size="sm" @click="r.recommendations?.splice(ri,1); cat.recommendations.splice(ri,1)" />
               </div>
             </div>
           </div>

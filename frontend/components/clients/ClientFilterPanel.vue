@@ -150,14 +150,14 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <BaseButton
+        <BaseActionButton
+          action="remove"
+          :label="`Quitar filtro ${chip.label}`"
           variant="danger-ghost"
-          icon-only
           size="sm"
-          aria-label="Quitar"
           :data-testid="`client-filter-chip-${chip.key}`"
           @click="clearChip(chip.key)"
-        >&times;</BaseButton>
+        />
       </span>
     </div>
   </div>

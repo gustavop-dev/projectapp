@@ -45,6 +45,7 @@ const audiences = computed(() => {
   <BaseButton variant="secondary" size="md" :data-testid="`view-module-card-${section.id}`" @click="emit('select', section.id)">
     <div class="flex items-start gap-3">
       <span class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary-soft text-text-brand">
+        <!-- panel-action-icons: allow-content-glyph — identifies the module selected by this card. -->
         <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" :d="iconPath" />
         </svg>
@@ -53,9 +54,7 @@ const audiences = computed(() => {
         <h3 class="text-sm font-medium text-text-default">{{ section.label }}</h3>
         <p class="mt-1 text-xs leading-5 text-text-muted line-clamp-2">{{ section.description }}</p>
       </div>
-      <svg class="h-4 w-4 flex-shrink-0 text-text-subtle opacity-0 transition-opacity group-hover:opacity-100" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      <BaseActionIcon action="forward" class="text-text-subtle opacity-0 transition-opacity group-hover:opacity-100" />
     </div>
 
     <div class="mt-4 flex items-baseline gap-4">

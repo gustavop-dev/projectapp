@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import ProposalFilterDropdown from '../../components/proposals/ProposalFilterDropdown.vue';
+import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 
 let outsideHandler = null;
 
@@ -37,13 +38,13 @@ describe('ProposalFilterDropdown', () => {
     expect(wrapper.text()).toContain('Enviada');
   });
 
-  it('renders the icon and active count badge when values are selected', () => {
+  it('renders the canonical filter icon and active count badge when values are selected', () => {
     const wrapper = mountDropdown({
-      icon: '📌',
       modelValue: ['draft', 'sent'],
     });
 
-    expect(wrapper.text()).toContain('📌');
+    expect(wrapper.findAllComponents(BaseActionIcon).some((icon) => icon.props('action') === 'filter')).toBe(true);
+    expect(wrapper.text()).not.toContain('📌');
     expect(wrapper.text()).toContain('2');
   });
 

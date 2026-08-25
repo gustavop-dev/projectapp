@@ -22,7 +22,7 @@
       </div>
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-text-muted">Elementos de la radiografía</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addInclude">+ Agregar</button>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addInclude"><BaseActionIcon action="create" /> Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -51,7 +51,7 @@
 
       <div class="flex items-center justify-between">
         <span class="text-xs font-medium text-text-muted">Filas de tamaño</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addRow">+ Agregar</button>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addRow"><BaseActionIcon action="create" /> Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -63,7 +63,7 @@
           <input v-model="r.small" type="text" placeholder="Pequeña" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <input v-model="r.medium" type="text" placeholder="Mediana" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <input v-model="r.large" type="text" placeholder="Grande" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeRow(idx)">×</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar tecnología" size="sm" @click="removeRow(idx)" />
         </div>
       </div>
 

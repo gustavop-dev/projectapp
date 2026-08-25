@@ -9,9 +9,7 @@
       <BaseDropdown :items="createItems" align="right">
         <template #trigger>
           <BaseButton variant="primary" size="md">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+        <BaseActionIcon action="create" />
             Crear
           </BaseButton>
         </template>

@@ -24,7 +24,7 @@
     <div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-xs font-medium text-text-muted">Distribución día a día</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addItem">+ Agregar</button>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addItem"><BaseActionIcon action="create" /> Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -34,7 +34,7 @@
         >
           <input v-model="d.dayRange" type="text" placeholder="Día X" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <textarea v-model="d.description" rows="2" placeholder="Descripción" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="form.distribution.splice(idx,1)">×</BaseButton>
+        <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar fase" size="sm" @click="form.distribution.splice(idx,1)" />
         </div>
       </div>
     </div>

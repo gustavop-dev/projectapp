@@ -8,9 +8,7 @@
           class="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 px-4 py-2.5 border border-border-default text-text-default rounded-xl
                  font-medium text-sm hover:bg-surface-raised transition-colors"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-          </svg>
+          <BaseActionIcon action="list" />
           Lista
         </NuxtLink>
         <NuxtLink
@@ -18,9 +16,7 @@
           class="inline-flex flex-1 sm:flex-initial items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-xl
                  font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <BaseActionIcon action="create" />
           Nuevo Post
         </NuxtLink>
       </div>
@@ -29,15 +25,7 @@
     <!-- Week navigation -->
     <div class="bg-surface rounded-xl shadow-sm border border-border-muted mb-6 overflow-hidden">
       <div class="flex items-center justify-between gap-2 px-3 sm:px-6 py-3 sm:py-4 border-b border-border-muted">
-        <button
-          type="button"
-          class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted shrink-0"
-          @click="prevWeek"
-        >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
+        <BaseActionButton action="previous" label="Semana anterior" class="shrink-0" @click="prevWeek" />
         <div class="text-center min-w-0 flex-1">
           <h2 class="text-xs sm:text-sm font-semibold text-text-default truncate">{{ weekRangeLabel }}</h2>
           <p class="text-[10px] sm:text-xs text-text-subtle mt-0.5">Semana {{ weekNumber }}</p>
@@ -46,15 +34,7 @@
           <BaseButton variant="secondary" size="sm" @click="goToToday">
             Hoy
           </BaseButton>
-          <button
-            type="button"
-            class="p-2 rounded-lg hover:bg-surface-raised transition-colors text-text-muted"
-            @click="nextWeek"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
+          <BaseActionButton action="next" label="Semana siguiente" @click="nextWeek" />
         </div>
       </div>
 

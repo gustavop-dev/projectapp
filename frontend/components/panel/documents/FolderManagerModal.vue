@@ -21,10 +21,8 @@
                 <p class="text-xs text-text-muted mt-0.5">Crea subcarpetas, edita, elimina o reordena arrastrando</p>
               </div>
             </div>
-            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+        <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" title="Cerrar" @click="close">
+          <BaseActionIcon action="close" />
             </BaseButton>
           </div>
 

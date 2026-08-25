@@ -56,9 +56,10 @@
       @cancel="handleSyncCancel"
     />
     <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default transition-colors">
-        ← Volver a propuestas
-      </NuxtLink>
+      <BaseButton as="NuxtLink" :to="localePath('/panel/proposals')" variant="link" size="sm">
+        <BaseActionIcon action="back" />
+        Volver a propuestas
+      </BaseButton>
     </div>
 
     <!-- Sticky header: title + investment + status -->
@@ -317,8 +318,9 @@
                 {{ tpl.label }}
               </option>
             </select>
-            <BaseButton variant="secondary" size="md" :disabled="previewLoading" @click="loadPreview">
-              {{ previewLoading ? 'Cargando…' : '↻ Recargar' }}
+            <BaseButton variant="secondary" size="md" :loading="previewLoading" @click="loadPreview">
+              <BaseActionIcon v-if="!previewLoading" action="refresh" />
+              {{ previewLoading ? 'Cargando…' : 'Recargar' }}
             </BaseButton>
             <BaseButton variant="ghost" size="md" @click="isPreviewOpen = false">
               Cerrar
@@ -359,8 +361,9 @@
             </div>
           </div>
           <div class="flex items-center gap-2">
-            <BaseButton variant="secondary" size="md" :disabled="discountPreviewLoading" @click="loadDiscountPreview">
-              {{ discountPreviewLoading ? 'Cargando…' : '↻ Recargar' }}
+            <BaseButton variant="secondary" size="md" :loading="discountPreviewLoading" @click="loadDiscountPreview">
+              <BaseActionIcon v-if="!discountPreviewLoading" action="refresh" />
+              {{ discountPreviewLoading ? 'Cargando…' : 'Recargar' }}
             </BaseButton>
             <BaseButton
               variant="primary"

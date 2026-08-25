@@ -8,6 +8,7 @@
 
 import { mount } from '@vue/test-utils';
 import DocumentActionsSheet from '../../components/panel/documents/DocumentActionsSheet.vue';
+import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 
 const baseDocument = { id: 7, title: 'Contrato de Servicios', client_name: 'ACME Corp' };
 
@@ -81,6 +82,13 @@ describe('DocumentActionsSheet', () => {
       const wrapper = mountSheet();
 
       expect(actionButtons(wrapper).at(0).text()).toContain('Editar contenido');
+    });
+
+    it('renders copy and duplicate with distinct catalog actions', () => {
+      const wrapper = mountSheet();
+
+      expect(actionByLabel(wrapper, 'Copiar markdown').findComponent(BaseActionIcon).props('action')).toBe('copy');
+      expect(actionByLabel(wrapper, 'Duplicar').findComponent(BaseActionIcon).props('action')).toBe('duplicate');
     });
   });
 

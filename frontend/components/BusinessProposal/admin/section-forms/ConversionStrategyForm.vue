@@ -16,7 +16,8 @@
       <FieldTextarea v-model="step.bullets" label="Bullets" help="Un bullet por línea" :rows="3" />
     </div>
     <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.steps.push({ title: '', bullets: '' })">
-      + Agregar paso
+      <BaseActionIcon action="create" />
+      Agregar paso
     </button>
   </div>
   <FieldInput v-model="form.resultTitle" label="Título del resultado" />

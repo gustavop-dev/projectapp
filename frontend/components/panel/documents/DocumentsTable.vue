@@ -237,20 +237,13 @@ function onFolderLink(event, sub) {
             <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
           </td>
           <td class="px-6 py-4" @click.stop>
-            <button
-              type="button"
+            <BaseActionButton
+              action="more"
               class="p-2.5 -m-1 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default
                      outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
-              title="Acciones"
-              :aria-label="`Acciones de ${doc.title}`"
+              :label="`Acciones de ${doc.title}`"
               @click="emit('action', doc)"
-            >
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <circle cx="12" cy="5" r="1.6" />
-                <circle cx="12" cy="12" r="1.6" />
-                <circle cx="12" cy="19" r="1.6" />
-              </svg>
-            </button>
+            />
           </td>
         </tr>
       </tbody>

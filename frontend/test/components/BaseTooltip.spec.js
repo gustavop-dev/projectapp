@@ -40,6 +40,36 @@ describe('BaseTooltip', () => {
     expect(wrapper.text()).not.toContain('Tip body')
   })
 
+  it('shows on keyboard focus and exposes tooltip semantics', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { text: 'Accessible tip' },
+      slots: { trigger: '<button data-testid="trg">Action</button>' },
+    })
+    await wrapper.get('[data-testid="trg"]').trigger('focusin')
+    const tooltip = wrapper.get('[role="tooltip"]')
+    expect(tooltip.text()).toContain('Accessible tip')
+    expect(tooltip.attributes('id')).toBeTruthy()
+  })
+
+  it('hides when keyboard focus leaves the trigger', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { text: 'Tip body' },
+      slots: { trigger: '<button data-testid="trg">Action</button>' },
+    })
+    await wrapper.get('[data-testid="trg"]').trigger('focusin')
+    await wrapper.get('[data-testid="trg"]').trigger('focusout', { relatedTarget: document.body })
+    expect(wrapper.find('[role="tooltip"]').exists()).toBe(false)
+  })
+
+  it('does not toggle or swallow clicks for an executable action', async () => {
+    const wrapper = mount(BaseTooltip, {
+      props: { text: 'Tip body', toggleOnClick: false },
+      slots: { trigger: '<button data-testid="trg">Action</button>' },
+    })
+    await wrapper.get('[data-testid="trg"]').trigger('click')
+    expect(wrapper.find('[role="tooltip"]').exists()).toBe(false)
+  })
+
   it.each([
     ['top', 'bottom-full'],
     ['bottom', 'top-full'],

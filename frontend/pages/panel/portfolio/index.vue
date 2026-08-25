@@ -18,9 +18,7 @@
         size="md"
         :to="localePath('/panel/portfolio/create')"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <BaseActionIcon action="create" />
         Nuevo Proyecto
       </BaseButton>
     </div>
@@ -98,10 +96,10 @@ const portfolioColumns = [
 
 function portfolioActionItems(work) {
   return [
-    { label: 'Editar', to: localePath(`/panel/portfolio/${work.id}/edit`) },
-    { label: 'Duplicar', onClick: () => handleDuplicate(work) },
+    { action: 'edit', label: 'Editar', to: localePath(`/panel/portfolio/${work.id}/edit`) },
+    { action: 'duplicate', label: 'Duplicar', onClick: () => handleDuplicate(work) },
     { divider: true },
-    { label: 'Eliminar', danger: true, onClick: () => handleDelete(work) },
+    { action: 'delete', label: 'Eliminar', danger: true, onClick: () => handleDelete(work) },
   ];
 }
 

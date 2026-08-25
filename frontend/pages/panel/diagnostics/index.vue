@@ -25,11 +25,7 @@
           title="Configurar valores por defecto de los diagnósticos"
           data-testid="diagnostics-defaults-link"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-          </svg>
+          <BaseActionIcon action="settings" />
           Valores por Defecto
         </BaseButton>
         <BaseButton
@@ -39,9 +35,7 @@
           :to="localePath('/panel/diagnostics/create')"
           class="shrink-0"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-          </svg>
+          <BaseActionIcon action="create" />
           Nuevo diagnóstico
         </BaseButton>
       </div>
@@ -232,16 +226,12 @@
         <template #cell-id="{ row: diagnostic }">#{{ diagnostic.id }}</template>
 
         <template #row-actions="{ row: diagnostic }">
-          <button
-            type="button"
-            class="-m-1.5 rounded-lg p-3 text-text-subtle motion-safe:transition-colors motion-safe:duration-fast hover:bg-surface-raised hover:text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-            :aria-label="`Acciones de ${diagnostic.title}`"
+          <BaseActionButton
+            action="more"
+            :label="`Acciones de ${diagnostic.title}`"
+            class="-m-1.5"
             @click.stop="actionsModalDiagnostic = diagnostic"
-          >
-            <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-            </svg>
-          </button>
+          />
         </template>
       </BaseResponsiveTable>
 
@@ -276,16 +266,7 @@
               </span>
             </p>
           </div>
-          <button
-            type="button"
-            class="w-11 h-11 rounded-lg flex items-center justify-center text-text-subtle hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-            aria-label="Cerrar"
-            @click="actionsModalDiagnostic = null"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <BaseActionButton action="close" label="Cerrar acciones" size="md" @click="actionsModalDiagnostic = null" />
         </div>
         <div class="p-3 space-y-1 max-h-[60vh] overflow-y-auto">
               <NuxtLink
@@ -293,7 +274,7 @@
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="actionsModalDiagnostic = null"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised" aria-hidden="true">✏️</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-raised" aria-hidden="true"><BaseActionIcon action="edit" /></span>
                 <span class="text-sm font-medium text-text-default">Abrir editor</span>
               </NuxtLink>
 
@@ -308,7 +289,7 @@
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="actionsModalDiagnostic = null"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-surface-raised" aria-hidden="true">↗️</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-raised" aria-hidden="true"><BaseActionIcon action="open-external" /></span>
                 <span class="text-sm font-medium text-text-default">Abrir en pestaña nueva</span>
               </a>
 
@@ -319,7 +300,7 @@
                 rel="noopener noreferrer"
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-primary-soft text-text-brand">👁️</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center bg-primary-soft text-text-brand"><BaseActionIcon action="open-external" /></span>
                 <span class="text-sm font-medium text-text-brand">Ver vista pública</span>
               </a>
 
@@ -329,11 +310,7 @@
                 class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors hover:bg-surface-raised"
                 @click="handleCopyLink(actionsModalDiagnostic)"
               >
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg"
-                  :class="copiedId === actionsModalDiagnostic.id
-                    ? 'bg-primary-soft text-text-brand'
-                    : 'bg-surface-raised'"
-                >{{ copiedId === actionsModalDiagnostic.id ? '✅' : '🔗' }}</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center bg-surface-raised"><BaseActionIcon action="copy" /></span>
                 <span class="text-sm font-medium"
                   :class="copiedId === actionsModalDiagnostic.id
                     ? 'text-text-brand'
@@ -342,7 +319,7 @@
               </button>
 
               <BaseButton variant="danger-ghost" size="sm" class="w-full" @click="handleDelete(actionsModalDiagnostic)">
-                <span class="w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-danger-soft text-danger-strong">🗑️</span>
+                <span class="w-9 h-9 rounded-lg flex items-center justify-center bg-danger-soft text-danger-strong"><BaseActionIcon action="delete" /></span>
                 <span class="text-sm font-medium text-danger-strong">Eliminar</span>
               </BaseButton>
         </div>
