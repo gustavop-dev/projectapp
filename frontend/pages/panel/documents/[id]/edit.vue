@@ -1,6 +1,9 @@
 <template>
   <div class="w-full">
-    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
+    <header
+      class="mb-6 grid grid-cols-1 gap-4 panel-landscape:grid-cols-[minmax(0,1fr)_auto] panel-landscape:items-end"
+      data-testid="doc-editor-header"
+    >
       <div class="min-w-0">
         <NuxtLink
           :to="returnTarget"
@@ -12,39 +15,69 @@
           </svg>
           {{ returnLabel }}
         </NuxtLink>
-        <h1 class="text-2xl font-light text-text-default mt-2 truncate">
+        <h1
+          class="mt-2 line-clamp-2 break-words text-2xl font-light leading-tight text-text-default"
+          :title="documentStore.currentDocument?.title || 'Editar Documento'"
+          data-testid="doc-editor-title"
+        >
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
-        <p v-if="documentStore.currentDocument" class="text-sm text-text-muted mt-1">
-          {{ statusLabel }}{{ headerClientLabel ? ` · ${headerClientLabel}` : '' }}
+        <p
+          v-if="documentStore.currentDocument"
+          class="mt-1 flex min-w-0 items-center gap-1 text-sm text-text-muted"
+          data-testid="doc-editor-metadata"
+        >
+          <span class="flex-shrink-0">{{ statusLabel }}</span>
+          <span v-if="headerClientLabel" aria-hidden="true">·</span>
+          <span v-if="headerClientLabel" class="min-w-0 truncate" :title="headerClientLabel">
+            {{ headerClientLabel }}
+          </span>
         </p>
       </div>
-      <div v-if="documentStore.currentDocument && !loadError" class="hidden items-center gap-3 panel-landscape:flex">
-        <NuxtLink :to="returnTarget" class="text-sm text-text-muted hover:text-text-default">
-          Cancelar
-        </NuxtLink>
-        <BaseDropdown :items="downloadItems" align="right">
-          <template #trigger>
-            <BaseButton variant="secondary" size="md" :disabled="isDownloading">
-              {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </BaseButton>
-          </template>
-        </BaseDropdown>
-        <BaseButton
-          variant="primary"
-          size="md"
-          type="submit"
-          form="doc-edit-form"
-          data-testid="doc-save-desktop"
-          :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
+      <div
+        v-if="documentStore.currentDocument && !loadError"
+        class="flex min-w-0 flex-col gap-2 panel-portrait:flex-row panel-portrait:items-center panel-landscape:flex-shrink-0 panel-landscape:justify-end"
+        data-testid="doc-header-actions"
+      >
+        <div class="flex justify-end whitespace-nowrap" data-testid="doc-document-actions">
+          <BaseActionMenu
+            :items="downloadItems"
+            :label="isDownloading ? 'Descargando…' : 'Acciones'"
+            :disabled="isDownloading"
+            variant="ghost"
+            testid="doc-document-actions-trigger"
+          />
+        </div>
+        <div
+          class="grid grid-cols-2 gap-2 border-t border-border-muted pt-2 panel-portrait:flex panel-portrait:items-center panel-portrait:border-l panel-portrait:border-t-0 panel-portrait:pl-3 panel-portrait:pt-0"
+          role="group"
+          aria-label="Acciones de edición"
+          data-testid="doc-edit-actions"
         >
-          {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
-        </BaseButton>
+          <BaseButton
+            as="NuxtLink"
+            :to="returnTarget"
+            variant="secondary"
+            size="md"
+            class="w-full whitespace-nowrap panel-portrait:w-auto"
+            data-testid="doc-cancel"
+          >
+            Cancelar
+          </BaseButton>
+          <BaseButton
+            variant="primary"
+            size="md"
+            type="submit"
+            form="doc-edit-form"
+            class="w-full whitespace-nowrap panel-portrait:w-auto"
+            data-testid="doc-save"
+            :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
+          >
+            {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
+          </BaseButton>
+        </div>
       </div>
-    </div>
+    </header>
 
     <!-- Llegar por URL directa a un archivado no daría ninguna señal de que
          está fuera de circulación: la lista ya no lo muestra. -->
@@ -503,31 +536,6 @@
           </div>
         </div>
 
-        <div class="mt-5 flex flex-wrap items-center gap-3 panel-landscape:hidden">
-          <BaseButton
-            variant="primary"
-            size="md"
-            type="submit"
-            class="sm:px-6"
-            data-testid="doc-save-mobile"
-            :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
-          >
-            {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
-          </BaseButton>
-          <BaseDropdown :items="downloadItems" align="right">
-            <template #trigger>
-              <BaseButton variant="secondary" size="md" class="sm:px-6" :disabled="isDownloading">
-                {{ isDownloading ? 'Descargando...' : 'Descargar PDF' }}
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </BaseButton>
-            </template>
-          </BaseDropdown>
-          <NuxtLink :to="returnTarget" class="text-sm text-text-muted hover:text-text-default">
-            Cancelar
-          </NuxtLink>
-        </div>
       </section>
     </form>
 
@@ -978,8 +986,8 @@ async function handleSave() {
 }
 
 const downloadItems = computed(() => [
-  { label: 'Descargar · Amigable', onClick: () => handleDownloadPdf('friendly') },
-  { label: 'Descargar · Profesional', onClick: () => handleDownloadPdf('professional') },
+  { label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },
+  { label: 'Descargar PDF · Profesional', onClick: () => handleDownloadPdf('professional') },
 ]);
 
 async function handleDownloadPdf(template = null) {
