@@ -19,6 +19,7 @@ def _make_document(client_user, project=None, **overrides):
     defaults = {
         'title': 'Contrato',
         'status': Document.Status.PUBLISHED,
+        'is_client_visible': True,
         'client_user': client_user,
         'project': project,
         'requires_signature': True,

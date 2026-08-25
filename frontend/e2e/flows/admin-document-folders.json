@@ -1,12 +1,12 @@
 {
   "id": "admin-document-folders",
-  "name": "Admin Document Folders and Tags",
+  "name": "Admin Document Folders",
   "module": "admin",
   "roles": [
     "admin"
   ],
   "priority": "P2",
-  "description": "Organize admin documents with folders and tags: root-folder sidebar navigation, tag filter chips, and folder/tag management modals. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).",
+  "description": "Organize admin documents with root-folder sidebar navigation and folder management modals. In the folder manager modal, the 'Nueva carpeta' form's 'Dentro de:' parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root). State filtering is an independent axis covered by admin-document-state-filters.",
   "expectedSpecs": 1,
   "outcomes": [
     "display"

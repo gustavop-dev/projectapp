@@ -131,6 +131,7 @@ def _parse_standalone_email(request):
         document_ids = []
     document_ids = [int(d) for d in document_ids if isinstance(d, (int, str)) and str(d).isdigit()]
 
+    document_targets = []
     if document_ids:
         from content.services.document_content import resolve_blocks
         from content.services.document_pdf_service import DocumentPdfService
@@ -147,6 +148,11 @@ def _parse_standalone_email(request):
                 continue
             filename = f'{doc.title or f"documento-{doc.pk}"}.pdf'
             attachments.append((filename, pdf_bytes, 'application/pdf'))
+            document_targets.append({
+                'entity_type': 'document',
+                'object_id': doc.pk,
+                'object_repr': doc.title,
+            })
 
     return {
         'recipient_email': recipient_email,
@@ -155,6 +161,7 @@ def _parse_standalone_email(request):
         'sections': sections,
         'footer': footer,
         'attachments': attachments or None,
+        'document_targets': document_targets,
     }, None
 
 
@@ -167,18 +174,27 @@ def send_standalone_email(request):
         return error_response
 
     from content.services.proposal_email_service import ProposalEmailService
-    sent = ProposalEmailService.send_standalone_branded_email(
+    sent, logs = ProposalEmailService.send_standalone_branded_email(
         recipient_email=parsed['recipient_email'],
         subject=parsed['subject'],
         greeting=parsed['greeting'],
         sections=parsed['sections'],
         footer=parsed['footer'],
         attachments=parsed['attachments'],
+        targets=parsed['document_targets'],
+        return_logs=True,
     )
 
     if sent:
         return Response(
-            {'message': f'Correo enviado a {parsed["recipient_email"]}.'},
+            {
+                'message': f'Correo enviado a {parsed["recipient_email"]}.',
+                'email_log_id': logs[0].pk if logs else None,
+                'document_ids': [
+                    target['object_id'] for target in parsed['document_targets']
+                ],
+                'offer_sent_transition': bool(parsed['document_targets']),
+            },
             status=status.HTTP_200_OK,
         )
     return Response(

@@ -106,7 +106,7 @@
         </div>
       </section>
 
-      <section class="space-y-3 border-t border-border-muted pt-5" aria-labelledby="document-custom-notes-heading">
+      <section v-if="!documentId || (!notes.length && customNotes.length)" class="space-y-3 border-t border-border-muted pt-5" aria-labelledby="document-custom-notes-heading">
         <div class="flex items-center justify-between gap-3">
           <div>
             <h4 id="document-custom-notes-heading" class="text-sm font-semibold text-text-default">
@@ -233,6 +233,91 @@
         </article>
       </section>
 
+      <section v-else class="space-y-4 border-t border-border-muted pt-5" aria-labelledby="document-observations-heading">
+        <div>
+          <h4 id="document-observations-heading" class="text-sm font-semibold text-text-default">
+            Observaciones del documento
+          </h4>
+          <p class="mt-0.5 text-xs text-text-subtle">
+            Cada observación queda en el historial y puede abrir la señal Solucionar bug.
+          </p>
+        </div>
+
+        <div v-if="localNotes.length" class="space-y-2" data-testid="document-observation-list">
+          <article
+            v-for="note in localNotes"
+            :key="note.id"
+            class="rounded-xl border border-border-default bg-surface-raised p-3"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-2">
+              <div class="min-w-0">
+                <p class="text-sm font-medium text-text-default">{{ note.title || 'Observación' }}</p>
+                <p class="mt-1 whitespace-pre-wrap text-sm text-text-muted">{{ note.content }}</p>
+              </div>
+              <BaseBadge :variant="note.status === 'open' ? 'warning' : 'neutral'" size="sm">
+                {{ noteStatusLabel(note.status) }}
+              </BaseBadge>
+            </div>
+            <div class="mt-2 flex justify-end">
+              <BaseButton
+                type="button"
+                variant="ghost"
+                size="sm"
+                :aria-label="copyLabel(`observation-${note.id}`, `observación ${note.title || note.id}`)"
+                :data-testid="`document-observation-copy-${note.id}`"
+                @click="copyText(`observation-${note.id}`, note.content)"
+              >
+                {{ copyEmoji(`observation-${note.id}`) }} Copiar
+              </BaseButton>
+            </div>
+            <p v-if="note.resolution_note" class="mt-2 text-xs text-text-subtle">
+              Cierre: {{ note.resolution_note }}
+            </p>
+            <div v-if="note.status === 'open' && !readonly" class="mt-3 flex flex-wrap justify-end gap-2">
+              <BaseButton type="button" variant="ghost" size="sm" :data-testid="`document-observation-edit-${note.id}`" @click="editObservation(note)">Editar</BaseButton>
+              <BaseButton type="button" variant="danger-ghost" size="sm" :data-testid="`document-observation-discard-${note.id}`" @click="finishObservation(note, 'discarded')">Descartar</BaseButton>
+              <BaseButton type="button" variant="secondary" size="sm" :data-testid="`document-observation-resolve-${note.id}`" @click="finishObservation(note, 'resolved')">Resolver</BaseButton>
+            </div>
+          </article>
+        </div>
+        <p v-else class="rounded-xl border border-dashed border-border-default px-4 py-3 text-sm text-text-subtle">
+          Aún no hay observaciones.
+        </p>
+
+        <div v-if="!readonly" class="space-y-3 rounded-xl border border-border-default bg-surface p-4">
+          <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Nueva observación</p>
+          <BaseInput
+            v-model="observationDraft.title"
+            maxlength="120"
+            placeholder="Título breve (opcional)"
+            data-testid="document-observation-title"
+          />
+          <BaseTextarea
+            v-model="observationDraft.content"
+            rows="4"
+            placeholder="Describe la observación…"
+            data-testid="document-observation-content"
+          />
+          <label class="flex items-center gap-2 text-sm text-text-muted">
+            <BaseToggle v-model="observationDraft.markNeedsFix" size="sm" />
+            Marcar también Solucionar bug
+          </label>
+          <div class="flex justify-end">
+            <BaseButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              :loading="observationBusy"
+              :disabled="!observationDraft.content.trim()"
+              data-testid="document-observation-add"
+              @click="addObservation"
+            >
+              Agregar observación
+            </BaseButton>
+          </div>
+        </div>
+      </section>
+
       <div class="flex justify-end gap-2 pt-1">
         <BaseButton type="button" variant="ghost" data-testid="client-note-cancel" @click="close">
           {{ readonly ? 'Cerrar' : 'Cancelar' }}
@@ -254,6 +339,7 @@
 import { reactive, ref, watch } from 'vue';
 import { TrashIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useDocumentStateStore } from '~/stores/document_states';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -261,13 +347,19 @@ const props = defineProps({
   emailBody: { type: String, default: '' },
   whatsappMessage: { type: String, default: '' },
   customNotes: { type: Array, default: () => [] },
+  documentId: { type: [Number, String], default: null },
+  notes: { type: Array, default: () => [] },
   readonly: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'apply']);
+const emit = defineEmits(['update:modelValue', 'apply', 'workflow-changed']);
 const notify = usePanelNotify();
+const stateStore = useDocumentStateStore();
 const copiedField = ref('');
 const validationAttempted = ref(false);
+const observationBusy = ref(false);
+const localNotes = ref([]);
+const observationDraft = reactive({ title: '', content: '', markNeedsFix: true });
 const draft = reactive({
   subject: '',
   emailBody: '',
@@ -293,10 +385,20 @@ watch(
     draft.emailBody = props.emailBody;
     draft.whatsappMessage = props.whatsappMessage;
     draft.customNotes = props.customNotes.map(makeDraftNote);
+    localNotes.value = props.notes.map((note) => ({ ...note }));
+    observationDraft.title = '';
+    observationDraft.content = '';
+    observationDraft.markNeedsFix = true;
     copiedField.value = '';
     validationAttempted.value = false;
   },
   { immediate: true },
+);
+
+watch(
+  () => props.notes,
+  (notes) => { localNotes.value = notes.map((note) => ({ ...note })); },
+  { deep: true },
 );
 
 function close() {
@@ -345,5 +447,80 @@ async function copyText(field, value) {
       detail: 'Tu navegador bloqueó el acceso al portapapeles.',
     });
   }
+}
+
+function noteStatusLabel(status) {
+  return { open: 'Pendiente', resolved: 'Resuelta', discarded: 'Descartada' }[status] || status;
+}
+
+async function addObservation() {
+  if (!props.documentId || !observationDraft.content.trim() || observationBusy.value) return;
+  observationBusy.value = true;
+  const result = await stateStore.createNote(props.documentId, {
+    title: observationDraft.title.trim(),
+    content: observationDraft.content.trim(),
+    mark_needs_fix: observationDraft.markNeedsFix,
+  });
+  observationBusy.value = false;
+  if (!result.success) {
+    notify.error({ title: 'No se pudo agregar la observación', detail: result.message });
+    return;
+  }
+  localNotes.value.push(result.data);
+  observationDraft.title = '';
+  observationDraft.content = '';
+  emit('workflow-changed');
+}
+
+async function editObservation(note) {
+  const title = window.prompt('Título de la observación', note.title || '');
+  if (title === null) return;
+  const content = window.prompt('Contenido de la observación', note.content || '');
+  if (content === null || !content.trim()) return;
+  const result = await stateStore.updateNote(props.documentId, note.id, {
+    title: title.trim(),
+    content: content.trim(),
+  });
+  if (!result.success) {
+    notify.error({ title: 'No se pudo editar la observación', detail: result.message });
+    return;
+  }
+  Object.assign(note, result.data);
+  emit('workflow-changed');
+}
+
+async function finishObservation(note, outcome) {
+  const resolutionNote = window.prompt(
+    outcome === 'resolved' ? '¿Qué se hizo? (opcional)' : '¿Por qué se descarta? (opcional)',
+    '',
+  );
+  if (resolutionNote === null) return;
+
+  const isLastForEpisode = note.episode && !localNotes.value.some(
+    (candidate) => candidate.id !== note.id
+      && candidate.status === 'open'
+      && candidate.episode === note.episode,
+  );
+  const closeLinkedState = Boolean(isLastForEpisode) && window.confirm(
+    outcome === 'resolved'
+      ? '¿Cerrar también Solucionar bug?'
+      : '¿Quitar también Solucionar bug porque la observación no aplicaba?',
+  );
+  const moveCycle = closeLinkedState
+    && outcome === 'resolved'
+    && window.confirm('¿Mover el ciclo del documento a Bug atendido?');
+
+  const result = await stateStore.finishNote(props.documentId, note.id, {
+    outcome,
+    resolution_note: resolutionNote.trim(),
+    close_linked_state: closeLinkedState,
+    move_cycle_to_bug_attended: moveCycle,
+  });
+  if (!result.success) {
+    notify.error({ title: 'No se pudo cerrar la observación', detail: result.message });
+    return;
+  }
+  Object.assign(note, result.data.note);
+  emit('workflow-changed');
 }
 </script>

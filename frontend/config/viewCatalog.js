@@ -454,6 +454,15 @@ export const viewCatalogSections = [
         viewType: 'edit',
       },
       {
+        label: 'Estados de documentos',
+        url: '/panel/documents/statuses',
+        group: 'Documentos',
+        file: 'frontend/pages/panel/documents/statuses.vue',
+        reference: 'catalogo administrable de estados y reglas del ciclo documental',
+        audience: 'admin',
+        viewType: 'config',
+      },
+      {
         label: 'Admins del panel',
         url: '/panel/admins',
         group: 'Configuración',

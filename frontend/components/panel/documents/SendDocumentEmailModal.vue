@@ -327,6 +327,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useDocumentStateStore } from '~/stores/document_states';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -335,6 +336,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'sent']);
 
 const documentStore = useDocumentStore();
+const stateStore = useDocumentStateStore();
 
 const activeTab = ref('edit');
 const recipient = ref('');
@@ -434,7 +436,29 @@ async function send() {
   isSending.value = false;
   if (result.success) {
     successMsg.value = `Correo enviado a ${payload.recipient_email}.`;
-    emit('sent');
+    if (result.data?.offer_sent_transition && window.confirm(
+      'El correo ya salió. ¿Marcar los documentos adjuntos como Enviado?',
+    )) {
+      await stateStore.fetchCatalog();
+      const sentState = stateStore.stateByKey('sent');
+      const eligibleIds = (result.data.document_ids || []).filter((id) => {
+        const candidate = id === props.document?.id
+          ? props.document
+          : documentStore.documents.find((item) => item.id === id);
+        return candidate?.document_type_code !== 'collection_account';
+      });
+      if (sentState) {
+        const transitions = await Promise.all(
+          eligibleIds.map((id) => stateStore.openEpisode(id, sentState.id, null, 'email')),
+        );
+        if (transitions.some((transition) => !transition.success)) {
+          successMsg.value += ' Algunos estados no pudieron actualizarse.';
+        } else if (eligibleIds.length) {
+          successMsg.value += ' Estado Enviado registrado.';
+        }
+      }
+    }
+    emit('sent', result.data);
     setTimeout(close, 1200);
   } else {
     rateLimited.value = result.code === 'rate_limited';

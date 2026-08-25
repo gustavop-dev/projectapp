@@ -14,35 +14,61 @@ const BaseTooltip = {
   template: '<span :data-tooltip="text"><slot /></span>',
 }
 
+const BaseBadge = {
+  name: 'BaseBadge',
+  props: ['variant', 'size'],
+  template: '<span><slot /></span>',
+}
+
 const baseDocument = {
   id: 7,
   title: 'Contrato de Servicios',
-  status: 'published',
   client_name: 'ACME Corp',
   created_at: '2026-03-01T10:00:00Z',
   content_excerpt: '# Contrato\n\nAlcance con **términos**.',
-  tag_details: [
-    { id: 1, name: 'Legal', color: 'blue' },
-    { id: 2, name: 'Cliente', color: 'green' },
-    { id: 3, name: 'Interno', color: 'red' },
+  active_states: [
+    {
+      id: 11,
+      duration_seconds: 172800,
+      state: {
+        id: 1, name: 'Enviado', color: 'blue', system_key: 'sent',
+        group_mode: 'exclusive', group_order: 0, order: 1,
+      },
+    },
+    {
+      id: 12,
+      duration_seconds: 3600,
+      state: {
+        id: 2, name: 'Solucionar bug', color: 'red', system_key: 'needs_fix',
+        group_mode: 'additive', group_order: 1, order: 0,
+      },
+    },
+    {
+      id: 13,
+      duration_seconds: 60,
+      state: {
+        id: 3, name: 'Urgente', color: 'orange', system_key: null,
+        group_mode: 'additive', group_order: 1, order: 1,
+      },
+    },
   ],
 }
 
 async function mountCard(props = {}) {
   const wrapper = mount(DocumentCard, {
     props: { document: baseDocument, editTo: '/panel/documents/7/edit', ...props },
-    global: { components: { NuxtLink, BaseTooltip, BaseRowLink } },
+    global: { components: { NuxtLink, BaseTooltip, BaseBadge, BaseRowLink } },
   })
   await flushPromises() // DOMPurify dynamic import inside DocumentMarkdownBody
   return wrapper
 }
 
 describe('DocumentCard', () => {
-  it('renders title, status, meta and mini-preview', async () => {
+  it('renders title, active state, meta and mini-preview', async () => {
     const wrapper = await mountCard()
 
     expect(wrapper.text()).toContain('Contrato de Servicios')
-    expect(wrapper.text()).toContain('Publicado')
+    expect(wrapper.text()).toContain('Enviado')
     expect(wrapper.text()).toContain('ACME Corp')
     expect(wrapper.html()).toContain('markdown-preview--mini')
     expect(wrapper.text()).toContain('Alcance con')
@@ -55,14 +81,14 @@ describe('DocumentCard', () => {
     expect(link.text()).toContain('Contrato de Servicios')
   })
 
-  it('shows at most two tag chips plus a +N tooltip with the rest', async () => {
+  it('shows the cycle first and limits additional state chips', async () => {
     const wrapper = await mountCard()
 
-    expect(wrapper.text()).toContain('Legal')
-    expect(wrapper.text()).toContain('Cliente')
-    expect(wrapper.text()).not.toContain('Interno')
+    expect(wrapper.text()).toContain('Enviado')
+    expect(wrapper.text()).toContain('Solucionar bug')
+    expect(wrapper.text()).not.toContain('Urgente')
     expect(wrapper.text()).toContain('+1')
-    expect(wrapper.find('[data-tooltip="Interno"]').exists()).toBe(true)
+    expect(wrapper.find('[title="1 estados más"]').exists()).toBe(true)
   })
 
   it('emits open on card click and action on the kebab', async () => {
@@ -119,9 +145,9 @@ describe('DocumentCard', () => {
 
   it('shows a placeholder when there is no excerpt', async () => {
     const wrapper = await mountCard({
-      document: { ...baseDocument, content_excerpt: '', tag_details: [] },
+      document: { ...baseDocument, content_excerpt: '', active_states: [] },
     })
     expect(wrapper.html()).not.toContain('markdown-preview--mini')
-    expect(wrapper.text()).toContain('—')
+    expect(wrapper.find('[data-testid="document-empty-preview"]').exists()).toBe(true)
   })
 })

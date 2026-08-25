@@ -30,6 +30,7 @@ describe('useDocumentFilterQuery', () => {
     store = reactive({
       activeFolderId: 'all', archiveScope: 'active',
       activeTagIds: [], archivedOrder: 'recent',
+      activeStateIds: [], withoutStateIds: [], activeStatePreset: '',
       activeClientId: null, activeProjectId: null,
     })
     mockRoute.query = {}
@@ -60,13 +61,19 @@ describe('useDocumentFilterQuery', () => {
   })
 
   it('ignores garbage values in the query, and scrubs them from the url', () => {
-    mockRoute.query = { folder: 'DROP TABLE', scope: 'bogus' }
+    mockRoute.query = {
+      folder: 'DROP TABLE', scope: 'bogus', states: 'x,-1',
+      without_states: '0', preset: 'bogus',
+    }
 
     const { applyQueryToStore } = setupFilterQuery()
     applyQueryToStore()
 
     expect(store.activeFolderId).toBe('all')
     expect(store.archiveScope).toBe('active')
+    expect(store.activeStateIds).toEqual([])
+    expect(store.withoutStateIds).toEqual([])
+    expect(store.activeStatePreset).toBe('')
     // La URL reproduce la vista: si el valor no se aplicó, no puede quedarse.
     expect(mockReplace).toHaveBeenCalledWith({ query: {} })
   })
@@ -76,6 +83,9 @@ describe('useDocumentFilterQuery', () => {
     // dejaba la carpeta de la visita anterior seleccionada bajo un «Todos».
     store.activeFolderId = 7
     store.archiveScope = 'archived'
+    store.activeStateIds = [11]
+    store.withoutStateIds = [13]
+    store.activeStatePreset = 'needs_fix'
     mockRoute.query = {}
 
     const { applyQueryToStore } = setupFilterQuery()
@@ -84,6 +94,9 @@ describe('useDocumentFilterQuery', () => {
     expect(summary.changed).toBe(true)
     expect(store.activeFolderId).toBe('all')
     expect(store.archiveScope).toBe('active')
+    expect(store.activeStateIds).toEqual([])
+    expect(store.withoutStateIds).toEqual([])
+    expect(store.activeStatePreset).toBe('')
   })
 
   it('drops a hand-typed default out of the url', () => {
@@ -124,6 +137,7 @@ describe('useDocumentFilterQuery', () => {
     const searchQuery = ref('')
     mockRoute.query = {
       folder: '9', scope: 'archived', tags: '8,3,8', client: '4',
+      states: '20,11,20', without_states: '13',
       project: 'none', q: '  factura  ', order: 'oldest',
     }
 
@@ -133,6 +147,8 @@ describe('useDocumentFilterQuery', () => {
     expect(store.activeFolderId).toBe(9)
     expect(store.archiveScope).toBe('archived')
     expect(store.activeTagIds).toEqual([3, 8])
+    expect(store.activeStateIds).toEqual([11, 20])
+    expect(store.withoutStateIds).toEqual([13])
     expect(store.activeClientId).toBe(4)
     expect(store.activeProjectId).toBe('none')
     expect(store.archivedOrder).toBe('oldest')
@@ -225,13 +241,21 @@ describe('useDocumentFilterQuery', () => {
     expect(mockRoute.query).toEqual({})
   })
 
-  it('canonicalizes tag ids in the url', async () => {
+  it('canonicalizes document state filters in the url', async () => {
     setupFilterQuery()
 
-    store.activeTagIds = [8, 3, 8]
+    store.activeStateIds = [20, 11, 20]
+    store.withoutStateIds = [13, 13]
     await nextTick()
 
-    expect(mockRoute.query).toEqual({ tags: '3,8' })
+    expect(mockRoute.query).toEqual({ states: '11,20', without_states: '13' })
+
+    store.activeStateIds = []
+    store.withoutStateIds = []
+    store.activeStatePreset = 'sent_not_closed'
+    await nextTick()
+
+    expect(mockRoute.query).toEqual({ preset: 'sent_not_closed' })
   })
 
   it('validateFolder falls back to all when the folder no longer exists', () => {

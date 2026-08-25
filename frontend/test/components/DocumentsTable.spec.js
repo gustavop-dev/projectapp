@@ -17,6 +17,12 @@ const BaseTooltipStub = {
   template: '<div><slot name="trigger" /><slot /></div>',
 };
 
+const BaseBadgeStub = {
+  name: 'BaseBadge',
+  props: ['variant', 'size'],
+  template: '<span><slot /></span>',
+};
+
 // Preserva el href: el contrato de la fila es justamente que el título tenga
 // dirección, y el auto-stub de NuxtLink no renderiza ninguna.
 const NuxtLinkStub = {
@@ -29,10 +35,21 @@ const editToFor = (doc) => `/panel/documents/${doc.id}/edit`;
 const activeDoc = {
   id: 1,
   title: 'Contrato de Servicios',
-  status: 'published',
   created_at: '2026-05-15T10:00:00Z',
   archived_at: null,
-  tag_details: [],
+  active_states: [{
+    id: 21,
+    duration_seconds: 86400,
+    state: {
+      id: 1,
+      name: 'Enviado',
+      color: 'blue',
+      system_key: 'sent',
+      group_mode: 'exclusive',
+      group_order: 0,
+      order: 1,
+    },
+  }],
 };
 
 const archivedDoc = {
@@ -62,7 +79,12 @@ function mountTable(props = {}) {
     props: { documents: [activeDoc], subfolders: [], ...props },
     global: {
       // BaseRowLink va registrado a mano: en Jest no hay auto-import de Nuxt.
-      components: { BaseButton, BaseTooltip: BaseTooltipStub, BaseRowLink },
+      components: {
+        BaseBadge: BaseBadgeStub,
+        BaseButton,
+        BaseTooltip: BaseTooltipStub,
+        BaseRowLink,
+      },
       stubs: { NuxtLink: NuxtLinkStub },
     },
   });
@@ -95,11 +117,11 @@ describe('DocumentsTable — archived mode', () => {
     expect(wrapper.text()).toMatch(/hace \d+ años?/);
   });
 
-  it('shows the neutral Archivado badge instead of the editorial status', () => {
+  it('shows the neutral Archivado badge instead of workflow states', () => {
     const wrapper = mountTable({ documents: [archivedDoc], scope: 'archived' });
 
     expect(wrapper.text()).toContain('Archivado');
-    expect(wrapper.text()).not.toContain('Publicado');
+    expect(wrapper.text()).not.toContain('Enviado');
   });
 
   it('marks only the archived row in a mixed list', () => {
@@ -110,7 +132,7 @@ describe('DocumentsTable — archived mode', () => {
     const rows = wrapper.findAll('tbody tr');
     expect(rows[0].find('[data-testid="doc-archived-badge"]').exists()).toBe(false);
     expect(rows[1].find('[data-testid="doc-archived-badge"]').exists()).toBe(true);
-    expect(rows[0].text()).toContain('Publicado');
+    expect(rows[0].text()).toContain('Enviado');
   });
 
   it('does not make archived document rows draggable', () => {

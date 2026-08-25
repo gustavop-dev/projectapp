@@ -2,10 +2,31 @@
 
 ## Current State
 
+**2026-08-25 — Estados múltiples, administrables y con episodios para Documentos:**
+el módulo dejó de presentar `draft/published` y etiquetas como dos verdades
+solapadas. `DocumentStateGroup` separa un ciclo exclusivo de señales aditivas;
+el catálogo editable conserva seis semillas con `system_key`, permite creación al
+vuelo con sugerencias, renombre/color, incompatibilidades, fusión y retiro con
+guardas sobre documentos activos. El estado vigente se deriva de episodios abiertos;
+cerrar, quitar, transicionar, fusionar y corregir la fecha efectiva escriben eventos
+append-only con actor, fecha/hora, resultado y nota. Lista, galería y edición muestran
+ciclo antes de señales, duración viva, overflow y una alerta inequívoca para
+Solucionar bug; el modal histórico combina fecha exacta y relativa. Los filtros OR,
+por ausencia y cuatro presets responden pendientes/cerrados sin abrir cada documento.
+Las observaciones privadas se normalizaron en `DocumentNote` y pueden abrir/cerrar el
+episodio needs-fix; un correo manual confirmado ofrece abrir Enviado; el MCP tiene el
+mismo contrato. `is_client_visible` desacopla portal y workflow. `content.0210`
+convierte Published sólo en visibilidad, expande tags como episodios aditivos de fecha
+desconocida, normaliza notas y excluye cuentas de cobro, sin inventar Borrador para el
+inventario existente. Verificación focal: 38 backend, 59 Jest y 19 Playwright verdes,
+Django check/migration SQL sin drift, build Nuxt y tres flows nuevos cubiertos. El
+refresh de fake data se negó correctamente porque este proyecto es producción; no se
+aplicó la migración ni se alteraron datos productivos.
+
 **2026-08-25 — Retorno contextual desde la edición de Documentos:** se confirmó
 que las cuatro salidas del editor estaban fijadas a la raíz y que el listado sólo
 persistía una parte de su contexto. La URL del listado ahora canoniza carpeta,
-scope normal/archivado, tags, cliente/proyecto, búsqueda global, orden, vista,
+scope normal/archivado, estados, cliente/proyecto, búsqueda global, orden, vista,
 página y foco. Los enlaces de edición llevan un `from` interno validado; todos los
 estados del editor vuelven al mismo destino con rótulo contextual, mientras una
 entrada directa/externa cae a la raíz localizada. El enlace explícito agrega el id

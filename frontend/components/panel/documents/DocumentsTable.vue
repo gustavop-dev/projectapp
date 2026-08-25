@@ -1,13 +1,13 @@
 <script setup>
-import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 import {
-  documentStatusBadgeClass, documentStatusLabel, formatDocumentDate, folderRowSummary,
+  formatDocumentDate, folderRowSummary,
   archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { computed } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
 import { isPlainActivation } from '~/utils/rowNavigation'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
+import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
 
 const props = defineProps({
   documents: { type: Array, default: () => [] },
@@ -71,8 +71,7 @@ function onFolderLink(event, sub) {
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
           <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
           <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
-          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Etiquetas</th>
-          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estado</th>
+          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estados</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
           <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
@@ -111,7 +110,7 @@ function onFolderLink(event, sub) {
               />
             </div>
           </td>
-          <td class="px-6 py-4 text-sm text-text-subtle" colspan="5">
+          <td class="px-6 py-4 text-sm text-text-subtle" colspan="4">
             {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
           <td class="px-6 py-4" @click.stop>
@@ -173,15 +172,8 @@ function onFolderLink(event, sub) {
                 {{ doc.client_display_name || doc.client_name }}
               </span>
               <span v-if="doc.project_name">{{ doc.project_name }}</span>
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium"
-                :class="doc.is_archived ? 'bg-surface-raised text-text-muted' : documentStatusBadgeClass(doc.status)"
-              >
-                {{ doc.is_archived ? 'Archivado' : documentStatusLabel(doc.status) }}
-              </span>
-              <span v-if="doc.tag_details?.length" class="text-text-subtle">
-                {{ doc.tag_details.map((tag) => tag.name).join(', ') }}
-              </span>
+              <BaseBadge v-if="doc.is_archived" variant="neutral" size="sm">Archivado</BaseBadge>
+              <DocumentStateList v-else :episodes="doc.active_states" :max-visible="2" />
             </div>
           </td>
           <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
@@ -200,34 +192,15 @@ function onFolderLink(event, sub) {
             <span v-else class="text-text-subtle">—</span>
           </td>
           <td class="hidden px-6 py-4 panel-desktop:table-cell">
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="tag in doc.tag_details"
-                :key="tag.id"
-                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium"
-                :class="tagBadgeClass(tag.color)"
-              >
-                <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
-                {{ tag.name }}
-              </span>
-              <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-text-subtle">—</span>
-            </div>
-          </td>
-          <td class="hidden px-6 py-4 panel-desktop:table-cell">
-            <span
+            <BaseBadge
               v-if="doc.is_archived"
-              class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle"
+              variant="neutral"
+              size="sm"
               data-testid="doc-archived-badge"
             >
               Archivado
-            </span>
-            <span
-              v-else
-              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              :class="documentStatusBadgeClass(doc.status)"
-            >
-              {{ documentStatusLabel(doc.status) }}
-            </span>
+            </BaseBadge>
+            <DocumentStateList v-else :episodes="doc.active_states" :max-visible="3" />
           </td>
           <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
             <template v-if="doc.is_archived">

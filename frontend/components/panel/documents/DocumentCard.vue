@@ -1,11 +1,11 @@
 <script setup>
 import { computed } from 'vue'
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue'
+import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
 import {
-  documentStatusBadgeClass, documentStatusLabel, formatDocumentDate, archivedAgeLabel,
+  formatDocumentDate, archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
-import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 
 const props = defineProps({
   document: { type: Object, required: true },
@@ -17,12 +17,7 @@ const props = defineProps({
 
 const emit = defineEmits(['open', 'action', 'dragstart', 'dragend'])
 
-const MAX_TAGS = 2
-
 const excerpt = computed(() => makeSafeExcerpt(props.document.content_excerpt || ''))
-const tags = computed(() => props.document.tag_details || [])
-const visibleTags = computed(() => tags.value.slice(0, MAX_TAGS))
-const extraTagNames = computed(() => tags.value.slice(MAX_TAGS).map((t) => t.name).join(', '))
 
 const meta = computed(() => {
   const parts = []
@@ -64,7 +59,11 @@ const meta = computed(() => {
         variant="mini"
         class="px-4 py-3 pointer-events-none select-none"
       />
-      <div v-else class="flex items-center justify-center h-full text-text-subtle">
+      <div
+        v-else
+        class="flex items-center justify-center h-full text-text-subtle"
+        data-testid="document-empty-preview"
+      >
         <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -77,13 +76,9 @@ const meta = computed(() => {
       >
         Archivado
       </span>
-      <span
-        v-else
-        class="absolute top-2 right-2 inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium shadow-sm"
-        :class="documentStatusBadgeClass(document.status)"
-      >
-        {{ documentStatusLabel(document.status) }}
-      </span>
+      <div v-else class="absolute right-2 top-2 max-w-[80%]">
+        <DocumentStateList :episodes="document.active_states" :max-visible="1" />
+      </div>
     </div>
 
     <!-- Info -->
@@ -100,23 +95,7 @@ const meta = computed(() => {
       <p class="text-xs text-text-muted mt-1 tabular-nums truncate">{{ meta }}</p>
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">
-        <div class="flex flex-wrap items-center gap-1 min-w-0">
-          <span
-            v-for="tag in visibleTags"
-            :key="tag.id"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium"
-            :class="tagBadgeClass(tag.color)"
-          >
-            <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
-            {{ tag.name }}
-          </span>
-          <BaseTooltip v-if="extraTagNames" :text="extraTagNames">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-medium bg-surface-raised text-text-muted">
-              +{{ tags.length - 2 }}
-            </span>
-          </BaseTooltip>
-          <span v-if="tags.length === 0" class="text-2xs text-text-subtle">—</span>
-        </div>
+        <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />
         <button
           type="button"
           title="Acciones"

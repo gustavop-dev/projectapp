@@ -185,6 +185,22 @@ from content.views.document_tag import (
     list_document_tags, create_document_tag,
     update_document_tag, delete_document_tag,
 )
+from content.views.document_state import (
+    close_document_state,
+    correct_document_state_opening,
+    document_notes,
+    document_state_group_detail,
+    document_state_groups,
+    document_state_history,
+    document_state_suggestions,
+    document_states,
+    finish_document_note,
+    merge_document_state,
+    open_document_state,
+    retire_document_state,
+    update_document_note,
+    update_document_state,
+)
 from content.views.client_emails import (
     client_email_body,
     list_client_emails,
@@ -431,6 +447,41 @@ urlpatterns = [
     path('documents/<int:document_id>/unarchive/', unarchive_document, name='unarchive-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
+    path(
+        'documents/<int:document_id>/state-episodes/',
+        open_document_state,
+        name='open-document-state',
+    ),
+    path(
+        'documents/<int:document_id>/state-episodes/<int:episode_id>/close/',
+        close_document_state,
+        name='close-document-state',
+    ),
+    path(
+        'documents/<int:document_id>/state-episodes/<int:episode_id>/opened-at/',
+        correct_document_state_opening,
+        name='correct-document-state-opening',
+    ),
+    path(
+        'documents/<int:document_id>/state-history/',
+        document_state_history,
+        name='document-state-history',
+    ),
+    path(
+        'documents/<int:document_id>/notes/',
+        document_notes,
+        name='document-notes',
+    ),
+    path(
+        'documents/<int:document_id>/notes/<int:note_id>/',
+        update_document_note,
+        name='update-document-note',
+    ),
+    path(
+        'documents/<int:document_id>/notes/<int:note_id>/finish/',
+        finish_document_note,
+        name='finish-document-note',
+    ),
 
     # Document folders (flat, inline-managed)
     path('document-folders/', list_document_folders, name='list-document-folders'),
@@ -466,6 +517,33 @@ urlpatterns = [
     path('document-tags/create/', create_document_tag, name='create-document-tag'),
     path('document-tags/<int:tag_id>/update/', update_document_tag, name='update-document-tag'),
     path('document-tags/<int:tag_id>/delete/', delete_document_tag, name='delete-document-tag'),
+    path('document-state-groups/', document_state_groups, name='document-state-groups'),
+    path(
+        'document-state-groups/<int:group_id>/',
+        document_state_group_detail,
+        name='document-state-group-detail',
+    ),
+    path('document-states/', document_states, name='document-states'),
+    path(
+        'document-states/suggestions/',
+        document_state_suggestions,
+        name='document-state-suggestions',
+    ),
+    path(
+        'document-states/<int:state_id>/',
+        update_document_state,
+        name='update-document-state',
+    ),
+    path(
+        'document-states/<int:state_id>/retire/',
+        retire_document_state,
+        name='retire-document-state',
+    ),
+    path(
+        'document-states/<int:state_id>/merge/',
+        merge_document_state,
+        name='merge-document-state',
+    ),
 
     # ── Web App Diagnostics ───────────────────────────────────────
     # Public (UUID-based)

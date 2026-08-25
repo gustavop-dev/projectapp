@@ -35,10 +35,10 @@ def _is_platform_admin(request):
 
 
 def _visible_docs_qs(request):
-    """Published portal documents visible to the requesting user.
+    """Portal-visible documents available to the requesting user.
 
     Excludes commercial collection accounts (those have their own portal).
-    Admins see every published portal document; clients only their own.
+    Admins see every visible portal document; clients only their own.
 
     Excluye lo archivado (decisión del operador, 13-ago-2026): archivar en el
     panel retira el documento del portal — también cuando lo arrastra la
@@ -47,7 +47,7 @@ def _visible_docs_qs(request):
     """
     qs = (
         Document.objects
-        .filter(status=Document.Status.PUBLISHED, is_archived=False)
+        .filter(is_client_visible=True, is_archived=False)
         .exclude(document_type__code=COLLECTION_ACCOUNT)
         .select_related('document_type', 'project', 'client_user', 'signed_by')
     )

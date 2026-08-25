@@ -41,6 +41,13 @@ from .document import Document
 from .document_type import DocumentType
 from .document_folder import DocumentFolder
 from .document_tag import DocumentTag
+from .document_state import (
+    DocumentState,
+    DocumentStateEpisode,
+    DocumentStateEpisodeEvent,
+    DocumentStateGroup,
+)
+from .document_note import DocumentNote
 from .issuer_profile import IssuerProfile
 from .document_number_sequence import (
     ClientDocumentNumberSequence,

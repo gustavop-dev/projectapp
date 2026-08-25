@@ -81,6 +81,9 @@ class Command(BaseCommand):
                 # el texto, el PDF sigue saliendo con los bloques anteriores.
                 document.content_json = build_content_json(document, content)
                 document.status = options['status']
+                document.is_client_visible = (
+                    options['status'] == Document.Status.PUBLISHED
+                )
                 document.updated_by = admin
                 document.save()
                 self.stdout.write(self.style.SUCCESS(
@@ -96,6 +99,7 @@ class Command(BaseCommand):
             folder=folder,
             title=title,
             status=options['status'],
+            is_client_visible=(options['status'] == Document.Status.PUBLISHED),
             content_markdown=content,
             language=options['language'],
             created_by=admin,

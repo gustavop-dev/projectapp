@@ -16,8 +16,17 @@
           {{ documentStore.currentDocument?.title || 'Editar Documento' }}
         </h1>
         <p v-if="documentStore.currentDocument" class="text-sm text-text-muted mt-1">
-          {{ statusLabel }}{{ headerClientLabel ? ` · ${headerClientLabel}` : '' }}
+          {{ headerClientLabel || 'Sin cliente' }} ·
+          {{ form.is_client_visible ? 'Visible en el portal' : 'No visible en el portal' }}
         </p>
+        <DocumentStateList
+          v-if="documentStore.currentDocument && !isCollectionAccount"
+          class="mt-2"
+          :episodes="workflowEpisodes"
+          :max-visible="4"
+          show-history
+          @history="showStateHistory = true"
+        />
       </div>
       <div v-if="documentStore.currentDocument && !loadError" class="hidden items-center gap-3 panel-landscape:flex">
         <NuxtLink :to="returnTarget" class="text-sm text-text-muted hover:text-text-default">
@@ -292,24 +301,27 @@
                 Sin guardar
               </BaseBadge>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-text-default mb-1">Estado</label>
-              <select
-                v-model="form.status"
-                class="w-full px-4 py-2.5 border border-border-default rounded-xl text-sm bg-surface text-text-default
-                       focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
-              >
-                <option v-for="option in statusOptions" :key="option.value" :value="option.value">
-                  {{ option.label }}
-                </option>
-              </select>
-            </div>
+            <DocumentStateSelector
+              v-if="!isCollectionAccount"
+              :document-id="route.params.id"
+              :episodes="workflowEpisodes"
+              :disabled="lockedCuenta"
+              @changed="refreshWorkflow"
+              @history="showStateHistory = true"
+            />
           </div>
 
           <hr class="border-border-muted" />
 
           <div class="space-y-4">
             <h2 class="text-xs uppercase tracking-wide font-semibold text-text-muted">Organización</h2>
+            <label class="flex items-start justify-between gap-4 rounded-xl border border-border-default bg-surface-raised p-3">
+              <span>
+                <span class="block text-sm font-medium text-text-default">Visible en el portal del cliente</span>
+                <span class="mt-0.5 block text-xs text-text-subtle">Controla la publicación sin mezclarla con el ciclo de trabajo.</span>
+              </span>
+              <BaseToggle v-model="form.is_client_visible" :disabled="lockedCuenta" />
+            </label>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
               <select
@@ -323,7 +335,6 @@
                 </option>
               </select>
             </div>
-            <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
           </div>
 
           <hr class="border-border-muted" />
@@ -501,12 +512,22 @@
 
     <DocumentClientNoteModal
       v-model="showClientNote"
+      :document-id="route.params.id"
       :subject="form.client_email_subject"
       :email-body="form.client_email_body"
       :whatsapp-message="form.client_whatsapp_message"
       :custom-notes="form.client_custom_notes"
+      :notes="normalizedNotes"
       :readonly="lockedCuenta"
       @apply="applyClientNote"
+      @workflow-changed="refreshWorkflow"
+    />
+
+    <DocumentStateHistoryModal
+      v-if="!isCollectionAccount"
+      v-model="showStateHistory"
+      :document-id="route.params.id"
+      @changed="refreshWorkflow"
     />
 
     <MarkdownPreviewModal
@@ -561,11 +582,13 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted, nextTick } from 'vue';
-import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import DocumentPdfPreviewModal from '~/components/panel/documents/DocumentPdfPreviewModal.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
 import DocumentClientNoteModal from '~/components/panel/documents/DocumentClientNoteModal.vue';
+import DocumentStateHistoryModal from '~/components/panel/documents/DocumentStateHistoryModal.vue';
+import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue';
+import DocumentStateSelector from '~/components/panel/documents/DocumentStateSelector.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
@@ -587,7 +610,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
-const tagStore = useDocumentTagStore();
+const stateStore = useDocumentStateStore();
 const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
 const returnNavigation = computed(() => resolveDocumentReturn(
@@ -621,6 +644,9 @@ const showPreview = ref(true);
 const showFullPreview = ref(false);
 const showPdfPreview = ref(false);
 const showClientNote = ref(false);
+const showStateHistory = ref(false);
+const workflowEpisodes = ref([]);
+const normalizedNotes = ref([]);
 const copiedMarkdown = ref(false);
 const pastedMarkdown = ref(false);
 const markdownTextareaRef = ref(null);
@@ -633,14 +659,13 @@ const form = reactive({
   include_portada: true,
   include_subportada: true,
   include_contraportada: true,
-  status: 'draft',
+  is_client_visible: false,
   content_markdown: '',
   client_email_subject: '',
   client_email_body: '',
   client_whatsapp_message: '',
   client_custom_notes: [],
   folder_id: null,
-  tag_ids: [],
   template_style: 'professional',
 });
 
@@ -654,14 +679,13 @@ const FIELD_LABELS = {
   include_portada: 'portada',
   include_subportada: 'subportada',
   include_contraportada: 'contraportada',
-  status: 'estado',
+  is_client_visible: 'visibilidad en portal',
   content_markdown: 'contenido',
   client_email_subject: 'asunto del correo',
   client_email_body: 'correo para el cliente',
   client_whatsapp_message: 'WhatsApp para el cliente',
   client_custom_notes: 'notas adicionales',
   folder_id: 'carpeta',
-  tag_ids: 'etiquetas',
   template_style: 'estilo de plantilla',
 };
 
@@ -683,7 +707,7 @@ const {
   handleSecondaryAction,
   handleCancelled,
 } = useUnsavedGuard({
-  snapshot: () => ({ ...form, tag_ids: [...form.tag_ids] }),
+  snapshot: () => ({ ...form }),
   labels: FIELD_LABELS,
   save: handleSave,
   // Una cuenta de cobro emitida no se guarda: el backend contesta 400
@@ -694,12 +718,17 @@ const {
 });
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
+const isCollectionAccount = computed(
+  () => documentStore.currentDocument?.document_type_code === 'collection_account',
+);
 
 const hasNotes = computed(() => [
   form.client_email_subject,
   form.client_email_body,
   form.client_whatsapp_message,
-].some((value) => value.trim()) || form.client_custom_notes.length > 0);
+].some((value) => value.trim())
+  || form.client_custom_notes.length > 0
+  || normalizedNotes.value.length > 0);
 
 const notesActionLabel = computed(() => (
   hasNotes.value ? 'Editar notas' : 'Agregar notas'
@@ -717,6 +746,15 @@ function applyClientNote(note) {
   form.client_email_body = note.emailBody;
   form.client_whatsapp_message = note.whatsappMessage;
   form.client_custom_notes = note.customNotes;
+}
+
+async function refreshWorkflow() {
+  const result = await documentStore.fetchDocument(route.params.id);
+  if (!result.success || !result.data) return;
+  workflowEpisodes.value = Array.isArray(result.data.active_states)
+    ? result.data.active_states
+    : [];
+  normalizedNotes.value = Array.isArray(result.data.notes) ? result.data.notes : [];
 }
 
 const { onClientSelect, onProjectSelect } = useClientProjectCascade(
@@ -775,17 +813,6 @@ const templateStyleOptions = [
   { value: 'professional', label: 'Profesional', testId: 'doc-style-professional' },
 ];
 
-// Sin 'archived': "Archivado" es ahora el estado que saca el documento de la
-// vista (acción Archivar), no un estado editorial homónimo que no ocultaba nada.
-const statusOptions = [
-  { value: 'draft', label: 'Borrador' },
-  { value: 'published', label: 'Publicado' },
-];
-
-const statusLabel = computed(
-  () => statusOptions.find((option) => option.value === form.status)?.label || '',
-);
-
 async function handleCopyContent() {
   try {
     await navigator.clipboard.writeText(form.content_markdown);
@@ -842,7 +869,7 @@ async function reloadDocument() {
   const [result] = await Promise.all([
     documentStore.fetchDocument(id),
     folderStore.fetchFolders(),
-    tagStore.fetchTags(),
+    stateStore.fetchCatalog(),
   ]);
   if (result.success && result.data) {
     form.title = result.data.title || '';
@@ -854,7 +881,7 @@ async function reloadDocument() {
     form.include_portada = result.data.include_portada !== undefined ? result.data.include_portada : true;
     form.include_subportada = result.data.include_subportada !== undefined ? result.data.include_subportada : true;
     form.include_contraportada = result.data.include_contraportada !== undefined ? result.data.include_contraportada : true;
-    form.status = result.data.status || 'draft';
+    form.is_client_visible = Boolean(result.data.is_client_visible);
     form.content_markdown = result.data.content_markdown || '';
     form.client_email_subject = result.data.client_email_subject || '';
     form.client_email_body = result.data.client_email_body || '';
@@ -863,7 +890,10 @@ async function reloadDocument() {
       ? result.data.client_custom_notes.map((note) => ({ ...note }))
       : [];
     form.folder_id = result.data.folder || null;
-    form.tag_ids = Array.isArray(result.data.tag_ids) ? [...result.data.tag_ids] : [];
+    workflowEpisodes.value = Array.isArray(result.data.active_states)
+      ? result.data.active_states
+      : [];
+    normalizedNotes.value = Array.isArray(result.data.notes) ? result.data.notes : [];
     form.template_style = result.data.template_style || 'professional';
     lockedCuenta.value = (
       result.data.document_type_code === 'collection_account'
@@ -891,14 +921,13 @@ async function handleSave() {
     include_portada: form.include_portada,
     include_subportada: form.include_subportada,
     include_contraportada: form.include_contraportada,
-    status: form.status,
+    is_client_visible: form.is_client_visible,
     content_markdown: form.content_markdown,
     client_email_subject: form.client_email_subject,
     client_email_body: form.client_email_body,
     client_whatsapp_message: form.client_whatsapp_message,
     client_custom_notes: form.client_custom_notes,
     folder_id: form.folder_id,
-    tag_ids: form.tag_ids,
     template_style: form.template_style,
   };
 

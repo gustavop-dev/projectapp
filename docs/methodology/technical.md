@@ -230,6 +230,33 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
   more stable families. See `docs/client-email-copy-inventory.md`.
 
+### Document workflow is episode-derived and visibility-independent
+
+- `Document.is_client_visible` is the only client-portal visibility gate. The
+  legacy `status` field remains temporarily for expand/contract compatibility and
+  must not be reused for internal workflow decisions.
+- `DocumentStateGroup.selection_mode` expresses the only-one cycle versus additive
+  signals. `DocumentState.system_key` is stable integration identity; the user-facing
+  name and color remain editable. Seed states may not be moved into a group whose
+  mode contradicts their integration role.
+- Open `DocumentStateEpisode` rows are the materialized current state. Every open,
+  close, removal, exclusive transition, merge and effective-date correction writes a
+  `DocumentStateEpisodeEvent`; this document-local stream is the single audit source
+  for workflow changes.
+- All episode writes go through `document_state_service`, which locks the document
+  and validates future dates, exclusivity and symmetric incompatibilities. Catalog
+  edits are rejected when they would invalidate combinations already active.
+- `DocumentNote` is the normalized private observation model.
+  `document_note_service` links it to needs-fix and refuses to auto-close the signal
+  while another linked observation remains open.
+- Migration `content.0210` is deliberately non-inferential: Published maps to
+  visibility, existing documents receive no invented cycle state, old tag assignments
+  become additive episodes with unknown `opened_at`, and collection accounts remain
+  outside this workflow.
+- The panel client uses `stores/services/request_http` through the Options-API
+  `document_states.js` store. State names are suggestions only; all mutation and
+  conflict enforcement remains server-owned.
+
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
 - **Platform (`/platform/`)**: JWT via SimpleJWT (access + refresh tokens); middleware `platform-auth.js`; platform stores use `composables/usePlatformApi.js` (axios with JWT interceptors)
@@ -442,7 +469,7 @@ projectapp/
 │   │   ├── BusinessProposal/    # 50 proposal component/source files. Admin-only under `admin/` (incl. `ProjectScheduleEditor.vue`)
 │   │   ├── platform/access/     # CopyField.vue, UrlRow.vue — quick-access micro-components
 │   │   └── Tasks/               # TaskCard.vue, TaskColumn.vue (vuedraggable), TaskFormModal.vue — internal Kanban board
-│   ├── stores/                  # 35 store files: 33 Pinia stores + 2 constants modules (proposals, proposal_clients, diagnostics, blog, portfolio_works, contacts, language, linkedin, documents, document_folders, document_tags, tasks, emails, hour_packages, accounting, mcps, panel_admins, panel_dashboard, panel_refresh, view_map, platform-auth, platform-clients, platform-projects, platform-requirements, platform-scope-items, platform-bug-reports, platform-change-requests, platform-deliverables, platform-notifications, platform-payments, platform-collection-accounts, platform-data-model, platform-documents + diagnostics_constants, proposals_constants)
+│   ├── stores/                  # Pinia Options-API stores, including documents, document_folders and the administrable document_states workflow catalog; platform stores remain isolated behind usePlatformApi
 │   ├── composables/             # 59 composables (incl. useStageStatus.js)
 │   ├── e2e/                     # Playwright E2E tests (216 spec files)
 │   ├── test/                    # Jest unit tests (368 test files)

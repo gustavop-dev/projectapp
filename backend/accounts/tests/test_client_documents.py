@@ -19,6 +19,7 @@ def _make_document(client_user, project=None, *, title='Contrato', published=Tru
     return Document.objects.create(
         title=title,
         status=Document.Status.PUBLISHED if published else Document.Status.DRAFT,
+        is_client_visible=published,
         client_user=client_user,
         project=project,
         requires_signature=requires_signature,

@@ -21,17 +21,37 @@ receive the raw `arguments` dict, return a JSON-serializable dict, and raise
 ToolError for business errors. They reuse the exact same parser and
 document_type helpers as the panel so the PDF pipeline stays identical.
 """
+from django.utils import timezone
+from django.utils.dateparse import parse_datetime
+
+from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
-from content.models import Document, DocumentFolder
+from content.models import (
+    Document,
+    DocumentFolder,
+    DocumentNote,
+    DocumentState,
+    DocumentStateEpisode,
+)
 from content.services.document_content import build_content_json
 from content.services.document_notes import (
     DocumentNotesValidationError, normalize_client_custom_notes,
 )
 from content.services.document_type_codes import MARKDOWN
 from content.services.document_type_utils import get_markdown_document_type
+from content.services.document_note_service import (
+    DocumentNoteError,
+    create_note,
+    finish_note,
+    sync_legacy_notes,
+)
+from content.services.document_state_service import (
+    DocumentStateError,
+    close_episode,
+    open_state,
+)
 
 LANGUAGE_CHOICES = {c[0] for c in Document.Language.choices}
-STATUS_CHOICES = {c[0] for c in Document.Status.choices}
 COVER_TYPE_CHOICES = {c[0] for c in Document.CoverType.choices}
 
 
@@ -101,11 +121,30 @@ def _folder_payload(folder):
 
 
 def _doc_summary(doc):
+    active_states = list(
+        doc.state_episodes.filter(closed_at__isnull=True)
+        .select_related('state__group')
+        .order_by('state__group__order', 'state__order')
+    )
     return {
         'id': doc.id,
         'title': doc.title,
         'slug': doc.slug,
-        'status': doc.status,
+        'is_client_visible': doc.is_client_visible,
+        'active_states': [
+            {
+                'episode_id': episode.id,
+                'state_id': episode.state_id,
+                'name': episode.state.name,
+                'system_key': episode.state.system_key,
+                'color': episode.state.color,
+                'group': episode.state.group.name,
+                'opened_at': (
+                    episode.opened_at.isoformat() if episode.opened_at else None
+                ),
+            }
+            for episode in active_states
+        ],
         'language': doc.language,
         'folder_id': doc.folder_id,
         'folder_name': doc.folder.name if doc.folder else None,
@@ -120,13 +159,26 @@ def _doc_summary(doc):
 
 
 def _doc_detail(doc):
+    normalized_notes = list(
+        doc.document_notes.select_related('episode').order_by('order', 'id')
+    )
     return {
         **_doc_summary(doc),
         'content_markdown': doc.content_markdown,
         'client_email_subject': doc.client_email_subject,
         'client_email_body': doc.client_email_body,
         'client_whatsapp_message': doc.client_whatsapp_message,
-        'client_custom_notes': doc.client_custom_notes,
+        'client_custom_notes': [
+            {
+                'id': note.id,
+                'title': note.title,
+                'content': note.content,
+                'status': note.status,
+                'episode_id': note.episode_id,
+                'resolution_note': note.resolution_note,
+            }
+            for note in normalized_notes
+        ],
         # Las tres deciden qué páginas trae el PDF: sin exponerlas, quien crea
         # por MCP no tiene cómo saber con qué configuración quedó el documento.
         'include_portada': doc.include_portada,
@@ -303,6 +355,7 @@ def create_document(arguments):
     if 'client_custom_notes' in arguments:
         client_note['client_custom_notes'] = _client_custom_notes_value(arguments)
 
+    actor = mcp_actor()
     doc = Document(
         title=title,
         document_type=get_markdown_document_type(),
@@ -312,6 +365,8 @@ def create_document(arguments):
         content_markdown=markdown_text,
         **covers,
         **client_note,
+        created_by=actor,
+        updated_by=actor,
     )
     doc.content_json = build_content_json(doc, markdown_text)
     doc.save()
@@ -340,12 +395,11 @@ def update_document(arguments):
         doc.language = language
         update_fields.add('language')
 
-    if 'status' in arguments:
-        new_status = arguments.get('status')
-        if new_status not in STATUS_CHOICES:
-            raise ToolError(f'status inválido: usa uno de {sorted(STATUS_CHOICES)}.')
-        doc.status = new_status
-        update_fields.add('status')
+    if 'is_client_visible' in arguments:
+        if not isinstance(arguments.get('is_client_visible'), bool):
+            raise ToolError('is_client_visible debe ser true o false.')
+        doc.is_client_visible = arguments['is_client_visible']
+        update_fields.add('is_client_visible')
 
     if 'folder_id' in arguments:
         doc.folder = _resolve_folder(arguments.get('folder_id'))
@@ -376,7 +430,7 @@ def update_document(arguments):
     if not update_fields:
         raise ToolError(
             'No se indicó ningún campo para actualizar. Envía al menos uno de: '
-            'title, markdown, folder_id, status, client_name, language, '
+            'title, markdown, folder_id, is_client_visible, client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
             'client_email_subject, client_email_body, client_whatsapp_message, '
             'client_custom_notes.'
@@ -386,7 +440,11 @@ def update_document(arguments):
     # rebuild it whenever the markdown or any meta field changed.
     doc.content_json = build_content_json(doc, doc.content_markdown)
     update_fields.add('content_json')
+    doc.updated_by = mcp_actor()
+    update_fields.add('updated_by')
     doc.save(update_fields=list(update_fields) + ['updated_at'])
+    if 'client_custom_notes' in arguments:
+        sync_legacy_notes(doc, actor=doc.updated_by)
     return _doc_detail(doc)
 
 
@@ -420,15 +478,176 @@ def append_document(arguments):
 
 def delete_document(arguments):
     doc = _get_markdown_doc_or_error(arguments.get('document_id'))
-    if doc.status == Document.Status.PUBLISHED:
+    if doc.is_client_visible:
         raise ToolError(
-            'Este documento está publicado. Cámbialo a borrador con '
-            'update_document (status="draft") antes de eliminarlo, o bórralo '
-            'desde el panel.'
+            'Este documento está visible en el portal. Desactiva '
+            'is_client_visible antes de eliminarlo, o bórralo desde el panel.'
         )
     doc_id = doc.id
     doc.delete()
     return {'deleted': True, 'id': doc_id}
+
+
+def list_document_states(arguments):
+    states = DocumentState.objects.filter(
+        is_active=True, merged_into__isnull=True,
+    ).select_related('group').order_by('group__order', 'order', 'name')
+    return {'states': [
+        {
+            'id': item.id,
+            'name': item.name,
+            'system_key': item.system_key,
+            'color': item.color,
+            'group': item.group.name,
+            'selection_mode': item.group.selection_mode,
+        }
+        for item in states
+    ]}
+
+
+def set_document_state(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    state_id = arguments.get('state_id')
+    try:
+        state = DocumentState.objects.get(
+            pk=int(state_id), is_active=True, merged_into__isnull=True,
+        )
+    except (DocumentState.DoesNotExist, TypeError, ValueError):
+        raise ToolError(
+            f'No existe un estado activo con id={state_id}. '
+            'Usa list_document_states para ver los disponibles.'
+        )
+    opened_at = None
+    if arguments.get('opened_at'):
+        if not isinstance(arguments['opened_at'], str):
+            raise ToolError('opened_at debe ser una fecha y hora ISO 8601.')
+        opened_at = parse_datetime(arguments['opened_at'])
+        if opened_at is None:
+            raise ToolError('opened_at debe ser una fecha y hora ISO 8601.')
+        if timezone.is_naive(opened_at):
+            opened_at = timezone.make_aware(opened_at)
+    try:
+        episode, _ = open_state(
+            doc,
+            state,
+            actor=mcp_actor(),
+            opened_at=opened_at,
+            origin=DocumentStateEpisode.Origin.MCP,
+        )
+    except DocumentStateError as exc:
+        raise ToolError(str(exc)) from exc
+    return _doc_summary(doc) | {'opened_episode_id': episode.id}
+
+
+def close_document_state(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    try:
+        episode = doc.state_episodes.get(
+            pk=int(arguments.get('episode_id')), closed_at__isnull=True,
+        )
+    except (DocumentStateEpisode.DoesNotExist, TypeError, ValueError):
+        raise ToolError('No existe ese episodio abierto para el documento.')
+    outcome = arguments.get('outcome', DocumentStateEpisode.Outcome.COMPLETED)
+    if outcome not in {
+        DocumentStateEpisode.Outcome.COMPLETED,
+        DocumentStateEpisode.Outcome.REMOVED,
+    }:
+        raise ToolError('outcome debe ser completed o removed.')
+    note = arguments.get('note', '')
+    if not isinstance(note, str) or len(note.strip()) > 500:
+        raise ToolError('note debe ser texto de máximo 500 caracteres.')
+    try:
+        episode = close_episode(
+            episode,
+            actor=mcp_actor(),
+            outcome=outcome,
+            close_note=note,
+        )
+    except DocumentStateError as exc:
+        raise ToolError(str(exc)) from exc
+    return {
+        'episode_id': episode.id,
+        'state': episode.state.name,
+        'outcome': episode.outcome,
+        'closed_at': episode.closed_at.isoformat(),
+    }
+
+
+def _note_payload(note):
+    return {
+        'id': note.id,
+        'document_id': note.document_id,
+        'episode_id': note.episode_id,
+        'title': note.title,
+        'content': note.content,
+        'status': note.status,
+        'resolution_note': note.resolution_note,
+        'resolved_at': (
+            note.resolved_at.isoformat() if note.resolved_at else None
+        ),
+    }
+
+
+def add_document_note(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    content = arguments.get('content')
+    if not isinstance(content, str) or not content.strip():
+        raise ToolError('content es obligatorio y debe ser texto no vacío.')
+    title = arguments.get('title', '')
+    if not isinstance(title, str) or len(title.strip()) > 120:
+        raise ToolError('title debe ser texto de máximo 120 caracteres.')
+    mark_needs_fix = arguments.get('mark_needs_fix', False)
+    if not isinstance(mark_needs_fix, bool):
+        raise ToolError('mark_needs_fix debe ser true o false.')
+    try:
+        note = create_note(
+            doc,
+            title=title,
+            content=content,
+            actor=mcp_actor(),
+            mark_needs_fix=mark_needs_fix,
+        )
+    except (DocumentNoteError, DocumentStateError) as exc:
+        raise ToolError(str(exc)) from exc
+    return _note_payload(note)
+
+
+def finish_document_note(arguments):
+    doc = _get_markdown_doc_or_error(arguments.get('document_id'))
+    try:
+        note = doc.document_notes.get(pk=int(arguments.get('note_id')))
+    except (DocumentNote.DoesNotExist, TypeError, ValueError):
+        raise ToolError('No existe esa observación para el documento.')
+    outcome = arguments.get('outcome', DocumentNote.Status.RESOLVED)
+    if outcome not in {DocumentNote.Status.RESOLVED, DocumentNote.Status.DISCARDED}:
+        raise ToolError('outcome debe ser resolved o discarded.')
+    close_linked_state = arguments.get('close_linked_state', False)
+    move_cycle = arguments.get('move_cycle_to_bug_attended', False)
+    if not isinstance(close_linked_state, bool) or not isinstance(move_cycle, bool):
+        raise ToolError(
+            'close_linked_state y move_cycle_to_bug_attended deben ser booleanos.'
+        )
+    if move_cycle and not close_linked_state:
+        raise ToolError(
+            'move_cycle_to_bug_attended requiere close_linked_state=true.'
+        )
+    resolution_note = arguments.get('resolution_note', '')
+    if not isinstance(resolution_note, str) or len(resolution_note.strip()) > 500:
+        raise ToolError(
+            'resolution_note debe ser texto de máximo 500 caracteres.'
+        )
+    try:
+        note, transitions = finish_note(
+            note,
+            actor=mcp_actor(),
+            outcome=outcome,
+            resolution_note=resolution_note,
+            close_linked_state=close_linked_state,
+            move_cycle_to_bug_attended=move_cycle,
+        )
+    except (DocumentNoteError, DocumentStateError) as exc:
+        raise ToolError(str(exc)) from exc
+    return {'note': _note_payload(note), **transitions}
 
 
 # ── Registry ─────────────────────────────────────────────────────────────────
@@ -546,7 +765,7 @@ DOCUMENT_TOOLS = [
         'description': (
             'Actualiza un documento markdown existente (parcial). Envía '
             'document_id y al menos uno de: title, markdown, folder_id, '
-            'status (draft/published/archived), client_name, language, '
+            'is_client_visible, client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
             'client_email_subject, client_email_body, client_whatsapp_message, '
             'client_custom_notes. Al '
@@ -562,7 +781,10 @@ DOCUMENT_TOOLS = [
                     'type': ['integer', 'null'],
                     'description': 'Carpeta destino (null para mover a la raíz).',
                 },
-                'status': {'type': 'string', 'enum': ['draft', 'published', 'archived']},
+                'is_client_visible': {
+                    'type': 'boolean',
+                    'description': 'Mostrar este documento en el portal del cliente.',
+                },
                 'client_name': {'type': 'string'},
                 'language': {'type': 'string', 'enum': ['es', 'en']},
                 **_COVER_FLAG_PROPS,
@@ -604,8 +826,8 @@ DOCUMENT_TOOLS = [
     {
         'name': 'delete_document',
         'description': (
-            'Elimina un documento markdown NO publicado. Los publicados no se '
-            'pueden borrar por MCP: pásalos a borrador primero o usa el panel.'
+            'Elimina un documento markdown que no esté visible en el portal. '
+            'Los visibles deben ocultarse primero o eliminarse desde el panel.'
         ),
         'input_schema': {
             'type': 'object',
@@ -613,5 +835,98 @@ DOCUMENT_TOOLS = [
             'required': ['document_id'],
         },
         'handler': delete_document,
+    },
+    {
+        'name': 'list_document_states',
+        'description': 'Lista el catálogo activo de estados administrables.',
+        'input_schema': {'type': 'object', 'properties': {}},
+        'handler': list_document_states,
+    },
+    {
+        'name': 'set_document_state',
+        'description': (
+            'Abre un episodio de estado en un documento. Los estados de ciclo '
+            'transicionan automáticamente; las señales pueden coexistir.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'state_id': {'type': 'integer'},
+                'opened_at': {
+                    'type': 'string',
+                    'description': 'Fecha/hora real ISO 8601 (opcional).',
+                },
+            },
+            'required': ['document_id', 'state_id'],
+        },
+        'handler': set_document_state,
+    },
+    {
+        'name': 'close_document_state',
+        'description': (
+            'Cierra o quita un episodio abierto. completed significa trabajo '
+            'realizado; removed significa que la marca sobraba.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'episode_id': {'type': 'integer'},
+                'outcome': {
+                    'type': 'string',
+                    'enum': ['completed', 'removed'],
+                    'default': 'completed',
+                },
+                'note': {'type': 'string', 'maxLength': 500},
+            },
+            'required': ['document_id', 'episode_id'],
+        },
+        'handler': close_document_state,
+    },
+    {
+        'name': 'add_document_note',
+        'description': (
+            'Registra una observación privada y, opcionalmente, abre o enlaza '
+            'la señal Solucionar bug.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'title': {'type': 'string', 'maxLength': 120},
+                'content': {'type': 'string'},
+                'mark_needs_fix': {'type': 'boolean', 'default': False},
+            },
+            'required': ['document_id', 'content'],
+        },
+        'handler': add_document_note,
+    },
+    {
+        'name': 'finish_document_note',
+        'description': (
+            'Resuelve o descarta una observación. Puede cerrar/quitar la señal '
+            'enlazada y, al resolver, mover el ciclo a Bug atendido.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_DOCUMENT_ID_PROP,
+                'note_id': {'type': 'integer'},
+                'outcome': {
+                    'type': 'string',
+                    'enum': ['resolved', 'discarded'],
+                    'default': 'resolved',
+                },
+                'resolution_note': {'type': 'string', 'maxLength': 500},
+                'close_linked_state': {'type': 'boolean', 'default': False},
+                'move_cycle_to_bug_attended': {
+                    'type': 'boolean',
+                    'default': False,
+                },
+            },
+            'required': ['document_id', 'note_id'],
+        },
+        'handler': finish_document_note,
     },
 ]

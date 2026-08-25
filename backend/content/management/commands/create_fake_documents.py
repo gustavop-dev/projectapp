@@ -32,12 +32,18 @@ from content.models import (
     DocumentFolder,
     DocumentItem,
     DocumentPaymentMethod,
+    DocumentState,
     DocumentTag,
     DocumentType,
 )
 from content.services import collection_account_service as ca_service
 from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
+from content.services.document_note_service import create_note, finish_note
+from content.services.document_state_service import (
+    correct_opened_at,
+    open_state,
+)
 
 User = get_user_model()
 
@@ -231,6 +237,7 @@ class Command(BaseCommand):
                 folder=rng.choice(md_folders),
                 title=title,
                 status=status,
+                is_client_visible=(status == Document.Status.PUBLISHED),
                 content_markdown=body,
                 language=Document.Language.ES,
                 project=project,
@@ -271,6 +278,7 @@ class Command(BaseCommand):
             doc.content_json = build_content_json(doc, body)
             doc.save()
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
+            self._apply_markdown_workflow(doc, i, admin)
             created_md += 1
 
         # ── Collection accounts ───────────────────────────────────────────
@@ -289,6 +297,7 @@ class Command(BaseCommand):
                 folder=rng.choice(ca_folders),
                 title=f'Cuenta de cobro — {concept}',
                 status=Document.Status.PUBLISHED,
+                is_client_visible=False,
                 commercial_status=Document.CommercialStatus.DRAFT,
                 language=Document.Language.ES,
                 city='Bogotá',
@@ -333,6 +342,56 @@ class Command(BaseCommand):
         ))
 
     # ── helpers ────────────────────────────────────────────────────────────
+
+    def _apply_markdown_workflow(self, document, index, actor):
+        """Populate realistic concurrent state episodes for UI validation."""
+        now = timezone.now()
+        draft = document.state_episodes.filter(
+            state__system_key='draft', closed_at__isnull=True,
+        ).first()
+        if draft:
+            correct_opened_at(draft, now - timedelta(days=20), actor=actor)
+
+        scenario = index % 6
+        cycle_key = {
+            0: 'draft',
+            1: 'sent',
+            2: 'in_review',
+            3: 'sent',
+            4: 'sent',
+            5: 'closed',
+        }[scenario]
+        if cycle_key != 'draft':
+            state = DocumentState.objects.filter(system_key=cycle_key).first()
+            if state:
+                open_state(
+                    document,
+                    state,
+                    actor=actor,
+                    opened_at=now - timedelta(days=12 if cycle_key == 'sent' else 5),
+                )
+
+        if scenario not in (3, 4):
+            return
+        note = create_note(
+            document,
+            title='Observación del cliente',
+            content='Ajustar el dato señalado antes del siguiente envío.',
+            actor=actor,
+            mark_needs_fix=True,
+        )
+        if note.episode:
+            correct_opened_at(
+                note.episode, now - timedelta(days=3), actor=actor,
+            )
+        if scenario == 4:
+            finish_note(
+                note,
+                actor=actor,
+                resolution_note='Dato corregido y verificado.',
+                close_linked_state=True,
+                move_cycle_to_bug_attended=True,
+            )
 
     def _archive_demo_state(self, leaves, md_type, admin):
         """Deja archivados de demo que cubren los casos que la UI debe mostrar.
@@ -534,6 +593,7 @@ class Command(BaseCommand):
                 folder=contract_folder,
                 title=unsigned_title,
                 status=Document.Status.PUBLISHED,
+                is_client_visible=True,
                 language=Document.Language.ES,
                 content_markdown=(
                     '# Contrato de servicios\n\n'
@@ -561,6 +621,7 @@ class Command(BaseCommand):
                 folder=contract_folder,
                 title=signed_title,
                 status=Document.Status.PUBLISHED,
+                is_client_visible=True,
                 language=Document.Language.ES,
                 content_markdown=(
                     '# Contrato de servicios\n\n'
