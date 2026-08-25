@@ -334,7 +334,8 @@
       :email-body="form.client_email_body"
       :whatsapp-message="form.client_whatsapp_message"
       :custom-notes="form.client_custom_notes"
-      @apply="applyClientNote"
+      mode="draft"
+      @submit="applyClientNoteDraft"
     />
 
     <!-- Sin este modal el guard abriría un diálogo que nadie renderiza y la
@@ -487,11 +488,17 @@ const notesActionLabel = computed(() => (
   hasNotes.value ? 'Editar notas' : 'Agregar notas'
 ));
 
-function applyClientNote(note) {
+function applyClientNoteDraft(note) {
   form.client_email_subject = note.subject;
   form.client_email_body = note.emailBody;
   form.client_whatsapp_message = note.whatsappMessage;
   form.client_custom_notes = note.customNotes;
+  showClientNote.value = false;
+  notify.info({
+    title: 'Notas aplicadas al borrador',
+    detail: 'Todavía falta crear el documento para guardarlas.',
+    duration: 7000,
+  });
 }
 
 // Elegir cliente o proyecto es una decisión del operador: retira la

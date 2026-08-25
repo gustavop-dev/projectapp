@@ -292,7 +292,7 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Cuenta emitida');
     await expect(page.getByTestId('client-note-subject')).toBeDisabled();
     await expect(page.getByTestId('client-note-custom-content-0')).toBeDisabled();
-    await expect(page.getByTestId('client-note-apply')).toHaveCount(0);
+    await expect(page.getByTestId('client-note-submit')).toHaveCount(0);
     await expect(page.getByTestId('client-note-add-custom')).toHaveCount(0);
   });
 
@@ -403,21 +403,58 @@ test.describe('Admin Document Edit', () => {
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo');
     await page.getByTestId('client-note-email').fill('Hola Ana,\n\nAdjunto el contrato final.');
     await page.getByTestId('client-note-custom-content-0').fill('Llamar el lunes.');
-    await page.getByTestId('client-note-apply').click();
     const requestPromise = page.waitForRequest(
       (request) => request.url().includes('/api/documents/1/update/')
         && request.method() === 'PATCH',
     );
-    await page.getByTestId('doc-save').click();
+    await expect(page.getByTestId('client-note-submit')).toHaveText('Guardar cambios');
+    await page.getByTestId('client-note-submit').click();
     const request = await requestPromise;
     const patchBody = request.postDataJSON();
 
-    expect(patchBody.client_email_subject).toBe('Contrato listo');
-    expect(patchBody.client_email_body).toBe('Hola Ana,\n\nAdjunto el contrato final.');
-    expect(patchBody.client_whatsapp_message).toBe('Hola Ana, revisa el contrato en tu correo.');
-    expect(patchBody.client_custom_notes).toEqual([
-      { title: 'Seguimiento', content: 'Llamar el lunes.' },
-    ]);
+    expect(patchBody).toEqual({
+      client_email_subject: 'Contrato listo',
+      client_email_body: 'Hola Ana,\n\nAdjunto el contrato final.',
+      client_whatsapp_message: 'Hola Ana, revisa el contrato en tu correo.',
+      client_custom_notes: [{ title: 'Seguimiento', content: 'Llamar el lunes.' }],
+    });
+    await expect(page.getByText('Notas guardadas', { exact: true })).toBeVisible();
+    await expect(page.getByTestId('document-client-note-modal')).toHaveCount(0);
+    await expect(page.getByTestId('doc-save')).toBeDisabled();
+  });
+
+  test('keeps unrelated document edits pending after saving notes', {
+    tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'auth/check/') return authCheck;
+      if (apiPath === 'documents/1/detail/') {
+        return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocument) };
+      }
+      if (apiPath === 'documents/1/update/' && method === 'PATCH') {
+        const body = route.request().postDataJSON();
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ ...mockDocument, ...body }),
+        };
+      }
+      return null;
+    });
+    await page.goto('/panel/documents/1/edit');
+    await page.getByLabel(/T[ií]tulo/i).fill('Título todavía pendiente');
+    await page.getByTestId('doc-client-note-open').click();
+    await page.getByTestId('client-note-subject').fill('Notas ya persistidas');
+
+    const responsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/documents/1/update/'),
+    );
+    await page.getByTestId('client-note-submit').click();
+    await responsePromise;
+
+    await expect(page.getByLabel(/T[ií]tulo/i)).toHaveValue('Título todavía pendiente');
+    await expect(page.getByTestId('doc-unsaved-notice')).toContainText('Título sin guardar');
+    await expect(page.getByTestId('doc-save')).toBeEnabled();
   });
 
   test('deletes a custom note from the saved document', {
@@ -448,19 +485,17 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-custom-delete-0').click();
-    await page.getByTestId('client-note-apply').click();
     const requestPromise = page.waitForRequest(
       (request) => request.url().includes('/api/documents/1/update/')
         && request.method() === 'PATCH',
     );
-
-    await page.getByTestId('doc-save').click();
+    await page.getByTestId('client-note-submit').click();
     const request = await requestPromise;
 
     expect(request.postDataJSON().client_custom_notes).toEqual([]);
   });
 
-  test('rejected notes keep the unsaved warning', {
+  test('rejected notes keep the modal draft', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:error'],
   }, async ({ page }) => {
     const documentWithMarkdown = {
@@ -484,16 +519,15 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-subject').fill('Asunto rechazado');
-    await page.getByTestId('client-note-apply').click();
-
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/1/update/'),
     );
-    await page.getByTestId('doc-save').click();
+    await page.getByTestId('client-note-submit').click();
     await responsePromise;
 
     await expect(page.getByText('client_email_subject: Revisa el asunto.')).toBeVisible();
-    await expect(page.getByTestId('doc-unsaved-notice')).toBeVisible();
+    await expect(page.getByTestId('client-note-subject')).toHaveValue('Asunto rechazado');
+    await expect(page.getByTestId('document-client-note-modal')).toBeVisible();
   });
 
   test('a server failure preserves the edited notes', {
@@ -520,14 +554,11 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents/1/edit');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-whatsapp').fill('Mensaje que debe sobrevivir.');
-    await page.getByTestId('client-note-apply').click();
-
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/1/update/'),
     );
-    await page.getByTestId('doc-save').click();
+    await page.getByTestId('client-note-submit').click();
     await responsePromise;
-    await page.getByTestId('doc-client-note-open').click();
 
     await expect(page.getByTestId('client-note-whatsapp'))
       .toHaveValue('Mensaje que debe sobrevivir.');

@@ -68,7 +68,7 @@
                   size="sm"
                   @click="commitRename(tag)"
                 >
-                  Guardar
+                  Guardar cambios
                 </BaseButton>
                 <BaseButton
                   v-else

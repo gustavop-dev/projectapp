@@ -4,6 +4,21 @@
 
 **2026-08-25 — iconos de acción del panel unificados:** las 50 páginas bajo `/panel` y sus componentes alcanzables resuelven 83 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 272 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 260 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
 
+**2026-08-25 — Notas de documentos con guardado directo desde el modal:** en
+edición, `Guardar cambios` envía un PATCH limitado a asunto, correo, WhatsApp y
+notas personalizadas, mantiene el modal abierto ante 4xx/5xx y sólo lo cierra
+después de confirmar visualmente `Notas guardadas`. El guard de cambios admite
+ahora una baseline parcial, por lo que guardar notas no marca como guardados el
+título, Markdown u otros campos todavía pendientes. En creación, donde el
+documento aún no existe, la acción se llama `Aplicar al borrador` y advierte
+antes y después que todavía falta crear el documento. Renombrar documento,
+editar carpeta/etiqueta y cambiar cliente también declaran con precisión su
+acción. Verificación: build Nuxt aprobado; 53 unitarias focales verdes más la
+regresión puntual del bloqueo durante guardado; escenarios E2E de creación y
+edición cubren éxito, error, falla y cambios concurrentes; flow-map fresco
+(260 covered, 39 partial, 0 junk-only, 0 missing) y quality gate focal sin
+errores (96/100; ocho warnings preexistentes en los specs completos).
+
 **2026-08-25 — Retorno contextual desde la edición de Documentos:** se confirmó
 que las cuatro salidas del editor estaban fijadas a la raíz y que el listado sólo
 persistía una parte de su contexto. La URL del listado ahora canoniza carpeta,

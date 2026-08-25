@@ -81,7 +81,7 @@ test.describe('Admin Document Tags Manage', () => {
     const editInput = page.getByRole('listitem').locator('input[type="text"]');
     await expect(editInput).toHaveValue('Contratos');
     await editInput.fill('Contratos firmados');
-    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
 
     await expect.poll(() => patchBody).not.toBeNull();
     expect(patchBody.name).toBe('Contratos firmados');
