@@ -95,7 +95,7 @@
           data-testid="folder-form-save"
           @click="submit"
         >
-          {{ isEdit ? 'Guardar' : 'Crear carpeta' }}
+          {{ isEdit ? 'Guardar cambios' : 'Crear carpeta' }}
         </BaseButton>
       </div>
     </div>

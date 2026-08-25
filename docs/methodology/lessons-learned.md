@@ -915,7 +915,20 @@ or its label. Add an entity focus id to the explicit return so a restored page c
 bring the originating row/card back into view; native Back should remain native
 and consume the prior URL entry.
 
-## 37. Clipping is measured state, and its primitive must own display
+## 37. Independent modal saves need a field-scoped dirty baseline
+
+When a modal persists one subsection of a larger editor, a successful request
+must not reset the editor's entire unsaved-changes baseline. Doing so makes
+unrelated edits look saved even though the server never received them. Rebase
+only the fields included in the successful request; keep every other field
+dirty until its own save succeeds.
+
+Button language is part of that persistence contract. Use `Guardar cambios`
+only when the action reaches durable storage and visibly confirms it. If the
+parent entity does not exist yet, name the local action as a draft operation and
+state the remaining persistence step both before and after it.
+
+## 38. Clipping is measured state, and its primitive must own display
 
 A fixed `title` attribute only repeats short values and still leaves touch users
 without a path. Measure the rendered element after layout, text changes and

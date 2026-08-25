@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-024] A display utility disabled two-line clipping in document cards
+### [ERR-025] A display utility disabled two-line clipping in document cards
 - **Date**: 2026-08-25
 - **Context**: The desktop document row exposed the conditional full-title control, but the same long title in the portrait-tablet card never showed **Ver completo**.
 - **Root Cause**: The card passed Tailwind's `block` utility into the same link that `BaseOverflowText` marked `line-clamp-2`. The competing display rule disabled WebKit line clamping, so the title expanded naturally and the overflow measurement correctly reported no clipping.
@@ -53,6 +53,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `frontend/components/base/BaseOverflowText.vue`, `frontend/components/panel/documents/DocumentCard.vue`.
 - **Verification**: The five-case Playwright flow passed the clipped-only desktop hint, compact in-place expansion, drag persistence, fixed tracks and double-click reset; focused component tests remain green.
 - **Lesson**: A clipping primitive must own every CSS property that establishes clipping. Consumer typography classes cannot include competing display or overflow utilities.
+
+### [ERR-024] Aplicar una nota no la persistía hasta guardar otra vez el documento
+- **Date**: 2026-08-25
+- **Context**: El modal de notas decía “Aplicar al documento”, cerraba y actualizaba el formulario local, pero el operador todavía debía usar el guardado general de la pantalla para persistir la nota.
+- **Root Cause**: El modal sólo emitía datos al formulario padre; no existía una operación de persistencia propia ni una confirmación que distinguiera un cambio aplicado localmente de uno guardado en el servidor.
+- **Resolution**: En edición, el modal ejecuta un PATCH exclusivo de los cuatro campos privados, confirma el éxito de forma visible y actualiza sólo su porción de la baseline de cambios. En creación conserva el paso diferido por necesidad —el documento aún no tiene ID—, pero lo nombra “Aplicar al borrador” y avisa explícitamente que falta crear el documento.
+- **Files Affected**: `DocumentClientNoteModal.vue`, páginas de creación/edición de documentos y `useUnsavedGuard.js`.
+- **Regression coverage**: Unitarias fijan etiquetas, modo borrador, bloqueo durante guardado y baseline parcial; E2E verifica el PATCH mínimo, la confirmación, la conservación de otros cambios pendientes y los estados 4xx/5xx.
 
 ### [ERR-023] Document editor exits discarded the originating list context
 - **Date**: 2026-08-25

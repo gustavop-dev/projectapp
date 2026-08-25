@@ -161,6 +161,10 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   optional modal. Every non-empty value has an individual 📋 copy action with ✅
   feedback. These administrative fields never render in markdown/PDF and are never
   exposed in the client document portal.
+- In an existing document, **Guardar cambios** in the notes modal persists those
+  fields immediately and confirms it visibly; no second page-level save remains.
+  During creation, **Aplicar al borrador** states that the document still has to be
+  created before the notes are stored.
 - The Documents MCP can create, read, and partially update all private notes. Every
   report created through `client-report` continues to generate and persist only the
   canonical subject/email/WhatsApp triple; `client-message` reuses that copy without
