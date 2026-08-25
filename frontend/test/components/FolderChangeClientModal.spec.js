@@ -119,6 +119,12 @@ describe('FolderChangeClientModal', () => {
     expect(confirmBtn(wrapper).element.disabled).toBe(false);
   });
 
+  it('names the persisted action as Cambiar cliente', () => {
+    const wrapper = mountModal();
+
+    expect(confirmBtn(wrapper).text()).toBe('Cambiar cliente');
+  });
+
   it('sends the plan it showed as the staleness token', async () => {
     const wrapper = mountModal();
     await pickClient(wrapper);

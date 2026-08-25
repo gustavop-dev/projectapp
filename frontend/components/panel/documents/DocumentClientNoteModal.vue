@@ -3,9 +3,9 @@
     :model-value="modelValue"
     size="lg"
     initial-focus="#document-client-note-subject"
-    @update:model-value="emit('update:modelValue', $event)"
+    @update:model-value="updateOpenState"
   >
-    <form class="p-6 space-y-6" data-testid="document-client-note-modal" @submit.prevent="apply">
+    <form class="p-6 space-y-6" data-testid="document-client-note-modal" @submit.prevent="submit">
       <div>
         <h3 class="text-base font-semibold text-text-default">Notas</h3>
         <p class="text-xs text-text-muted mt-1">
@@ -30,7 +30,7 @@
               icon-only
               :aria-label="copyLabel('subject', 'asunto')"
               :title="copyLabel('subject', 'asunto')"
-              :disabled="!draft.subject.trim()"
+              :disabled="saving || !draft.subject.trim()"
               data-testid="client-note-copy-subject"
               @click="copyText('subject', draft.subject)"
             >
@@ -40,7 +40,7 @@
           <BaseInput
             id="document-client-note-subject"
             v-model="draft.subject"
-            :disabled="readonly"
+            :disabled="readonly || saving"
             maxlength="255"
             placeholder="Asunto breve y concreto"
             data-testid="client-note-subject"
@@ -59,7 +59,7 @@
               icon-only
               :aria-label="copyLabel('email', 'correo')"
               :title="copyLabel('email', 'correo')"
-              :disabled="!draft.emailBody.trim()"
+              :disabled="saving || !draft.emailBody.trim()"
               data-testid="client-note-copy-email"
               @click="copyText('email', draft.emailBody)"
             >
@@ -69,7 +69,7 @@
           <BaseTextarea
             id="document-client-note-email"
             v-model="draft.emailBody"
-            :disabled="readonly"
+            :disabled="readonly || saving"
             rows="9"
             placeholder="Saludo, contenido y cierre del correo..."
             data-testid="client-note-email"
@@ -88,7 +88,7 @@
               icon-only
               :aria-label="copyLabel('whatsapp', 'WhatsApp')"
               :title="copyLabel('whatsapp', 'WhatsApp')"
-              :disabled="!draft.whatsappMessage.trim()"
+              :disabled="saving || !draft.whatsappMessage.trim()"
               data-testid="client-note-copy-whatsapp"
               @click="copyText('whatsapp', draft.whatsappMessage)"
             >
@@ -98,7 +98,7 @@
           <BaseTextarea
             id="document-client-note-whatsapp"
             v-model="draft.whatsappMessage"
-            :disabled="readonly"
+            :disabled="readonly || saving"
             rows="5"
             placeholder="Mensaje breve que invita a revisar el correo..."
             data-testid="client-note-whatsapp"
@@ -119,6 +119,7 @@
             type="button"
             variant="secondary"
             size="sm"
+            :disabled="saving"
             data-testid="client-note-add-custom"
             @click="addCustomNote"
           >
@@ -148,6 +149,7 @@
               variant="danger-ghost"
               size="sm"
               icon-only
+              :disabled="saving"
               :aria-label="`Eliminar nota ${index + 1}`"
               :title="`Eliminar nota ${index + 1}`"
               :data-testid="`client-note-custom-delete-${index}`"
@@ -169,7 +171,7 @@
                 icon-only
                 :aria-label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :title="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
-                :disabled="!note.title.trim()"
+                :disabled="saving || !note.title.trim()"
                 :data-testid="`client-note-custom-copy-title-${index}`"
                 @click="copyText(`custom-title-${note.key}`, note.title)"
               >
@@ -179,7 +181,7 @@
             <BaseInput
               :id="`document-custom-note-title-${index}`"
               v-model="note.title"
-              :disabled="readonly"
+              :disabled="readonly || saving"
               :error="validationAttempted && !note.title.trim()"
               maxlength="255"
               placeholder="Ej. Contexto para seguimiento"
@@ -206,7 +208,7 @@
                 icon-only
                 :aria-label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :title="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
-                :disabled="!note.content.trim()"
+                :disabled="saving || !note.content.trim()"
                 :data-testid="`client-note-custom-copy-content-${index}`"
                 @click="copyText(`custom-content-${note.key}`, note.content)"
               >
@@ -216,7 +218,7 @@
             <BaseTextarea
               :id="`document-custom-note-content-${index}`"
               v-model="note.content"
-              :disabled="readonly"
+              :disabled="readonly || saving"
               :error="validationAttempted && !note.content.trim()"
               rows="5"
               placeholder="Escribe el contenido de la nota..."
@@ -233,17 +235,33 @@
         </article>
       </section>
 
+      <p
+        v-if="mode === 'draft' && !readonly"
+        class="rounded-xl border border-warning-soft bg-warning-soft px-4 py-3 text-sm text-warning-strong"
+        data-testid="client-note-draft-hint"
+      >
+        Estas notas se aplicarán al borrador. Quedarán guardadas cuando crees el documento.
+      </p>
+
       <div class="flex justify-end gap-2 pt-1">
-        <BaseButton type="button" variant="ghost" data-testid="client-note-cancel" @click="close">
+        <BaseButton
+          type="button"
+          variant="ghost"
+          :disabled="saving"
+          data-testid="client-note-cancel"
+          @click="close"
+        >
           {{ readonly ? 'Cerrar' : 'Cancelar' }}
         </BaseButton>
         <BaseButton
           v-if="!readonly"
           type="submit"
           variant="primary"
-          data-testid="client-note-apply"
+          :disabled="saving"
+          :loading="saving"
+          data-testid="client-note-submit"
         >
-          Aplicar al documento
+          {{ mode === 'draft' ? 'Aplicar al borrador' : 'Guardar cambios' }}
         </BaseButton>
       </div>
     </form>
@@ -262,9 +280,15 @@ const props = defineProps({
   whatsappMessage: { type: String, default: '' },
   customNotes: { type: Array, default: () => [] },
   readonly: { type: Boolean, default: false },
+  mode: {
+    type: String,
+    default: 'save',
+    validator: (value) => ['save', 'draft'].includes(value),
+  },
+  saving: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['update:modelValue', 'apply']);
+const emit = defineEmits(['update:modelValue', 'submit']);
 const notify = usePanelNotify();
 const copiedField = ref('');
 const validationAttempted = ref(false);
@@ -299,7 +323,13 @@ watch(
   { immediate: true },
 );
 
+function updateOpenState(open) {
+  if (!open && props.saving) return;
+  emit('update:modelValue', open);
+}
+
 function close() {
+  if (props.saving) return;
   emit('update:modelValue', false);
 }
 
@@ -311,11 +341,11 @@ function removeCustomNote(index) {
   draft.customNotes.splice(index, 1);
 }
 
-function apply() {
+function submit() {
   validationAttempted.value = true;
   if (draft.customNotes.some((note) => !note.title.trim() || !note.content.trim())) return;
 
-  emit('apply', {
+  emit('submit', {
     subject: draft.subject.trim(),
     emailBody: draft.emailBody.trim(),
     whatsappMessage: draft.whatsappMessage.trim(),
@@ -324,7 +354,6 @@ function apply() {
       content: note.content.trim(),
     })),
   });
-  close();
 }
 
 function copyEmoji(field) {

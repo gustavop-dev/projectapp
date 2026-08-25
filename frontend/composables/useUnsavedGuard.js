@@ -80,9 +80,22 @@ export function useUnsavedGuard({
     return out;
   }
 
-  /** Vuelve a fijar la baseline. Se llama tras cargar y tras guardar. */
-  function commit() {
-    if (snapshot) baseline.value = readSnapshot();
+  /**
+   * Vuelve a fijar la baseline completa o sólo los campos que una acción
+   * independiente acaba de persistir.
+   */
+  function commit(keys = null) {
+    if (!snapshot) return;
+    const current = readSnapshot();
+    if (!baseline.value || !Array.isArray(keys)) {
+      baseline.value = current;
+      return;
+    }
+    keys.forEach((key) => {
+      if (Object.prototype.hasOwnProperty.call(current, key)) {
+        baseline.value[key] = current[key];
+      }
+    });
   }
 
   const dirtyKeys = computed(() => {

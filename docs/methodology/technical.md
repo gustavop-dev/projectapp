@@ -92,6 +92,10 @@ shared REST/MCP validator, trims both values, requires both to be non-empty, and
 titles at 255 characters. `client-report` and `client-message` deliberately leave
 that free-form collection alone. List serializers, PDF generation, and platform
 document serializers exclude all four private-note fields.
+On the admin edit page, the notes modal reuses `PATCH documents/:id/update/` with
+only those four fields. `useUnsavedGuard.commit(keys)` re-baselines that saved subset
+without clearing unrelated page edits. On the create page the same modal runs in
+draft mode and performs no request until the complete document is created.
 
 ### Task Queue (for async features)
 

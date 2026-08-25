@@ -120,6 +120,10 @@ canonical message triple and passes it to `create_document`/`update_document`; a
 enclosing `client-message` run returns those same values. Custom notes can be managed
 independently through the admin detail surface or Documents MCP. The PDF renderer,
 list serializers, and platform serializers have no path to any of these fields.
+The admin edit modal persists the four private-note fields with a notes-only partial
+update, then advances only their unsaved-change baseline; other editor fields remain
+dirty. The create modal cannot persist before the required document exists, so it
+labels the operation as applying to the draft and leaves creation as an explicit step.
 
 ---
 
