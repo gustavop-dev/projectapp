@@ -64,7 +64,7 @@ test.describe('Admin Document Edit', () => {
     await page.goto('/panel/documents');
     await page.getByTestId('document-open-1').click();
 
-    await expect(page.getByLabel(/T[ií]tulo/i)).toHaveValue('Contrato de Servicios');
+    await expect(page.getByRole('textbox', { name: /^Título$/i })).toHaveValue('Contrato de Servicios');
     const noteButton = page.getByTestId('doc-client-note-open');
     await expect(noteButton).toHaveText('✏️');
     await expect(noteButton).toHaveAccessibleName('Editar notas');
@@ -168,7 +168,7 @@ test.describe('Admin Document Edit', () => {
     });
     await page.goto('/panel/documents/1/edit');
 
-    const titleInput = page.getByLabel(/T[ií]tulo/i);
+    const titleInput = page.getByRole('textbox', { name: /^Título$/i });
     await titleInput.fill('Contrato Actualizado');
     // Por testid: el aviso de cambios sin guardar aporta su propio "Guardar
     // ahora", así que un match por rol dejó de identificar un solo botón.
