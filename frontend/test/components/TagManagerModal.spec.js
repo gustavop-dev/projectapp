@@ -158,7 +158,7 @@ describe('TagManagerModal', () => {
       await editBtn.trigger('click');
 
       await wrapper.find('li input[type="text"]').setValue('Diseño v2');
-      const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Guardar');
+      const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Guardar cambios');
       await saveBtn.trigger('click');
       await flushPromises();
 
@@ -175,7 +175,7 @@ describe('TagManagerModal', () => {
       await editBtn.trigger('click');
 
       await wrapper.find('li input[type="text"]').setValue('Diseño v2');
-      const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Guardar');
+      const saveBtn = wrapper.findAll('button').find(b => b.text() === 'Guardar cambios');
       await saveBtn.trigger('click');
       await flushPromises();
 
