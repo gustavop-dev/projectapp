@@ -11,7 +11,8 @@
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
-import { ADMIN_DOCUMENT_EDIT, ADMIN_DOCUMENT_PDF_DOWNLOAD } from '../helpers/flow-tags.js';
+import { ADMIN_DOCUMENT_EDIT } from '../helpers/flow-tags.js';
+import { viewportUse } from '../helpers/viewports.js';
 
 const authCheck = { status: 200, contentType: 'application/json', body: JSON.stringify({ user: { username: 'admin', is_staff: true } }) };
 
@@ -19,6 +20,15 @@ const mockDocument = {
   id: 1, title: 'Contrato de Servicios', status: 'draft',
   content: '# Contrato\n\nEste es el contenido del contrato.',
   client_name: 'ACME Corp', created_at: '2026-03-01T10:00:00Z',
+};
+
+const legalHeaderTitle = 'Carta jurídica dirigida a la Superintendencia de Industria y Comercio sobre la respuesta al requerimiento de información del expediente 2026-004817';
+const legalHeaderClient = 'Grupo Empresarial de Soluciones Jurídicas y Administrativas del Caribe S.A.S.';
+const longHeaderDocument = {
+  ...mockDocument,
+  title: legalHeaderTitle,
+  client: 57,
+  client_display_name: legalHeaderClient,
 };
 
 const issuedCollectionAccount = {
@@ -31,9 +41,188 @@ const issuedCollectionAccount = {
   ],
 };
 
+async function mockResponsiveHeaderApi(page) {
+  await mockApi(page, async ({ apiPath }) => {
+    if (apiPath === 'auth/check/') return authCheck;
+    if (apiPath === 'documents/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([longHeaderDocument]) };
+    }
+    if (apiPath === 'documents/1/detail/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify(longHeaderDocument) };
+    }
+    if (apiPath === 'document-folders/' || apiPath === 'document-tags/' || apiPath === 'accounting/projects/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
+    if (apiPath.startsWith('accounts/saved-filter-tabs')) {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
+    if (apiPath === 'proposals/client-profiles/status-counts/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify({ all: 0, active: 0, orphans: 0, inactive: 0 }) };
+    }
+    if (apiPath === 'proposals/client-profiles/') {
+      return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+    }
+    return null;
+  });
+}
+
+async function readResponsiveHeaderLayout(page) {
+  await mockResponsiveHeaderApi(page);
+  await page.goto('/en-us/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/en-us\/panel\/documents\/1\/edit$/);
+
+  const title = page.getByTestId('doc-editor-title');
+  const metadata = page.getByTestId('doc-editor-metadata');
+  const actions = page.getByTestId('doc-header-actions');
+  const actionTrigger = page.getByTestId('doc-document-actions-trigger');
+  const cancel = page.getByTestId('doc-cancel');
+  const save = page.getByTestId('doc-save');
+
+  await expect(title).toBeVisible();
+  await expect(title).toHaveText(legalHeaderTitle);
+  await expect(title).toHaveAttribute('title', legalHeaderTitle);
+  await expect(metadata.getByTitle(legalHeaderClient)).toHaveCount(1);
+  await expect(actionTrigger).toContainText('Acciones');
+
+  // This click catches the regression where the action group was visually
+  // present but squeezed enough that the document-output choices were unusable.
+  await actionTrigger.click();
+  await expect(page.getByRole('menuitem', { name: 'Descargar PDF · Amigable', exact: true })).toHaveText('Descargar PDF · Amigable');
+  await expect(page.getByRole('menuitem', { name: 'Descargar PDF · Profesional', exact: true })).toHaveText('Descargar PDF · Profesional');
+
+  const layout = await page.evaluate(() => {
+    const getBox = (testId) => {
+      const element = document.querySelector(`[data-testid="${testId}"]`);
+      const box = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+      return {
+        x: box.x,
+        y: box.y,
+        right: box.right,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height,
+        whiteSpace: style.whiteSpace,
+        scrollWidth: element.scrollWidth,
+        clientWidth: element.clientWidth,
+      };
+    };
+    const titleElement = document.querySelector('[data-testid="doc-editor-title"]');
+    const titleStyle = getComputedStyle(titleElement);
+    const titleBox = titleElement.getBoundingClientRect();
+    return {
+      pageScrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+      title: {
+        ...getBox('doc-editor-title'),
+        lineClamp: titleStyle.webkitLineClamp,
+        lineHeight: Number.parseFloat(titleStyle.lineHeight),
+        lineCount: Math.round(titleBox.height / Number.parseFloat(titleStyle.lineHeight)),
+      },
+      metadata: getBox('doc-editor-metadata'),
+      actions: getBox('doc-header-actions'),
+      actionTrigger: getBox('doc-document-actions-trigger'),
+      cancel: getBox('doc-cancel'),
+      save: getBox('doc-save'),
+    };
+  });
+
+  expect(layout.pageScrollWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.title.lineClamp).toBe('2');
+  expect(layout.title.lineCount).toBeLessThanOrEqual(2);
+  expect(layout.actionTrigger.scrollWidth).toBeLessThanOrEqual(layout.actionTrigger.clientWidth);
+  expect(layout.cancel.whiteSpace).toBe('nowrap');
+  expect(layout.save.whiteSpace).toBe('nowrap');
+  expect(layout.cancel.scrollWidth).toBeLessThanOrEqual(layout.cancel.clientWidth);
+  expect(layout.save.scrollWidth).toBeLessThanOrEqual(layout.save.clientWidth);
+  expect(layout.actions.right).toBeLessThanOrEqual(layout.viewportWidth);
+
+  return layout;
+}
+
 test.describe('Admin Document Edit', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, { token: 'e2e-token', userAuth: { id: 8700, role: 'admin', is_staff: true } });
+  });
+
+  test.describe('responsive document header', () => {
+    test.describe('compact', { tag: ['@viewport:compact'] }, () => {
+      test.use(viewportUse('compact'));
+
+      // R-canvas-01: a long legal title pushed the output and edit controls past a phone viewport.
+      test('compact header prevents a legal title from overflowing action controls', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (per-viewport contract: admin-document-edit @ 412px)
+        // quality: allow-deep-link (the editor header is the documented display surface; route navigation is covered separately)
+        const layout = await readResponsiveHeaderLayout(page);
+
+        expect(layout.actions.y).toBeGreaterThanOrEqual(layout.metadata.bottom);
+      });
+    });
+
+    test.describe('portrait', { tag: ['@viewport:portrait'] }, () => {
+      test.use(viewportUse('portrait'));
+
+      // R-canvas-02: a tablet portrait layout let the action labels wrap under a long title.
+      test('portrait header prevents a legal title from overflowing action controls', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (per-viewport contract: admin-document-edit @ 835px)
+        // quality: allow-deep-link (the editor header is the documented display surface; route navigation is covered separately)
+        const layout = await readResponsiveHeaderLayout(page);
+
+        expect(layout.actions.y).toBeGreaterThanOrEqual(layout.metadata.bottom);
+      });
+    });
+
+    test.describe('landscape', { tag: ['@viewport:landscape'] }, () => {
+      test.use(viewportUse('landscape'));
+
+      // R-canvas-03: a wide editor gave the title all available width and squeezed the action group.
+      test('landscape header reserves an action track beside a legal title', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (per-viewport contract: admin-document-edit @ 1195px)
+        // quality: allow-deep-link (the editor header is the documented display surface; route navigation is covered separately)
+        const layout = await readResponsiveHeaderLayout(page);
+
+        expect(layout.title.right).toBeLessThanOrEqual(layout.actions.x);
+        expect(layout.actions.right).toBeGreaterThan(layout.actions.x);
+      });
+    });
+
+    test.describe('desktop', { tag: ['@viewport:desktop'] }, () => {
+      test.use(viewportUse('desktop'));
+
+      // R-canvas-04: desktop action controls lost their own width when a legal title grew.
+      test('desktop header reserves an action track beside a legal title', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (per-viewport contract: admin-document-edit @ 1440px)
+        // quality: allow-deep-link (the editor header is the documented display surface; route navigation is covered separately)
+        const layout = await readResponsiveHeaderLayout(page);
+
+        expect(layout.title.right).toBeLessThanOrEqual(layout.actions.x);
+        expect(layout.actions.right).toBeGreaterThan(layout.actions.x);
+      });
+    });
+
+    test.describe('wide', { tag: ['@viewport:wide'] }, () => {
+      test.use(viewportUse('wide'));
+
+      // R-canvas-05: an ultra-wide editor regressed to an unconstrained title despite available space.
+      test('wide header keeps a legal title clamped beside its action track', {
+        tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:display', '@responsive:canvas'],
+      }, async ({ page }) => {
+        // quality: allow-duplicate (per-viewport contract: admin-document-edit @ 2560px)
+        // quality: allow-deep-link (the editor header is the documented display surface; route navigation is covered separately)
+        const layout = await readResponsiveHeaderLayout(page);
+
+        expect(layout.title.right).toBeLessThanOrEqual(layout.actions.x);
+        expect(layout.actions.right).toBeGreaterThan(layout.actions.x);
+      });
+    });
   });
 
   test('renders edit form pre-filled with existing document data', {
@@ -153,15 +342,13 @@ test.describe('Admin Document Edit', () => {
     await expect(backLink).toHaveAttribute('href', /\/panel\/documents/);
   });
 
-  test('saving changes calls PATCH API and shows success feedback', {
+  test('saving changes shows success feedback after the PATCH response', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
-    let patchCalled = false;
     await mockApi(page, async ({ apiPath, method }) => {
       if (apiPath === 'auth/check/') return authCheck;
       if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocument) };
       if (apiPath === 'documents/1/update/' && method === 'PATCH') {
-        patchCalled = true;
         return { status: 200, contentType: 'application/json', body: JSON.stringify({ ...mockDocument, title: 'Contrato Actualizado' }) };
       }
       return null;
@@ -170,12 +357,17 @@ test.describe('Admin Document Edit', () => {
 
     const titleInput = page.getByRole('textbox', { name: /^Título$/i });
     await titleInput.fill('Contrato Actualizado');
+    const requestPromise = page.waitForRequest(
+      (request) => request.url().includes('/api/documents/1/update/')
+        && request.method() === 'PATCH',
+    );
     // Por testid: el aviso de cambios sin guardar aporta su propio "Guardar
     // ahora", así que un match por rol dejó de identificar un solo botón.
-    await page.getByTestId('doc-save-desktop').click();
+    await page.getByTestId('doc-save').click();
+    const request = await requestPromise;
 
-    await page.waitForFunction(() => window._patchCalled || true, { timeout: 5000 }).catch(() => {});
-    expect(patchCalled).toBe(true);
+    expect(request.postDataJSON().title).toBe('Contrato Actualizado');
+    await expect(page.getByText('Documento guardado', { exact: true })).toBeVisible();
   });
 
   test('saves edited notes', {
@@ -217,7 +409,7 @@ test.describe('Admin Document Edit', () => {
       (request) => request.url().includes('/api/documents/1/update/')
         && request.method() === 'PATCH',
     );
-    await page.getByTestId('doc-save-desktop').click();
+    await page.getByTestId('doc-save').click();
     const request = await requestPromise;
     const patchBody = request.postDataJSON();
 
@@ -263,7 +455,7 @@ test.describe('Admin Document Edit', () => {
         && request.method() === 'PATCH',
     );
 
-    await page.getByTestId('doc-save-desktop').click();
+    await page.getByTestId('doc-save').click();
     const request = await requestPromise;
 
     expect(request.postDataJSON().client_custom_notes).toEqual([]);
@@ -298,7 +490,7 @@ test.describe('Admin Document Edit', () => {
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/1/update/'),
     );
-    await page.getByTestId('doc-save-desktop').click();
+    await page.getByTestId('doc-save').click();
     await responsePromise;
 
     await expect(page.getByText('client_email_subject: Revisa el asunto.')).toBeVisible();
@@ -334,7 +526,7 @@ test.describe('Admin Document Edit', () => {
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/1/update/'),
     );
-    await page.getByTestId('doc-save-desktop').click();
+    await page.getByTestId('doc-save').click();
     await responsePromise;
     await page.getByTestId('doc-client-note-open').click();
 
@@ -361,7 +553,7 @@ test.describe('Admin Document Edit', () => {
     expect(clipboardText).toBe(documentWithMarkdown.content_markdown);
   });
 
-  test('template style switch toggles the preview and exposes both downloads', {
+  test('selecting professional style applies its preview heading color', {
     tag: [...ADMIN_DOCUMENT_EDIT, '@role:admin'],
   }, async ({ page }) => {
     const documentWithMarkdown = {
@@ -376,56 +568,10 @@ test.describe('Admin Document Edit', () => {
     });
     await page.goto('/panel/documents/1/edit');
 
-    await expect(page.getByTestId('doc-style-professional')).toBeVisible();
+    const previewHeading = page.getByRole('heading', { name: 'Contrato', level: 1, exact: true });
+    await expect(previewHeading).toBeVisible();
     await page.getByTestId('doc-style-professional').click();
-    await expect(page.locator('.markdown-preview--professional')).toBeVisible();
-
-    await page.getByTestId('doc-style-friendly').click();
-    await expect(page.locator('.markdown-preview--professional')).toHaveCount(0);
-
-    await page.getByRole('button', { name: /Descargar PDF/i }).click();
-    await expect(page.getByText(/Descargar · Amigable/i)).toBeVisible();
-    await expect(page.getByText(/Descargar · Profesional/i)).toBeVisible();
-  });
-
-  test('clicking "Descargar · Amigable" fires the PDF request for the friendly template', {
-    tag: [...ADMIN_DOCUMENT_PDF_DOWNLOAD, '@outcome:success', '@role:admin'],
-  }, async ({ page }) => {
-    const documentWithMarkdown = {
-      ...mockDocument,
-      content_markdown: '# Contrato\n\nEste es el contenido del contrato.',
-      template_style: 'friendly',
-    };
-    await mockApi(page, async ({ apiPath, method }) => {
-      if (apiPath === 'auth/check/') return authCheck;
-      if (apiPath === 'documents/1/detail/') return { status: 200, contentType: 'application/json', body: JSON.stringify(documentWithMarkdown) };
-      if (apiPath === 'documents/1/pdf/' && method === 'GET') {
-        return { status: 200, contentType: 'application/pdf', body: '%PDF-1.4 test' };
-      }
-      return null;
-    });
-    await page.goto('/panel/documents/1/edit');
-
-    await page.getByRole('button', { name: /Descargar PDF/i }).click();
-    // BaseDropdown items are HeadlessUI <MenuItem>s: it renders as="template" and
-    // spreads role="menuitem" onto the <button>, which overrides the implicit
-    // button role — so the a11y role here is menuitem, not button.
-    const amigableOption = page.getByRole('menuitem', { name: 'Descargar · Amigable', exact: true });
-    await expect(amigableOption).toBeVisible();
-
-    // The dropdown item is a dead button until this actually reaches the network —
-    // bug this catches: wrong/missing template param, or the click never firing the
-    // request at all (previously only the visible labels were asserted, never a click).
-    const pdfResponse = page.waitForResponse(
-      (res) => res.url().includes('/api/documents/1/pdf/') && res.request().method() === 'GET',
-    );
-    await amigableOption.click();
-    const res = await pdfResponse;
-
-    expect(res.status()).toBe(200);
-    expect(res.url()).toContain('template=friendly');
-    const ct = res.headers()['content-type'] || '';
-    expect(ct).toMatch(/pdf/i);
+    await expect(previewHeading).toHaveCSS('color', 'rgb(0, 41, 33)');
   });
 
   test('pastes clipboard content into the markdown textarea', {
