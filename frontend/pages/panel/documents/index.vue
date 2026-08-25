@@ -98,28 +98,21 @@
         `touch-none` evita que una tableta apaisada scrollee en vez
         de redimensionar. Persiste al soltar; doble clic vuelve al default.
       -->
-      <div
+      <BaseResizeHandle
         v-if="!isPanelStacked"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label="Ajustar el ancho del panel de carpetas"
-        :aria-valuenow="Math.round(panelWidth)"
-        :aria-valuemin="FOLDER_PANEL_MIN"
-        :aria-valuemax="FOLDER_PANEL_MAX"
-        tabindex="0"
-        class="group flex cursor-col-resize touch-none items-center justify-center focus:outline-none"
-        data-testid="folder-panel-resize-handle"
+        :value="panelWidth"
+        :min="FOLDER_PANEL_MIN"
+        :max="FOLDER_PANEL_MAX"
+        label="Ajustar el ancho del panel de carpetas"
+        test-id="folder-panel-resize-handle"
         data-enter
         style="--enter-delay: 150ms"
-        @pointerdown="onHandleDown"
-        @pointermove="onHandleMove"
-        @pointerup="onHandleUp"
-        @pointercancel="onHandleUp"
-        @dblclick="resetWidth"
-        @keydown="onHandleKey"
-      >
-        <span class="h-10 w-1 rounded-full bg-border-default transition-colors group-hover:bg-text-brand group-focus-visible:bg-text-brand" />
-      </div>
+        @pointer-start="onHandleDown"
+        @pointer-move="onHandleMove"
+        @pointer-end="onHandleUp"
+        @resize="resizePanelWidth"
+        @reset="resetWidth"
+      />
 
       <section
         class="min-w-0 flex flex-col transition-colors"
@@ -578,7 +571,7 @@ const { isMobile: isPanelStacked } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1
 const foldersGridRef = ref(null);
 const {
   width: panelWidth, dragging: panelDragging, gridStyle: folderPanelStyle,
-  onHandleDown, onHandleMove, onHandleUp, onHandleKey, resetWidth,
+  onHandleDown, onHandleMove, onHandleUp, resizeWidth: resizePanelWidth, resetWidth,
 } = useFolderPanelWidth(foldersGridRef);
 
 const searchQuery = ref('');

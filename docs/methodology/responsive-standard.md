@@ -54,6 +54,16 @@ Cada columna de una tabla adoptada declara por perfil:
 primaria. Una tabla todavía no adoptada conserva el scroll anterior; una mezcla
 parcial genera advertencia en desarrollo para impedir decisiones automáticas.
 
+El redimensionado también es una capacidad declarativa de la tabla. Cada
+columna informa `columnWidth` con mínimo, default y máximo; la ajustable marca
+`resizable`, las invariantes marcan `fixed` y las donantes ordenan
+`shrinkPriority`. `BaseResizeHandle` concentra arrastre, teclado y doble clic,
+mientras `useResizableTableColumns` distribuye el espacio, persiste por una
+clave estable y activa scroll interno sólo después de agotar los mínimos. Los
+textos recortables usan `BaseOverflowText`: dos líneas por defecto en títulos
+largos, ayuda nativa únicamente si la medición confirma recorte y expansión en
+el lugar como alternativa táctil.
+
 ### Tabs y filtros
 
 `BaseResponsiveTabs` y `BaseFilterTabs` comparten un solo quiebre:

@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-08-25 — Títulos de Documentos legibles y columna ajustable:** la lista
+usa `BaseOverflowText` para dos líneas con elipsis final, mide el recorte real y
+sólo entonces agrega el nombre completo en `title` y **Ver completo/Contraer**;
+la misma expansión funciona en las tarjetas de celular/tableta sin abrir el
+documento. Se evaluó el recorte central y se mantuvo el final porque las dos
+líneas más la revelación condicional resuelven la identidad sin una segunda
+regla visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
+`BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
+viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
+default, encoge Etiquetas→Proyecto→Cliente→Fecha, conserva Estado (112) y
+Acciones (80), y deja scroll interno al agotar mínimos. La API genérica quedó
+expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
+schema. Cobertura focal: primitives/engine/Documentos, flow P2
+`admin-document-title-column-resize` con sus cinco resultados Playwright y
+registro derivado sincronizado; quality gates focales 100/100 y build Nuxt de
+producción aprobada.
+
 **2026-08-23 — Copias BCC configurables para toda salida al cliente:** el
 backend quedó cerrado alrededor de `EmailDeliveryGateway`, único dueño de
 Django mail I/O. Un inventario ejecutable de 23 claves cliente cubre propuestas

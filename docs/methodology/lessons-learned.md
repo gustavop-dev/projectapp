@@ -899,3 +899,19 @@ status row. Reader queries must explicitly select `primary` so a copy neither
 inflates contact counts nor triggers cooldowns/retries; history surfaces can
 then attach `copy` rows underneath without changing the meaning of existing
 metrics.
+
+## 36. Clipping is measured state, and its primitive must own display
+
+A fixed `title` attribute only repeats short values and still leaves touch users
+without a path. Measure the rendered element after layout, text changes and
+container-width changes; publish the complete native hint and disclosure only
+while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
+The disclosure expands in the same row/card so it cannot require navigation.
+
+Line clamping is a bundle of display, overflow and WebKit properties, not a
+decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another
+display utility to the clamped node, CSS ordering can silently disable the
+clamp and make the measurement say “complete.” The shared primitive therefore
+owns collapsed and expanded display state; consumers may supply typography and
+color only. Test both the table and the compact card, because their width and
+consumer-class combinations are materially different.

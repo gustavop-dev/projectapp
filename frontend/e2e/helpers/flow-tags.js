@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.85.0
+// Registry version: 2.86.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -130,6 +130,7 @@ export const ADMIN_DOCUMENT_PDF_PREVIEW = ['@flow:admin-document-pdf-preview', '
 export const ADMIN_DOCUMENT_RENAME = ['@flow:admin-document-rename', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_SEND_EMAIL = ['@flow:admin-document-send-email', '@module:admin', '@priority:P1'];
 export const ADMIN_DOCUMENT_TAGS_MANAGE = ['@flow:admin-document-tags-manage', '@module:admin', '@priority:P2'];
+export const ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE = ['@flow:admin-document-title-column-resize', '@module:admin', '@priority:P2'];
 export const ADMIN_DOCUMENT_UNSAVED_GUARD = ['@flow:admin-document-unsaved-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_EMAIL_DELIVERABILITY = ['@flow:admin-email-deliverability', '@module:admin', '@priority:P3'];
 export const ADMIN_EMAIL_TEMPLATES_CONFIG = ['@flow:admin-email-templates-config', '@module:admin', '@priority:P2'];

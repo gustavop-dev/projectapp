@@ -1,0 +1,73 @@
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
+
+import BaseOverflowText from '../../components/base/BaseOverflowText.vue'
+
+const NuxtLinkStub = {
+  template: '<a :href="to" v-bind="$attrs"><slot /></a>',
+  props: ['to'],
+}
+
+function mountText(props = {}) {
+  return mount(BaseOverflowText, {
+    props: {
+      text: 'Contrato de servicios para Cliente Atlas con destinatario final',
+      to: '/panel/documents/1/edit',
+      lines: 2,
+      testId: 'document-title',
+      ...props,
+    },
+    global: { stubs: { NuxtLink: NuxtLinkStub } },
+  })
+}
+
+async function setOverflow(wrapper, overflowing) {
+  const el = wrapper.get('[data-testid="document-title"]').element
+  Object.defineProperties(el, {
+    clientWidth: { configurable: true, value: 240 },
+    scrollWidth: { configurable: true, value: 240 },
+    clientHeight: { configurable: true, value: 40 },
+    scrollHeight: { configurable: true, value: overflowing ? 80 : 40 },
+  })
+  window.dispatchEvent(new Event('resize'))
+  await nextTick()
+  await nextTick()
+}
+
+describe('BaseOverflowText', () => {
+  it('omits disclosure for a complete title', async () => {
+    const wrapper = mountText()
+    await setOverflow(wrapper, false)
+
+    expect(wrapper.get('[data-testid="document-title"]').attributes('title')).toBeUndefined()
+    expect(wrapper.find('[data-testid="document-title-toggle"]').exists()).toBe(false)
+  })
+
+  it('adds the full title only after clipping', async () => {
+    const wrapper = mountText()
+    await setOverflow(wrapper, true)
+
+    expect(wrapper.get('[data-testid="document-title"]').attributes('title'))
+      .toBe('Contrato de servicios para Cliente Atlas con destinatario final')
+    expect(wrapper.get('[data-testid="document-title-toggle"]').text()).toContain('Ver completo')
+  })
+
+  it('reveals the complete title in place', async () => {
+    const wrapper = mountText()
+    await setOverflow(wrapper, true)
+
+    await wrapper.get('[data-testid="document-title-toggle"]').trigger('click')
+
+    expect(wrapper.get('[data-testid="document-title-toggle"]').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.get('[data-testid="document-title-toggle"]').text()).toContain('Contraer')
+    expect(wrapper.get('[data-testid="document-title"]').attributes('title')).toBeUndefined()
+  })
+
+  it('publishes the document link while clipped', async () => {
+    const wrapper = mountText()
+    await setOverflow(wrapper, true)
+
+    expect(wrapper.get('[data-testid="document-title"]').attributes('href'))
+      .toBe('/panel/documents/1/edit')
+  })
+})
