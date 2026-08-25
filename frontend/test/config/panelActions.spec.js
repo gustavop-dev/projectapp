@@ -27,11 +27,21 @@ describe('panelActions', () => {
     expect(getPanelAction('duplicate').iconName).toBe('Square2StackIcon')
   })
 
-  it('keeps other previously-colliding actions distinct', () => {
-    expect(getPanelAction('edit').icon).not.toBe(getPanelAction('rename').icon)
-    expect(getPanelAction('send').icon).not.toBe(getPanelAction('email-history').icon)
-    expect(getPanelAction('close').icon).not.toBe(getPanelAction('delete').icon)
-    expect(getPanelAction('remove').icon).not.toBe(getPanelAction('delete').icon)
+  it('assigns canonical icons to previously-colliding actions', () => {
+    const iconNames = Object.fromEntries(
+      ['edit', 'rename', 'send', 'email-history', 'close', 'delete', 'remove']
+        .map((action) => [action, getPanelAction(action).iconName]),
+    )
+
+    expect(iconNames).toEqual({
+      edit: 'PencilSquareIcon',
+      rename: 'PencilIcon',
+      send: 'PaperAirplaneIcon',
+      'email-history': 'EnvelopeIcon',
+      close: 'XMarkIcon',
+      delete: 'TrashIcon',
+      remove: 'MinusCircleIcon',
+    })
   })
 
   it('builds menu items without moving behavior into the catalog', () => {
