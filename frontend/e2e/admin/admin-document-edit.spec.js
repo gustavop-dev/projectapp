@@ -3,7 +3,7 @@
  *
  * @flow:admin-document-edit
  * Covers: edit form pre-filled with existing document data, save updates document,
- *         private fixed/custom notes (including read-only copy), status change,
+ *         private fixed/custom notes (including read-only copy), responsive header,
  *         back link navigation, download PDF action, copy/paste markdown content
  *         toolbar buttons, template style switch (Amigable/Profesional) toggling
  *         the preview theme, and the dual-style PDF download dropdown.
@@ -50,7 +50,13 @@ async function mockResponsiveHeaderApi(page) {
     if (apiPath === 'documents/1/detail/') {
       return { status: 200, contentType: 'application/json', body: JSON.stringify(longHeaderDocument) };
     }
-    if (apiPath === 'document-folders/' || apiPath === 'document-tags/' || apiPath === 'accounting/projects/') {
+    if (
+      apiPath === 'document-folders/'
+      || apiPath === 'document-tags/'
+      || apiPath === 'document-states/'
+      || apiPath === 'document-state-groups/'
+      || apiPath === 'accounting/projects/'
+    ) {
       return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
     }
     if (apiPath.startsWith('accounts/saved-filter-tabs')) {
@@ -242,7 +248,12 @@ test.describe('Admin Document Edit', () => {
       if (apiPath === 'documents/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([mockDocument]) };
       }
-      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+      if (
+        apiPath === 'document-folders/'
+        || apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
       if (apiPath === 'documents/1/detail/') {
@@ -276,7 +287,12 @@ test.describe('Admin Document Edit', () => {
       if (apiPath === 'documents/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
       }
-      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+      if (
+        apiPath === 'document-folders/'
+        || apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
       if (apiPath === 'documents/1/detail/') {
@@ -306,7 +322,12 @@ test.describe('Admin Document Edit', () => {
       if (apiPath === 'documents/') {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([issuedCollectionAccount]) };
       }
-      if (apiPath === 'document-folders/' || apiPath === 'document-tags/') {
+      if (
+        apiPath === 'document-folders/'
+        || apiPath === 'document-tags/'
+        || apiPath === 'document-states/'
+        || apiPath === 'document-state-groups/'
+      ) {
         return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
       }
       if (apiPath === 'documents/1/detail/') {

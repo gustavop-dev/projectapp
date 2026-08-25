@@ -168,7 +168,10 @@ def _doc_detail(doc):
         'client_email_subject': doc.client_email_subject,
         'client_email_body': doc.client_email_body,
         'client_whatsapp_message': doc.client_whatsapp_message,
-        'client_custom_notes': [
+        # Preserve the established MCP payload for existing callers. Rich
+        # workflow metadata lives under `notes`, matching the document API.
+        'client_custom_notes': doc.client_custom_notes,
+        'notes': [
             {
                 'id': note.id,
                 'title': note.title,

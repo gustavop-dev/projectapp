@@ -37,12 +37,14 @@ class TestDocumentListSerializer:
     def test_serializes_expected_fields(self, document):
         data = DocumentListSerializer(document).data
         expected = {
-            'id', 'uuid', 'title', 'slug', 'status', 'client_name',
+            'id', 'uuid', 'title', 'slug', 'status', 'is_client_visible',
+            'client_name',
             'client', 'client_display_name', 'project', 'project_name',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name', 'tag_details',
+            'active_states',
             'content_excerpt', 'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         }
@@ -98,7 +100,7 @@ class TestDocumentDetailSerializer:
     def test_serializes_all_expected_fields(self, document):
         data = DocumentDetailSerializer(document).data
         expected = {
-            'id', 'uuid', 'title', 'slug', 'status',
+            'id', 'uuid', 'title', 'slug', 'status', 'is_client_visible',
             'content_markdown', 'content_json', 'client_name',
             'client', 'client_display_name', 'project', 'project_name',
             'client_email_subject', 'client_email_body',
@@ -107,7 +109,7 @@ class TestDocumentDetailSerializer:
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada',
             'include_contraportada', 'folder', 'folder_name',
-            'tag_ids', 'tag_details',
+            'tag_ids', 'tag_details', 'active_states', 'notes',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         }

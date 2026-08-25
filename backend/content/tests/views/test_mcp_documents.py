@@ -33,7 +33,8 @@ def collection_account_type(db):
 
 
 @pytest.fixture
-def documents_connector(db):
+def documents_connector(db, superuser):
+    """Active connector with an actor available for audited MCP mutations."""
     connector, _ = McpConnector.objects.get_or_create(
         slug='documents', defaults={'name': 'Gestor de Documentos'},
     )
@@ -243,6 +244,14 @@ class TestDocumentsMcpCrud:
         assert payload['client_custom_notes'] == [
             {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
         ]
+        assert payload['notes'][0] == {
+            'id': payload['notes'][0]['id'],
+            'title': 'Seguimiento',
+            'content': 'Confirmar recepción.',
+            'status': 'open',
+            'episode_id': None,
+            'resolution_note': '',
+        }
 
     def test_update_document_replaces_custom_notes(
         self, api_client, documents_connector, markdown_doc_type,
