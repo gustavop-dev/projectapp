@@ -6038,7 +6038,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-delete` | admin | P2 | success,failure | 1 |
 | `admin-document-drag-organize` | admin | P3 | success | 0 |
 | `admin-document-duplicate` | admin | P3 | success,failure | 1 |
-| `admin-document-edit` | admin | P2 | display,success,error,failure | 1 |
+| `admin-document-edit` | admin | P2 | display,success,error,failure | 2 |
 | `admin-document-folder-change-client` | admin | P2 | success,error | 1 |
 | `admin-document-folder-hierarchy` | admin | P2 | display | 1 |
 | `admin-document-folder-manage` | admin | P2 | success,error,failure | 1 |

@@ -900,7 +900,7 @@ inflates contact counts nor triggers cooldowns/retries; history surfaces can
 then attach `copy` rows underneath without changing the meaning of existing
 metrics.
 
-## 36. Reuse infrastructure, not the wrong aggregate
+## 37. Reuse infrastructure, not the wrong aggregate
 
 Two features can share clients, projects, documents, authentication and UI
 primitives without sharing a persistence model. A `Document` is one editorial
@@ -915,3 +915,18 @@ Operational facts also need stable semantics. “Sent” remains stored evidence
 rewritten: annulment and business-date corrections append audit context, while
 only drafts remain mutable. When project ownership changes, historical threads
 stay with the original client and lose only their optional project scope.
+
+## 36. List context is route state, not component memory
+
+A detail page cannot implement a reliable “Volver” when the owning list keeps
+folder, filters, search, mode or page only in refs/store state. Encode every
+meaningful list state in a canonical URL, omit defaults, and let browser history
+restore those addresses. Use `replace` for incremental filter edits so typing or
+toggling does not manufacture a long stack of nearly identical entries.
+
+An explicit origin query is still untrusted input. Resolve it as an application
+route, allowlist the expected localized module path, and reject external,
+protocol-relative and cross-module destinations before rendering either the link
+or its label. Add an entity focus id to the explicit return so a restored page can
+bring the originating row/card back into view; native Back should remain native
+and consume the prior URL entry.
