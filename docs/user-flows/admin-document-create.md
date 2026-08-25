@@ -4,18 +4,20 @@
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents/create`
-- **Description:** Crea un documento desde Markdown pegado (con preview vivo) o cargado desde archivo. El bloque Identificación conserva la asociación opcional `ClientAutocomplete` (`doc-client-autocomplete`, con creación inline) + `ProjectSelect` (`doc-project-select`, `allowNoClient`): elegir primero el proyecto completa su cliente, elegir primero el cliente filtra los proyectos y limpiar el cliente limpia el proyecto. Una carpeta puede aportar su cliente/proyecto como valor heredado; sólo cuando no los declara se usa la sugerencia por mayoría estricta de documentos, siempre editable. El acceso compacto `doc-client-note-open` abre **Notas**: asunto, correo, WhatsApp y una colección ordenada de notas adicionales con título/contenido. Toda la colección es privada y no aparece en el PDF ni en el portal del cliente.
+- **Description:** Crea un documento desde Markdown pegado (con preview vivo) o cargado desde archivo. El bloque Identificación conserva la asociación opcional `ClientAutocomplete` (`doc-client-autocomplete`, con creación inline) + `ProjectSelect` (`doc-project-select`, `allowNoClient`): elegir primero el proyecto completa su cliente, elegir primero el cliente filtra los proyectos y limpiar el cliente limpia el proyecto. Una carpeta puede aportar su cliente/proyecto como valor heredado; sólo cuando no los declara se usa la sugerencia por mayoría estricta de documentos, siempre editable. El acceso compacto `doc-client-note-open` abre **Notas**: como todavía no existe un documento, la acción **Aplicar al borrador** y sus avisos explican que falta crearlo para guardar la colección privada.
 - **Steps:**
   1. Admin navega a `/panel/documents/create`.
   2. La vista ofrece **Pegar Markdown** y **Cargar Archivo**.
   3. Admin completa el título y, opcionalmente, cliente/proyecto en cualquier orden.
-  4. Admin puede abrir **Agregar notas**, completar los mensajes, agregar notas personalizadas y pulsar **Aplicar al documento**; la vista principal sólo muestra el estado compacto de la colección.
-  5. En **Pegar Markdown**, escribe o pega contenido y revisa el preview vivo; en **Cargar Archivo**, selecciona un `.md` y revisa el contenido cargado.
-  6. Admin pulsa **Crear Documento**.
-  7. `POST /api/documents/create-from-markdown/` recibe markdown, asociaciones, presentación, los tres mensajes privados y `client_custom_notes` (lista vacía si se omitió).
-  8. Al guardar, admin navega al gestor de documentos.
+  4. Admin puede abrir **Agregar notas**, completar los mensajes y agregar notas personalizadas. El modal advierte que aún no se guardan.
+  5. Admin pulsa **Aplicar al borrador**; la vista confirma que todavía falta crear el documento y muestra el estado compacto de la colección.
+  6. En **Pegar Markdown**, escribe o pega contenido y revisa el preview vivo; en **Cargar Archivo**, selecciona un `.md` y revisa el contenido cargado.
+  7. Admin pulsa **Crear Documento**.
+  8. `POST /api/documents/create-from-markdown/` recibe markdown, asociaciones, presentación, los tres mensajes privados y `client_custom_notes` (lista vacía si se omitió).
+  9. Al guardar, admin navega al gestor de documentos.
 - **Branches:**
   - [Display — notas] Cancelar cierra el modal sin aplicar el borrador; cada asunto, mensaje, título y contenido se puede copiar por separado con `📋`.
+  - [Display — persistencia] El modal y la notificación posterior nombran el documento pendiente; aplicar al borrador no llama al servidor.
   - [Error — nota incompleta] Una nota personalizada sin título o contenido no se puede aplicar y muestra validación inline.
   - [Display — preview] Admin puede mostrar u ocultar el panel de preview sin perder el markdown.
   - [Success — asociación] El payload siempre lleva `client`/`project`, incluido `null`; una asociación heredada o sugerida nunca bloquea la edición manual.

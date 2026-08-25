@@ -64,7 +64,7 @@ test.describe('Admin Document Rename', () => {
     await openRenameModal(page);
 
     await page.getByPlaceholder('Nombre del documento').fill('Contrato 2026');
-    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
 
     await expect(page.getByPlaceholder('Nombre del documento')).toBeHidden();
     expect(patchBody.title).toBe('Contrato 2026');
@@ -82,7 +82,7 @@ test.describe('Admin Document Rename', () => {
     await openRenameModal(page);
 
     await page.getByPlaceholder('Nombre del documento').fill('Contrato 2026');
-    await page.getByRole('button', { name: 'Guardar', exact: true }).click();
+    await page.getByRole('button', { name: 'Guardar cambios', exact: true }).click();
 
     await expect(page.getByPlaceholder('Nombre del documento')).toBeVisible();
   });
