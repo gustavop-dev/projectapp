@@ -67,7 +67,7 @@ test.describe('Admin Hour Packages Edit', () => {
 
     await expect(page.getByLabel('Nombre (ES)')).toHaveValue('Paquete Ágil EXT');
     await expect(page.getByLabel('Nacionalidad')).toHaveValue('EXT');
-    await expect(page.getByLabel('Horas')).toHaveValue('20');
+    await expect(page.getByLabel('Horas', { exact: true })).toHaveValue('20');
     await expect(page.getByLabel(/Tarifa por hora/)).toHaveValue('45');
     await expect(page.getByText('USD (derivada de la nacionalidad)')).toBeVisible();
   });

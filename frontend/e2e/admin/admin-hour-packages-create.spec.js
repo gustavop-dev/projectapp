@@ -51,7 +51,7 @@ test.describe('Admin Hour Packages Create', () => {
 
     await page.getByLabel('Nombre (ES)').fill('Paquete Pro EXT');
     await page.getByLabel('Name (EN)').fill('Pro Pack EXT');
-    await page.getByLabel('Horas').fill('60');
+    await page.getByLabel('Horas', { exact: true }).fill('60');
     await page.getByLabel(/Tarifa por hora/).fill('40');
     await page.getByLabel('Descuento (%)').fill('10');
 
@@ -74,7 +74,7 @@ test.describe('Admin Hour Packages Create', () => {
 
     await page.getByLabel('Nombre (ES)').fill('X');
     await page.getByLabel('Name (EN)').fill('X');
-    await page.getByLabel('Horas').fill('1');
+    await page.getByLabel('Horas', { exact: true }).fill('1');
     await page.getByLabel(/Tarifa por hora/).fill('100');
     await page.getByRole('button', { name: 'Crear paquete' }).click();
 
