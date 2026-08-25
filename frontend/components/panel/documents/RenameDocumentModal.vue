@@ -54,7 +54,7 @@
                 :disabled="!canSubmit"
                 :loading="isSaving"
               >
-                Guardar
+                Guardar cambios
               </BaseButton>
             </div>
           </form>

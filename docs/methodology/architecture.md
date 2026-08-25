@@ -135,13 +135,17 @@ Documents API or schema.
 Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.
 
 The Documents connector treats client delivery copy and observations as private
-document metadata. `client_email_subject`, `client_email_body` and
-`client_whatsapp_message` travel beside the report markdown, not inside it.
-`client-report` creates one canonical message triple and passes it to
-`create_document`/`update_document`; an enclosing `client-message` run returns those
-same values. Normalized `DocumentNote` rows may be opened and resolved through the
-admin or Documents MCP, including their optional link to a needs-fix episode. The PDF
-renderer, list serializers and platform serializers expose none of that private copy.
+document metadata. `client_email_subject`, `client_email_body`,
+`client_whatsapp_message`, and the ordered legacy `client_custom_notes` array travel
+beside the report markdown, not inside it. `client-report` creates one canonical
+message triple and passes it to `create_document`/`update_document`; an enclosing
+`client-message` run returns those same values. Normalized `DocumentNote` rows may be
+opened and resolved through the admin or Documents MCP, including their optional link
+to a needs-fix episode. The admin edit modal persists the four communication fields
+with a notes-only partial update and advances only their unsaved-change baseline;
+normalized observations use their own audited workflow endpoints. The create modal
+applies communication notes to the draft until the document exists. The PDF renderer,
+list serializers, and platform serializers expose none of this private metadata.
 
 ---
 

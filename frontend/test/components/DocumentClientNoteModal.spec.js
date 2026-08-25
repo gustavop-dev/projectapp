@@ -63,7 +63,7 @@ describe('DocumentClientNoteModal', () => {
     expect(customContentField(wrapper).element.value).toBe('Llamar el viernes.');
   });
 
-  it('applies a trimmed client note', async () => {
+  it('submits a trimmed client note', async () => {
     const wrapper = mountModal();
     await subjectField(wrapper).setValue('  Informe listo  ');
     await emailField(wrapper).setValue('  Correo completo  ');
@@ -74,22 +74,22 @@ describe('DocumentClientNoteModal', () => {
 
     await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
 
-    expect(wrapper.emitted('apply')[0]).toEqual([{
+    expect(wrapper.emitted('submit')[0]).toEqual([{
       subject: 'Informe listo',
       emailBody: 'Correo completo',
       whatsappMessage: 'WhatsApp breve',
       customNotes: [{ title: 'Próximo paso', content: 'Confirmar la fecha.' }],
     }]);
-    expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
+    expect(wrapper.emitted('update:modelValue')).toBeFalsy();
   });
 
-  it('closes without applying draft changes', async () => {
+  it('closes without submitting draft changes', async () => {
     const wrapper = mountModal({ subject: 'Original' });
     await subjectField(wrapper).setValue('Borrador');
 
     await wrapper.find('[data-testid="client-note-cancel"]').trigger('click');
 
-    expect(wrapper.emitted('apply')).toBeFalsy();
+    expect(wrapper.emitted('submit')).toBeFalsy();
     expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
   });
 
@@ -114,7 +114,7 @@ describe('DocumentClientNoteModal', () => {
     expect(subjectField(wrapper).element.disabled).toBe(true);
     expect(emailField(wrapper).element.disabled).toBe(true);
     expect(whatsappField(wrapper).element.disabled).toBe(true);
-    expect(wrapper.find('[data-testid="client-note-apply"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="client-note-submit"]').exists()).toBe(false);
   });
 
   it('renders custom notes as read only', () => {
@@ -129,13 +129,13 @@ describe('DocumentClientNoteModal', () => {
     expect(wrapper.find('[data-testid="client-note-custom-delete-0"]').exists()).toBe(false);
   });
 
-  it('requires complete custom notes before applying', async () => {
+  it('requires complete custom notes before submitting', async () => {
     const wrapper = mountModal();
     await wrapper.find('[data-testid="client-note-add-custom"]').trigger('click');
 
     await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
 
-    expect(wrapper.emitted('apply')).toBeFalsy();
+    expect(wrapper.emitted('submit')).toBeFalsy();
     expect(wrapper.find('[data-testid="client-note-custom-title-error-0"]').text())
       .toBe('El título es obligatorio.');
     expect(wrapper.find('[data-testid="client-note-custom-content-error-0"]').text())
@@ -162,7 +162,32 @@ describe('DocumentClientNoteModal', () => {
     await wrapper.find('[data-testid="client-note-custom-delete-0"]').trigger('click');
     await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
 
-    expect(wrapper.emitted('apply')[0][0].customNotes).toEqual([]);
+    expect(wrapper.emitted('submit')[0][0].customNotes).toEqual([]);
+  });
+
+  it('labels the persisted action as Guardar cambios', () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.find('[data-testid="client-note-submit"]').text()).toBe('Guardar cambios');
+    expect(wrapper.find('[data-testid="client-note-draft-hint"]').exists()).toBe(false);
+  });
+
+  it('explains the draft action before document creation', () => {
+    const wrapper = mountModal({ mode: 'draft' });
+
+    expect(wrapper.find('[data-testid="client-note-submit"]').text()).toBe('Aplicar al borrador');
+    expect(wrapper.find('[data-testid="client-note-draft-hint"]').text())
+      .toContain('Quedarán guardadas cuando crees el documento');
+  });
+
+  it('blocks dismissal while the save is running', async () => {
+    const wrapper = mountModal({ saving: true });
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await wrapper.find('[data-testid="client-note-cancel"]').trigger('click');
+
+    expect(wrapper.emitted('update:modelValue')).toBeFalsy();
+    expect(wrapper.find('[data-testid="client-note-submit"]').attributes('disabled')).toBe('');
   });
 
   it('copies a custom note content', async () => {

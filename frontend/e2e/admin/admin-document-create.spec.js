@@ -89,9 +89,6 @@ test.describe('Admin Document Create', () => {
     });
     await page.goto('/panel/documents/create');
 
-    await page.getByLabel(/T[ií]tulo/i).fill('Informe de soporte');
-    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
-      .fill('# Informe\n\nCaso resuelto.');
     const noteButton = page.getByTestId('doc-client-note-open');
     await expect(noteButton).toHaveText('📝');
     await expect(noteButton).toHaveAccessibleName('Agregar notas');
@@ -99,9 +96,21 @@ test.describe('Admin Document Create', () => {
     await page.getByTestId('client-note-subject').fill('Caso resuelto');
     await page.getByTestId('client-note-email').fill('Hola Ana,\n\nEl caso fue resuelto.');
     await page.getByTestId('client-note-whatsapp').fill('Hola Ana, el caso ya fue resuelto.');
-    await page.getByTestId('client-note-apply').click();
+    await expect(page.getByTestId('client-note-submit')).toHaveText('Aplicar al borrador');
+    await expect(page.getByTestId('client-note-draft-hint'))
+      .toContainText('Quedarán guardadas cuando crees el documento');
+    await page.getByTestId('client-note-submit').click();
+    expect(postBody).toBeNull();
+    await expect(page.getByText('Notas aplicadas al borrador', { exact: true })).toBeVisible();
+    await expect(page.getByText('Todavía falta crear el documento para guardarlas.')).toBeVisible();
     await expect(noteButton).toHaveText('✏️');
     await expect(noteButton).toHaveAccessibleName('Editar notas');
+
+    // Opening the modal proves Nuxt hydration completed before we edit the
+    // underlying form; filling SSR inputs earlier can be replaced by hydration.
+    await page.locator('#doc-title').fill('Informe de soporte');
+    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
+      .fill('# Informe\n\nCaso resuelto.');
 
     await page.getByRole('button', { name: /Crear Documento/i }).click();
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
@@ -124,14 +133,15 @@ test.describe('Admin Document Create', () => {
       return null;
     });
     await page.goto('/panel/documents/create');
-    await page.getByLabel(/T[ií]tulo/i).fill('Informe con contexto');
-    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
-      .fill('# Informe');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-add-custom').click();
     await page.getByTestId('client-note-custom-title-0').fill('Próximo paso');
     await page.getByTestId('client-note-custom-content-0').fill('Confirmar la fecha de entrega.');
-    await page.getByTestId('client-note-apply').click();
+    await page.getByTestId('client-note-submit').click();
+
+    await page.locator('#doc-title').fill('Informe con contexto');
+    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
+      .fill('# Informe');
 
     await page.getByRole('button', { name: /Crear Documento/i }).click();
     await page.waitForURL(/\/panel\/documents/, { timeout: 15000 });
@@ -156,12 +166,13 @@ test.describe('Admin Document Create', () => {
       return null;
     });
     await page.goto('/panel/documents/create');
-    await page.getByLabel(/T[ií]tulo/i).fill('Informe rechazado');
-    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
-      .fill('# Informe');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-subject').fill('Asunto por revisar');
-    await page.getByTestId('client-note-apply').click();
+    await page.getByTestId('client-note-submit').click();
+
+    await page.locator('#doc-title').fill('Informe rechazado');
+    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
+      .fill('# Informe');
 
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/create-from-markdown/'),
@@ -188,12 +199,13 @@ test.describe('Admin Document Create', () => {
       return null;
     });
     await page.goto('/panel/documents/create');
-    await page.getByLabel(/T[ií]tulo/i).fill('Informe pendiente');
-    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
-      .fill('# Informe');
     await page.getByTestId('doc-client-note-open').click();
     await page.getByTestId('client-note-subject').fill('Borrador preservado');
-    await page.getByTestId('client-note-apply').click();
+    await page.getByTestId('client-note-submit').click();
+
+    await page.locator('#doc-title').fill('Informe pendiente');
+    await page.getByPlaceholder(/Escribe o pega tu contenido en formato Markdown/i)
+      .fill('# Informe');
 
     const responsePromise = page.waitForResponse(
       (response) => response.url().includes('/api/documents/create-from-markdown/'),

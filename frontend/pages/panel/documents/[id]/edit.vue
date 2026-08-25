@@ -528,7 +528,8 @@
       :custom-notes="form.client_custom_notes"
       :notes="normalizedNotes"
       :readonly="lockedCuenta"
-      @apply="applyClientNote"
+      :saving="documentStore.isUpdating"
+      @submit="saveClientNote"
       @workflow-changed="refreshWorkflow"
     />
 
@@ -698,6 +699,13 @@ const FIELD_LABELS = {
   template_style: 'estilo de plantilla',
 };
 
+const NOTE_FIELDS = [
+  'client_email_subject',
+  'client_email_body',
+  'client_whatsapp_message',
+  'client_custom_notes',
+];
+
 // Se desestructura para que los refs queden como bindings de primer nivel: a
 // través del objeto (`guard.hasChanges`) el template no los desenvuelve.
 const {
@@ -743,14 +751,9 @@ const notesActionLabel = computed(() => (
   hasNotes.value ? 'Editar notas' : 'Agregar notas'
 ));
 
-const notesDirty = computed(() => [
-  'client_email_subject',
-  'client_email_body',
-  'client_whatsapp_message',
-  'client_custom_notes',
-].some((field) => isFieldDirty(field)));
+const notesDirty = computed(() => NOTE_FIELDS.some((field) => isFieldDirty(field)));
 
-function applyClientNote(note) {
+function assignClientNote(note) {
   form.client_email_subject = note.subject;
   form.client_email_body = note.emailBody;
   form.client_whatsapp_message = note.whatsappMessage;
@@ -764,6 +767,46 @@ async function refreshWorkflow() {
     ? result.data.active_states
     : [];
   normalizedNotes.value = Array.isArray(result.data.notes) ? result.data.notes : [];
+}
+
+function notePayload(note) {
+  return {
+    client_email_subject: note.subject,
+    client_email_body: note.emailBody,
+    client_whatsapp_message: note.whatsappMessage,
+    client_custom_notes: note.customNotes,
+  };
+}
+
+function notifySaveError(result, title = 'No se pudo guardar el documento') {
+  if (result.code === 'collection_account_locked') {
+    lockedCuenta.value = true;
+    notify.error({ title: 'Documento emitido', detail: result.message });
+    return;
+  }
+  const fieldDetail = result.fieldErrors
+    ? Object.entries(result.fieldErrors).map(([key, value]) => `${key}: ${value}`).join(' · ')
+    : '';
+  notify.error({
+    title,
+    detail: fieldDetail || result.message,
+  });
+}
+
+async function saveClientNote(note) {
+  const result = await documentStore.updateDocument(route.params.id, notePayload(note));
+  if (!result.success) {
+    notifySaveError(result, 'No se pudieron guardar las notas');
+    return;
+  }
+  assignClientNote(note);
+  commitBaseline(NOTE_FIELDS);
+  showClientNote.value = false;
+  notify.success({
+    title: 'Notas guardadas',
+    detail: 'Los cambios quedaron guardados en el documento.',
+    duration: 6000,
+  });
 }
 
 const { onClientSelect, onProjectSelect } = useClientProjectCascade(
@@ -959,20 +1002,8 @@ async function handleSave() {
     });
     return true;
   }
-  if (result.code === 'collection_account_locked') {
-    // The server is the truth: the cuenta was issued (maybe from another
-    // tab) after this form loaded. Lock the page to match.
-    lockedCuenta.value = true;
-    notify.error({ title: 'Documento emitido', detail: result.message });
-  } else {
-    const fieldDetail = result.fieldErrors
-      ? Object.entries(result.fieldErrors).map(([k, v]) => `${k}: ${v}`).join(' · ')
-      : '';
-    notify.error({
-      title: 'No se pudo guardar el documento',
-      detail: fieldDetail || result.message,
-    });
-  }
+  // The server is the truth: the cuenta may have been issued in another tab.
+  notifySaveError(result);
   // Sin re-fijar la baseline a propósito: un guardado fallido deja el aviso
   // puesto y, desde el guard de salida, bloquea la navegación.
   return false;
