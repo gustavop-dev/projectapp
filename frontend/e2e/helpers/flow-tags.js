@@ -60,6 +60,7 @@ export const ADMIN_BLOG_LIST = ['@flow:admin-blog-list', '@module:admin', '@prio
 export const ADMIN_BLOG_OVERDUE_DETECTION = ['@flow:admin-blog-overdue-detection', '@module:admin', '@priority:P2'];
 export const ADMIN_BLOG_PUBLISH_MODE = ['@flow:admin-blog-publish-mode', '@module:admin', '@priority:P2'];
 export const ADMIN_CALCULATOR_FOLLOWUP_ALERT = ['@flow:admin-calculator-followup-alert', '@module:admin', '@priority:P2'];
+export const ADMIN_CLIENT_COMMUNICATIONS = ['@flow:admin-client-communications', '@module:admin', '@priority:P1'];
 export const ADMIN_CLIENT_CREATE_STANDALONE = ['@flow:admin-client-create-standalone', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_ORPHAN = ['@flow:admin-client-delete-orphan', '@module:admin', '@priority:P2'];
 export const ADMIN_CLIENT_DELETE_PROTECTED = ['@flow:admin-client-delete-protected', '@module:admin', '@priority:P2'];

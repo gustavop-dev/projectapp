@@ -4,6 +4,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Client Communications Registry — phase 1 | ✅ Done | 2026-08-25. Decided as a separate product module (implemented inside the existing `content` app), not a Document subtype. `/panel/communications` records multiple client threads, optional project scope, ordered incoming/outgoing email or WhatsApp messages, draft/sent/received facts, derived Respondido state, protected bidirectional Document references, annulments and append-only date corrections. Project client changes detach historical threads; client/document deletes are guarded. Includes migration `0210`, fake data, focused API/store/component/config coverage and registered four-outcome E2E flow. Real delivery, templates/import and provider integrations remain phased work; decision record: `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`. |
 | Emails — configurable BCC copies of every client send | ✅ Done | 2026-08-23. All production Django mail I/O now passes through `EmailDeliveryGateway`; its fail-closed 23-channel inventory assigns customer templates to five administrable families. `/panel/emails` manages a copy audience independent of internal notices, defaulting new recipients to all families. The customer envelope is delivered first; one separate BCC-only envelope per configured address follows, and a failed copy cannot fail/retry the customer send. `EmailLog.delivery_id` + `delivery_role` nest recipient/status/error under every primary history surface while keeping copies out of rate limits, dashboards and contact counts. Inventory: `docs/client-email-copy-inventory.md`; migration `0209`; focused backend/unit/E2E coverage added. Initial production data remains an explicit Configuración action, not a hardcoded address. |
 | Accounting — Recurrentes: recálculo mensual COP | ✅ Done | 2026-08-22. `cop_equivalent` pasó a ser un cache derivado y de solo lectura: precio/moneda usan la tasa USD vigente de Configuración y periodicidad prorratea el costo mensual. Editar cualquiera de las tres entradas refresca fila, subtotal por categoría y total general; cambiar la tasa resincroniza todos los USD. La migración `0208` corrige filas históricas y el formulario muestra una previsualización no editable. |
 | Panel — Responsive Standard Phase 0 | ✅ Done | 2026-08-22. `docs/RESPONSIVE_STANDARD.md` define cinco viewports de aceptación (412/835/1195/1440/2560), máximos de 1400/1600 px, patrones canónicos por tipo y el censo de 47 superficies renderizables. Inventario: 16 hallazgos (1 P0, 11 P1, 4 P2); PA-45/61 quedan en sus olas, PA-66/73 se consolidan en el criterio compartido. Fase documental: sin cambios de producto. |
@@ -205,6 +206,12 @@
 ---
 
 ## 5. Potential Improvements
+
+- **Communications phase 2**: text templates/versioning, opt-in reuse of Document
+  private notes, and idempotent historical email import.
+- **Communications phase 3**: real email delivery through
+  `EmailDeliveryGateway`, atomically linked to `EmailLog`; no automatic
+  WhatsApp status until an official provider can supply trustworthy receipts.
 
 1. **Split large files** — proposal views/services and the shared PDF utility layer are still large enough to benefit from decomposition
 2. **API versioning** — no versioning strategy currently

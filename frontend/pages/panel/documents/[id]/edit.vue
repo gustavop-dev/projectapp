@@ -68,6 +68,38 @@
       </div>
     </BaseAlert>
 
+    <BaseAlert
+      v-if="documentCommunications.count > 0 && !loadError"
+      variant="info"
+      class="mb-6"
+      data-testid="document-communications-usage"
+    >
+      <div>
+        <p class="font-medium">
+          Este documento se usó en {{ documentCommunications.count }}
+          comunicación{{ documentCommunications.count === 1 ? '' : 'es' }} con clientes.
+        </p>
+        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+          <NuxtLink
+            v-for="usage in documentCommunications.results"
+            :key="usage.message.id"
+            :to="{
+              path: '/panel/communications',
+              query: { thread: usage.thread.id },
+            }"
+            class="rounded-lg border border-border-muted bg-surface/70 px-3 py-2 text-sm hover:border-border-default"
+            :data-testid="`document-communication-${usage.message.id}`"
+          >
+            <span class="block font-semibold text-text-default">{{ usage.thread.title }}</span>
+            <span class="mt-0.5 block text-xs text-text-subtle">
+              {{ usage.message.direction_display }} · {{ usage.message.channel_display }} ·
+              {{ usage.message.subject || usage.message.content.slice(0, 80) }}
+            </span>
+          </NuxtLink>
+        </div>
+      </div>
+    </BaseAlert>
+
     <div
       v-if="documentStore.isLoading"
       class="grid grid-cols-1 gap-6 panel-landscape:grid-cols-[20rem_minmax(0,1fr)] panel-desktop:grid-cols-[24rem_minmax(0,1fr)]"
@@ -609,6 +641,7 @@ const showFullPreview = ref(false);
 const showPdfPreview = ref(false);
 const showClientNote = ref(false);
 const copiedMarkdown = ref(false);
+const documentCommunications = ref({ count: 0, results: [] });
 const pastedMarkdown = ref(false);
 const markdownTextareaRef = ref(null);
 
@@ -826,11 +859,15 @@ async function handleUnarchive() {
 async function reloadDocument() {
   const id = route.params.id;
   loadError.value = false;
-  const [result] = await Promise.all([
+  const [result, , , usageResult] = await Promise.all([
     documentStore.fetchDocument(id),
     folderStore.fetchFolders(),
     tagStore.fetchTags(),
+    documentStore.fetchDocumentCommunications(id),
   ]);
+  documentCommunications.value = usageResult.success
+    ? usageResult.data
+    : { count: 0, results: [] };
   if (result.success && result.data) {
     form.title = result.data.title || '';
     form.client = result.data.client ?? null;

@@ -600,10 +600,18 @@ def change_project_client(request, project_id):
         IncomeRecord.objects.filter(project=project)
         .values_list('pk', flat=True),
     )
+    current_communications = set(
+        project.communication_threads.values_list('pk', flat=True),
+    )
     sent_hostings = set(serializer.validated_data['hosting_ids'])
     sent_incomes = set(serializer.validated_data['income_ids'])
+    sent_communications = set(
+        serializer.validated_data['communication_thread_ids'],
+    )
     missing = sorted(
-        (sent_hostings - current_hostings) | (sent_incomes - current_incomes),
+        (sent_hostings - current_hostings)
+        | (sent_incomes - current_incomes)
+        | (sent_communications - current_communications),
     )
     if missing:
         count = len(missing)
@@ -617,7 +625,9 @@ def change_project_client(request, project_id):
             errors={'missing_ids': missing},
         )
     changed = sorted(
-        (current_hostings - sent_hostings) | (current_incomes - sent_incomes),
+        (current_hostings - sent_hostings)
+        | (current_incomes - sent_incomes)
+        | (current_communications - sent_communications),
     )
     if changed:
         count = len(changed)

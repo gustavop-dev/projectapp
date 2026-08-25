@@ -45,6 +45,17 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-023] A Playwright run reused another worktree's Nuxt server
+
+- **Symptom**: every communications E2E case timed out on the page heading and
+  the captured DOM showed Nuxt's `Page not found`.
+- **Cause**: local Playwright enables `reuseExistingServer`; port 3001 belonged
+  to a parallel worktree whose source tree did not contain the new route.
+- **Resolution**: inspect the listening process and run the focused spec with a
+  session-unique `E2E_PORT`. Never terminate or reuse another session's server.
+- **Prevention**: allocate a unique port per worktree before interpreting a
+  route-level 404 as an application regression.
+
 ### [ERR-022] Editing a recurring payment left its monthly COP projection stale
 - **Date**: 2026-08-22
 - **Context**: Chat-GPT was edited from USD 20 to USD 200, but its stored COP equivalent remained 80,000. Reloading preserved the wrong value, which also understated the general and category monthly totals.

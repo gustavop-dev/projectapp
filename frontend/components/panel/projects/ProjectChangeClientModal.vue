@@ -103,6 +103,25 @@
               acompañan sin cambios.
             </p>
           </section>
+          <section
+            v-if="preview.communication_threads_detaching.length"
+            class="px-3 py-2"
+            data-testid="project-change-client-communications"
+          >
+            <p class="text-xs font-semibold text-text-default mb-1">
+              Comunicaciones históricas ({{ preview.communication_threads_detaching.length }}):
+              conservan su cliente original y se desvinculan del proyecto.
+            </p>
+            <ul class="text-xs text-text-muted space-y-0.5 max-h-24 overflow-y-auto">
+              <li
+                v-for="row in preview.communication_threads_detaching"
+                :key="`c-${row.id}`"
+                class="break-words"
+              >
+                {{ row.title }}
+              </li>
+            </ul>
+          </section>
         </div>
 
         <!-- Sin preselección a propósito: la decisión de arrastrar o
@@ -235,6 +254,7 @@ async function confirmChange() {
     mode: mode.value,
     hosting_ids: preview.value.hosting_ids,
     income_ids: preview.value.income_ids,
+    communication_thread_ids: preview.value.communication_thread_ids,
   });
   if (result.success) {
     const { moved, detached } = result.data;
@@ -243,6 +263,9 @@ async function confirmChange() {
     const detachedTotal = detached.hostings + detached.incomes + detached.draft_accounts;
     if (movedTotal) parts.push(`${movedTotal} movidos al nuevo cliente`);
     if (detachedTotal) parts.push(`${detachedTotal} desvinculados`);
+    if (result.data.detached_communications) {
+      parts.push(`${result.data.detached_communications} comunicaciones preservadas`);
+    }
     notify.success({
       title: `"${props.project.name}" ahora es de ${clientName.value}`,
       detail: parts.join(' · '),
