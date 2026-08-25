@@ -900,7 +900,22 @@ inflates contact counts nor triggers cooldowns/retries; history surfaces can
 then attach `copy` rows underneath without changing the meaning of existing
 metrics.
 
-## 36. Independent modal saves need a field-scoped dirty baseline
+## 36. List context is route state, not component memory
+
+A detail page cannot implement a reliable “Volver” when the owning list keeps
+folder, filters, search, mode or page only in refs/store state. Encode every
+meaningful list state in a canonical URL, omit defaults, and let browser history
+restore those addresses. Use `replace` for incremental filter edits so typing or
+toggling does not manufacture a long stack of nearly identical entries.
+
+An explicit origin query is still untrusted input. Resolve it as an application
+route, allowlist the expected localized module path, and reject external,
+protocol-relative and cross-module destinations before rendering either the link
+or its label. Add an entity focus id to the explicit return so a restored page can
+bring the originating row/card back into view; native Back should remain native
+and consume the prior URL entry.
+
+## 37. Independent modal saves need a field-scoped dirty baseline
 
 When a modal persists one subsection of a larger editor, a successful request
 must not reset the editor's entire unsaved-changes baseline. Doing so makes

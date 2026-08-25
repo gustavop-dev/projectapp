@@ -45,13 +45,21 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-023] Aplicar una nota no la persistía hasta guardar otra vez el documento
+### [ERR-024] Aplicar una nota no la persistía hasta guardar otra vez el documento
 - **Date**: 2026-08-25
 - **Context**: El modal de notas decía “Aplicar al documento”, cerraba y actualizaba el formulario local, pero el operador todavía debía usar el guardado general de la pantalla para persistir la nota.
 - **Root Cause**: El modal sólo emitía datos al formulario padre; no existía una operación de persistencia propia ni una confirmación que distinguiera un cambio aplicado localmente de uno guardado en el servidor.
 - **Resolution**: En edición, el modal ejecuta un PATCH exclusivo de los cuatro campos privados, confirma el éxito de forma visible y actualiza sólo su porción de la baseline de cambios. En creación conserva el paso diferido por necesidad —el documento aún no tiene ID—, pero lo nombra “Aplicar al borrador” y avisa explícitamente que falta crear el documento.
 - **Files Affected**: `DocumentClientNoteModal.vue`, páginas de creación/edición de documentos y `useUnsavedGuard.js`.
 - **Regression coverage**: Unitarias fijan etiquetas, modo borrador, bloqueo durante guardado y baseline parcial; E2E verifica el PATCH mínimo, la confirmación, la conservación de otros cambios pendientes y los estados 4xx/5xx.
+
+### [ERR-023] Document editor exits discarded the originating list context
+- **Date**: 2026-08-25
+- **Context**: Leaving `/panel/documents/{id}/edit` always opened the Documents root, losing folders, search, archived mode, filters and pagination.
+- **Root Cause**: All four editor exits hardcoded the root route, while the list query synchronized only folder, scope, client and project; no complete origin existed to restore.
+- **Resolution**: Make the list URL canonical for every meaningful state, carry it in a validated internal `from` query, add `focus` to the explicit return, and route every editor exit through the same contextual target. Keep native browser Back intact and use the localized root only for direct or rejected origins.
+- **Files Affected**: `frontend/composables/useDocumentFilterQuery.js`, Documents list/editor pages, `frontend/utils/documentReturnNavigation.js`.
+- **Regression coverage**: Unit tests cover query round trips, browser history, validation, labels and focus; Playwright covers explicit return, native Back and an untrusted-origin fallback.
 
 ### [ERR-022] Editing a recurring payment left its monthly COP projection stale
 - **Date**: 2026-08-22

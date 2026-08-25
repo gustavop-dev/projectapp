@@ -173,6 +173,12 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - **Folders & tags**: documents organize into `DocumentFolder`s and `DocumentTag`s managed inline from the documents list page.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
   - Folder/tag mutations from `FolderManagerModal`/`TagManagerModal` re-fetch both the documents list and the folder/tag stores so the sidebar count and order reflect the change without a page reload.
+- **Context-preserving navigation**: the list URL is the canonical representation of
+  folder, normal/archived scope, tags, client/project, global search, ordering, view
+  mode, page and focused document. Every editor exit returns to that validated list
+  URL and identifies its destination; browser Back restores the same list state.
+  Direct or untrusted editor entries have no valid origin and fall back to the
+  localized Documents root.
 
 ### 3.6 Contract System
 
