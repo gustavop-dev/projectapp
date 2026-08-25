@@ -45,6 +45,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-023] Document editor exits discarded the originating list context
+- **Date**: 2026-08-25
+- **Context**: Leaving `/panel/documents/{id}/edit` always opened the Documents root, losing folders, search, archived mode, filters and pagination.
+- **Root Cause**: All four editor exits hardcoded the root route, while the list query synchronized only folder, scope, client and project; no complete origin existed to restore.
+- **Resolution**: Make the list URL canonical for every meaningful state, carry it in a validated internal `from` query, add `focus` to the explicit return, and route every editor exit through the same contextual target. Keep native browser Back intact and use the localized root only for direct or rejected origins.
+- **Files Affected**: `frontend/composables/useDocumentFilterQuery.js`, Documents list/editor pages, `frontend/utils/documentReturnNavigation.js`.
+- **Regression coverage**: Unit tests cover query round trips, browser history, validation, labels and focus; Playwright covers explicit return, native Back and an untrusted-origin fallback.
+
 ### [ERR-022] Editing a recurring payment left its monthly COP projection stale
 - **Date**: 2026-08-22
 - **Context**: Chat-GPT was edited from USD 20 to USD 200, but its stored COP equivalent remained 80,000. Reloading preserved the wrong value, which also understated the general and category monthly totals.

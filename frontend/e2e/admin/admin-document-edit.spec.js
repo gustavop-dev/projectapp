@@ -68,7 +68,8 @@ async function mockResponsiveHeaderApi(page) {
 
 async function readResponsiveHeaderLayout(page) {
   await mockResponsiveHeaderApi(page);
-  await page.goto('/panel/documents/1/edit');
+  await page.goto('/en-us/panel/documents/1/edit', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(/\/en-us\/panel\/documents\/1\/edit$/);
 
   const title = page.getByTestId('doc-editor-title');
   const metadata = page.getByTestId('doc-editor-metadata');
@@ -77,6 +78,7 @@ async function readResponsiveHeaderLayout(page) {
   const cancel = page.getByTestId('doc-cancel');
   const save = page.getByTestId('doc-save');
 
+  await expect(title).toBeVisible();
   await expect(title).toHaveText(legalHeaderTitle);
   await expect(title).toHaveAttribute('title', legalHeaderTitle);
   await expect(metadata.getByTitle(legalHeaderClient)).toHaveCount(1);

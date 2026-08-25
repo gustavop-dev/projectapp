@@ -6,14 +6,14 @@
     >
       <div class="min-w-0">
         <NuxtLink
-          :to="localePath('/panel/documents')"
+          :to="returnTarget"
           class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default transition-colors"
-          aria-label="Volver a documentos"
+          :aria-label="returnLabel"
         >
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Volver a documentos
+          {{ returnLabel }}
         </NuxtLink>
         <h1
           class="mt-2 line-clamp-2 break-words text-2xl font-light leading-tight text-text-default"
@@ -56,7 +56,7 @@
         >
           <BaseButton
             as="NuxtLink"
-            :to="localePath('/panel/documents')"
+            :to="returnTarget"
             variant="secondary"
             size="md"
             class="w-full whitespace-nowrap panel-portrait:w-auto"
@@ -123,10 +123,10 @@
       <div class="mt-3 flex items-center gap-4">
         <BaseButton variant="secondary" size="sm" @click="reloadDocument">Reintentar</BaseButton>
         <NuxtLink
-          :to="localePath('/panel/documents')"
+          :to="returnTarget"
           class="text-sm text-text-brand hover:underline"
         >
-          ← Volver a la lista
+          ← {{ returnLabel }}
         </NuxtLink>
       </div>
     </BaseAlert>
@@ -586,9 +586,11 @@ import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import { joinEs } from '~/utils/spanishList';
 import { describeIncludedPages } from '~/utils/documentCoverPages';
+import { documentReturnLabel, resolveDocumentReturn } from '~/utils/documentReturnNavigation';
 
 const localePath = useLocalePath();
 const route = useRoute();
+const router = useRouter();
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
@@ -596,6 +598,17 @@ const folderStore = useDocumentFolderStore();
 const tagStore = useDocumentTagStore();
 const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
+const returnNavigation = computed(() => resolveDocumentReturn(
+  route.query.from,
+  router,
+  localePath('/panel/documents'),
+));
+const returnTarget = computed(() => returnNavigation.value.target);
+const returnLabel = computed(() => documentReturnLabel({
+  hasOrigin: returnNavigation.value.hasOrigin,
+  query: returnNavigation.value.query,
+  folderById: (id) => folderStore.folderById(id),
+}));
 const loadError = ref(false);
 // Requisito 6: an issued cuenta is a fact — read-only here, forever.
 const lockedCuenta = ref(false);
