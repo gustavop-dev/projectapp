@@ -53,10 +53,22 @@ describe('BaseControlGate', () => {
       .toContain('El documento emitido es de solo lectura.')
   })
 
-  it('removes the focus proxy when the control is available', () => {
+  it('removes the focus proxy semantics when the control is available', () => {
     const wrapper = mountGate({ reasons: [] })
+    const trigger = wrapper.get('[data-testid="preview-gate-trigger"]')
 
-    expect(wrapper.find('[data-testid="preview-gate-trigger"]').exists()).toBe(false)
+    expect(trigger.attributes('tabindex')).toBeUndefined()
+    expect(trigger.attributes('aria-label')).toBeUndefined()
+    expect(trigger.attributes('aria-describedby')).toBeUndefined()
     expect(wrapper.get('button').text()).toBe('Previsualizar')
+  })
+
+  it('keeps the same control element when its blockers are resolved', async () => {
+    const wrapper = mountGate({ reasons: ['Agrega un correo válido.'] })
+    const blockedButton = wrapper.get('button').element
+
+    await wrapper.setProps({ reasons: [] })
+
+    expect(wrapper.get('button').element).toBe(blockedButton)
   })
 })

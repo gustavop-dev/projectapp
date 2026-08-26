@@ -374,7 +374,9 @@ class TestProjectViewEdgeCases:
 
         assert response.status_code == 403
 
-    def test_delete_project_archives_it(self, api_client, admin_headers, client_user):
+    def test_delete_project_requires_a_lifecycle_transition(
+        self, api_client, admin_headers, client_user,
+    ):
         project = Project.objects.create(
             name='To Archive', client=client_user, status=Project.STATUS_ACTIVE,
         )
@@ -384,9 +386,10 @@ class TestProjectViewEdgeCases:
             **admin_headers,
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 410
+        assert response.data['code'] == 'project_archive_replaced'
         project.refresh_from_db()
-        assert project.status == Project.STATUS_ARCHIVED
+        assert project.status == Project.STATUS_ACTIVE
 
     def test_client_cannot_delete_project(self, api_client, client_headers, client_user):
         project = Project.objects.create(name='P', client=client_user)

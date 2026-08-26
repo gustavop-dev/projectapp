@@ -9,24 +9,39 @@
           cuentas de cobro referencian.
         </p>
       </div>
-      <BaseButton
-        variant="primary"
-        size="md"
-        data-testid="projects-new-button"
-        @click="openCreate"
-      >
-        <BaseActionIcon action="create" />
-        <span>Nuevo proyecto</span>
-      </BaseButton>
+      <div class="flex flex-wrap items-center gap-2">
+        <BaseButton
+          as="NuxtLink"
+          to="/panel/projects/statuses"
+          variant="secondary"
+          size="md"
+          data-testid="projects-manage-states"
+        >
+          Administrar estados
+        </BaseButton>
+        <BaseButton
+          variant="primary"
+          size="md"
+          data-testid="projects-new-button"
+          @click="openCreate"
+        >
+          <BaseActionIcon action="create" />
+          <span>Nuevo proyecto</span>
+        </BaseButton>
+      </div>
     </div>
 
     <!-- Meta cards -->
-    <div class="mb-3 grid grid-cols-2 gap-3 panel-landscape:grid-cols-4">
+    <div class="mb-6 grid grid-cols-2 gap-3 panel-landscape:grid-cols-4">
       <AccountingStatCard
-        label="Proyectos activos"
-        :value="String(store.meta.active ?? 0)"
-        tone="brand"
-        data-testid="panel-projects-stat-active"
+        v-for="state in store.meta.by_state || []"
+        :key="state.state_id"
+        :label="state.name"
+        :value="String(state.count ?? 0)"
+        :tone="statTone(state.color)"
+        clickable
+        :data-testid="`panel-projects-stat-state-${state.state_id}`"
+        @click="scope = `state:${state.state_id}`"
       />
       <AccountingStatCard
         label="Clientes sin proyecto"
@@ -38,13 +53,15 @@
         @click="openOrphansPanel"
       />
       <AccountingStatCard
-        v-if="!isPhone || showSecondaryStats"
-        label="Archivados"
-        :value="String(store.meta.archived ?? 0)"
-        data-testid="panel-projects-stat-archived"
+        v-if="(store.meta.review_required ?? 0) > 0"
+        label="Por revisar"
+        :value="String(store.meta.review_required)"
+        tone="warning"
+        clickable
+        data-testid="panel-projects-stat-review"
+        @click="scope = 'review'"
       />
       <AccountingStatCard
-        v-if="!isPhone || showSecondaryStats"
         label="Registros sin proyecto"
         :value="String(store.meta.records_without_project ?? 0)"
         :tone="(store.meta.records_without_project ?? 0) > 0 ? 'warning' : 'default'"
@@ -52,18 +69,6 @@
         data-testid="panel-projects-stat-unlinked"
       />
     </div>
-    <BaseButton
-      v-if="isPhone"
-      variant="ghost"
-      size="sm"
-      class="mb-5 w-full"
-      data-testid="projects-stats-toggle"
-      :aria-expanded="showSecondaryStats"
-      @click="showSecondaryStats = !showSecondaryStats"
-    >
-      {{ showSecondaryStats ? 'Ocultar indicadores secundarios' : 'Ver los otros 2 indicadores' }}
-    </BaseButton>
-    <div v-else class="mb-6" />
 
     <!-- Search + scope -->
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 mb-5">
@@ -75,18 +80,12 @@
         class="w-full sm:max-w-xs"
       />
       <BaseSelect
-        v-if="isCompact"
         v-model="scope"
-        :options="SCOPE_OPTIONS"
+        :options="scopeOptions"
         size="sm"
         aria-label="Estado de los proyectos"
-        data-testid="projects-scope-mobile"
-      />
-      <BaseSegmented
-        v-else
-        v-model="scope"
-        :options="SCOPE_OPTIONS"
-        size="sm"
+        data-testid="projects-state-filter"
+        class="w-full sm:max-w-xs"
       />
     </div>
 
@@ -157,6 +156,7 @@
             :highlighted="row.id === (lastMutatedId ?? queryHighlightId)"
             @assign="openAssign"
             @actions="projectActionTarget = $event"
+            @change-state="openStateTransition"
           />
         </div>
       </div>
@@ -179,11 +179,9 @@
             <span v-if="row.client_company" class="text-xs text-text-subtle">
               <HighlightText :text="row.client_company" :query="searchInput" />
             </span>
-            <!-- The client's completion backlog: opens the confirm-first
-                 assign modal. Hidden on archived rows (the backend refuses
-                 assigning to an archived project anyway). -->
+            <!-- Terminal states keep their history but receive no new rows. -->
             <BaseButton
-              v-if="unlinkedTotal(row) > 0 && row.status !== 'archived'"
+              v-if="unlinkedTotal(row) > 0 && !isTerminal(row)"
               variant="ghost"
               size="sm"
               class="!px-1.5 !py-0.5 text-xs text-warning-strong"
@@ -230,8 +228,7 @@
           <span v-else class="tabular-nums text-text-muted">{{ row.incomes_count }}</span>
         </template>
         <template #cell-row_actions="{ row }">
-          <!-- PA-50: the space exists for every row (same record), archived
-               included — platform shows its own Archivado chip. -->
+          <!-- The platform space remains available for every historical row. -->
           <ProjectSpaceLink
             :project-id="row.id"
             :data-testid="`project-space-${row.id}`"
@@ -253,30 +250,24 @@
             size="sm"
             label="Editar proyecto"
             :data-testid="`project-edit-${row.id}`"
-            :disabled="row.status === 'archived'"
-            :title="row.status === 'archived'
-              ? 'Restaura el proyecto para editarlo'
-              : 'Editar proyecto'"
             @click.stop="openEditModal(row)"
           />
           <BaseActionButton
-            v-if="row.status !== 'archived'"
-            action="archive"
+            action="change-status"
             variant="ghost"
             size="sm"
-            label="Archivar proyecto"
-            tooltip="Archivar proyecto (sale de la vista, nunca se elimina)"
-            :data-testid="`project-archive-${row.id}`"
-            @click.stop="askArchive(row)"
+            label="Cambiar estado"
+            tooltip="Revisar consecuencias y cambiar estado"
+            :data-testid="`project-change-state-${row.id}`"
+            @click.stop="openStateTransition(row)"
           />
           <BaseActionButton
-            v-else
-            action="restore"
+            action="list"
             variant="ghost"
             size="sm"
-            label="Restaurar proyecto"
-            :data-testid="`project-unarchive-${row.id}`"
-            @click.stop="doRestore(row)"
+            label="Ver histórico de estados"
+            :data-testid="`project-state-history-${row.id}`"
+            @click.stop="openStateHistory(row)"
           />
         </template>
       </AccountingTable>
@@ -306,8 +297,6 @@
           variant="secondary"
           size="md"
           class="min-h-11 w-full justify-start"
-          :disabled="projectActionTarget.status === 'archived'"
-          disabled-reason="Restaura el proyecto archivado antes de editarlo."
           @click="editProjectFromActions"
         >
           Editar proyecto
@@ -321,22 +310,20 @@
           Ver comunicaciones
         </BaseButton>
         <BaseButton
-          v-if="projectActionTarget.status !== 'archived'"
           variant="secondary"
           size="md"
           class="min-h-11 w-full justify-start"
-          @click="archiveProjectFromActions"
+          @click="stateProjectFromActions"
         >
-          Archivar proyecto
+          Cambiar estado…
         </BaseButton>
         <BaseButton
-          v-else
           variant="secondary"
           size="md"
           class="min-h-11 w-full justify-start"
-          @click="restoreProjectFromActions"
+          @click="historyProjectFromActions"
         >
-          Restaurar proyecto
+          Ver histórico de estados
         </BaseButton>
       </div>
     </BaseDrawer>
@@ -359,6 +346,18 @@
       :project="changeClientProject"
       @close="closeChangeClient"
       @changed="onClientChanged"
+    />
+
+    <ProjectStateTransitionModal
+      :open="stateTransitionOpen"
+      :project="stateProject"
+      @close="closeStateTransition"
+      @changed="onStateChanged"
+    />
+
+    <ProjectStateHistoryModal
+      v-model="stateHistoryOpen"
+      :project="historyProject"
     />
 
     <!-- Assign the client's unlinked records to a project (PA-51) -->
@@ -420,26 +419,12 @@
       </div>
     </BaseModal>
 
-    <!-- Confirm modal (archive) -->
-    <ConfirmModal
-      v-model="confirmState.open"
-      :title="confirmState.title"
-      :message="confirmState.message"
-      :confirm-text="confirmState.confirmText"
-      :cancel-text="confirmState.cancelText"
-      :variant="confirmState.variant"
-      :require-type-text="confirmState.requireTypeText"
-      :hide-cancel="confirmState.hideCancel"
-      @confirm="handleConfirmed"
-      @cancel="handleCancelled"
-    />
   </div>
 </template>
 
 <script setup>
 import { PAGE_MAX_WIDTH } from '~/utils/tableLayout';
 import { computed, onMounted, ref, watch } from 'vue';
-import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
@@ -451,33 +436,40 @@ import ProjectCard from '~/components/panel/projects/ProjectCard.vue';
 import ProjectChangeClientModal from '~/components/panel/projects/ProjectChangeClientModal.vue';
 import ProjectFormModal from '~/components/panel/projects/ProjectFormModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
+import ProjectStateHistoryModal from '~/components/panel/projects/ProjectStateHistoryModal.vue';
+import ProjectStateTransitionModal from '~/components/panel/projects/ProjectStateTransitionModal.vue';
 import { useAccountingCrudPage } from '~/composables/useAccountingCrudPage';
 import { useIsMobile } from '~/composables/useIsMobile';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { useProposalStore } from '~/stores/proposals';
 import { normalizeName } from '~/utils/clientMatch';
+import { stateBadgeVariant } from '~/utils/documentState';
 import { formatDate } from '~/utils/formatDate';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const store = usePanelProjectsStore();
+const notify = usePanelNotify();
 const { isMobile: isCompact } = useIsMobile(PANEL_BREAKPOINTS.landscape - 1);
-const { isMobile: isPhone } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
-const showSecondaryStats = ref(false);
 // The count links point at superuser-only accounting pages; hide them from
 // plain admins (same flag the sidebar uses).
 const proposalStore = useProposalStore();
 const isSuperuser = computed(() => proposalStore.isSuperuser);
 
-// ── Scope + search (client-side over the full list, like the accounting tabs;
-//    no saved tabs here on purpose — a BaseSegmented covers the module) ──
+// ── State + search. The options come from the administrable catalog, so a
+//    newly created state immediately becomes a real filter. ──
 
-const SCOPE_OPTIONS = [
-  { value: 'active', label: 'Activos', testId: 'projects-scope-active' },
-  { value: 'archived', label: 'Archivados', testId: 'projects-scope-archived' },
-  { value: 'all', label: 'Todos', testId: 'projects-scope-all' },
-];
+const scopeOptions = computed(() => [
+  { value: 'all', label: 'Todos los estados' },
+  ...(store.meta.by_state || []).map((state) => ({
+    value: `state:${state.state_id}`,
+    label: `${state.name} (${state.count})`,
+  })),
+  ...(store.meta.review_required
+    ? [{ value: 'review', label: `Por revisar (${store.meta.review_required})` }]
+    : []),
+]);
 
 const MOBILE_SORT_OPTIONS = [
   { value: '', label: 'Orden original' },
@@ -489,16 +481,16 @@ const MOBILE_SORT_OPTIONS = [
   { value: 'incomes_count', label: 'Cantidad de ingresos' },
 ];
 
-const scope = ref('active');
+const scope = ref('all');
 const searchInput = ref('');
 
 const hasActiveFilters = computed(
-  () => Boolean(searchInput.value.trim()) || scope.value !== 'active',
+  () => Boolean(searchInput.value.trim()) || scope.value !== 'all',
 );
 
 function clearFilters() {
   searchInput.value = '';
-  scope.value = 'active';
+  scope.value = 'all';
 }
 
 /** Rows flattened for the table: the client object becomes sortable columns. */
@@ -511,8 +503,11 @@ const displayRecords = computed(() => store.records.map((record) => ({
 const filteredRecords = computed(() => {
   const term = normalizeName(searchInput.value);
   return displayRecords.value.filter((record) => {
-    if (scope.value === 'active' && record.status === 'archived') return false;
-    if (scope.value === 'archived' && record.status !== 'archived') return false;
+    if (scope.value === 'review' && !record.state_review_required) return false;
+    if (scope.value.startsWith('state:')) {
+      const stateId = Number(scope.value.slice(6));
+      if (record.current_state?.id !== stateId) return false;
+    }
     if (!term) return true;
     return [record.name, record.client_name, record.client_company]
       .some((field) => normalizeName(field).includes(term));
@@ -529,11 +524,6 @@ const {
   closeModal,
   handleSubmit,
   lastMutatedId,
-  confirmState,
-  handleConfirmed,
-  handleCancelled,
-  requestConfirm,
-  runMutation,
   sortKey,
   sortDir,
   toggleSort,
@@ -553,13 +543,9 @@ const {
   labels: {
     created: 'Proyecto creado',
     updated: 'Proyecto actualizado',
-    deleted: 'Proyecto archivado',
     saveErrorTitle: (editing) => (editing
       ? 'No se pudo actualizar el proyecto'
       : 'No se pudo crear el proyecto'),
-    deleteErrorTitle: 'No se pudo archivar el proyecto',
-    deleteTitle: 'Archivar proyecto',
-    deleteMessage: (record) => `¿Archivar el proyecto "${record.name}"?`,
   },
 });
 
@@ -572,12 +558,10 @@ const columns = computed(() => [
     format: 'badge',
     sortable: true,
     size: 'badge',
-    badgeTones: {
-      Activo: 'success',
-      Pausado: 'warning',
-      Completado: 'info',
-      Archivado: 'neutral',
-    },
+    badgeTones: Object.fromEntries((store.meta.by_state || []).map((state) => [
+      state.name,
+      stateBadgeVariant({ color: state.color }),
+    ])),
   },
   { key: 'created_at', label: 'Creado', sortable: true, size: 'date' },
   { key: 'hostings_count', label: 'Hostings', sortable: true, size: 'text', align: 'right' },
@@ -593,6 +577,23 @@ function setMobileSortKey(key) {
 function toggleMobileSortDirection() {
   if (!sortKey.value) return;
   sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+}
+
+function statTone(color) {
+  return {
+    emerald: 'success',
+    yellow: 'warning',
+    orange: 'warning',
+    red: 'danger',
+    blue: 'brand',
+    purple: 'brand',
+  }[color] || 'default';
+}
+
+function isTerminal(project) {
+  return ['completed', 'decommissioned'].includes(
+    project.current_state?.operational_effect,
+  );
 }
 
 const projectActionTarget = ref(null);
@@ -620,48 +621,51 @@ function communicationsFromActions() {
   }
 }
 
-function archiveProjectFromActions() {
+function stateProjectFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
-  if (row) askArchive(row);
+  if (row) openStateTransition(row);
 }
 
-function restoreProjectFromActions() {
+function historyProjectFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
-  if (row) doRestore(row);
+  if (row) openStateHistory(row);
 }
 
-// ── Archive / restore (PA-29: never delete) ──
+// ── Lifecycle transition + immutable history ──
 
-function askArchive(record) {
-  requestConfirm({
-    title: 'Archivar proyecto',
-    message: `"${record.name}" saldrá de la vista de activos. Sus hostings e ingresos siguen vinculados y podrás restaurarlo cuando quieras.`,
-    confirmText: 'Archivar',
-    cancelText: 'Cancelar',
-    onConfirm: () => runMutation(
-      () => store.archiveProject(record.id),
-      {
-        successTitle: 'Proyecto archivado',
-        errorTitle: 'No se pudo archivar el proyecto',
-        flashId: record.id,
-      },
-    ),
+const stateTransitionOpen = ref(false);
+const stateProject = ref(null);
+const stateHistoryOpen = ref(false);
+const historyProject = ref(null);
+
+function openStateTransition(project) {
+  stateProject.value = project;
+  stateTransitionOpen.value = true;
+}
+
+function closeStateTransition() {
+  stateTransitionOpen.value = false;
+  stateProject.value = null;
+}
+
+async function onStateChanged(project) {
+  await store.refreshAfterExternalMutation();
+  notify.success({
+    title: 'Estado actualizado',
+    detail: `${project.name} ahora está ${project.status_label}.`,
   });
 }
 
-function doRestore(record) {
-  runMutation(
-    () => store.unarchiveProject(record.id),
-    {
-      successTitle: 'Proyecto restaurado',
-      successDetail: 'Vuelve a la pestaña Activos.',
-      errorTitle: 'No se pudo restaurar el proyecto',
-      flashId: record.id,
-    },
-  );
+function openStateHistory(project) {
+  historyProject.value = project;
+  stateHistoryOpen.value = true;
 }
+
+watch(stateHistoryOpen, (open) => {
+  if (!open) historyProject.value = null;
+});
 
 // ── Assign the client's unlinked records (PA-51) ──
 

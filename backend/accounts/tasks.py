@@ -93,6 +93,13 @@ def auto_charge_due_subscriptions():
     ).filter(
         Q(next_retry_at__isnull=True) | Q(next_retry_at__lte=today),
     ).exclude(
+        subscription__project__current_state__operational_effect__in=(
+            'suspended', 'completed', 'decommissioned',
+        ),
+    ).exclude(
+        subscription__project__current_state__isnull=True,
+        subscription__project__state_review_required=True,
+    ).exclude(
         subscription__wompi_payment_source_id='',
     )
 
@@ -215,6 +222,13 @@ def _onboard_due_phases():
         hosting_start_date__lte=today,
         hosting_activated_at__isnull=True,
         project__hosting_subscription__status=HostingSubscription.STATUS_ACTIVE,
+    ).exclude(
+        project__current_state__operational_effect__in=(
+            'suspended', 'completed', 'decommissioned',
+        ),
+    ).exclude(
+        project__current_state__isnull=True,
+        project__state_review_required=True,
     )
 
     onboarded = 0

@@ -22,7 +22,14 @@ jest.mock('../../../stores/platform-auth', () => ({
 jest.mock('../../../stores/platform-projects', () => ({
   usePlatformProjectsStore: () => ({
     fetchProject: mockFetchProject,
-    currentProject: { id: 5, name: 'Kore', status: 'active', client_name: 'Deivis' },
+    currentProject: {
+      id: 5,
+      name: 'Kore',
+      status: 'active',
+      status_label: 'Activo',
+      current_state: { id: 2, name: 'Activo', color: 'emerald' },
+      client_name: 'Deivis',
+    },
   }),
 }));
 

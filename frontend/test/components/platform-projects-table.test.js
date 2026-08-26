@@ -18,6 +18,8 @@ describe('ProjectsTable', () => {
   const rows = [
     {
       id: 1, name: 'Project A', status: 'active', progress: 40,
+      status_label: 'Activo',
+      current_state: { id: 2, name: 'Activo', color: 'emerald' },
       client_name: 'Ada Lovelace', client_email: 'ada@e.co', client_id: 9,
       bugs_open_count: 3, changes_pending_count: 1,
       next_deliverable: null,
@@ -31,6 +33,7 @@ describe('ProjectsTable', () => {
     expect(w.text()).toContain('Ada Lovelace')
     expect(w.text()).toContain('40')
     expect(w.text()).toContain('3') // bugs_open_count
+    expect(w.text()).toContain('Activo')
   })
 
   it('emits navigate event on row click with the project id', async () => {
@@ -41,6 +44,7 @@ describe('ProjectsTable', () => {
 
   it('hides admin-only columns when role is client', () => {
     const w = mount(ProjectsTable, { props: { projects: rows, role: 'client' } })
+    expect(w.text()).toContain('Project A')
     expect(w.text()).not.toContain('Ada Lovelace')
   })
 

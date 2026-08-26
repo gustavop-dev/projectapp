@@ -4,6 +4,7 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue'
 import ClientFormFields from '~/components/clients/ClientFormFields.vue'
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode'
 import { useProposalClientsStore } from '~/stores/proposal_clients'
+import { useProjectStateStore } from '~/stores/project_states'
 import { normalizeName } from '~/utils/clientMatch'
 
 const props = defineProps({
@@ -19,6 +20,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit', 'change-client'])
 
 const clientsStore = useProposalClientsStore()
+const stateStore = useProjectStateStore()
 const creatingClient = ref(false)
 const inlineClientOpen = ref(false)
 const inlineClient = ref(emptyClientForm())
@@ -26,11 +28,10 @@ const inlineClient = ref(emptyClientForm())
 const isEdit = computed(() => !!props.record)
 const title = computed(() => (isEdit.value ? 'Editar proyecto' : 'Nuevo proyecto'))
 
-const STATUS_OPTIONS = [
-  { value: 'active', label: 'Activo' },
-  { value: 'paused', label: 'Pausado' },
-  { value: 'completed', label: 'Completado' },
-]
+const stateOptions = computed(() => stateStore.activeStates.map((state) => ({
+  value: state.id,
+  label: state.name,
+})))
 
 function defaultForm() {
   return {
@@ -38,7 +39,7 @@ function defaultForm() {
     client_profile_id: null,
     client_display_name: '',
     description: '',
-    status: 'active',
+    state_id: '',
   }
 }
 
@@ -46,18 +47,20 @@ const form = ref(defaultForm())
 
 watch(
   () => [props.open, props.record],
-  () => {
+  async () => {
     if (!props.open) return
+    if (!stateStore.states.length) await stateStore.fetchCatalog()
     if (props.record) {
       form.value = {
         name: props.record.name ?? '',
         client_profile_id: props.record.client?.profile_id ?? null,
         client_display_name: props.record.client?.name ?? '',
         description: props.record.description ?? '',
-        status: props.record.status ?? 'active',
+        state_id: props.record.current_state?.id ?? '',
       }
     } else {
       form.value = defaultForm()
+      form.value.state_id = stateStore.stateByKey('development')?.id ?? ''
       if (props.seedClient) {
         form.value.client_profile_id = props.seedClient.profile_id
           ?? props.seedClient.id ?? null
@@ -123,11 +126,13 @@ function onSubmit() {
   const payload = {
     name: form.value.name.trim(),
     description: form.value.description,
-    status: form.value.status,
   }
   // The client travels only on create: the panel keeps it immutable and the
   // backend answers 400 if the key even appears on an update.
-  if (!isEdit.value) payload.client_profile_id = form.value.client_profile_id
+  if (!isEdit.value) {
+    payload.client_profile_id = form.value.client_profile_id
+    if (form.value.state_id) payload.state_id = form.value.state_id
+  }
   emit('submit', payload)
 }
 </script>
@@ -223,12 +228,12 @@ function onSubmit() {
         </div>
       </div>
 
-      <!-- PA-38: everything below is optional and can be completed later -->
-      <BaseFormRow :cols="2" :gap="4">
-        <BaseFormField label="Estado (opcional)">
+      <!-- The initial state is optional; later changes go through the impact preview. -->
+      <BaseFormRow v-if="!isEdit" :cols="2" :gap="4">
+        <BaseFormField label="Estado inicial (opcional)" hint="Si no eliges uno, empieza En desarrollo.">
           <BaseSelect
-            v-model="form.status"
-            :options="STATUS_OPTIONS"
+            v-model="form.state_id"
+            :options="stateOptions"
             data-testid="project-form-status"
           />
         </BaseFormField>

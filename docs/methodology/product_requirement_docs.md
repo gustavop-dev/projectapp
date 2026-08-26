@@ -111,6 +111,28 @@ success or failure is nested in the same delivery history. The authoritative
 - **Email deliverability** (`/panel/proposals/email-deliverability`): dashboard tracking email send/delivery/bounce rates
 - **Clients list** (`/panel/clients/`): real `UserProfile` (role=client) entities. Tabs (Todos / Activos / Huérfanos), live search, "+ Nuevo cliente" modal for standalone creation (no invitation email sent — that path is reserved for the platform onboarding flow). Orphan clients (zero proposals + zero platform projects) are deletable via a trash icon gated through `requestConfirm`. Each row expands lazily to load the client's full proposal history. Replaced the legacy "synthetic clients grouped by `(name, email)`" implementation on 2026-04-09.
 
+#### Project lifecycle and operational consequences
+
+- `/panel/projects` uses the shared PA-88 state catalog and history engine, scoped
+  to `catalog='projects'`; it does not maintain a second status system.
+- The six seeded meanings are **En desarrollo**, **Activo**, **Pausado**,
+  **Suspendido**, **Completado** and **Dado de baja**. Names and colors are
+  administrable, while `operational_effect` remains the stable business meaning.
+- New projects begin En desarrollo. Later changes require a server preview and an
+  impact token; direct enum writes and the legacy archive/unarchive endpoints do
+  not bypass that flow.
+- Suspendido is reversible and stops new billing/reminders while retaining debt
+  already caused. A failed hosting payment may suggest this state, never apply it.
+  Completado means a clean close. Dado de baja is definitive, cancels future
+  service and requires an explicit keep/write-off decision for caused receivables;
+  a direct jump that skips Suspendido also requires a note.
+- Every transition opens/closes dated episodes with actor and note. Existing legacy
+  archived projects remain **Sin clasificar / Por revisar** instead of receiving an
+  invented final state, and money automation fails closed until an operator decides.
+- State filters and header counts come from the live catalog. **Clientes sin
+  proyecto** remains literal: a client with no `Project` row, regardless of the
+  lifecycle state of projects owned by other clients.
+
 #### Project Schedule Tracking (Cronograma)
 
 A new internal-only sub-system that tracks the **execution** of an accepted proposal — distinct from the client-facing `timeline` proposal section (which is sales/marketing copy with free-text durations like "1 semana").
@@ -501,7 +523,11 @@ The canonical counts, commands and exceptions are maintained in
     its historical communication threads from the project instead of moving them
     to the new client. Deleting clients or documents is blocked while historical
     communication references remain.
-23. **Searchable selectors inside modals**: result lists belong to a floating
+23. **Project lifecycle meaning outlives its label**: project billing, reminders
+    and closure use `DocumentState.operational_effect`, never an editable display
+    name. Every transition is previewed, token-bound and recorded as a dated
+    episode; legacy unclassified rows fail closed for financial automation.
+24. **Searchable selectors inside modals**: result lists belong to a floating
     layer owned by the modal, not to its scrollable panel. On desktop the picker
     exposes at least five complete options and only a long result list scrolls;
     the modal remains still and grows with its review content up to its viewport

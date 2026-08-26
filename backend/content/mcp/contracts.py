@@ -90,7 +90,9 @@ MCP_MODEL_CONTRACTS = {
         ),
         _contract(
             'content.DocumentState',
-            read_only='id name color group system_key',
+            read_only=(
+                'id name color group system_key catalog operational_effect'
+            ),
             excluded=_excluded(
                 'El catálogo de estados se administra en el panel; MCP aplica estados activos.',
                 'normalized_name slug order is_active merged_into created_by '
@@ -101,6 +103,11 @@ MCP_MODEL_CONTRACTS = {
             'content.DocumentStateEpisode',
             read_only='id opened_by closed_by created_at updated_at',
             read_write='document state opened_at closed_at outcome close_note origin',
+            excluded=_excluded(
+                'El ciclo de proyectos se administra en el panel; el conector '
+                'de documentos sólo opera episodios vinculados a documentos.',
+                'project',
+            ),
         ),
         _contract(
             'content.DocumentNote',

@@ -496,7 +496,27 @@ class IncomeRecordCreateUpdateSerializer(
             and 'project' not in data
         ):
             data['project'] = None
-        validate_project_client_match(effective('project'), effective('client'))
+        project = effective('project')
+        validate_project_client_match(project, effective('client'))
+        creates_expected = (
+            kind == IncomeRecord.Kind.EXPECTED
+            and (
+                self.instance is None
+                or self.instance.kind != IncomeRecord.Kind.EXPECTED
+                or ('project' in data and project != self.instance.project)
+            )
+        )
+        if creates_expected and project is not None:
+            from content.services.project_state_service import (
+                project_allows_billing,
+            )
+            if not project_allows_billing(project):
+                raise serializers.ValidationError({
+                    'project': (
+                        'El estado actual del proyecto no permite crear '
+                        'ingresos esperados.'
+                    ),
+                })
 
         # --- Business line -----------------------------------------------
         # The origin is not one more field: it decides whether the record

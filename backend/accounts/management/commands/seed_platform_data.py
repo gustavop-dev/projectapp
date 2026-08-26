@@ -315,7 +315,7 @@ class Command(BaseCommand):
             name='Plataforma E-commerce',
             description='Desarrollo de tienda en línea con catálogo de productos, carrito de compras, pasarela de pagos y panel de administración.',
             client=client_user,
-            status=Project.STATUS_ACTIVE,
+            status=Project.STATUS_DEVELOPMENT,
             progress=18,
             start_date=today - timedelta(days=30),
             estimated_end_date=today + timedelta(days=60),

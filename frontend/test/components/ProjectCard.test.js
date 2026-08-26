@@ -6,6 +6,12 @@ const PROJECT = {
   name: 'Proyecto Atlas',
   status: 'active',
   status_label: 'Activo',
+  current_state: {
+    id: 2,
+    name: 'Activo',
+    color: 'emerald',
+    operational_effect: 'operating',
+  },
   created_at: '2026-08-01T10:00:00Z',
   client_name: 'Ana Torres',
   client_company: 'Atlas SAS',
@@ -72,5 +78,31 @@ describe('ProjectCard', () => {
     await wrapper.get('[data-testid="project-assign-unlinked-12"]').trigger('click');
 
     expect(wrapper.emitted('assign')).toEqual([[PROJECT]]);
+  });
+
+  it('offers lifecycle review when the project needs classification', async () => {
+    const project = { ...PROJECT, state_review_required: true };
+    const wrapper = mountCard({ project });
+
+    await wrapper.get('[data-testid="project-state-review-12"]').trigger('click');
+
+    expect(wrapper.emitted('change-state')).toEqual([[project]]);
+  });
+
+  it('hides assignment for a terminal project', () => {
+    const wrapper = mountCard({
+      project: {
+        ...PROJECT,
+        current_state: {
+          id: 6,
+          name: 'Dado de baja',
+          color: 'gray',
+          operational_effect: 'decommissioned',
+        },
+      },
+    });
+
+    expect(wrapper.find('[data-testid="project-assign-unlinked-12"]').exists())
+      .toBe(false);
   });
 });

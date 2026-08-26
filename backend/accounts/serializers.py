@@ -286,6 +286,9 @@ from accounts.services.credential_cipher import decrypt_password  # noqa: E402
 
 
 class ProjectListSerializer(serializers.ModelSerializer):
+    status = serializers.SerializerMethodField()
+    status_label = serializers.SerializerMethodField()
+    current_state = serializers.SerializerMethodField()
     client_name = serializers.SerializerMethodField()
     client_email = serializers.EmailField(source='client.email', read_only=True)
     client_id = serializers.IntegerField(source='client.id', read_only=True)
@@ -304,7 +307,8 @@ class ProjectListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = [
-            'id', 'name', 'description', 'status', 'progress',
+            'id', 'name', 'description', 'status', 'status_label',
+            'current_state', 'state_review_required', 'progress',
             'start_date', 'estimated_end_date',
             'client_id', 'client_name', 'client_email', 'client_company',
             'proposal_id', 'proposal_title',
@@ -319,6 +323,26 @@ class ProjectListSerializer(serializers.ModelSerializer):
     def get_proposal_id(self, obj):
         bp = obj.linked_business_proposal()
         return bp.id if bp else None
+
+    def get_status(self, obj):
+        state = obj.current_state
+        return (state.system_key or state.slug) if state else None
+
+    def get_status_label(self, obj):
+        return obj.current_state.name if obj.current_state else 'Sin clasificar'
+
+    def get_current_state(self, obj):
+        state = obj.current_state
+        if state is None:
+            return None
+        return {
+            'id': state.pk,
+            'name': state.name,
+            'slug': state.slug,
+            'color': state.color,
+            'system_key': state.system_key,
+            'operational_effect': state.operational_effect,
+        }
 
     def get_proposal_title(self, obj):
         bp = obj.linked_business_proposal()
@@ -478,9 +502,6 @@ class CreateProjectSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, default='', allow_blank=True)
     client_id = serializers.IntegerField()
     proposal_id = serializers.IntegerField(required=False, allow_null=True)
-    status = serializers.ChoiceField(
-        choices=Project.STATUS_CHOICES, default=Project.STATUS_ACTIVE,
-    )
     progress = serializers.IntegerField(min_value=0, max_value=100, default=0)
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)
@@ -512,7 +533,6 @@ class CreateProjectSerializer(serializers.Serializer):
 class UpdateProjectSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=False)
     description = serializers.CharField(required=False, allow_blank=True)
-    status = serializers.ChoiceField(choices=Project.STATUS_CHOICES, required=False)
     progress = serializers.IntegerField(min_value=0, max_value=100, required=False)
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)

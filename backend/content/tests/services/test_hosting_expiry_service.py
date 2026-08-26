@@ -9,8 +9,10 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.core import mail
 
+from accounts.models import Project
 from content.models import (
     AccountingSettings,
     EmailLog,
@@ -25,6 +27,7 @@ from content.services.accounting_payment_calendar_service import (
 pytestmark = pytest.mark.django_db
 
 TODAY = date(2026, 7, 10)
+User = get_user_model()
 
 
 @pytest.fixture(autouse=True)
@@ -138,6 +141,21 @@ class TestStopsAndRearm:
     def test_inactive_and_null_valid_to_are_skipped(self):
         make_hosting(days_left=5, is_active=False)
         make_hosting(days_left=5, valid_to=None, client_name='Sin vigencia')
+        assert run_payment_calendar(TODAY) == 0
+
+    def test_legacy_unclassified_project_is_skipped(self):
+        client = User.objects.create_user(
+            username='legacy-hosting@example.com',
+            email='legacy-hosting@example.com',
+        )
+        project = Project.objects.create(name='Hosting histórico', client=client)
+        Project.objects.filter(pk=project.pk).update(
+            status=Project.STATUS_ARCHIVED,
+            current_state=None,
+            state_review_required=True,
+        )
+        make_hosting(days_left=5, project=project)
+
         assert run_payment_calendar(TODAY) == 0
 
     def test_disabled_flag_gates_the_hosting_section(self):

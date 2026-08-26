@@ -282,14 +282,20 @@ class Project(models.Model):
     Each project belongs to a single client (User with client role).
     """
 
+    STATUS_DEVELOPMENT = 'development'
     STATUS_ACTIVE = 'active'
     STATUS_PAUSED = 'paused'
+    STATUS_SUSPENDED = 'suspended'
     STATUS_COMPLETED = 'completed'
+    STATUS_DECOMMISSIONED = 'decommissioned'
     STATUS_ARCHIVED = 'archived'
     STATUS_CHOICES = [
+        (STATUS_DEVELOPMENT, 'En desarrollo'),
         (STATUS_ACTIVE, 'Activo'),
         (STATUS_PAUSED, 'Pausado'),
+        (STATUS_SUSPENDED, 'Suspendido'),
         (STATUS_COMPLETED, 'Completado'),
+        (STATUS_DECOMMISSIONED, 'Dado de baja'),
         (STATUS_ARCHIVED, 'Archivado'),
     ]
 
@@ -302,7 +308,24 @@ class Project(models.Model):
         help_text='The client user this project belongs to.',
     )
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE,
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_DEVELOPMENT,
+        help_text=(
+            'Compatibility mirror of current_state.system_key. New writes '
+            'must use the project state-transition service.'
+        ),
+    )
+    current_state = models.ForeignKey(
+        'content.DocumentState',
+        on_delete=models.PROTECT,
+        related_name='current_projects',
+        null=True,
+        blank=True,
+        limit_choices_to={'catalog': 'projects'},
+    )
+    state_review_required = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text='True until a migrated legacy status is confirmed by a user.',
     )
     progress = models.PositiveIntegerField(
         default=0,
@@ -345,7 +368,9 @@ class Project(models.Model):
 
     @property
     def status_display(self):
-        return dict(self.STATUS_CHOICES).get(self.status, self.status)
+        if self.current_state_id:
+            return self.current_state.name
+        return 'Sin clasificar'
 
     def linked_business_proposal(self):
         """Returns the first phase's BusinessProposal, or None.

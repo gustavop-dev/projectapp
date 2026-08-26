@@ -37,6 +37,13 @@ const SAMPLE_PROJECT = {
   id: 1,
   name: 'Website Redesign',
   status: 'active',
+  status_label: 'Activo',
+  current_state: {
+    id: 2,
+    name: 'Activo',
+    color: 'emerald',
+    operational_effect: 'operating',
+  },
   progress: 40,
   client_name: 'Ana García',
 }
@@ -62,27 +69,41 @@ describe('usePlatformProjectsStore', () => {
   describe('getters', () => {
     beforeEach(() => {
       store.projects = [
-        { ...SAMPLE_PROJECT, id: 1, status: 'active' },
-        { ...SAMPLE_PROJECT, id: 2, status: 'paused' },
-        { ...SAMPLE_PROJECT, id: 3, status: 'completed' },
-        { ...SAMPLE_PROJECT, id: 4, status: 'active' },
+        { ...SAMPLE_PROJECT, id: 1, current_state: { operational_effect: 'development' } },
+        { ...SAMPLE_PROJECT, id: 2, current_state: { operational_effect: 'operating' } },
+        { ...SAMPLE_PROJECT, id: 3, current_state: { operational_effect: 'paused' } },
+        { ...SAMPLE_PROJECT, id: 4, current_state: { operational_effect: 'suspended' } },
+        { ...SAMPLE_PROJECT, id: 5, current_state: { operational_effect: 'completed' } },
+        { ...SAMPLE_PROJECT, id: 6, current_state: { operational_effect: 'decommissioned' } },
       ]
     })
 
-    it('activeProjects filters by active status', () => {
-      expect(store.activeProjects).toHaveLength(2)
+    it('developmentProjects filters by lifecycle effect', () => {
+      expect(store.developmentProjects).toHaveLength(1)
     })
 
-    it('pausedProjects filters by paused status', () => {
+    it('activeProjects filters by lifecycle effect', () => {
+      expect(store.activeProjects).toHaveLength(1)
+    })
+
+    it('pausedProjects filters by lifecycle effect', () => {
       expect(store.pausedProjects).toHaveLength(1)
     })
 
-    it('completedProjects filters by completed status', () => {
+    it('suspendedProjects filters by lifecycle effect', () => {
+      expect(store.suspendedProjects).toHaveLength(1)
+    })
+
+    it('completedProjects filters by lifecycle effect', () => {
       expect(store.completedProjects).toHaveLength(1)
     })
 
+    it('decommissionedProjects filters by lifecycle effect', () => {
+      expect(store.decommissionedProjects).toHaveLength(1)
+    })
+
     it('projectCount returns total count', () => {
-      expect(store.projectCount).toBe(4)
+      expect(store.projectCount).toBe(6)
     })
   })
 
@@ -237,84 +258,6 @@ describe('usePlatformProjectsStore', () => {
     })
   })
 
-  describe('archiveProject', () => {
-    it('sets project status to archived on success', async () => {
-      store.projects = [SAMPLE_PROJECT]
-      mockDelete.mockResolvedValueOnce({})
-
-      const result = await store.archiveProject(1)
-
-      expect(result.success).toBe(true)
-      expect(store.projects[0].status).toBe('archived')
-    })
-
-    it('updates currentProject if matching', async () => {
-      store.projects = [SAMPLE_PROJECT]
-      store.currentProject = SAMPLE_PROJECT
-      mockDelete.mockResolvedValueOnce({})
-
-      await store.archiveProject(1)
-
-      expect(store.currentProject.status).toBe('archived')
-    })
-
-    it('does not update currentProject when id does not match', async () => {
-      store.projects = [SAMPLE_PROJECT]
-      store.currentProject = { ...SAMPLE_PROJECT, id: 99 }
-      mockDelete.mockResolvedValueOnce({})
-
-      await store.archiveProject(1)
-
-      expect(store.currentProject.id).toBe(99)
-    })
-
-    it('sets error on failure', async () => {
-      mockDelete.mockRejectedValueOnce({
-        response: { data: { detail: 'No autorizado.' } },
-      })
-
-      const result = await store.archiveProject(1)
-
-      expect(result.success).toBe(false)
-      expect(store.error).toBe('No autorizado.')
-    })
-
-    it('uses fallback message when detail is absent', async () => {
-      mockDelete.mockRejectedValueOnce(new Error('network'))
-
-      const result = await store.archiveProject(1)
-
-      expect(result.success).toBe(false)
-      expect(result.message).toBe('No pudimos archivar el proyecto.')
-    })
-
-    it('does not touch list when projectId not in list', async () => {
-      store.projects = [SAMPLE_PROJECT]
-      mockDelete.mockResolvedValueOnce({})
-
-      await store.archiveProject(9999)
-
-      expect(store.projects[0].status).toBe('active')
-    })
-
-    it('does not touch currentProject when ids differ', async () => {
-      store.currentProject = SAMPLE_PROJECT
-      mockDelete.mockResolvedValueOnce({})
-
-      await store.archiveProject(9999)
-
-      expect(store.currentProject.status).toBe('active')
-    })
-
-    it('uses fallback message when error has no detail', async () => {
-      mockDelete.mockRejectedValueOnce({})
-
-      const result = await store.archiveProject(1)
-
-      expect(result.message).toBe('No pudimos archivar el proyecto.')
-    })
-  })
-
   describe('error fallback messages', () => {
     it('fetchProjects uses fallback when detail is absent', async () => {
       mockGet.mockRejectedValueOnce(new Error('network'))
@@ -374,15 +317,6 @@ describe('usePlatformProjectsStore', () => {
       expect(store.projects[1].name).toBe('Other')
     })
 
-    it('preserves other projects in list when archiving one', async () => {
-      store.projects = [SAMPLE_PROJECT, { ...SAMPLE_PROJECT, id: 2, name: 'Other' }]
-      mockDelete.mockResolvedValueOnce({})
-
-      await store.archiveProject(1)
-
-      expect(store.projects[1].name).toBe('Other')
-      expect(store.projects[1].status).toBe(SAMPLE_PROJECT.status)
-    })
   })
 
   describe('fetchProjects branches', () => {

@@ -25,8 +25,20 @@ const {
 const mountedWrappers = [];
 
 const PROJECTS = [
-  { id: 11, name: 'Kore', status: 'active', status_label: 'Activo' },
-  { id: 12, name: 'Vástago', status: 'paused', status_label: 'Pausado' },
+  {
+    id: 11,
+    name: 'Kore',
+    status: 'active',
+    status_label: 'Activo',
+    current_state: { id: 2, name: 'Activo', operational_effect: 'operating', color: 'emerald' },
+  },
+  {
+    id: 12,
+    name: 'Vástago',
+    status: 'paused',
+    status_label: 'Pausado',
+    current_state: { id: 3, name: 'Pausado', operational_effect: 'paused', color: 'yellow' },
+  },
 ];
 
 function mountSelect(props = {}) {
@@ -208,8 +220,8 @@ describe('ProjectSelect', () => {
   });
 
   describe('autoSelectSingle (PA-51: proposing is pre-filling)', () => {
-    it('pre-selects the only ACTIVE project of the client', async () => {
-      // PROJECTS has one active (Kore) and one paused — exactly one candidate.
+    it('pre-selects the only available project of the client', async () => {
+      // PROJECTS has one operating project and one paused project.
       const wrapper = mountSelect({ autoSelectSingle: true });
       await flushPromises();
 
@@ -217,12 +229,24 @@ describe('ProjectSelect', () => {
       expect(input(wrapper).element.value).toBe('Kore');
     });
 
-    it('leaves the field empty when two projects are active', async () => {
+    it('leaves the field empty when two projects are available', async () => {
       get_request.mockResolvedValue({
         data: {
           results: [
-            { id: 11, name: 'Kore', status: 'active', status_label: 'Activo' },
-            { id: 13, name: 'Crushme', status: 'active', status_label: 'Activo' },
+            {
+              id: 11,
+              name: 'Kore',
+              status: 'active',
+              status_label: 'Activo',
+              current_state: { id: 2, name: 'Activo', operational_effect: 'operating' },
+            },
+            {
+              id: 13,
+              name: 'Crushme',
+              status: 'development',
+              status_label: 'En desarrollo',
+              current_state: { id: 1, name: 'En desarrollo', operational_effect: 'development' },
+            },
           ],
         },
       });
@@ -232,11 +256,17 @@ describe('ProjectSelect', () => {
       expect(wrapper.emitted('update:modelValue')).toBeUndefined();
     });
 
-    it('leaves the field empty when the only project is not active', async () => {
+    it('leaves the field empty when the only project is unavailable', async () => {
       get_request.mockResolvedValue({
         data: {
           results: [
-            { id: 12, name: 'Vástago', status: 'paused', status_label: 'Pausado' },
+            {
+              id: 12,
+              name: 'Vástago',
+              status: 'paused',
+              status_label: 'Pausado',
+              current_state: { id: 3, name: 'Pausado', operational_effect: 'paused' },
+            },
           ],
         },
       });

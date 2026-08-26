@@ -168,7 +168,7 @@ CREATE_URL = '/api/projects/create/'
 
 
 class TestCreatePanelProject:
-    def test_the_minimal_payload_creates_an_active_project(self, admin_client):
+    def test_the_minimal_payload_creates_a_development_project(self, admin_client):
         owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
 
         response = admin_client.post(CREATE_URL, {
@@ -178,7 +178,8 @@ class TestCreatePanelProject:
 
         assert response.status_code == 201, response.data
         assert response.data['name'] == 'Vastago'
-        assert response.data['status'] == Project.STATUS_ACTIVE
+        assert response.data['status'] == Project.STATUS_DEVELOPMENT
+        assert response.data['status_label'] == 'En desarrollo'
         assert response.data['description'] == ''
         assert response.data['hostings_count'] == 0
         assert response.data['incomes_count'] == 0
@@ -263,25 +264,48 @@ class TestCreatePanelProject:
 
 
 class TestUpdatePanelProject:
-    def test_name_description_and_status_can_change(self, admin_client):
+    def test_name_can_change(self, admin_client):
         owner = make_client('deivis@example.com')
         project = make_project(owner, 'Vastago')
 
         response = admin_client.patch(
             f'/api/projects/{project.pk}/update/',
-            {
-                'name': 'Vástago App',
-                'description': 'App de gestión',
-                'status': Project.STATUS_PAUSED,
-            },
+            {'name': 'Vástago App'},
             format='json',
         )
 
         assert response.status_code == 200, response.data
         project.refresh_from_db()
         assert project.name == 'Vástago App'
+
+    def test_description_can_change(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'description': 'App de gestión'},
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        project.refresh_from_db()
         assert project.description == 'App de gestión'
-        assert project.status == Project.STATUS_PAUSED
+
+    def test_status_change_requires_the_transition_flow(self, admin_client):
+        owner = make_client('deivis@example.com')
+        project = make_project(owner, 'Vastago')
+
+        response = admin_client.patch(
+            f'/api/projects/{project.pk}/update/',
+            {'status': Project.STATUS_PAUSED},
+            format='json',
+        )
+
+        assert response.status_code == 400
+        assert response.data['code'] == 'project_state_transition_required'
+        project.refresh_from_db()
+        assert project.status == Project.STATUS_ACTIVE
 
     def test_the_client_is_immutable_from_the_panel(self, admin_client):
         owner = make_client('deivis@example.com')
@@ -299,7 +323,7 @@ class TestUpdatePanelProject:
         project.refresh_from_db()
         assert project.client_id == owner.user_id
 
-    def test_an_archived_project_is_out_of_circulation(self, admin_client):
+    def test_an_archived_project_stays_editable_for_manual_review(self, admin_client):
         owner = make_client('deivis@example.com')
         project = make_project(owner, 'Viejo', status=Project.STATUS_ARCHIVED)
 
@@ -309,11 +333,14 @@ class TestUpdatePanelProject:
             format='json',
         )
 
-        assert response.status_code == 400
-        assert response.data['code'] == 'project_archived'
+        assert response.status_code == 200, response.data
+        project.refresh_from_db()
+        assert project.name == 'Renombrado'
+        assert project.current_state_id is None
+        assert project.state_review_required is True
 
     def test_update_cannot_jump_to_archived(self, admin_client):
-        # The dedicated archive endpoint owns that transition.
+        # Legacy enum writes never bypass the previewed lifecycle transition.
         owner = make_client('deivis@example.com')
         project = make_project(owner, 'Vastago')
 
@@ -324,39 +351,21 @@ class TestUpdatePanelProject:
         )
 
         assert response.status_code == 400
-        assert 'status' in response.data
+        assert response.data['code'] == 'project_state_transition_required'
 
 
 class TestArchivePanelProject:
-    def test_archive_then_unarchive_roundtrip(self, admin_client):
+    @pytest.mark.parametrize('action', ('archive', 'unarchive'))
+    def test_legacy_archive_endpoints_are_gone(self, admin_client, action):
         owner = make_client('deivis@example.com')
         project = make_project(owner, 'Vastago')
 
-        archived = admin_client.patch(f'/api/projects/{project.pk}/archive/')
-        assert archived.status_code == 200
-        assert archived.data['status'] == Project.STATUS_ARCHIVED
+        response = admin_client.patch(f'/api/projects/{project.pk}/{action}/')
 
-        restored = admin_client.patch(f'/api/projects/{project.pk}/unarchive/')
-        assert restored.status_code == 200
-        assert restored.data['status'] == Project.STATUS_ACTIVE
-
-    def test_archiving_twice_answers_400(self, admin_client):
-        owner = make_client('deivis@example.com')
-        project = make_project(owner, 'Viejo', status=Project.STATUS_ARCHIVED)
-
-        response = admin_client.patch(f'/api/projects/{project.pk}/archive/')
-
-        assert response.status_code == 400
-        assert response.data['code'] == 'already_archived'
-
-    def test_unarchiving_a_non_archived_project_answers_400(self, admin_client):
-        owner = make_client('deivis@example.com')
-        project = make_project(owner, 'Vastago')
-
-        response = admin_client.patch(f'/api/projects/{project.pk}/unarchive/')
-
-        assert response.status_code == 400
-        assert response.data['code'] == 'not_archived'
+        assert response.status_code == 410
+        assert response.data['code'] == 'project_archive_replaced'
+        project.refresh_from_db()
+        assert project.status == Project.STATUS_ACTIVE
 
 
 class TestProjectAuditTrail:
@@ -370,7 +379,7 @@ class TestProjectAuditTrail:
             entity_type='project', object_id=project_id,
         ).order_by('created_at')
 
-    def test_create_update_and_archive_are_audited(self, admin_client):
+    def test_create_and_update_are_audited(self, admin_client):
         owner = make_client('deivis@example.com', first='Deivis', last='Ríos')
 
         created = admin_client.post(CREATE_URL, {
@@ -381,18 +390,13 @@ class TestProjectAuditTrail:
             f'/api/projects/{project_id}/update/',
             {'name': 'Vastago v2'}, format='json',
         )
-        admin_client.patch(f'/api/projects/{project_id}/archive/')
 
         rows = list(self._rows(project_id))
-        assert [row.action for row in rows] == ['created', 'updated', 'updated']
+        assert [row.action for row in rows] == ['created', 'updated']
         name_change = next(
             c for c in rows[1].changes if c['field'] == 'name'
         )
         assert (name_change['old'], name_change['new']) == ('Vastago', 'Vastago v2')
-        status_change = next(
-            c for c in rows[2].changes if c['field'] == 'status'
-        )
-        assert status_change['new'] == 'Archivado'
 
     def test_a_noop_update_writes_nothing(self, admin_client):
         owner = make_client('deivis@example.com')

@@ -11,9 +11,24 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
   }),
 
   getters: {
-    activeProjects: (state) => state.projects.filter((p) => p.status === 'active'),
-    pausedProjects: (state) => state.projects.filter((p) => p.status === 'paused'),
-    completedProjects: (state) => state.projects.filter((p) => p.status === 'completed'),
+    developmentProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'development',
+    ),
+    activeProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'operating',
+    ),
+    pausedProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'paused',
+    ),
+    suspendedProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'suspended',
+    ),
+    completedProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'completed',
+    ),
+    decommissionedProjects: (state) => state.projects.filter(
+      (p) => p.current_state?.operational_effect === 'decommissioned',
+    ),
     projectCount: (state) => state.projects.length,
   },
 
@@ -116,53 +131,6 @@ export const usePlatformProjectsStore = defineStore('platformProjects', {
         const message = error.response?.data?.detail || 'No pudimos cargar los accesos.'
         this.error = message
         return { success: false, message }
-      }
-    },
-
-    async deleteProject(projectId) {
-      this.isUpdating = true
-      this.error = ''
-      try {
-        const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/?force=true`)
-        this.projects = this.projects.filter((p) => p.id !== projectId)
-        if (this.currentProject?.id === projectId) {
-          this.currentProject = null
-        }
-        return { success: true }
-      } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos eliminar el proyecto.'
-        this.error = message
-        return { success: false, message }
-      /* c8 ignore next 3 */
-      } finally {
-        this.isUpdating = false
-      }
-    },
-
-    async archiveProject(projectId) {
-      this.isUpdating = true
-      this.error = ''
-
-      try {
-        const { delete: destroy } = usePlatformApi()
-        await destroy(`projects/${projectId}/`)
-
-        this.projects = this.projects.map((p) =>
-          p.id === projectId ? { ...p, status: 'archived' } : p,
-        )
-        if (this.currentProject?.id === projectId) {
-          this.currentProject = { ...this.currentProject, status: 'archived' }
-        }
-
-        return { success: true }
-      } catch (error) {
-        const message = error.response?.data?.detail || 'No pudimos archivar el proyecto.'
-        this.error = message
-        return { success: false, message }
-      /* c8 ignore next 3 */
-      } finally {
-        this.isUpdating = false
       }
     },
 

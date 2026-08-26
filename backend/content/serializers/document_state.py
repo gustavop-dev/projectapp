@@ -23,7 +23,7 @@ class DocumentStateGroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentStateGroup
         fields = (
-            'id', 'name', 'selection_mode', 'order', 'is_active',
+            'id', 'catalog', 'name', 'selection_mode', 'order', 'is_active',
             'state_count', 'created_at', 'updated_at',
         )
         read_only_fields = ('created_at', 'updated_at')
@@ -40,7 +40,8 @@ class DocumentStateSummarySerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentState
         fields = (
-            'id', 'name', 'slug', 'color', 'system_key', 'order',
+            'id', 'catalog', 'name', 'slug', 'color', 'system_key',
+            'operational_effect', 'order',
             'group_id', 'group_name', 'group_mode', 'group_order',
         )
 
@@ -61,6 +62,7 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
         required=False,
     )
     active_document_count = serializers.IntegerField(read_only=True, default=0)
+    active_project_count = serializers.IntegerField(read_only=True, default=0)
     historical_episode_count = serializers.IntegerField(read_only=True, default=0)
     merged_into_name = serializers.CharField(
         source='merged_into.name', read_only=True, default=None,
@@ -70,6 +72,7 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
         fields = DocumentStateSummarySerializer.Meta.fields + (
             'group', 'is_active', 'merged_into', 'merged_into_name',
             'incompatibility_ids', 'active_document_count',
+            'active_project_count',
             'historical_episode_count', 'created_at', 'updated_at',
         )
         read_only_fields = (
@@ -78,7 +81,15 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
 
     def validate_name(self, value):
         normalized = normalize_document_state_name(value)
-        queryset = DocumentState.objects.filter(normalized_name=normalized)
+        catalog = (
+            self.initial_data.get('catalog')
+            or getattr(self.instance, 'catalog', None)
+            or DocumentStateGroup.Catalog.DOCUMENTS
+        )
+        queryset = DocumentState.objects.filter(
+            catalog=catalog,
+            normalized_name=normalized,
+        )
         if self.instance:
             queryset = queryset.exclude(pk=self.instance.pk)
         if queryset.exists():
@@ -97,6 +108,31 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
         system_key = self.instance.system_key if self.instance else None
         expected_mode = self.SYSTEM_GROUP_MODES.get(system_key)
         group = attrs.get('group') or getattr(self.instance, 'group', None)
+        catalog = (
+            attrs.get('catalog')
+            or getattr(self.instance, 'catalog', None)
+            or (group.catalog if group else DocumentStateGroup.Catalog.DOCUMENTS)
+        )
+        if group and group.catalog != catalog:
+            raise serializers.ValidationError({
+                'group': 'El grupo pertenece a otro catálogo de estados.',
+            })
+        effect = attrs.get(
+            'operational_effect',
+            getattr(self.instance, 'operational_effect', ''),
+        )
+        if catalog == DocumentStateGroup.Catalog.PROJECTS and not effect:
+            raise serializers.ValidationError({
+                'operational_effect': (
+                    'Cada estado de proyecto debe definir su efecto operativo.'
+                ),
+            })
+        if catalog == DocumentStateGroup.Catalog.DOCUMENTS and effect:
+            raise serializers.ValidationError({
+                'operational_effect': (
+                    'Los estados de documentos no tienen efecto de proyecto.'
+                ),
+            })
         if expected_mode and group and group.selection_mode != expected_mode:
             label = 'exclusivo' if expected_mode == 'exclusive' else 'aditivo'
             raise serializers.ValidationError({
@@ -154,7 +190,7 @@ class DocumentStateEpisodeSerializer(serializers.ModelSerializer):
     class Meta:
         model = DocumentStateEpisode
         fields = (
-            'id', 'document', 'state', 'opened_at', 'closed_at',
+            'id', 'document', 'project', 'state', 'opened_at', 'closed_at',
             'opening_time_known', 'duration_seconds', 'opened_by',
             'opened_by_name', 'closed_by', 'closed_by_name', 'outcome',
             'close_note', 'origin', 'created_at', 'updated_at',
@@ -179,7 +215,10 @@ class DocumentStateEpisodeSerializer(serializers.ModelSerializer):
 
 class OpenDocumentStateSerializer(serializers.Serializer):
     state_id = serializers.PrimaryKeyRelatedField(
-        source='state', queryset=DocumentState.objects.all(),
+        source='state',
+        queryset=DocumentState.objects.filter(
+            catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+        ),
     )
     opened_at = serializers.DateTimeField(required=False)
     origin = serializers.ChoiceField(

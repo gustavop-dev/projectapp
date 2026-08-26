@@ -17,13 +17,23 @@ def normalize_document_state_name(value):
 
 
 class DocumentStateGroup(models.Model):
-    """A configurable group of mutually exclusive or additive states."""
+    """A configurable state group shared by document and project catalogs."""
+
+    class Catalog(models.TextChoices):
+        DOCUMENTS = 'documents', 'Documentos'
+        PROJECTS = 'projects', 'Proyectos'
 
     class SelectionMode(models.TextChoices):
         EXCLUSIVE = 'exclusive', 'Uno activo'
         ADDITIVE = 'additive', 'Varios activos'
 
-    name = models.CharField(max_length=80, unique=True)
+    catalog = models.CharField(
+        max_length=16,
+        choices=Catalog.choices,
+        default=Catalog.DOCUMENTS,
+        db_index=True,
+    )
+    name = models.CharField(max_length=80)
     selection_mode = models.CharField(
         max_length=12,
         choices=SelectionMode.choices,
@@ -36,6 +46,12 @@ class DocumentStateGroup(models.Model):
 
     class Meta:
         ordering = ('order', 'name')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('catalog', 'name'),
+                name='unique_state_group_name_per_catalog',
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -58,9 +74,24 @@ class DocumentState(models.Model):
         RED = 'red', 'Rojo'
         PURPLE = 'purple', 'Morado'
 
+    class OperationalEffect(models.TextChoices):
+        NONE = '', 'Sin efecto automático'
+        DEVELOPMENT = 'development', 'En desarrollo'
+        OPERATING = 'operating', 'Operativo'
+        PAUSED = 'paused', 'Pausado'
+        SUSPENDED = 'suspended', 'Cobros suspendidos'
+        COMPLETED = 'completed', 'Cierre correcto'
+        DECOMMISSIONED = 'decommissioned', 'Baja definitiva'
+
+    catalog = models.CharField(
+        max_length=16,
+        choices=DocumentStateGroup.Catalog.choices,
+        default=DocumentStateGroup.Catalog.DOCUMENTS,
+        db_index=True,
+    )
     name = models.CharField(max_length=60)
-    normalized_name = models.CharField(max_length=80, unique=True, editable=False)
-    slug = models.SlugField(max_length=80, unique=True, blank=True)
+    normalized_name = models.CharField(max_length=80, editable=False)
+    slug = models.SlugField(max_length=80, blank=True)
     color = models.CharField(
         max_length=16,
         choices=Color.choices,
@@ -75,10 +106,16 @@ class DocumentState(models.Model):
     is_active = models.BooleanField(default=True)
     system_key = models.CharField(
         max_length=40,
-        unique=True,
         null=True,
         blank=True,
         help_text='Stable key for seeded integrations; names remain editable.',
+    )
+    operational_effect = models.CharField(
+        max_length=20,
+        choices=OperationalEffect.choices,
+        blank=True,
+        default=OperationalEffect.NONE,
+        help_text='Project-side consequence policy; blank for document states.',
     )
     merged_into = models.ForeignKey(
         'self',
@@ -111,6 +148,21 @@ class DocumentState(models.Model):
 
     class Meta:
         ordering = ('group__order', 'order', 'name')
+        constraints = [
+            models.UniqueConstraint(
+                fields=('catalog', 'normalized_name'),
+                name='unique_state_name_per_catalog',
+            ),
+            models.UniqueConstraint(
+                fields=('catalog', 'slug'),
+                name='unique_state_slug_per_catalog',
+            ),
+            models.UniqueConstraint(
+                fields=('catalog', 'system_key'),
+                condition=models.Q(system_key__isnull=False),
+                name='unique_state_system_key_per_catalog',
+            ),
+        ]
 
     def __str__(self):
         return self.name
@@ -118,11 +170,15 @@ class DocumentState(models.Model):
     def save(self, *args, **kwargs):
         self.name = ' '.join(self.name.strip().split())
         self.normalized_name = normalize_document_state_name(self.name)
+        if self.group_id:
+            self.catalog = self.group.catalog
         if not self.slug:
             base = safe_slug(self.name, 'estado')
             slug = base
             index = 2
-            while DocumentState.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+            while DocumentState.objects.filter(
+                catalog=self.catalog, slug=slug,
+            ).exclude(pk=self.pk).exists():
                 slug = f'{base}-{index}'
                 index += 1
             self.slug = slug
@@ -130,7 +186,7 @@ class DocumentState(models.Model):
 
 
 class DocumentStateEpisode(models.Model):
-    """One occurrence of a state during a document's lifetime."""
+    """One state occurrence for exactly one document or project."""
 
     class Outcome(models.TextChoices):
         COMPLETED = 'completed', 'Cerrado'
@@ -149,6 +205,15 @@ class DocumentStateEpisode(models.Model):
         'content.Document',
         on_delete=models.CASCADE,
         related_name='state_episodes',
+        null=True,
+        blank=True,
+    )
+    project = models.ForeignKey(
+        'accounts.Project',
+        on_delete=models.CASCADE,
+        related_name='state_episodes',
+        null=True,
+        blank=True,
     )
     state = models.ForeignKey(
         DocumentState,
@@ -190,11 +255,21 @@ class DocumentStateEpisode(models.Model):
         ordering = ('-created_at', '-id')
         indexes = [
             models.Index(fields=('document', 'closed_at')),
+            models.Index(fields=('project', 'closed_at')),
             models.Index(fields=('state', 'closed_at')),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=(
+                    models.Q(document__isnull=False, project__isnull=True)
+                    | models.Q(document__isnull=True, project__isnull=False)
+                ),
+                name='state_episode_exactly_one_subject',
+            ),
         ]
 
     def __str__(self):
-        return f'{self.document} — {self.state}'
+        return f'{self.document or self.project} — {self.state}'
 
 
 class DocumentStateEpisodeEvent(models.Model):

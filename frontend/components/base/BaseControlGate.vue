@@ -53,7 +53,7 @@ const alignmentClass = computed(() => ({
     :data-testid="testid || undefined"
   >
     <BaseTooltip
-      v-if="blocked"
+      :disabled="!blocked"
       :position="position"
       width="max-w-sm"
       min-width="min-w-[240px]"
@@ -62,25 +62,21 @@ const alignmentClass = computed(() => ({
       <template #trigger>
         <div
           class="inline-flex max-w-full"
-          tabindex="0"
-          :aria-label="`${label}: ${reasonText}`"
-          :aria-describedby="descriptionId"
+          :tabindex="blocked ? 0 : undefined"
+          :aria-label="blocked ? `${label}: ${reasonText}` : undefined"
+          :aria-describedby="blocked ? descriptionId : undefined"
           :data-testid="testid ? `${testid}-trigger` : undefined"
         >
           <slot :blocked="blocked" :described-by="descriptionId" />
         </div>
       </template>
-      <p class="font-medium mb-1">{{ label }}</p>
-      <ul class="list-disc pl-4 space-y-0.5">
-        <li v-for="reason in normalizedReasons" :key="reason">{{ reason }}</li>
-      </ul>
+      <template v-if="blocked">
+        <p class="font-medium mb-1">{{ label }}</p>
+        <ul class="list-disc pl-4 space-y-0.5">
+          <li v-for="reason in normalizedReasons" :key="reason">{{ reason }}</li>
+        </ul>
+      </template>
     </BaseTooltip>
-
-    <slot
-      v-else
-      :blocked="blocked"
-      :described-by="undefined"
-    />
 
     <!-- Always mounted: adding a live region only when the form becomes
          invalid is too late for assistive technology to subscribe to it. -->
