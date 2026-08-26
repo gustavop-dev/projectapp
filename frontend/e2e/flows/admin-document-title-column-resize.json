@@ -1,0 +1,15 @@
+{
+  "id": "admin-document-title-column-resize",
+  "name": "Admin Document Title Column Resize",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Read long document names without opening them in /panel/documents. Titles use up to two lines and expose the complete text as a native hint only when the rendered text is clipped; the same clipped-only state offers an in-place Ver completo/Contraer control in the compact card gallery. In list mode, the Título header exposes a keyboard-accessible drag separator that resizes from 240px to 520px, starts at 320px, persists the chosen width in projectapp-table-widths:documents-list, and resets on double-click. Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones remain fixed and the table scrolls internally after donor floors are reached.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success"
+  ]
+}

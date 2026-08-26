@@ -6,6 +6,8 @@ import {
   formatDocumentDate, archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
+import BaseButton from '~/components/base/BaseButton.vue'
+import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
 
 const props = defineProps({
   document: { type: Object, required: true },
@@ -85,24 +87,24 @@ const meta = computed(() => {
     <div class="p-4">
       <!-- Sin `stretch`: el kebab vive en esta misma tarjeta y quedaría
            tapado. La tarjeta entera ya responde al clic simple. -->
-      <BaseRowLink
+      <BaseOverflowText
         :to="editTo"
-        :data-testid="`document-card-open-${document.id}`"
-        class="block text-sm font-semibold text-text-default leading-snug line-clamp-2"
-      >
-        {{ document.title }}
-      </BaseRowLink>
+        :text="document.title"
+        :lines="2"
+        :test-id="`document-card-open-${document.id}`"
+        content-classes="text-sm font-semibold leading-snug text-text-default"
+      />
       <p class="text-xs text-text-muted mt-1 tabular-nums truncate">{{ meta }}</p>
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">
         <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />
-        <button
-          type="button"
+        <BaseButton
+          variant="ghost"
+          size="lg"
+          icon-only
           title="Acciones"
           :aria-label="`Acciones de ${document.title}`"
-          class="flex-shrink-0 flex items-center justify-center min-w-11 min-h-11 -mr-2 rounded-lg
-                 text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors
-                 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
+          class="flex-shrink-0 min-w-11 min-h-11 -mr-2 text-text-subtle hover:text-text-default"
           @click.stop="emit('action')"
         >
           <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -110,7 +112,7 @@ const meta = computed(() => {
             <circle cx="12" cy="12" r="1.6" />
             <circle cx="12" cy="19" r="1.6" />
           </svg>
-        </button>
+        </BaseButton>
       </div>
     </div>
   </article>

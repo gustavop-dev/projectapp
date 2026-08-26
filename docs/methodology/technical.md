@@ -67,9 +67,10 @@ npm run dev                             # http://localhost:3000
 #### Documents navigation URL contract
 
 `useDocumentFilterQuery` synchronizes the list with these canonical query keys:
-`folder`, `scope`, `tags`, `client`, `project`, `q`, `order`, `view`, `page` and
-`focus`. Defaults are omitted, tag ids are normalized, and interactive filter
-changes use `router.replace` so browser history represents meaningful list states.
+`folder`, `scope`, `states`, `without_states`, `preset`, `client`, `project`, `q`,
+`order`, `view`, `page` and `focus`; `tags` remains accepted only for legacy deep
+links during the workflow rollout. Defaults are omitted, ids are normalized, and
+interactive filter changes use `router.replace` so browser history represents meaningful list states.
 Global search uses an effective all-documents scope without overwriting the scope
 that must be restored when the search is cleared or revisited.
 
@@ -374,8 +375,9 @@ Both parallel `0210` leaves converge through `content.0211_merge_document_states
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
-- **Composables** — 59 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useSeoJsonLd`, `useIncludeArchivedQuery`, `useStageStatus`, etc.)
-- **Component architecture** — 299 `.vue` components (307 files) under `frontend/components/`; 50 files under `components/BusinessProposal/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
+- **Measured overflow and table widths** — use `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure; consumer classes may style typography but must not override its display/clamp state. Resizable tables declare `columnWidth` for every track and a stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`. Fixed tracks never donate; ordered flexible tracks reach their minima before internal table scroll.
+- **Composables** — 70 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useResizableTableColumns`, `usePanelViewportProfile`, etc.)
+- **Component architecture** — 377 `.vue` components (387 files) under `frontend/components/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages
 - **Layouts** — `default.vue` (public pages with navbar), `admin.vue` (admin panel with sidebar), `platform.vue` (platform with sidebar + theme)
 - **Middleware** — `admin-auth.js` route guard for `/panel/**` routes, `platform-auth.js` route guard for `/platform/**` routes

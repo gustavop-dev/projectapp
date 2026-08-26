@@ -900,22 +900,6 @@ inflates contact counts nor triggers cooldowns/retries; history surfaces can
 then attach `copy` rows underneath without changing the meaning of existing
 metrics.
 
-## 37. Reuse infrastructure, not the wrong aggregate
-
-Two features can share clients, projects, documents, authentication and UI
-primitives without sharing a persistence model. A `Document` is one editorial
-artifact; a client conversation is an aggregate root containing ordered,
-bidirectional events. Treating messages as documents would make folders,
-editorial states and list filters ambiguous and create an expensive extraction
-later. The communications module therefore owns thread/message models inside the
-existing `content` app and references Documents through a protected join.
-
-Operational facts also need stable semantics. “Sent” remains stored evidence;
-“Respondido” is derived from a valid reply. Delivered events are not silently
-rewritten: annulment and business-date corrections append audit context, while
-only drafts remain mutable. When project ownership changes, historical threads
-stay with the original client and lose only their optional project scope.
-
 ## 36. List context is route state, not component memory
 
 A detail page cannot implement a reliable “Volver” when the owning list keeps
@@ -943,3 +927,35 @@ Button language is part of that persistence contract. Use `Guardar cambios`
 only when the action reaches durable storage and visibly confirms it. If the
 parent entity does not exist yet, name the local action as a draft operation and
 state the remaining persistence step both before and after it.
+
+## 38. Reuse infrastructure, not the wrong aggregate
+
+Two features can share clients, projects, documents, authentication and UI
+primitives without sharing a persistence model. A `Document` is one editorial
+artifact; a client conversation is an aggregate root containing ordered,
+bidirectional events. Treating messages as documents would make folders,
+editorial states and list filters ambiguous and create an expensive extraction
+later. The communications module therefore owns thread/message models inside the
+existing `content` app and references Documents through a protected join.
+
+Operational facts also need stable semantics. “Sent” remains stored evidence;
+“Respondido” is derived from a valid reply. Delivered events are not silently
+rewritten: annulment and business-date corrections append audit context, while
+only drafts remain mutable. When project ownership changes, historical threads
+stay with the original client and lose only their optional project scope.
+
+## 39. Clipping is measured state, and its primitive must own display
+
+A fixed `title` attribute only repeats short values and still leaves touch users
+without a path. Measure the rendered element after layout, text changes and
+container-width changes; publish the complete native hint and disclosure only
+while `scrollWidth/clientWidth` or `scrollHeight/clientHeight` proves clipping.
+The disclosure expands in the same row/card so it cannot require navigation.
+
+Line clamping is a bundle of display, overflow and WebKit properties, not a
+decorative class. If a consumer adds `block`, `flex`, `overflow-*` or another
+display utility to the clamped node, CSS ordering can silently disable the
+clamp and make the measurement say “complete.” The shared primitive therefore
+owns collapsed and expanded display state; consumers may supply typography and
+color only. Test both the table and the compact card, because their width and
+consumer-class combinations are materially different.

@@ -6043,6 +6043,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-state-filters` | admin | P1 | display,success,failure | 1 |
 | `admin-document-state-workflow` | admin | P1 | display,success,error,failure | 1 |
 | `admin-document-states-manage` | admin | P1 | display,success,error,failure | 1 |
+| `admin-document-title-column-resize` | admin | P2 | display,success | 1 |
 | `admin-document-unsaved-guard` | admin | P2 | display,success,failure | 1 |
 | `admin-email-deliverability` | admin | P3 | display | 1 |
 | `admin-email-templates-config` | admin | P2 | display,success,error | 1 |
@@ -7024,6 +7025,29 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Branches:** un nombre largo de carpeta sigue legible dentro del drawer; el modo archivado conserva su franja; por debajo de 1280 px cliente, proyecto y estados se agrupan dentro de la celda principal; ningún ancho produce scroll horizontal de página.
 - **Coverage:** ✅ Display responsivo cubierto en 412×915, 835×1194, 1195×835, 1440×900 y 2560×1440.
 - **E2E Specs:** `e2e/admin/admin-document-list.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
+
+### FLOW: `admin-document-title-column-resize`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P2
+- **Routes:** `/panel/documents`
+- **Description:** Permite distinguir documentos con títulos extensos sin abrirlos. El título ocupa hasta dos líneas; si el contenido realmente queda recortado, el navegador recibe el nombre completo como ayuda y aparece **Ver completo** para expandirlo dentro de la fila o tarjeta. En la tabla, la manija del encabezado **Título** ajusta el ancho entre 240 y 520 px, recuerda la preferencia del navegador y vuelve a 320 px con doble clic.
+- **Steps:**
+  1. Admin abre **Documentos PDF** y consulta el listado.
+  2. Un título que supera dos líneas muestra la ayuda con su texto íntegro; uno que cabe no agrega información repetida.
+  3. En celular o tableta vertical, pulsa **Ver completo** en la tarjeta y el título se despliega sin abrir el documento.
+  4. En la tabla, arrastra la manija de **Título** o la opera con teclado para elegir el ancho.
+  5. Recarga la página y el ancho elegido se conserva.
+  6. Hace doble clic en la manija para recuperar el ancho predeterminado.
+- **Branches:**
+  - [Display — recorte] La ayuda y el control de expansión sólo existen cuando la medición del texto confirma desbordamiento.
+  - [Success — táctil] **Ver completo** expande el nombre en el mismo contexto y **Contraer** recupera las dos líneas.
+  - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
+  - [Success — límite] Tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
+  - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
+- **Coverage:** ✅ Covered (recorte condicional, expansión compacta, arrastre persistente, columnas fijas y restablecimiento).
+- **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
 
 ### FLOW: `proposal-closing-contact`
 

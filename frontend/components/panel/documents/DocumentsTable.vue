@@ -3,11 +3,16 @@ import {
   formatDocumentDate, folderRowSummary,
   archivedAgeLabel,
 } from '~/utils/documentStatus'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { formatDateTime } from '~/utils/formatDate'
 import { isPlainActivation } from '~/utils/rowNavigation'
+import BaseButton from '~/components/base/BaseButton.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
 import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
+import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
+import BaseResizeHandle from '~/components/base/BaseResizeHandle.vue'
+import { usePanelViewportProfile } from '~/composables/usePanelViewportProfile'
+import { useResizableTableColumns } from '~/composables/useResizableTableColumns'
 
 const props = defineProps({
   documents: { type: Array, default: () => [] },
@@ -45,6 +50,62 @@ const dateHeader = computed(() => {
   return props.scope === 'all' ? 'Fecha' : 'Creado'
 })
 
+const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
+const tableContainerRef = ref(null)
+const { profile: viewportProfile } = usePanelViewportProfile()
+
+// Workflow and actions stay readable. The remaining flexible columns give
+// space back in the business order requested by the Documents UX.
+const widthColumns = computed(() => [
+  {
+    key: 'title',
+    columnWidth: { min: 240, default: 320, max: 520, resizable: true },
+  },
+  {
+    key: 'client',
+    columnWidth: { min: 128, default: 176, max: 240, shrinkPriority: 2, fillPriority: 2 },
+  },
+  {
+    key: 'project',
+    columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
+  },
+  {
+    key: 'states',
+    columnWidth: { min: 224, default: 224, max: 224, fixed: true },
+  },
+  {
+    key: 'date',
+    columnWidth: { min: 112, default: 128, max: 640, shrinkPriority: 3, fillPriority: 3 },
+  },
+  {
+    key: 'actions',
+    columnWidth: { min: 80, default: 80, max: 80, fixed: true },
+  },
+])
+
+const visibleWidthKeys = computed(() => (
+  ['desktop', 'wide'].includes(viewportProfile.value)
+    ? widthColumns.value.map((column) => column.key)
+    : ['title', 'date', 'actions']
+))
+
+const {
+  columnStyle,
+  draggingKey: resizingColumn,
+  onPointerEnd: endColumnResize,
+  onPointerMove: moveColumnResize,
+  onPointerStart: startColumnResize,
+  preferredWidth,
+  reset: resetColumnWidth,
+  resizeTo: resizeColumnTo,
+  tableStyle: documentTableStyle,
+} = useResizableTableColumns({
+  columns: widthColumns,
+  containerRef: tableContainerRef,
+  storageKey: DOCUMENT_TABLE_WIDTH_KEY,
+  visibleKeys: visibleWidthKeys,
+})
+
 function archivedContentCount(folder) {
   return (folder.archived_document_count || 0) + (folder.archived_children_count || 0)
 }
@@ -63,17 +124,40 @@ function onFolderLink(event, sub) {
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-border-muted bg-surface shadow-sm panel-desktop:overflow-x-auto">
-    <table class="w-full">
+  <div
+    ref="tableContainerRef"
+    class="overflow-x-auto rounded-xl border border-border-muted bg-surface shadow-sm"
+    :class="resizingColumn ? 'select-none' : ''"
+  >
+    <table class="w-full" :style="documentTableStyle">
       <caption class="sr-only">Documentos y subcarpetas de la carpeta actual</caption>
       <thead>
         <tr class="border-b border-border-muted text-left">
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Título</th>
-          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
-          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
-          <th class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estados</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
-          <th class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
+          <th
+            class="relative px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
+            :style="columnStyle('title')"
+          >
+            Título
+            <BaseResizeHandle
+              :value="preferredWidth('title')"
+              :min="240"
+              :max="520"
+              label="Ajustar el ancho de la columna Título"
+              test-id="documents-title-resize-handle"
+              class="absolute -right-2 top-0 z-20 h-full w-4"
+              indicator-class="h-7 w-0.5"
+              @pointer-start="startColumnResize('title', $event)"
+              @pointer-move="moveColumnResize('title', $event)"
+              @pointer-end="endColumnResize('title')"
+              @resize="resizeColumnTo('title', $event)"
+              @reset="resetColumnWidth('title')"
+            />
+          </th>
+          <th :style="columnStyle('client')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
+          <th :style="columnStyle('project')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
+          <th :style="columnStyle('states')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estados</th>
+          <th :style="columnStyle('date')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
+          <th :style="columnStyle('actions')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
@@ -130,6 +214,7 @@ function onFolderLink(event, sub) {
             </svg>
           </td>
         </tr>
+        <!-- design-tokens: allow-clickable-row — BaseOverflowText encapsula el BaseRowLink real. -->
         <tr
           v-for="doc in documents"
           :key="doc.id"
@@ -149,15 +234,15 @@ function onFolderLink(event, sub) {
                título: así toda la celda es el enlace, no sólo las letras. -->
           <td class="relative px-6 py-4">
             <div class="flex items-center gap-2">
-              <BaseRowLink
+              <BaseOverflowText
                 :to="editToFor(doc)"
+                :text="doc.title"
+                :lines="2"
                 stretch
-                :data-testid="`document-open-${doc.id}`"
-                class="text-sm font-medium text-text-default truncate
-                       hover:text-text-brand transition-colors"
-              >
-                {{ doc.title }}
-              </BaseRowLink>
+                :test-id="`document-open-${doc.id}`"
+                class="min-w-0 flex-1"
+                content-classes="text-sm font-medium leading-snug text-text-default hover:text-text-brand transition-colors"
+              />
               <!-- Por encima del área estirada para no perder su tooltip. -->
               <span
                 v-if="doc.folder_name"
@@ -210,10 +295,11 @@ function onFolderLink(event, sub) {
             <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
           </td>
           <td class="px-6 py-4" @click.stop>
-            <button
-              type="button"
-              class="p-2.5 -m-1 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default
-                     outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
+            <BaseButton
+              variant="ghost"
+              size="lg"
+              icon-only
+              class="-m-1 text-text-subtle hover:text-text-default"
               title="Acciones"
               :aria-label="`Acciones de ${doc.title}`"
               @click="emit('action', doc)"
@@ -223,7 +309,7 @@ function onFolderLink(event, sub) {
                 <circle cx="12" cy="12" r="1.6" />
                 <circle cx="12" cy="19" r="1.6" />
               </svg>
-            </button>
+            </BaseButton>
           </td>
         </tr>
       </tbody>

@@ -15,7 +15,8 @@ Solucionar bug; el modal histórico combina fecha exacta y relativa. Los filtros
 por ausencia y cuatro presets responden pendientes/cerrados sin abrir cada documento.
 Las observaciones privadas se normalizaron en `DocumentNote` y pueden abrir/cerrar el
 episodio needs-fix; un correo manual confirmado ofrece abrir Enviado; el MCP tiene el
-mismo contrato. `is_client_visible` desacopla portal y workflow. `content.0210`
+mismo contrato. `is_client_visible` desacopla portal y workflow.
+`content.0210_document_state_episodes`
 convierte Published sólo en visibilidad, expande tags como episodios aditivos de fecha
 desconocida, normaliza notas y excluye cuentas de cobro, sin inventar Borrador para el
 inventario existente. Verificación focal: 38 backend, 59 Jest y 19 Playwright verdes,
@@ -26,7 +27,8 @@ aplicó la migración ni se alteraron datos productivos.
 **2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
 de producto es un módulo Comunicaciones propio que reutiliza el Django app
 `content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
-`Document` en una conversación. La migración `content/0210` añade hilos,
+`Document` en una conversación. La migración
+`content.0210_communications_registry` añade hilos,
 mensajes, referencias protegidas y correcciones de fecha; el servicio
 transaccional conserva la evidencia entregada, valida canal/dirección/respuestas
 y mantiene actividad derivada. `/panel/communications` ofrece filtros, timeline
@@ -52,6 +54,23 @@ regresión puntual del bloqueo durante guardado; escenarios E2E de creación y
 edición cubren éxito, error, falla y cambios concurrentes; flow-map fresco
 (260 covered, 39 partial, 0 junk-only, 0 missing) y quality gate focal sin
 errores (96/100; ocho warnings preexistentes en los specs completos).
+
+**2026-08-25 — Títulos de Documentos legibles y columna ajustable:** la lista
+usa `BaseOverflowText` para dos líneas con elipsis final, mide el recorte real y
+sólo entonces agrega el nombre completo en `title` y **Ver completo/Contraer**;
+la misma expansión funciona en las tarjetas de celular/tableta sin abrir el
+documento. Se evaluó el recorte central y se mantuvo el final porque las dos
+líneas más la revelación condicional resuelven la identidad sin una segunda
+regla visual. Título parte en 320 px y se ajusta entre 240/520 mediante el mismo
+`BaseResizeHandle` que ahora usa PA-61; teclado, pointer capture y doble clic
+viven en el primitive. `useResizableTableColumns` persiste sólo preferencias no
+default, encoge Proyecto→Cliente→Fecha, conserva Estados (224) y Acciones (80),
+y deja scroll interno al agotar mínimos. La API genérica quedó
+expuesta en `BaseResponsiveTable` y documentada en el styleguide. Sin backend ni
+schema. Cobertura focal: primitives/engine/Documentos, flow P2
+`admin-document-title-column-resize` con sus cinco resultados Playwright y
+registro derivado sincronizado; quality gates focales 100/100 y build Nuxt de
+producción aprobada.
 
 **2026-08-25 — Retorno contextual desde la edición de Documentos:** se confirmó
 que las cuatro salidas del editor estaban fijadas a la raíz y que el listado sólo
