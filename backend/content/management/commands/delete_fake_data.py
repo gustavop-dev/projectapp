@@ -1,19 +1,27 @@
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from accounts.models import HostingSubscription, Payment, PaymentHistory, Project
 from content.models import (
     BlogPost,
     BusinessProposal,
+    CommunicationMessage,
     CommunicationThread,
     Contact,
     Document,
     DocumentFolder,
     DocumentTag,
+    EmailLog,
+    LinkedInPost,
+    Linktree,
+    McpRequestLog,
     PortfolioWork,
+    QRCard,
     Task,
     WebAppDiagnostic,
 )
+from content.fake_data import ensure_fake_data_allowed
 
 User = get_user_model()
 
@@ -37,7 +45,9 @@ class Command(BaseCommand):
             help='Confirm that you want to delete all fake data',
         )
 
+    @transaction.atomic
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('delete_fake_data')
         if not options['confirm']:
             self.stdout.write(self.style.WARNING(
                 'This will delete ALL contacts, proposals, blog posts, portfolio works, '
@@ -48,10 +58,19 @@ class Command(BaseCommand):
 
         # Order matters because of PROTECT chains:
         #   CommunicationAttachment ─PROTECT→ Document
+        #   CommunicationMessage.reply_to ─PROTECT→ CommunicationMessage
         #   Payment ─PROTECT→ HostingSubscription ─PROTECT→ Project
         #   ProjectPhase ─PROTECT→ BusinessProposal
         # So: payments → subscriptions → projects (cascades the platform graph:
         # phases, requirements, deliverables, change requests, bugs) → proposals.
+        # Break only the self-reply pointers inside the dataset being removed;
+        # message deletion then cascades attachments and date corrections.
+        CommunicationMessage.objects.update(reply_to=None)
+        deleted, _ = CommunicationMessage.objects.all().delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted communication messages ({deleted} rows)'
+        ))
+
         for model, label in (
             (Contact, 'contacts'),
             (CommunicationThread, 'communication threads'),
@@ -101,9 +120,27 @@ class Command(BaseCommand):
             f'Deleted fake accounting rows ({accounting_total} rows)'
         ))
 
-        # Client accounts are never deleted here, so the PROTECT on
-        # IncomeRecord.client cannot bite: the accounting rows pointing at
-        # them are wiped above regardless.
+        for model, label in (
+            (EmailLog, 'email history'),
+            (LinkedInPost, 'LinkedIn history'),
+            (Linktree, 'linktrees'),
+            (QRCard, 'QR cards'),
+            (McpRequestLog, 'MCP request history'),
+        ):
+            deleted, _ = model.objects.all().delete()
+            self.stdout.write(self.style.SUCCESS(f'Deleted {label} ({deleted} rows)'))
+
+        # A representative refresh is a full development reset.  Removing
+        # non-staff accounts last makes client/project distributions repeatable
+        # while preserving operator/admin access.
+        deleted_users, _ = User.objects.filter(
+            is_staff=False,
+            is_superuser=False,
+        ).delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Deleted non-staff development users ({deleted_users} rows)',
+        ))
+
         # Superusers and staff users are intentionally never deleted.
         protected = User.objects.filter(is_superuser=True).count() \
             + User.objects.filter(is_staff=True, is_superuser=False).count()

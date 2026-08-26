@@ -161,6 +161,12 @@ def disable_recaptcha_for_tests(settings):
     settings.RECAPTCHA_SECRET_KEY = ''
 
 
+@pytest.fixture(autouse=True)
+def allow_fake_data_for_tests(settings):
+    """Tests are an explicit safe environment for destructive seed commands."""
+    settings.FAKE_DATA_ALLOWED = True
+
+
 @pytest.fixture
 def api_client():
     """Unauthenticated DRF API client."""

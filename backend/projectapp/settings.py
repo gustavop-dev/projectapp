@@ -22,6 +22,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 DJANGO_ENV = config('DJANGO_ENV', default='development')
 IS_PRODUCTION = DJANGO_ENV == 'production'
 
+# Positive capability checked by every fake/demo management command.  It is
+# enabled only by settings_dev; production cannot opt in through environment
+# naming or DEBUG alone.
+FAKE_DATA_ALLOWED = False
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/

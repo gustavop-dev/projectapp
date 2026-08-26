@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from content.models import HourPackage
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed
 from content.services.hour_package_service import DEFAULT_PACKAGES
 
 # All three nationalities are normally seeded by migration 0147 from the
@@ -15,7 +16,11 @@ class Command(BaseCommand):
         'is empty (COL/EXT/USA). Idempotent: non-empty catalogs are kept.'
     )
 
+    def add_arguments(self, parser):
+        add_seed_arguments(parser)
+
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_hour_packages')
         created = 0
         for nationality, packages in DEFAULT_PACKAGES.items():
             if HourPackage.objects.filter(nationality=nationality).exists():

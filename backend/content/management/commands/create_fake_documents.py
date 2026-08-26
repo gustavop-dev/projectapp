@@ -5,38 +5,39 @@ Builds the full commercial documents feature with business sense:
 * one ``IssuerProfile`` (legal entity),
 * a **hierarchical** ``DocumentFolder`` tree (exercises the folder/parent feature),
 * a palette of ``DocumentTag`` labels,
-* ``Document`` records split between markdown notes and collection accounts,
-  each collection account carrying coherent ``DocumentItem`` lines (whose totals
-  add up), a ``DocumentCollectionAccount`` 1:1 extension and ``DocumentPaymentMethod``.
+* ``Document`` records split between markdown notes and collection accounts;
+  each account is created from its ``IncomeRecord`` origin and carries a coherent
+  ``DocumentItem``, a ``DocumentCollectionAccount`` 1:1 extension and a
+  ``DocumentPaymentMethod``.
 
 Collection accounts are pushed through their real lifecycle
 (draft → issued → paid / cancelled / overdue) via ``collection_account_service``
 so ``public_number`` is allocated exactly like in production.
 
-Idempotent: re-running skips creation if fake documents already exist.
+Re-running skips creation if fake documents already exist; the canonical
+orchestrator uses ``--replace`` for a byte-for-byte reproducible refresh.
 """
 
-import random
 from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
-from accounts.models import Project, UserProfile
+from accounts.models import Project
 from accounts.services.proposal_client_service import build_client_display_name
 from content.models import (
     Document,
-    DocumentCollectionAccount,
     DocumentFolder,
-    DocumentItem,
-    DocumentPaymentMethod,
     DocumentState,
     DocumentTag,
     DocumentType,
+    IncomeRecord,
 )
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 from content.services import collection_account_service as ca_service
+from content.services import collection_account_create_service as ca_create_service
 from content.services.document_content import build_content_json
 from content.services.document_type_codes import COLLECTION_ACCOUNT, MARKDOWN
 from content.services.document_note_service import create_note, finish_note
@@ -99,15 +100,6 @@ MARKDOWN_DOCS = [
      '# Checklist de entrega\n\n- [ ] Pruebas de aceptación\n- [ ] Capacitación\n- [ ] Puesta en producción\n'),
 ]
 
-ITEM_TEMPLATES = [
-    (DocumentItem.ItemType.SERVICE, 'Desarrollo a medida — módulo funcional'),
-    (DocumentItem.ItemType.ADVANCE, 'Anticipo del proyecto (40%)'),
-    (DocumentItem.ItemType.BALANCE, 'Saldo final del proyecto (30%)'),
-    (DocumentItem.ItemType.HOSTING, 'Hosting y mantenimiento mensual'),
-    (DocumentItem.ItemType.SUPPORT, 'Soporte técnico y ajustes'),
-]
-
-
 def _ensure_issuer():
     from content.models import IssuerProfile
 
@@ -164,26 +156,22 @@ def _doc_type(code, name):
 
 def _client_candidates():
     """Return (project, client_user) pairs usable for collection accounts."""
-    pairs = []
-    for project in Project.objects.select_related('client').all():
-        if project.client_id:
-            pairs.append((project, project.client))
-    # Fallback: standalone client users (no project) so we still have customers.
-    for profile in UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT).select_related('user'):
-        pairs.append((None, profile.user))
-    return pairs
+    return [
+        (project, project.client)
+        for project in Project.objects.select_related('client').order_by('pk')
+        if project.client_id
+    ]
 
 
 class Command(BaseCommand):
     help = 'Create a fake Document graph (issuer, folders, tags, markdown + collection accounts).'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--count', type=int, default=40,
-            help='Total number of Document records to create (default: 40).',
-        )
+        add_seed_arguments(parser, count_default=40)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_documents')
+        self.seed_context = seed_context(options, 'documents')
         count = max(1, options['count'])
 
         if Document.objects.count() >= count:
@@ -193,23 +181,61 @@ class Command(BaseCommand):
             ))
             return
 
-        rng = random.Random(7)
+        rng = self.seed_context.rng
         admin = User.objects.filter(is_staff=True).first()
         issuer = _ensure_issuer()
         leaves = _ensure_folders()
         tags = _ensure_tags()
         md_type = _doc_type(MARKDOWN, 'Documento markdown')
-        ca_type = _doc_type(COLLECTION_ACCOUNT, 'Cuenta de cobro')
+        _doc_type(COLLECTION_ACCOUNT, 'Cuenta de cobro')
         clients = _client_candidates()
 
         if not clients:
-            self.stdout.write(self.style.WARNING(
-                'No client users/projects found — collection accounts will stay as drafts. '
-                'Run seed_platform_data first for richer data.'
-            ))
+            call_command(
+                'create_fake_clients_projects',
+                '--count', str(max(8, min(count, 60))),
+                '--seed', str(self.seed_context.seed),
+                '--anchor-date', self.seed_context.anchor_date.isoformat(),
+                verbosity=0,
+            )
+            clients = _client_candidates()
+        if not clients:
+            raise RuntimeError('No project-backed clients are available for documents.')
 
-        n_markdown = count // 2
-        n_collection = count - n_markdown
+        signable_count = 2 if count >= 3 else 0
+        n_markdown = max(1, count // 3 - signable_count)
+        n_collection = max(0, count - n_markdown - signable_count)
+
+        eligible_incomes = list(
+            IncomeRecord.objects.filter(
+                kind=IncomeRecord.Kind.EXPECTED,
+                client__isnull=False,
+                project__isnull=False,
+                collection_documents__isnull=True,
+            ).select_related('client__user', 'project').order_by('pk')
+        )
+        if len(eligible_incomes) < n_collection:
+            call_command(
+                'create_fake_accounting',
+                '--count', str(max(count, 60)),
+                '--seed', str(self.seed_context.seed),
+                '--anchor-date', self.seed_context.anchor_date.isoformat(),
+                verbosity=0,
+            )
+            eligible_incomes = list(
+                IncomeRecord.objects.filter(
+                    kind=IncomeRecord.Kind.EXPECTED,
+                    client__isnull=False,
+                    project__isnull=False,
+                    collection_documents__isnull=True,
+                ).select_related('client__user', 'project').order_by('pk')
+            )
+            clients = _client_candidates()
+        if len(eligible_incomes) < n_collection:
+            raise RuntimeError(
+                f'Need {n_collection} eligible incomes for collection accounts; '
+                f'found {len(eligible_incomes)}.',
+            )
         created_md = 0
         created_ca = 0
 
@@ -223,18 +249,13 @@ class Command(BaseCommand):
                 [Document.Status.PUBLISHED, Document.Status.DRAFT, Document.Status.ARCHIVED],
                 weights=[6, 3, 1],
             )[0]
-            # ~60% asociados (cliente, y proyecto cuando el par lo trae): el
-            # resto queda suelto a propósito — alimenta el recorte «Sin
-            # cliente» del gestor y el subfiltro «Sin documentos» de clientes.
-            project = client_user = None
-            client_name = ''
-            if clients and rng.random() < 0.6:
-                project, client_user = rng.choice(clients)
-                profile = getattr(client_user, 'profile', None)
-                client_name = build_client_display_name(profile) if profile else ''
+            project, client_user = rng.choice(clients)
+            profile = getattr(client_user, 'profile', None)
+            client_name = build_client_display_name(profile) if profile else ''
             doc = Document(
+                uuid=self.seed_context.uuid(f'markdown-{i}'),
                 document_type=md_type,
-                folder=rng.choice(md_folders),
+                folder=(rng.choice(md_folders) if i % 2 == 0 else None),
                 title=title,
                 status=status,
                 is_client_visible=(status == Document.Status.PUBLISHED),
@@ -288,49 +309,47 @@ class Command(BaseCommand):
 
         for i in range(n_collection):
             lifecycle = lifecycles[i]
-            project, client_user = (rng.choice(clients) if clients else (None, None))
+            income = eligible_incomes[i]
+            project = income.project
+            client_user = income.client.user
             concept = BILLING_CONCEPTS[i % len(BILLING_CONCEPTS)]
             currency = 'COP'
-
-            doc = Document.objects.create(
-                document_type=ca_type,
-                folder=rng.choice(ca_folders),
-                title=f'Cuenta de cobro — {concept}',
-                status=Document.Status.PUBLISHED,
-                is_client_visible=False,
-                commercial_status=Document.CommercialStatus.DRAFT,
-                language=Document.Language.ES,
-                city='Bogotá',
-                currency=currency,
-                project=project,
-                client_user=client_user,
-                client_name=(getattr(client_user, 'get_full_name', lambda: '')() or '') if client_user else '',
-                created_by=admin,
-                updated_by=admin,
-                notes='Generado para demo local.',
-                terms_and_conditions='Pago dentro del plazo indicado. Valores en pesos colombianos.',
+            base_amount = income.total_amount
+            doc = ca_create_service.create_income_collection_account(
+                {
+                    'client_profile_id': income.client_id,
+                    'income_record_id': income.pk,
+                    'billing_concept': concept,
+                    'currency': currency,
+                    'city': 'Bogotá',
+                    'notes': 'Generado para demo local.',
+                    'payment_term_days': rng.choice([8, 15, 30]),
+                    'items': [{
+                        'description': concept,
+                        'quantity': Decimal('1'),
+                        'unit_price': base_amount,
+                    }],
+                },
+                acting_user=admin,
             )
+            doc.uuid = self.seed_context.uuid(f'collection-account-{i}')
+            doc.folder = rng.choice(ca_folders) if i % 2 == 0 else None
+            doc.terms_and_conditions = (
+                'Pago dentro del plazo indicado. Valores en pesos colombianos.'
+            )
+            if i == n_collection - 1:
+                doc.title = ('CuentaCobroExtremaSinEspacios' * 12)[:255]
+            doc.save(update_fields=[
+                'uuid', 'folder', 'terms_and_conditions', 'title', 'updated_at',
+            ])
             doc.tags.add(*rng.sample(tags, k=rng.randint(1, 2)))
-
-            # Collection account extension with payment term.
-            term_days = rng.choice([8, 15, 30])
-            ext = DocumentCollectionAccount.objects.create(
-                document=doc,
-                billing_concept=concept,
-                payment_term_type=DocumentCollectionAccount.PaymentTermType.DAYS_AFTER_ISSUE,
-                payment_term_days=term_days,
-            )
-
-            self._add_items(doc, rng, currency)
-            self._add_payment_method(doc, issuer)
-            ca_service.recalculate_document_totals(doc)
-            doc.save(update_fields=['subtotal', 'tax_total', 'total', 'updated_at'])
-
-            self._apply_lifecycle(doc, ext, issuer, admin, lifecycle, rng)
+            self._apply_income_lifecycle(doc, lifecycle, admin, rng)
             created_ca += 1
 
         # ── Client-portal signable contracts (unsigned + signed) ─────────────
-        self._create_signable_documents(admin, md_type, leaves)
+        self._create_signable_documents(
+            admin, md_type, leaves, target_count=signable_count,
+        )
 
         # ── Estado archivado de demo ────────────────────────────────────────
         archived = self._archive_demo_state(leaves, md_type, admin)
@@ -345,7 +364,7 @@ class Command(BaseCommand):
 
     def _apply_markdown_workflow(self, document, index, actor):
         """Populate realistic concurrent state episodes for UI validation."""
-        now = timezone.now()
+        now = self.seed_context.anchor_now
         draft = document.state_episodes.filter(
             state__system_key='draft', closed_at__isnull=True,
         ).first()
@@ -403,8 +422,6 @@ class Command(BaseCommand):
         quedarse archivado, y sin este fixture no es observable en QA ni E2E.
         """
         from datetime import timedelta
-
-        from django.utils import timezone
 
         from content.services import document_archive_service as archive_svc
 
@@ -466,7 +483,7 @@ class Command(BaseCommand):
 
         # 4. Escalonar las fechas para que el orden Recientes/Más antiguos sea
         #    demostrable: el servicio siempre estampa `timezone.now()`.
-        now = timezone.now()
+        now = self.seed_context.anchor_now
         for offset_days, doc_ids in (
             (1, [d.pk for d in loose[:1]]),
             (7, [d.pk for d in loose[1:2]]),
@@ -490,67 +507,32 @@ class Command(BaseCommand):
         cycle = self._LIFECYCLE_CYCLE
         return [cycle[i % len(cycle)] for i in range(n)]
 
-    def _add_items(self, doc, rng, currency):
-        n_lines = rng.randint(1, 3)
-        for position in range(n_lines):
-            item_type, desc = ITEM_TEMPLATES[position % len(ITEM_TEMPLATES)]
-            quantity = Decimal('1')
-            base = rng.choice([350000, 500000, 750000, 1200000, 2500000]) if currency == 'COP' \
-                else rng.choice([300, 500, 800, 1200])
-            unit_price = Decimal(str(base))
-            discount = Decimal('0')
-            taxable = quantity * unit_price - discount
-            tax = (taxable * Decimal('0.19')).quantize(Decimal('0.01'))  # IVA 19%
-            line_total = taxable + tax
-            DocumentItem.objects.create(
-                document=doc,
-                position=position,
-                item_type=item_type,
-                description=desc,
-                quantity=quantity,
-                unit_price=unit_price,
-                discount_amount=discount,
-                tax_amount=tax,
-                line_total=line_total,
+    def _apply_income_lifecycle(self, document, lifecycle, actor, rng):
+        """Place a service-created income account in a deterministic demo state."""
+
+        anchor = self.seed_context.anchor_date
+        if lifecycle == 'draft':
+            Document.objects.filter(pk=document.pk).update(
+                commercial_status=Document.CommercialStatus.DRAFT,
+                public_number='', issue_date=None, due_date=None,
             )
-
-    def _add_payment_method(self, doc, issuer):
-        DocumentPaymentMethod.objects.create(
-            document=doc,
-            payment_method_type=DocumentPaymentMethod.MethodType.BANK_TRANSFER,
-            bank_name='Bancolombia',
-            account_type='Ahorros',
-            account_number='123-456789-00',
-            account_holder_name=issuer.legal_name or issuer.name,
-            account_holder_identification=issuer.identification_number,
-            payment_instructions='Enviar comprobante a facturacion@projectapp.dev',
-            is_primary=True,
-        )
-
-    def _apply_lifecycle(self, doc, ext, issuer, admin, lifecycle, rng):
-        """Move a draft collection account into its target lifecycle state."""
-        can_issue = bool(doc.client_user_id or (doc.project_id and doc.project.client_id))
-        if lifecycle == 'draft' or not can_issue:
             return
 
+        issue_date = anchor - timedelta(days=rng.choice([5, 15, 45, 90]))
+        due_date = issue_date + timedelta(days=rng.choice([8, 15, 30]))
         if lifecycle == 'overdue':
-            # Past fixed due date so the derived "overdue" flag turns on.
-            ext.payment_term_type = DocumentCollectionAccount.PaymentTermType.FIXED_DATE
-            ext.save(update_fields=['payment_term_type'])
-            doc.due_date = timezone.now().date() - timedelta(days=rng.randint(5, 40))
-            doc.save(update_fields=['due_date', 'updated_at'])
-
-        try:
-            ca_service.issue_collection_account(doc, issuer=issuer, acting_user=admin)
-        except ca_service.CollectionAccountError:
-            return
-
+            due_date = anchor - timedelta(days=rng.choice([5, 15, 40]))
+        Document.objects.filter(pk=document.pk).update(
+            issue_date=issue_date,
+            due_date=due_date,
+        )
+        document.refresh_from_db()
         if lifecycle == 'paid':
-            ca_service.mark_collection_account_paid(doc, acting_user=admin)
+            ca_service.mark_collection_account_paid(document, acting_user=actor)
         elif lifecycle == 'cancelled':
-            ca_service.mark_collection_account_cancelled(doc, acting_user=admin)
+            ca_service.mark_collection_account_cancelled(document, acting_user=actor)
 
-    def _create_signable_documents(self, admin, md_type, leaves):
+    def _create_signable_documents(self, admin, md_type, leaves, *, target_count):
         """Create one unsigned + one signed contract for a project-backed client.
 
         Exercises the client-portal signature flow (/platform/documents): a
@@ -558,6 +540,9 @@ class Command(BaseCommand):
         already-signed sibling carrying the acceptance stamp. Idempotent — guarded
         by (title, project, requires_signature) so re-runs never duplicate.
         """
+        if target_count <= 0:
+            return
+
         project = (
             Project.objects.filter(client__isnull=False)
             .select_related('client')
@@ -585,10 +570,11 @@ class Command(BaseCommand):
 
         # Unsigned, signature-required contract (client must sign in the portal).
         unsigned_title = 'Contrato de servicios'
-        if not Document.objects.filter(
+        if target_count >= 1 and not Document.objects.filter(
             title=unsigned_title, project=project, requires_signature=True,
         ).exists():
             unsigned = Document(
+                uuid=self.seed_context.uuid('signable-unsigned'),
                 document_type=md_type,
                 folder=contract_folder,
                 title=unsigned_title,
@@ -613,10 +599,11 @@ class Command(BaseCommand):
 
         # Already-signed contract (acceptance stamp filled in).
         signed_title = 'Contrato de servicios firmado'
-        if not Document.objects.filter(
+        if target_count >= 2 and not Document.objects.filter(
             title=signed_title, project=project, requires_signature=True,
         ).exists():
             signed = Document(
+                uuid=self.seed_context.uuid('signable-signed'),
                 document_type=md_type,
                 folder=contract_folder,
                 title=signed_title,
@@ -632,7 +619,7 @@ class Command(BaseCommand):
                 client_user=client_user,
                 client_name=client_full_name,
                 requires_signature=True,
-                signed_at=timezone.now(),
+                signed_at=self.seed_context.anchor_now,
                 signed_by=client_user,
                 signature_name=client_full_name,
                 signature_ip='127.0.0.1',

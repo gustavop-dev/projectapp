@@ -7,10 +7,10 @@ Every row is tagged source_ref='fake:accounting' so delete_fake_data can
 remove exactly these rows. Written with the plain ORM: no change logs,
 no email notifications.
 """
-import random
 from datetime import date, timedelta
 from decimal import Decimal
 
+from django.core.management import call_command
 from django.core.management.base import BaseCommand
 
 from accounts.models import Project, UserProfile
@@ -33,8 +33,10 @@ from content.models import (
     RecurringPayment,
 )
 from content.serializers.accounting import split_half
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 FAKE_REF = 'fake:accounting'
+_ANCHOR_DATE = None
 
 INCOME_CONCEPTS = [
     'Acme SAS - Inicio 40%', 'Acme SAS - Diseño 30%', 'Acme SAS - Entrega 30%',
@@ -47,39 +49,41 @@ EXPENSE_CONCEPTS = [
     ('Almuerzo equipo', 'personal'), ('Gasolina carro', 'personal'),
     ('Aporte casa EPM', 'personal'), ('Windsurf', 'business'),
 ]
-CLIENTS = [
-    ('Acme SAS', 'https://acme.example.com/'),
-    ('Globex', 'https://globex.example.com/'),
-    ('Initech', 'https://initech.example.com/'),
-    ('Umbrella', 'https://umbrella.example.com/'),
-]
-
-
 def _month_start(months_ago):
-    today = date.today().replace(day=1)
-    year = today.year
-    month = today.month - months_ago
-    while month <= 0:
-        month += 12
-        year -= 1
-    return date(year, month, 1)
+    anchor = (_ANCHOR_DATE or date.today()).replace(day=1)
+    absolute_month = anchor.year * 12 + anchor.month - 1 - months_ago
+    year, zero_based_month = divmod(absolute_month, 12)
+    return date(year, zero_based_month + 1, 1)
 
 
 class Command(BaseCommand):
     help = 'Create fake accounting data (tagged fake:accounting).'
 
     def add_arguments(self, parser):
-        parser.add_argument('--count', type=int, default=10)
+        add_seed_arguments(parser, count_default=10)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_accounting')
+        context = seed_context(options, 'accounting')
+        global _ANCHOR_DATE
+        _ANCHOR_DATE = context.anchor_date
         count = options['count']
-        rng = random.Random(42)
+        rng = context.rng
 
         created = 0
         # Client profiles may not exist at all: this command also runs
         # standalone in tests. Without them every income stays unassigned,
         # which is a legitimate (and useful) seed state.
-        client_profiles = list(UserProfile.objects.clients()[:8])
+        client_profiles = list(UserProfile.objects.clients()[:max(count, 8)])
+        if not client_profiles:
+            call_command(
+                'create_fake_clients_projects',
+                '--count', str(max(8, min(count, 60))),
+                '--seed', str(context.seed),
+                '--anchor-date', context.anchor_date.isoformat(),
+                verbosity=0,
+            )
+            client_profiles = list(UserProfile.objects.clients()[:max(count, 8)])
         # Seed a small project catalog before resolving projects per client:
         # the Projects module needs clients WITH projects (counts, scopes,
         # the fly-create picker) and clients WITHOUT any (the indicator's
@@ -111,21 +115,28 @@ class Command(BaseCommand):
             profile.pk: list(Project.objects.filter(client_id=profile.user_id))
             for profile in client_profiles
         }
+        project_clients = [
+            profile for profile in client_profiles
+            if projects_by_client.get(profile.pk)
+        ]
 
         def project_for(profile, index):
             """One of the client's own projects, or None.
 
-            Every fourth linked row is left without a project on purpose:
+            Every sixth linked row is left without a project on purpose:
             'Sin proyecto' is a real state the filters have a bucket for.
             """
-            if profile is None or index % 4 == 1:
+            if profile is None or index % 6 == 1:
                 return None
             options = projects_by_client.get(profile.pk) or []
             return options[index % len(options)] if options else None
 
         for index in range(count):
-            period = _month_start(rng.randrange(0, 12))
-            total = Decimal(rng.randrange(400_000, 4_000_000, 10_000))
+            period = _month_start(rng.choice([-3, -1, 0, 1, 3, 6, 12]))
+            total = (
+                Decimal('999999999999.99') if index == 0
+                else Decimal(rng.randrange(400_000, 4_000_000, 10_000))
+            )
             gustavo, carlos = split_half(total)
             concept = rng.choice(INCOME_CONCEPTS)
             # Cobro por diagnóstico: what the "Con diagnóstico facturado"
@@ -143,12 +154,8 @@ class Command(BaseCommand):
                 else IncomeRecord.Origin.HOSTING if 'Hosting' in concept
                 else IncomeRecord.Origin.DEVELOPMENT
             )
-            # Every third income is left without a client on purpose: the
-            # "Sin cliente" group is what the completion workflow works on.
-            client = (
-                client_profiles[index % len(client_profiles)]
-                if client_profiles and index % 3 != 2 else None
-            )
+            client_pool = project_clients or client_profiles
+            client = client_pool[index % len(client_pool)]
             # Written off: money we already know will never arrive. It stays
             # out of the expected projection, so it never gets a liquid row.
             is_lost = index % 8 == 3
@@ -281,7 +288,7 @@ class Command(BaseCommand):
             custom_split = index % 3 == 0
             ExpenseRecord.objects.create(
                 concept=concept,
-                period_date=_month_start(rng.randrange(0, 12)),
+                period_date=_month_start(rng.choice([-2, 0, 1, 4, 8, 12])),
                 category=category,
                 total_amount=total,
                 gustavo_amount=total if custom_split else half,
@@ -290,17 +297,17 @@ class Command(BaseCommand):
             )
             created += 1
 
-        for index, (client_name, domain) in enumerate(
-            CLIENTS[:max(1, min(count, len(CLIENTS)))],
-        ):
-            monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
-            cycles = rng.randrange(1, 4)
-            # One hosting is left unlinked on purpose: the "Sin cliente"
-            # group is what the completion workflow works on.
-            hosting_client = (
-                client_profiles[index % len(client_profiles)]
-                if client_profiles and index != 0 else None
+        hosting_target = max(1, min(count, 45))
+        for index in range(hosting_target):
+            hosting_client = client_profiles[index % len(client_profiles)]
+            client_name = (
+                hosting_client.company_name
+                or hosting_client.user.get_full_name()
+                or f'Cliente hosting {index + 1}'
             )
+            domain = f'https://hosting-{index + 1}.example.test/'
+            monthly = Decimal(rng.randrange(20_000, 100_000, 1_000))
+            cycles = index % 5
             modality = rng.choice(list(HostingRecord.Modality))
             modality_months = HostingRecord.MODALITY_MONTHS[modality]
             payment_per_cycle = monthly * modality_months
@@ -312,8 +319,12 @@ class Command(BaseCommand):
                 domain_url=domain,
                 monthly_value=monthly,
                 payment_modality=modality,
-                valid_from=_month_start(6),
-                valid_to=_month_start(0) + timedelta(days=180),
+                valid_from=_month_start((12, 6, 1)[index % 3]),
+                valid_to=(
+                    _month_start(0) - timedelta(days=1)
+                    if index % 3 == 0
+                    else _month_start((-2, -8)[index % 2])
+                ),
                 cycles_count=cycles,
                 payment_per_cycle=payment_per_cycle,
                 total_paid=payment_per_cycle * cycles,
@@ -589,5 +600,6 @@ class Command(BaseCommand):
             created += 2
 
         self.stdout.write(self.style.SUCCESS(
-            f'Created {created} fake accounting rows (source_ref={FAKE_REF}).',
+            f'Created {created} fake accounting rows (source_ref={FAKE_REF}, '
+            f'seed={context.seed}, anchor={context.anchor_date}).',
         ))

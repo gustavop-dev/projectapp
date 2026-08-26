@@ -14,6 +14,7 @@ from .settings import *  # noqa: F401, F403
 # ==============================================================================
 
 DEBUG = False  # Hardcoded, never from environment
+FAKE_DATA_ALLOWED = False  # Hard stop for destructive demo-data commands.
 
 # Frontend prerender rebuild — explicit prod values (the base-settings default
 # derives from DEBUG at import time, before the hardcoded override above).

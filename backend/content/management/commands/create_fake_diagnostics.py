@@ -6,6 +6,12 @@ from django.core.management.base import BaseCommand
 
 from accounts.models import UserProfile
 from accounts.services import proposal_client_service
+from content.fake_data import (
+    add_seed_arguments,
+    ensure_fake_data_allowed,
+    seed_context,
+    seed_global_random,
+)
 from content.models import WebAppDiagnostic
 from content.services import diagnostic_service
 
@@ -120,8 +126,7 @@ class Command(BaseCommand):
     help = 'Create fake WebAppDiagnostic records for local / demo use.'
 
     def add_arguments(self, parser):
-        parser.add_argument('--count', type=int, default=5,
-                            help='Number of diagnostics to create (default: 5)')
+        add_seed_arguments(parser, count_default=5)
         parser.add_argument('--with-states', action='store_true',
                             help='Walk a subset through workflow transitions')
         parser.add_argument('--with-pricing', action='store_true',
@@ -130,6 +135,9 @@ class Command(BaseCommand):
                             help='Register random view counts')
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_diagnostics')
+        self.seed_context = seed_context(options, 'diagnostics')
+        seed_global_random(self.seed_context)
         count = options['count']
         with_states = options['with_states']
         with_pricing = options['with_pricing']
@@ -149,13 +157,15 @@ class Command(BaseCommand):
                 clients.append(profile)
 
         created = 0
-        for _ in range(count):
+        for index in range(count):
             client = random.choice(clients)
             language = random.choices(['es', 'en'], weights=[80, 20])[0]
             diagnostic = diagnostic_service.create_diagnostic(
                 client=client,
                 language=language,
             )
+            diagnostic.uuid = self.seed_context.uuid(f'diagnostic-{index}')
+            diagnostic.save(update_fields=['uuid', 'updated_at'])
 
             if with_pricing:
                 currency = random.choice(['COP', 'USD'])
@@ -215,8 +225,6 @@ class Command(BaseCommand):
         """
         from datetime import timedelta
 
-        from django.utils import timezone
-
         converted_for = next(
             (c for c in clients if c.proposals.exists()), None,
         )
@@ -226,13 +234,15 @@ class Command(BaseCommand):
         diagnostic = diagnostic_service.create_diagnostic(
             client=converted_for, language='es',
         )
+        diagnostic.uuid = self.seed_context.uuid('diagnostic-converted')
+        diagnostic.save(update_fields=['uuid', 'updated_at'])
         try:
             diagnostic_service.transition_status(
                 diagnostic, WebAppDiagnostic.Status.SENT,
             )
         except ValueError:
             pass
-        anchor = timezone.now() - timedelta(days=120)
+        anchor = self.seed_context.anchor_now - timedelta(days=120)
         WebAppDiagnostic.objects.filter(pk=diagnostic.pk).update(
             created_at=anchor, initial_sent_at=anchor,
         )
