@@ -175,6 +175,14 @@ erDiagram
     DocumentStateEpisode ||--o{ DocumentNote : "may originate"
     ContractTemplate ||--o{ ProposalDocument : "used in"
 
+    UserProfile ||--o{ CommunicationThread : "owns conversations"
+    Project o|--o{ CommunicationThread : "scopes optionally"
+    CommunicationThread ||--o{ CommunicationMessage : "orders messages"
+    CommunicationMessage o|--o{ CommunicationMessage : "replies to"
+    CommunicationMessage ||--o{ CommunicationAttachment : "references"
+    Document ||--o{ CommunicationAttachment : "is used in"
+    CommunicationMessage ||--o{ CommunicationMessageDateCorrection : "audits dates"
+
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
     UserProfile ||--o{ Document : "signs (optional)"
@@ -217,6 +225,10 @@ erDiagram
 | **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document workflow and append-only audit | document/state, opened_at/closed_at, opened_by/closed_by, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
 | **DocumentFolder / DocumentTag** | Folder hierarchy plus legacy tag compatibility during rollout | name, color, parent (folder), created_by |
+| **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
+| **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
+| **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
+| **CommunicationMessageDateCorrection** | Append-only business-date correction | message, previous/corrected occurred_at, reason, corrected_by/at |
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
@@ -261,6 +273,7 @@ flowchart TD
     Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> CMS["CommunicationService"]
     Views --> CAS["CollectionAccountService"]
     Views --> PST["ProposalStageTracker"]
 
@@ -280,6 +293,8 @@ flowchart TD
     DPS -->|generate| ReportLab
     DPS -->|shared utils| PU
     DPS -->|parse markdown| MP["MarkdownParser"]
+    CMS -->|thread lifecycle, immutable delivery, audit| Models
+    CMS -->|protected references| Documents["Document"]
     ETR -->|read overrides| ETC["EmailTemplateConfig model"]
 
     HueyTasks["Huey Tasks"] --> PES
@@ -302,6 +317,7 @@ flowchart TD
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
 | **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
 | **CollectionAccountService** | Small | Collection account business logic |
 | **CollectionAccountPdfService** | Small | PDF generation for collection account documents |
@@ -421,6 +437,7 @@ flowchart TD
         DocumentsAdmin["/panel/documents"]
         DocumentCreate["/panel/documents/create"]
         DocumentEdit["/panel/documents/:id/edit"]
+        CommunicationsAdmin["/panel/communications"]
         EmailsPage["/panel/emails"]
         ViewsPage["/panel/views"]
         TasksPage["/panel/tasks (internal Kanban)"]
@@ -501,6 +518,7 @@ flowchart LR
         ContactStore["contacts.js"]
         LanguageStore["language.js"]
         DocumentStore["documents.js"]
+        CommunicationsStore["communications.js"]
         PanelAdmins["panel_admins.js"]
         PlatformAuth["platform-auth.js"]
         PlatformClients["platform-clients.js"]
@@ -526,6 +544,7 @@ flowchart LR
     ContactStore --> RequestHTTP
     DocumentStore --> RequestHTTP
     DocumentStatesStore --> RequestHTTP
+    CommunicationsStore --> RequestHTTP
     PanelAdmins --> RequestHTTP
     PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
     PlatformClients --> PlatformHTTP
@@ -798,3 +817,24 @@ and merging retires the source while keeping historical meaning and merge events
 `document_note_service` owns note linkage and only closes needs-fix after the final
 open linked observation is resolved or discarded. Client visibility is orthogonal and
 never derived from an episode.
+
+### Client Communication → Manual Send Fact → Reply Context
+
+```mermaid
+flowchart LR
+    Thread["Client thread + optional project"] --> Draft["Outgoing draft"]
+    Draft --> Copy["Operator copies/sends outside ProjectApp"]
+    Copy --> Sent["Mark sent with occurred_at"]
+    Sent --> Reply["Register incoming reply_to"]
+    Reply --> Responded["UI derives Respondido"]
+    Documents["Existing Documents"] -->|protected references| Draft
+    Sent --> Correction["Append-only date correction"]
+    Sent --> Void["Annul with reason"]
+```
+
+Phase 1 is deliberately a registry, not a transport. A manual source records the
+operator's assertion that a message was sent; it never impersonates an SMTP or
+WhatsApp delivery receipt. A later email phase must enter through
+`EmailDeliveryGateway` and atomically associate the existing `EmailLog` seam.
+Historical conversations keep their original client: when a project changes
+owner, its threads are detached from the project rather than reassigned.

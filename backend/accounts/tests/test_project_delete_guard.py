@@ -41,7 +41,10 @@ class TestForceDeleteGuard:
         assert response.status_code == 409
         assert response.data['code'] == 'project_has_records'
         assert response.data['counts'] == {
-            'hostings': 1, 'incomes': 0, 'documents': 0,
+            'hostings': 1,
+            'incomes': 0,
+            'documents': 0,
+            'communication_threads': 0,
         }
         assert type(project).objects.filter(pk=project.pk).exists()
 

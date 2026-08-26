@@ -23,6 +23,21 @@ Django check/migration SQL sin drift, build Nuxt y tres flows nuevos cubiertos. 
 refresh de fake data se negó correctamente porque este proyecto es producción; no se
 aplicó la migración ni se alteraron datos productivos.
 
+**2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
+de producto es un módulo Comunicaciones propio que reutiliza el Django app
+`content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
+`Document` en una conversación. La migración `content/0210` añade hilos,
+mensajes, referencias protegidas y correcciones de fecha; el servicio
+transaccional conserva la evidencia entregada, valida canal/dirección/respuestas
+y mantiene actividad derivada. `/panel/communications` ofrece filtros, timeline
+responsive, borradores, registro manual de enviado/recibido, Respondido derivado,
+cierre/reapertura, anulación y corrección de fecha. Clientes, Proyectos y
+Documentos enlazan al registro; al cambiar el dueño de un proyecto sus hilos
+históricos se desvinculan en vez de cambiar de cliente. Fake data y cobertura
+focal backend/unit/E2E acompañan el flujo. Envío real, plantillas/importación e
+integraciones quedan por fases en
+`docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
+
 **2026-08-25 — Notas de documentos con guardado directo desde el modal:** en
 edición, `Guardar cambios` envía un PATCH limitado a asunto, correo, WhatsApp y
 notas personalizadas, mantiene el modal abierto ante 4xx/5xx y sólo lo cierra

@@ -37,8 +37,8 @@ from accounts.services.billing_code import (
     normalize_billing_code,
 )
 from content.models import (
-    BusinessProposal, Document, DocumentFolder, EmailLog, HostingRecord,
-    IncomeRecord, WebAppDiagnostic,
+    BusinessProposal, CommunicationThread, Document, DocumentFolder, EmailLog,
+    HostingRecord, IncomeRecord, WebAppDiagnostic,
 )
 from content.serializers.accounting import (
     HostingRecordSerializer,
@@ -303,6 +303,42 @@ def _base_queryset():
                 .values('created_at')[:1],
                 output_field=DateTimeField(),
             ),
+            # Communications is a separate product module, but these three
+            # summaries make the relationship navigable from the client row.
+            communications_count=Coalesce(
+                Subquery(
+                    CommunicationThread.objects
+                    .filter(client=OuterRef('pk'))
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            open_communications_count=Coalesce(
+                Subquery(
+                    CommunicationThread.objects
+                    .filter(
+                        client=OuterRef('pk'),
+                        status=CommunicationThread.Status.OPEN,
+                    )
+                    .order_by()
+                    .values('client')
+                    .annotate(total=Count('id'))
+                    .values('total')[:1],
+                    output_field=IntegerField(),
+                ),
+                Value(0),
+            ),
+            last_communication_at=Subquery(
+                CommunicationThread.objects
+                .filter(client=OuterRef('pk'))
+                .order_by('-last_activity_at')
+                .values('last_activity_at')[:1],
+                output_field=DateTimeField(),
+            ),
         )
     )
 
@@ -356,11 +392,11 @@ def _validated_billing_fields(request_data):
 # List + search
 # ---------------------------------------------------------------------------
 
-# The orphan predicate: no proposals, projects, diagnostics, incomes or
-# hostings. Matches ``is_orphan`` and the delete guard.
+# The orphan predicate: no proposals, projects, diagnostics, incomes,
+# hostings or communication threads. Matches ``is_orphan`` and the delete guard.
 _ORPHAN_PREDICATE = {
     'proposals_count': 0, 'projects_count': 0, 'diagnostics_count': 0,
-    'incomes_count': 0, 'hostings_count': 0,
+    'incomes_count': 0, 'hostings_count': 0, 'communications_count': 0,
 }
 
 
@@ -401,7 +437,8 @@ def list_proposal_clients(request):
     Query params:
         - ``search``: case-insensitive match on email, first/last name, company.
         - ``orphans``: ``true`` returns only profiles with 0 proposals AND
-          0 projects AND 0 diagnostics AND 0 incomes AND 0 hostings
+          0 projects AND 0 diagnostics AND 0 incomes AND 0 hostings AND
+          0 communication threads
           (matches ``is_orphan`` and the delete guard). ``false`` returns
           the inverse. Omit to include all.
         - ``without_projects``: ``true`` returns only clients with zero

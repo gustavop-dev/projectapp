@@ -23,6 +23,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
 | One document status cannot describe concurrent work or preserve what already happened | User-managed cycle/signal states whose open and closed episodes form an attributable timeline |
 | The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
+| Client conversations were drafted in disposable chats and reconstructed from memory | A client/project communications registry preserves ordered incoming and outgoing messages, manual send state, date corrections and references to existing documents |
 | Company portfolio hard to maintain | Admin CRUD panel for portfolio works with bilingual content |
 | No blog for SEO/content marketing | Full blog system with structured JSON content, categories, calendar, sitemap |
 | Language barrier for international clients | i18n with prefix routing (`/en-us/`, `/es-co/`) for all public pages |
@@ -209,6 +210,31 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   localized Documents root.
   - Collection accounts keep their separate commercial lifecycle and are excluded
     from the generic state catalog and legacy-tag expansion.
+
+### 3.5.1 Client Communications Registry
+
+- **Separate product module, shared infrastructure**: communications are not a
+  `Document` subtype. They reuse client/project identities, document references,
+  session auth, panel primitives and the existing `content` Django app while
+  keeping conversation-specific models, API, store and route.
+- A client can own multiple simultaneous threads; a thread may optionally be
+  scoped to one of that client's projects.
+- A thread contains chronologically ordered messages with channel, direction,
+  occurred date, exact content and operational state. Incoming messages are
+  optional but first-class, so a reply remains readable beside its origin.
+- **State semantics**: outgoing messages are draft or sent; incoming messages are
+  received. “Respondido” is derived from a valid opposite-direction reply and
+  does not overwrite the stored send fact.
+- **Manual-channel boundary**: phase 1 records what the operator copied/sent via
+  WhatsApp or email; it does not claim that ProjectApp delivered it. Real email
+  delivery through `EmailDeliveryGateway` remains a later phase.
+- **References, never copies**: messages link existing `Document` rows through a
+  protected join. Document detail exposes reverse usage, and a referenced
+  document cannot be deleted accidentally.
+- Delivered messages are immutable: corrections create append-only dated audit
+  rows and annulments require a reason. Drafts remain editable and deletable.
+- The decision record, comparison and phased roadmap live in
+  `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 
 ### 3.6 Contract System
 
@@ -413,3 +439,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
     invented cycle classification; old tag assignments become additive episodes
     with unknown effective time, and old private note JSON becomes normalized notes
     with an unknown historical creation time.
+22. **Communication history is evidence**: changing a project's client detaches
+    its historical communication threads from the project instead of moving them
+    to the new client. Deleting clients or documents is blocked while historical
+    communication references remain.

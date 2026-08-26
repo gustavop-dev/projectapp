@@ -69,10 +69,11 @@ export function getPanelNavSections(localePath, { includeSuperuserOnly = true } 
       ],
     },
     {
-      id: 'emails',
-      label: 'Emails',
+      id: 'communications',
+      label: 'Comunicaciones',
       items: [
-        { label: 'Emails', href: lp('/panel/emails'), icon: 'mail' },
+        { label: 'Hilos con clientes', href: lp('/panel/communications'), icon: 'mail' },
+        { label: 'Enviar emails', href: lp('/panel/emails'), icon: 'send' },
       ],
     },
     {

@@ -93,6 +93,12 @@ from .credit_card_statement import (
 from .accounting_settings import AccountingSettings
 from .notification_recipient import NotificationRecipient
 from .client_email_copy_recipient import ClientEmailCopyRecipient
+from .communication import (
+    CommunicationAttachment,
+    CommunicationMessage,
+    CommunicationMessageDateCorrection,
+    CommunicationThread,
+)
 from .view_map import ViewMapSettings
 from .mcp_connector import McpConnector
 from .mcp_request_log import McpRequestLog

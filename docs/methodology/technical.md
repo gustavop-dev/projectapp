@@ -253,13 +253,34 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - `DocumentNote` is the normalized private observation model.
   `document_note_service` links it to needs-fix and refuses to auto-close the signal
   while another linked observation remains open.
-- Migration `content.0210` is deliberately non-inferential: Published maps to
+- Migration `content.0210_document_state_episodes` is deliberately non-inferential: Published maps to
   visibility, existing documents receive no invented cycle state, old tag assignments
   become additive episodes with unknown `opened_at`, and collection accounts remain
   outside this workflow.
 - The panel client uses `stores/services/request_http` through the Options-API
   `document_states.js` store. State names are suggestions only; all mutation and
   conflict enforcement remains server-owned.
+
+### Communications are a separate domain with shared infrastructure
+
+The client communications registry lives in the existing `content` Django app
+but does not reuse `Document` as its persistence shape. Four models introduced
+by migration `content.0210_communications_registry` own threads, ordered messages, protected document
+references and append-only date corrections. `communication_service.py` is the
+only write owner; DRF function-based views remain thin and staff-only.
+
+Phase 1 is transport-neutral: `source=manual` means an operator recorded the
+fact, while `source=platform_email` plus the optional one-to-one `email_log`
+field is reserved for a later `EmailDeliveryGateway` integration. “Respondido”
+is derived from a non-void reply and is not an additional mutable database
+status. Delivered/received messages are corrected or annulled, never edited.
+
+The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
+`request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
+by ID and expose reverse usage through
+`GET /api/documents/<id>/communications/`.
+
+Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
 
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login

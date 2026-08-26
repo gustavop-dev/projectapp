@@ -40,10 +40,16 @@ const PREVIEW = {
     clientless: [],
     draft_accounts: [],
     issued_accounts: [{ id: 31, title: 'CC', public_number: 'PA-KO-001', status_label: 'Issued' }],
+    communication_threads_detaching: [
+      { id: 44, title: 'Aprobación del alcance' },
+    ],
     other_documents_count: 0,
     hosting_ids: [4],
     income_ids: [8, 9],
-    totals: { move: 2, blocked: 1, clientless: 0, drafts: 0, issued: 1 },
+    communication_thread_ids: [44],
+    totals: {
+      move: 2, blocked: 1, clientless: 0, drafts: 0, issued: 1, communications: 1,
+    },
   },
 };
 
@@ -118,6 +124,8 @@ describe('ProjectChangeClientModal', () => {
       .toContain('conservan su cliente');
     expect(wrapper.find('[data-testid="project-change-client-issued"]').text())
       .toContain('no se reasignan');
+    expect(wrapper.find('[data-testid="project-change-client-communications"]').text())
+      .toContain('conservan su cliente original');
   });
 
   it('keeps the confirm disabled until a mode is explicitly chosen', async () => {
@@ -137,6 +145,7 @@ describe('ProjectChangeClientModal', () => {
         project: { id: 1 },
         moved: { hostings: 1, incomes: 1, draft_accounts: 0 },
         detached: { hostings: 0, incomes: 1, draft_accounts: 0 },
+        detached_communications: 1,
         skipped: { issued_accounts: 1, clientless: 0, other_documents: 0 },
       },
     });
@@ -158,6 +167,7 @@ describe('ProjectChangeClientModal', () => {
       mode: 'move',
       hosting_ids: [4],
       income_ids: [8, 9],
+      communication_thread_ids: [44],
     });
     expect(wrapper.emitted('changed')).toHaveLength(1);
   });

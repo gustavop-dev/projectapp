@@ -389,6 +389,23 @@ export const useDocumentStore = defineStore('documents', {
       }
     },
 
+    /** Return every communication where this document was referenced. */
+    async fetchDocumentCommunications(id) {
+      try {
+        const response = await get_request(`documents/${id}/communications/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          errors: error.response?.data,
+          ...normalizeApiError(
+            error,
+            'No se pudieron cargar las comunicaciones del documento.',
+          ),
+        };
+      }
+    },
+
     /**
      * createFromMarkdown: Create a new document from markdown content.
      * @param {object} data - Document content, presentation metadata, and the

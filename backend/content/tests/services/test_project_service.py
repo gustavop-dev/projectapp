@@ -13,6 +13,7 @@ from accounts.models import Project
 
 from content.models import (
     AccountingChangeLog,
+    CommunicationThread,
     Document,
     DocumentCollectionAccount,
     HostingRecord,
@@ -307,7 +308,17 @@ class TestDeletionBlockers:
         project = make_project(profile)
         make_hosting(profile, project)
         make_cuenta(project, status=Document.CommercialStatus.CANCELLED)
+        CommunicationThread.objects.create(
+            client=profile,
+            project=project,
+            title='Histórico del proyecto',
+        )
 
         blockers = project_service.deletion_blockers(project)
 
-        assert blockers == {'hostings': 1, 'incomes': 0, 'documents': 1}
+        assert blockers == {
+            'hostings': 1,
+            'incomes': 0,
+            'documents': 1,
+            'communication_threads': 1,
+        }
