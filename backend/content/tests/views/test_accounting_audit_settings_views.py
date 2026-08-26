@@ -205,3 +205,64 @@ class TestSettingsEndpoints:
             format='json',
         )
         assert response.status_code == 400
+
+    def test_collection_accounts_view_mode_defaults_to_grouped(self, super_client):
+        response = super_client.get('/api/accounting/settings/')
+
+        assert response.data['collection_accounts_view_mode'] == 'grouped'
+
+    def test_collection_accounts_group_by_defaults_to_client(self, super_client):
+        response = super_client.get('/api/accounting/settings/')
+
+        assert response.data['collection_accounts_group_by'] == 'client'
+
+    def test_collection_accounts_preferences_persist(self, super_client):
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {
+                'collection_accounts_view_mode': 'classic',
+                'collection_accounts_group_by': 'project',
+            },
+            format='json',
+        )
+
+        assert response.status_code == 200, response.data
+        assert response.data['collection_accounts_view_mode'] == 'classic'
+        assert response.data['collection_accounts_group_by'] == 'project'
+
+    def test_collection_accounts_preferences_use_readable_audit_labels(
+        self, super_client,
+    ):
+        super_client.patch(
+            '/api/accounting/settings/update/',
+            {
+                'collection_accounts_view_mode': 'classic',
+                'collection_accounts_group_by': 'project',
+            },
+            format='json',
+        )
+
+        log = AccountingChangeLog.objects.get(entity_type='settings')
+        changes = {change['field']: change for change in log.changes}
+        assert changes['collection_accounts_view_mode']['old'] == 'Agrupado'
+        assert changes['collection_accounts_view_mode']['new'] == 'Clásico'
+        assert changes['collection_accounts_group_by']['old'] == 'Cliente'
+        assert changes['collection_accounts_group_by']['new'] == 'Proyecto'
+
+    @pytest.mark.parametrize(
+        ('field', 'value'),
+        [
+            ('collection_accounts_view_mode', 'cards'),
+            ('collection_accounts_group_by', 'status'),
+        ],
+    )
+    def test_collection_accounts_preference_rejects_unknown_value(
+        self, super_client, field, value,
+    ):
+        response = super_client.patch(
+            '/api/accounting/settings/update/',
+            {field: value},
+            format='json',
+        )
+
+        assert response.status_code == 400

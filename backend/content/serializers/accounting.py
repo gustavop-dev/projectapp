@@ -1778,5 +1778,7 @@ class AccountingSettingsSerializer(serializers.ModelSerializer):
             'card_reminder_enabled', 'statement_reminder_enabled',
             'hosting_expiry_reminder_enabled',
             'payment_calendar_enabled', 'overdue_reminder_frequency',
-            'usd_exchange_rate', 'income_default_view_mode', 'updated_at',
+            'usd_exchange_rate', 'income_default_view_mode',
+            'collection_accounts_view_mode',
+            'collection_accounts_group_by', 'updated_at',
         )

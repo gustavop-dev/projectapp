@@ -2,6 +2,23 @@
 
 ## Current State
 
+**2026-08-26 — Cuentas de cobro agrupadas por cliente o proyecto:** el tab
+contable alterna entre la tabla clásica y una agrupación de un solo nivel con el
+mismo patrón de Ingresos. Los grupos se ordenan por saldo pendiente descendente,
+desempatan alfabéticamente y dejan Sin cliente/Sin proyecto al final. Cada
+encabezado muestra conteo, emitido, por cobrar, recaudado y anulado, además de
+borradores, emitidas, vencidas, pagadas y anuladas; vencida es un subconjunto
+temporal de emitida. Proyecto vivo, snapshot histórico y ausencia real se
+presentan por separado. El pie resume todo el conjunto filtrado. La vista y el
+criterio viven en `AccountingSettings`, se guardan inmediatamente con rollback de
+UI si falla el PATCH y también pueden editarse en Configuración. La implementación
+reutiliza `IncomeGroupedTable` mediante `AccountingGroupSummaryBand`, centraliza
+las reglas en `collectionAccounts.js` y registra el flujo
+`admin-accounting-collection-grouping`. Verificación focal: backend 8/8,
+frontend unit 16/16 + regresión de Ingresos 5/5, E2E de agrupación/persistencia y
+build Nuxt de producción verdes; sin ejecución de fake data por tratarse del host
+de producción.
+
 **2026-08-26 — Ingreso vinculado de cuentas de cobro abre en Esperados:**
 `CollectionAccountFormModal` usa un punto de partida estable por tipo de ingreso:
 al abrir o cambiar de cliente selecciona **Esperados**, conserva el alcance

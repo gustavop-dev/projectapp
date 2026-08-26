@@ -71,6 +71,28 @@ class AccountingSettings(models.Model):
         default=IncomeViewMode.GROUPED,
     )
 
+    # Global landing preferences for /panel/accounting/collections. Unlike
+    # incomes, the in-page controls persist their last confirmed value so the
+    # next visit (and every superuser/device) opens the same way.
+    class CollectionAccountsViewMode(models.TextChoices):
+        GROUPED = 'grouped', 'Agrupado'
+        CLASSIC = 'classic', 'Clásico'
+
+    class CollectionAccountsGroupBy(models.TextChoices):
+        CLIENT = 'client', 'Cliente'
+        PROJECT = 'project', 'Proyecto'
+
+    collection_accounts_view_mode = models.CharField(
+        max_length=10,
+        choices=CollectionAccountsViewMode.choices,
+        default=CollectionAccountsViewMode.GROUPED,
+    )
+    collection_accounts_group_by = models.CharField(
+        max_length=10,
+        choices=CollectionAccountsGroupBy.choices,
+        default=CollectionAccountsGroupBy.CLIENT,
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

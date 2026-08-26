@@ -1042,3 +1042,19 @@ Finally, documentation alone does not keep coverage current. Compare a declared
 seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
 test. A new model then forces its author to decide ownership and fake-data
 behavior in the same delivery instead of leaving the gap for a later cleanup.
+
+## 42. Group summaries need one semantic calculator and layout-aware reuse
+
+Grouped financial tables combine independent questions: which rows belong
+together, how money changes by lifecycle state, which status counts overlap and
+how groups are prioritized. Centralize those rules in a pure utility and let both
+group headers and the filtered footer consume its result. In particular, overdue
+can overlap issued while amount buckets remain exclusive; calculating either rule
+ad hoc in the template makes totals drift silently.
+
+Reuse the visual contract at the smallest stable boundary. Sharing the summary
+band and the grouped-table shell kept Incomes and Cuentas de cobro consistent,
+while parameterized labels and metrics preserved their different business
+semantics. Row slots could also be shared, but the classic table's absolute
+stretched link could not: layout-dependent affordances must be enabled by the
+owning view mode. A real pointer-driven E2E is what exposed that boundary.

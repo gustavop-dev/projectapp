@@ -1,0 +1,11 @@
+### FLOW: `admin-accounting-collection-grouping`
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/collections`, `/panel/accounting/settings`
+- **API:** `GET /api/accounting/settings/`, `PATCH /api/accounting/settings/update/`, `GET /api/accounting/collection-accounts/`
+- **Description:** Cuentas de cobro alterna entre la tabla clásica y una vista agrupada de un solo nivel. En **Cliente**, el encabezado responde a quién cobrarle; en **Proyecto**, separa proyectos vivos, snapshots huérfanos como “(histórico)” y el grupo real “Sin proyecto”. Cada encabezado reutiliza la banda de PA-60 (etiqueta arriba, valor abajo) para mostrar conteo, emitido, por cobrar, recaudado, anulado y el desglose Borradores/Emitidas/Vencidas/Pagadas/Anuladas; Vencidas es un subconjunto de Emitidas. Los grupos se ordenan por pendiente descendente, desempatan alfabéticamente y dejan el grupo sin asignar al final. El pie suma exactamente el conjunto filtrado.
+- **Steps:** abrir Cuentas de cobro → alternar Agrupado/Clásico → elegir Cliente/Proyecto → contrastar encabezados, orden y pie → recargar y comprobar que el par persiste. La misma preferencia se puede editar en Configuración.
+- **Branches:** un PATCH fallido revierte de inmediato al último par confirmado y muestra el error; no existe entrada libre que produzca un error de validación desde esta UI segmentada.
+- **Coverage:** ✅ Covered (display de montos/estados, cambio de criterio y grupos históricos, persistencia tras recarga, rollback de fallo del servidor, edición desde Configuración)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-ads-history-settings.spec.js`

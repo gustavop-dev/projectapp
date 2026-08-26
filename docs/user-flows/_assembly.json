@@ -201,6 +201,7 @@
         "admin-accounting-hosting-client",
         "admin-accounting-hosting-billing",
         "admin-accounting-collections",
+        "admin-accounting-collection-grouping",
         "admin-accounting-collection-detail",
         "admin-accounting-collection-create",
         "admin-accounting-hosting-cycles",
