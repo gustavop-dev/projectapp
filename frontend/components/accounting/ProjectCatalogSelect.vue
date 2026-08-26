@@ -16,6 +16,7 @@
         class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none"
         role="combobox"
         :aria-expanded="isOpen"
+        :aria-controls="isOpen ? listboxId : undefined"
         aria-autocomplete="list"
         aria-haspopup="listbox"
         @input="onInput"
@@ -38,10 +39,12 @@
       </button>
     </div>
 
-    <div
-      v-if="isOpen"
-      class="absolute z-30 mt-1 w-full bg-surface border border-border-default rounded-xl shadow-lg max-h-72 overflow-auto"
-      role="listbox"
+    <BaseFloatingListbox
+      :id="listboxId"
+      :open="isOpen"
+      :anchor="inputRef"
+      :owner="wrapperRef"
+      @close="closeDropdown"
     >
       <div v-if="store.isLoading" class="px-4 py-3 text-sm text-text-subtle text-center">
         Cargando proyectos...
@@ -74,14 +77,14 @@
       <div v-else class="px-4 py-3 text-sm text-text-muted">
         {{ term ? `Sin proyectos que coincidan con "${term}".` : 'No hay proyectos registrados.' }}
       </div>
-    </div>
+    </BaseFloatingListbox>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { onClickOutside } from '@vueuse/core';
+import { computed, ref, useId, watch } from 'vue';
 import { MagnifyingGlassIcon } from '@heroicons/vue/24/outline';
+import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import { usePanelProjectsStore } from '~/stores/panel_projects';
 import { normalizeName } from '~/utils/clientMatch';
 
@@ -106,6 +109,7 @@ const store = usePanelProjectsStore();
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
+const listboxId = `${useId()}-listbox`;
 const isOpen = ref(false);
 const inputText = ref('');
 const highlightIndex = ref(-1);
@@ -199,5 +203,4 @@ function onEnter() {
   }
 }
 
-onClickOutside(wrapperRef, closeDropdown);
 </script>

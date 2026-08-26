@@ -23,6 +23,7 @@
         @keydown.esc.prevent="closeDropdown"
         role="combobox"
         :aria-expanded="isOpen"
+        :aria-controls="isOpen ? listboxId : undefined"
         aria-autocomplete="list"
         aria-haspopup="listbox"
       />
@@ -49,10 +50,12 @@
     </p>
 
     <!-- Dropdown -->
-    <div
-      v-if="isOpen"
-      class="absolute z-30 mt-1 w-full bg-surface border border-border-default rounded-xl shadow-lg max-h-72 overflow-auto"
-      role="listbox"
+    <BaseFloatingListbox
+      :id="listboxId"
+      :open="isOpen"
+      :anchor="inputRef"
+      :owner="wrapperRef"
+      @close="closeDropdown"
     >
       <!-- Loading -->
       <div
@@ -125,16 +128,17 @@
       <div v-else class="px-4 py-3 text-sm text-text-subtle text-center">
         Escribe al menos 1 caracter para buscar
       </div>
-    </div>
+    </BaseFloatingListbox>
   </div>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { useDebounceFn, onClickOutside } from '@vueuse/core';
+import { ref, useId, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline';
+import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 
 /**
@@ -171,6 +175,7 @@ const clientsStore = useProposalClientsStore();
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
+const listboxId = `${useId()}-listbox`;
 const inputText = ref(props.initialLabel || '');
 // El nombre del cliente que está REALMENTE enlazado, separado de lo que se
 // teclea encima: es lo que se restaura al cerrar sin elegir y lo que nombra el
@@ -331,6 +336,4 @@ watch(
   },
 );
 
-// Click-outside to close — onClickOutside auto-removes the listener on unmount.
-onClickOutside(wrapperRef, closeDropdown);
 </script>

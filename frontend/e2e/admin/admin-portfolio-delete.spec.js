@@ -63,7 +63,7 @@ test.describe('Admin Portfolio Delete', () => {
     await row.getByRole('button', { name: 'Acciones' }).click();
     await row.getByRole('menuitem', { name: 'Eliminar' }).click();
 
-    const modal = page.locator('.fixed.inset-0');
+    const modal = page.getByRole('dialog', { name: 'Eliminar trabajo' });
     await expect(modal).toBeVisible();
     await expect(modal.getByText('Proyecto a Borrar')).toBeVisible();
 

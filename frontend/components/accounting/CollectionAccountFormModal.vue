@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { onClickOutside, useDebounceFn } from '@vueuse/core';
+import { computed, ref, useId, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
+import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
@@ -70,6 +71,8 @@ const incomeOpen = ref(false);
 const searchingIncomes = ref(false);
 const showIncomeForm = ref(false);
 const incomeBoxRef = ref(null);
+const incomeInputRef = ref(null);
+const incomeListboxId = `${useId()}-income-listbox`;
 
 /**
  * Quick filters, applied client-side.
@@ -81,8 +84,9 @@ const incomeBoxRef = ref(null);
  * If the eligible set ever reaches the thousands, the counts move to the
  * endpoint's `meta` and this goes back to being server-side.
  */
+const DEFAULT_INCOME_KIND = 'expected';
 const incomeScope = ref('all'); // 'client' | 'all'
-const incomeKind = ref('all'); // 'all' | 'expected' | 'liquid'
+const incomeKind = ref(DEFAULT_INCOME_KIND); // 'all' | 'expected' | 'liquid'
 
 /** Rows rendered per group; the rest are announced, never dropped in silence. */
 const INCOME_GROUP_LIMIT = 25;
@@ -159,7 +163,7 @@ watch(
     incomeQuery.value = '';
     incomeOptions.value = [];
     incomeScope.value = 'all';
-    incomeKind.value = 'all';
+    incomeKind.value = DEFAULT_INCOME_KIND;
     incomeFetched = false;
     if (props.income) {
       applyIncome(props.income);
@@ -234,7 +238,9 @@ async function loadIncomes(query) {
 watch(clientId, (id) => {
   if (!props.open) return;
   incomeScope.value = id ? 'client' : 'all';
-  incomeKind.value = 'all';
+  // A cuenta normally bills money that is still expected. Reset to that
+  // stable starting point instead of remembering the previous client's cut.
+  incomeKind.value = DEFAULT_INCOME_KIND;
 });
 
 const debouncedIncomeSearch = useDebounceFn(
@@ -257,12 +263,6 @@ function onIncomeFocus() {
   // would shrink the set the chip counts describe.
   if (!incomeFetched) loadIncomes(incomeQuery.value.trim());
 }
-
-// The list is the only thing that closes on its own today (picking a row), so
-// once it also renders on zero results it needs a way out that is not a pick.
-onClickOutside(incomeBoxRef, () => {
-  incomeOpen.value = false;
-});
 
 // ── Quick filters: alcance × estado ──
 
@@ -429,6 +429,33 @@ const incomeEmptyMessage = computed(() => {
     ? `${selectedClientName.value} no tiene ${INCOME_KIND_PHRASE[incomeKind.value]}.`
     : `No hay ${INCOME_KIND_PHRASE[incomeKind.value]} registrados.`;
 });
+
+/**
+ * One-click escape from an empty combination.
+ *
+ * Prefer removing the kind cut while keeping the selected client. Only when
+ * that client has no eligible income at all do we fall back to widening the
+ * scope, preserving the existing route to unassigned and other-client rows.
+ */
+const incomeEmptyAction = computed(() => {
+  if (incomeKind.value !== 'all' && kindCounts.value.all > 0) {
+    return { dimension: 'kind', count: kindCounts.value.all };
+  }
+  if (effectiveIncomeScope.value === 'client' && scopeCounts.value.all > 0) {
+    return { dimension: 'scope', count: scopeCounts.value.all };
+  }
+  return null;
+});
+
+function widenEmptyIncomeResults() {
+  if (incomeEmptyAction.value?.dimension === 'kind') {
+    setIncomeKind('all');
+    return;
+  }
+  if (incomeEmptyAction.value?.dimension === 'scope') {
+    setIncomeScope('all');
+  }
+}
 
 function pickIncome(option) {
   if (option.has_collection_account) return;
@@ -1036,6 +1063,7 @@ function downloadPdf() {
           </p>
           <div class="relative">
             <input
+              ref="incomeInputRef"
               v-model="incomeQuery"
               type="text"
               role="combobox"
@@ -1043,6 +1071,7 @@ function downloadPdf() {
               aria-autocomplete="list"
               aria-haspopup="listbox"
               :aria-expanded="incomeOpen"
+              :aria-controls="incomeOpen ? incomeListboxId : undefined"
               placeholder="Buscar ingreso por concepto..."
               data-testid="collection-form-income"
               :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE.md]"
@@ -1050,10 +1079,13 @@ function downloadPdf() {
               @focus="onIncomeFocus"
               @keydown.esc.prevent="incomeOpen = false"
             >
-            <ul
-              v-if="incomeOpen"
-              class="absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border-default bg-surface shadow-lg"
-              role="listbox"
+            <BaseFloatingListbox
+              :id="incomeListboxId"
+              as="ul"
+              :open="incomeOpen"
+              :anchor="incomeInputRef"
+              :owner="incomeBoxRef"
+              @close="incomeOpen = false"
             >
               <li v-if="searchingIncomes" class="px-3 py-2 text-sm text-text-subtle">
                 Buscando...
@@ -1067,13 +1099,13 @@ function downloadPdf() {
               >
                 {{ incomeEmptyMessage }}
                 <button
-                  v-if="effectiveIncomeScope === 'client' && scopeCounts.all"
+                  v-if="incomeEmptyAction"
                   type="button"
                   class="underline text-text-brand"
                   data-testid="collection-form-income-see-all"
-                  @mousedown.prevent="setIncomeScope('all')"
+                  @click="widenEmptyIncomeResults"
                 >
-                  Ver todos ({{ scopeCounts.all }})
+                  Ver todos ({{ incomeEmptyAction.count }})
                 </button>
               </li>
               <template v-for="group in incomeGroups" :key="group.key">
@@ -1131,7 +1163,7 @@ function downloadPdf() {
                   Mostrando {{ group.rows.length }} de {{ group.total }} · escribe para filtrar
                 </li>
               </template>
-            </ul>
+            </BaseFloatingListbox>
             <p
               v-if="incomeClientConflict"
               class="text-xs text-warning-strong mt-1"

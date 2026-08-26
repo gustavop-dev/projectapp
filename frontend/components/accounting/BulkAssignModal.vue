@@ -6,8 +6,11 @@
     title-id="bulk-assign-title"
     @close="emit('close')"
   >
-    <div :data-testid="`${testidPrefix}-bulk-assign-modal`">
-      <div class="px-6 pt-6 pb-2">
+    <div
+      class="flex h-full min-h-0 flex-col panel-portrait:min-h-[min(36rem,calc(90dvh-2rem))]"
+      :data-testid="`${testidPrefix}-bulk-assign-modal`"
+    >
+      <div class="shrink-0 px-6 pt-6 pb-2">
         <h3 id="bulk-assign-title" class="text-lg font-bold text-text-default">
           {{ isClient ? 'Asignar cliente' : 'Asignar proyecto' }}
         </h3>
@@ -19,12 +22,9 @@
         </p>
       </div>
 
-      <!--
-        El buscador va ARRIBA del plan: su listbox es `absolute` y el panel del
-        modal recorta con `overflow-y-auto`, así que desplegándose hacia abajo
-        cae sobre el plan y nunca contra el borde.
-      -->
-      <div class="px-6 py-4 space-y-4">
+      <!-- El listbox flota fuera del panel: esta zona conserva sitio para el
+           alcance y no compite con el desplegable por el scroll del modal. -->
+      <div class="min-h-0 flex-1 px-6 py-4 space-y-4">
         <ClientAutocomplete
           v-if="isClient"
           v-model="clientId"
@@ -59,7 +59,7 @@
         barra antes del menú — un botón apagado sin razón visible es un
         callejón sin salida — sólo que ahora vive pegada al botón que gobierna.
       -->
-      <div class="px-6 pb-6 pt-2 flex items-center justify-between gap-3">
+      <div class="flex shrink-0 items-center justify-between gap-3 px-6 pb-6 pt-2">
         <p
           :id="`${testidPrefix}-bulk-hint`"
           class="flex items-center gap-1.5 text-xs text-text-muted min-w-0"

@@ -16,6 +16,28 @@ falten. Verificación: 29 Jest focales, dos escenarios Playwright reales, build
 Nuxt, flow-map fresco y el flow P1 `admin-accounting-collection-create` cubierto
 en display/failure/error/success. Inventario: `docs/audits/disabled-controls-2026-08-26.md`.
 
+**2026-08-26 — Ingreso vinculado de cuentas de cobro abre en Esperados:**
+`CollectionAccountFormModal` usa un punto de partida estable por tipo de ingreso:
+al abrir o cambiar de cliente selecciona **Esperados**, conserva el alcance
+**Del cliente** y sigue incluyendo esperados con pagos parciales porque no usa
+`payment_status` para el recorte. El operador puede cambiar a Todos o Líquidos;
+si el resultado esperado del cliente queda vacío, **Ver todos** amplía primero
+el tipo sin perder el cliente y sólo amplía el alcance cuando ese cliente no
+tiene ningún ingreso elegible. No se persiste la última elección y no cambió la
+API ni el esquema.
+
+**2026-08-26 — Resultados buscables de modales sin recorte:** `BaseModal`
+expone un root flotante fuera de su panel desplazable y `BaseFloatingListbox`
+teleporta allí los resultados, conserva el foco dentro del diálogo, cierra por
+Escape/click exterior, se limita al viewport y gira arriba cuando corresponde.
+Los selectores compartidos de cliente, proyecto, catálogo de proyectos e ingreso
+vinculado ya usan ese contrato en Contable y Documentos. `BulkAssignModal` crece
+con el contenido hasta un máximo del viewport: en escritorio muestra cinco
+resultados completos y los cuatro registros afectados sin desplazar el modal;
+si sobran resultados, sólo se desplaza la lista; en pantalla angosta conserva el
+modo full-screen de PA-45. Verificación: unidades focales verdes, cinco flujos
+Playwright afectados verdes y asignación masiva verde en los cinco viewports.
+
 **2026-08-26 — Contención transversal de texto y títulos de Documentos:** el
 panel dejó de depender de espacios para contener datos. `tableLayout.js` define
 `wrap`/`truncate`/`atomic`; `BaseResponsiveTable` y `BaseExploratoryList` aplican

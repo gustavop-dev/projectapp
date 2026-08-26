@@ -356,6 +356,7 @@ Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to super
 - **Dashboard & charts** per year; **exports** to CSV/XLSX per section and a full-year multi-sheet workbook.
 - **Card-debt reminder**: a weekly Huey task emails the partners every Friday cycle until a card snapshot dated on/after that Friday is registered (re-alerts every 2 days).
 - **Income lifecycle** (2026-07-16, #110): incomes carry a kind — *expected* (projection), *liquid* (actually received; a liquidation modal links the settled record to the projection it fulfills via an `expected_income` FK), or *lost* (write-off excluded from projections). The incomes view reports received-% and lost totals; expenses expose a paid/pending state. Liquidation defaults its destination to the ProjectApp pocket, with an optional exact-payment-date toggle (#114); income/expense `period_date` accepts a full date besides YYYY-MM.
+- **Collection-account linked income** (2026-08-26): the selector opens on the chosen client's *expected* incomes and resets to that stable default on every open and client change. This is a reversible kind filter, not a restriction: *all* and *liquid* remain selectable. Kind—not payment status—defines the default, so a partially paid expected income remains eligible. An empty result offers a one-click expansion to all kinds while retaining client scope, then to global scope only when that client has no eligible income; the last choice is not remembered.
 - **Pocket as entry point** (#103): pocket movements sync bidirectionally with income/expense records. A pocket egreso attributed to a partner mirrors a **company-ledger expense 100% assigned to that partner** — every pocket draw reduces company liquid utility and the partner's participation, never the personal ledger (#114).
 - **Display standards** (#115/#116): emails format COP with the millions apostrophe (`format_cop_email`) while the app uses dot grouping; all dates render as "Jue, 16 jul 2026" (abbreviated Spanish weekday + short month) via the backend Bogotá helpers and the frontend `utils/formatDate.js`.
 - **Credit-card catalog & statements** (#105/#106): registered cards with quota (debt computed server-side as quota − available), monthly statements with editable transactions + PDF and an 8-day reminder, plus summary cards for card debt and current-month expected income.
@@ -500,3 +501,10 @@ The canonical counts, commands and exceptions are maintained in
     its historical communication threads from the project instead of moving them
     to the new client. Deleting clients or documents is blocked while historical
     communication references remain.
+23. **Searchable selectors inside modals**: result lists belong to a floating
+    layer owned by the modal, not to its scrollable panel. On desktop the picker
+    exposes at least five complete options and only a long result list scrolls;
+    the modal remains still and grows with its review content up to its viewport
+    limit. On narrow screens the modal follows the shared full-screen contract.
+    A bulk action must show the affected count and record identities before its
+    confirmation without requiring the operator to scroll the modal.

@@ -167,6 +167,7 @@ prefer the bare class without `/N`.
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`; contains and wraps unbroken labels by default |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
+| `BaseFloatingListbox` | `open`, `anchor`, `owner`, `id`, `as`, `maxHeight`, `offset`, `viewportPadding` — portal de listbox que iguala el ancho del control, se voltea al lado con espacio y evita que un modal lo recorte |
 | `BaseModalActions` | Responsive footer: full-width stacked actions below 640 px, right-aligned row above it |
 | `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `disabledReason`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
 | `BaseCheckbox`  | `modelValue`, `value`, `disabled`, `disabledReason` — label via default slot |
