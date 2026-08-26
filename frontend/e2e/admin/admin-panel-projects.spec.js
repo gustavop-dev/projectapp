@@ -12,6 +12,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PANEL_PROJECTS } from '../helpers/flow-tags.js';
+import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
 
 test.setTimeout(60_000);
 
@@ -258,7 +259,12 @@ function buildHandler({ calls, createStatus = 201, projects = PROJECT_ROWS, meta
 
 async function gotoProjects(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('link', { name: 'Proyectos', exact: true }).click();
+  if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+  }
+  const link = page.getByRole('link', { name: 'Proyectos', exact: true });
+  await expect(link).toBeVisible({ timeout: 25_000 });
+  await link.click();
   await expect(
     page.getByRole('heading', { name: 'Proyectos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
