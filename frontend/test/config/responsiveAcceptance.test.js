@@ -44,6 +44,17 @@ describe('responsive acceptance registry', () => {
     expect(responsiveOwnerForView('admin-panel', view)).toBe('communications');
   });
 
+  it('assigns the project state catalog to the projects module', () => {
+    const view = {
+      file: 'frontend/pages/panel/projects/statuses.vue',
+      url: '/panel/projects/statuses',
+      audience: 'admin',
+    };
+
+    expect(modulesForChangedFiles([view.file])).toEqual(['projects']);
+    expect(responsiveOwnerForView('admin-panel', view)).toBe('projects');
+  });
+
   it('runs every module for a shared primitive', () => {
     expect(modulesForChangedFiles(['frontend/components/base/BaseModal.vue'])).toEqual(
       RESPONSIVE_MODULE_NAMES,
