@@ -86,7 +86,9 @@ describe('DocumentCard', () => {
     const metadata = wrapper.get('[data-testid="document-card-title-meta-7"]')
     const folder = wrapper.get('[data-testid="document-card-folder-badge-7"]')
 
-    expect(title.classes()).toContain('[overflow-wrap:anywhere]')
+    expect(title.classes()).toEqual(expect.arrayContaining([
+      'w-full', 'min-w-0', 'max-w-full', 'truncate',
+    ]))
     expect(title.element.compareDocumentPosition(metadata.element) & Node.DOCUMENT_POSITION_FOLLOWING)
       .toBeTruthy()
     expect(folder.classes()).toContain('[overflow-wrap:anywhere]')
