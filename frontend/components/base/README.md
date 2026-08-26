@@ -163,7 +163,7 @@ prefer the bare class without `/N`.
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
 | `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
-| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
+| `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`; contains and wraps unbroken labels by default |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
 | `BaseFloatingListbox` | `open`, `anchor`, `owner`, `id`, `as`, `maxHeight`, `offset`, `viewportPadding` — portal de listbox que iguala el ancho del control, se voltea al lado con espacio y evita que un modal lo recorte |
@@ -181,8 +181,8 @@ prefer the bare class without `/N`.
 | `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
 | `BaseResizeHandle` | Accessible vertical separator shared by panels and tables: pointer capture, Arrow/Home/End keyboard control and double-click reset |
 | `BaseOverflowText` | `text`, `to`, `lines` (1/2), `stretch`, `expandable`, `testId`, `contentClasses`; measures real clipping, adds the full native hint only on overflow and exposes an in-place touch disclosure |
-| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
-| `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` |
+| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; `textPolicy` is `wrap`/`truncate`/`atomic`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
+| `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` and may opt into the same `textPolicy` contract |
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
 | `BaseEmptyState` | `title`, `description`. Icon via `#icon`, custom body via default, CTA via `#actions` |
@@ -269,6 +269,26 @@ const columns = [
 - A table with no `responsive` declarations keeps the legacy horizontal-scroll
   behavior. A mixed declaration warns in development; partial automatic
   decisions are forbidden.
+
+Every data-owned string also has an explicit containment policy. The default is
+`wrap`: the inner value receives `min-w-0`, a bounded width and
+`overflow-wrap:anywhere`, so an identifier without spaces cannot enlarge its
+grid or table track. Use `truncate` only when the complete value is available
+through a disclosure, tooltip or detail view. `atomic` is for bounded values
+such as dates, money and percentages; it is inferred for those formats.
+
+```js
+const columns = [
+  { key: 'name', label: 'Nombre' }, // wrap — safe default
+  { key: 'reference', label: 'Referencia', textPolicy: 'truncate' },
+  { key: 'amount', label: 'Total', format: 'money' }, // atomic
+]
+```
+
+`break-words` alone is not the contract: it can leave a large intrinsic minimum
+for strings without break opportunities. Custom slots and page-local flex/grid
+wrappers must preserve `min-w-0` and `max-w-full`; badges and secondary metadata
+belong on their own wrapping row when they would otherwise compete with a title.
 
 Resizable tables opt in at the table contract, never with a page-local drag
 handler. Every column declares `columnWidth`; the resizable track sets

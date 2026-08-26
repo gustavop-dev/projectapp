@@ -123,7 +123,7 @@
 
         <!-- Send button -->
         <div class="flex flex-col items-stretch gap-3 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
-          <p v-if="sendError" class="break-words text-xs text-danger-strong">{{ sendError }}</p>
+          <p v-if="sendError" class="min-w-0 max-w-full text-xs text-danger-strong [overflow-wrap:anywhere]">{{ sendError }}</p>
           <span v-else />
           <BaseButton variant="primary" size="sm" class="panel-portrait:ml-auto" :disabled="!canSend" :loading="sending" @click="handleSend">
             <BaseActionIcon v-if="!sending" action="send" />
@@ -137,7 +137,7 @@
         <!-- Subject badge -->
         <div class="mb-4 flex min-w-0 flex-col gap-1 rounded-lg bg-surface-muted px-3 py-2 text-xs text-text-muted panel-portrait:flex-row panel-portrait:items-center panel-portrait:gap-2">
           <span class="font-medium text-text-default">Asunto:</span>
-          <span class="min-w-0 break-words">{{ subject || '(sin asunto)' }}</span>
+          <span class="min-w-0 max-w-full [overflow-wrap:anywhere]">{{ subject || '(sin asunto)' }}</span>
         </div>
 
         <!-- Server-rendered preview: the real branded template (emails/branded_email.html) -->
@@ -235,7 +235,7 @@
             class="flex w-full min-w-0 items-center gap-3 px-3 py-3 text-left transition-colors hover:bg-surface-muted sm:px-4">
             <div class="flex-1 min-w-0">
               <div class="flex min-w-0 flex-wrap items-center gap-2">
-                <span class="min-w-0 break-words text-xs font-medium text-text-default">{{ entry.subject }}</span>
+                <span class="min-w-0 max-w-full text-xs font-medium text-text-default [overflow-wrap:anywhere]">{{ entry.subject }}</span>
                 <span class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium"
                   :class="{
                     'bg-primary-soft text-text-brand ': entry.status === 'sent' || entry.status === 'delivered',
@@ -264,7 +264,7 @@
                 class="bg-surface rounded-lg px-3 py-2 mb-1.5 border border-border-muted ">
                 <span v-if="sectionIsMarkdown(section)"
                   class="inline-block mb-1 px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-[9px] font-medium uppercase tracking-wide">MD</span>
-                <p class="text-xs text-text-default whitespace-pre-wrap">{{ sectionText(section) }}</p>
+                <p class="min-w-0 max-w-full whitespace-pre-wrap text-xs text-text-default [overflow-wrap:anywhere]">{{ sectionText(section) }}</p>
               </div>
             </div>
             <div v-if="entry.metadata?.footer">
@@ -275,7 +275,7 @@
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Adjuntos</p>
               <div class="flex flex-wrap gap-1">
                 <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
-                  class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-[11px] text-text-muted">
+                  class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded border border-border-default bg-surface px-2 py-0.5 text-[11px] text-text-muted [overflow-wrap:anywhere]">
                   &#128206; {{ name }}
                 </span>
               </div>
@@ -294,7 +294,7 @@
                       {{ statusLabel(copy.status) }}
                     </span>
                   </div>
-                  <p v-if="copy.error_message" class="mt-1 text-[10px] text-danger-strong">{{ copy.error_message }}</p>
+                  <p v-if="copy.error_message" class="mt-1 min-w-0 max-w-full text-[10px] text-danger-strong [overflow-wrap:anywhere]">{{ copy.error_message }}</p>
                 </div>
               </div>
             </div>

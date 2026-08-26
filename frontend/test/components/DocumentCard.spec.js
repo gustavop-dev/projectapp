@@ -54,6 +54,12 @@ const baseDocument = {
   ],
 }
 
+const longNamedDocument = {
+  ...baseDocument,
+  title: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+  folder_name: 'Respuesta_Etapa_3_Inventario',
+}
+
 async function mountCard(props = {}) {
   const wrapper = mount(DocumentCard, {
     props: { document: baseDocument, editTo: '/panel/documents/7/edit', ...props },
@@ -72,6 +78,20 @@ describe('DocumentCard', () => {
     expect(wrapper.text()).toContain('ACME Corp')
     expect(wrapper.html()).toContain('markdown-preview--mini')
     expect(wrapper.text()).toContain('Alcance con')
+  })
+
+  it('puts a contained folder badge below an unbroken title', async () => {
+    const wrapper = await mountCard({ document: longNamedDocument })
+    const title = wrapper.get('[data-testid="document-card-open-7"]')
+    const metadata = wrapper.get('[data-testid="document-card-title-meta-7"]')
+    const folder = wrapper.get('[data-testid="document-card-folder-badge-7"]')
+
+    expect(title.classes()).toEqual(expect.arrayContaining([
+      'w-full', 'min-w-0', 'max-w-full', 'truncate',
+    ]))
+    expect(title.element.compareDocumentPosition(metadata.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy()
+    expect(folder.classes()).toContain('[overflow-wrap:anywhere]')
   })
 
   it('renders the title as a link to the edit page', async () => {

@@ -103,7 +103,7 @@
                   :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
                   class="text-text-subtle"
                 />
-                <span class="truncate">{{ group.name }}</span>
+                <span class="min-w-0 max-w-full truncate" :title="group.name">{{ group.name }}</span>
                 <span
                   v-if="group.id === NO_CLIENT_KEY"
                   class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong whitespace-nowrap"

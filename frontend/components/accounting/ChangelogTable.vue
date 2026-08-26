@@ -29,18 +29,18 @@
             </td>
             <td data-field="actor" :class="[cell(1), 'text-text-default']">
               <span class="history-mobile-label panel-landscape:hidden">Usuario</span>
-              {{ entry.actor_username || 'Sistema' }}
+              <span :class="resolved[1].contentClass">{{ entry.actor_username || 'Sistema' }}</span>
             </td>
             <td data-field="entity" :class="[cell(2), 'text-text-muted']">
               <span class="history-mobile-label panel-landscape:hidden">Entidad</span>
-              {{ entry.entity_type_label }}
+              <span :class="resolved[2].contentClass">{{ entry.entity_type_label }}</span>
             </td>
             <td data-field="record" :class="[cell(3), 'min-w-0 text-text-default font-medium']">
-              <span class="break-words">{{ entry.object_repr }}</span>
+              <span :class="resolved[3].contentClass">{{ entry.object_repr }}</span>
             </td>
             <td data-field="action" :class="cell(4)">
               <span
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
                 :class="actionClass(entry.action)"
               >
                 {{ entry.action_label }}
@@ -63,7 +63,7 @@
                 <li
                   v-for="(change, idx) in entry.changes"
                   :key="`${entry.id}-${change.field || idx}`"
-                  class="text-xs text-text-muted"
+                  class="text-xs text-text-muted [overflow-wrap:anywhere]"
                 >
                   <span class="font-medium text-text-default">{{ change.label }}:</span>
                   {{ changeText(entry.action, change) }}

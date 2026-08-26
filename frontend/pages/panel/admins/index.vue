@@ -55,23 +55,26 @@
         :key="admin.user_id"
         class="bg-surface rounded-xl shadow-sm border border-border-muted px-5 py-4 flex flex-wrap items-center justify-between gap-3"
       >
-        <div class="flex items-center gap-4">
+        <div class="flex min-w-0 flex-1 items-center gap-4">
           <!-- Avatar -->
           <div class="w-10 h-10 rounded-full bg-primary-soft flex items-center justify-center flex-shrink-0">
             <span class="text-text-brand font-bold text-sm">{{ initials(admin.first_name, admin.last_name) }}</span>
           </div>
-          <div>
-            <p class="text-sm font-semibold text-text-default">
+          <div class="min-w-0 max-w-full">
+            <p
+              class="min-w-0 max-w-full text-sm font-semibold text-text-default [overflow-wrap:anywhere]"
+              :title="`${admin.first_name} ${admin.last_name}`.trim()"
+            >
               {{ admin.first_name }} {{ admin.last_name }}
             </p>
-            <p class="text-xs text-text-subtle mt-0.5">{{ admin.email }}</p>
+            <p class="mt-0.5 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]" :title="admin.email">{{ admin.email }}</p>
           </div>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
           <!-- Status pill -->
           <span
-            class="text-xs px-2.5 py-1 rounded-full font-medium"
+            class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
             :class="statusClass(admin)"
           >
             {{ statusLabel(admin) }}

@@ -282,13 +282,14 @@
               stretch
               :data-testid="`income-open-${row.id}`"
               class="block truncate hover:text-text-brand transition-colors"
+              :title="row.concept"
             >
               <HighlightText :text="row.concept" :query="currentFilters.search" />
             </BaseRowLink>
           </template>
           <template #cell-kind_label="{ row }">
             <span
-              class="text-xs px-2.5 py-1 rounded-full font-medium"
+              class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
               :class="KIND_BADGE_CLASSES[row.kind] || KIND_BADGE_CLASSES.expected"
             >
               {{ row.kind_label }}

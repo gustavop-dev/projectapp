@@ -74,8 +74,8 @@
             table-min-width="64rem"
           >
             <template #cell-name_es="{ row: pkg }">
-              <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand">{{ pkg.name_es }}</NuxtLink>
-              <p class="mt-0.5 break-words text-xs text-text-subtle">{{ pkg.name_en }} · Orden {{ pkg.order }}</p>
+              <NuxtLink :to="localePath(`/panel/hour-packages/${pkg.id}/edit`)" class="block min-w-0 max-w-full text-sm font-medium leading-tight text-text-default [overflow-wrap:anywhere] transition-colors hover:text-text-brand">{{ pkg.name_es }}</NuxtLink>
+              <p class="mt-0.5 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">{{ pkg.name_en }} · Orden {{ pkg.order }}</p>
             </template>
             <template #cell-hours="{ row: pkg }">{{ pkg.hours }} h</template>
             <template #cell-hourly_rate="{ row: pkg }">{{ formatMoney(pkg.hourly_rate, pkg.currency) }}/h</template>

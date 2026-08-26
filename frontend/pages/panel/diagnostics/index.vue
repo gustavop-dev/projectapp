@@ -181,7 +181,7 @@
           <BaseRowLink
             :to="diagnosticHref(diagnostic.id)"
             :data-testid="responsiveProfile ? undefined : `diagnostic-open-${diagnostic.id}`"
-            class="block break-words text-sm text-text-default transition-colors hover:text-text-brand"
+            class="block min-w-0 max-w-full text-sm text-text-default [overflow-wrap:anywhere] transition-colors hover:text-text-brand"
             :title="diagnostic.title"
             @click.stop
           >{{ diagnostic.title }}</BaseRowLink>

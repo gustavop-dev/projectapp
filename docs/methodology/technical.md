@@ -402,7 +402,19 @@ confirmed by the operator or another integration.
 - **Pinia in-place mutation** — store helpers that update nested arrays must mutate in place by index (`this.currentProposal.sections[idx] = response.data`), never spread + reassign the parent. Components reading via `computed(() => store.currentProposal)` don't reliably pick up the spread+reassign combination but DO pick up in-place index assignments. See `_mergeProjectStage` / `updateSection` / `applySync` / `reorderSections` in `frontend/stores/proposals.js`.
 - **One responsive DOM branch** — use a viewport composable for structural swaps (`v-if` drawer/cards vs table/two-zone layout) and Tailwind for local reflow. Never render desktop and compact action controls simultaneously behind CSS; duplicated controls confuse focus order, accessible names and E2E selectors.
 - **Touch parity** — row actions use a 44 px minimum target and bottom action drawer; any drag/hover behavior must have an explicit click path. Client proposal/diagnostic reassignment and document folder operations are the reference implementations.
-- **Measured overflow and table widths** — use `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure; consumer classes may style typography but must not override its display/clamp state. Resizable tables declare `columnWidth` for every track and a stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`. Fixed tracks never donate; ordered flexible tracks reach their minima before internal table scroll.
+- **Measured overflow, intrinsic containment and table widths** — use
+  `BaseOverflowText` for clipped-only native hints plus in-place touch disclosure;
+  consumer classes may style typography but must not override its display/clamp
+  state. `frontend/utils/tableLayout.js` assigns every value `wrap`, `truncate` or
+  `atomic`: user/API strings default to `min-w-0` + bounded width +
+  `overflow-wrap:anywhere`, truncation requires another full-value path, and only
+  bounded money/date/number fields stay nowrap. `BaseResponsiveTable` and
+  `BaseExploratoryList` apply that policy to table, grouped-detail and card
+  representations. Resizable tables declare `columnWidth` for every track and a
+  stable `columnWidthsKey`, then delegate pointer/keyboard/reset behavior to
+  `BaseResizeHandle` and allocation/persistence to `useResizableTableColumns`.
+  Fixed tracks never donate; ordered flexible tracks reach their minima before
+  internal table scroll.
 - **Composables** — 70 composables for shared logic (`useExpirationTimer`, `useProposalNavigation`, `useProposalTracking`, `useSectionAnimations`, `usePlatformApi`, `usePlatformSidebar`, `usePlatformTheme`, `useMarkdownPreview`, `usePlatformCustomTheme`, `useTechnicalPrompt`, `useSellerPrompt`, `usePlatformIncludeArchived`, `useFreeResources`, `useProposalFilters`, `useAccountingFilters`, `useResizableTableColumns`, `usePanelViewportProfile`, etc.)
 - **Component architecture** — 377 `.vue` components (387 files) under `frontend/components/`; admin-only proposal components live under `components/BusinessProposal/admin/` (e.g., `ProjectScheduleEditor.vue`, `ProposalEmailsTab.vue`, `ProposalDocumentsTab.vue`); quick-access micro-components under `components/platform/access/` (`CopyField.vue`, `UrlRow.vue`)
 - **GSAP animations** — horizontal scroll with ScrollTrigger for proposal client view, reveal animations for marketing pages

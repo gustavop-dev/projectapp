@@ -32,7 +32,7 @@
       </draggable>
 
       <div v-for="([name, groupTasks, groupOffset]) in groupedTasks" :key="name">
-        <div class="text-[10px] font-semibold uppercase tracking-wide text-text-subtle px-1 mb-1">
+        <div class="min-w-0 max-w-full px-1 mb-1 text-[10px] font-semibold uppercase tracking-wide text-text-subtle [overflow-wrap:anywhere]">
           {{ name }}
         </div>
         <draggable

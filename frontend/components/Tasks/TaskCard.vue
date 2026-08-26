@@ -3,38 +3,48 @@
     class="group bg-surface border border-border-default rounded-lg p-3 shadow-card hover:shadow-raised cursor-pointer transition-all"
     data-testid="task-card"
   >
-    <div class="flex items-start justify-between gap-2 mb-2">
-      <h3 class="text-sm font-medium text-text-default line-clamp-2 flex-1">
-        {{ task.title }}
-      </h3>
+    <h3
+      class="line-clamp-2 min-w-0 max-w-full text-sm font-medium text-text-default [overflow-wrap:anywhere]"
+      :title="task.title"
+    >
+      {{ task.title }}
+    </h3>
+
+    <div
+      class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-2 text-[11px] text-text-muted"
+      data-testid="task-card-meta"
+    >
       <span
-        class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide flex-shrink-0"
+        class="inline-flex min-w-0 max-w-full flex-wrap items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide [overflow-wrap:anywhere]"
         :class="priorityBadgeClass"
       >
         {{ priorityLabel }}
       </span>
-    </div>
 
-    <p
-      v-if="task.description"
-      class="text-xs text-text-muted line-clamp-2 mb-2"
-    >
-      {{ task.description }}
-    </p>
-
-    <div class="flex items-center justify-between text-[11px] text-text-muted">
-      <span v-if="task.assignee_name" class="truncate" :title="task.assignee_email || ''">
+      <span
+        v-if="task.assignee_name"
+        class="min-w-0 max-w-full truncate"
+        :title="task.assignee_email || task.assignee_name"
+      >
         👤 {{ task.assignee_name }}
       </span>
       <span v-else class="text-text-subtle">Unassigned</span>
 
       <span
         v-if="task.due_date"
+        class="whitespace-nowrap"
         :class="task.is_overdue ? 'text-danger-strong font-semibold' : ''"
       >
         📅 {{ formatDayMonth(task.due_date) }}
       </span>
     </div>
+
+    <p
+      v-if="task.description"
+      class="mt-2 line-clamp-2 min-w-0 max-w-full text-xs text-text-muted [overflow-wrap:anywhere]"
+    >
+      {{ task.description }}
+    </p>
   </div>
 </template>
 
