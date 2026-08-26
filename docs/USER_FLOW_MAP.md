@@ -6037,6 +6037,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
+| `admin-document-observation-delete` | admin | P1 | display,success,failure | 1 |
 | `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
 | `admin-document-pdf-preview` | admin | P2 | display | 1 |
 | `admin-document-rename` | admin | P2 | success,failure | 1 |
@@ -6983,7 +6984,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/statuses`
 - **API:** `/api/document-state-groups/`, `/api/document-states/`, `/api/document-states/:id/merge/`, `/api/document-states/:id/retire/`
 - **Descripción:** El catálogo compartido separa grupos exclusivos —el ciclo— de grupos aditivos —las señales—. Muestra cuántos documentos tienen cada estado vigente y cuántos episodios históricos existen. El usuario puede crear grupos y estados, cambiar nombre, color, orden, grupo e incompatibilidades, fusionar duplicados y retirar valores que ya no se usan. Las semillas son editables, pero conservan su clave interna para presets e integraciones.
-- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → guardar → reutilizarlo desde cualquier documento.
+- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → confirmar nombres similares, fusiones o retiros dentro del panel → guardar → reutilizarlo desde cualquier documento.
 - **Ramas:**
   - [Display] Ciclo y Señales muestran sus semillas y conteos.
   - [Success] Crear, editar y fusionar refresca el catálogo global.
@@ -7000,8 +7001,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/:id/edit`
 - **API:** `/api/documents/:id/state-episodes/`, `/api/documents/:id/state-history/`, `/api/documents/:id/notes/`
 - **Descripción:** Un documento conserva un episodio por cada período en que tuvo un estado. El ciclo admite uno vigente y puede avanzar o volver; las señales se suman. Abrir, cerrar, quitar, corregir la fecha efectiva y repetir un estado dejan movimientos con fecha/hora y autor. **Cerrar** registra que el trabajo terminó; **quitar** registra que la marca no aplicaba. El historial muestra fecha exacta, tiempo relativo, duración, nota de cierre, autor y observaciones enlazadas.
-- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar con una nota → consultar la línea de tiempo.
-- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver la última observación enlazada ofrece cerrar la señal y mover el ciclo a **Bug atendido**; descartarla ofrece quitar la señal.
+- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar desde un modal propio con nota opcional → consultar la línea de tiempo.
+- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver o descartar la última observación pendiente cierra o quita automáticamente la señal enlazada; eliminar y restaurar se cubren en `admin-document-observation-delete`.
 - **Ramas:**
   - [Display] El encabezado y el historial muestran episodios vigentes e históricos con duración y atribución.
   - [Success] Cambiar el ciclo cierra el episodio anterior; las señales permanecen concurrentes.
@@ -7025,6 +7026,25 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Failure] Un fallo conserva un aviso persistente con opción de reintento.
 - **Cobertura:** ✅ display/success/failure.
 - **E2E:** `e2e/admin/admin-document-state-workflow.spec.js`
+
+### FLOW: `admin-document-observation-delete`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P1
+- **Ruta:** `/panel/documents/:id/edit`
+- **API:** `/api/documents/:id/notes/`, `/api/documents/:id/notes/bulk-delete/`, `/api/documents/:id/notes/:note_id/restore/`, `/api/documents/:id/notes/events/`
+- **Descripción:** **Descartar** conserva una observación real y el motivo por el que no se atendió. **Eliminar** limpia una prueba, duplicado o error: la observación desaparece de la lista y de los conteos, pero queda recuperable en la papelera. La confirmación muestra el contenido completo y recuerda que una copia enviada por correo o mensaje no se borra fuera del sistema. La actividad conserva solamente quién eliminó o restauró y cuándo, sin duplicar el contenido.
+- **Recorrido:** abrir un documento → abrir **Notas** → elegir una observación de cualquier estado → **Eliminar** → revisar contenido y advertencia → confirmar → revisar la papelera o restaurar. Para limpieza, seleccionar varias y confirmar una sola operación atómica.
+- **Coherencia:** si la última observación pendiente de un episodio originado por observaciones se elimina, **Solucionar bug** deja de estar activo. Restaurarla reabre o reutiliza el estado compatible; un conflicto cancela toda la restauración.
+- **Ramas:**
+  - [Display] Cancelar conserva la observación; la confirmación explica eliminación, recuperación y copias externas.
+  - [Display] La actividad identifica actor y fecha sin mostrar el contenido eliminado.
+  - [Success] Eliminar la última pendiente limpia la señal originada por observaciones.
+  - [Success] El borrado masivo envía una sola selección atómica y la restauración devuelve una observación desde la papelera.
+  - [Failure] Un fallo mantiene la confirmación y el contenido visibles para reintentar o cancelar.
+- **Cobertura:** ✅ display/success/failure.
+- **E2E:** `e2e/admin/admin-document-observation-delete.spec.js`
 
 
 ## Unsectioned flows

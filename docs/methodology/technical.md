@@ -216,6 +216,24 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
 
+### Panel-owned dialogs and observation deletion
+
+- Browser-native `window.alert`, `window.confirm` and `window.prompt` are not UI
+  primitives. Panel flows use `BaseModal`, `ConfirmModal` or an inline actionable
+  error; `npm run check:panel-native-dialogs` scans `pages/panel` and
+  `components/panel`, and CI runs it independently of the affected-flow selector.
+- `DocumentNote` soft deletion uses nullable `deleted_at`/`deleted_by`; ordinary
+  document, episode and history reads filter deleted rows. `DocumentNoteEvent`
+  stores `deleted`/`restored`, actor, timestamp and structural details only.
+- All removal paths call `document_note_service.delete_notes()` under one
+  transaction and document/note locks. `DELETE .../notes/:id/` is the single-row
+  facade; `POST .../notes/bulk-delete/` accepts 1–100 unique IDs from one document.
+  Trash, restore and activity use `?scope=deleted`, `.../:id/restore/` and
+  `.../notes/events/` respectively.
+- The Documents MCP mirrors the lifecycle with `delete_document_notes`,
+  `list_deleted_document_notes` and `restore_document_note`; its catalog now has
+  17 tools. It reuses the service rather than reproducing workflow rules.
+
 ### Static payload and collection policy
 
 - Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.
@@ -602,3 +620,9 @@ projectapp/
     a clipped container. The primitive owns viewport clamping, above/below
     placement, outside-click and Escape behavior, list scrolling and modal focus
     containment.
+11. **Panel flows never use browser-native dialogs** — confirmation and text input
+    stay inside application-owned modal primitives; errors remain inline or in the
+    panel notification system. The static guard is mandatory in CI.
+12. **Deleted observations are recoverable but inactive** — every active queryset,
+    count and prefetched episode filters `deleted_at IS NULL`; restoration must pass
+    state compatibility in the same transaction before clearing the tombstone.
