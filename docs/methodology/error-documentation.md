@@ -45,6 +45,15 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-026] A display utility disabled two-line clipping in document cards
+- **Date**: 2026-08-25
+- **Context**: The desktop document row exposed the conditional full-title control, but the same long title in the portrait-tablet card never showed **Ver completo**.
+- **Root Cause**: The card passed Tailwind's `block` utility into the same link that `BaseOverflowText` marked `line-clamp-2`. The competing display rule disabled WebKit line clamping, so the title expanded naturally and the overflow measurement correctly reported no clipping.
+- **Resolution**: Make `BaseOverflowText` the sole owner of display state: collapsed content applies the clamp, expanded content applies `block`, and consumers provide typography only.
+- **Files Affected**: `frontend/components/base/BaseOverflowText.vue`, `frontend/components/panel/documents/DocumentCard.vue`.
+- **Verification**: The five-case Playwright flow passed the clipped-only desktop hint, compact in-place expansion, drag persistence, fixed tracks and double-click reset; focused component tests remain green.
+- **Lesson**: A clipping primitive must own every CSS property that establishes clipping. Consumer typography classes cannot include competing display or overflow utilities.
+
 ### [ERR-025] A Playwright run reused another worktree's Nuxt server
 
 - **Symptom**: every communications E2E case timed out on the page heading and

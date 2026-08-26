@@ -48,7 +48,16 @@ function mountTable(props = {}) {
   })
 }
 
+const resizableColumns = columns.map((column, index) => ({
+  ...column,
+  columnWidth: index === 0
+    ? { min: 160, default: 240, max: 400, resizable: true }
+    : { min: 96, default: 96, max: 96, fixed: true },
+}))
+
 describe('BaseResponsiveTable', () => {
+  beforeEach(() => window.localStorage.clear())
+
   it('keeps, groups and hides compact columns from each explicit policy', () => {
     const wrapper = mountTable()
     const headers = wrapper.findAll('th')
@@ -152,5 +161,42 @@ describe('BaseResponsiveTable', () => {
 
     expect(wrapper.get('[data-testid="accounting-select-1"]').attributes('aria-label'))
       .toBe('Seleccionar Proyecto Aurora')
+  })
+
+  it('renders an opt-in column resize separator', () => {
+    const wrapper = mountTable({
+      columns: resizableColumns,
+      columnWidthsKey: 'test-table-widths',
+    })
+
+    const handle = wrapper.get('[data-testid="accounting-resize-name"]')
+    expect(handle.attributes('role')).toBe('separator')
+    expect(handle.attributes('aria-valuenow')).toBe('240')
+  })
+
+  it('persists a keyboard column resize', async () => {
+    const wrapper = mountTable({
+      columns: resizableColumns,
+      columnWidthsKey: 'test-table-widths',
+    })
+
+    await wrapper.get('[data-testid="accounting-resize-name"]')
+      .trigger('keydown', { key: 'ArrowRight' })
+
+    expect(window.localStorage.getItem('test-table-widths')).toBe('{"name":256}')
+  })
+
+  it('clears the preference on reset', async () => {
+    window.localStorage.setItem('test-table-widths', '{"name":320}')
+    const wrapper = mountTable({
+      columns: resizableColumns,
+      columnWidthsKey: 'test-table-widths',
+    })
+
+    const handle = wrapper.get('[data-testid="accounting-resize-name"]')
+    await handle.trigger('dblclick')
+
+    expect(handle.attributes('aria-valuenow')).toBe('240')
+    expect(window.localStorage.getItem('test-table-widths')).toBeNull()
   })
 })

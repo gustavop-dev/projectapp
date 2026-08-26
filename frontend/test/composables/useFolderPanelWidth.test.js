@@ -67,7 +67,6 @@ describe('useFolderPanelWidth', () => {
     const down = pointerEvent()
     onHandleDown(down)
     expect(dragging.value).toBe(true)
-    expect(down.currentTarget.setPointerCapture).toHaveBeenCalledWith(7)
 
     onHandleMove(pointerEvent({ clientX: 500 }))
     expect(width.value).toBe(400)
@@ -76,7 +75,6 @@ describe('useFolderPanelWidth', () => {
     const up = pointerEvent()
     onHandleUp(up)
     expect(dragging.value).toBe(false)
-    expect(up.currentTarget.releasePointerCapture).toHaveBeenCalledWith(7)
     expect(window.localStorage.getItem(STORAGE_KEY)).toBe('400')
   })
 

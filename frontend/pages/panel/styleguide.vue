@@ -48,28 +48,33 @@ const responsiveTableColumns = [
     label: 'Proyecto',
     size: 'name',
     responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+    columnWidth: { min: 176, default: 240, max: 400, resizable: true },
   },
   {
     key: 'owner',
     label: 'Responsable',
     responsive: { compact: 'group', portrait: 'keep', landscape: 'keep' },
+    columnWidth: { min: 128, default: 160, max: 240, shrinkPriority: 2, fillPriority: 2 },
   },
   {
     key: 'amount',
     label: 'Valor',
     format: 'money',
     responsive: { compact: 'group', portrait: 'group', landscape: 'keep' },
+    columnWidth: { min: 144, default: 144, max: 144, fixed: true },
   },
   {
     key: 'updated',
     label: 'Actualizado',
     format: 'date',
     responsive: { compact: 'hide', portrait: 'hide', landscape: 'hide' },
+    columnWidth: { min: 112, default: 128, max: 176, shrinkPriority: 1, fillPriority: 1 },
   },
   {
     key: 'status',
     label: 'Estado',
     responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+    columnWidth: { min: 112, default: 112, max: 640, shrinkPriority: 3, fillPriority: 3 },
   },
 ]
 
@@ -454,7 +459,8 @@ const shadowScale = [
         <div class="border-b border-border-muted px-4 py-3 panel-portrait:px-6">
           <h3 class="text-sm font-semibold text-text-default">Tabla con prioridad declarada</h3>
           <p class="mt-1 text-xs text-text-muted">
-            Proyecto y estado se conservan; responsable/valor se agrupan; actualizado se oculta hasta desktop.
+            Proyecto se ajusta desde su borde y se recuerda; doble clic restablece. Estado se conserva,
+            responsable/valor se agrupan y actualizado se oculta hasta desktop.
           </p>
         </div>
         <div class="p-3 panel-portrait:p-4">
@@ -462,6 +468,7 @@ const shadowScale = [
             :columns="responsiveTableColumns"
             :rows="responsiveTableRows"
             :show-actions="false"
+            column-widths-key="projectapp-table-widths:styleguide-responsive-table"
           />
         </div>
       </BaseCard>

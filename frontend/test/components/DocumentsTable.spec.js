@@ -306,3 +306,60 @@ describe('DocumentsTable — fila de carpeta', () => {
     expect(wrapper.emitted('select-folder')).toEqual([[activeFolder.id]]);
   });
 });
+
+describe('DocumentsTable — title column', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 });
+  });
+
+  it('renders the title on two lines before clipping', () => {
+    const wrapper = mountTable({ editToFor });
+
+    expect(wrapper.get('[data-testid="document-open-1"]').classes()).toContain('line-clamp-2');
+  });
+
+  it('publishes the title resize separator', () => {
+    const wrapper = mountTable({ editToFor });
+
+    const handle = wrapper.get('[data-testid="documents-title-resize-handle"]');
+    expect(handle.attributes('role')).toBe('separator');
+    expect(handle.attributes('aria-valuenow')).toBe('320');
+  });
+
+  it('keeps the status column fixed', () => {
+    const wrapper = mountTable({ editToFor });
+
+    expect(wrapper.findAll('th')[4].element.style.width).toBe('112px');
+  });
+
+  it('keeps the actions column fixed', () => {
+    const wrapper = mountTable({ editToFor });
+
+    expect(wrapper.findAll('th')[6].element.style.width).toBe('80px');
+  });
+
+  it('persists a keyboard title resize', async () => {
+    const wrapper = mountTable({ editToFor });
+
+    await wrapper.get('[data-testid="documents-title-resize-handle"]')
+      .trigger('keydown', { key: 'ArrowRight' });
+
+    expect(window.localStorage.getItem('projectapp-table-widths:documents-list'))
+      .toBe('{"title":336}');
+  });
+
+  it('forgets the title width on reset', async () => {
+    window.localStorage.setItem(
+      'projectapp-table-widths:documents-list',
+      '{"title":400}',
+    );
+    const wrapper = mountTable({ editToFor });
+
+    const handle = wrapper.get('[data-testid="documents-title-resize-handle"]');
+    await handle.trigger('dblclick');
+
+    expect(handle.attributes('aria-valuenow')).toBe('320');
+    expect(window.localStorage.getItem('projectapp-table-widths:documents-list')).toBeNull();
+  });
+});
