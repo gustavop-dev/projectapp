@@ -39,6 +39,7 @@ from content.api_errors import error_response
 from content.models import (
     AccountingChangeLog,
     Document,
+    DocumentState,
     HostingRecord,
     IncomeRecord,
 )
@@ -137,7 +138,11 @@ def _annotated_queryset():
     """Projects with the counts the listing shows, ordered for the table."""
     return (
         Project.objects
-        .select_related('client__profile')
+        .select_related(
+            'client__profile',
+            'current_state__group',
+            'hosting_subscription',
+        )
         .annotate(
             hostings_count=_count_for(HostingRecord),
             incomes_count=_count_for(IncomeRecord),
@@ -231,12 +236,36 @@ def list_panel_projects(request):
 
     total = Project.objects.count()
     archived = Project.objects.filter(status=Project.STATUS_ARCHIVED).count()
+    state_counts = {
+        row['current_state_id']: row['total']
+        for row in Project.objects.exclude(current_state__isnull=True)
+        .values('current_state_id')
+        .annotate(total=Count('id'))
+    }
+    catalog = DocumentState.objects.filter(
+        catalog='projects',
+        is_active=True,
+        merged_into__isnull=True,
+    ).select_related('group').order_by('group__order', 'order', 'name')
     return Response({
         'results': PanelProjectSerializer(qs, many=True).data,
         'meta': {
             'total': total,
             'active': total - archived,
             'archived': archived,
+            'by_state': [
+                {
+                    'state_id': state.pk,
+                    'name': state.name,
+                    'color': state.color,
+                    'operational_effect': state.operational_effect,
+                    'count': state_counts.get(state.pk, 0),
+                }
+                for state in catalog
+            ],
+            'review_required': Project.objects.filter(
+                state_review_required=True,
+            ).count(),
             'clients_without_projects': _clients_without_projects_count(),
             'records_without_project': _records_without_project_count(),
         },
@@ -251,7 +280,10 @@ def _annotated_row(project_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_panel_project(request):
-    serializer = CreatePanelProjectSerializer(data=request.data)
+    serializer = CreatePanelProjectSerializer(
+        data=request.data,
+        context={'request': request},
+    )
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     project = serializer.save()
@@ -274,12 +306,11 @@ def update_panel_project(request, project_id):
             'El cliente de un proyecto no se puede cambiar desde el panel.',
             code='client_immutable',
         )
-    if project.status == Project.STATUS_ARCHIVED:
-        # Documents precedent: an archived row is out of circulation.
+    if 'status' in request.data or 'state_id' in request.data:
         return error_response(
-            'Restaura el proyecto para editarlo.',
-            code='project_archived',
-            hint='Usa Restaurar en la pestaña Archivados.',
+            'Cambia el estado desde el selector para revisar sus consecuencias.',
+            code='project_state_transition_required',
+            hint='Usa Cambiar estado en las acciones del proyecto.',
         )
     serializer = UpdatePanelProjectSerializer(
         project, data=request.data, partial=True,
@@ -297,47 +328,39 @@ def update_panel_project(request, project_id):
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def archive_panel_project(request, project_id):
-    """Archive, never delete (PA-29): the accounting FKs stay in place and
-    the row just leaves the active scope."""
-    project = get_object_or_404(Project, pk=project_id)
-    if project.status == Project.STATUS_ARCHIVED:
-        return error_response(
-            'El proyecto ya está archivado.', code='already_archived',
-        )
-    snapshot = project_service.project_snapshot(project)
-    project.status = Project.STATUS_ARCHIVED
-    project.save(update_fields=['status', 'updated_at'])
-    project_service.log_project_event(
-        project, project_service.Action.UPDATED, snapshot, request.user,
+    return error_response(
+        'Archivado fue reemplazado por el ciclo administrable del proyecto.',
+        code='project_archive_replaced',
+        hint='Usa Cambiar estado y elige Dado de baja si corresponde.',
+        status=status.HTTP_410_GONE,
     )
-    return Response(_annotated_row(project.pk))
 
 
 @api_view(['PATCH'])
 @permission_classes([IsAdminUser])
 def unarchive_panel_project(request, project_id):
-    """Back to circulation — always to ``active``: the pre-archive status is
-    not recorded (v1 trade-off, documented in the module plan)."""
-    project = get_object_or_404(Project, pk=project_id)
-    if project.status != Project.STATUS_ARCHIVED:
-        return error_response(
-            'El proyecto no está archivado.', code='not_archived',
-        )
-    snapshot = project_service.project_snapshot(project)
-    project.status = Project.STATUS_ACTIVE
-    project.save(update_fields=['status', 'updated_at'])
-    project_service.log_project_event(
-        project, project_service.Action.UPDATED, snapshot, request.user,
+    return error_response(
+        'Restaurar fue reemplazado por una transición con histórico.',
+        code='project_archive_replaced',
+        hint='Usa Cambiar estado y elige el estado real del proyecto.',
+        status=status.HTTP_410_GONE,
     )
-    return Response(_annotated_row(project.pk))
 
 
 def _archived_assign_error():
     return error_response(
-        'Restaura el proyecto para asignarle registros.',
-        code='project_archived',
-        hint='Usa Restaurar en la pestaña Archivados.',
+        'El proyecto está en un estado terminal y no recibe registros nuevos.',
+        code='project_terminal',
+        hint='Cámbialo a un estado operativo antes de asignar registros.',
     )
+
+
+def _project_is_terminal(project):
+    state = getattr(project, 'current_state', None)
+    return bool(state and state.operational_effect in (
+        DocumentState.OperationalEffect.COMPLETED,
+        DocumentState.OperationalEffect.DECOMMISSIONED,
+    ))
 
 
 def _unlinked_payload(project):
@@ -389,7 +412,7 @@ def list_project_unlinked_records(request, project_id):
     receives these ids back, so nothing is ever assigned sight unseen.
     """
     project = get_object_or_404(Project, pk=project_id)
-    if project.status == Project.STATUS_ARCHIVED:
+    if _project_is_terminal(project):
         return _archived_assign_error()
     return Response(_unlinked_payload(project))
 
@@ -407,7 +430,7 @@ def assign_project_unlinked_records(request, project_id):
     plan — the same contract as the accounting bulk-assign.
     """
     project = get_object_or_404(Project, pk=project_id)
-    if project.status == Project.STATUS_ARCHIVED:
+    if _project_is_terminal(project):
         return _archived_assign_error()
 
     serializer = ProjectAssignUnlinkedSerializer(data=request.data)
@@ -511,11 +534,11 @@ def assign_project_unlinked_records(request, project_id):
     })
 
 
-def _archived_change_client_error():
+def _terminal_change_client_error():
     return error_response(
-        'Restaura el proyecto para cambiarle el cliente.',
-        code='project_archived',
-        hint='Usa Restaurar en la pestaña Archivados.',
+        'Un proyecto cerrado no puede cambiar de cliente.',
+        code='project_terminal',
+        hint='Confirma primero un estado operativo y vuelve a intentar.',
     )
 
 
@@ -550,8 +573,8 @@ def preview_project_client_change(request, project_id):
     an active cuenta) — before choosing a mode.
     """
     project = get_object_or_404(Project, pk=project_id)
-    if project.status == Project.STATUS_ARCHIVED:
-        return _archived_change_client_error()
+    if _project_is_terminal(project):
+        return _terminal_change_client_error()
     profile, error = _resolve_target_profile(
         project, request.query_params.get('client_profile_id'),
     )
@@ -573,8 +596,8 @@ def change_project_client(request, project_id):
     so its atomic block never opens on a stale preview).
     """
     project = get_object_or_404(Project, pk=project_id)
-    if project.status == Project.STATUS_ARCHIVED:
-        return _archived_change_client_error()
+    if _project_is_terminal(project):
+        return _terminal_change_client_error()
 
     serializer = ProjectChangeClientSerializer(data=request.data)
     if not serializer.is_valid():

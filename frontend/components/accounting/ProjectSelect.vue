@@ -286,8 +286,11 @@ function maybeAutoSelect() {
   // por el operador.
   if (!props.clientProfileId) return;
   if (props.modelValue != null) return;
-  const actives = projects.value.filter((p) => p.status === 'active');
-  if (actives.length === 1) selectProject(actives[0]);
+  const available = projects.value.filter((project) => ![
+    'completed',
+    'decommissioned',
+  ].includes(project.current_state?.operational_effect));
+  if (available.length === 1) selectProject(available[0]);
 }
 
 function syncInputToSelection() {

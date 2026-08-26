@@ -114,11 +114,14 @@ const term = computed(() => inputText.value.trim());
 
 const catalog = computed(() => {
   const records = store.records ?? [];
-  // Actives first, alphabetical inside each group: archived projects stay
-  // reachable (historical rows point at them) but never on top.
+  // Operational projects first; closed projects remain reachable because
+  // historical accounting rows can still point at them.
   return [...records].sort((a, b) => {
-    const activeDelta = (a.status === 'active' ? 0 : 1) - (b.status === 'active' ? 0 : 1);
-    return activeDelta !== 0 ? activeDelta : a.name.localeCompare(b.name);
+    const isClosed = (project) => ['completed', 'decommissioned'].includes(
+      project.current_state?.operational_effect,
+    );
+    const closedDelta = Number(isClosed(a)) - Number(isClosed(b));
+    return closedDelta !== 0 ? closedDelta : a.name.localeCompare(b.name);
   });
 });
 

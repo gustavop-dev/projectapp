@@ -110,13 +110,18 @@ def collect_income_notices(today, config):
             reminders_muted=False,
             period_date__lte=today + _days(FIRST_NOTICE_DAYS),
         )
+        .exclude(
+            project__current_state__operational_effect__in=(
+                'suspended', 'completed', 'decommissioned',
+            ),
+        )
         .annotate(paid_amount=accounting_service.paid_amount_subquery())
         # Mirrors the 'paid' branch of the income list filter in
         # views/accounting.py, which mirrors payment_status_for: keep the three
         # in sync. A partial payment deliberately keeps notifying — the balance
         # is still owed — and the digest shows what is left, not the gross.
         .exclude(paid_amount__gte=F('total_amount'))
-        .select_related('client')
+        .select_related('client', 'project__current_state')
     )
 
     items = []

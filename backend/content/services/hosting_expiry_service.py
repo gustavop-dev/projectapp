@@ -51,6 +51,10 @@ def collect_hosting_notices(today):
         is_active=True,
         valid_to__isnull=False,
         billing_requested_at__isnull=True,
+    ).exclude(
+        project__current_state__operational_effect__in=(
+            'suspended', 'completed', 'decommissioned',
+        ),
     )
     items = []
     for record in candidates:

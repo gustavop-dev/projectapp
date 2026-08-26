@@ -760,7 +760,9 @@ def project_list_view(request):
 
     if request.method == 'GET':
         if profile and profile.is_admin:
-            qs = Project.objects.select_related('client', 'client__profile').all()
+            qs = Project.objects.select_related(
+                'client', 'client__profile', 'current_state',
+            ).all()
             client_filter = request.query_params.get('client')
             if client_filter:
                 qs = qs.filter(client_id=client_filter)
@@ -768,9 +770,9 @@ def project_list_view(request):
             if status_filter:
                 qs = qs.filter(status=status_filter)
         else:
-            qs = Project.objects.select_related('client', 'client__profile').filter(
-                client=request.user,
-            )
+            qs = Project.objects.select_related(
+                'client', 'client__profile', 'current_state',
+            ).filter(client=request.user)
         serializer = ProjectListSerializer(qs, many=True, context={'request': request})
         return Response(serializer.data)
 
@@ -800,7 +802,7 @@ def project_list_view(request):
         name=data['name'],
         description=data.get('description', ''),
         client_id=data['client_id'],
-        status=data.get('status', Project.STATUS_ACTIVE),
+        status=data.get('status', Project.STATUS_DEVELOPMENT),
         progress=data.get('progress', 0),
         start_date=data.get('start_date'),
         estimated_end_date=data.get('estimated_end_date'),
@@ -858,13 +860,15 @@ def project_detail_view(request, project_id):
     """
     GET    — Admin or owning client can view.
     PATCH  — Admin only.
-    DELETE — Admin only (archives the project).
+    DELETE — Deprecated: lifecycle transitions replace archive/delete.
     """
     profile = getattr(request.user, 'profile', None)
     is_admin = profile and profile.is_admin
 
     try:
-        project = Project.objects.select_related('client', 'client__profile').get(id=project_id)
+        project = Project.objects.select_related(
+            'client', 'client__profile', 'current_state',
+        ).get(id=project_id)
     except Project.DoesNotExist:
         return Response({'detail': 'Proyecto no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -884,33 +888,19 @@ def project_detail_view(request, project_id):
     from content.services import project_service
 
     if request.method == 'DELETE':
-        force = str(request.query_params.get('force', '')).lower() in ('1', 'true', 'yes')
-        if force:
-            # A hard delete SET_NULLs every accounting/document FK in
-            # silence — the exact blanking the coherence rules exist to
-            # stop. Reassign or detach first; PA-29 says archive otherwise.
-            blockers = project_service.deletion_blockers(project)
-            if any(blockers.values()):
-                return error_response(
-                    'El proyecto tiene registros contables o documentos vinculados.',
-                    code='project_has_records',
-                    hint='Archívalo, o reasigna/desvincula sus registros antes de eliminarlo.',
-                    status=status.HTTP_409_CONFLICT,
-                    errors={'counts': blockers},
-                )
-            snapshot = project_service.project_snapshot(project)
-            project_service.log_project_event(
-                project, project_service.Action.DELETED, snapshot, request.user,
-            )
-            project.delete()
-            return Response({'detail': 'Proyecto eliminado.'})
-        snapshot = project_service.project_snapshot(project)
-        project.status = Project.STATUS_ARCHIVED
-        project.save(update_fields=['status', 'updated_at'])
-        project_service.log_project_event(
-            project, project_service.Action.UPDATED, snapshot, request.user,
+        return error_response(
+            'Archivado fue reemplazado por el ciclo administrable del proyecto.',
+            code='project_archive_replaced',
+            hint='Usa Cambiar estado en la ficha comercial del proyecto.',
+            status=status.HTTP_410_GONE,
         )
-        return Response({'detail': 'Proyecto archivado.'})
+
+    if 'status' in request.data or 'state_id' in request.data:
+        return error_response(
+            'El estado requiere una vista previa de sus consecuencias.',
+            code='project_state_transition_required',
+            hint='Usa el flujo Cambiar estado en el panel.',
+        )
 
     serializer = UpdateProjectSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -919,7 +909,7 @@ def project_detail_view(request, project_id):
     snapshot = project_service.project_snapshot(project)
     update_fields = ['updated_at']
     simple_fields = (
-        'name', 'description', 'status', 'progress',
+        'name', 'description', 'progress',
         'start_date', 'estimated_end_date',
         'production_url', 'staging_url', 'admin_url', 'repository_url',
         'admin_username',
@@ -949,8 +939,11 @@ def project_access_list_view(request):
     from accounts.services.credential_cipher import decrypt_password
 
     qs = (
-        Project.objects.select_related('client', 'client__profile')
+        Project.objects.select_related(
+            'client', 'client__profile', 'current_state',
+        )
         .exclude(status=Project.STATUS_ARCHIVED)
+        .exclude(current_state__operational_effect='decommissioned')
         .order_by('name')
     )
 
@@ -962,7 +955,13 @@ def project_access_list_view(request):
         data.append({
             'id': p.id,
             'name': p.name,
-            'status': p.status,
+            'status': (
+                p.current_state.system_key or p.current_state.slug
+                if p.current_state else None
+            ),
+            'status_label': (
+                p.current_state.name if p.current_state else 'Sin clasificar'
+            ),
             'client_id': client.id,
             'client_name': client_name,
             'client_email': client.email,

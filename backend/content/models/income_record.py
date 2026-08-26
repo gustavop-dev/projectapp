@@ -23,6 +23,7 @@ class IncomeRecord(PartnerSplitMixin, AccountingRecordBase):
         EXPECTED = 'expected', 'Esperado'
         LIQUID = 'liquid', 'Líquido'
         LOST = 'lost', 'Perdido'
+        CANCELLED = 'cancelled', 'Cancelado'
 
     class Destination(models.TextChoices):
         PARTNERS = 'partners', 'Socios'

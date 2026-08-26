@@ -837,7 +837,9 @@ def list_client_projects(request):
     """
     from accounts.services.proposal_client_service import build_client_display_name
 
-    qs = Project.objects.select_related('client__profile').order_by('name')
+    qs = Project.objects.select_related(
+        'client__profile', 'current_state',
+    ).order_by('name')
     client_profile_id = request.query_params.get('client')
     if client_profile_id:
         # The picker is scoped by UserProfile, the project by User.
@@ -852,8 +854,19 @@ def list_client_projects(request):
         results.append({
             'id': project.pk,
             'name': project.name,
-            'status': project.status,
+            'status': (
+                project.current_state.system_key or project.current_state.slug
+                if project.current_state else None
+            ),
             'status_label': project.status_display,
+            'current_state': None if project.current_state is None else {
+                'id': project.current_state_id,
+                'name': project.current_state.name,
+                'color': project.current_state.color,
+                'operational_effect': (
+                    project.current_state.operational_effect
+                ),
+            },
             'client_profile_id': profile.id if profile else None,
             'client_display_name': (
                 build_client_display_name(profile) if profile else None
