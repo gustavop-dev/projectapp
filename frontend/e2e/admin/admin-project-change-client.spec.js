@@ -46,10 +46,14 @@ const PREVIEW = {
   issued_accounts: [{
     id: 61, title: 'CC Vastago', public_number: 'PA-PE-001', status_label: 'Issued',
   }],
+  communication_threads_detaching: [],
   other_documents_count: 0,
   hosting_ids: [21],
   income_ids: [31, 32],
-  totals: { move: 2, blocked: 1, clientless: 0, drafts: 0, issued: 1 },
+  communication_thread_ids: [],
+  totals: {
+    move: 2, blocked: 1, clientless: 0, drafts: 0, issued: 1, communications: 0,
+  },
 };
 
 function projectRow(overrides = {}) {
@@ -100,6 +104,7 @@ function buildHandler({ state, calls }) {
           }),
           moved: { hostings: 1, incomes: 1, draft_accounts: 0 },
           detached: { hostings: 0, incomes: 1, draft_accounts: 0 },
+          detached_communications: 0,
           skipped: { issued_accounts: 1, clientless: 0, other_documents: 0 },
         }),
       };
@@ -190,6 +195,7 @@ test.describe('Admin Projects — guided change-client cascade', () => {
       mode: 'move',
       hosting_ids: [21],
       income_ids: [31, 32],
+      communication_thread_ids: [],
     });
   });
 });

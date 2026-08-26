@@ -3,6 +3,7 @@ import json
 import logging
 
 from django.contrib.auth import get_user_model
+from django.db.models.deletion import ProtectedError
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -445,7 +446,19 @@ def delete_document(request, document_id):
             # way to say "this cuenta is not deletable".
             return error_response(str(exc))
         return Response(status=status.HTTP_204_NO_CONTENT)
-    document.delete()
+    try:
+        document.delete()
+    except ProtectedError:
+        return Response(
+            {
+                'detail': (
+                    'Este documento está referenciado en una comunicación. '
+                    'Retira la referencia antes de eliminarlo.'
+                ),
+                'code': 'document_used_in_communication',
+            },
+            status=status.HTTP_409_CONFLICT,
+        )
     return Response(status=status.HTTP_204_NO_CONTENT)
 
 

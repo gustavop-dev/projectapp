@@ -45,6 +45,17 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-025] A Playwright run reused another worktree's Nuxt server
+
+- **Symptom**: every communications E2E case timed out on the page heading and
+  the captured DOM showed Nuxt's `Page not found`.
+- **Cause**: local Playwright enables `reuseExistingServer`; port 3001 belonged
+  to a parallel worktree whose source tree did not contain the new route.
+- **Resolution**: inspect the listening process and run the focused spec with a
+  session-unique `E2E_PORT`. Never terminate or reuse another session's server.
+- **Prevention**: allocate a unique port per worktree before interpreting a
+  route-level 404 as an application regression.
+
 ### [ERR-024] Aplicar una nota no la persistía hasta guardar otra vez el documento
 - **Date**: 2026-08-25
 - **Context**: El modal de notas decía “Aplicar al documento”, cerraba y actualizaba el formulario local, pero el operador todavía debía usar el guardado general de la pantalla para persistir la nota.
@@ -65,7 +76,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Date**: 2026-08-25
 - **Context**: Copy, duplicate, edit, rename, delete, close and other panel actions mixed Heroicons, inline SVG paths and emojis; some distinct actions shared one symbol.
 - **Root Cause**: Screens selected glyphs locally and no executable inventory enforced family, semantic uniqueness, tooltip/accessibility or touch geometry.
-- **Resolution**: Added an 83-action Heroicons 24 Outline catalog, shared action icon/button primitives, contextual accessible labels with stable feedback glyphs, a visual styleguide inventory and a CI guard covering all panel-reachable modules.
+- **Resolution**: Added an 84-action Heroicons 24 Outline catalog, shared action icon/button primitives, contextual accessible labels with stable feedback glyphs, a visual styleguide inventory and a CI guard covering all panel-reachable modules.
 - **Files Affected**: `frontend/config/panelActions.js`, `frontend/components/base/BaseActionIcon.vue`, `BaseActionButton.vue`, panel pages/components, `frontend/scripts/check-panel-action-icons.mjs`, `.github/workflows/ci.yml`.
 - **Regression coverage**: Catalog/component unit tests, focused consumer suites and the static guard verify icon uniqueness, copy-vs-duplicate semantics, tooltip/accessibility, stable feedback and panel adoption.
 

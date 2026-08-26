@@ -37,6 +37,7 @@ class Command(BaseCommand):
         parser.add_argument('--skip-diagnostics', action='store_true')
         parser.add_argument('--skip-platform', action='store_true')
         parser.add_argument('--skip-documents', action='store_true')
+        parser.add_argument('--skip-communications', action='store_true')
         parser.add_argument('--skip-accounting', action='store_true')
 
     def handle(self, *args, **options):
@@ -95,6 +96,11 @@ class Command(BaseCommand):
 
         if not options['skip_documents']:
             self._run('documents', 'create_fake_documents', '--count', n)
+
+        if not options['skip_communications']:
+            self._run(
+                'communications', 'create_fake_communications', '--count', n,
+            )
 
         if not options.get('skip_accounting'):
             self._run('accounting', 'create_fake_accounting', '--count', n)

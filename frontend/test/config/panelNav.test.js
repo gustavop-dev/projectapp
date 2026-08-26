@@ -33,6 +33,17 @@ describe('getPanelNavSections', () => {
     expect(sections.map((s) => s.label)).not.toContain('Website content');
   });
 
+  it('groups the conversation registry and real email sender under Comunicaciones', () => {
+    const sections = getPanelNavSections(identityLocalePath);
+    const communications = sections.find((s) => s.id === 'communications');
+
+    expect(communications.label).toBe('Comunicaciones');
+    expect(communications.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: 'Hilos con clientes', href: '/panel/communications' }),
+      expect.objectContaining({ label: 'Enviar emails', href: '/panel/emails' }),
+    ]));
+  });
+
   describe('Plataforma section', () => {
     it('lives after Contabilidad so the hostings breadcrumb keeps resolving there', () => {
       const sections = getPanelNavSections(identityLocalePath);

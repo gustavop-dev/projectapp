@@ -82,6 +82,7 @@
         "admin-email-templates-config",
         "admin-client-email-copy-settings",
         "admin-client-email-copy-history",
+        "admin-client-communications",
         "admin-mini-crm-clients",
         "admin-client-create-standalone",
         "admin-client-delete-orphan",

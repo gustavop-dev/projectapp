@@ -902,6 +902,22 @@ inflates contact counts nor triggers cooldowns/retries; history surfaces can
 then attach `copy` rows underneath without changing the meaning of existing
 metrics.
 
+## 37. Reuse infrastructure, not the wrong aggregate
+
+Two features can share clients, projects, documents, authentication and UI
+primitives without sharing a persistence model. A `Document` is one editorial
+artifact; a client conversation is an aggregate root containing ordered,
+bidirectional events. Treating messages as documents would make folders,
+editorial states and list filters ambiguous and create an expensive extraction
+later. The communications module therefore owns thread/message models inside the
+existing `content` app and references Documents through a protected join.
+
+Operational facts also need stable semantics. “Sent” remains stored evidence;
+“Respondido” is derived from a valid reply. Delivered events are not silently
+rewritten: annulment and business-date corrections append audit context, while
+only drafts remain mutable. When project ownership changes, historical threads
+stay with the original client and lose only their optional project scope.
+
 ## 36. List context is route state, not component memory
 
 A detail page cannot implement a reliable “Volver” when the owning list keeps

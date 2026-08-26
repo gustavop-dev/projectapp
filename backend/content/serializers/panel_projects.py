@@ -163,3 +163,6 @@ class ProjectChangeClientSerializer(serializers.Serializer):
     income_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list,
     )
+    communication_thread_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list,
+    )

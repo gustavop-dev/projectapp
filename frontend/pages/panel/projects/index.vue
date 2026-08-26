@@ -236,6 +236,17 @@
             :data-testid="`project-space-${row.id}`"
           />
           <BaseActionButton
+            action="communications"
+            as="NuxtLink"
+            :to="{ path: '/panel/communications', query: { project: row.id } }"
+            variant="ghost"
+            size="sm"
+            label="Ver comunicaciones"
+            tooltip="Ver comunicaciones de este proyecto"
+            :data-testid="`project-communications-${row.id}`"
+            @click.stop
+          />
+          <BaseActionButton
             action="edit"
             variant="ghost"
             size="sm"
@@ -298,6 +309,14 @@
           @click="editProjectFromActions"
         >
           Editar proyecto
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="communicationsFromActions"
+        >
+          Ver comunicaciones
         </BaseButton>
         <BaseButton
           v-if="projectActionTarget.status !== 'archived'"
@@ -586,6 +605,17 @@ function editProjectFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
   if (row) openEditModal(row);
+}
+
+function communicationsFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) {
+    navigateTo({
+      path: '/panel/communications',
+      query: { project: String(row.id) },
+    });
+  }
 }
 
 function archiveProjectFromActions() {

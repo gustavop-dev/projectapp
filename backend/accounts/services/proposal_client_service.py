@@ -419,8 +419,8 @@ def delete_orphan_client(profile):
     """
     Delete a client profile (and its underlying ``User``) **only** if it has
     no proposals, no platform projects, no diagnostics, no accounting
-    incomes and no hostings. Raises ``ValueError`` with a machine-readable
-    code otherwise.
+    incomes, no hostings and no communication threads. Raises ``ValueError``
+    with a machine-readable code otherwise.
 
     Error codes:
         - ``client_has_proposals``: linked to one or more BusinessProposals.
@@ -432,6 +432,9 @@ def delete_orphan_client(profile):
           actionable error before that happens.
         - ``client_has_hostings``: linked to one or more HostingRecords,
           same PROTECT rationale.
+        - ``client_has_communications``: linked to one or more client
+          conversation threads. The registry is an audit trail and is never
+          removed as a side effect of deleting a client.
     """
     proposals_count = profile.proposals.count()
     if proposals_count > 0:
@@ -452,6 +455,10 @@ def delete_orphan_client(profile):
     hostings_count = profile.hosting_records.count()
     if hostings_count > 0:
         raise ValueError(f'client_has_hostings:{hostings_count}')
+
+    communications_count = profile.communication_threads.count()
+    if communications_count > 0:
+        raise ValueError(f'client_has_communications:{communications_count}')
 
     user = profile.user
     profile.delete()

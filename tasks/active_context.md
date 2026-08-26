@@ -2,7 +2,22 @@
 
 ## Current State
 
-**2026-08-25 — iconos de acción del panel unificados:** las 50 páginas bajo `/panel` y sus componentes alcanzables resuelven 83 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 272 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 260 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
+**2026-08-25 — iconos de acción del panel unificados:** las 51 páginas bajo `/panel` y sus componentes alcanzables resuelven 84 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables; el módulo concurrente de Comunicaciones adoptó el catálogo al integrarse. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 273 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 261 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
+
+**2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
+de producto es un módulo Comunicaciones propio que reutiliza el Django app
+`content`, clientes, proyectos, Documentos y primitivas del panel sin deformar
+`Document` en una conversación. La migración `content/0210` añade hilos,
+mensajes, referencias protegidas y correcciones de fecha; el servicio
+transaccional conserva la evidencia entregada, valida canal/dirección/respuestas
+y mantiene actividad derivada. `/panel/communications` ofrece filtros, timeline
+responsive, borradores, registro manual de enviado/recibido, Respondido derivado,
+cierre/reapertura, anulación y corrección de fecha. Clientes, Proyectos y
+Documentos enlazan al registro; al cambiar el dueño de un proyecto sus hilos
+históricos se desvinculan en vez de cambiar de cliente. Fake data y cobertura
+focal backend/unit/E2E acompañan el flujo. Envío real, plantillas/importación e
+integraciones quedan por fases en
+`docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`.
 
 **2026-08-25 — Notas de documentos con guardado directo desde el modal:** en
 edición, `Guardar cambios` envía un PATCH limitado a asunto, correo, WhatsApp y

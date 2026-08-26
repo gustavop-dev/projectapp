@@ -103,7 +103,7 @@ async function setupMocks(page, options = {}) {
 async function navigateToEmails(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
   const navigation = page.getByRole('navigation', { name: 'Navegación del panel' });
-  await navigation.getByRole('link', { name: 'Emails', exact: true }).click();
+  await navigation.getByRole('link', { name: 'Enviar emails', exact: true }).click();
   await page.waitForURL(/\/panel\/emails(?:\?|$)/);
   await expect(page.getByRole('heading', { name: 'Emails' }))
     .toBeVisible({ timeout: 20_000 });

@@ -11,7 +11,7 @@ decisiones tomadas y el inventario funcional.
 | --- | --- |
 | Shell del panel, navegación y dashboard | abrir/contraer/expandir navegación, cambiar tema, abrir plataforma, ver, actualizar, filtrar, abrir calendario |
 | Documentos, carpetas y notas | crear, buscar, limpiar, ver, editar, renombrar, copiar, duplicar, mover, enviar, descargar, adjuntar, gestionar etiquetas/carpetas, archivar, restaurar, eliminar, cerrar, ordenar, expandir/contraer |
-| Proyectos, clientes y administradores | crear, editar, eliminar, agregar usuario, ingresar como usuario, abrir en otra pestaña, ver, filtrar |
+| Proyectos, clientes, comunicaciones y administradores | crear, editar, eliminar, agregar usuario, ingresar como usuario, abrir en otra pestaña, ver, ver comunicaciones, copiar, volver, filtrar |
 | Propuestas, defaults y entregables | crear, editar, copiar, duplicar, ver, abrir en otra pestaña, enviar, reenviar, enviar mensaje/oferta, registrar actividad, ver correos, activar/desactivar, aprobar/rechazar, negociar, cambiar estado, generar/regenerar, publicar/retirar, descargar, eliminar |
 | Diagnósticos web | crear, editar, copiar, duplicar, ver, enviar, reenviar, ver correos, generar/regenerar, analizar, activar/desactivar, archivar, eliminar, expandir/contraer |
 | Contabilidad | crear, editar, eliminar, anular, liquidar, exportar, descargar, enviar, reenviar, silenciar/reactivar, completar, marcar como perdido, ciclos de pago, estadísticas, calcular, ver listado, filtrar, actualizar, cerrar |
@@ -48,6 +48,7 @@ redirección no renderizan controles propios.
 | `/panel/blog/create` | back, create, download, remove, upload |
 | `/panel/blog/:id/edit` | back, close, create, link, open-external, publish, remove, upload, view |
 | `/panel/clients` | activate, collapse, create, deactivate, delete, edit, expand |
+| `/panel/communications` | back, copy, create, view |
 | `/panel/defaults` | back |
 | `/panel/diagnostics` | close, copy, create, delete, edit, more, open-external, settings |
 | `/panel/diagnostics/create` | back |
@@ -68,7 +69,7 @@ redirección no renderizan controles propios.
 | `/panel/portfolio` | create, delete, duplicate, edit |
 | `/panel/portfolio/create` | back, download, upload |
 | `/panel/portfolio/:id/edit` | back, open-external, upload |
-| `/panel/projects` | archive, create, edit, restore, sort-ascending, sort-descending |
+| `/panel/projects` | archive, communications, create, edit, restore, sort-ascending, sort-descending |
 | `/panel/proposals` | change-status, close, collapse, copy, create, delete, duplicate, edit, expand, log-activity, message, more, open-external, resend, send, settings, view |
 | `/panel/proposals/create` | back, copy, create, download, upload, view |
 | `/panel/proposals/:id/edit` | back, refresh |
@@ -76,7 +77,7 @@ redirección no renderizan controles propios.
 | `/panel/proposals/email-deliverability` | back |
 | `/panel/proposals/email-templates` | Redirección a `/panel/defaults` |
 | `/panel/qr-cards` | copy, delete, download, edit |
-| `/panel/styleguide` | archive, close, collapse, delete, duplicate, edit, enable-dark-theme, enable-light-theme, expand, export, more; además muestra las 83 claves |
+| `/panel/styleguide` | archive, close, collapse, delete, duplicate, edit, enable-dark-theme, enable-light-theme, expand, export, more; además muestra las 84 claves |
 | `/panel/tasks` | collapse, create, expand |
 | `/panel/views` | clear, copy, expand |
 
@@ -103,6 +104,9 @@ la excepción cuando estén dentro de una fila seleccionable.
 - La **X** ya no significa indistintamente cerrar, quitar y eliminar.
 - Las **hojas/clipboard** ya no alternan entre copiar, duplicar y registrar
   actividad.
+- El globo doble queda reservado a **negociar**; abrir el registro de
+  **comunicaciones** usa `InboxStackIcon`, así que ambas acciones no comparten
+  una señal ambigua.
 - La **flecha hacia abajo** distingue descargar (`ArrowDownTrayIcon`), expandir
   (`ChevronDownIcon`) y mover abajo (`ArrowDownIcon`).
 - El **check** queda reservado a completar o a un indicador de selección; no
@@ -148,6 +152,7 @@ Todos los iconos de esta tabla pertenecen a Heroicons 24 Outline.
 | send | Enviar | PaperAirplaneIcon |
 | resend | Reenviar | ArrowPathRoundedSquareIcon |
 | email-history | Ver correos | EnvelopeIcon |
+| communications | Ver comunicaciones | InboxStackIcon |
 | notes | Notas | ChatBubbleBottomCenterTextIcon |
 | message | Enviar mensaje | ChatBubbleOvalLeftEllipsisIcon |
 | log-activity | Registrar actividad | ClipboardDocumentListIcon |
@@ -223,7 +228,7 @@ Todos los iconos de esta tabla pertenecen a Heroicons 24 Outline.
 - `BaseActionButton` compone icono, área de toque, tooltip y nombre accesible.
 - `createPanelActionItem()` agrega acciones canónicas a menús sin permitir que
   el consumidor reemplace su icono.
-- `/panel/styleguide` presenta las 83 acciones para inspección visual.
+- `/panel/styleguide` presenta las 84 acciones para inspección visual.
 - `npm run check:panel-action-icons` falla ante SVG, emojis, Heroicons directos,
   acciones desconocidas o botones icon-only sin nombre/tooltip dentro del
   alcance del panel. El mismo guard corre en CI.
