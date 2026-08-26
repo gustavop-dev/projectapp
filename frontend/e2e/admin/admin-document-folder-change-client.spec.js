@@ -66,7 +66,9 @@ function baseRoutes(apiPath) {
 /** Elige a Ana en el autocompletado del formulario de la carpeta. */
 async function pickAnotherClient(page) {
   await page.getByTestId('folder-form-client').fill('Ana');
-  await page.getByTestId('client-autocomplete-option-9').click();
+  const option = page.getByTestId('client-autocomplete-option-9');
+  await expect(option).toBeInViewport({ ratio: 1 });
+  await option.click();
 }
 
 test.describe('Admin Document Folder Change Client', () => {

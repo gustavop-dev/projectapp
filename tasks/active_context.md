@@ -2,6 +2,18 @@
 
 ## Current State
 
+**2026-08-26 — Resultados buscables de modales sin recorte:** `BaseModal`
+expone un root flotante fuera de su panel desplazable y `BaseFloatingListbox`
+teleporta allí los resultados, conserva el foco dentro del diálogo, cierra por
+Escape/click exterior, se limita al viewport y gira arriba cuando corresponde.
+Los selectores compartidos de cliente, proyecto, catálogo de proyectos e ingreso
+vinculado ya usan ese contrato en Contable y Documentos. `BulkAssignModal` crece
+con el contenido hasta un máximo del viewport: en escritorio muestra cinco
+resultados completos y los cuatro registros afectados sin desplazar el modal;
+si sobran resultados, sólo se desplaza la lista; en pantalla angosta conserva el
+modo full-screen de PA-45. Verificación: unidades focales verdes, cinco flujos
+Playwright afectados verdes y asignación masiva verde en los cinco viewports.
+
 **2026-08-26 — Contención transversal de texto y títulos de Documentos:** el
 panel dejó de depender de espacios para contener datos. `tableLayout.js` define
 `wrap`/`truncate`/`atomic`; `BaseResponsiveTable` y `BaseExploratoryList` aplican

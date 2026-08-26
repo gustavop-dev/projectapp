@@ -6,34 +6,41 @@ const mockStore = {
   searchClients: jest.fn(),
 };
 
-let clickOutsideHandler = null;
-
 jest.mock('../../stores/proposal_clients', () => ({
   useProposalClientsStore: () => mockStore,
 }));
 
 jest.mock('@vueuse/core', () => ({
   useDebounceFn: (fn) => fn,
-  onClickOutside: jest.fn((_, handler) => {
-    clickOutsideHandler = handler;
-  }),
 }));
 
+const mountedWrappers = [];
+
 function mountAutocomplete(props = { modelValue: null }) {
-  return mount(ClientAutocomplete, {
+  const wrapper = mount(ClientAutocomplete, {
     props,
     global: {
       mocks: {
         $t: (key) => key,
       },
+      stubs: { Teleport: true },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
+}
+
+function clickOutside() {
+  document.body.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
 }
 
 describe('ClientAutocomplete', () => {
   beforeEach(() => {
     mockStore.searchClients.mockReset();
-    clickOutsideHandler = null;
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   });
 
   it('searches when the user types and renders matching options', async () => {
@@ -150,7 +157,7 @@ describe('ClientAutocomplete', () => {
     // El hint sigue nombrando al cliente enlazado, no lo que se está tecleando.
     expect(wrapper.get('[data-testid="client-autocomplete-linked"]').text()).toContain('Cliente Actual');
 
-    clickOutsideHandler();
+    clickOutside();
     await nextTick();
 
     expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Cliente Actual');
@@ -181,7 +188,7 @@ describe('ClientAutocomplete', () => {
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('algo');
     await flushPromises();
-    clickOutsideHandler();
+    clickOutside();
     await nextTick();
 
     expect(wrapper.emitted('update:modelValue')).toBeUndefined();
@@ -378,7 +385,7 @@ describe('ClientAutocomplete', () => {
 
     await wrapper.get('[data-testid="client-autocomplete-input"]').setValue('otra');
     await flushPromises();
-    clickOutsideHandler();
+    clickOutside();
     await nextTick();
 
     expect(wrapper.get('[data-testid="client-autocomplete-input"]').element.value).toBe('Kore SAS');
@@ -449,7 +456,7 @@ describe('ClientAutocomplete', () => {
     expect(wrapper.find('[data-testid="client-autocomplete-linked"]').exists()).toBe(false);
   });
 
-  it('closes the dropdown when the click-outside handler runs', async () => {
+  it('closes the dropdown when a pointer press happens outside', async () => {
     mockStore.searchClients.mockResolvedValueOnce({
       success: true,
       data: [{ id: 1, name: 'Cliente', email: 'cliente@example.com', phone: '', company: '', is_email_placeholder: false }],
@@ -461,7 +468,7 @@ describe('ClientAutocomplete', () => {
     await flushPromises();
     expect(wrapper.find('[role="listbox"]').exists()).toBe(true);
 
-    clickOutsideHandler();
+    clickOutside();
     await nextTick();
 
     expect(wrapper.find('[role="listbox"]').exists()).toBe(false);

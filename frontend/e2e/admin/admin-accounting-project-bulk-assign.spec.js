@@ -166,7 +166,9 @@ test.describe('Admin Accounting — bulk project assignment', () => {
 
     await bulkAction(page, 'hostings', 'Asignar proyecto');
     await page.getByTestId('hostings-bulk-project').click();
-    await page.getByTestId('hostings-bulk-project-option-40').click();
+    const projectOption = page.getByTestId('hostings-bulk-project-option-40');
+    await expect(projectOption).toBeInViewport({ ratio: 1 });
+    await projectOption.click();
 
     // The mass edit shows its exact scope first: what moves, and what the
     // ownership rule refuses to touch. The plan is live in the modal now, so

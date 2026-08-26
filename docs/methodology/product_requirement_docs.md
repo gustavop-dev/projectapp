@@ -493,3 +493,10 @@ The canonical counts, commands and exceptions are maintained in
     its historical communication threads from the project instead of moving them
     to the new client. Deleting clients or documents is blocked while historical
     communication references remain.
+23. **Searchable selectors inside modals**: result lists belong to a floating
+    layer owned by the modal, not to its scrollable panel. On desktop the picker
+    exposes at least five complete options and only a long result list scrolls;
+    the modal remains still and grows with its review content up to its viewport
+    limit. On narrow screens the modal follows the shared full-screen contract.
+    A bulk action must show the affected count and record identities before its
+    confirmation without requiring the operator to scroll the modal.

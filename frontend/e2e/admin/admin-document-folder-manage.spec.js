@@ -19,12 +19,21 @@ const authCheck = { status: 200, contentType: 'application/json', body: JSON.str
 
 const emptyFolder = { id: 10, name: 'Contratos', parent: null, position: 1, document_count: 0 };
 const busyFolder = { id: 11, name: 'Facturas', parent: null, position: 2, document_count: 3 };
+const project = {
+  id: 40,
+  name: 'Kore rediseño',
+  status: 'active',
+  status_label: 'Activo',
+  client_profile_id: 7,
+  client_display_name: 'Kore SAS',
+};
 
 function baseRoutes(apiPath, folders) {
   if (apiPath === 'auth/check/') return authCheck;
   if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
   if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify(folders) };
   if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+  if (apiPath.startsWith('accounting/projects/')) return { status: 200, contentType: 'application/json', body: JSON.stringify({ results: [project] }) };
   return null;
 }
 
@@ -127,6 +136,32 @@ test.describe('Admin Document Folder Manage', () => {
     await page.getByTestId('folder-header-edit').click();
 
     await expect(page.getByTestId('folder-form-name')).toHaveValue('Contratos');
+  });
+
+  test('the document project picker keeps its option fully usable in the form modal', {
+    tag: [...ADMIN_DOCUMENT_FOLDER_MANAGE, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // Bug caught: a project result inside a short document modal could be
+    // clipped before an administrator had a chance to select it.
+    const ownedFolder = {
+      ...emptyFolder,
+      client: 7,
+      client_display_name: 'Kore SAS',
+      project_name: 'Kore rediseño',
+    };
+    await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, [ownedFolder]));
+    await page.goto('/panel');
+    await page.getByRole('navigation', { name: 'Navegación del panel' })
+      .getByRole('link', { name: 'Documentos PDF' })
+      .click();
+    await expect(page).toHaveURL(/\/panel\/documents/);
+    await page.getByTestId('folder-list').getByText('Contratos').first().click();
+    await page.getByTestId('folder-header-edit').click();
+    await page.getByTestId('folder-form-project').click();
+    const option = page.getByTestId('folder-form-project-option-40');
+    await expect(option).toBeInViewport({ ratio: 1 });
+    await option.click();
+    await expect(page.getByTestId('folder-form-project')).toHaveValue('Kore rediseño');
   });
 
   test('deletes an empty folder after the destructive confirmation', {

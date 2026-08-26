@@ -41,7 +41,7 @@ test.describe('Admin Blog Delete', () => {
     const row = table.getByRole('row', { name: /Post a Borrar/ });
     await row.getByRole('button', { name: 'Acciones' }).click();
     await row.getByRole('menuitem', { name: 'Eliminar' }).click();
-    const modal = page.locator('.fixed.inset-0');
+    const modal = page.getByRole('dialog', { name: 'Eliminar post' });
     await expect(modal).toBeVisible();
 
     const deletePromise = page.waitForResponse((r) => r.url().includes('blog/admin/1/delete') && r.request().method() === 'DELETE');
