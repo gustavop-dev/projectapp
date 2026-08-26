@@ -54,40 +54,59 @@ const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
 const tableContainerRef = ref(null)
 const { profile: viewportProfile } = usePanelViewportProfile()
 
-// Workflow and actions stay readable. The remaining flexible columns give
-// space back in the business order requested by the Documents UX.
-const widthColumns = computed(() => [
+// Column order and responsive behavior are one business contract. The table is
+// not rendered below landscape, but compact/portrait stay declared so the card
+// representation follows the same keep/group priority explicitly.
+const widthColumns = [
   {
     key: 'title',
+    responsive: {
+      primary: true,
+      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
+    },
     columnWidth: { min: 240, default: 320, max: 520, resizable: true },
   },
   {
-    key: 'client',
-    columnWidth: { min: 128, default: 176, max: 240, shrinkPriority: 2, fillPriority: 2 },
-  },
-  {
-    key: 'project',
-    columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
-  },
-  {
     key: 'states',
+    responsive: {
+      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
+    },
     columnWidth: { min: 224, default: 224, max: 224, fixed: true },
   },
   {
     key: 'date',
+    responsive: {
+      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
+    },
     columnWidth: { min: 112, default: 128, max: 640, shrinkPriority: 3, fillPriority: 3 },
   },
   {
+    key: 'client',
+    responsive: {
+      compact: 'group', portrait: 'group', landscape: 'group', desktop: 'keep', wide: 'keep',
+    },
+    columnWidth: { min: 128, default: 176, max: 240, shrinkPriority: 2, fillPriority: 2 },
+  },
+  {
+    // Revisit this low priority after PA-55 backfills historical project links.
+    key: 'project',
+    responsive: {
+      compact: 'group', portrait: 'group', landscape: 'group', desktop: 'keep', wide: 'keep',
+    },
+    columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
+  },
+  {
     key: 'actions',
+    responsive: {
+      compact: 'keep', portrait: 'keep', landscape: 'keep', desktop: 'keep', wide: 'keep',
+    },
     columnWidth: { min: 80, default: 80, max: 80, fixed: true },
   },
-])
+]
 
-const visibleWidthKeys = computed(() => (
-  ['desktop', 'wide'].includes(viewportProfile.value)
-    ? widthColumns.value.map((column) => column.key)
-    : ['title', 'date', 'actions']
-))
+const visibleWidthKeys = computed(() => widthColumns
+  .filter((column) => column.responsive[viewportProfile.value] === 'keep')
+  .map((column) => column.key))
 
 const {
   columnStyle,
@@ -153,11 +172,23 @@ function onFolderLink(event, sub) {
               @reset="resetColumnWidth('title')"
             />
           </th>
+          <th
+            :style="columnStyle('states')"
+            class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-landscape:table-cell"
+            data-testid="documents-column-states"
+          >Estados</th>
+          <th
+            :style="columnStyle('date')"
+            class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
+            data-testid="documents-column-date"
+          >{{ dateHeader }}</th>
           <th :style="columnStyle('client')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
           <th :style="columnStyle('project')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
-          <th :style="columnStyle('states')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estados</th>
-          <th :style="columnStyle('date')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
-          <th :style="columnStyle('actions')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
+          <th
+            :style="columnStyle('actions')"
+            class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider"
+            data-testid="documents-column-actions"
+          >Acciones</th>
         </tr>
       </thead>
       <tbody class="divide-y divide-border-muted">
@@ -269,19 +300,31 @@ function onFolderLink(event, sub) {
                 v-if="doc.project_name"
                 class="min-w-0 max-w-full [overflow-wrap:anywhere] panel-desktop:hidden"
               >{{ doc.project_name }}</span>
-              <BaseBadge
-                v-if="doc.is_archived"
-                variant="neutral"
-                size="sm"
-                class="panel-desktop:hidden"
-              >Archivado</BaseBadge>
-              <DocumentStateList
-                v-else
-                class="max-w-full panel-desktop:hidden"
-                :episodes="doc.active_states"
-                :max-visible="2"
-              />
             </div>
+          </td>
+          <td
+            class="hidden px-6 py-4 panel-landscape:table-cell"
+            :data-testid="`doc-states-cell-${doc.id}`"
+          >
+            <BaseBadge
+              v-if="doc.is_archived"
+              variant="neutral"
+              size="sm"
+              data-testid="doc-archived-badge"
+            >
+              Archivado
+            </BaseBadge>
+            <DocumentStateList v-else :episodes="doc.active_states" :max-visible="3" />
+          </td>
+          <td
+            class="px-6 py-4 text-sm text-text-muted tabular-nums"
+            :data-testid="`doc-date-cell-${doc.id}`"
+          >
+            <template v-if="doc.is_archived">
+              <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at) }}</span>
+              <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at) }}</span>
+            </template>
+            <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
           </td>
           <td class="hidden min-w-0 overflow-hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
             <span v-if="doc.client_display_name" class="block min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ doc.client_display_name }}</span>
@@ -298,25 +341,7 @@ function onFolderLink(event, sub) {
             <span v-if="doc.project_name" class="block min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ doc.project_name }}</span>
             <span v-else class="text-text-subtle">—</span>
           </td>
-          <td class="hidden px-6 py-4 panel-desktop:table-cell">
-            <BaseBadge
-              v-if="doc.is_archived"
-              variant="neutral"
-              size="sm"
-              data-testid="doc-archived-badge"
-            >
-              Archivado
-            </BaseBadge>
-            <DocumentStateList v-else :episodes="doc.active_states" :max-visible="3" />
-          </td>
-          <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
-            <template v-if="doc.is_archived">
-              <span data-testid="doc-archived-at">{{ formatDateTime(doc.archived_at) }}</span>
-              <span class="block text-xs text-text-subtle">{{ archivedAgeLabel(doc.archived_at) }}</span>
-            </template>
-            <template v-else>{{ formatDocumentDate(doc.created_at) }}</template>
-          </td>
-          <td class="px-6 py-4" @click.stop>
+          <td class="px-6 py-4" :data-testid="`doc-actions-cell-${doc.id}`" @click.stop>
             <BaseActionButton
               action="more"
               class="p-2.5 -m-1 rounded-lg hover:bg-surface-raised transition-colors text-text-subtle hover:text-text-default

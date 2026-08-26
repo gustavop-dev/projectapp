@@ -215,6 +215,10 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - `BaseModal` already uses `100dvh` below `panel-portrait` and preserves its semantic size above that boundary. Long workflows keep a scrollable body and sticky footer actions; consumers do not introduce a second fullscreen prop.
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
+- The specialized Documents table declares its fixed business order and
+  `keep/group` policy in the same column array consumed by width resolution.
+  Landscape keeps Title/States/Date/Actions and groups Client/Project; compact
+  cards apply the same priority without persisting a user-specific column order.
 
 ### Static payload and collection policy
 

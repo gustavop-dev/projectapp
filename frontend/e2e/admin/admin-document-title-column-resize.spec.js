@@ -146,17 +146,17 @@ async function expectTableTitleContained(page) {
   const title = page.getByTestId('document-open-503');
   const folder = page.getByTestId('document-folder-badge-503');
   const titleCell = title.locator('xpath=ancestor::td[1]');
-  const clientCell = page.getByTestId('doc-client-cell-503');
+  const statesCell = page.getByTestId('doc-states-cell-503');
 
   await expectInside(title, titleCell);
   await expectInside(folder, titleCell);
   await expectVerticalSeparation(title, folder);
 
-  const [titleBox, folderBox, clientBox] = await Promise.all([
-    title.boundingBox(), folder.boundingBox(), clientCell.boundingBox(),
+  const [titleBox, folderBox, statesBox] = await Promise.all([
+    title.boundingBox(), folder.boundingBox(), statesCell.boundingBox(),
   ]);
-  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(clientBox.x + 1);
-  expect(folderBox.x + folderBox.width).toBeLessThanOrEqual(clientBox.x + 1);
+  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(statesBox.x + 1);
+  expect(folderBox.x + folderBox.width).toBeLessThanOrEqual(statesBox.x + 1);
 }
 
 async function expectCompactTableTitleContained(page) {

@@ -23,14 +23,14 @@ const excerpt = computed(() => makeSafeExcerpt(props.document.content_excerpt ||
 
 const meta = computed(() => {
   const parts = []
-  const clientLabel = props.document.client_display_name || props.document.client_name
-  if (clientLabel) parts.push(clientLabel)
-  if (props.document.project_name) parts.push(props.document.project_name)
   if (props.archived) {
     parts.push(`Archivado · ${archivedAgeLabel(props.document.archived_at) || '—'}`)
   } else {
     parts.push(formatDocumentDate(props.document.created_at))
   }
+  const clientLabel = props.document.client_display_name || props.document.client_name
+  if (clientLabel) parts.push(clientLabel)
+  if (props.document.project_name) parts.push(props.document.project_name)
   return parts.join(' · ')
 })
 </script>
@@ -108,9 +108,10 @@ const meta = computed(() => {
           <span class="min-w-0 max-w-full [overflow-wrap:anywhere]">{{ document.folder_name }}</span>
         </span>
       </div>
-      <p class="mt-1 min-w-0 max-w-full whitespace-normal text-xs text-text-muted tabular-nums [overflow-wrap:anywhere]">{{ meta }}</p>
-
-      <div class="flex items-center justify-between gap-2 mt-2 min-h-11">
+      <div
+        class="flex items-center justify-between gap-2 mt-2 min-h-11"
+        :data-testid="`document-card-priority-row-${document.id}`"
+      >
         <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />
         <BaseActionButton
           action="more"
@@ -121,6 +122,10 @@ const meta = computed(() => {
           @click.stop="emit('action')"
         />
       </div>
+      <p
+        class="mt-1 min-w-0 max-w-full whitespace-normal text-xs text-text-muted tabular-nums [overflow-wrap:anywhere]"
+        :data-testid="`document-card-secondary-meta-${document.id}`"
+      >{{ meta }}</p>
     </div>
   </article>
 </template>

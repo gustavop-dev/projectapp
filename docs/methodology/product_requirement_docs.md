@@ -209,8 +209,14 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   cell/card. The collapsed state uses one line with ellipsis and exposes the same
   measured **Ver completo/Contraer** path for names with spaces or systematic
   underscore/date naming; the expanded state may break anywhere. Folder comes
-  first in a separate metadata row below the title, followed by compact-only
-  client/project/state distinctions. Rows without a folder keep natural height.
+  first in a separate metadata row below the title. Rows without a folder keep
+  natural height.
+- **List priority**: desktop columns use the fixed order Title, States,
+  Created/Date/Archived, Client, Project and Actions. Actions remains last and
+  only Title width is user-persisted. Landscape retains Title, States, Date and
+  Actions as columns and groups Client/Project under Title. Compact cards keep
+  Title/States primary and order secondary metadata as Date, Client, Project.
+  Project stays low priority until PA-55 backfills historical associations.
 - **Private notes**: creation and editing keep the email subject, complete email body,
   WhatsApp message, and an ordered collection of custom title/content notes in one
   optional modal. Every non-empty value has an individual 📋 copy action with ✅

@@ -100,6 +100,30 @@ function mountTable(props = {}) {
 }
 
 describe('DocumentsTable — archived mode', () => {
+  it('orders headers by document-list business priority', () => {
+    const wrapper = mountTable();
+
+    const labels = wrapper.findAll('thead th')
+      .map((header) => header.text().replace(/\s+/g, ' ').trim());
+
+    expect(labels).toEqual([
+      'Título', 'Estados', 'Creado', 'Cliente', 'Proyecto', 'Acciones',
+    ]);
+  });
+
+  it('orders document cells by document-list business priority', () => {
+    const wrapper = mountTable();
+
+    const cells = wrapper.get('[data-testid="document-row-1"]').findAll('td');
+
+    expect(cells[0].text()).toContain('Contrato de Servicios');
+    expect(cells[1].text()).toContain('Enviado');
+    expect(cells[2].text()).toContain('2026');
+    expect(cells[3].text()).toBe('—');
+    expect(cells[4].text()).toBe('—');
+    expect(cells[5].find('[aria-label="Acciones de Contrato de Servicios"]').exists()).toBe(true);
+  });
+
   it('labels the date column Creado in the active scope', () => {
     const wrapper = mountTable();
 
@@ -389,13 +413,15 @@ describe('DocumentsTable — title column', () => {
   it('keeps the workflow states column fixed', () => {
     const wrapper = mountTable({ editToFor });
 
-    expect(wrapper.findAll('th')[3].element.style.width).toBe('224px');
+    expect(wrapper.get('[data-testid="documents-column-states"]').element.style.width)
+      .toBe('224px');
   });
 
   it('keeps the actions column fixed', () => {
     const wrapper = mountTable({ editToFor });
 
-    expect(wrapper.findAll('th')[5].element.style.width).toBe('80px');
+    expect(wrapper.get('[data-testid="documents-column-actions"]').element.style.width)
+      .toBe('80px');
   });
 
   it('persists a keyboard title resize', async () => {
