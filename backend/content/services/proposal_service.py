@@ -10,6 +10,77 @@ from content.technical_document_defaults import EMPTY_TECHNICAL_DOCUMENT_JSON
 logger = logging.getLogger(__name__)
 
 
+@transaction.atomic
+def duplicate_proposal(source, *, via_mcp=False):
+    """Deep-copy a proposal with one shared panel/MCP field contract."""
+    from content.models import (
+        BusinessProposal,
+        ProposalChangeLog,
+        ProposalSection,
+    )
+
+    duplicate = BusinessProposal.objects.create(
+        title=f'{source.title.removesuffix(" (copia)")} (copia)',
+        client_name=source.client_name,
+        client_email=source.client_email,
+        client_phone=source.client_phone,
+        slug='',
+        language=source.language,
+        total_investment=source.total_investment,
+        currency=source.currency,
+        nationality=source.nationality,
+        hosting_percent=source.hosting_percent,
+        hosting_discount_nine_month=source.hosting_discount_nine_month,
+        hosting_discount_semiannual=source.hosting_discount_semiannual,
+        hosting_discount_quarterly=source.hosting_discount_quarterly,
+        project_type=source.project_type,
+        market_type=source.market_type,
+        project_type_custom=source.project_type_custom,
+        market_type_custom=source.market_type_custom,
+        selected_modules=deepcopy(source.selected_modules),
+        contract_params=deepcopy(source.contract_params),
+        status=BusinessProposal.Status.DRAFT,
+        expires_at=source.expires_at,
+        reminder_days=source.reminder_days,
+        urgency_reminder_days=source.urgency_reminder_days,
+        discount_percent=source.discount_percent,
+        show_contract_terms=source.show_contract_terms,
+        is_active=True,
+        view_count=0,
+        first_viewed_at=None,
+        sent_at=None,
+        reminder_sent_at=None,
+        urgency_email_sent_at=None,
+    )
+
+    for section in source.sections.all().order_by('order'):
+        section_content = deepcopy(section.content_json or {})
+        if section.section_type == ProposalSection.SectionType.INVESTMENT:
+            section_content['hostingPlan'] = normalize_hosting_plan(
+                duplicate, section_content.get('hostingPlan') or {},
+            )
+        ProposalSection.objects.create(
+            proposal=duplicate,
+            section_type=section.section_type,
+            title=section.title,
+            order=section.order,
+            is_enabled=section.is_enabled,
+            is_wide_panel=section.is_wide_panel,
+            content_json=section_content,
+        )
+
+    suffix = ' via MCP' if via_mcp else ''
+    ProposalChangeLog.objects.create(
+        proposal=duplicate,
+        change_type='duplicated',
+        actor_type='seller',
+        description=(
+            f'Duplicated from proposal "{source.title}" (ID {source.id}){suffix}.'
+        ),
+    )
+    return duplicate
+
+
 def flatten_terms_clauses(clauses):
     """Flatten [{'label', 'text'}] into the legacy single-string `terms` value.
 
@@ -4087,7 +4158,9 @@ def build_proposal_from_json(validated_data):
         client_email=data.get('client_email', ''),
         client_phone=data.get('client_phone', ''),
         project_type=data.get('project_type', ''),
+        project_type_custom=data.get('project_type_custom', ''),
         market_type=data.get('market_type', ''),
+        market_type_custom=data.get('market_type_custom', ''),
         language=data.get('language', 'es'),
         total_investment=data.get('total_investment', 0),
         currency=data.get('currency', 'COP'),
@@ -4273,12 +4346,14 @@ def apply_proposal_json_update(proposal, validated_data):
 
     data = dict(validated_data)
     sections_data = data.pop('sections')
+    explicit_client = data.pop('client', None)
     old_status = proposal.status
 
     metadata_fields = [
         'title', 'client_name', 'client_email', 'client_phone',
         'project_type', 'market_type', 'project_type_custom',
         'market_type_custom', 'language', 'total_investment', 'currency',
+        'nationality',
         'reminder_days', 'urgency_reminder_days', 'discount_percent',
         'show_contract_terms',
     ]
@@ -4292,7 +4367,9 @@ def apply_proposal_json_update(proposal, validated_data):
         tracked_old['expires_at'] = str(proposal.expires_at or '')
         proposal.expires_at = data['expires_at']
 
-    if data.get('client_name') or data.get('client_email'):
+    if explicit_client is not None:
+        proposal.client = explicit_client
+    elif data.get('client_name') or data.get('client_email'):
         client_profile = proposal_client_service.get_or_create_client_for_proposal(
             name=data.get('client_name', '') or proposal.client_name,
             email=data.get('client_email', ''),

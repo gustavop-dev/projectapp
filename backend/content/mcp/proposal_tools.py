@@ -27,7 +27,6 @@ from content.mcp.protocol import ToolError
 from content.models import (
     BusinessProposal,
     ProposalChangeLog,
-    ProposalSection,
     ProposalShareLink,
 )
 from content.serializers.proposal import (
@@ -72,7 +71,12 @@ def get_proposal_template(arguments):
         'template': template,
         'meta': {
             'required_fields': ['general.clientName'],
-            'optional_metadata': ['title', 'client_email', 'client_phone', 'language', 'total_investment', 'currency', 'nationality'],
+            'optional_metadata': [
+                'title', 'client_email', 'client_phone', 'language',
+                'total_investment', 'currency', 'nationality',
+                'project_type', 'project_type_custom', 'market_type',
+                'market_type_custom', 'show_contract_terms',
+            ],
         },
         'notes': (
             'Envía este shape (claves camelCase por sección) en `sections` a '
@@ -173,60 +177,8 @@ def delete_proposal(arguments):
 
 
 def duplicate_proposal(arguments):
-    from django.db import transaction as _tx
     proposal = _get_proposal_or_error(arguments.get('proposal_id'))
-    with _tx.atomic():
-        new_proposal = BusinessProposal.objects.create(
-            title=f'{proposal.title.removesuffix(" (copia)")} (copia)',
-            client_name=proposal.client_name,
-            client_email=proposal.client_email,
-            client_phone=proposal.client_phone,
-            slug='',
-            language=proposal.language,
-            total_investment=proposal.total_investment,
-            currency=proposal.currency,
-            nationality=proposal.nationality,
-            hosting_percent=proposal.hosting_percent,
-            hosting_discount_nine_month=proposal.hosting_discount_nine_month,
-            hosting_discount_semiannual=proposal.hosting_discount_semiannual,
-            hosting_discount_quarterly=proposal.hosting_discount_quarterly,
-            project_type=proposal.project_type,
-            market_type=proposal.market_type,
-            project_type_custom=proposal.project_type_custom,
-            market_type_custom=proposal.market_type_custom,
-            selected_modules=copy.deepcopy(proposal.selected_modules),
-            contract_params=copy.deepcopy(proposal.contract_params),
-            status=BusinessProposal.Status.DRAFT,
-            expires_at=proposal.expires_at,
-            reminder_days=proposal.reminder_days,
-            urgency_reminder_days=proposal.urgency_reminder_days,
-            discount_percent=proposal.discount_percent,
-            is_active=True,
-            view_count=0,
-            first_viewed_at=None,
-            sent_at=None,
-            reminder_sent_at=None,
-            urgency_email_sent_at=None,
-        )
-        for section in proposal.sections.all().order_by('order'):
-            section_content = copy.deepcopy(section.content_json or {})
-            if section.section_type == ProposalSection.SectionType.INVESTMENT:
-                section_content['hostingPlan'] = proposal_service.normalize_hosting_plan(
-                    new_proposal, section_content.get('hostingPlan') or {},
-                )
-            ProposalSection.objects.create(
-                proposal=new_proposal,
-                section_type=section.section_type,
-                title=section.title,
-                order=section.order,
-                is_enabled=section.is_enabled,
-                is_wide_panel=section.is_wide_panel,
-                content_json=section_content,
-            )
-        ProposalChangeLog.objects.create(
-            proposal=new_proposal, change_type='duplicated', actor_type='seller',
-            description=f'Duplicated from proposal "{proposal.title}" (ID {proposal.id}) via MCP.',
-        )
+    new_proposal = proposal_service.duplicate_proposal(proposal, via_mcp=True)
     return _detail(new_proposal)
 
 
@@ -262,14 +214,24 @@ _FROM_JSON_PROPS = {
     'client_phone': {'type': 'string'},
     'client_company': {'type': 'string'},
     'project_type': {'type': 'string'},
+    'project_type_custom': {'type': 'string'},
     'market_type': {'type': 'string'},
+    'market_type_custom': {'type': 'string'},
     'language': {'type': 'string', 'enum': ['es', 'en'], 'default': 'es'},
     'total_investment': {'type': ['number', 'string'], 'default': 0},
     'currency': {'type': 'string', 'enum': ['COP', 'USD'], 'default': 'COP'},
+    'nationality': {
+        'type': 'string', 'enum': ['COL', 'EXT', 'USA'], 'default': 'COL',
+    },
     'expires_at': {'type': 'string', 'description': 'ISO 8601 con timezone (opcional).'},
     'reminder_days': {'type': 'integer', 'default': 10},
     'urgency_reminder_days': {'type': 'integer', 'default': 15},
     'discount_percent': {'type': ['number', 'string'], 'default': 0},
+    'show_contract_terms': {
+        'type': 'boolean',
+        'default': True,
+        'description': 'Muestra u oculta los términos contractuales genéricos.',
+    },
     'sections': {
         'type': 'object',
         'description': 'Dict de secciones camelCase → content_json. Requiere general.clientName. Usa get_proposal_template.',
@@ -326,13 +288,14 @@ PROPOSAL_TOOLS = [
     {
         'name': 'update_proposal',
         'description': (
-            'Actualiza una propuesta desde JSON (parcial). Envía proposal_id + '
-            'metadatos y/o sections; sólo se reemplazan las secciones presentes.'
+            'Reimporta una propuesta desde JSON. Requiere proposal_id, title, '
+            'client_name y sections (con general.clientName); sólo se reemplazan '
+            'las secciones presentes, pero los metadatos se validan como payload completo.'
         ),
         'input_schema': {
             'type': 'object',
             'properties': {**_PROPOSAL_ID_PROP, **_FROM_JSON_PROPS},
-            'required': ['proposal_id', 'sections'],
+            'required': ['proposal_id', 'title', 'client_name', 'sections'],
         },
         'handler': update_proposal,
     },
@@ -359,7 +322,10 @@ PROPOSAL_TOOLS = [
     },
     {
         'name': 'resend_proposal',
-        'description': 'Reenvía una propuesta ya enviada.',
+        'description': (
+            'Reenvía al cliente una propuesta que ya salió de borrador, usando '
+            'el mismo servicio de correo y validaciones del panel.'
+        ),
         'input_schema': {'type': 'object', 'properties': _PROPOSAL_ID_PROP, 'required': ['proposal_id']},
         'handler': resend_proposal,
     },

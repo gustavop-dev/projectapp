@@ -15,6 +15,7 @@ from django.utils.dateparse import parse_date
 from content.mcp.protocol import ToolError
 from content.models import BlogPost
 from content.serializers.blog import (
+    BlogPostAdminDetailSerializer,
     BlogPostAdminListSerializer,
     BlogPostCreateUpdateSerializer,
     BlogPostFromJSONSerializer,
@@ -120,6 +121,16 @@ def list_blog_posts(arguments):
         post = posts_by_id[row['id']]
         results.append({**dict(row), 'status': _post_status(post)})
     return {'count': total, 'page': page, 'page_size': page_size, 'results': results}
+
+
+def get_blog_post(arguments):
+    """Return the complete editable representation, not only the list card."""
+    post = _get_post_or_error(arguments.get('post_id'))
+    return {
+        **BlogPostAdminDetailSerializer(post).data,
+        'status': _post_status(post),
+        'public_url': f'{blog_service.BLOG_PUBLIC_BASE}/{post.slug}',
+    }
 
 
 def get_blog_calendar(arguments):
@@ -230,6 +241,20 @@ BLOG_TOOLS = [
             },
         },
         'handler': list_blog_posts,
+    },
+    {
+        'name': 'get_blog_post',
+        'description': (
+            'Abre un blog post completo por ID, incluidos contenido bilingüe, '
+            'JSON estructurado, fuentes, SEO, portada, copy de LinkedIn y '
+            'programación. Úsala después de list_blog_posts y antes de editar.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _POST_ID_PROP,
+            'required': ['post_id'],
+        },
+        'handler': get_blog_post,
     },
     {
         'name': 'get_blog_calendar',

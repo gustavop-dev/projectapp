@@ -4,15 +4,15 @@ Tool registry for the Clients MCP connector.
 Lets claude.ai manage proposal clients (the ``/panel/clients`` page): search,
 list, inspect, create, update and delete client profiles. Clients are
 ``accounts.UserProfile`` rows with role=client; they are the canonical identity
-shared by proposals and diagnostics.
+shared by proposals, diagnostics, documents, accounting and communications.
 
 Guardrails baked in (mirror the panel exactly, by delegating to the same
 service):
 - Writes always go through ``proposal_client_service`` (never a bare
   ``serializer.save()``) so proposal snapshots stay in sync and email-in-use
   conflicts are enforced.
-- Delete only succeeds for true orphans (0 proposals, 0 projects, 0
-  diagnostics); otherwise the exact ``client_has_*:N`` reason is surfaced.
+- Delete only succeeds for true orphans across every protected module;
+  otherwise the exact ``client_has_*:N`` reason is surfaced.
 
 Each entry: {'name', 'description', 'input_schema', 'handler'}. Handlers take
 the raw ``arguments`` dict, return a JSON-serializable dict, and raise
@@ -30,7 +30,11 @@ from content.serializers.proposal_clients import (
 )
 # Reuse the panel view's annotated queryset + helpers so the MCP exposes the
 # exact same computed fields (counts, last_status, is_orphan) as /panel/clients.
-from content.views.proposal_clients import _base_queryset, _get_profile_or_404
+from content.views.proposal_clients import (
+    _ORPHAN_PREDICATE,
+    _base_queryset,
+    _get_profile_or_404,
+)
 
 
 def _get_client_or_error(client_id):
@@ -82,9 +86,9 @@ def list_clients(arguments):
 
     orphans = arguments.get('orphans')
     if orphans is True:
-        qs = qs.filter(proposals_count=0, projects_count=0)
+        qs = qs.filter(**_ORPHAN_PREDICATE)
     elif orphans is False:
-        qs = qs.exclude(proposals_count=0, projects_count=0)
+        qs = qs.exclude(**_ORPHAN_PREDICATE)
 
     try:
         limit = min(int(arguments.get('limit', 100) or 100), 500)
@@ -157,11 +161,12 @@ def delete_client(arguments):
     except ValueError as exc:
         # Service raises 'client_has_proposals:N' / 'client_has_projects:N' /
         # 'client_has_diagnostics:N' / 'client_has_incomes:N' /
-        # 'client_has_hostings:N'. Preserve the exact reason for the model.
+        # 'client_has_hostings:N' / 'client_has_communications:N'. Preserve
+        # the exact reason for the calling model.
         raise ToolError(
             f'No se puede eliminar: el cliente aún tiene referencias ({exc}). '
             'Elimina o reasigna esas propuestas/proyectos/diagnósticos/'
-            'ingresos/hostings primero.'
+            'ingresos/hostings/comunicaciones primero.'
         )
     return {'deleted': True, 'id': profile_id}
 
@@ -192,10 +197,10 @@ CLIENT_TOOLS = [
     {
         'name': 'list_clients',
         'description': (
-            'Lista clientes con métricas (nº de propuestas, proyectos, '
-            'diagnósticos, último estado, si es huérfano). Filtros: search '
-            '(texto), orphans (true=sólo sin propuestas ni proyectos, '
-            'false=el resto), limit (default 100, máx 500).'
+            'Lista clientes con métricas de propuestas, proyectos, diagnósticos, '
+            'documentos, contabilidad, correos y comunicaciones. Filtros: search '
+            '(texto), orphans (true=sólo sin propuestas, proyectos, diagnósticos, '
+            'ingresos, hostings ni hilos; false=el resto) y limit.'
         ),
         'input_schema': {
             'type': 'object',
@@ -210,8 +215,10 @@ CLIENT_TOOLS = [
     {
         'name': 'get_client',
         'description': (
-            'Devuelve un cliente con sus propuestas, proyectos de plataforma y '
-            'diagnósticos anidados.'
+            'Devuelve un cliente con propuestas, proyectos y diagnósticos '
+            'anidados, más las métricas actuales de documentos, contabilidad, '
+            'correos y comunicaciones. Consulta cada módulo en su propio MCP '
+            'para abrir esas colecciones completas.'
         ),
         'input_schema': {
             'type': 'object',
@@ -261,9 +268,9 @@ CLIENT_TOOLS = [
     {
         'name': 'delete_client',
         'description': (
-            'Elimina un cliente SÓLO si es huérfano (0 propuestas, 0 proyectos, '
-            '0 diagnósticos). Si tiene referencias, la operación falla '
-            'indicando cuántas.'
+            'Elimina un cliente SÓLO si es huérfano: sin propuestas, proyectos, '
+            'diagnósticos, ingresos, hostings ni hilos de comunicaciones. Si '
+            'tiene referencias, la operación falla indicando el módulo y total.'
         ),
         'input_schema': {
             'type': 'object',

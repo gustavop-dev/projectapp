@@ -14,6 +14,12 @@
 - Proposal and email flows rely heavily on service-layer behavior; read the relevant service before changing view logic.
 - Large files such as `backend/content/views/proposal.py` should receive minimal, deliberate edits.
 
+## MCP Parity Gate
+- Every change to a model, serializer, service, status transition, or relation exposed by an MCP connector must review that connector in the same delivery.
+- Classify every current model field in `content/mcp/contracts.py` as read-only, read/write, or intentionally excluded with a reason; the contract test must remain green.
+- Keep tool descriptions and JSON schemas aligned with actual handlers, and route MCP writes through the same serializer/service guardrails as the panel.
+- Update `docs/MCP_VALIDATION_RUNBOOK.md` and run the focused MCP create/read/update/error slice whenever the exposed contract changes.
+
 ## Auth And Security
 - `/panel/` admin flows use session auth + CSRF.
 - `/platform/` API flows use JWT via SimpleJWT in the `accounts` app.

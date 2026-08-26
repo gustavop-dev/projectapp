@@ -694,7 +694,10 @@ STATEMENT_TOOLS = [
     },
     {
         'name': 'delete_merchant_alias',
-        'description': 'Elimina un alias aprendido.',
+        'description': (
+            'Elimina un alias global de comercio por ID. No reescribe '
+            'transacciones históricas que ya fueron identificadas con él.'
+        ),
         'input_schema': {
             'type': 'object',
             'properties': {'alias_id': {'type': 'integer'}},

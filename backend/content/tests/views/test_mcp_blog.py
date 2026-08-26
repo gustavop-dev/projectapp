@@ -279,13 +279,14 @@ class TestMcpEndpointFlow:
         )
         assert response.status_code == 202
 
-    def test_tools_list_exposes_six_tools(self, api_client, blog_connector):
+    def test_tools_list_exposes_seven_tools(self, api_client, blog_connector):
         _, token = blog_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
         assert names == [
             'get_blog_template', 'create_blog_post', 'update_blog_post',
-            'delete_blog_post', 'list_blog_posts', 'get_blog_calendar',
+            'delete_blog_post', 'list_blog_posts', 'get_blog_post',
+            'get_blog_calendar',
         ]
 
     def test_tools_call_creates_post_and_touches_last_used(self, api_client, blog_connector):
