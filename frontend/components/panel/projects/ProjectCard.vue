@@ -31,15 +31,20 @@ const unlinkedTotal = computed(() => (
     :class="highlighted ? 'ring-2 ring-focus-ring/40 bg-primary-soft' : ''"
     :data-testid="`project-card-${project.id}`"
   >
-    <div class="flex items-start justify-between gap-3">
-      <div class="min-w-0">
-        <h2 class="break-words text-base font-semibold text-text-default">{{ project.name }}</h2>
-        <p class="mt-1 break-words text-sm text-text-muted">{{ project.client_name || 'Sin cliente' }}</p>
-        <p v-if="project.client_company" class="break-words text-xs text-text-subtle">
+    <div class="min-w-0 max-w-full">
+      <div class="min-w-0 max-w-full">
+        <h2 class="min-w-0 max-w-full text-base font-semibold text-text-default [overflow-wrap:anywhere]" :title="project.name">{{ project.name }}</h2>
+        <p class="mt-1 min-w-0 max-w-full text-sm text-text-muted [overflow-wrap:anywhere]">{{ project.client_name || 'Sin cliente' }}</p>
+        <p v-if="project.client_company" class="min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">
           {{ project.client_company }}
         </p>
       </div>
-      <BaseBadge :variant="statusTone" size="sm" class="shrink-0">
+      <BaseBadge
+        :variant="statusTone"
+        size="sm"
+        class="mt-3"
+        :data-testid="`project-card-status-${project.id}`"
+      >
         {{ project.status_label }}
       </BaseBadge>
     </div>

@@ -43,6 +43,21 @@ describe('ProjectCard', () => {
       .toContain('Comunicaciones');
   });
 
+  it('puts status below an intrinsically contained unbroken project name', () => {
+    const wrapper = mountCard({
+      project: {
+        ...PROJECT,
+        name: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+      },
+    });
+    const title = wrapper.get('h2');
+    const status = wrapper.get('[data-testid="project-card-status-12"]');
+
+    expect(title.classes()).toContain('[overflow-wrap:anywhere]');
+    expect(title.element.compareDocumentPosition(status.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+  });
+
   it('opens the action menu for its project', async () => {
     const wrapper = mountCard();
 

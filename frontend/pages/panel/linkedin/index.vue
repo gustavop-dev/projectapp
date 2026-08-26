@@ -73,7 +73,7 @@
         card-test-id-prefix="linkedin-post-row"
       >
         <template #cell-commentary="{ row: post }">
-          <p class="line-clamp-3 break-words text-sm text-text-default">{{ post.commentary }}</p>
+          <p class="line-clamp-3 min-w-0 max-w-full text-sm text-text-default [overflow-wrap:anywhere]">{{ post.commentary }}</p>
           <p v-if="post.status === 'failed' && post.error_message" class="mt-1 truncate text-xs text-danger-strong" :title="post.error_message">{{ post.error_message }}</p>
         </template>
         <template #cell-status="{ row: post }"><span class="inline-flex rounded-full px-2 py-0.5 text-xs font-medium" :class="statusClass(post.status)">{{ statusLabel(post.status) }}</span></template>

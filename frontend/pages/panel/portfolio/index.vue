@@ -41,8 +41,8 @@
         card-test-id-prefix="portfolio-work-row"
       >
         <template #cell-title_es="{ row: work }">
-          <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand">{{ work.title_es }}</NuxtLink>
-          <p class="mt-0.5 break-words text-xs text-text-subtle">{{ work.title_en }} · {{ work.slug }}</p>
+          <NuxtLink :to="localePath(`/panel/portfolio/${work.id}/edit`)" class="block min-w-0 max-w-full text-sm font-medium leading-tight text-text-default [overflow-wrap:anywhere] transition-colors hover:text-text-brand">{{ work.title_es }}</NuxtLink>
+          <p class="mt-0.5 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">{{ work.title_en }} · {{ work.slug }}</p>
         </template>
         <template #cell-status="{ row: work }">
           <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="statusBadgeClass(work)">{{ statusLabel(work) }}</span>

@@ -400,8 +400,8 @@
             class="flex items-center justify-between gap-3 py-2.5"
           >
             <div class="min-w-0">
-              <p class="text-sm text-text-default truncate">{{ client.name || client.email }}</p>
-              <p v-if="client.company" class="text-xs text-text-subtle truncate">
+              <p class="max-w-full truncate text-sm text-text-default" :title="client.name || client.email">{{ client.name || client.email }}</p>
+              <p v-if="client.company" class="max-w-full truncate text-xs text-text-subtle" :title="client.company">
                 {{ client.company }}
               </p>
             </div>

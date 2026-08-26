@@ -175,15 +175,16 @@ function onFolderLink(event, sub) {
           @dragleave="emit('folder-dragleave')"
           @drop.prevent="emit('drop-on-folder', sub.id)"
         >
-          <td class="px-6 py-4">
-            <div class="flex items-center gap-2">
+          <td class="min-w-0 overflow-hidden px-6 py-4">
+            <div class="flex min-w-0 max-w-full items-center gap-2">
               <svg class="w-4 h-4 text-amber-500 dark:text-amber-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
               </svg>
               <BaseRowLink
                 :to="folderToFor(sub)"
                 :data-testid="`folder-open-${sub.id}`"
-                class="text-sm font-medium text-text-default truncate"
+                class="min-w-0 flex-1 truncate text-sm font-medium text-text-default"
+                :title="sub.name"
                 @click="onFolderLink($event, sub)"
               >{{ sub.name }}</BaseRowLink>
               <FolderArchivedBadge
@@ -232,48 +233,69 @@ function onFolderLink(event, sub) {
         >
           <!-- `relative` es el marco contra el que se estira el enlace del
                título: así toda la celda es el enlace, no sólo las letras. -->
-          <td class="relative px-6 py-4">
-            <div class="flex items-center gap-2">
-              <BaseOverflowText
-                :to="editToFor(doc)"
-                :text="doc.title"
-                :lines="2"
-                stretch
-                :test-id="`document-open-${doc.id}`"
-                class="min-w-0 flex-1"
-                content-classes="text-sm font-medium leading-snug text-text-default hover:text-text-brand transition-colors"
-              />
-              <!-- Por encima del área estirada para no perder su tooltip. -->
+          <td class="relative min-w-0 overflow-hidden px-6 py-4">
+            <BaseOverflowText
+              :to="editToFor(doc)"
+              :text="doc.title"
+              :lines="1"
+              stretch
+              :test-id="`document-open-${doc.id}`"
+              class="min-w-0 max-w-full"
+              content-classes="text-sm font-medium leading-snug text-text-default hover:text-text-brand transition-colors"
+            />
+            <!-- La metadata vive en un renglón propio. Sin carpeta se oculta
+                 desde desktop para no reservar una línea vacía bajo el título. -->
+            <div
+              class="relative z-10 mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted"
+              :class="doc.folder_name ? '' : 'panel-desktop:hidden'"
+              :data-testid="`document-title-meta-${doc.id}`"
+            >
               <span
                 v-if="doc.folder_name"
-                class="relative z-10 inline-flex items-center px-2 py-0.5 rounded text-2xs font-medium bg-surface-raised text-text-muted flex-shrink-0"
+                class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"
                 :title="`Carpeta: ${doc.folder_name}`"
+                :data-testid="`document-folder-badge-${doc.id}`"
               >
-                📁 {{ doc.folder_name }}
+                <span aria-hidden="true">📁</span>
+                <span class="min-w-0 max-w-full [overflow-wrap:anywhere]">{{ doc.folder_name }}</span>
               </span>
-            </div>
-            <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted panel-desktop:hidden">
-              <span v-if="doc.client_display_name || doc.client_name">
+              <span
+                v-if="doc.client_display_name || doc.client_name"
+                class="min-w-0 max-w-full [overflow-wrap:anywhere] panel-desktop:hidden"
+              >
                 {{ doc.client_display_name || doc.client_name }}
               </span>
-              <span v-if="doc.project_name">{{ doc.project_name }}</span>
-              <BaseBadge v-if="doc.is_archived" variant="neutral" size="sm">Archivado</BaseBadge>
-              <DocumentStateList v-else :episodes="doc.active_states" :max-visible="2" />
+              <span
+                v-if="doc.project_name"
+                class="min-w-0 max-w-full [overflow-wrap:anywhere] panel-desktop:hidden"
+              >{{ doc.project_name }}</span>
+              <BaseBadge
+                v-if="doc.is_archived"
+                variant="neutral"
+                size="sm"
+                class="panel-desktop:hidden"
+              >Archivado</BaseBadge>
+              <DocumentStateList
+                v-else
+                class="max-w-full panel-desktop:hidden"
+                :episodes="doc.active_states"
+                :max-visible="2"
+              />
             </div>
           </td>
-          <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
-            <span v-if="doc.client_display_name" class="text-text-default">{{ doc.client_display_name }}</span>
+          <td class="hidden min-w-0 overflow-hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
+            <span v-if="doc.client_display_name" class="block min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ doc.client_display_name }}</span>
             <!-- Nombre libre heredado, sin cliente vinculado: en itálica para
                  que se note que aún no es una relación. -->
             <span
               v-else-if="doc.client_name"
-              class="italic text-text-subtle"
+              class="block min-w-0 max-w-full italic text-text-subtle [overflow-wrap:anywhere]"
               title="Nombre libre, sin cliente vinculado"
             >{{ doc.client_name }}</span>
             <span v-else class="text-text-subtle">—</span>
           </td>
-          <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-project-cell-${doc.id}`">
-            <span v-if="doc.project_name" class="text-text-default">{{ doc.project_name }}</span>
+          <td class="hidden min-w-0 overflow-hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-project-cell-${doc.id}`">
+            <span v-if="doc.project_name" class="block min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ doc.project_name }}</span>
             <span v-else class="text-text-subtle">—</span>
           </td>
           <td class="hidden px-6 py-4 panel-desktop:table-cell">

@@ -369,6 +369,16 @@ owns measured one/two-line clipping and the touch disclosure, so consumers do
 not duplicate tooltip or line-clamp heuristics. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
 primitive.
+Intrinsic text sizing is owned by the same layer. `tableLayout.js` resolves a
+semantic `wrap`/`truncate`/`atomic` policy per column;
+`BaseResponsiveTable` applies it to retained and grouped values, while
+`BaseExploratoryList` applies it to its mutually exclusive table/card branches.
+The safe data-owned default uses `min-w-0`, a bounded content box and
+`overflow-wrap:anywhere`, so strings without spaces participate correctly in
+min-content sizing. Badges inherit the same containment. A feature may truncate
+only when it also owns a complete-value path. Document titles deliberately use
+that exception: one-line ellipsis plus measured in-place disclosure, with folder
+and other distinctions ordered in a separate wrapping metadata row.
 `responsiveAcceptance.js` assigns every catalog view to one of thirteen module
 scripts. Pull requests execute affected modules at all five widths, the full
 matrix runs monthly, and a scheduled February/August issue forces review of the

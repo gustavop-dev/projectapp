@@ -45,6 +45,23 @@ function mountTable(props = {}) {
 }
 
 describe('ChangelogTable', () => {
+  it('contains unbroken actor, entity and record values in their columns', () => {
+    const wrapper = mountTable({
+      entries: [{
+        ...entries[0],
+        actor_username: 'guia_apuntar_dominio_ux_26082026',
+        entity_type_label: 'Respuesta_Etapa_3_Inventario',
+        object_repr: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+      }],
+    });
+    const row = wrapper.get('[data-testid="changelog-row-1"]');
+
+    for (const field of ['actor', 'entity', 'record']) {
+      expect(row.get(`[data-field="${field}"] span:last-child`).classes())
+        .toContain('[overflow-wrap:anywhere]');
+    }
+  });
+
   it('renders one row per entry with formatted date and actor', () => {
     const wrapper = mountTable();
 

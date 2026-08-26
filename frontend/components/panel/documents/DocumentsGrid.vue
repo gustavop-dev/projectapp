@@ -79,6 +79,7 @@ function archivedContentCount(folder) {
         :to="folderToFor(sub)"
         :data-testid="`folder-open-${sub.id}`"
         class="text-sm font-medium text-text-default truncate max-w-full"
+        :title="sub.name"
         @click="onFolderLink($event, sub)"
       >{{ sub.name }}</BaseRowLink>
       <span class="text-xs text-text-subtle">

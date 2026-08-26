@@ -24,6 +24,18 @@ describe('TaskCard', () => {
     expect(wrapper.find('[data-testid="task-card"]').text()).toContain('Deploy to production')
   })
 
+  it('puts metadata below an intrinsically contained unbroken title', () => {
+    const wrapper = mountCard({ title: 'Levantamiento_Fase_4_Multi-Tenant_24082026' })
+    const title = wrapper.get('h3')
+    const metadata = wrapper.get('[data-testid="task-card-meta"]')
+
+    expect(title.classes()).toEqual(expect.arrayContaining([
+      'min-w-0', 'max-w-full', '[overflow-wrap:anywhere]',
+    ]))
+    expect(title.element.compareDocumentPosition(metadata.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy()
+  })
+
   it('renders description when task.description is provided', () => {
     const wrapper = mountCard({ description: 'Needs review first' })
     expect(wrapper.find('p').exists()).toBe(true)

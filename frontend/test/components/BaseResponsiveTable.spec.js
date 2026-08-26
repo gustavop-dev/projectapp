@@ -123,6 +123,18 @@ describe('BaseResponsiveTable', () => {
     expect(wrapper.find('[data-testid="diagnostic-row-1"]').exists()).toBe(true)
   })
 
+  it('wraps variable text without allowing an intrinsic-width escape', () => {
+    const wrapper = mountTable({
+      rows: [{ ...rows[0], name: 'Levantamiento_Fase_4_Multi-Tenant_24082026' }],
+    })
+    const content = wrapper.get('[data-text-policy="wrap"]')
+
+    expect(content.classes()).toEqual(expect.arrayContaining([
+      'min-w-0', 'w-full', '[overflow-wrap:anywhere]',
+    ]))
+  })
+
+
   it('omits legacy actions for custom action menus', () => {
     const wrapper = mountTable({ showActions: true, showDefaultActions: false })
 

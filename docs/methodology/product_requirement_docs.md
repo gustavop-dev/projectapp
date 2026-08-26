@@ -182,6 +182,12 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
+- **Long-name containment**: list and gallery titles are always bounded by their
+  cell/card. The collapsed state uses one line with ellipsis and exposes the same
+  measured **Ver completo/Contraer** path for names with spaces or systematic
+  underscore/date naming; the expanded state may break anywhere. Folder comes
+  first in a separate metadata row below the title, followed by compact-only
+  client/project/state distinctions. Rows without a folder keep natural height.
 - **Private notes**: creation and editing keep the email subject, complete email body,
   WhatsApp message, and an ordered collection of custom title/content notes in one
   optional modal. Every non-empty value has an individual 📋 copy action with ✅
@@ -398,6 +404,12 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 ## 5. Non-Functional Requirements
 
 - **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
+- **Text containment**: Every panel table, card and metadata row must contain
+  arbitrary user/API strings, including values with no spaces, at every canonical
+  viewport. Data-owned prose/identifiers wrap with intrinsic-safe break
+  opportunities; truncation is allowed only when the complete value remains
+  available through a disclosure, tooltip or detail view. Bounded dates, money and
+  numeric values may remain atomic.
 - **Responsive acceptance**: Every panel and public view must pass the same five automated reference viewports (phone 412 px, portrait tablet 835 px, landscape tablet 1195 px, laptop 1440 px, large monitor 2560 px), followed by the separately evidenced physical-device pass required for final certification. Shared components own repeated behavior; large-monitor content keeps an explicit readable maximum width.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)

@@ -90,11 +90,25 @@ const meta = computed(() => {
       <BaseOverflowText
         :to="editTo"
         :text="document.title"
-        :lines="2"
+        :lines="1"
         :test-id="`document-card-open-${document.id}`"
         content-classes="text-sm font-semibold leading-snug text-text-default"
       />
-      <p class="text-xs text-text-muted mt-1 tabular-nums truncate">{{ meta }}</p>
+      <div
+        v-if="document.folder_name"
+        class="mt-2 flex min-w-0 max-w-full flex-wrap items-center gap-1"
+        :data-testid="`document-card-title-meta-${document.id}`"
+      >
+        <span
+          class="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 rounded bg-surface-raised px-2 py-0.5 text-2xs font-medium text-text-muted [overflow-wrap:anywhere]"
+          :title="`Carpeta: ${document.folder_name}`"
+          :data-testid="`document-card-folder-badge-${document.id}`"
+        >
+          <span aria-hidden="true">📁</span>
+          <span class="min-w-0 max-w-full [overflow-wrap:anywhere]">{{ document.folder_name }}</span>
+        </span>
+      </div>
+      <p class="mt-1 min-w-0 max-w-full whitespace-normal text-xs text-text-muted tabular-nums [overflow-wrap:anywhere]">{{ meta }}</p>
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">
         <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />

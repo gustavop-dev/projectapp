@@ -25,7 +25,7 @@ const sizes = {
 }
 
 const classes = computed(() => [
-  'inline-flex items-center gap-1 font-medium rounded-full',
+  'inline-flex min-w-0 max-w-full flex-wrap items-center gap-1 whitespace-normal font-medium rounded-full [overflow-wrap:anywhere]',
   variants[props.variant] || variants.neutral,
   sizes[props.size] || sizes.md,
 ])

@@ -45,6 +45,35 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-027] Unbroken document titles escaped their cell and covered Cliente
+- **Date**: 2026-08-26
+- **Context**: `/panel/documents` rendered real underscore/date names such as
+  `Levantamiento_Fase_4_Multi-Tenant_24082026` beyond the Título cell. Folder
+  metadata also shared the title's flex row, so both strings could paint over
+  one another before the title reached Cliente.
+- **Root Cause**: The layout relied on ordinary word boundaries and local
+  `break-words`. An unbroken string retained a large intrinsic minimum, while
+  several flex/table ancestors lacked the full `min-w-0`/bounded-content chain.
+  The folder badge was a non-shrinking sibling competing for the same row.
+- **Resolution**: Add semantic `wrap`/`truncate`/`atomic` policies to the shared
+  table/list primitives; data strings now use `overflow-wrap:anywhere`, while
+  bounded values remain atomic. Document titles use a contained one-line
+  ellipsis with measured **Ver completo/Contraer** in both rows and cards; the
+  expanded value wraps anywhere. Folder is first on its own metadata row, with
+  compact Client/Project/State distinctions after it. Desktop rows without a
+  folder reserve no blank metadata line. The same containment contract was
+  adopted across the other operational panel lists and badges.
+- **Files Affected**: `frontend/utils/tableLayout.js`, shared base table/list,
+  overflow and badge primitives, Document table/cards, Task/Project/accounting
+  list components, and panel list pages.
+- **Verification**: Focused Jest slices cover the primitives and representative
+  consumers; the full Document Playwright spec passes 11/11 using the three real
+  unbroken names at 412×915, 835×1195, 1195×835, 1440×900 and 2560×1440. Nuxt
+  build and the responsive/flow/static gates pass.
+- **Lesson**: Overflow containment begins at intrinsic sizing, not at the final
+  text node. Pair `min-w-0` through every flex/grid boundary with
+  `overflow-wrap:anywhere`, and move independent metadata out of a title row.
+
 ### [ERR-026] A display utility disabled two-line clipping in document cards
 - **Date**: 2026-08-25
 - **Context**: The desktop document row exposed the conditional full-title control, but the same long title in the portrait-tablet card never showed **Ver completo**.

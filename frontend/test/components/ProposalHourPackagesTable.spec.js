@@ -42,6 +42,25 @@ describe('ProposalHourPackagesTable', () => {
     expect(wrapper.find('[data-testid="hour-rate-total-7"]').text()).toContain('1.620.000');
   });
 
+  it('contains unbroken package names and notes in their first-column box', () => {
+    const wrapper = mountTable({
+      editable: false,
+      packages: [{
+        id: 10,
+        name: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+        note: 'Respuesta_Etapa_3_Inventario',
+        hours: 40,
+        discountPercent: 0,
+        hourlyRate: 30000,
+      }],
+    });
+
+    expect(cell(wrapper, 'name', 0).classes()).toEqual(expect.arrayContaining([
+      'min-w-0', 'max-w-[22rem]', '[overflow-wrap:anywhere]',
+    ]));
+    expect(cell(wrapper, 'note', 0).classes()).toContain('[overflow-wrap:anywhere]');
+  });
+
   it('emits an update for each edited field instead of saving by itself', async () => {
     const wrapper = mountTable();
 

@@ -14,6 +14,12 @@ test.setTimeout(60_000);
 
 const WIDTH_KEY = 'projectapp-table-widths:documents-list';
 const LONG_TITLE = 'Cliente Atlas — Contrato marco de servicios profesionales para el Comité Ejecutivo Regional — versión final aprobada para firma del 25 de agosto de 2026';
+const UNBROKEN_TITLES = [
+  'guia_apuntar_dominio_ux_26082026',
+  'Levantamiento_Fase_4_Multi-Tenant_24082026',
+  'Respuesta_Etapa_3_Inventario',
+];
+const LONG_FOLDER = 'Respuesta_Etapa_3_Inventario';
 const STATE_GROUPS = [
   { id: 1, name: 'Ciclo', selection_mode: 'exclusive', order: 0, is_active: true },
 ];
@@ -42,7 +48,7 @@ const authCheck = jsonOk({
   user: { username: 'admin', is_staff: true, is_superuser: true },
 });
 
-function documentFixture(id, title) {
+function documentFixture(id, title, overrides = {}) {
   return {
     id,
     title,
@@ -63,12 +69,16 @@ function documentFixture(id, title) {
       state: SENT_STATE,
     }],
     created_at: '2026-08-25T10:00:00Z',
+    ...overrides,
   };
 }
 
 const DOCUMENTS = [
-  documentFixture(501, LONG_TITLE),
-  documentFixture(502, 'Acta breve'),
+  documentFixture(501, LONG_TITLE, { folder: 77, folder_name: LONG_FOLDER }),
+  documentFixture(502, UNBROKEN_TITLES[0]),
+  documentFixture(503, UNBROKEN_TITLES[1], { folder: 77, folder_name: LONG_FOLDER }),
+  documentFixture(504, UNBROKEN_TITLES[2]),
+  documentFixture(505, 'Acta breve'),
 ];
 
 async function mockDocuments(page) {
@@ -77,7 +87,7 @@ async function mockDocuments(page) {
     if (apiPath === 'documents/') return jsonOk(DOCUMENTS);
     if (apiPath === 'documents/counts/') {
       return jsonOk({
-        documents: { active: 2, archived: 0, unfiled_active: 2, unfiled_archived: 0 },
+        documents: { active: 5, archived: 0, unfiled_active: 3, unfiled_archived: 0 },
         folders: { active: 0, archived: 0 },
       });
     }
@@ -116,6 +126,70 @@ async function columnWidth(page, name) {
     .evaluate((element) => element.getBoundingClientRect().width);
 }
 
+async function expectInside(inner, outer) {
+  await inner.scrollIntoViewIfNeeded();
+  const [innerBox, outerBox] = await Promise.all([inner.boundingBox(), outer.boundingBox()]);
+  expect(innerBox).not.toBeNull();
+  expect(outerBox).not.toBeNull();
+  expect(innerBox.x).toBeGreaterThanOrEqual(outerBox.x - 1);
+  expect(innerBox.x + innerBox.width).toBeLessThanOrEqual(outerBox.x + outerBox.width + 1);
+}
+
+async function expectVerticalSeparation(upper, lower) {
+  const [upperBox, lowerBox] = await Promise.all([upper.boundingBox(), lower.boundingBox()]);
+  expect(upperBox).not.toBeNull();
+  expect(lowerBox).not.toBeNull();
+  expect(upperBox.y + upperBox.height).toBeLessThanOrEqual(lowerBox.y + 1);
+}
+
+async function expectTableTitleContained(page) {
+  const title = page.getByTestId('document-open-503');
+  const folder = page.getByTestId('document-folder-badge-503');
+  const titleCell = title.locator('xpath=ancestor::td[1]');
+  const clientCell = page.getByTestId('doc-client-cell-503');
+
+  await expectInside(title, titleCell);
+  await expectInside(folder, titleCell);
+  await expectVerticalSeparation(title, folder);
+
+  const [titleBox, folderBox, clientBox] = await Promise.all([
+    title.boundingBox(), folder.boundingBox(), clientCell.boundingBox(),
+  ]);
+  expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(clientBox.x + 1);
+  expect(folderBox.x + folderBox.width).toBeLessThanOrEqual(clientBox.x + 1);
+}
+
+async function expectCompactTableTitleContained(page) {
+  const title = page.getByTestId('document-open-503');
+  const folder = page.getByTestId('document-folder-badge-503');
+  const metadata = page.getByTestId('document-title-meta-503');
+  const titleCell = title.locator('xpath=ancestor::td[1]');
+
+  await expectInside(title, titleCell);
+  await expectInside(metadata, titleCell);
+  await expectInside(folder, metadata);
+  await expectVerticalSeparation(title, metadata);
+}
+
+async function expectCardTitleContained(page) {
+  const card = page.getByTestId('document-card-503');
+  const title = page.getByTestId('document-card-open-503');
+  const folder = page.getByTestId('document-card-folder-badge-503');
+
+  await card.scrollIntoViewIfNeeded();
+  await expectInside(title, card);
+  await expectInside(folder, card);
+  await expectVerticalSeparation(title, folder);
+}
+
+const CONTAINMENT_PROFILES = [
+  { name: 'phone', width: 412, height: 915, verify: expectCardTitleContained },
+  { name: 'portrait tablet', width: 835, height: 1195, verify: expectCardTitleContained },
+  { name: 'landscape tablet', width: 1195, height: 835, verify: expectCompactTableTitleContained },
+  { name: 'desktop', width: 1440, height: 900, verify: expectTableTitleContained },
+  { name: 'wide desktop', width: 2560, height: 1440, verify: expectTableTitleContained },
+];
+
 test.describe('Admin Document Title Column Resize', () => {
   test.beforeEach(async ({ page }) => {
     await setAuthLocalStorage(page, {
@@ -138,9 +212,40 @@ test.describe('Admin Document Title Column Resize', () => {
     const longTitle = page.getByTestId('document-open-501');
     await expect(page.getByTestId('document-open-501-toggle')).toBeVisible();
     await expect(longTitle).toHaveAttribute('title', LONG_TITLE);
-    await expect(page.getByTestId('document-open-502-toggle')).toHaveCount(0);
-    await expect(page.getByTestId('document-open-502')).not.toHaveAttribute('title', /.+/);
+    await expect(page.getByTestId('document-open-505-toggle')).toHaveCount(0);
+    await expect(page.getByTestId('document-open-505')).not.toHaveAttribute('title', /.+/);
   });
+
+  test('offers the same full-name control for an unbroken clipped title', {
+    tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openDocuments(page);
+
+    const handle = page.getByTestId('documents-title-resize-handle');
+    await handle.press('Home');
+    await expect(handle).toHaveAttribute('aria-valuenow', '240');
+
+    const title = page.getByTestId('document-open-503');
+    const toggle = page.getByTestId('document-open-503-toggle');
+    await expect(toggle).toBeVisible();
+    await expect(title).toHaveAttribute('title', UNBROKEN_TITLES[1]);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  for (const profile of CONTAINMENT_PROFILES) {
+    test(`contains real unbroken names at ${profile.name} width`, {
+      tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:display'],
+    }, async ({ page }) => {
+      // quality: allow-no-interaction (display outcome: geometry is the behavior under test)
+      // quality: allow-deep-link (module navigation is covered separately; this test isolates responsive geometry)
+      await page.setViewportSize({ width: profile.width, height: profile.height });
+      await openDocuments(page);
+
+      await profile.verify(page);
+    });
+  }
 
   test('reveals a clipped title in place on the compact gallery', {
     tag: [...ADMIN_DOCUMENT_TITLE_COLUMN_RESIZE, '@role:admin', '@outcome:success'],

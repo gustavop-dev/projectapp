@@ -53,4 +53,15 @@ describe('BaseExploratoryList', () => {
     expect(card.text()).toContain('Activo')
     expect(card.text()).not.toContain('Privado')
   })
+
+  it('contains unbroken values in both table and card representations', async () => {
+    const wide = await mountList(false)
+    const wideContent = wide.get('tbody td > div')
+    expect(wideContent.classes()).toContain('[overflow-wrap:anywhere]')
+
+    wide.unmount()
+    const compact = await mountList(true)
+    const cardContent = compact.get('[data-testid="project-7"] .font-medium')
+    expect(cardContent.classes()).toContain('[overflow-wrap:anywhere]')
+  })
 })

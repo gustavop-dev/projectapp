@@ -207,7 +207,7 @@ async function createGroup() {
               <label
                 v-for="candidate in stateStore.activeStates.filter((item) => item.id !== state.id)"
                 :key="candidate.id"
-                class="flex items-center gap-2 text-xs text-text-default"
+                class="flex min-w-0 max-w-full items-center gap-2 text-xs text-text-default"
               >
                 <input
                   v-model="editDraft(state).incompatibility_ids"
@@ -215,7 +215,7 @@ async function createGroup() {
                   :value="candidate.id"
                   class="rounded border-input-border text-text-brand focus:ring-focus-ring/30"
                 />
-                {{ candidate.name }}
+                <span class="min-w-0 max-w-full [overflow-wrap:anywhere]">{{ candidate.name }}</span>
               </label>
             </div>
           </details>
