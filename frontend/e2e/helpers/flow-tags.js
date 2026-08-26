@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.86.0
+// Registry version: 2.87.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -20,6 +20,7 @@ export const ADMIN_ACCOUNTING_CARD_CATALOG = ['@flow:admin-accounting-card-catal
 export const ADMIN_ACCOUNTING_CARDS = ['@flow:admin-accounting-cards', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_COLLECTION_CREATE = ['@flow:admin-accounting-collection-create', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_COLLECTION_DETAIL = ['@flow:admin-accounting-collection-detail', '@module:admin', '@priority:P1'];
+export const ADMIN_ACCOUNTING_COLLECTION_GROUPING = ['@flow:admin-accounting-collection-grouping', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_COLLECTIONS = ['@flow:admin-accounting-collections', '@module:admin', '@priority:P2'];
 export const ADMIN_ACCOUNTING_DASHBOARD = ['@flow:admin-accounting-dashboard', '@module:admin', '@priority:P1'];
 export const ADMIN_ACCOUNTING_EMPTY_STATE_CTA = ['@flow:admin-accounting-empty-state-cta', '@module:admin', '@priority:P4'];

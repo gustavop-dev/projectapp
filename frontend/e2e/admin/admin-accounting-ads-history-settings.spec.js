@@ -226,6 +226,8 @@ function buildHandler({ calls, recipients, createError }) {
           overdue_reminder_frequency: 'biweekly',
           usd_exchange_rate: '4000.00',
           income_default_view_mode: 'grouped',
+          collection_accounts_view_mode: 'grouped',
+          collection_accounts_group_by: 'client',
           updated_at: '2026-07-01T00:00:00Z',
         }),
       };
@@ -579,6 +581,30 @@ test.describe('Admin Accounting Ads, History & Settings', () => {
     await expect(page.getByText('Configuración guardada')).toBeVisible();
     const patch = calls.find((call) => call.method === 'PATCH');
     expect(patch.body.income_default_view_mode).toBe('classic');
+  });
+
+  test('settings persists collection account view preferences', {
+    tag: [...ADMIN_ACCOUNTING_SETTINGS, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({ calls }));
+    await page.goto('/panel/accounting/settings', { waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByText('Vista de cuentas de cobro')).toBeVisible({ timeout: 25_000 });
+    await expect(
+      page.getByTestId('settings-collections-view-mode')
+        .getByRole('tab', { name: 'Agrupado' }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await page.getByTestId('settings-collections-view-mode')
+      .getByRole('tab', { name: 'Clásico' }).click();
+    await page.getByTestId('settings-collections-group-by')
+      .getByRole('tab', { name: 'Proyecto' }).click();
+    await page.getByTestId('settings-save-button').click();
+
+    await expect(page.getByText('Configuración guardada')).toBeVisible();
+    const patch = calls.find((call) => call.method === 'PATCH');
+    expect(patch.body.collection_accounts_view_mode).toBe('classic');
+    expect(patch.body.collection_accounts_group_by).toBe('project');
   });
 
   test('the sends tab lists who each notice reached, with its state', {

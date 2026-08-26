@@ -897,8 +897,10 @@ _NON_CRUD_TOOLS = [
             'automático del módulo), card_reminder_enabled, '
             'statement_reminder_enabled, hosting_expiry_reminder_enabled, '
             'payment_calendar_enabled, overdue_reminder_frequency '
-            '(weekly|biweekly), usd_exchange_rate e income_default_view_mode '
-            '(classic|grouped). Los destinatarios ya no viven acá: se '
+            '(weekly|biweekly), usd_exchange_rate, income_default_view_mode '
+            '(classic|grouped), collection_accounts_view_mode '
+            '(classic|grouped) y collection_accounts_group_by '
+            '(client|project). Los destinatarios ya no viven acá: se '
             'administran con las herramientas de notification_recipient.'
         ),
         'input_schema': {
@@ -919,6 +921,12 @@ _NON_CRUD_TOOLS = [
                 },
                 'usd_exchange_rate': {'type': ['number', 'string']},
                 'income_default_view_mode': {'type': 'string', 'enum': ['classic', 'grouped']},
+                'collection_accounts_view_mode': {
+                    'type': 'string', 'enum': ['classic', 'grouped'],
+                },
+                'collection_accounts_group_by': {
+                    'type': 'string', 'enum': ['client', 'project'],
+                },
             },
         },
         'handler': update_settings,
