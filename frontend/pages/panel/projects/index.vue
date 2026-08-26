@@ -138,6 +138,7 @@
             variant="secondary"
             size="md"
             :disabled="!sortKey"
+            disabled-reason="Elige primero el criterio para ordenar los proyectos."
             :aria-label="sortDir === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
             data-testid="projects-sort-direction"
             @click="toggleMobileSortDirection"
@@ -306,6 +307,7 @@
           size="md"
           class="min-h-11 w-full justify-start"
           :disabled="projectActionTarget.status === 'archived'"
+          disabled-reason="Restaura el proyecto archivado antes de editarlo."
           @click="editProjectFromActions"
         >
           Editar proyecto

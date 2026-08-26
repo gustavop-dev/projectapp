@@ -35,14 +35,25 @@
         </BaseFormField>
         <FamilyPicker v-model="newFamilies" :options="store.copyFamilies" test-prefix="client-copy-new" />
         <div class="flex items-center justify-end">
-          <BaseButton
-            type="submit"
-            size="sm"
-            :disabled="!newEmail.trim() || !newFamilies.length || store.isSavingCopyRecipient"
-            data-testid="client-copy-add"
+          <BaseControlGate
+            :reasons="newRecipientBlockReasons"
+            label="Agregar destinatario no disponible"
+            align="end"
           >
-            Agregar destinatario
-          </BaseButton>
+            <template #default="{ describedBy }">
+              <BaseButton
+                type="submit"
+                size="sm"
+                :loading="store.isSavingCopyRecipient"
+                :disabled="Boolean(newRecipientBlockReasons.length)"
+                :disabled-reason="newRecipientBlockReasons.join(' ')"
+                :aria-describedby="describedBy"
+                data-testid="client-copy-add"
+              >
+                Agregar destinatario
+              </BaseButton>
+            </template>
+          </BaseControlGate>
         </div>
       </form>
 
@@ -97,6 +108,7 @@
                 variant="secondary"
                 size="sm"
                 :disabled="!canSaveFamilies(recipient) || store.isSavingCopyRecipient"
+                :disabled-reason="familySaveBlockReason(recipient)"
                 :data-testid="`client-copy-save-${recipient.id}`"
                 @click="saveFamilies(recipient)"
               >
@@ -111,7 +123,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import FamilyPicker from '~/components/emails/FamilyPicker.vue';
 import { useEmailStore } from '~/stores/emails';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -121,6 +133,11 @@ const notify = usePanelNotify();
 const newEmail = ref('');
 const newFamilies = ref([]);
 const draftFamilies = reactive({});
+
+const newRecipientBlockReasons = computed(() => [
+  !newEmail.value.trim() ? 'Escribe el correo del destinatario.' : '',
+  !newFamilies.value.length ? 'Selecciona al menos una familia de correos.' : '',
+].filter(Boolean));
 
 function hydrateDrafts() {
   for (const recipient of store.copyRecipients) {
@@ -169,6 +186,14 @@ function canSaveFamilies(recipient) {
   const families = draftFamilies[recipient.id] || [];
   if (recipient.is_active && !families.length) return false;
   return JSON.stringify(families) !== JSON.stringify(recipient.families || []);
+}
+
+function familySaveBlockReason(recipient) {
+  const families = draftFamilies[recipient.id] || [];
+  if (recipient.is_active && !families.length) {
+    return 'Selecciona al menos una familia para un destinatario activo.';
+  }
+  return 'Cambia al menos una familia antes de guardar.';
 }
 
 async function saveFamilies(recipient) {

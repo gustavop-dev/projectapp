@@ -36,7 +36,7 @@
         :disabled="scopeLocked"
         size="sm"
         aria-label="Ver archivados"
-        :title="scopeLocked ? 'La búsqueda recorre activos y archivados' : undefined"
+        disabled-reason="La búsqueda recorre activos y archivados."
         data-testid="folder-archived-entry"
         @update:model-value="$emit('toggle-archived', $event)"
       />
@@ -228,6 +228,7 @@
                       icon-only
                       size="sm"
                       :disabled="hasContent(folder)"
+                      :disabled-reason="deleteTooltip(folder)"
                       :aria-label="`Eliminar carpeta ${folder.name}`"
                       :class="['opacity-70 hover:opacity-100 focus-visible:opacity-100 transition-opacity', touchMode ? 'min-h-11 min-w-11' : '']"
                       data-testid="folder-delete"

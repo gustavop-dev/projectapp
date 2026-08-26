@@ -71,6 +71,7 @@
               type="checkbox"
               :checked="isSelected(p.id)"
               :disabled="p.id === currentId"
+              :title="p.id === currentId ? 'Esta es la propuesta que ya estás viendo; no se agrega de nuevo.' : undefined"
               :data-testid="`proposal-multi-send-option-${p.id}`"
               class="mt-1 h-4 w-4 rounded border-input-border text-primary-strong focus:ring-primary-strong"
               @change="toggle(p.id)"

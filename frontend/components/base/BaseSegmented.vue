@@ -27,6 +27,7 @@ const props = defineProps({
   // lista: ninguna opción puede quedar inalcanzable.
   nowrap: { type: Boolean, default: false },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -49,6 +50,10 @@ const sizeClass = computed(() => SEGMENTED_SIZE[props.size] || SEGMENTED_SIZE.md
       :data-testid="opt.testId"
       :aria-selected="modelValue === opt.value"
       :disabled="disabled || opt.disabled"
+      :title="(disabled && disabledReason) || opt.disabledReason || undefined"
+      :aria-label="(disabled || opt.disabled) && ((disabled && disabledReason) || opt.disabledReason)
+        ? `${opt.label}: ${(disabled && disabledReason) || opt.disabledReason}`
+        : undefined"
       :class="[
         SEGMENTED_ITEM_BASE,
         sizeClass,

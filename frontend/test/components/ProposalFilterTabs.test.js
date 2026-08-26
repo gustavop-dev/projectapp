@@ -439,6 +439,10 @@ describe('ProposalFilterTabs restorable base', () => {
       // 'lost' es el primero: a la izquierda no hay a dónde ir.
       expect(wrapper.get('[data-testid="filter-tabs-move-left-lost"]').element.disabled)
         .toBe(true);
+      expect(wrapper.get('[data-testid="filter-tabs-move-left-lost"]').text())
+        .toBe('Ya es el primer filtro');
+      expect(wrapper.get('[data-testid="filter-tabs-move-left-lost"]').attributes('title'))
+        .toBe('Este filtro ya está en la primera posición.');
       expect(wrapper.get('[data-testid="filter-tabs-move-right-lost"]').element.disabled)
         .toBe(false);
 

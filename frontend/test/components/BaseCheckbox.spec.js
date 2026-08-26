@@ -36,6 +36,19 @@ describe('BaseCheckbox', () => {
     expect(wrapper.find('input').attributes('disabled')).toBeDefined()
   })
 
+  it('exposes its disabled reason on the checkbox', () => {
+    const wrapper = mount(BaseCheckbox, {
+      props: {
+        modelValue: false,
+        disabled: true,
+        disabledReason: 'Esta opción pertenece a otro cliente.',
+      },
+    })
+
+    expect(wrapper.get('input').attributes('title'))
+      .toBe('Esta opción pertenece a otro cliente.')
+  })
+
   // ── Array model (checkbox group) ──────────────────────────────────────────
   it('reflects membership when modelValue is an array', () => {
     const inArray = mount(BaseCheckbox, { props: { modelValue: [1, 2], value: 2 } })

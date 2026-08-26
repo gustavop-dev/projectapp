@@ -113,16 +113,33 @@
               placeholder="30000"
             />
           </label>
-          <BaseButton variant="secondary" size="sm" class="shrink-0" data-testid="hour-rate-apply-base-all" :disabled="!canApplyBaseRate" @click="applyBaseRateToAll">
-            Aplicar a todos
-          </BaseButton>
+          <BaseControlGate
+            :reasons="applyBaseRateBlockReasons"
+            label="Aplicar tarifa no disponible"
+            align="end"
+          >
+            <template #default="{ describedBy }">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                class="shrink-0"
+                data-testid="hour-rate-apply-base-all"
+                :disabled="Boolean(applyBaseRateBlockReasons.length)"
+                :disabled-reason="applyBaseRateBlockReasons.join(' ')"
+                :aria-describedby="describedBy"
+                @click="applyBaseRateToAll"
+              >
+                Aplicar a todos
+              </BaseButton>
+            </template>
+          </BaseControlGate>
         </div>
         <p class="text-[11px] text-text-subtle">
           Escribir acá no mueve la tabla: la tarifa se copia a todos los paquetes cuando
           apretás «Aplicar a todos», y después podés ajustar los que quieras en su celda.
           Moneda: {{ currency }} (la define el catálogo).
         </p>
-        <BaseButton variant="secondary" size="sm" v-if="catalogDefaults" data-testid="hour-rate-reset-catalog" :disabled="isAtCatalogDefaults" @click="resetToCatalogDefaults">
+        <BaseButton variant="secondary" size="sm" v-if="catalogDefaults" data-testid="hour-rate-reset-catalog" :disabled="isAtCatalogDefaults" disabled-reason="Los paquetes ya coinciden con los valores actuales del catálogo." @click="resetToCatalogDefaults">
           Restablecer a los valores del catálogo
         </BaseButton>
         <p v-if="catalogDefaults" class="text-[11px] text-text-subtle">
@@ -159,7 +176,7 @@
       </div>
 
       <div class="flex items-center gap-3">
-        <BaseButton variant="primary" size="md" data-testid="hour-rate-save" :disabled="!isDirty || isSaving" @click="save">
+        <BaseButton variant="primary" size="md" data-testid="hour-rate-save" :loading="isSaving" :disabled="!isDirty" disabled-reason="Haz un cambio en los paquetes antes de guardar." @click="save">
           {{ isSaving ? 'Guardando…' : 'Guardar' }}
         </BaseButton>
         <span v-if="isDirty" class="text-xs text-warning-strong">Cambios sin guardar</span>
@@ -278,6 +295,14 @@ const canApplyBaseRate = computed(() => {
   // Nothing to do once every row already charges it.
   return packages.value.some((pkg) => Number(pkg.hourlyRate) !== rate);
 });
+
+const applyBaseRateBlockReasons = computed(() => [
+  !(Number(baseRate.value) > 0) ? 'Ingresa una tarifa base mayor a cero.' : '',
+  !packages.value.length ? 'Agrega al menos un paquete de horas.' : '',
+  Number(baseRate.value) > 0 && packages.value.length && canApplyBaseRate.value === false
+    ? 'Todos los paquetes ya usan esta tarifa.'
+    : '',
+].filter(Boolean));
 
 function applyBaseRateToAll() {
   const rate = Number(baseRate.value);

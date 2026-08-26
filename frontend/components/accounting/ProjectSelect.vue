@@ -13,6 +13,7 @@
           type="text"
           :placeholder="placeholder"
           :disabled="!clientProfileId && !allowNoClient"
+          :title="!clientProfileId && !allowNoClient ? 'Elige un cliente antes de buscar o crear un proyecto.' : undefined"
           :data-testid="testid"
           autocomplete="off"
           class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none disabled:opacity-60 disabled:cursor-not-allowed"
@@ -90,7 +91,9 @@
               type="button"
               variant="primary"
               size="sm"
-              :disabled="creating || !inlineName.trim()"
+              :loading="creating"
+              :disabled="!inlineName.trim()"
+              disabled-reason="Escribe el nombre del proyecto para crearlo."
               :data-testid="`${testid}-inline-create-save`"
               @click="createInlineProject"
             >
@@ -242,7 +245,7 @@ const hint = computed(() => {
   if (!props.clientProfileId) {
     return props.allowNoClient
       ? 'Opcional. Elegir un proyecto completa el cliente.'
-      : '';
+      : 'Elige un cliente antes de buscar o crear un proyecto.';
   }
   // Item 3 of the original requirement: an empty project is a legitimate
   // state, not pending work — a cobro por diagnóstico happens before there

@@ -107,6 +107,13 @@ async function merge(state) {
   else notify.error({ title: 'No se pudieron fusionar', detail: result.message });
 }
 
+function mergeBlockReasons(state) {
+  return [
+    !mergeTargets[state.id] ? 'Elige el estado de destino.' : '',
+    state.system_key ? 'Los estados semilla del sistema no se pueden fusionar.' : '',
+  ].filter(Boolean);
+}
+
 async function createGroup() {
   const name = newGroup.name.trim();
   if (!name) return;
@@ -145,7 +152,11 @@ async function createGroup() {
             <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
           </select>
         </div>
-        <BaseButton type="submit" variant="primary" size="sm" data-testid="catalog-create-state" :disabled="!newState.name.trim()">Crear estado</BaseButton>
+        <BaseControlGate :reasons="!newState.name.trim() ? ['Escribe el nombre del estado.'] : []" label="Crear estado no disponible" align="start">
+          <template #default="{ describedBy }">
+            <BaseButton type="submit" variant="primary" size="sm" data-testid="catalog-create-state" :disabled="!newState.name.trim()" disabled-reason="Escribe el nombre del estado." :aria-describedby="describedBy">Crear estado</BaseButton>
+          </template>
+        </BaseControlGate>
       </form>
       <form class="space-y-3 border-t border-border-muted pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0" @submit.prevent="createGroup">
         <h2 class="text-sm font-semibold text-text-default">Crear grupo</h2>
@@ -156,7 +167,11 @@ async function createGroup() {
             <option value="additive">Varios activos</option>
           </select>
         </div>
-        <BaseButton type="submit" variant="secondary" size="sm" data-testid="catalog-create-group" :disabled="!newGroup.name.trim()">Crear grupo</BaseButton>
+        <BaseControlGate :reasons="!newGroup.name.trim() ? ['Escribe el nombre del grupo.'] : []" label="Crear grupo no disponible" align="start">
+          <template #default="{ describedBy }">
+            <BaseButton type="submit" variant="secondary" size="sm" data-testid="catalog-create-group" :disabled="!newGroup.name.trim()" disabled-reason="Escribe el nombre del grupo." :aria-describedby="describedBy">Crear grupo</BaseButton>
+          </template>
+        </BaseControlGate>
       </form>
     </section>
 
@@ -198,7 +213,11 @@ async function createGroup() {
               <option value="">Fusionar con…</option>
               <option v-for="target in stateStore.activeStates.filter((item) => item.id !== state.id && item.group === state.group)" :key="target.id" :value="target.id">{{ target.name }}</option>
             </select>
-            <BaseButton variant="ghost" size="sm" :data-testid="`catalog-merge-state-${state.id}`" :disabled="!mergeTargets[state.id] || !!state.system_key" @click="merge(state)">Fusionar</BaseButton>
+            <BaseControlGate :reasons="mergeBlockReasons(state)" label="Fusionar no disponible" align="start">
+              <template #default="{ describedBy }">
+                <BaseButton variant="ghost" size="sm" :data-testid="`catalog-merge-state-${state.id}`" :disabled="Boolean(mergeBlockReasons(state).length)" :disabled-reason="mergeBlockReasons(state).join(' ')" :aria-describedby="describedBy" @click="merge(state)">Fusionar</BaseButton>
+              </template>
+            </BaseControlGate>
             <BaseButton variant="danger-ghost" size="sm" :data-testid="`catalog-retire-state-${state.id}`" @click="retire(state)">Retirar</BaseButton>
           </div>
           <details v-if="state.is_active" class="rounded-lg border border-border-muted bg-surface-raised px-3 py-2">

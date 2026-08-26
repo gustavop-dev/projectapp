@@ -544,9 +544,9 @@ function handleBulk(action) {
 }
 
 const diagnosticBulkItems = computed(() => [
-  { label: 'Finalizar aceptados', disabled: store.isUpdating, onClick: () => handleBulk('finish') },
+  { label: 'Finalizar aceptados', disabled: store.isUpdating, description: store.isUpdating ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulk('finish') },
   { divider: true },
-  { label: 'Eliminar', danger: true, disabled: store.isUpdating, onClick: () => handleBulk('delete') },
+  { label: 'Eliminar', danger: true, disabled: store.isUpdating, description: store.isUpdating ? 'Otra acción masiva está en curso.' : '', onClick: () => handleBulk('delete') },
 ]);
 
 function toggleSort(key) {

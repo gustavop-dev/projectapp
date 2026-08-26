@@ -143,6 +143,7 @@
             variant="secondary"
             size="sm"
             :disabled="store.page <= 1"
+            disabled-reason="Ya estás en la primera página."
             @click="changePage(store.page - 1)"
           >
             Anterior
@@ -152,6 +153,7 @@
             variant="secondary"
             size="sm"
             :disabled="store.page >= store.numPages"
+            disabled-reason="Ya estás en la última página."
             @click="changePage(store.page + 1)"
           >
             Siguiente
@@ -363,6 +365,7 @@
                   v-model="messageForm.direction"
                   :options="DIRECTION_OPTIONS"
                   :disabled="Boolean(editingMessageId)"
+                  disabled-reason="La dirección de un borrador existente no se puede cambiar. Crea un mensaje nuevo para usar otra dirección."
                   data-testid="communication-message-direction"
                   @update:model-value="onDirectionChange"
                 />

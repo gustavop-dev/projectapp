@@ -135,9 +135,10 @@
                 class="touch-target w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised
                        disabled:text-text-subtle disabled:hover:bg-transparent disabled:cursor-not-allowed"
                 :disabled="isFirst(tab)"
+                :title="isFirst(tab) ? 'Este filtro ya está en la primera posición.' : undefined"
                 @click="handleMove(tab.id, -1)"
               >
-                Mover a la izquierda
+                {{ isFirst(tab) ? 'Ya es el primer filtro' : 'Mover a la izquierda' }}
               </button>
               <button
                 type="button"
@@ -145,9 +146,10 @@
                 class="touch-target w-full px-3 py-1.5 text-left text-sm text-text-default hover:bg-surface-raised
                        disabled:text-text-subtle disabled:hover:bg-transparent disabled:cursor-not-allowed"
                 :disabled="isLast(tab)"
+                :title="isLast(tab) ? 'Este filtro ya está en la última posición.' : undefined"
                 @click="handleMove(tab.id, 1)"
               >
-                Mover a la derecha
+                {{ isLast(tab) ? 'Ya es el último filtro' : 'Mover a la derecha' }}
               </button>
               <button
                 v-if="!tab.builtin"
@@ -247,9 +249,25 @@
           @keyup.enter="confirmInput"
           @keyup.escape="cancelInput"
         />
-        <BaseButton variant="primary" size="md" data-testid="filter-tabs-confirm" :disabled="!inputName.trim()" @click="confirmInput">
-          {{ isRenaming ? 'Renombrar' : 'Guardar' }}
-        </BaseButton>
+        <BaseControlGate
+          :reasons="!inputName.trim() ? ['Escribe el nombre del filtro.'] : []"
+          :label="isRenaming ? 'Renombrar no disponible' : 'Guardar no disponible'"
+          align="start"
+        >
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              size="md"
+              data-testid="filter-tabs-confirm"
+              :disabled="!inputName.trim()"
+              disabled-reason="Escribe el nombre del filtro."
+              :aria-describedby="describedBy"
+              @click="confirmInput"
+            >
+              {{ isRenaming ? 'Renombrar' : 'Guardar' }}
+            </BaseButton>
+          </template>
+        </BaseControlGate>
         <BaseButton variant="ghost" size="md" data-testid="filter-tabs-cancel" @click="cancelInput">
           Cancelar
         </BaseButton>
@@ -281,6 +299,7 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
 import { sameFilters } from '~/composables/useSavedFilterTabs';
+import BaseControlGate from './BaseControlGate.vue';
 
 const props = defineProps({
   tabs: { type: Array, default: () => [] },

@@ -1018,3 +1018,22 @@ Finally, documentation alone does not keep coverage current. Compare a declared
 seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
 test. A new model then forces its author to decide ownership and fake-data
 behavior in the same delivery instead of leaving the gap for a later cleanup.
+
+## 42. A disabled control is an explanation surface
+
+Disabling protects an invalid transition but removes the control from normal
+keyboard interaction, so the button itself cannot be the only carrier of its
+reason. Put a focusable/touchable proxy around it, connect the explanation with
+`aria-describedby`, and repeat resolvable prerequisites as visible copy. When
+several conditions fail, derive one array and render all of it; a `canSubmit`
+boolean or first-error chain hides the real contract and makes the operator
+discover blockers one at a time.
+
+Separate three classes. Busy state is temporary and belongs in `loading` plus
+an active verb. Lifecycle, permission and first/last-position boundaries need a
+specific tooltip/status explanation but are not form errors. Missing input or
+configuration is actionable and needs adjacent copy with a nearby resolution
+path. For canonical data required late in a workflow, such as a client's email
+before issuing a collection account, repair the source record explicitly inside
+the modal and preserve the draft; a local override alone would leave the next
+workflow broken in the same way.

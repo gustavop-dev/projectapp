@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-26 — Controles deshabilitados sin bloqueos silenciosos:** el panel
+adopta un contrato híbrido: `BaseControlGate` enumera junto al control todos los
+prerrequisitos que la persona puede resolver y replica la explicación en
+hover/foco/táctil; `disabledReason` cubre límites de posición, estado o permisos,
+y los estados transitorios conservan una etiqueta de operación en curso. El
+barrido estático pasó de 85 hallazgos accionables a cero y quedó como guard de
+CI. En cuentas de cobro, elegir un cliente marcado **Sin correo** avisa antes de
+terminar, ofrece guardar explícitamente el correo en el perfil canónico sin
+perder el borrador y sólo entonces habilita la previsualización; el gate lista a
+la vez cliente, ingreso, valor, concepto, correo, conflicto y fecha fija que
+falten. Verificación: 29 Jest focales, dos escenarios Playwright reales, build
+Nuxt, flow-map fresco y el flow P1 `admin-accounting-collection-create` cubierto
+en display/failure/error/success. Inventario: `docs/audits/disabled-controls-2026-08-26.md`.
+
 **2026-08-26 — Contención transversal de texto y títulos de Documentos:** el
 panel dejó de depender de espacios para contener datos. `tableLayout.js` define
 `wrap`/`truncate`/`atomic`; `BaseResponsiveTable` y `BaseExploratoryList` aplican

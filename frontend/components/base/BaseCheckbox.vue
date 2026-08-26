@@ -7,6 +7,7 @@ const props = defineProps({
   modelValue: { type: [Boolean, Array], default: false },
   value: { type: [String, Number, Boolean, Object], default: undefined },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -29,12 +30,17 @@ function onChange(e) {
 </script>
 
 <template>
-  <label class="inline-flex items-start gap-2 cursor-pointer" :class="{ 'opacity-60 cursor-not-allowed': disabled }">
+  <label
+    class="inline-flex items-start gap-2 cursor-pointer"
+    :class="{ 'opacity-60 cursor-not-allowed': disabled }"
+    :title="disabled && disabledReason ? disabledReason : undefined"
+  >
     <input
       type="checkbox"
       :checked="isChecked"
       :value="value"
       :disabled="disabled"
+      :title="disabled && disabledReason ? disabledReason : undefined"
       class="mt-0.5 rounded border-input-border bg-input-bg text-primary focus:ring-2 focus:ring-focus-ring/40"
       @change="onChange"
     />

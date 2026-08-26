@@ -11,6 +11,7 @@
       :aria-expanded="isOpen"
       :placeholder="placeholder"
       :disabled="disabled"
+      :title="disabled ? disabledReason : undefined"
       :data-testid="testId"
       :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md]"
       @input="onInput"
@@ -70,6 +71,7 @@ const props = defineProps({
   size: { type: String, default: 'md', validator: oneOf(['sm', 'md']) },
   placeholder: { type: String, default: 'Comercio' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: 'Guardando los cambios. Espera un momento.' },
   testId: { type: String, default: 'merchant-input' },
 });
 

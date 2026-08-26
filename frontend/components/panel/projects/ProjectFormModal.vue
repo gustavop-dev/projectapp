@@ -88,6 +88,11 @@ const canSubmit = computed(() => Boolean(
   form.value.name.trim() && (isEdit.value || form.value.client_profile_id),
 ))
 
+const submitBlockReasons = computed(() => [
+  !form.value.name.trim() ? 'Escribe el nombre del proyecto.' : '',
+  !isEdit.value && !form.value.client_profile_id ? 'Elige o crea el cliente del proyecto.' : '',
+].filter(Boolean))
+
 function onClientSelect(client) {
   if (!client) {
     form.value.client_profile_id = null
@@ -209,7 +214,7 @@ function onSubmit() {
             type="button"
             variant="primary"
             size="sm"
-            :disabled="creatingClient"
+            :loading="creatingClient"
             data-testid="project-form-inline-client-save"
             @click="createInlineClient"
           >
@@ -242,14 +247,25 @@ function onSubmit() {
         <BaseButton type="button" variant="secondary" @click="emit('close')">
           Cancelar
         </BaseButton>
-        <BaseButton
-          type="submit"
-          variant="primary"
-          :disabled="saving || !canSubmit"
-          data-testid="project-form-submit"
+        <BaseControlGate
+          :reasons="submitBlockReasons"
+          label="Guardar proyecto no disponible"
+          align="end"
         >
-          {{ saving ? 'Guardando...' : 'Guardar' }}
-        </BaseButton>
+          <template #default="{ describedBy }">
+            <BaseButton
+              type="submit"
+              variant="primary"
+              :loading="saving"
+              :disabled="Boolean(submitBlockReasons.length)"
+              :disabled-reason="submitBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+              data-testid="project-form-submit"
+            >
+              {{ saving ? 'Guardando...' : 'Guardar' }}
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </form>
   </BaseModal>

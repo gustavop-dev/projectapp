@@ -7,6 +7,10 @@ const props = defineProps({
   documentId: { type: [Number, String], required: true },
   episodes: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
+  disabledReason: {
+    type: String,
+    default: 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar sus estados.',
+  },
 });
 const emit = defineEmits(['changed', 'history']);
 const stateStore = useDocumentStateStore();
@@ -114,8 +118,8 @@ async function createInline(confirmSimilar = false) {
           {{ episode.state.name }} · {{ formatStateDuration(episode.duration_seconds) }}
         </BaseBadge>
         <span class="mr-auto text-xs text-text-subtle">{{ episode.state.group_name }}</span>
-        <BaseButton size="sm" variant="ghost" :data-testid="`document-state-close-${episode.id}`" :disabled="disabled" @click="finishEpisode(episode, 'completed')">Cerrar</BaseButton>
-        <BaseButton size="sm" variant="danger-ghost" :data-testid="`document-state-remove-${episode.id}`" :disabled="disabled" @click="finishEpisode(episode, 'removed')">Quitar</BaseButton>
+        <BaseButton size="sm" variant="ghost" :data-testid="`document-state-close-${episode.id}`" :disabled="disabled" :disabled-reason="disabledReason" @click="finishEpisode(episode, 'completed')">Cerrar</BaseButton>
+        <BaseButton size="sm" variant="danger-ghost" :data-testid="`document-state-remove-${episode.id}`" :disabled="disabled" :disabled-reason="disabledReason" @click="finishEpisode(episode, 'removed')">Quitar</BaseButton>
       </div>
     </div>
     <p v-else class="text-xs text-text-muted">Sin estados activos: queda en Por clasificar.</p>
@@ -127,16 +131,24 @@ async function createInline(confirmSimilar = false) {
         data-testid="document-state-add-select"
         class="bg-input-bg rounded-lg border border-input-border px-3 py-2 text-sm"
         :disabled="disabled"
+        :title="disabled ? disabledReason : undefined"
       >
         <option value="">Agregar un estado…</option>
         <optgroup v-for="group in availableGroups" :key="group.id" :label="group.name">
           <option v-for="state in group.states" :key="state.id" :value="state.id">{{ state.name }}</option>
         </optgroup>
       </select>
-      <BaseButton data-testid="document-state-add" variant="primary" size="sm" :disabled="!selectedStateId || disabled" @click="addState">Agregar</BaseButton>
+      <BaseButton
+        data-testid="document-state-add"
+        variant="primary"
+        size="sm"
+        :disabled="!selectedStateId || disabled"
+        :disabled-reason="disabled ? disabledReason : 'Selecciona un estado para agregarlo.'"
+        @click="addState"
+      >Agregar</BaseButton>
     </div>
     <label class="flex items-center gap-2 text-xs text-text-muted">
-      <BaseToggle v-model="useExactTime" size="sm" :disabled="disabled" />
+      <BaseToggle v-model="useExactTime" size="sm" :disabled="disabled" :disabled-reason="disabledReason" />
       Registrar la fecha real de apertura
     </label>
     <input
@@ -150,8 +162,8 @@ async function createInline(confirmSimilar = false) {
     <div class="border-t border-border-muted pt-3">
       <p class="mb-2 text-xs font-medium text-text-muted">Crear al vuelo</p>
       <div class="flex gap-2">
-        <BaseInput v-model="newName" data-testid="document-state-inline-name" placeholder="Nombre del nuevo estado" :disabled="disabled" @keyup.enter="createInline()" />
-        <BaseButton data-testid="document-state-inline-create" variant="secondary" size="sm" :disabled="!newName.trim() || disabled" @click="createInline()">Crear</BaseButton>
+        <BaseInput v-model="newName" data-testid="document-state-inline-name" placeholder="Nombre del nuevo estado" :disabled="disabled" :disabled-reason="disabledReason" @keyup.enter="createInline()" />
+        <BaseButton data-testid="document-state-inline-create" variant="secondary" size="sm" :disabled="!newName.trim() || disabled" :disabled-reason="disabled ? disabledReason : 'Escribe el nombre del nuevo estado.'" @click="createInline()">Crear</BaseButton>
       </div>
       <div v-if="suggestions.length" class="mt-2 flex flex-wrap gap-1.5" data-testid="document-state-suggestions">
         <button

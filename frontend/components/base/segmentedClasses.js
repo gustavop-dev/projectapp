@@ -39,7 +39,8 @@ export function normalizeSegmentedOptions(options) {
           // Per-option lock, on top of the control-wide `disabled`: a filter can
           // have one choice that does not apply yet while the rest stay live.
           disabled: opt.disabled === true,
+          disabledReason: opt.disabledReason || '',
         }
-      : { value: opt, label: String(opt), disabled: false },
+      : { value: opt, label: String(opt), disabled: false, disabledReason: '' },
   )
 }

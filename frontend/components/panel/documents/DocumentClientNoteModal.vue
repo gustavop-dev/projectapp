@@ -13,6 +13,10 @@
         </p>
       </div>
 
+      <BaseAlert v-if="readonly" variant="warning">
+        Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiar sus notas.
+      </BaseAlert>
+
       <section class="space-y-5" aria-labelledby="document-client-messages-heading">
         <h4 id="document-client-messages-heading" class="text-xs uppercase tracking-wide font-semibold text-text-muted">
           Mensajes para el cliente
@@ -31,6 +35,7 @@
               :label="copyLabel('subject', 'asunto')"
               :status-label="copyStatus('subject', 'asunto')"
               :disabled="saving || !draft.subject.trim()"
+              :disabled-reason="!draft.subject.trim() ? 'Escribe un asunto antes de copiarlo.' : ''"
               data-testid="client-note-copy-subject"
               @click="copyText('subject', draft.subject)"
             />
@@ -39,6 +44,7 @@
             id="document-client-note-subject"
             v-model="draft.subject"
             :disabled="readonly || saving"
+            :disabled-reason="fieldDisabledReason"
             maxlength="255"
             placeholder="Asunto breve y concreto"
             data-testid="client-note-subject"
@@ -58,6 +64,7 @@
               :label="copyLabel('email', 'correo')"
               :status-label="copyStatus('email', 'correo')"
               :disabled="saving || !draft.emailBody.trim()"
+              :disabled-reason="!draft.emailBody.trim() ? 'Escribe el correo antes de copiarlo.' : ''"
               data-testid="client-note-copy-email"
               @click="copyText('email', draft.emailBody)"
             />
@@ -66,6 +73,7 @@
             id="document-client-note-email"
             v-model="draft.emailBody"
             :disabled="readonly || saving"
+            :disabled-reason="fieldDisabledReason"
             rows="9"
             placeholder="Saludo, contenido y cierre del correo..."
             data-testid="client-note-email"
@@ -85,6 +93,7 @@
               :label="copyLabel('whatsapp', 'WhatsApp')"
               :status-label="copyStatus('whatsapp', 'WhatsApp')"
               :disabled="saving || !draft.whatsappMessage.trim()"
+              :disabled-reason="!draft.whatsappMessage.trim() ? 'Escribe el mensaje antes de copiarlo.' : ''"
               data-testid="client-note-copy-whatsapp"
               @click="copyText('whatsapp', draft.whatsappMessage)"
             />
@@ -93,6 +102,7 @@
             id="document-client-note-whatsapp"
             v-model="draft.whatsappMessage"
             :disabled="readonly || saving"
+            :disabled-reason="fieldDisabledReason"
             rows="5"
             placeholder="Mensaje breve que invita a revisar el correo..."
             data-testid="client-note-whatsapp"
@@ -164,6 +174,7 @@
                 :label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :disabled="saving || !note.title.trim()"
+                :disabled-reason="!note.title.trim() ? 'Escribe el título antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-title-${index}`"
                 @click="copyText(`custom-title-${note.key}`, note.title)"
               />
@@ -172,6 +183,7 @@
               :id="`document-custom-note-title-${index}`"
               v-model="note.title"
               :disabled="readonly || saving"
+              :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.title.trim()"
               maxlength="255"
               placeholder="Ej. Contexto para seguimiento"
@@ -199,6 +211,7 @@
                 :label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :disabled="saving || !note.content.trim()"
+                :disabled-reason="!note.content.trim() ? 'Escribe el contenido antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-content-${index}`"
                 @click="copyText(`custom-content-${note.key}`, note.content)"
               />
@@ -207,6 +220,7 @@
               :id="`document-custom-note-content-${index}`"
               v-model="note.content"
               :disabled="readonly || saving"
+              :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.content.trim()"
               rows="5"
               placeholder="Escribe el contenido de la nota..."
@@ -342,7 +356,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentStateStore } from '~/stores/document_states';
 
@@ -361,6 +375,14 @@ const props = defineProps({
     validator: (value) => ['save', 'draft'].includes(value),
   },
   saving: { type: Boolean, default: false },
+});
+
+const fieldDisabledReason = computed(() => {
+  if (props.readonly) {
+    return 'Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiarla.';
+  }
+  if (props.saving) return 'Guardando los cambios. Espera un momento.';
+  return undefined;
 });
 
 const emit = defineEmits(['update:modelValue', 'submit', 'workflow-changed']);
