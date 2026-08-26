@@ -5,37 +5,37 @@
 | Layer | Technology | Version |
 |-------|-----------|---------|
 | **Backend Framework** | Django | 5.2.17 |
-| **REST API** | Django REST Framework | 3.17.1 |
+| **REST API** | Django REST Framework | 3.18.0 |
 | **JWT (platform)** | djangorestframework-simplejwt | >=5.3,<6.0 |
 | **Frontend Framework** | Nuxt 3 | ^3.21.11 |
-| **Vue** | Vue 3 | ^3.5.33 |
+| **Vue** | Vue 3 | ^3.5.41 |
 | **State Management** | Pinia (Options API) | ^2.3.1 |
 | **CSS Framework** | TailwindCSS | ^6.14.0 (@nuxtjs/tailwindcss) |
 | **Animations** | GSAP + ScrollTrigger + ScrollToPlugin | ^3.15.0 |
 | **Charts** | ApexCharts + vue3-apexcharts | 5.16.0 + ^1.11.1 |
 | **i18n** | @nuxtjs/i18n | ^9.5.6 |
-| **Task Queue** | Huey (RedisHuey) | >=2.5.0 |
-| **Cache/Queue Backend** | Redis | >=4.0.0 |
+| **Task Queue** | Huey (RedisHuey) | >=3.3.4 |
+| **Cache/Queue Backend** | Redis | >=8.1.0 |
 | **Database (prod)** | MySQL 8+ | via mysqlclient >=2.2 |
 | **Database (dev)** | SQLite 3 | built-in |
-| **HTTP Client** | Axios | ^1.19.0 |
-| **PDF Generation** | ReportLab + pypdf | `>=4,<5` + `>=6.15,<7` |
+| **HTTP Client** | Axios | ^1.20.0 |
+| **PDF Generation** | ReportLab + pypdf | `>=4,<5` + `>=6.16.2,<7` |
 | **Image Processing** | Pillow | 12.3.0 |
 | **Email** | Django EmailMultiAlternatives | SMTP (GoDaddy) |
 | **WhatsApp** | CallMeBot API | via requests |
-| **Testing (backend)** | pytest + pytest-django + pytest-cov | 9.1.1 |
-| **Testing (frontend unit)** | Jest + @vue/test-utils | ^29.7.0 |
-| **Testing (E2E)** | Playwright | ^1.59.1 |
+| **Testing (backend)** | pytest + pytest-django + pytest-cov | 9.1.1 + 4.14.0 + 5.0.0 |
+| **Testing (frontend unit)** | Jest + @vue/test-utils | 29.7.0 + ^2.4.11 |
+| **Testing (E2E)** | Playwright | ^1.62.1 |
 | **Linter** | Ruff | via ruff.toml |
 | **Pre-commit** | pre-commit | .pre-commit-config.yaml |
 | **CI/CD** | GitHub Actions | ci.yml |
 | **Server (prod)** | Gunicorn + Nginx | >=23.0 |
 | **Process Manager** | systemd | 3 services |
 | **Backups** | django-dbbackup | >=4.0.0 |
-| **Profiling** | django-silk (optional) | >=5.0.0 |
+| **Profiling** | django-silk (optional) | >=5.5.2 |
 | **Config Management** | python-decouple | >=3.8,<3.9 |
 | **Fake Data** | Faker | 28.4.1 |
-| **Token Encryption** | cryptography (Fernet) | >=50,<51 | LinkedIn OAuth token + Project admin credential encryption |
+| **Token Encryption** | cryptography (Fernet) | >=50.0.1,<51 | LinkedIn OAuth token + Project admin credential encryption |
 | **MCP Transport** | JSON-RPC over Streamable HTTP | Per-connector capability URL; DRF throttle key is client IP + registered slug |
 
 ---

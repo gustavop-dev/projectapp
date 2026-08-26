@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-26 — Refresh patch/minor de dependencias y auditoría de vulnerabilidades:**
+el candidato de release actualiza diez dependencias directas de frontend y once
+de backend sin cruzar majors ni la frontera breaking de `@pinia/nuxt` 0.x. Los
+audits finales de npm y del virtualenv Python aislado reportan cero
+vulnerabilidades; Nuxt compila y prerenderiza 36 rutas, Django check no encuentra
+problemas, la colección completa de pytest termina correctamente y la regresión
+focal pasa 2/2. `@testing-library/jest-dom` se mantuvo y fijó exactamente en 6.9.1
+porque 6.10.0 fue publicada con requisitos y cambios incompatibles para la línea
+6.x. El único cierre operativo posterior al merge es subir `pip` del virtualenv
+productivo de 26.1.2 a 26.2.1 para remediar `PYSEC-2026-3721` /
+`CVE-2026-13346`; `pip` no se agrega a `requirements.txt` porque es tooling del
+entorno, no una dependencia de la aplicación. Detalle y majors diferidos en
+`audit-report.md`.
+
 **2026-08-25 — Estados múltiples, administrables y con episodios para Documentos:**
 el módulo dejó de presentar `draft/published` y etiquetas como dos verdades
 solapadas. `DocumentStateGroup` separa un ciclo exclusivo de señales aditivas;
