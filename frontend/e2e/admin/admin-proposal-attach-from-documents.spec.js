@@ -172,8 +172,8 @@ test.describe('Admin Proposal — Adjuntar desde Documentos', () => {
     await expect(confirmBtn).toBeEnabled();
     await confirmBtn.click();
 
-    // Modal overlay should close (the button with the same label stays visible)
-    await expect(page.locator('.fixed.inset-0')).not.toBeVisible({ timeout: 3000 });
+    // The dialog should close (the button with the same label stays visible).
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 3000 });
     // A "Documento" badge label appears inside the doc_ref attachment chip
     await expect(page.locator('span', { hasText: 'Documento' }).first()).toBeVisible();
   });

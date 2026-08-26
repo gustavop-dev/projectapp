@@ -899,6 +899,21 @@ WhatsApp delivery receipt. A later email phase must enter through
 Historical conversations keep their original client: when a project changes
 owner, its threads are detached from the project rather than reassigned.
 
+### Modal-Owned Floating Listboxes
+
+`BaseFloatingListbox` is the shared rendering boundary for searchable selectors
+inside `BaseModal`. The modal provides a dedicated floating root outside its
+overflow panel; listboxes teleport there, position themselves against their
+input, clamp to the viewport and flip above when that side has more room. The
+same modal context registers open floating layers so the panel stays fixed while
+the list owns any result overflow. The dialog-level focus trap includes the
+teleported options, while Escape closes the list before it can close the modal.
+
+`ClientAutocomplete`, `ProjectSelect`, `ProjectCatalogSelect` and the linked-
+income selector in `CollectionAccountFormModal` consume that primitive. This
+keeps accounting and Documents modals on one clipping, focus and scroll contract
+instead of repeating per-screen absolute dropdown workarounds.
+
 ### Representative Fake Data → Coherent Cross-Module Graph
 
 ```mermaid

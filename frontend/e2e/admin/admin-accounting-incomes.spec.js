@@ -283,16 +283,20 @@ function buildHandler({
   };
 }
 
-const CLIENT_SEARCH_RESULT = [{
-  id: 5,
-  name: 'Ana Pérez',
-  email: 'ana@acme.co',
+const CLIENT_SEARCH_RESULT = [
+  { id: 5, name: 'Ana Pérez', email: 'ana@acme.co', company: 'Acme Soluciones' },
+  { id: 6, name: 'Ana Torres', email: 'torres@acme.co', company: 'Torres SAS' },
+  { id: 7, name: 'Ana Rojas', email: 'rojas@acme.co', company: 'Rojas SAS' },
+  { id: 8, name: 'Ana Gómez', email: 'gomez@acme.co', company: 'Gómez SAS' },
+  { id: 9, name: 'Ana Martínez', email: 'martinez@acme.co', company: 'Martínez SAS' },
+  { id: 10, name: 'Ana Suárez', email: 'suarez@acme.co', company: 'Suárez SAS' },
+].map((client) => ({
   phone: '',
-  company: 'Acme Soluciones',
   nit: '901234567',
   cedula: '',
   is_email_placeholder: false,
-}];
+  ...client,
+}));
 
 // The view lands on the "Solo esperados" builtin tab, so the CRUD tests ask
 // for the unfiltered baseline explicitly; the landing tab has its own test.
@@ -301,6 +305,24 @@ async function gotoIncomes(page, query = '?accounting_incomeTab=all') {
   await expect(
     page.getByRole('heading', { name: 'Ingresos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
+}
+
+async function navigateToIncomesFromPanel(page) {
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('navigation', { name: 'Navegación del panel' })
+    .getByRole('link', { name: 'Ingresos', exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Ingresos', exact: true }),
+  ).toBeVisible({ timeout: 25_000 });
+}
+
+async function openBulkClientAssignment(page) {
+  await page.getByTestId('accounting-select-1').check();
+  await page.getByTestId('accounting-select-2').check();
+  await page.getByTestId('accounting-select-3').check();
+  await page.getByTestId('accounting-select-4').check();
+  await bulkAction(page, 'incomes', 'Asignar cliente');
 }
 
 test.describe('Admin Accounting Incomes CRUD', () => {
@@ -1341,7 +1363,61 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
     await expect(page.getByTestId('accounting-row-1')).toHaveCount(0);
   });
 
-  test('assigning a client in bulk confirms the scope, then updates every selected row', {
+  test('the bulk assignment keeps its complete review visible', {
+    tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // Bug caught: a short modal clipped the client results and hid the records
+    // the operator must review before confirming the mass assignment.
+    const calls = [];
+    await mockApi(page, buildHandler({
+      rows: [
+        incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
+        incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Integración 20%' }),
+        incomeRow({ id: 4, concept: 'Kore - Cierre 10%' }),
+      ],
+      calls,
+    }));
+    await navigateToIncomesFromPanel(page);
+    await openBulkClientAssignment(page);
+
+    const modal = page.getByTestId('incomes-bulk-assign-modal');
+    await expect(modal).toContainText('4 ingresos seleccionados');
+    await page.getByTestId('incomes-bulk-client').fill('Ana');
+
+    const listbox = page.getByRole('listbox');
+    const fifthOption = page.getByTestId('client-autocomplete-option-9');
+    await expect(fifthOption).toBeVisible();
+    const listBounds = await listbox.boundingBox();
+    const fifthBounds = await fifthOption.boundingBox();
+    expect(fifthBounds.y + fifthBounds.height).toBeLessThanOrEqual(
+      listBounds.y + listBounds.height + 1,
+    );
+
+    const modalBounds = await modal.boundingBox();
+    await listbox.hover();
+    await page.mouse.wheel(0, 600);
+    await expect.poll(() => listbox.evaluate((element) => element.scrollTop))
+      .toBeGreaterThan(0);
+    expect((await modal.boundingBox()).y).toBe(modalBounds.y);
+
+    await page.getByTestId('client-autocomplete-option-5').click();
+    const scope = page.getByTestId('client-bulk-summary-list');
+    expect(await scope.evaluate((element) => ({
+      hasEveryRecord: [
+        'Kore - Inicio 40%',
+        'Kore - Entrega 30%',
+        'Kore - Integración 20%',
+        'Kore - Cierre 10%',
+      ].every((label) => element.textContent.includes(label)),
+      fitsWithoutScroll: element.scrollHeight <= element.clientHeight + 1,
+    }))).toEqual({ hasEveryRecord: true, fitsWithoutScroll: true });
+    expect(calls.some(
+      (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
+    )).toBe(false);
+  });
+
+  test('assigning a client in bulk updates every selected row', {
     tag: [...ADMIN_ACCOUNTING_INCOME_CLIENT, '@role:admin', '@outcome:success'],
   }, async ({ page }) => {
     const calls = [];
@@ -1349,32 +1425,26 @@ test.describe('Admin Accounting Incomes — cliente del ingreso', () => {
       rows: [
         incomeRow({ id: 1, concept: 'Kore - Inicio 40%' }),
         incomeRow({ id: 2, concept: 'Kore - Entrega 30%' }),
+        incomeRow({ id: 3, concept: 'Kore - Integración 20%' }),
+        incomeRow({ id: 4, concept: 'Kore - Cierre 10%' }),
       ],
       calls,
     }));
     await gotoIncomes(page);
-
-    await page.getByTestId('accounting-select-1').check();
-    await page.getByTestId('accounting-select-2').check();
-    await expect(page.getByTestId('incomes-bulk-bar')).toContainText('2 seleccionados');
-
-    await bulkAction(page, 'incomes', 'Asignar cliente');
+    await openBulkClientAssignment(page);
     await page.getByTestId('incomes-bulk-client').fill('Ana');
     await page.getByTestId('client-autocomplete-option-5').click();
-
-    // Nothing is written until the operator sees what the mass edit touches.
-    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Inicio 40%');
-    await expect(page.getByTestId('client-bulk-summary-list')).toContainText('Kore - Entrega 30%');
-    expect(calls.some((c) => c.apiPath === 'accounting/incomes/bulk-assign-client/')).toBe(false);
-
     await page.getByTestId('incomes-bulk-assign').click();
 
     await expect(page.getByTestId('accounting-row-1')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('accounting-row-2')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('accounting-row-3')).toContainText('Ana Pérez');
+    await expect(page.getByTestId('accounting-row-4')).toContainText('Ana Pérez');
     await expect(page.getByTestId('incomes-bulk-bar')).toHaveCount(0);
     const bulk = calls.find(
       (call) => call.apiPath === 'accounting/incomes/bulk-assign-client/',
     );
-    expect(bulk.body).toEqual({ income_ids: [1, 2], client: 5 });
+    expect(bulk.body).toEqual({ income_ids: [1, 2, 3, 4], client: 5 });
   });
 
   test('assigning stays blocked, with the reason on screen, until a client is picked', {
