@@ -156,6 +156,17 @@ rojo hasta que la misma entrega:
 La regla es parte de Definition of Done: un modelo visible nuevo sin datos de
 prueba no está completo.
 
+## Verificación ejecutable
+
+El contrato focal vive en
+`backend/content/tests/management/test_fake_data_contract.py`. Sus 25 casos
+comprueban el guard positivo, el inventario de modelos, el replay de semilla,
+los volúmenes y sesgos, la integridad cliente/proyecto/origen, las distribuciones
+temporales y de comunicaciones, el rollback atómico y el reemplazo completo.
+Debe ejecutarse en lotes de máximo 20 tests, de acuerdo con la política del
+repositorio; un cambio de seeder no se considera completo si este contrato queda
+rojo o si el gate de calidad lo clasifica como no mergeable.
+
 ## Comandos parciales
 
 Todos aceptan `--seed` y `--anchor-date` y aplican el mismo guard de entorno.
