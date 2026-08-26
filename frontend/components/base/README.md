@@ -178,7 +178,9 @@ prefer the bare class without `/N`.
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, href?, testid?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |
 | `BaseActionMenu` | `items`, `label`, `disabled`, `placement`, `align`, `width`, `variant` — canonical row/action overflow menu |
 | `BaseBulkActionBar` | `selectedCount`, `outsideCount`, `filteredCount`, `allFilteredSelected`, `actions`, `busy`, `testidPrefix`, `testid`; emits `clear`/`select-all` |
-| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
+| `BaseResizeHandle` | Accessible vertical separator shared by panels and tables: pointer capture, Arrow/Home/End keyboard control and double-click reset |
+| `BaseOverflowText` | `text`, `to`, `lines` (1/2), `stretch`, `expandable`, `testId`, `contentClasses`; measures real clipping, adds the full native hint only on overflow and exposes an in-place touch disclosure |
+| `BaseResponsiveTable` | `columns`, `rows` plus legacy accounting-table props. Comparative tables declare explicit `responsive` `keep`/`group`/`hide` policy and exactly one `primary`; opt-in resizing uses `columnWidth` on every column plus `columnWidthsKey`; supports `caption`, `testIdPrefix`, `rowClass` and custom-only actions |
 | `BaseExploratoryList` | Exploratory CRUD list: one table from 1024 px and one stacked-card representation below it. Every column declares `mobile` as `primary`/`secondary`/`meta`/`hidden` |
 | `BasePageShell` | `width` (`narrow`/`content`/`panel`/`full`), `as` — `panel` caps general content at 1400 px; the admin layout applies it globally |
 | `BaseAlert`     | `variant` (`info`/`success`/`warning`/`danger`), `title`, `dismissible`. Icon via `#icon` slot, body via default slot |
@@ -266,6 +268,35 @@ const columns = [
 - A table with no `responsive` declarations keeps the legacy horizontal-scroll
   behavior. A mixed declaration warns in development; partial automatic
   decisions are forbidden.
+
+Resizable tables opt in at the table contract, never with a page-local drag
+handler. Every column declares `columnWidth`; the resizable track sets
+`min/default/max/resizable`, fixed tracks set `fixed`, and flexible tracks set
+the business order with `shrinkPriority`/`fillPriority`. `columnWidthsKey` is a
+stable localStorage namespace. The chosen width is clamped and persisted, the
+shared separator supports pointer and keyboard input, and double click removes
+the preference. Donors reach their declared minima before the wrapper scrolls.
+
+```vue
+<BaseResponsiveTable
+  :columns="[
+    {
+      key: 'name',
+      label: 'Nombre',
+      responsive: { primary: true, compact: 'keep', portrait: 'keep', landscape: 'keep' },
+      columnWidth: { min: 200, default: 280, max: 480, resizable: true },
+    },
+    {
+      key: 'status',
+      label: 'Estado',
+      responsive: { compact: 'keep', portrait: 'keep', landscape: 'keep' },
+      columnWidth: { min: 112, default: 112, max: 112, fixed: true },
+    },
+  ]"
+  :rows="rows"
+  column-widths-key="projectapp-table-widths:example"
+/>
+```
 
 Exploratory CRUD lists use a different primitive because their mobile task is
 scanning entities, not comparing columns. `BaseExploratoryList` renders only

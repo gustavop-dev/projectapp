@@ -1,5 +1,6 @@
 <template>
   <div
+    ref="tableContainerRef"
     class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm"
     :aria-busy="loading ? 'true' : undefined"
   >
@@ -11,7 +12,10 @@
          until their module adopts the explicit contract. -->
     <table
       class="w-full text-sm"
-      :class="hasResponsivePolicy ? 'base-responsive-table--priority' : ''"
+      :class="[
+        hasResponsivePolicy ? 'base-responsive-table--priority' : '',
+        hasColumnResize ? 'base-responsive-table--resizable' : '',
+      ]"
       :style="tableStyle"
     >
       <caption v-if="caption" class="sr-only">{{ caption }}</caption>
@@ -31,8 +35,11 @@
           <th
             v-for="col in resolved"
             :key="col.key"
-            :style="{ width: col.width }"
-            :class="[col.headerPadClass, col.alignClass, col.nowrapClass, responsiveCellClass(col)]"
+            :style="columnHeaderStyle(col)"
+            :class="[
+              col.headerPadClass, col.alignClass, col.nowrapClass,
+              responsiveCellClass(col), col.columnWidth?.resizable ? 'relative' : '',
+            ]"
             :aria-sort="ariaSort(col)"
           >
             <button
@@ -59,10 +66,25 @@
               </span>
             </button>
             <template v-else>{{ col.label }}</template>
+            <BaseResizeHandle
+              v-if="hasColumnResize && col.columnWidth?.resizable"
+              :value="resize.preferredWidth(col.key)"
+              :min="col.columnWidth.min"
+              :max="col.columnWidth.max"
+              :label="`Ajustar el ancho de la columna ${col.label}`"
+              :test-id="`${testIdPrefix}-resize-${col.key}`"
+              class="absolute -right-2 top-0 z-20 h-full w-4"
+              indicator-class="h-7 w-0.5"
+              @pointer-start="resize.onPointerStart(col.key, $event)"
+              @pointer-move="resize.onPointerMove(col.key, $event)"
+              @pointer-end="resize.onPointerEnd(col.key)"
+              @resize="resize.resizeTo(col.key, $event)"
+              @reset="resize.reset(col.key)"
+            />
           </th>
           <th
             v-if="showActions"
-            :style="{ width: actionsWidth }"
+            :style="actionsHeaderStyle"
             :class="[DENSITY.headerCell, 'text-center']"
           >Acciones</th>
         </tr>
@@ -263,8 +285,11 @@
 </template>
 
 <script setup>
-import { computed, watchEffect } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
+import BaseResizeHandle from '~/components/base/BaseResizeHandle.vue';
+import { usePanelViewportProfile } from '~/composables/usePanelViewportProfile';
+import { useResizableTableColumns } from '~/composables/useResizableTableColumns';
 import { formatDate } from '~/utils/formatDate';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
@@ -320,6 +345,8 @@ const props = defineProps({
   selectionLabel: { type: Function, default: null },
   /** Selected row keys (v-model:selected). */
   selected: { type: Array, default: () => [] },
+  /** localStorage namespace for opt-in resizable column preferences. */
+  columnWidthsKey: { type: String, default: '' },
 });
 
 const DENSITY = TABLE_DENSITY;
@@ -330,6 +357,55 @@ const DENSITY = TABLE_DENSITY;
  * one wide gap next to the name.
  */
 const resolved = computed(() => resolveColumns(props.columns, { hasActions: props.showActions }));
+
+const tableContainerRef = ref(null);
+const { profile: viewportProfile } = usePanelViewportProfile();
+
+const hasColumnResize = computed(() =>
+  props.columns.some((column) => Boolean(column.columnWidth?.resizable)),
+);
+
+const resizeColumns = computed(() => {
+  const configured = resolved.value.map((column) => ({
+    ...column,
+    columnWidth: column.columnWidth || {
+      min: column.minRem * 16,
+      default: column.minRem * 16,
+      max: column.minRem * 16,
+      fixed: true,
+    },
+  }));
+  if (props.selectable) {
+    configured.unshift({
+      key: '__select',
+      columnWidth: { min: 40, default: 40, max: 40, fixed: true },
+    });
+  }
+  if (props.showActions) {
+    configured.push({
+      key: '__actions',
+      columnWidth: { min: 80, default: 80, max: 80, fixed: true },
+    });
+  }
+  return configured;
+});
+
+const resizeVisibleKeys = computed(() => {
+  const keys = resolved.value
+    .filter((column) => ['desktop', 'wide'].includes(viewportProfile.value)
+      || policyFor(column, viewportProfile.value) === 'keep')
+    .map((column) => column.key);
+  if (props.selectable) keys.unshift('__select');
+  if (props.showActions) keys.push('__actions');
+  return keys;
+});
+
+const resize = useResizableTableColumns({
+  columns: resizeColumns,
+  containerRef: tableContainerRef,
+  storageKey: props.columnWidthsKey,
+  visibleKeys: resizeVisibleKeys,
+});
 
 // Same scale as the data columns, so the actions column is one more share of
 // the total instead of a hardcoded width that disagreed with minWidthFor().
@@ -343,10 +419,19 @@ const hasResponsivePolicy = computed(() =>
   props.columns.some((column) => Boolean(column.responsive)),
 );
 
-const tableStyle = computed(() => (
-  hasResponsivePolicy.value
+const tableStyle = computed(() => {
+  if (hasColumnResize.value) return resize.tableStyle.value;
+  return hasResponsivePolicy.value
     ? { '--table-min-width': tableMinWidth.value }
-    : { minWidth: tableMinWidth.value }
+    : { minWidth: tableMinWidth.value };
+});
+
+function columnHeaderStyle(column) {
+  return hasColumnResize.value ? resize.columnStyle(column.key) : { width: column.width };
+}
+
+const actionsHeaderStyle = computed(() => (
+  hasColumnResize.value ? resize.columnStyle('__actions') : { width: actionsWidth.value }
 ));
 
 const PROFILE_ORDER = ['compact', 'portrait', 'landscape'];
@@ -392,6 +477,17 @@ const groupedColumns = computed(() => Object.fromEntries(
 
 if (process.env.NODE_ENV !== 'production') {
   watchEffect(() => {
+    if (hasColumnResize.value) {
+      const missingWidths = props.columns
+        .filter((column) => !column.columnWidth)
+        .map((column) => column.key);
+      if (missingWidths.length) {
+        console.warn(`[BaseResponsiveTable] Resizable tables need a columnWidth policy for every column. Missing: ${missingWidths.join(', ')}`);
+      }
+      if (!props.columnWidthsKey) {
+        console.warn('[BaseResponsiveTable] Resizable tables need columnWidthsKey for persistence.');
+      }
+    }
     if (!hasResponsivePolicy.value) return;
     const missing = props.columns.filter((column) => !column.responsive).map((column) => column.key);
     const primaries = props.columns.filter((column) => column.responsive?.primary);

@@ -6,6 +6,8 @@ import {
 } from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
 import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
+import BaseButton from '~/components/base/BaseButton.vue'
+import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
 
 const props = defineProps({
   document: { type: Object, required: true },
@@ -90,13 +92,13 @@ const meta = computed(() => {
     <div class="p-4">
       <!-- Sin `stretch`: el kebab vive en esta misma tarjeta y quedaría
            tapado. La tarjeta entera ya responde al clic simple. -->
-      <BaseRowLink
+      <BaseOverflowText
         :to="editTo"
-        :data-testid="`document-card-open-${document.id}`"
-        class="block text-sm font-semibold text-text-default leading-snug line-clamp-2"
-      >
-        {{ document.title }}
-      </BaseRowLink>
+        :text="document.title"
+        :lines="2"
+        :test-id="`document-card-open-${document.id}`"
+        content-classes="text-sm font-semibold leading-snug text-text-default"
+      />
       <p class="text-xs text-text-muted mt-1 tabular-nums truncate">{{ meta }}</p>
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">

@@ -40,7 +40,6 @@ export function useFolderPanelWidth(containerRef) {
 
   function onHandleDown(e) {
     dragging.value = true;
-    e.currentTarget.setPointerCapture?.(e.pointerId);
   }
 
   function onHandleMove(e) {
@@ -53,8 +52,12 @@ export function useFolderPanelWidth(containerRef) {
   function onHandleUp(e) {
     if (!dragging.value) return;
     dragging.value = false;
-    e.currentTarget.releasePointerCapture?.(e.pointerId);
     // Persistir al soltar y no por move: un drag son decenas de writes menos.
+    write(width.value);
+  }
+
+  function resizeWidth(value) {
+    width.value = clampWidth(value);
     write(width.value);
   }
 
@@ -66,8 +69,7 @@ export function useFolderPanelWidth(containerRef) {
     else if (e.key === 'End') next = FOLDER_PANEL_MAX;
     if (next === null) return;
     e.preventDefault();
-    width.value = clampWidth(next);
-    write(width.value);
+    resizeWidth(next);
   }
 
   // El doble clic vuelve al default Y olvida la preferencia: si el default
@@ -77,5 +79,8 @@ export function useFolderPanelWidth(containerRef) {
     remove();
   }
 
-  return { width, dragging, gridStyle, onHandleDown, onHandleMove, onHandleUp, onHandleKey, resetWidth };
+  return {
+    width, dragging, gridStyle, onHandleDown, onHandleMove, onHandleUp,
+    onHandleKey, resizeWidth, resetWidth,
+  };
 }

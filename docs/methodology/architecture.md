@@ -352,6 +352,14 @@ enforces the 1400 px general-content ceiling, while `BaseResponsiveTable`,
 `AccountingTable`,
 `BaseTabs` and `ProposalFilterTabs` are compatibility aliases over the shared
 implementations so modules can migrate without an all-at-once rewrite.
+Table sizing is a capability of that same layer: `BaseResizeHandle` owns the
+separator interaction, `useResizableTableColumns` resolves persisted preferred
+tracks against fixed columns and ordered donors, and `BaseResponsiveTable`
+exposes the opt-in `columnWidth`/`columnWidthsKey` contract. `BaseOverflowText`
+owns measured one/two-line clipping and the touch disclosure, so consumers do
+not duplicate tooltip or line-clamp heuristics. The Documents table is the
+first specialized adopter and the folder-panel handle now uses the same input
+primitive.
 `responsiveAcceptance.js` assigns every catalog view to one of twelve module
 scripts. Pull requests execute affected modules at all five widths, the full
 matrix runs monthly, and a scheduled February/August issue forces review of the
