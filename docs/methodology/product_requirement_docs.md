@@ -24,6 +24,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | One document status cannot describe concurrent work or preserve what already happened | User-managed cycle/signal states whose open and closed episodes form an attributable timeline |
 | The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
 | Client conversations were drafted in disposable chats and reconstructed from memory | A client/project communications registry preserves ordered incoming and outgoing messages, manual send state, date corrections and references to existing documents |
+| Sparse or incoherent development data hid pagination, filters and edge defects until production | One guarded, deterministic dataset covers every visible module with explicit volume, skewed relationships, temporal buckets and intentional extremes |
 | Company portfolio hard to maintain | Admin CRUD panel for portfolio works with bilingual content |
 | No blog for SEO/content marketing | Full blog system with structured JSON content, categories, calendar, sitemap |
 | Language barrier for international clients | i18n with prefix routing (`/en-us/`, `/es-co/`) for all public pages |
@@ -375,6 +376,28 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 - **Email-ownership OTP**: before signing, the client validates their email via a 6-digit code (`email/verify/request` + `/confirm`); `UserProfile.email_verified` gates the sign button.
 - **Signing**: click-to-accept with a consent checkbox records `signed_at/signed_by/signature_name/signature_ip/signature_user_agent`; idempotent re-signs.
 - **Team milestone notifications** fire (best-effort, in-app + email) on first login, email validated, and document signed.
+
+### 3.17 Representative Development Dataset
+
+Development and test environments have one cross-module dataset contract:
+
+- a default target of 60 root rows where the domain is list-shaped, including a
+  60-row heavy project for requirements, deliverables, changes and bugs;
+- coherent client → project → income → collection-account and client → thread →
+  message relationships, with document creation routed through the production
+  service layer;
+- deliberately skewed clients, lifecycle states and histories instead of uniform
+  random samples;
+- past/current/future date buckets and UI-breaking long unbroken labels and large
+  amounts;
+- isolated random streams plus an explicit business-date anchor for exact replay;
+- an atomic, fail-fast refresh guarded by a positive capability that remains hard
+  false in production settings;
+- an executable model inventory that makes fake-data ownership part of the same
+  delivery as every future model.
+
+The canonical counts, commands and exceptions are maintained in
+`docs/FAKE_DATA_COVERAGE.md`.
 
 ---
 

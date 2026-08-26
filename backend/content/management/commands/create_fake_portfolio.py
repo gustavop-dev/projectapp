@@ -9,7 +9,8 @@ import random
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
+
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 from content.models import PortfolioWork
 
@@ -187,14 +188,13 @@ class Command(BaseCommand):
     help = 'Create fake PortfolioWork records (bilingual case studies) for local/demo use.'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--count', type=int, default=12,
-            help='Number of portfolio works to create (default: 12).',
-        )
+        add_seed_arguments(parser, count_default=12)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_portfolio')
+        context = seed_context(options, 'portfolio')
         count = max(1, options['count'])
-        rng = random.Random(42)
+        rng = context.rng
         created = 0
         skipped = 0
 
@@ -213,7 +213,7 @@ class Command(BaseCommand):
             is_published = rng.random() < 0.8  # ~80% published, rest drafts
             published_at = None
             if is_published:
-                published_at = timezone.now() - timedelta(days=i * 4 + rng.randint(0, 3))
+                published_at = context.anchor_now - timedelta(days=i * 4 + rng.randint(0, 3))
 
             excerpt_es = spec['results']
             excerpt_en = spec['results']

@@ -128,11 +128,16 @@ python3 manage.py run_huey              # Requires Redis running
 
 | Command | Description |
 |---------|-------------|
-| `create_fake_data <N>` | Create N contacts + portfolio works + proposals + blog posts + seed tasks |
+| `create_fake_data --settings=projectapp.settings_dev --replace --count 60 --seed N --anchor-date YYYY-MM-DD` | Atomically rebuild the complete representative dataset |
+| `create_fake_clients_projects` | Create the 60-client / 67-project skew and edge identities |
+| `create_fake_accounting` | Create coherent dated income, expense, hosting and payment data |
+| `create_fake_documents` | Create project/client documents and income-backed collection accounts |
+| `create_fake_communications` | Create short, regular and long client histories |
+| `create_fake_auxiliary` | Create Email, QR, Linktree, LinkedIn and MCP list data |
 | `create_fake_proposals` | Create fake proposals with sections and requirements |
 | `create_fake_blog_posts` | Create fake blog posts with structured JSON content |
 | `create_contacts` | Create sample contact entries |
-| `delete_fake_data` | Delete all fake data |
+| `delete_fake_data --settings=projectapp.settings_dev --confirm` | Reset development data while preserving staff/catalogs/manual accounting |
 | `cleanup_in_calculator` | Clean up stale in-calculator proposal states |
 | `update_hosting_specs` | Update hosting tier specifications |
 | `zero_group_price_percent` | Reset group price percentages |
@@ -140,6 +145,14 @@ python3 manage.py run_huey              # Requires Redis running
 | `seed_demo_clients` | Seed demo client users for platform |
 | `seed_platform_data` | Seed full platform demo data (projects, requirements, etc.) |
 | `seed_mihuella` | Seed specific demo data for mihuella project |
+
+Fake-data commands share `content.fake_data`: the positive
+`FAKE_DATA_ALLOWED` capability, default volume/seed, an isolated per-module RNG,
+an explicit business-date anchor and the executable concrete-model inventory.
+Base and production settings hard-disable the capability; development settings
+enable it while forcing SQLite. The root command is fail-fast inside one outer
+transaction, and requires `--replace` on a populated business graph. See
+`docs/FAKE_DATA_COVERAGE.md` for targets and relationships.
 
 ---
 

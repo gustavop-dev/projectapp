@@ -961,3 +961,29 @@ clamp and make the measurement say “complete.” The shared primitive therefor
 owns collapsed and expanded display state; consumers may supply typography and
 color only. Test both the table and the compact card, because their width and
 consumer-class combinations are materially different.
+
+## 40. Representative fake data is an executable dependency graph
+
+A root-record count is insufficient when child modules depend on a specific
+shape. Generate identities first, concentrate load deliberately, and route
+cross-module records through the same services used at runtime. In ProjectApp,
+accounting must precede Documents so each collection account has one real
+`IncomeRecord` origin; Documents must precede Communications so protected
+attachments can be selected within the thread's client.
+
+Seed and clock are separate reproducibility inputs. Derive one independent RNG
+per module so a harmless random choice in one seeder cannot reshuffle all later
+modules, and carry one explicit anchor date so expired/current/future buckets can
+be replayed on another machine. Auto-generated primary keys need not match for
+the semantic dataset and defect path to match.
+
+Safety must fail closed at every entry point, not only at the root command. A
+positive settings capability, hard-false production override, no known default
+passwords, a non-additive populated-data guard and one outer transaction prevent
+the most expensive outcomes: production mutation, misleading partial graphs and
+unrepeatable failures.
+
+Finally, documentation alone does not keep coverage current. Compare a declared
+seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
+test. A new model then forces its author to decide ownership and fake-data
+behavior in the same delivery instead of leaving the gap for a later cleanup.

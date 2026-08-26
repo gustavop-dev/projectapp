@@ -19,6 +19,7 @@ from decouple import Config, Csv, RepositoryEnv
 from .settings import *  # noqa: F401, F403
 
 DEBUG = True
+FAKE_DATA_ALLOWED = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '*']
 

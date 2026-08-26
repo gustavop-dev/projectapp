@@ -2,6 +2,22 @@
 
 ## Current State
 
+**2026-08-26 — Dataset representativo, coherente y reproducible para desarrollo:**
+`create_fake_data` reconstruye el grafo completo con volumen 60, semilla aislada
+por módulo y fecha ancla explícita. El perfil produce 60 clientes/67 proyectos,
+un proyecto pesado con 60 requerimientos/entregables/cambios/bugs, contabilidad
+con estados y períodos extremos, documentos siempre vinculados a cliente/proyecto
+y cuentas de cobro nacidas de su `IncomeRecord`, además de 60 hilos/264 mensajes
+y datos de Email, QR, Linktree, LinkedIn y MCP. Cada entrada aplica el guard
+positivo `FAKE_DATA_ALLOWED`; producción lo fija en falso, desarrollo usa SQLite,
+los passwords son inutilizables por defecto y una falla revierte la transacción
+completa. El inventario ejecutable clasifica los 102 modelos concretos para que
+todo modelo nuevo entregue su seeder en la misma rama. La corrida integral y las
+pruebas focales de volumen, relaciones, distribución, replay, guard y rollback
+están verdes: 25/25 en lotes de 20+5, gate focal sin errores y auditoría QA con
+los 25 tests en `KEEP`. La integración queda a cargo del PR y su CI, sin ejecutar
+la generación contra producción.
+
 **2026-08-26 — Refresh patch/minor de dependencias y auditoría de vulnerabilidades:**
 el candidato de release actualiza diez dependencias directas de frontend y once
 de backend sin cruzar majors ni la frontera breaking de `@pinia/nuxt` 0.x. Los

@@ -3,7 +3,8 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
+
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 from content.models import Task, TaskAlert, TaskComment
 
@@ -69,12 +70,11 @@ class Command(BaseCommand):
     help = 'Seed demo Kanban tasks (with alerts and comments) for local development.'
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--count', type=int, default=len(BASE_TASKS),
-            help=f'Total number of tasks to create (default: {len(BASE_TASKS)}).',
-        )
+        add_seed_arguments(parser, count_default=len(BASE_TASKS))
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_tasks')
+        context = seed_context(options, 'tasks')
         count = max(len(BASE_TASKS), options['count'])
 
         if Task.objects.count() >= count:
@@ -82,8 +82,8 @@ class Command(BaseCommand):
                 f'{Task.objects.count()} tasks already exist — skipped.'))
             return
 
-        rng = random.Random(11)
-        today = timezone.localdate()
+        rng = context.rng
+        today = context.anchor_date
         admin = User.objects.filter(is_staff=True).first()
         statuses = list(Task.Status)
         priorities = list(Task.Priority)
