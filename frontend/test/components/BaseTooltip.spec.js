@@ -82,6 +82,7 @@ describe('BaseTooltip', () => {
     await wrapper.get('button').trigger('pointerenter', { pointerType: 'mouse' })
     await wrapper.get('button').trigger('click')
 
+    expect(wrapper.get('button').text()).toBe('Acción')
     expect(wrapper.text()).not.toContain('Motivo del bloqueo')
   })
 
