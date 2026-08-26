@@ -24,6 +24,17 @@ describe('viewCatalogSections', () => {
     });
   });
 
+  it('catalogs client communications as its own list view', () => {
+    const panelViews = viewCatalogSections.find((section) => section.id === 'admin-panel').views;
+
+    expect(panelViews.find((view) => view.url === '/panel/communications')).toMatchObject({
+      label: 'Comunicaciones con clientes',
+      group: 'Comunicaciones',
+      file: 'frontend/pages/panel/communications/index.vue',
+      viewType: 'list',
+    });
+  });
+
   it('counts every view in the catalog', () => {
     const manualCount = viewCatalogSections.reduce((count, section) => count + section.views.length, 0);
 

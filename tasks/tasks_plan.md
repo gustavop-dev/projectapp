@@ -4,6 +4,7 @@
 
 | Feature | Status | Details |
 |---------|--------|---------|
+| Client Communications Registry — phase 1 | ✅ Done | 2026-08-25. Decided as a separate product module (implemented inside the existing `content` app), not a Document subtype. `/panel/communications` records multiple client threads, optional project scope, ordered incoming/outgoing email or WhatsApp messages, draft/sent/received facts, derived Respondido state, protected bidirectional Document references, annulments and append-only date corrections. Project client changes detach historical threads; client/document deletes are guarded. Includes migration `0210`, fake data, focused API/store/component/config coverage and registered four-outcome E2E flow. Real delivery, templates/import and provider integrations remain phased work; decision record: `docs/superpowers/specs/2026-08-25-client-communications-registry-design.md`. |
 | Documents — readable and resizable title column | ✅ Done | 2026-08-25. Long names use two lines with end ellipsis, a full native hint only after measured clipping and an in-place touch disclosure in rows/cards. Título resizes 240–520 px from a shared accessible separator, persists under `projectapp-table-widths:documents-list` and resets to 320 px on double click. Etiquetas → Proyecto → Cliente → Fecha donate in order; Estado/Acciones stay fixed and the table scrolls after donor floors. The capability lives in `BaseResponsiveTable`/`useResizableTableColumns`, and PA-61's folder separator now consumes the same `BaseResizeHandle`. No backend/schema change. |
 | Documents — contextual return from editor | ✅ Done | 2026-08-25. The Documents list now encodes folder, scope, tags, client/project, global search, ordering, view, page and focus in its URL. Every editor exit validates and returns to that origin with a contextual label; direct/untrusted entries fall back to the localized root, while browser Back restores the original route naturally. The explicit link restores and focuses the owning row/card. Coverage: 32 focused unit tests, 3 Playwright scenarios without retries and a successful Nuxt build. The cross-module follow-up inventory is in `docs/audits/2026-08-25-list-detail-return-navigation.md`. |
 | Emails — configurable BCC copies of every client send | ✅ Done | 2026-08-23. All production Django mail I/O now passes through `EmailDeliveryGateway`; its fail-closed 23-channel inventory assigns customer templates to five administrable families. `/panel/emails` manages a copy audience independent of internal notices, defaulting new recipients to all families. The customer envelope is delivered first; one separate BCC-only envelope per configured address follows, and a failed copy cannot fail/retry the customer send. `EmailLog.delivery_id` + `delivery_role` nest recipient/status/error under every primary history surface while keeping copies out of rate limits, dashboards and contact counts. Inventory: `docs/client-email-copy-inventory.md`; migration `0209`; focused backend/unit/E2E coverage added. Initial production data remains an explicit Configuración action, not a hardcoded address. |
@@ -207,6 +208,12 @@
 ---
 
 ## 5. Potential Improvements
+
+- **Communications phase 2**: text templates/versioning, opt-in reuse of Document
+  private notes, and idempotent historical email import.
+- **Communications phase 3**: real email delivery through
+  `EmailDeliveryGateway`, atomically linked to `EmailLog`; no automatic
+  WhatsApp status until an official provider can supply trustworthy receipts.
 
 1. **Split large files** — proposal views/services and the shared PDF utility layer are still large enough to benefit from decomposition
 2. **API versioning** — no versioning strategy currently

@@ -234,6 +234,25 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
   more stable families. See `docs/client-email-copy-inventory.md`.
 
+### Communications are a separate domain with shared infrastructure
+
+The client communications registry lives in the existing `content` Django app
+but does not reuse `Document` as its persistence shape. Four models introduced
+by migration `content.0210` own threads, ordered messages, protected document
+references and append-only date corrections. `communication_service.py` is the
+only write owner; DRF function-based views remain thin and staff-only.
+
+Phase 1 is transport-neutral: `source=manual` means an operator recorded the
+fact, while `source=platform_email` plus the optional one-to-one `email_log`
+field is reserved for a later `EmailDeliveryGateway` integration. “Respondido”
+is derived from a non-void reply and is not an additional mutable database
+status. Delivered/received messages are corrected or annulled, never edited.
+
+The Nuxt surface is `/panel/communications`; its Options-API Pinia store uses
+`request_http` (session + CSRF), not `usePlatformApi`. Documents are referenced
+by ID and expose reverse usage through
+`GET /api/documents/<id>/communications/`.
+
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
 - **Platform (`/platform/`)**: JWT via SimpleJWT (access + refresh tokens); middleware `platform-auth.js`; platform stores use `composables/usePlatformApi.js` (axios with JWT interceptors)

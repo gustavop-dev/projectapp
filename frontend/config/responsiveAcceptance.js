@@ -88,6 +88,13 @@ export const RESPONSIVE_MODULES = Object.freeze({
     'Abrir la vista previa y volver al formulario.',
     'Consultar el historial y sus estados.',
   ]),
+  communications: module('communications', [
+    'frontend/pages/panel/communications/',
+  ], [
+    'Buscar y seleccionar un hilo sin perder el contexto del cliente.',
+    'Leer mensajes entrantes y salientes con estado, fecha y adjuntos.',
+    'Registrar un mensaje y completar las acciones de auditoría.',
+  ]),
   canvas: module('canvas', [
     'frontend/components/panel/documents/DocumentEditor',
     'frontend/components/panel/documents/DocumentPreview',
@@ -218,6 +225,7 @@ export function responsiveOwnerForView(sectionId, view) {
   if (url === '/panel/clients') return 'clients';
   if (url === '/panel/projects') return 'projects';
   if (url === '/panel/documents') return 'documents';
+  if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';
   if (url === '/panel/emails' || url.includes('/email-')) return 'emails';
   if (url.startsWith('/panel/proposals') || url.startsWith('/panel/diagnostics') || url.startsWith('/panel/hour-packages') || url === '/panel/defaults') return 'commercial';

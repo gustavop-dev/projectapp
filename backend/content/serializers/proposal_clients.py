@@ -59,6 +59,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
     documents_no_project_count = serializers.SerializerMethodField()
     document_folders_count = serializers.SerializerMethodField()
     last_document_at = serializers.SerializerMethodField()
+    communications_count = serializers.SerializerMethodField()
+    open_communications_count = serializers.SerializerMethodField()
+    last_communication_at = serializers.SerializerMethodField()
     is_orphan = serializers.SerializerMethodField()
     is_inactive = serializers.SerializerMethodField()
     deactivated_at = serializers.DateTimeField(read_only=True)
@@ -98,6 +101,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'documents_no_project_count',
             'document_folders_count',
             'last_document_at',
+            'communications_count',
+            'open_communications_count',
+            'last_communication_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -130,6 +136,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             'documents_no_project_count',
             'document_folders_count',
             'last_document_at',
+            'communications_count',
+            'open_communications_count',
+            'last_communication_at',
             'is_orphan',
             'is_inactive',
             'deactivated_at',
@@ -287,6 +296,32 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             .first()
         )
 
+    def get_communications_count(self, obj):
+        annotated = getattr(obj, 'communications_count', None)
+        if annotated is not None:
+            return annotated
+        return obj.communication_threads.count()
+
+    def get_open_communications_count(self, obj):
+        annotated = getattr(obj, 'open_communications_count', None)
+        if annotated is not None:
+            return annotated
+        from content.models import CommunicationThread
+        return obj.communication_threads.filter(
+            status=CommunicationThread.Status.OPEN,
+        ).count()
+
+    def get_last_communication_at(self, obj):
+        annotated = getattr(obj, 'last_communication_at', None)
+        if annotated is not None:
+            return annotated
+        return (
+            obj.communication_threads
+            .order_by('-last_activity_at')
+            .values_list('last_activity_at', flat=True)
+            .first()
+        )
+
     def get_active_projects_count(self, obj):
         annotated = getattr(obj, 'active_projects_count', None)
         if annotated is not None:
@@ -309,7 +344,9 @@ class ProposalClientSerializer(serializers.ModelSerializer):
             return False
         if self.get_incomes_count(obj) > 0:
             return False
-        return self.get_hostings_count(obj) == 0
+        if self.get_hostings_count(obj) > 0:
+            return False
+        return self.get_communications_count(obj) == 0
 
     def get_is_inactive(self, obj):
         return obj.deactivated_at is not None

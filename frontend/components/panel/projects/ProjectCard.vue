@@ -94,6 +94,16 @@ const unlinkedTotal = computed(() => (
     </BaseButton>
 
     <div class="mt-auto flex items-center justify-end gap-2 pt-4">
+      <BaseButton
+        as="NuxtLink"
+        :to="{ path: '/panel/communications', query: { project: project.id } }"
+        variant="secondary"
+        size="md"
+        class="min-h-11"
+        :data-testid="`project-communications-${project.id}`"
+      >
+        Comunicaciones
+      </BaseButton>
       <ProjectSpaceLink
         :project-id="project.id"
         :data-testid="`project-space-${project.id}`"

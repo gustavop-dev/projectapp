@@ -928,7 +928,23 @@ only when the action reaches durable storage and visibly confirms it. If the
 parent entity does not exist yet, name the local action as a draft operation and
 state the remaining persistence step both before and after it.
 
-## 38. Clipping is measured state, and its primitive must own display
+## 38. Reuse infrastructure, not the wrong aggregate
+
+Two features can share clients, projects, documents, authentication and UI
+primitives without sharing a persistence model. A `Document` is one editorial
+artifact; a client conversation is an aggregate root containing ordered,
+bidirectional events. Treating messages as documents would make folders,
+editorial states and list filters ambiguous and create an expensive extraction
+later. The communications module therefore owns thread/message models inside the
+existing `content` app and references Documents through a protected join.
+
+Operational facts also need stable semantics. “Sent” remains stored evidence;
+“Respondido” is derived from a valid reply. Delivered events are not silently
+rewritten: annulment and business-date corrections append audit context, while
+only drafts remain mutable. When project ownership changes, historical threads
+stay with the original client and lose only their optional project scope.
+
+## 39. Clipping is measured state, and its primitive must own display
 
 A fixed `title` attribute only repeats short values and still leaves touch users
 without a path. Measure the rendered element after layout, text changes and

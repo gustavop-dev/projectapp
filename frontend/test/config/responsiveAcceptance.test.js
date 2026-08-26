@@ -33,6 +33,17 @@ describe('responsive acceptance registry', () => {
     expect(modulesForChangedFiles(['frontend/pages/panel/mcps/index.vue'])).toEqual(['mcp']);
   });
 
+  it('assigns the communications page to its focused responsive module', () => {
+    const view = {
+      file: 'frontend/pages/panel/communications/index.vue',
+      url: '/panel/communications',
+      audience: 'admin',
+    };
+
+    expect(modulesForChangedFiles([view.file])).toEqual(['communications']);
+    expect(responsiveOwnerForView('admin-panel', view)).toBe('communications');
+  });
+
   it('runs every module for a shared primitive', () => {
     expect(modulesForChangedFiles(['frontend/components/base/BaseModal.vue'])).toEqual(
       RESPONSIVE_MODULE_NAMES,
