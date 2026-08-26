@@ -2,6 +2,7 @@ import { config } from '@vue/test-utils';
 import BaseButton from '../components/base/BaseButton.vue';
 import BaseActionButton from '../components/base/BaseActionButton.vue';
 import BaseActionIcon from '../components/base/BaseActionIcon.vue';
+import BaseControlGate from '../components/base/BaseControlGate.vue';
 import BaseFormRow from '../components/base/BaseFormRow.vue';
 import BaseMobileTabSelect from '../components/base/BaseMobileTabSelect.vue';
 
@@ -26,6 +27,7 @@ config.global.components = {
   BaseActionButton,
   BaseActionIcon,
   BaseButton,
+  BaseControlGate,
   BaseFormRow,
   BaseMobileTabSelect,
 };
