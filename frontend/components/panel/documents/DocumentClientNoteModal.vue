@@ -209,6 +209,7 @@
         :document-id="documentId"
         :notes="localNotes"
         :readonly="readonly"
+        allow-delete-when-readonly
         class="border-t border-border-muted pt-5"
         @update:notes="localNotes = $event"
         @workflow-changed="emit('workflow-changed')"

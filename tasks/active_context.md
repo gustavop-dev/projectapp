@@ -12,7 +12,9 @@ quitar la última pendiente, sólo se cierra el episodio `origin=note`; restaura
 reabre/reutiliza un estado compatible y un conflicto revierte la operación. REST,
 panel y las 17 herramientas del MCP Documentos comparten el servicio. El modal
 muestra el contenido completo y advierte que correos/mensajes externos no se
-borran. El barrido de `/panel` migró 14 `confirm/prompt` alcanzables a modales o
+borran; incluso en una cuenta emitida los mensajes siguen bloqueados, pero la
+limpieza y recuperación de observaciones permanecen disponibles. El barrido de
+`/panel` migró 14 `confirm/prompt` alcanzables a modales o
 pasos inline, retiró un consumidor huérfano y añadió un guard estático de CI.
 Migración `content.0215`; fake data representativa preparada pero no ejecutada
 porque este checkout apunta a producción; cobertura focal y flow E2E registrados.

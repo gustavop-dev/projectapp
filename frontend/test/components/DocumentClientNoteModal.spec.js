@@ -117,6 +117,17 @@ describe('DocumentClientNoteModal', () => {
     expect(wrapper.find('[data-testid="client-note-submit"]').exists()).toBe(false);
   });
 
+  it('permits observation deletion on a read-only issued document', () => {
+    const wrapper = mountModal({
+      readonly: true,
+      documentId: 8,
+      notes: [{ id: 9, title: 'Prueba', content: 'No debía existir', status: 'open' }],
+    });
+
+    expect(wrapper.find('[data-testid="document-observation-delete-9"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="document-observation-edit-9"]').exists()).toBe(false);
+  });
+
   it('renders custom notes as read only', () => {
     const wrapper = mountModal({
       readonly: true,

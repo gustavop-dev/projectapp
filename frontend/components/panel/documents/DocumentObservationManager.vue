@@ -34,7 +34,7 @@
 
       <template v-if="pane === 'active'">
         <div v-if="localNotes.length" class="space-y-3" data-testid="document-observation-list">
-          <div v-if="!readonly && localNotes.length >= 2" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-default bg-surface px-3 py-2">
+          <div v-if="canDelete && localNotes.length >= 2" class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border-default bg-surface px-3 py-2">
             <BaseCheckbox
               :model-value="allSelected"
               :disabled="busy"
@@ -64,7 +64,7 @@
           >
             <div class="flex items-start gap-3">
               <BaseCheckbox
-                v-if="!readonly && localNotes.length >= 2"
+                v-if="canDelete && localNotes.length >= 2"
                 v-model="selectedIds"
                 :value="note.id"
                 :disabled="busy"
@@ -113,7 +113,7 @@
                     </BaseButton>
                   </template>
                   <BaseButton
-                    v-if="!readonly"
+                    v-if="canDelete"
                     type="button"
                     variant="danger-ghost"
                     size="sm"
@@ -179,7 +179,7 @@
             <p class="mt-2 text-xs text-text-subtle">
               Eliminada por {{ note.deleted_by_name || 'Usuario no disponible' }} · {{ formatDate(note.deleted_at) }}
             </p>
-            <div v-if="!readonly" class="mt-3 flex justify-end">
+            <div v-if="canDelete" class="mt-3 flex justify-end">
               <BaseButton type="button" variant="secondary" size="sm" :loading="busy && actionNote?.id === note.id" :disabled="busy" :data-testid="`document-observation-restore-${note.id}`" @click="restoreObservation(note)">
                 Restaurar
               </BaseButton>
@@ -314,6 +314,7 @@ const props = defineProps({
   documentId: { type: [Number, String], required: true },
   notes: { type: Array, default: () => [] },
   readonly: { type: Boolean, default: false },
+  allowDeleteWhenReadonly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:notes', 'workflow-changed', 'busy-change']);
@@ -342,6 +343,7 @@ const loadedEvents = ref(false);
 const newNote = reactive({ title: '', content: '', markNeedsFix: true });
 const editDraft = reactive({ title: '', content: '' });
 const finishDraft = reactive({ resolutionNote: '', moveCycle: false });
+const canDelete = computed(() => !props.readonly || props.allowDeleteWhenReadonly);
 
 const allSelected = computed(
   () => localNotes.value.length > 0 && selectedIds.value.length === localNotes.value.length,
