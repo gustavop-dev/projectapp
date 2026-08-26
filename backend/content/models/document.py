@@ -152,6 +152,9 @@ class Document(models.Model):
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.DRAFT,
     )
+    # Client portal visibility is deliberately independent from the internal
+    # workflow. ``status`` remains temporarily for expand/contract rollout.
+    is_client_visible = models.BooleanField(default=False, db_index=True)
     content_markdown = models.TextField(blank=True, default='')
     content_json = models.JSONField(default=dict, blank=True)
     client_name = models.CharField(max_length=255, blank=True, default='')

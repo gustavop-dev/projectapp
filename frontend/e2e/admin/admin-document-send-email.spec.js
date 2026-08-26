@@ -17,13 +17,35 @@ const authCheck = { status: 200, contentType: 'application/json', body: JSON.str
 const mockDocuments = [
   {
     id: 1, title: 'Contrato de Servicios', status: 'published',
+    document_type_code: 'markdown', active_states: [], is_archived: false,
     client_name: 'ACME Corp', created_at: '2026-03-01T10:00:00Z',
   },
   {
     id: 2, title: 'Propuesta Técnica', status: 'draft',
+    document_type_code: 'markdown', active_states: [], is_archived: false,
     client_name: null, created_at: '2026-03-05T14:00:00Z',
   },
 ];
+
+const stateGroups = [
+  { id: 1, name: 'Ciclo', selection_mode: 'exclusive', order: 0, is_active: true },
+];
+const sentState = {
+  id: 11,
+  name: 'Enviado',
+  slug: 'enviado',
+  color: 'blue',
+  system_key: 'sent',
+  order: 1,
+  group: 1,
+  group_id: 1,
+  group_name: 'Ciclo',
+  group_mode: 'exclusive',
+  group_order: 0,
+  is_active: true,
+  merged_into: null,
+  incompatibility_ids: [],
+};
 
 const emailDefaults = { greeting: 'Hola,', footer: 'Saludos cordiales', subject: '' };
 
@@ -32,12 +54,14 @@ function baseRoutes(apiPath) {
   if (apiPath === 'documents/') return { status: 200, contentType: 'application/json', body: JSON.stringify(mockDocuments) };
   if (apiPath === 'document-folders/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
   if (apiPath === 'document-tags/') return { status: 200, contentType: 'application/json', body: JSON.stringify([]) };
+  if (apiPath === 'document-states/') return { status: 200, contentType: 'application/json', body: JSON.stringify([sentState]) };
+  if (apiPath === 'document-state-groups/') return { status: 200, contentType: 'application/json', body: JSON.stringify(stateGroups) };
   if (apiPath === 'emails/defaults/') return { status: 200, contentType: 'application/json', body: JSON.stringify(emailDefaults) };
   return null;
 }
 
 async function openSendEmailModal(page) {
-  await page.goto('/panel/documents');
+  await page.goto('/en-us/panel/documents', { waitUntil: 'domcontentloaded' });
   await page.getByRole('row', { name: /Contrato de Servicios/i }).getByRole('button', { name: /^Acciones de / }).click();
   await page.getByRole('button', { name: /Enviar por correo/i }).click();
   await expect(page.getByRole('heading', { name: 'Enviar por correo' })).toBeVisible();
@@ -73,6 +97,44 @@ test.describe('Admin Document Send Email', () => {
     await expect(page.getByText('Correo enviado a cliente@acme.com.')).toBeVisible();
     expect(sendBody).toContain('cliente@acme.com');
     expect(sendBody).toContain('document_ids');
+  });
+
+  test('opens the Enviado episode after email delivery', {
+    tag: [...ADMIN_DOCUMENT_SEND_EMAIL, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    let episodeBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'emails/send/' && method === 'POST') {
+        return {
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            message: 'ok',
+            document_ids: [1],
+            offer_sent_transition: true,
+          }),
+        };
+      }
+      if (apiPath === 'documents/1/state-episodes/' && method === 'POST') {
+        episodeBody = route.request().postDataJSON();
+        return {
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ id: 70, document: 1, state: sentState }),
+        };
+      }
+      return baseRoutes(apiPath);
+    });
+    await openSendEmailModal(page);
+    page.once('dialog', (dialog) => dialog.accept());
+
+    await page.getByPlaceholder('correo@ejemplo.com').fill('cliente@acme.com');
+    await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Adjunto el documento.');
+    await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+
+    await expect.poll(() => episodeBody).not.toBeNull();
+    expect(episodeBody).toEqual({ state_id: 11, origin: 'email' });
+    await expect(page.getByText(/Estado Enviado registrado/)).toBeVisible();
   });
 
   test('shows the rate-limited message when the backend answers 429', {

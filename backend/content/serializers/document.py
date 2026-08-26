@@ -2,6 +2,10 @@ from rest_framework import serializers
 
 from accounts.models import Project, UserProfile
 from content.models import Document, DocumentFolder, DocumentTag
+from content.serializers.document_state import (
+    DocumentNoteSerializer,
+    DocumentStateEpisodeSerializer,
+)
 from content.services.document_archive_service import (
     DocumentArchiveError, ensure_active_target,
 )
@@ -165,25 +169,45 @@ class DocumentListSerializer(ClientProjectReadMixin, serializers.ModelSerializer
     document_type_code = serializers.CharField(
         source='document_type.code', read_only=True, default=None,
     )
+    active_states = serializers.SerializerMethodField()
 
     EXCERPT_MAX_CHARS = 500
 
     class Meta:
         model = Document
         fields = (
-            'id', 'uuid', 'title', 'slug', 'status',
+            'id', 'uuid', 'title', 'slug', 'status', 'is_client_visible',
             'client_name', 'client', 'client_display_name',
             'project', 'project_name',
             'document_type_code', 'commercial_status',
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
-            'folder', 'folder_name', 'tag_details', 'content_excerpt',
+            'folder', 'folder_name', 'tag_details', 'active_states',
+            'content_excerpt',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         )
 
     def get_archived_cause(self, obj):
         return _archived_cause(obj)
+
+    def get_active_states(self, obj):
+        episodes = getattr(obj, 'prefetched_active_state_episodes', None)
+        if episodes is None:
+            episodes = (
+                obj.state_episodes.filter(closed_at__isnull=True)
+                .select_related('state__group', 'opened_by', 'closed_by')
+            )
+        episodes = sorted(
+            episodes,
+            key=lambda item: (
+                item.state.group.order,
+                0 if item.state.system_key == 'needs_fix' else 1,
+                item.state.order,
+                item.state.name.casefold(),
+            ),
+        )
+        return DocumentStateEpisodeSerializer(episodes, many=True).data
 
     def get_content_excerpt(self, obj):
         """First ~500 chars of the markdown, cut at the last complete line.
@@ -217,11 +241,15 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
         source='tags', many=True, read_only=True,
     )
     archived_cause = serializers.SerializerMethodField()
+    active_states = serializers.SerializerMethodField()
+    notes = DocumentNoteSerializer(
+        source='document_notes', many=True, read_only=True,
+    )
 
     class Meta:
         model = Document
         fields = (
-            'id', 'uuid', 'title', 'slug', 'status',
+            'id', 'uuid', 'title', 'slug', 'status', 'is_client_visible',
             'content_markdown', 'content_json',
             'client_name', 'client', 'client_display_name',
             'client_email_subject', 'client_email_body',
@@ -231,12 +259,16 @@ class DocumentDetailSerializer(ClientProjectReadMixin, serializers.ModelSerializ
             'language', 'cover_type', 'template_style',
             'include_portada', 'include_subportada', 'include_contraportada',
             'folder', 'folder_name', 'tag_ids', 'tag_details',
+            'active_states', 'notes',
             'created_at', 'updated_at',
             'is_archived', 'archived_at', 'archived_cause',
         )
 
     def get_archived_cause(self, obj):
         return _archived_cause(obj)
+
+    def get_active_states(self, obj):
+        return DocumentListSerializer().get_active_states(obj)
 
 
 class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
@@ -270,7 +302,7 @@ class DocumentCreateUpdateSerializer(serializers.ModelSerializer):
             'client_email_subject', 'client_email_body',
             'client_whatsapp_message', 'client_custom_notes',
             'include_portada', 'include_subportada', 'include_contraportada',
-            'status', 'content_markdown', 'content_json',
+            'status', 'is_client_visible', 'content_markdown', 'content_json',
             'folder_id', 'tag_ids', 'client', 'project', 'adopt_folder_client',
         )
         extra_kwargs = {

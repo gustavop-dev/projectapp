@@ -3,8 +3,8 @@ import json
 import logging
 
 from django.contrib.auth import get_user_model
+from django.db.models import Count, Prefetch, Q
 from django.db.models.deletion import ProtectedError
-from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.http import content_disposition_header
@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.api_errors import error_response
-from content.models import Document
+from content.models import Document, DocumentStateEpisode
 from content.serializers.document import (
     DocumentListSerializer,
     DocumentDetailSerializer,
@@ -107,7 +107,17 @@ def list_documents(request):
         )
     documents = (
         apply_archive_scope(Document.objects.all(), scope)
-        .prefetch_related('tags')
+        .prefetch_related(
+            'tags',
+            Prefetch(
+                'state_episodes',
+                queryset=(
+                    DocumentStateEpisode.objects.filter(closed_at__isnull=True)
+                    .select_related('state__group', 'opened_by', 'closed_by')
+                ),
+                to_attr='prefetched_active_state_episodes',
+            ),
+        )
         .select_related('folder', 'project', 'client_user__profile')
     )
 
@@ -164,6 +174,73 @@ def list_documents(request):
         if tag_ids:
             documents = documents.filter(tags__id__in=tag_ids).distinct()
 
+    states_param = request.query_params.get('states')
+    if states_param:
+        try:
+            state_ids = [int(value) for value in states_param.split(',') if value.strip()]
+        except ValueError:
+            return Response(
+                {'states': 'La lista de estados no es válida.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if state_ids:
+            # Within the dimension values add up (OR), matching PA-71.
+            documents = documents.filter(
+                state_episodes__state_id__in=state_ids,
+                state_episodes__closed_at__isnull=True,
+            ).distinct()
+
+    without_states_param = request.query_params.get('without_states')
+    if without_states_param:
+        try:
+            without_state_ids = [
+                int(value) for value in without_states_param.split(',')
+                if value.strip()
+            ]
+        except ValueError:
+            return Response(
+                {'without_states': 'La lista de estados ausentes no es válida.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if without_state_ids:
+            active_document_ids = DocumentStateEpisode.objects.filter(
+                state_id__in=without_state_ids,
+                closed_at__isnull=True,
+            ).values('document_id')
+            documents = documents.exclude(pk__in=active_document_ids)
+
+    preset = str(request.query_params.get('preset') or '').strip()
+    if preset:
+        if preset == 'needs_fix':
+            documents = documents.filter(
+                state_episodes__state__system_key='needs_fix',
+                state_episodes__closed_at__isnull=True,
+            ).distinct()
+        elif preset == 'sent_not_closed':
+            sent_ids = DocumentStateEpisode.objects.filter(
+                state__system_key='sent', closed_at__isnull=True,
+            ).values('document_id')
+            closed_ids = DocumentStateEpisode.objects.filter(
+                state__system_key='closed', closed_at__isnull=True,
+            ).values('document_id')
+            documents = documents.filter(pk__in=sent_ids).exclude(pk__in=closed_ids)
+        elif preset == 'closed':
+            documents = documents.filter(
+                state_episodes__state__system_key='closed',
+                state_episodes__closed_at__isnull=True,
+            ).distinct()
+        elif preset == 'unclassified':
+            classified_ids = DocumentStateEpisode.objects.filter(
+                state__group__selection_mode='exclusive',
+                closed_at__isnull=True,
+            ).values('document_id')
+            documents = documents.exclude(pk__in=classified_ids)
+        else:
+            return Response(
+                {'preset': 'La consulta predefinida no es válida.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
     search = search_term(request)
     if search:
         documents = documents.filter(
@@ -189,7 +266,7 @@ def create_document(request):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    document = serializer.save()
+    document = serializer.save(created_by=request.user, updated_by=request.user)
     if not document.document_type_id:
         document.document_type = get_markdown_document_type()
         document.save(update_fields=['document_type'])
@@ -232,6 +309,8 @@ def create_document_from_markdown(request):
         include_subportada=data.get('include_subportada', True),
         include_contraportada=data.get('include_contraportada', True),
         content_markdown=markdown_text,
+        created_by=request.user,
+        updated_by=request.user,
     )
     document.content_json = build_content_json(document, markdown_text)
     document.save()
@@ -342,6 +421,8 @@ def upload_document_markdown(request):
         include_subportada=include_subportada,
         include_contraportada=include_contraportada,
         content_markdown=markdown_text,
+        created_by=request.user,
+        updated_by=request.user,
     )
     document.content_json = build_content_json(document, markdown_text)
     document.save()
@@ -368,7 +449,16 @@ def upload_document_markdown(request):
 @permission_classes([IsAdminUser])
 def retrieve_document(request, document_id):
     """Get document detail."""
-    document = get_object_or_404(Document, pk=document_id)
+    document = get_object_or_404(
+        Document.objects.select_related(
+            'document_type', 'folder', 'project', 'client_user__profile',
+        ).prefetch_related(
+            'document_notes__created_by',
+            'document_notes__resolved_by',
+            'state_episodes__state__group',
+        ),
+        pk=document_id,
+    )
     serializer = DocumentDetailSerializer(document)
     return Response(serializer.data)
 
@@ -411,7 +501,7 @@ def update_document(request, document_id):
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    serializer.save()
+    serializer.save(updated_by=request.user)
 
     # Re-parse markdown if it changed
     if 'content_markdown' in request.data and document.content_markdown:
@@ -544,6 +634,8 @@ def duplicate_document(request, document_id):
         client_email_body='',
         client_whatsapp_message='',
         client_custom_notes=[],
+        created_by=request.user,
+        updated_by=request.user,
     )
 
     detail = DocumentDetailSerializer(new_document)

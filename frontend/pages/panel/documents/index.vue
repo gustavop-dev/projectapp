@@ -177,14 +177,17 @@
           </div>
         </BaseAlert>
 
-        <!-- Tag filter chips -->
-        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4  " data-testid="doc-tag-filters">
-          <TagFilterChips
-            :tags="tagStore.tags"
-            :active-ids="documentStore.activeTagIds"
-            @toggle="handleToggleTag"
-            @clear="handleClearTagFilters"
-            @manage="showTagManager = true"
+        <!-- Multi-state filters and recurring queries -->
+        <div class="bg-surface rounded-xl shadow-sm border border-border-muted p-3 mb-4" data-testid="doc-state-filters">
+          <StateFilterChips
+            :states="stateStore.activeStates"
+            :active-ids="documentStore.activeStateIds"
+            :without-ids="documentStore.withoutStateIds"
+            :active-preset="documentStore.activeStatePreset"
+            @toggle="handleToggleState"
+            @toggle-absence="handleToggleStateAbsence"
+            @clear="handleClearStateFilters"
+            @preset="handleStatePreset"
           />
         </div>
 
@@ -235,9 +238,9 @@
           </template>
         </BaseEmptyState>
         <BaseEmptyState
-          v-else-if="!hasContent && documentStore.activeTagIds.length > 0"
+          v-else-if="!hasContent && hasStateFilters"
           title="Ningún documento coincide"
-          description="Ningún documento tiene todas las etiquetas seleccionadas."
+          description="Ningún documento coincide con los estados seleccionados."
         >
           <template #icon>
             <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -245,7 +248,7 @@
             </svg>
           </template>
           <template #actions>
-            <BaseButton variant="secondary" size="sm" @click="handleClearTagFilters">Quitar filtros</BaseButton>
+            <BaseButton variant="secondary" size="sm" @click="handleClearStateFilters">Quitar filtros</BaseButton>
           </template>
         </BaseEmptyState>
         <!-- Una carpeta sin nada archivado tiene que decirlo por su nombre: el
@@ -463,7 +466,6 @@
       @deleted="handleFolderDeleted"
       @archived="handleFolderArchived"
     />
-    <TagManagerModal v-model="showTagManager" @changed="handleTagsChanged" />
     <MoveFolderModal v-model="showMoveModal" :document="movingDoc" @changed="handleMoved" />
     <RenameDocumentModal v-model="showRenameModal" :document="renamingDoc" @changed="handleRenamed" />
     <SendDocumentEmailModal v-model="showEmailModal" :document="emailingDoc" />
@@ -511,11 +513,10 @@ import FolderBreadcrumb from '~/components/panel/documents/FolderBreadcrumb.vue'
 import FolderHeader from '~/components/panel/documents/FolderHeader.vue';
 import FolderFormModal from '~/components/panel/documents/FolderFormModal.vue';
 import FolderChangeClientModal from '~/components/panel/documents/FolderChangeClientModal.vue';
-import TagFilterChips from '~/components/panel/documents/TagFilterChips.vue';
+import StateFilterChips from '~/components/panel/documents/StateFilterChips.vue';
 import DocumentsAssociationFilters from '~/components/panel/documents/DocumentsAssociationFilters.vue';
 import FolderManagerModal from '~/components/panel/documents/FolderManagerModal.vue';
 import DeleteFolderModal from '~/components/panel/documents/DeleteFolderModal.vue';
-import TagManagerModal from '~/components/panel/documents/TagManagerModal.vue';
 import MoveFolderModal from '~/components/panel/documents/MoveFolderModal.vue';
 import RenameDocumentModal from '~/components/panel/documents/RenameDocumentModal.vue';
 import SendDocumentEmailModal from '~/components/panel/documents/SendDocumentEmailModal.vue';
@@ -553,7 +554,7 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
-const tagStore = useDocumentTagStore();
+const stateStore = useDocumentStateStore();
 
 const notify = usePanelNotify();
 const {
@@ -728,7 +729,9 @@ watch(searchQuery, resetDocumentListPosition);
 watch(archivedOrder, resetDocumentListPosition);
 watch(() => documentStore.activeFolderId, resetDocumentListPosition);
 watch(() => documentStore.archiveScope, resetDocumentListPosition);
-watch(() => documentStore.activeTagIds, resetDocumentListPosition, { deep: true });
+watch(() => documentStore.activeStateIds, resetDocumentListPosition, { deep: true });
+watch(() => documentStore.withoutStateIds, resetDocumentListPosition, { deep: true });
+watch(() => documentStore.activeStatePreset, resetDocumentListPosition);
 watch(() => documentStore.activeClientId, resetDocumentListPosition);
 watch(() => documentStore.activeProjectId, resetDocumentListPosition);
 
@@ -812,7 +815,6 @@ const editingFolder = ref(null);
 const showFolderCascade = ref(false);
 const cascadeFolder = ref(null);
 const cascadeClientId = ref(null);
-const showTagManager = ref(false);
 const deletingFolder = ref(null);
 const movingDoc = ref(null);
 const renamingDoc = ref(null);
@@ -855,6 +857,11 @@ const createLink = computed(() => {
 const isListLoading = computed(
   () => documentStore.isLoading || documentStore.isSearchLoading,
 );
+const hasStateFilters = computed(() => (
+  documentStore.activeStateIds.length > 0
+  || documentStore.withoutStateIds.length > 0
+  || !!documentStore.activeStatePreset
+));
 
 const loadError = ref(null);
 
@@ -865,13 +872,13 @@ const loadError = ref(null);
  * lateral quedaban desactualizados según por dónde se hubiera archivado. Con un
  * solo camino, ningún handler puede olvidarse de una de las tres piezas.
  */
-async function refreshView({ tags = false } = {}) {
+async function refreshView({ states = false } = {}) {
   loadError.value = null;
   const [docsResult] = await Promise.all([
     documentStore.fetchDocuments({ scope: documentStore.archiveScope }),
     folderStore.fetchFolders(),
     documentStore.fetchCounts(),
-    tags ? tagStore.fetchTags() : Promise.resolve(),
+    states ? stateStore.fetchCatalog() : Promise.resolve(),
   ]);
   if (docsResult && !docsResult.success) {
     loadError.value = docsResult.message || 'No se pudieron cargar los documentos.';
@@ -880,7 +887,7 @@ async function refreshView({ tags = false } = {}) {
 }
 
 function loadDocuments() {
-  return refreshView({ tags: true });
+  return refreshView({ states: true });
 }
 
 async function restoreFocusedDocument() {
@@ -1147,12 +1154,30 @@ function exitFolderIfViewing(folder) {
   }
 }
 
-function handleToggleTag(id) {
-  documentStore.toggleTagFilter(id);
+async function applyStateFilter(change) {
+  loadError.value = null;
+  const result = await change();
+  if (!result?.success) {
+    loadError.value = result?.message || 'No se pudieron aplicar los filtros de estado.';
+  }
 }
 
-function handleClearTagFilters() {
-  documentStore.setFilters({ tags: [] });
+function handleToggleState(id) {
+  return applyStateFilter(() => documentStore.toggleStateFilter(id));
+}
+
+function handleToggleStateAbsence(id) {
+  return applyStateFilter(() => documentStore.toggleStateAbsenceFilter(id));
+}
+
+function handleStatePreset(value) {
+  return applyStateFilter(() => documentStore.setStatePreset(value));
+}
+
+function handleClearStateFilters() {
+  return applyStateFilter(() => documentStore.setFilters({
+    states: [], withoutStates: [], preset: '',
+  }));
 }
 
 function handleClientFilter(value) {
@@ -1225,10 +1250,6 @@ async function handleFolderDeleted(folder) {
 
 function handleFoldersChanged() {
   return refreshView();
-}
-
-function handleTagsChanged() {
-  return refreshView({ tags: true });
 }
 
 function handleMoveDoc(doc) {

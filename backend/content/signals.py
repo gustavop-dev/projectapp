@@ -3,13 +3,14 @@ post_delete signals: remove physical files from storage when DB records are dele
 Prevents orphaned files in media/ after hard deletes.
 """
 
-from django.db.models.signals import post_delete
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
 from content.models.blog_post import BlogPost
 from content.models.credit_card_statement import CreditCardStatement
 from content.models.issuer_profile import IssuerProfile
 from content.models.portfolio_works import PortfolioWork
+from content.models.document import Document
 
 
 def _delete_file(field):
@@ -39,3 +40,16 @@ def delete_issuer_profile_files(sender, instance, **kwargs):
 @receiver(post_delete, sender=CreditCardStatement)
 def delete_credit_card_statement_files(sender, instance, **kwargs):
     _delete_file(instance.pdf_file)
+
+
+@receiver(post_save, sender=Document)
+def initialize_document_workflow(sender, instance, created, raw=False, **kwargs):
+    """Seed the workflow for every new generic document write path."""
+    if not created or raw:
+        return
+    from content.services.document_note_service import sync_legacy_notes
+    from content.services.document_state_service import ensure_initial_state
+
+    actor = instance.created_by
+    ensure_initial_state(instance, actor=actor)
+    sync_legacy_notes(instance, actor=actor)

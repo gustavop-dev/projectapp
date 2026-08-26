@@ -392,7 +392,7 @@ class TestSendStandaloneEmailSuccess:
         url = reverse('send-standalone-email')
         with patch(
             'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
-            return_value=True,
+            return_value=(True, []),
         ):
             response = admin_client.post(
                 url,
@@ -404,12 +404,14 @@ class TestSendStandaloneEmailSuccess:
                 format='json',
             )
         assert response.status_code == 200
+        assert response.data['document_ids'] == []
+        assert response.data['offer_sent_transition'] is False
 
     def test_dict_sections_accepted_and_normalized(self, admin_client):
         url = reverse('send-standalone-email')
         with patch(
             'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
-            return_value=True,
+            return_value=(True, []),
         ) as mock_send:
             response = admin_client.post(
                 url,
@@ -433,7 +435,7 @@ class TestSendStandaloneEmailSuccess:
         url = reverse('send-standalone-email')
         with patch(
             'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
-            return_value=False,
+            return_value=(False, []),
         ):
             response = admin_client.post(
                 url,
@@ -458,7 +460,7 @@ class TestSendStandaloneEmailSuccess:
         url = reverse('send-standalone-email')
         with patch(
             'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
-            return_value=True,
+            return_value=(True, []),
         ), patch(
             'content.services.document_pdf_service.DocumentPdfService.generate',
             return_value=b'%PDF-1.4 fake',
@@ -474,6 +476,8 @@ class TestSendStandaloneEmailSuccess:
                 format='json',
             )
         assert response.status_code == 200
+        assert response.data['document_ids'] == [doc.id]
+        assert response.data['offer_sent_transition'] is True
         gen.assert_called_once_with(doc)
 
     def test_document_attachment_uses_persisted_style_no_override(self, admin_client):
@@ -489,7 +493,7 @@ class TestSendStandaloneEmailSuccess:
         url = reverse('send-standalone-email')
         with patch(
             'content.services.proposal_email_service.ProposalEmailService.send_standalone_branded_email',
-            return_value=True,
+            return_value=(True, []),
         ), patch(
             'content.services.document_pdf_service.DocumentPdfService.generate',
             return_value=b'%PDF-1.4 fake',

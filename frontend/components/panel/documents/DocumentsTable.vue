@@ -1,7 +1,6 @@
 <script setup>
-import { tagBadgeClass, tagDotClass } from '~/utils/documentTagColors.js'
 import {
-  documentStatusBadgeClass, documentStatusLabel, formatDocumentDate, folderRowSummary,
+  formatDocumentDate, folderRowSummary,
   archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { computed, ref } from 'vue'
@@ -9,6 +8,7 @@ import { formatDateTime } from '~/utils/formatDate'
 import { isPlainActivation } from '~/utils/rowNavigation'
 import BaseButton from '~/components/base/BaseButton.vue'
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue'
+import DocumentStateList from '~/components/panel/documents/DocumentStateList.vue'
 import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
 import BaseResizeHandle from '~/components/base/BaseResizeHandle.vue'
 import { usePanelViewportProfile } from '~/composables/usePanelViewportProfile'
@@ -54,8 +54,8 @@ const DOCUMENT_TABLE_WIDTH_KEY = 'projectapp-table-widths:documents-list'
 const tableContainerRef = ref(null)
 const { profile: viewportProfile } = usePanelViewportProfile()
 
-// Status and actions are fixed. The flexible columns give space back in the
-// business order requested by the Documents UX: tags → project → client → date.
+// Workflow and actions stay readable. The remaining flexible columns give
+// space back in the business order requested by the Documents UX.
 const widthColumns = computed(() => [
   {
     key: 'title',
@@ -63,23 +63,19 @@ const widthColumns = computed(() => [
   },
   {
     key: 'client',
-    columnWidth: { min: 128, default: 176, max: 240, shrinkPriority: 3, fillPriority: 3 },
+    columnWidth: { min: 128, default: 176, max: 240, shrinkPriority: 2, fillPriority: 2 },
   },
   {
     key: 'project',
-    columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 2, fillPriority: 2 },
+    columnWidth: { min: 112, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
   },
   {
-    key: 'tags',
-    columnWidth: { min: 96, default: 160, max: 224, shrinkPriority: 1, fillPriority: 1 },
-  },
-  {
-    key: 'status',
-    columnWidth: { min: 112, default: 112, max: 112, fixed: true },
+    key: 'states',
+    columnWidth: { min: 224, default: 224, max: 224, fixed: true },
   },
   {
     key: 'date',
-    columnWidth: { min: 112, default: 128, max: 640, shrinkPriority: 4, fillPriority: 4 },
+    columnWidth: { min: 112, default: 128, max: 640, shrinkPriority: 3, fillPriority: 3 },
   },
   {
     key: 'actions',
@@ -159,8 +155,7 @@ function onFolderLink(event, sub) {
           </th>
           <th :style="columnStyle('client')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Cliente</th>
           <th :style="columnStyle('project')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Proyecto</th>
-          <th :style="columnStyle('tags')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Etiquetas</th>
-          <th :style="columnStyle('status')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estado</th>
+          <th :style="columnStyle('states')" class="hidden px-6 py-3 text-xs font-medium uppercase tracking-wider text-text-muted panel-desktop:table-cell">Estados</th>
           <th :style="columnStyle('date')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">{{ dateHeader }}</th>
           <th :style="columnStyle('actions')" class="px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Acciones</th>
         </tr>
@@ -199,7 +194,7 @@ function onFolderLink(event, sub) {
               />
             </div>
           </td>
-          <td class="px-6 py-4 text-sm text-text-subtle" colspan="5">
+          <td class="px-6 py-4 text-sm text-text-subtle" colspan="4">
             {{ folderSummary(sub, sub.is_archived ? 'archived' : 'active') }}
           </td>
           <td class="px-6 py-4" @click.stop>
@@ -262,15 +257,8 @@ function onFolderLink(event, sub) {
                 {{ doc.client_display_name || doc.client_name }}
               </span>
               <span v-if="doc.project_name">{{ doc.project_name }}</span>
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-medium"
-                :class="doc.is_archived ? 'bg-surface-raised text-text-muted' : documentStatusBadgeClass(doc.status)"
-              >
-                {{ doc.is_archived ? 'Archivado' : documentStatusLabel(doc.status) }}
-              </span>
-              <span v-if="doc.tag_details?.length" class="text-text-subtle">
-                {{ doc.tag_details.map((tag) => tag.name).join(', ') }}
-              </span>
+              <BaseBadge v-if="doc.is_archived" variant="neutral" size="sm">Archivado</BaseBadge>
+              <DocumentStateList v-else :episodes="doc.active_states" :max-visible="2" />
             </div>
           </td>
           <td class="hidden px-6 py-4 text-sm panel-desktop:table-cell" :data-testid="`doc-client-cell-${doc.id}`">
@@ -289,34 +277,15 @@ function onFolderLink(event, sub) {
             <span v-else class="text-text-subtle">—</span>
           </td>
           <td class="hidden px-6 py-4 panel-desktop:table-cell">
-            <div class="flex flex-wrap gap-1">
-              <span
-                v-for="tag in doc.tag_details"
-                :key="tag.id"
-                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium"
-                :class="tagBadgeClass(tag.color)"
-              >
-                <span class="w-1.5 h-1.5 rounded-full" :class="tagDotClass(tag.color)"></span>
-                {{ tag.name }}
-              </span>
-              <span v-if="!doc.tag_details || doc.tag_details.length === 0" class="text-xs text-text-subtle">—</span>
-            </div>
-          </td>
-          <td class="hidden px-6 py-4 panel-desktop:table-cell">
-            <span
+            <BaseBadge
               v-if="doc.is_archived"
-              class="inline-flex items-center rounded-full bg-surface-raised px-2 py-0.5 text-[10px] font-semibold uppercase text-text-muted dark:text-text-subtle"
+              variant="neutral"
+              size="sm"
               data-testid="doc-archived-badge"
             >
               Archivado
-            </span>
-            <span
-              v-else
-              class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-              :class="documentStatusBadgeClass(doc.status)"
-            >
-              {{ documentStatusLabel(doc.status) }}
-            </span>
+            </BaseBadge>
+            <DocumentStateList v-else :episodes="doc.active_states" :max-visible="3" />
           </td>
           <td class="px-6 py-4 text-sm text-text-muted tabular-nums">
             <template v-if="doc.is_archived">

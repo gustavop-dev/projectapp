@@ -161,7 +161,9 @@
                 </option>
               </select>
             </div>
-            <TagSelector v-model="form.tag_ids" :tags="tagStore.tags" />
+            <p class="text-xs text-text-subtle">
+              El documento iniciará en Borrador. Podrás agregar estados y señales al terminar de crearlo.
+            </p>
           </div>
 
           <hr class="border-border-muted" />
@@ -362,7 +364,6 @@
 
 <script setup>
 import { reactive, ref, computed, onMounted, watch, nextTick } from 'vue';
-import TagSelector from '~/components/panel/documents/TagSelector.vue';
 import DocumentMarkdownBody from '~/components/panel/documents/DocumentMarkdownBody.vue';
 import DocumentClientNoteModal from '~/components/panel/documents/DocumentClientNoteModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
@@ -382,7 +383,6 @@ definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
 
 const documentStore = useDocumentStore();
 const folderStore = useDocumentFolderStore();
-const tagStore = useDocumentTagStore();
 const clientsStore = useProposalClientsStore();
 const notify = usePanelNotify();
 const mode = ref('paste');
@@ -417,7 +417,6 @@ const form = reactive({
   client_whatsapp_message: '',
   client_custom_notes: [],
   folder_id: null,
-  tag_ids: [],
   template_style: 'professional',
 });
 
@@ -435,7 +434,6 @@ const CREATE_FIELD_LABELS = {
   client_whatsapp_message: 'WhatsApp para el cliente',
   client_custom_notes: 'notas adicionales',
   folder_id: 'carpeta',
-  tag_ids: 'etiquetas',
   template_style: 'estilo de plantilla',
 };
 
@@ -452,16 +450,16 @@ const {
   handleSecondaryAction,
   handleCancelled,
 } = useUnsavedGuard({
-  snapshot: () => ({ ...form, tag_ids: [...form.tag_ids] }),
+  snapshot: () => ({ ...form }),
   labels: CREATE_FIELD_LABELS,
 });
 
-// El refresh acá sólo recarga carpetas y etiquetas: no pisa el formulario, así
+// El refresh acá sólo recarga carpetas: no pisa el formulario, así
 // que no necesita el guard.
-usePanelRefresh(() => Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]));
+usePanelRefresh(() => folderStore.fetchFolders());
 
 onMounted(async () => {
-  await Promise.all([folderStore.fetchFolders(), tagStore.fetchTags()]);
+  await folderStore.fetchFolders();
   const preselectFolder = route.query.folder;
   if (preselectFolder && preselectFolder !== 'all' && preselectFolder !== 'none') {
     const numeric = Number(preselectFolder);
@@ -641,7 +639,6 @@ async function handleSubmit() {
     client_whatsapp_message: form.client_whatsapp_message,
     client_custom_notes: form.client_custom_notes,
     folder_id: form.folder_id,
-    tag_ids: form.tag_ids,
     template_style: form.template_style,
   };
 

@@ -3,7 +3,14 @@ import json
 
 import pytest
 
-from content.models import Document, DocumentFolder, DocumentType, McpConnector
+from content.models import (
+    Document,
+    DocumentFolder,
+    DocumentState,
+    DocumentStateEpisode,
+    DocumentType,
+    McpConnector,
+)
 
 
 @pytest.fixture
@@ -26,7 +33,8 @@ def collection_account_type(db):
 
 
 @pytest.fixture
-def documents_connector(db):
+def documents_connector(db, superuser):
+    """Active connector with an actor available for audited MCP mutations."""
     connector, _ = McpConnector.objects.get_or_create(
         slug='documents', defaults={'name': 'Gestor de Documentos'},
     )
@@ -69,14 +77,16 @@ def _make_doc(doc_type, **kwargs):
 
 @pytest.mark.django_db
 class TestDocumentsMcpToolList:
-    def test_exposes_the_nine_tools(self, api_client, documents_connector):
+    def test_exposes_document_workflow_tools(self, api_client, documents_connector):
         _, token = documents_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
         assert names == [
             'list_folders', 'create_folder', 'rename_folder', 'list_documents',
             'read_document', 'create_document', 'update_document',
-            'append_document', 'delete_document',
+            'append_document', 'delete_document', 'list_document_states',
+            'set_document_state', 'close_document_state', 'add_document_note',
+            'finish_document_note',
         ]
 
     def test_serverinfo_handshake_works_on_shared_endpoint(self, api_client, documents_connector):
@@ -234,6 +244,14 @@ class TestDocumentsMcpCrud:
         assert payload['client_custom_notes'] == [
             {'title': 'Seguimiento', 'content': 'Confirmar recepción.'},
         ]
+        assert payload['notes'][0] == {
+            'id': payload['notes'][0]['id'],
+            'title': 'Seguimiento',
+            'content': 'Confirmar recepción.',
+            'status': 'open',
+            'episode_id': None,
+            'resolution_note': '',
+        }
 
     def test_update_document_replaces_custom_notes(
         self, api_client, documents_connector, markdown_doc_type,
@@ -336,15 +354,15 @@ class TestDocumentsMcpCrud:
         response = _call(api_client, token, 'update_document', {'document_id': doc.id})
         assert response.data['result']['isError'] is True
 
-    def test_delete_unpublished_document(self, api_client, documents_connector, markdown_doc_type):
-        doc = _make_doc(markdown_doc_type, status='draft')
+    def test_delete_hidden_document(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type, is_client_visible=False)
         _, token = documents_connector
         response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
         assert response.data['result']['isError'] is False
         assert not Document.objects.filter(pk=doc.id).exists()
 
-    def test_cannot_delete_published_document(self, api_client, documents_connector, markdown_doc_type):
-        doc = _make_doc(markdown_doc_type, status='published')
+    def test_cannot_delete_visible_document(self, api_client, documents_connector, markdown_doc_type):
+        doc = _make_doc(markdown_doc_type, is_client_visible=True)
         _, token = documents_connector
         response = _call(api_client, token, 'delete_document', {'document_id': doc.id})
         assert response.data['result']['isError'] is True
@@ -564,27 +582,28 @@ class TestDocumentsMcpHandlerBranches:
         })
         assert response.data['result']['isError'] is True
 
-    def test_update_document_changes_status(
-        self, api_client, documents_connector, markdown_doc_type,
+    def test_update_document_changes_visibility(
+        self, api_client, documents_connector, markdown_doc_type, superuser,
     ):
         doc = _make_doc(markdown_doc_type)
         _, token = documents_connector
         response = _call(api_client, token, 'update_document', {
-            'document_id': doc.id, 'status': 'published',
+            'document_id': doc.id, 'is_client_visible': True,
         })
         assert response.data['result']['isError'] is False
         doc.refresh_from_db()
-        assert doc.status == 'published'
+        assert doc.is_client_visible is True
 
-    def test_update_document_invalid_status_errors(
+    def test_update_document_invalid_visibility_errors(
         self, api_client, documents_connector, markdown_doc_type,
     ):
         doc = _make_doc(markdown_doc_type)
         _, token = documents_connector
         response = _call(api_client, token, 'update_document', {
-            'document_id': doc.id, 'status': 'limbo',
+            'document_id': doc.id, 'is_client_visible': 'yes',
         })
         assert response.data['result']['isError'] is True
+
 
     def test_update_document_moves_to_folder(
         self, api_client, documents_connector, markdown_doc_type,
@@ -608,6 +627,52 @@ class TestDocumentsMcpHandlerBranches:
             'document_id': doc.id, 'markdown': 'Más texto', 'separator': 7,
         })
         assert response.data['result']['isError'] is True
+
+
+@pytest.mark.django_db
+class TestDocumentsMcpWorkflow:
+    def test_state_tool_opens_an_mcp_episode(
+        self, api_client, documents_connector, markdown_doc_type, superuser,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        sent = DocumentState.objects.get(system_key='sent')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'set_document_state', {
+            'document_id': doc.id,
+            'state_id': sent.id,
+        })
+
+        assert response.data['result']['isError'] is False
+        episode = doc.state_episodes.get(state=sent, closed_at__isnull=True)
+        assert episode.origin == DocumentStateEpisode.Origin.MCP
+
+    def test_note_tools_close_the_linked_signal(
+        self, api_client, documents_connector, markdown_doc_type, superuser,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        _, token = documents_connector
+        created = _call(api_client, token, 'add_document_note', {
+            'document_id': doc.id,
+            'title': 'Total incorrecto',
+            'content': 'Corregir el total.',
+            'mark_needs_fix': True,
+        })
+        created_payload = json.loads(created.data['result']['content'][0]['text'])
+
+        response = _call(api_client, token, 'finish_document_note', {
+            'document_id': doc.id,
+            'note_id': created_payload['id'],
+            'resolution_note': 'Total corregido.',
+            'close_linked_state': True,
+            'move_cycle_to_bug_attended': True,
+        })
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert response.data['result']['isError'] is False
+        assert payload['note']['status'] == 'resolved'
+        assert payload['state_closed'] is True
+        assert payload['cycle_moved'] is True
 
 
 @pytest.mark.django_db

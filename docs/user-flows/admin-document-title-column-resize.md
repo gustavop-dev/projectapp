@@ -15,7 +15,7 @@
 - **Branches:**
   - [Display — recorte] La ayuda y el control de expansión sólo existen cuando la medición del texto confirma desbordamiento.
   - [Success — táctil] **Ver completo** expande el nombre en el mismo contexto y **Contraer** recupera las dos líneas.
-  - [Success — reparto] Etiquetas, Proyecto, Cliente y Fecha ceden espacio en ese orden; Estado y Acciones conservan su ancho.
+  - [Success — reparto] Proyecto, Cliente y Fecha ceden espacio en ese orden; Estados y Acciones conservan su ancho.
   - [Success — límite] Tras alcanzar los mínimos de las columnas flexibles, la tabla habilita desplazamiento horizontal interno.
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (recorte condicional, expansión compacta, arrastre persistente, columnas fijas y restablecimiento).

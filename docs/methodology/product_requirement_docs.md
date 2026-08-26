@@ -21,6 +21,7 @@ The application is bilingual (English / Spanish) and targets two distinct user p
 | Proposals sent as static PDFs with no tracking | Interactive fullscreen web experience with engagement analytics |
 | No visibility into client interest or behavior | View tracking, section-level time analytics, heat score, engagement signals |
 | Manual follow-up prone to human error | Automated email reminders (day 10, day 15, urgency, inactivity, re-engagement) |
+| One document status cannot describe concurrent work or preserve what already happened | User-managed cycle/signal states whose open and closed episodes form an attributable timeline |
 | The agency had no received copy of customer email | Every client-classified email leaves through one gateway, which sends configurable BCC-only internal copies and links their independent outcomes to the primary history row |
 | Client conversations were drafted in disposable chats and reconstructed from memory | A client/project communications registry preserves ordered incoming and outgoing messages, manual send state, date corrections and references to existing documents |
 | Company portfolio hard to maintain | Admin CRUD panel for portfolio works with bilingual content |
@@ -153,10 +154,34 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 ### 3.5 Document System
 
 - Generic branded PDF documents separate from proposals
-- `Document` model with status lifecycle (draft → published → archived), language (es/en), cover_type (generic/none/proposal)
+- Client visibility is an independent `is_client_visible` gate. The legacy
+  draft/published field remains only during the expand/contract rollout and no
+  longer represents the internal workflow.
+- **Administrable workflow**: one document may carry one active state from an
+  exclusive cycle group plus any number of additive signals. The editable seed
+  catalog is Borrador, Enviado, En revisión, Bug atendido, Cerrado and Solucionar
+  bug; stable `system_key` values keep integrations working after a rename.
+- **Episode history**: activating a state opens an episode; completing or removing
+  it closes that episode with a distinct outcome, actor, exact timestamp, optional
+  note and append-only event. A state may recur in multiple episodes, and opening
+  times can be corrected when an event was recorded late.
+- The list and editor show cycle first, then signals, including live duration.
+  Solucionar bug has a high-attention treatment. History opens in a short timeline
+  with exact and relative times, duration, actors, notes and linked observations.
+- States can be created inline with duplicate suggestions, renamed/recolored,
+  retired when unused, or merged from the catalog view. The catalog reports active
+  document and historical-episode counts and blocks rule changes that would make
+  current documents invalid.
+- State filters are OR within the dimension, support absence (for example “without
+  Cerrado”), and include the recurring presets Algo por solucionar, Enviados sin
+  cerrar, Cerrados and Por clasificar.
+- Adding an observation may open Solucionar bug. Resolving/discarding the final
+  linked observation may complete/remove the signal and optionally move the cycle
+  to Bug atendido. Sending a standalone document email may open Enviado after
+  explicit confirmation.
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
-- Admin CRUD panel (`/panel/documents/`) with create, edit, list, status management
+- Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
 - **Private notes**: creation and editing keep the email subject, complete email body,
   WhatsApp message, and an ordered collection of custom title/content notes in one
   optional modal. Every non-empty value has an individual 📋 copy action with ✅
@@ -171,15 +196,20 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
   canonical subject/email/WhatsApp triple; `client-message` reuses that copy without
   producing a second version. Custom notes remain independently managed metadata.
 - Bilingual support (es/en)
-- **Folders & tags**: documents organize into `DocumentFolder`s and `DocumentTag`s managed inline from the documents list page.
+- **Folders & workflow states**: folders remain the structural hierarchy. The former
+  colored document tags were consolidated into additive workflow states instead of
+  leaving two overlapping user-facing systems; legacy tag assignments are expanded
+  into open episodes with an explicitly unknown opening time during migration.
   - Folder deletion is **blocked (HTTP 409)** when the folder contains documents; the admin must move or delete each document first. The DB FK keeps `on_delete=SET_NULL` only as a safety net for non-API removals.
-  - Folder/tag mutations from `FolderManagerModal`/`TagManagerModal` re-fetch both the documents list and the folder/tag stores so the sidebar count and order reflect the change without a page reload.
+  - Folder mutations from `FolderManagerModal` re-fetch both the documents list and the folder store so the sidebar count and order reflect the change without a page reload.
 - **Context-preserving navigation**: the list URL is the canonical representation of
-  folder, normal/archived scope, tags, client/project, global search, ordering, view
-  mode, page and focused document. Every editor exit returns to that validated list
+  folder, normal/archived scope, workflow states, client/project, global search,
+  ordering, view mode, page and focused document. Every editor exit returns to that validated list
   URL and identifies its destination; browser Back restores the same list state.
   Direct or untrusted editor entries have no valid origin and fall back to the
   localized Documents root.
+  - Collection accounts keep their separate commercial lifecycle and are excluded
+    from the generic state catalog and legacy-tag expansion.
 
 ### 3.5.1 Client Communications Registry
 
@@ -300,7 +330,7 @@ Admin-only space at `/platform/access` for rapid access to operational URLs and 
   `docs/RESPONSIVE_STANDARDS.md`, `docs/RESPONSIVE_STANDARD.md` and
   `docs/methodology/responsive-standard.md`, respectively.
 - **Responsive operational modules** — Documentos, Clientes and Proyectos preserve their useful information at 412, 835, 1195, 1440 and 2560 px. Below the canonical 1024 px landscape boundary, two-zone/filter-heavy interfaces collapse into one primary content stream plus explicit drawers/selectors, dense rows become labeled cards, every hover/drag action has a touch path, and phone modals use the full viewport. At 1195 px their desktop structures are active. At 2560 px the content column remains capped at 1400 px.
-- **Readable document titles** — document names use two lines with end truncation by default. The complete native hint exists only when the rendered title is actually clipped, and the same condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default), remembered per browser and reset by double click; Etiquetas, Proyecto, Cliente and Fecha yield space in that order, while Estado and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because two lines plus conditional reveal preserve the full value without inventing a second naming rule.
+- **Readable document titles** — document names use two lines with end truncation by default. The complete native hint exists only when the rendered title is actually clipped, and the same condition exposes an in-place **Ver completo/Contraer** path for touch layouts. In list mode, Título is adjustable from 240 to 520 px (320 px default), remembered per browser and reset by double click; Proyecto, Cliente and Fecha yield space in that order, while Estados and Acciones stay fixed. After donor minima, only the table wrapper scrolls. Middle truncation was evaluated and intentionally deferred because two lines plus conditional reveal preserve the full value without inventing a second naming rule.
 
 ### 3.13 Internationalization (i18n)
 
@@ -401,7 +431,17 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 17. **Hosting periodicities**: the current commercial offer is quarterly, semiannual, and every 9 months. The nine-month charge is the discounted effective monthly price multiplied by nine. Public proposal views and PDFs preserve the stored annual snapshot for closed/inactive proposals, while new operational project/subscription records always use the current 9/6/3-month catalog. Paid cycles and payments are immutable history.
 18. **Contract proposal mode**: `show_contract_terms` is top-level proposal metadata, defaults to `True`, and only produces a public mode for Spanish proposals. It never changes the proposal prompt or section JSON. Preview and draft-PDF endpoints read the current default `ContractTemplate`, never a proposal-specific contract, and are unavailable when the proposal is inactive, English, or has the flag disabled.
 19. **Server-owned derived values**: a persisted derived value is never accepted as independent input. When any source changes, the canonical backend write path refreshes the derivative in the same transaction. For recurring payments, `price + currency + current AccountingSettings.usd_exchange_rate → cop_equivalent`, and `cop_equivalent ÷ frequency_months → monthly_cop_cost`; changing the rate synchronizes every recurring row.
-20. **Communication history is evidence**: changing a project's client detaches
+20. **Document workflow state**: active document state is derived only from open
+    `DocumentStateEpisode` rows. Exclusive cycle states transition each other;
+    additive signals may coexist unless the catalog declares an incompatibility.
+    Closing means completed work and removing means the state was inapplicable; both
+    remain in history as different outcomes.
+21. **Document migration truthfulness**: legacy Published becomes client visibility,
+    not an inferred cycle state. Existing draft/published documents receive no
+    invented cycle classification; old tag assignments become additive episodes
+    with unknown effective time, and old private note JSON becomes normalized notes
+    with an unknown historical creation time.
+22. **Communication history is evidence**: changing a project's client detaches
     its historical communication threads from the project instead of moving them
     to the new client. Deleting clients or documents is blocked while historical
     communication references remain.

@@ -842,11 +842,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** View the list of admin documents with title, status and client association. The table carries **Cliente** and **Proyecto** columns reading the FK-backed association (`client_display_name` / `project_name`); a legacy free-text `client_name` renders in italics as a not-yet-linked name, and unlinked cells show a dash. Above the table, the association filters (data-testid `doc-association-filters`) offer a client autocomplete, a project picker and the "Sin cliente"/"Sin proyecto" chips; the axes travel in `?client=` / `?project=` (id or `none`), which is the deep-link contract the jumps from `/panel/clients` use. Per-row actions are collapsed into a single "Acciones" (kebab) icon that opens the `DocumentActionsSheet` modal listing each action with its own icon (edit content, rename, move to folder, send by email, download PDF, copy markdown, duplicate, delete). The same single-icon + modal pattern is used on every breakpoint.
+- **Description:** View admin documents with title, client/project association and ordered active-state episodes. The exclusive cycle appears before additive signals, every badge carries its open duration, **Solucionar bug** is visually prominent, overflow collapses to `+N`, and a missing cycle reads **Por clasificar**. Association filters and the shared `DocumentActionsSheet` remain available on every breakpoint.
 - **Steps:**
   1. Admin navigates to `/panel/documents`.
   2. Document list loads from API (`GET /api/content/documents/`).
-  3. Table renders with columns: title, client, project, tags, status badge, created date, actions.
+  3. Table renders title, client, project, current state episodes, created date and actions.
   3b. Filtering by client/project (or their `none` chips) refetches with `?client=`/`?project=` and mirrors the axes in the URL.
   4. Admin clicks a row → navigates to `/panel/documents/:id/edit`.
   5. Admin clicks the single "Acciones" icon → `DocumentActionsSheet` opens; choosing "Editar contenido" navigates to `/panel/documents/:id/edit`.
@@ -866,11 +866,11 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Toggle between the list (table) and gallery (cards) views of the document list via the "Lista"/"Galería" segmented control in the toolbar (`data-testid` `doc-view-list` / `doc-view-grid`). Gallery cards render a sanitized markdown mini-preview built from the list serializer's `content_excerpt`, a status badge overlay, client + creation date, up to 2 tag chips with a `+N` tooltip, and the same kebab "Acciones" opening `DocumentActionsSheet`. Subfolder cards render first with dashed borders and act as drag-and-drop targets. The chosen mode persists in `localStorage` (`projectapp-documents-view-mode`); the default is `list`. On mobile (`<sm`) the gallery grid is always the rendered view.
+- **Description:** Toggle between the list (table) and gallery (cards) views via the "Lista"/"Galería" segmented control. Gallery cards render a sanitized markdown mini-preview, client/date metadata, ordered active-state episodes with durations and `+N` overflow, plus the shared "Acciones" sheet. Subfolders remain drag-and-drop targets and the chosen mode persists in `localStorage`.
 - **Steps:**
   1. Admin navigates to `/panel/documents` (table view by default).
   2. Admin clicks "Galería" → the table swaps out and the card grid renders one card per document.
-  3. Cards show the markdown mini-preview, status badge, client/date meta and tag chips.
+  3. Cards show the markdown mini-preview, client/date metadata and current state episodes.
   4. Admin clicks a card (or its title link) → navigates to `/panel/documents/:id/edit`.
   5. Admin clicks a card kebab → `DocumentActionsSheet` opens with the full action list.
   6. Admin reloads the page → the gallery view is restored from `localStorage`.
@@ -932,18 +932,16 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Role:** admin
 - **Priority:** P2
 - **Routes:** `/panel/documents`
-- **Description:** Organize admin documents with a folder sidebar and tag filter chips. Admin selects a folder to filter the list, toggles tag chips for multi-tag OR filtering, opens the FolderManagerModal to create/rename/delete folders, and opens the TagManagerModal to create/rename/delete tags with color coding. The sidebar shows only **root folders**; subfolders are reached by navigating inside a folder (see `admin-document-folder-hierarchy`). Desde 2026-08-16 cada fila dice **de quién es** la carpeta: bajo su nombre, el cliente asociado (`folder-client-<id>`, truncado y sólo si lo tiene), y al entrar en ella lo repite la cabecera junto al proyecto.
+- **Description:** Organize admin documents with the folder sidebar and folder-management modals. Folder navigation is independent from the state-filter axis documented in `admin-document-state-filters`. The sidebar shows only **root folders**; subfolders are reached by navigating inside a folder (see `admin-document-folder-hierarchy`). Cada fila dice **de quién es** la carpeta mediante su cliente asociado y la cabecera repite cliente/proyecto al entrar.
 - **Steps:**
-  1. Admin loads `/panel/documents` — left sidebar renders root folders only; tag chips appear above the table.
+  1. Admin loads `/panel/documents` — the left sidebar renders root folders only.
   2. Admin clicks a folder entry (e.g., "Cuentas de cobro") → list refreshes with `?folder=<id>`.
   3. Admin clicks "Sin carpeta" → list refreshes with `?folder=none`.
   4. Admin clicks "Todos" → list refreshes without folder param.
-  5. Admin clicks a tag chip → list refreshes with `?tags=<id>` (OR logic; multiple chips additive).
-  6. Admin clicks "Limpiar" → tag filter cleared, list refreshes.
-  7. Admin clicks "Gestionar" / "Gestionar etiquetas" → modal opens for inline CRUD.
-  8. Admin creates, renames, or deletes a folder/tag → modal emits `@changed` → document list refreshes.
+  5. Admin opens the folder manager from the sidebar.
+  6. Admin creates, renames or archives a folder → the document list refreshes.
 - **Branches:**
-  - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only; "Crear la primera →" prompt for tags.
+  - [Branch A — Empty folders] No folders yet → "Sin carpeta" and "Todos" entries only.
   - [Branch B — Create folder] Admin fills name + submits in FolderManagerModal → folder added to sidebar. The "Dentro de:" parent selector defaults to the currently active folder, so creating a folder while standing inside a child folder pre-selects that folder as the parent (still changeable to any folder or root).
   - [Branch C — Delete folder] Deleting a folder is still blocked with HTTP 409 if it holds documents or subfolders (archived content counts too — content is content); documents themselves use `folder = SET_NULL`. Since 2026-08-12 the sidebar row says so up front: the delete icon is disabled with a tooltip, and **archiving** — allowed with content, cascading over subfolders and documents — sits next to it as the way out. See `admin-document-archive`.
   - [Branch D — Assign on create] Creating a document from `?folder=<id>` pre-selects that folder.
@@ -1145,17 +1143,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 - **Coverage:** ✅ Covered (create/rename/delete; sidebar delete con confirmación DELETE y conflicto 409; ícono de eliminar inerte en carpeta con contenido y archivado como salida; drag-reorder not asserted — flaky in CI)
 - **E2E Spec:** `e2e/admin/admin-document-folder-manage.spec.js` (added 2026-07-22; sidebar delete added 2026-08-04; rama bloqueada reemplazada por la de archivar 2026-08-11; eliminar vuelve a deshabilitarse y archivar pasa a la fila 2026-08-12; edición desde la fila y desde la cabecera 2026-08-16)
 
-#### FLOW: `admin-document-tags-manage`
-
-- **Module:** admin
-- **Role:** admin
-- **Priority:** P2
-- **Routes:** `/panel/documents`
-- **API:** `POST /api/document-tags/create/`, `PATCH /api/document-tags/<id>/update/`, `DELETE /api/document-tags/<id>/delete/`
-- **Description:** Admin manages tags in `TagManagerModal`: create tag with name and color, rename, delete with confirm. Tag chip filtering is covered by `admin-document-folders`; tag CRUD is not.
-- **Coverage:** ✅ Covered
-- **E2E Spec:** `e2e/admin/admin-document-tags-manage.spec.js` (create + rename + delete confirm/dismiss; added 2026-07-22)
-
 #### FLOW: `admin-document-duplicate`
 
 - **Module:** admin
@@ -1279,7 +1266,6 @@ Entries in `flow-definitions.json` with `roles: ["system"]` and `expectedSpecs: 
 | `admin-document-archive` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-archive.spec.js` |
 | `admin-document-folder-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-manage.spec.js` |
 | `admin-document-folder-change-client` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-folder-change-client.spec.js` |
-| `admin-document-tags-manage` | admin | admin | P2 | ✅ Covered | `e2e/admin/admin-document-tags-manage.spec.js` |
 | `admin-document-duplicate` | admin | admin | P3 | ✅ Covered | `e2e/admin/admin-document-duplicate.spec.js` |
 | `admin-document-drag-organize` | admin | admin | P3 | ❌ Missing | — (spec not yet written) |
 | `admin-task-deadline-notification` | admin | system | P2 | ⬜ Backend-only | N/A |

@@ -631,6 +631,7 @@ class Command(BaseCommand):
                 client_name='Internal QA',
                 language=Document.Language.EN,
                 status=Document.Status.PUBLISHED,
+                is_client_visible=True,
                 content_markdown=body,
                 content_json={'meta': meta_block(title_en, 'Internal QA'), 'blocks': markdown_to_blocks(body)},
             )
@@ -646,6 +647,7 @@ class Command(BaseCommand):
                 client_name='TechStartup Co.',
                 language=Document.Language.ES,
                 status=Document.Status.DRAFT,
+                is_client_visible=False,
                 content_markdown=body_es,
                 content_json={'meta': meta_block(title_es, 'TechStartup Co.'), 'blocks': markdown_to_blocks(body_es)},
                 client_user=client_user,

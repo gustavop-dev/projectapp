@@ -1,12 +1,16 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
+import { createPinia, setActivePinia } from 'pinia';
 
 import DocumentClientNoteModal from '../../components/panel/documents/DocumentClientNoteModal.vue';
 import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
+import BaseBadge from '../../components/base/BaseBadge.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
 import BaseModal from '../../components/base/BaseModal.vue';
 import BaseTextarea from '../../components/base/BaseTextarea.vue';
+import BaseToggle from '../../components/base/BaseToggle.vue';
+import { useDocumentStateStore } from '../../stores/document_states';
 
 const mockNotifyError = jest.fn();
 
@@ -18,7 +22,7 @@ function mountModal(props = {}) {
   return mount(DocumentClientNoteModal, {
     props: { modelValue: true, ...props },
     global: {
-      components: { BaseButton, BaseInput, BaseModal, BaseTextarea },
+      components: { BaseBadge, BaseButton, BaseInput, BaseModal, BaseTextarea, BaseToggle },
       stubs: {
         Teleport: true,
         Transition: false,
@@ -36,6 +40,7 @@ const customContentField = (wrapper, index = 0) => wrapper.find(`[data-testid="c
 
 describe('DocumentClientNoteModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia());
     mockNotifyError.mockReset();
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -208,5 +213,47 @@ describe('DocumentClientNoteModal', () => {
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Seguimiento');
     expect(wrapper.get('[role="status"]').text()).toBe('Copiado: título de la nota 1');
     expect(copyButton.attributes('aria-label')).toBe('Copiado: título de la nota 1');
+  });
+
+  it('creates a normalized observation linked to needs-fix', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'createNote').mockResolvedValue({
+      success: true,
+      data: { id: 9, title: '', content: 'Corregir el total', status: 'open', episode: 30 },
+    });
+    const wrapper = mountModal({ documentId: 8, notes: [] });
+    await wrapper.find('[data-testid="document-observation-content"]').setValue('Corregir el total');
+
+    await wrapper.find('[data-testid="document-observation-add"]').trigger('click');
+
+    expect(store.createNote).toHaveBeenCalledWith(8, {
+      title: '',
+      content: 'Corregir el total',
+      mark_needs_fix: true,
+    });
+    expect(wrapper.emitted('workflow-changed')).toHaveLength(1);
+  });
+
+  it('offers to close needs-fix when resolving its last observation', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'finishNote').mockResolvedValue({
+      success: true,
+      data: { note: { id: 9, status: 'resolved', episode: 30 } },
+    });
+    jest.spyOn(window, 'prompt').mockReturnValue('Corregido');
+    jest.spyOn(window, 'confirm').mockReturnValue(true);
+    const wrapper = mountModal({
+      documentId: 8,
+      notes: [{ id: 9, title: 'Total', content: 'Corregir', status: 'open', episode: 30 }],
+    });
+
+    await wrapper.find('[data-testid="document-observation-resolve-9"]').trigger('click');
+
+    expect(store.finishNote).toHaveBeenCalledWith(8, 9, {
+      outcome: 'resolved',
+      resolution_note: 'Corregido',
+      close_linked_state: true,
+      move_cycle_to_bug_attended: true,
+    });
   });
 });

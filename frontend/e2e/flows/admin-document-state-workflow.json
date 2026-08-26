@@ -1,0 +1,17 @@
+{
+  "id": "admin-document-state-workflow",
+  "name": "Admin Document State Episodes",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin manages concurrent document-state episodes from the editor. Exclusive cycle states transition in either direction while additive signals coexist; each opening, close, removal and corrected effective date remains attributable in the timeline. Inline creation first suggests similar shared states. Normalized observations can open Solucionar bug and later close or remove that linked episode with a resolution note.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

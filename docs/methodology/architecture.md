@@ -134,18 +134,18 @@ Documents API or schema.
 
 Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.
 
-The Documents connector treats client delivery copy and custom notes as private
+The Documents connector treats client delivery copy and observations as private
 document metadata. `client_email_subject`, `client_email_body`,
-`client_whatsapp_message`, and the ordered `client_custom_notes` title/content array
-travel beside the report markdown, not inside it. `client-report` creates one
-canonical message triple and passes it to `create_document`/`update_document`; an
-enclosing `client-message` run returns those same values. Custom notes can be managed
-independently through the admin detail surface or Documents MCP. The PDF renderer,
-list serializers, and platform serializers have no path to any of these fields.
-The admin edit modal persists the four private-note fields with a notes-only partial
-update, then advances only their unsaved-change baseline; other editor fields remain
-dirty. The create modal cannot persist before the required document exists, so it
-labels the operation as applying to the draft and leaves creation as an explicit step.
+`client_whatsapp_message`, and the ordered legacy `client_custom_notes` array travel
+beside the report markdown, not inside it. `client-report` creates one canonical
+message triple and passes it to `create_document`/`update_document`; an enclosing
+`client-message` run returns those same values. Normalized `DocumentNote` rows may be
+opened and resolved through the admin or Documents MCP, including their optional link
+to a needs-fix episode. The admin edit modal persists the four communication fields
+with a notes-only partial update and advances only their unsaved-change baseline;
+normalized observations use their own audited workflow endpoints. The create modal
+applies communication notes to the draft until the document exists. The PDF renderer,
+list serializers, and platform serializers expose none of this private metadata.
 
 ---
 
@@ -167,6 +167,12 @@ erDiagram
     ProposalRequirementGroup ||--o{ ProposalRequirementItem : "has items"
     ProposalViewEvent ||--o{ ProposalSectionView : "has section views"
     Document }o--o{ UserProfile : "created by (optional)"
+    Document ||--o{ DocumentStateEpisode : "has workflow episodes"
+    DocumentStateGroup ||--o{ DocumentState : "groups catalog states"
+    DocumentState ||--o{ DocumentStateEpisode : "occurs as"
+    DocumentStateEpisode ||--o{ DocumentStateEpisodeEvent : "records immutable events"
+    Document ||--o{ DocumentNote : "has observations"
+    DocumentStateEpisode ||--o{ DocumentNote : "may originate"
     ContractTemplate ||--o{ ProposalDocument : "used in"
 
     UserProfile ||--o{ CommunicationThread : "owns conversations"
@@ -214,8 +220,11 @@ erDiagram
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
-| **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type, content_json, private client_email_subject/client_email_body/client_whatsapp_message/client_custom_notes, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
-| **DocumentFolder / DocumentTag** | Document organization | name, color, parent (folder), created_by |
+| **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, is_client_visible, legacy status (expand/contract only), language (es/en), cover_type, content_json, private delivery copy, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
+| **DocumentStateGroup / DocumentState** | Administrable workflow catalog | group name/order/selection_mode (exclusive or additive); state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors |
+| **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document workflow and append-only audit | document/state, opened_at/closed_at, opened_by/closed_by, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
+| **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
+| **DocumentFolder / DocumentTag** | Folder hierarchy plus legacy tag compatibility during rollout | name, color, parent (folder), created_by |
 | **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
 | **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
 | **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
@@ -360,7 +369,7 @@ owns measured one/two-line clipping and the touch disclosure, so consumers do
 not duplicate tooltip or line-clamp heuristics. The Documents table is the
 first specialized adopter and the folder-panel handle now uses the same input
 primitive.
-`responsiveAcceptance.js` assigns every catalog view to one of twelve module
+`responsiveAcceptance.js` assigns every catalog view to one of thirteen module
 scripts. Pull requests execute affected modules at all five widths, the full
 matrix runs monthly, and a scheduled February/August issue forces review of the
 device assumptions instead of letting the contract age silently.
@@ -511,7 +520,8 @@ flowchart LR
         AccountingStore["accounting.js"]
         McpsStore["mcps.js"]
         TasksStore["tasks.js"]
-        DocumentFoldersStore["document_folders.js / document_tags.js"]
+        DocumentFoldersStore["document_folders.js"]
+        DocumentStatesStore["document_states.js"]
         PlatformDocumentsStore["platform-documents.js"]
         BlogStore["blog.js"]
         PortfolioStore["portfolio_works.js"]
@@ -543,6 +553,7 @@ flowchart LR
     PortfolioStore --> RequestHTTP
     ContactStore --> RequestHTTP
     DocumentStore --> RequestHTTP
+    DocumentStatesStore --> RequestHTTP
     CommunicationsStore --> RequestHTTP
     PanelAdmins --> RequestHTTP
     PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
@@ -786,6 +797,36 @@ flowchart LR
 ```
 
 The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.
+
+### Document Event → Episode → Current State
+
+```mermaid
+flowchart LR
+    Catalog["Editable state catalog"] --> Rule{"Group rule"}
+    Manual["Selector / exact time"] --> Open["open_state()"]
+    Note["Observation"] --> Open
+    Email["Confirmed email delivery"] --> Open
+    MCP["Documents MCP"] --> Open
+    Rule --> Open
+    Open --> Episode["Open DocumentStateEpisode"]
+    Open --> Event["Append-only OPENED event"]
+    Episode --> Current["Current state = all open episodes"]
+    Episode --> Finish{"Complete or remove?"}
+    Finish --> Close["closed_at + actor + note + outcome"]
+    Close --> CloseEvent["Append-only close/removal event"]
+    Close --> History["Timeline retains every occurrence"]
+    Correction["Correct effective opening time"] --> EventCorrection["OPENED_AT_CORRECTED event"]
+    EventCorrection --> Episode
+```
+
+`document_state_service` is the only workflow writer and locks the document before
+enforcing exclusivity, declared incompatibilities and repeatability. The document-
+local episode event stream is the canonical audit for state changes; generic history
+does not duplicate those movements. Catalog renames preserve stable integration keys,
+and merging retires the source while keeping historical meaning and merge events.
+`document_note_service` owns note linkage and only closes needs-fix after the final
+open linked observation is resolved or discarded. Client visibility is orthogonal and
+never derived from an episode.
 
 ### Client Communication → Manual Send Fact → Reply Context
 

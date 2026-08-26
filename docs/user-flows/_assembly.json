@@ -251,6 +251,14 @@
         "admin-project-change-client"
       ],
       "intro": "_intro-05.md"
+    },
+    {
+      "title": "Section 29 — Document State Episodes (Aug 25, 2026)",
+      "flows": [
+        "admin-document-states-manage",
+        "admin-document-state-workflow",
+        "admin-document-state-filters"
+      ]
     }
   ]
 }

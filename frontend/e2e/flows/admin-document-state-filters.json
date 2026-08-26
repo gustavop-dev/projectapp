@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-state-filters",
+  "name": "Admin Document State Filters",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin scans current state episodes and their open duration in the document list, where Solucionar bug is visually prominent. Multi-select state values are ORed, absence queries find documents without Cerrado, and presets cover needs-fix, sent-not-closed, closed and unclassified inventories. A failed filtered request leaves a persistent retryable error.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

@@ -3,7 +3,7 @@
  *
  * @flow:admin-document-title-column-resize
  * Covers: clipped-only full-name hints, compact in-place disclosure, pointer
- *         resize persistence, fixed status/actions tracks and double-click reset.
+ *         resize persistence, fixed workflow/actions tracks and double-click reset.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
@@ -14,6 +14,23 @@ test.setTimeout(60_000);
 
 const WIDTH_KEY = 'projectapp-table-widths:documents-list';
 const LONG_TITLE = 'Cliente Atlas — Contrato marco de servicios profesionales para el Comité Ejecutivo Regional — versión final aprobada para firma del 25 de agosto de 2026';
+const STATE_GROUPS = [
+  { id: 1, name: 'Ciclo', selection_mode: 'exclusive', order: 0, is_active: true },
+];
+const SENT_STATE = {
+  id: 11,
+  name: 'Enviado',
+  color: 'blue',
+  system_key: 'sent',
+  group: 1,
+  group_id: 1,
+  group_name: 'Ciclo',
+  group_mode: 'exclusive',
+  group_order: 0,
+  order: 1,
+  is_active: true,
+  merged_into: null,
+};
 
 const jsonOk = (body) => ({
   status: 200,
@@ -39,7 +56,12 @@ function documentFixture(id, title) {
     project: 12,
     project_name: 'Proyecto Atlas',
     content_excerpt: 'Resumen operativo del documento.',
-    tag_details: [{ id: 1, name: 'Entrega', color: 'green' }],
+    active_states: [{
+      id: 101,
+      duration_seconds: 86400,
+      opened_at: '2026-08-24T10:00:00Z',
+      state: SENT_STATE,
+    }],
     created_at: '2026-08-25T10:00:00Z',
   };
 }
@@ -59,7 +81,9 @@ async function mockDocuments(page) {
         folders: { active: 0, archived: 0 },
       });
     }
-    if (apiPath === 'document-folders/' || apiPath === 'document-tags/') return jsonOk([]);
+    if (apiPath === 'document-folders/') return jsonOk([]);
+    if (apiPath === 'document-states/') return jsonOk([SENT_STATE]);
+    if (apiPath === 'document-state-groups/') return jsonOk(STATE_GROUPS);
     if (apiPath.startsWith('accounting/projects/')) return jsonOk({ results: [] });
     return null;
   });
@@ -164,14 +188,14 @@ test.describe('Admin Document Title Column Resize', () => {
     await openDocuments(page);
 
     const before = {
-      status: await columnWidth(page, 'Estado'),
+      workflow: await columnWidth(page, 'Estados'),
       actions: await columnWidth(page, 'Acciones'),
     };
     const handle = page.getByTestId('documents-title-resize-handle');
     await handle.press('End');
     await expect(handle).toHaveAttribute('aria-valuenow', '520');
 
-    expect(Math.abs(await columnWidth(page, 'Estado') - before.status)).toBeLessThanOrEqual(1);
+    expect(Math.abs(await columnWidth(page, 'Estados') - before.workflow)).toBeLessThanOrEqual(1);
     expect(Math.abs(await columnWidth(page, 'Acciones') - before.actions)).toBeLessThanOrEqual(1);
   });
 

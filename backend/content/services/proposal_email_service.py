@@ -164,7 +164,8 @@ class ProposalEmailService:
     @classmethod
     def _log_email(cls, template_key, recipient, subject='', proposal=None,
                    status='sent', error_message='', metadata=None,
-                   client=None, audience=None, html_body='', text_body=''):
+                   client=None, audience=None, html_body='', text_body='',
+                   targets=()):
         """Log an email send attempt, through the single writer.
 
         Delegates to ``email_log_service.record_send`` so proposal traffic
@@ -180,7 +181,7 @@ class ProposalEmailService:
             if client is None and proposal is not None:
                 # No extra query: the FK id is already on the instance.
                 client = proposal.client_id
-            email_log_service.record_send(
+            return email_log_service.record_send(
                 template_key=template_key,
                 recipients=[recipient],
                 subject=subject[:500] if subject else '',
@@ -196,9 +197,11 @@ class ProposalEmailService:
                 ),
                 html_body=html_body,
                 text_body=text_body,
+                targets=targets,
             )
         except Exception:
             logger.exception('Failed to create EmailLog entry')
+            return []
 
     @classmethod
     def _is_template_active(cls, template_key):
@@ -2551,7 +2554,8 @@ class ProposalEmailService:
     @classmethod
     def _send_composed_email(
         cls, template_key, proposal, recipient_email, subject,
-        greeting, sections, footer='', attachments=None,
+        greeting, sections, footer='', attachments=None, targets=(),
+        return_logs=False,
     ):
         """
         Send a user-composed email with the standard Project App branding.
@@ -2612,30 +2616,32 @@ class ProposalEmailService:
                 classification=classification,
             )
 
-            cls._log_email(
+            logs = cls._log_email(
                 template_key, recipient_email,
                 subject=subject, proposal=proposal, status='sent',
                 metadata=log_metadata, audience=audience,
                 html_body=html_content, text_body=text_content,
+                targets=targets,
             )
             logger.info(
                 'Sent %s for proposal %s to %s',
                 template_key, proposal.pk if proposal else 'standalone', recipient_email,
             )
-            return True
+            return (True, logs) if return_logs else True
 
         except Exception as exc:
-            cls._log_email(
+            logs = cls._log_email(
                 template_key, recipient_email,
                 subject=subject, proposal=proposal, status='failed',
                 error_message=str(exc)[:1000],
                 metadata=log_metadata, audience=audience,
                 html_body=html_content, text_body=text_content,
+                targets=targets,
             )
             logger.exception(
                 'Failed to send %s for proposal %s', template_key, proposal.pk if proposal else 'standalone',
             )
-            return False
+            return (False, logs) if return_logs else False
 
     @classmethod
     def send_branded_email(
@@ -2651,12 +2657,12 @@ class ProposalEmailService:
     @classmethod
     def send_standalone_branded_email(
         cls, recipient_email, subject, greeting,
-        sections, footer='', attachments=None,
+        sections, footer='', attachments=None, targets=(), return_logs=False,
     ):
         """Send a standalone branded email not tied to any proposal."""
         return cls._send_composed_email(
             'branded_email', None, recipient_email, subject,
-            greeting, sections, footer, attachments,
+            greeting, sections, footer, attachments, targets, return_logs,
         )
 
     @classmethod
