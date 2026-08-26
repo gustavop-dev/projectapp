@@ -1,0 +1,242 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
+from django.db.models import Max
+from django.utils import timezone
+
+from content.models import (
+    CommunicationAttachment,
+    CommunicationMessage,
+    CommunicationMessageDateCorrection,
+    CommunicationThread,
+    Document,
+)
+
+
+class CommunicationError(ValueError):
+    """A business-rule violation safe to expose through the panel API."""
+
+
+def _validate_thread(thread):
+    try:
+        thread.full_clean()
+    except DjangoValidationError as exc:
+        raise CommunicationError(exc.message_dict) from exc
+
+
+def _validate_message_shape(*, thread, channel, direction, status, subject, reply_to):
+    if thread.status == CommunicationThread.Status.CLOSED:
+        raise CommunicationError('El hilo está cerrado. Reábrelo antes de registrar mensajes.')
+    if direction == CommunicationMessage.Direction.INCOMING:
+        if status != CommunicationMessage.Status.RECEIVED:
+            raise CommunicationError('Un mensaje entrante debe registrarse como recibido.')
+    elif status == CommunicationMessage.Status.RECEIVED:
+        raise CommunicationError('Un mensaje saliente no puede tener estado recibido.')
+    if channel == CommunicationMessage.Channel.EMAIL and not subject.strip():
+        raise CommunicationError('El asunto es obligatorio para mensajes de correo.')
+    if channel == CommunicationMessage.Channel.WHATSAPP and subject.strip():
+        raise CommunicationError('Los mensajes de WhatsApp no llevan asunto.')
+    if reply_to:
+        if reply_to.thread_id != thread.id:
+            raise CommunicationError('La respuesta debe apuntar a un mensaje del mismo hilo.')
+        if reply_to.direction == direction:
+            raise CommunicationError('Una respuesta debe tener la dirección opuesta al mensaje original.')
+        if reply_to.voided_at:
+            raise CommunicationError('No se puede responder a un mensaje anulado.')
+        if reply_to.status == CommunicationMessage.Status.DRAFT:
+            raise CommunicationError('No se puede responder a un borrador.')
+
+
+def _validate_documents(thread, documents):
+    for document in documents:
+        if document.client_user_id and document.client_user_id != thread.client.user_id:
+            raise CommunicationError(
+                f'El documento “{document.title}” pertenece a otro cliente.'
+            )
+
+
+def _recalculate_last_activity(thread, *, actor=None):
+    latest = thread.messages.filter(voided_at__isnull=True).aggregate(
+        latest=Max('occurred_at'),
+    )['latest']
+    thread.last_activity_at = latest or thread.created_at or timezone.now()
+    if actor is not None:
+        thread.updated_by = actor
+    thread.save(update_fields=['last_activity_at', 'updated_by', 'updated_at'])
+
+
+@transaction.atomic
+def create_thread(*, actor, **validated_data):
+    thread = CommunicationThread(
+        created_by=actor,
+        updated_by=actor,
+        **validated_data,
+    )
+    _validate_thread(thread)
+    thread.save()
+    return thread
+
+
+@transaction.atomic
+def update_thread(thread, *, actor, **validated_data):
+    if thread.status == CommunicationThread.Status.CLOSED:
+        raise CommunicationError('Reabre el hilo antes de editarlo.')
+    client = validated_data.get('client')
+    if client is not None and client.pk != thread.client_id:
+        raise CommunicationError(
+            'El cliente de un hilo es histórico y no se puede cambiar.',
+        )
+    for field, value in validated_data.items():
+        setattr(thread, field, value)
+    thread.updated_by = actor
+    _validate_thread(thread)
+    thread.save()
+    return thread
+
+
+@transaction.atomic
+def close_thread(thread, *, actor):
+    if thread.status == CommunicationThread.Status.CLOSED:
+        raise CommunicationError('El hilo ya está cerrado.')
+    thread.status = CommunicationThread.Status.CLOSED
+    thread.closed_at = timezone.now()
+    thread.updated_by = actor
+    thread.save(update_fields=['status', 'closed_at', 'updated_by', 'updated_at'])
+    return thread
+
+
+@transaction.atomic
+def reopen_thread(thread, *, actor):
+    if thread.status == CommunicationThread.Status.OPEN:
+        raise CommunicationError('El hilo ya está abierto.')
+    thread.status = CommunicationThread.Status.OPEN
+    thread.closed_at = None
+    thread.updated_by = actor
+    thread.save(update_fields=['status', 'closed_at', 'updated_by', 'updated_at'])
+    return thread
+
+
+@transaction.atomic
+def create_message(*, thread, actor, document_ids=None, **validated_data):
+    documents = list(Document.objects.filter(pk__in=document_ids or []))
+    if len(documents) != len(set(document_ids or [])):
+        raise CommunicationError('Uno o más documentos no existen.')
+    _validate_message_shape(thread=thread, **{
+        key: validated_data.get(key, '')
+        for key in ('channel', 'direction', 'status', 'subject', 'reply_to')
+    })
+    _validate_documents(thread, documents)
+    message = CommunicationMessage.objects.create(
+        thread=thread,
+        created_by=actor,
+        updated_by=actor,
+        **validated_data,
+    )
+    CommunicationAttachment.objects.bulk_create([
+        CommunicationAttachment(message=message, document=document)
+        for document in documents
+    ])
+    _recalculate_last_activity(thread, actor=actor)
+    return message
+
+
+@transaction.atomic
+def update_draft(message, *, actor, document_ids=None, **validated_data):
+    if message.status != CommunicationMessage.Status.DRAFT or message.voided_at:
+        raise CommunicationError('Sólo los borradores activos se pueden editar.')
+    candidate = {
+        'thread': message.thread,
+        'channel': validated_data.get('channel', message.channel),
+        'direction': validated_data.get('direction', message.direction),
+        'status': CommunicationMessage.Status.DRAFT,
+        'subject': validated_data.get('subject', message.subject),
+        'reply_to': validated_data.get('reply_to', message.reply_to),
+    }
+    _validate_message_shape(**candidate)
+    for field, value in validated_data.items():
+        setattr(message, field, value)
+    message.updated_by = actor
+    message.save()
+    if document_ids is not None:
+        documents = list(Document.objects.filter(pk__in=document_ids))
+        if len(documents) != len(set(document_ids)):
+            raise CommunicationError('Uno o más documentos no existen.')
+        _validate_documents(message.thread, documents)
+        message.attachments.all().delete()
+        CommunicationAttachment.objects.bulk_create([
+            CommunicationAttachment(message=message, document=document)
+            for document in documents
+        ])
+    _recalculate_last_activity(message.thread, actor=actor)
+    return message
+
+
+@transaction.atomic
+def delete_draft(message, *, actor):
+    if message.status != CommunicationMessage.Status.DRAFT or message.voided_at:
+        raise CommunicationError('Sólo los borradores activos se pueden eliminar.')
+    thread = message.thread
+    message.delete()
+    _recalculate_last_activity(thread, actor=actor)
+
+
+@transaction.atomic
+def mark_sent(message, *, actor, occurred_at=None):
+    if message.thread.status == CommunicationThread.Status.CLOSED:
+        raise CommunicationError('Reabre el hilo antes de marcar el envío.')
+    if message.direction != CommunicationMessage.Direction.OUTGOING:
+        raise CommunicationError('Sólo un mensaje saliente puede marcarse como enviado.')
+    if message.status != CommunicationMessage.Status.DRAFT or message.voided_at:
+        raise CommunicationError('Sólo un borrador activo puede marcarse como enviado.')
+    message.status = CommunicationMessage.Status.SENT
+    if occurred_at is not None:
+        message.occurred_at = occurred_at
+    message.updated_by = actor
+    message.save(update_fields=['status', 'occurred_at', 'updated_by', 'updated_at'])
+    _recalculate_last_activity(message.thread, actor=actor)
+    return message
+
+
+@transaction.atomic
+def void_message(message, *, actor, reason):
+    if message.status == CommunicationMessage.Status.DRAFT:
+        raise CommunicationError('Elimina el borrador en lugar de anularlo.')
+    if message.voided_at:
+        raise CommunicationError('El mensaje ya está anulado.')
+    reason = reason.strip()
+    if not reason:
+        raise CommunicationError('El motivo de anulación es obligatorio.')
+    message.voided_at = timezone.now()
+    message.void_reason = reason
+    message.voided_by = actor
+    message.updated_by = actor
+    message.save(update_fields=[
+        'voided_at', 'void_reason', 'voided_by', 'updated_by', 'updated_at',
+    ])
+    _recalculate_last_activity(message.thread, actor=actor)
+    return message
+
+
+@transaction.atomic
+def correct_message_date(message, *, actor, occurred_at, reason):
+    if message.status == CommunicationMessage.Status.DRAFT:
+        raise CommunicationError('Edita el borrador para cambiar su fecha.')
+    if message.voided_at:
+        raise CommunicationError('No se puede corregir la fecha de un mensaje anulado.')
+    reason = reason.strip()
+    if not reason:
+        raise CommunicationError('El motivo de la corrección es obligatorio.')
+    if message.occurred_at == occurred_at:
+        raise CommunicationError('La fecha corregida debe ser distinta de la actual.')
+    previous = message.occurred_at
+    CommunicationMessageDateCorrection.objects.create(
+        message=message,
+        previous_occurred_at=previous,
+        corrected_occurred_at=occurred_at,
+        reason=reason,
+        corrected_by=actor,
+    )
+    message.occurred_at = occurred_at
+    message.updated_by = actor
+    message.save(update_fields=['occurred_at', 'updated_by', 'updated_at'])
+    _recalculate_last_activity(message.thread, actor=actor)
+    return message

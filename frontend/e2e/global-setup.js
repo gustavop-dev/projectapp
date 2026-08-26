@@ -26,6 +26,7 @@ export default async function globalSetup() {
     '/panel/blog/1/edit',                   // SPA — blog edit (dynamic)
     '/panel/blog/calendar',                 // SPA — blog calendar
     '/panel/clients',                       // SPA — client list
+    '/panel/communications',                // SPA — client communications registry
     '/panel/defaults',                      // SPA — defaults
     '/panel/diagnostics',                   // SPA — diagnostics list
     '/panel/diagnostics/create',            // SPA — diagnostic create

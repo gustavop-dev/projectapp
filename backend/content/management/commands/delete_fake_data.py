@@ -5,6 +5,7 @@ from accounts.models import HostingSubscription, Payment, PaymentHistory, Projec
 from content.models import (
     BlogPost,
     BusinessProposal,
+    CommunicationThread,
     Contact,
     Document,
     DocumentFolder,
@@ -46,12 +47,14 @@ class Command(BaseCommand):
             return
 
         # Order matters because of PROTECT chains:
+        #   CommunicationAttachment ─PROTECT→ Document
         #   Payment ─PROTECT→ HostingSubscription ─PROTECT→ Project
         #   ProjectPhase ─PROTECT→ BusinessProposal
         # So: payments → subscriptions → projects (cascades the platform graph:
         # phases, requirements, deliverables, change requests, bugs) → proposals.
         for model, label in (
             (Contact, 'contacts'),
+            (CommunicationThread, 'communication threads'),
             (PaymentHistory, 'payment history'),
             (Payment, 'payments'),
             (HostingSubscription, 'hosting subscriptions'),

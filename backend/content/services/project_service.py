@@ -16,7 +16,13 @@ Modes (the operator chooses every time; there is no default):
 """
 import logging
 
-from content.models import AccountingChangeLog, Document, HostingRecord, IncomeRecord
+from content.models import (
+    AccountingChangeLog,
+    CommunicationThread,
+    Document,
+    HostingRecord,
+    IncomeRecord,
+)
 from content.serializers.accounting import month_label
 from content.services import accounting_service
 from content.services.collection_account_create_service import (
@@ -24,6 +30,7 @@ from content.services.collection_account_create_service import (
 )
 from content.services.document_type_codes import COLLECTION_ACCOUNT
 from django.db import transaction
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +99,11 @@ def linked_sets(project):
         cuentas.filter(commercial_status=Document.CommercialStatus.DRAFT)
         .select_related('collection_account'),
     )
+    communication_threads = list(
+        CommunicationThread.objects.filter(project=project)
+        .select_related('client__user')
+        .order_by('id')
+    )
     return {
         'hostings': hostings,
         'incomes': incomes,
@@ -104,6 +116,10 @@ def linked_sets(project):
                 Document.CommercialStatus.PAID,
             )),
         ),
+        # A conversation is historical evidence for its original client. It
+        # never follows a project to a different owner; it loses only the
+        # project scope and remains reachable from that original client.
+        'communication_threads': communication_threads,
         # Contracts and other non-cuenta documents document the project and
         # travel with it implicitly; they are reported, never rewritten.
         'other_documents_count': (
@@ -172,15 +188,23 @@ def change_client_preview(project, new_profile):
             for d in sets['draft_following'] + sets['draft_detaching']
         ],
         'issued_accounts': [cuenta_row(d) for d in sets['issued_accounts']],
+        'communication_threads_detaching': [
+            {'id': thread.pk, 'title': thread.title}
+            for thread in sets['communication_threads']
+        ],
         'other_documents_count': sets['other_documents_count'],
         'hosting_ids': [record.pk for record in sets['hostings']],
         'income_ids': [record.pk for record in sets['incomes']],
+        'communication_thread_ids': [
+            thread.pk for thread in sets['communication_threads']
+        ],
         'totals': {
             'move': len(hostings_move) + len(incomes_move),
             'blocked': len(incomes_blocked),
             'clientless': len(clientless),
             'drafts': len(sets['draft_following']) + len(sets['draft_detaching']),
             'issued': len(sets['issued_accounts']),
+            'communications': len(sets['communication_threads']),
         },
     }
 
@@ -276,6 +300,14 @@ def change_client_apply(project, new_profile, mode, user):
         'other_documents': sets['other_documents_count'],
     }
 
+    # Always preserve the original client on historical conversations. Both
+    # cascade modes only detach their project pointer.
+    detached_communications = len(sets['communication_threads'])
+    if detached_communications:
+        CommunicationThread.objects.filter(
+            pk__in=[thread.pk for thread in sets['communication_threads']],
+        ).update(project=None, updated_by=user, updated_at=timezone.now())
+
     if mode == MODE_MOVE:
         for record in sets['hostings']:
             if record.client_id is None:
@@ -346,7 +378,12 @@ def change_client_apply(project, new_profile, mode, user):
         'Project %s changed client to profile %s (mode=%s): moved=%s detached=%s',
         project.pk, new_profile.pk, mode, moved, detached,
     )
-    return {'moved': moved, 'detached': detached, 'skipped': skipped}
+    return {
+        'moved': moved,
+        'detached': detached,
+        'detached_communications': detached_communications,
+        'skipped': skipped,
+    }
 
 
 def deletion_blockers(project):
@@ -360,6 +397,9 @@ def deletion_blockers(project):
         'hostings': HostingRecord.objects.filter(project=project).count(),
         'incomes': IncomeRecord.objects.filter(project=project).count(),
         'documents': Document.objects.filter(project=project).count(),
+        'communication_threads': CommunicationThread.objects.filter(
+            project=project,
+        ).count(),
     }
 
 

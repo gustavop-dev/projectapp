@@ -309,6 +309,20 @@
               {{ documentsPillFor(client).label }}<span v-if="documentsPillFor(client).showsDate && client.last_document_at"> · {{ formatDate(client.last_document_at) }}</span>
             </button>
 
+            <!-- El histórico conversacional vive en su propio módulo y esta
+                 relación es el acceso inverso desde el cliente. -->
+            <NuxtLink
+              v-if="Number(client.communications_count || 0) > 0"
+              :to="{ path: '/panel/communications', query: { client: String(client.id) } }"
+              :data-testid="`client-communications-${client.id}`"
+              class="text-xs px-2.5 py-1 rounded-full bg-primary-soft text-text-brand font-medium hover:opacity-80 transition-opacity"
+              :title="`Ver las comunicaciones de ${client.name}`"
+              @click.stop
+            >
+              {{ client.communications_count }} hilo{{ client.communications_count !== 1 ? 's' : '' }}
+              <template v-if="client.last_communication_at"> · {{ formatDate(client.last_communication_at) }}</template>
+            </NuxtLink>
+
             <!-- Emails: the count plus when we last wrote, which is what turns
                  the list into a reading of contact and not just a filter.
                  Opens the same modal the ficha does. -->
@@ -395,7 +409,15 @@
             <!-- Reachable without going through the filter: filtering is for
                  finding who, the ficha is where you already are when the
                  question "what did we send them?" comes up. -->
-            <div class="px-5 pt-4 flex justify-end">
+            <div class="px-5 pt-4 flex flex-wrap justify-end gap-2">
+              <BaseButton
+                variant="secondary"
+                size="sm"
+                :data-testid="`client-view-communications-${client.id}`"
+                @click.stop="goToClientCommunications(client)"
+              >
+                Ver comunicaciones
+              </BaseButton>
               <BaseButton
                 variant="secondary"
                 size="sm"
@@ -846,6 +868,9 @@
         <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="emailsFromActions">
           Ver correos
         </BaseButton>
+        <BaseButton variant="secondary" size="md" class="min-h-11 w-full justify-start" @click="communicationsFromActions">
+          Ver comunicaciones
+        </BaseButton>
         <BaseButton
           v-if="Number(clientActionTarget.documents_count || 0) > 0"
           variant="secondary"
@@ -1180,6 +1205,10 @@ function emailsFromActions() {
   takeClientAction(openEmails);
 }
 
+function communicationsFromActions() {
+  takeClientAction(goToClientCommunications);
+}
+
 function documentsFromActions() {
   takeClientAction(goToClientDocuments);
 }
@@ -1220,6 +1249,13 @@ function documentsPillFor(client) {
 function goToClientDocuments(client) {
   navigateTo({
     path: '/panel/documents',
+    query: { client: String(client.id) },
+  });
+}
+
+function goToClientCommunications(client) {
+  navigateTo({
+    path: '/panel/communications',
     query: { client: String(client.id) },
   });
 }

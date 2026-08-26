@@ -169,6 +169,14 @@ erDiagram
     Document }o--o{ UserProfile : "created by (optional)"
     ContractTemplate ||--o{ ProposalDocument : "used in"
 
+    UserProfile ||--o{ CommunicationThread : "owns conversations"
+    Project o|--o{ CommunicationThread : "scopes optionally"
+    CommunicationThread ||--o{ CommunicationMessage : "orders messages"
+    CommunicationMessage o|--o{ CommunicationMessage : "replies to"
+    CommunicationMessage ||--o{ CommunicationAttachment : "references"
+    Document ||--o{ CommunicationAttachment : "is used in"
+    CommunicationMessage ||--o{ CommunicationMessageDateCorrection : "audits dates"
+
     UserProfile ||--o{ Project : "owns projects"
     UserProfile ||--o{ VerificationCode : "has codes"
     UserProfile ||--o{ Document : "signs (optional)"
@@ -208,6 +216,10 @@ erDiagram
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, status (draft/published/archived), language (es/en), cover_type, content_json, private client_email_subject/client_email_body/client_whatsapp_message/client_custom_notes, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
 | **DocumentFolder / DocumentTag** | Document organization | name, color, parent (folder), created_by |
+| **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
+| **CommunicationMessage** | One ordered incoming/outgoing conversation event | thread, channel, direction, status, subject/content, occurred_at/recorded_at, source, reply_to, optional EmailLog seam, void audit |
+| **CommunicationAttachment** | Bidirectional reference to an existing document | message (CASCADE), document (PROTECT), unique message/document pair |
+| **CommunicationMessageDateCorrection** | Append-only business-date correction | message, previous/corrected occurred_at, reason, corrected_by/at |
 | **ContractTemplate** | Reusable contract template | title, sections_json, parameters_json, created_at |
 | **ProposalDocument** | Links a proposal to a generated contract | proposal_fk, contract_template_fk, title, pdf_file, is_draft, signed_at, contractor_signature |
 | **CompanySettings** | Company-level branding and info used in PDFs | name, logo, address, tax_id, email, phone, website |
@@ -252,6 +264,7 @@ flowchart TD
     Views --> CTS["ContractTermsService"]
     Views --> ETR["EmailTemplateRegistry"]
     Views --> DPS["DocumentPdfService"]
+    Views --> CMS["CommunicationService"]
     Views --> CAS["CollectionAccountService"]
     Views --> PST["ProposalStageTracker"]
 
@@ -271,6 +284,8 @@ flowchart TD
     DPS -->|generate| ReportLab
     DPS -->|shared utils| PU
     DPS -->|parse markdown| MP["MarkdownParser"]
+    CMS -->|thread lifecycle, immutable delivery, audit| Models
+    CMS -->|protected references| Documents["Document"]
     ETR -->|read overrides| ETC["EmailTemplateConfig model"]
 
     HueyTasks["Huey Tasks"] --> PES
@@ -293,6 +308,7 @@ flowchart TD
 | **EmailTemplateRegistry** | Large | Centralized registry of all email templates with default content, admin-editable overrides, preview rendering, branded + proposal composed email entries |
 | **PdfUtils** | Large | Shared PDF rendering utilities (fonts, colors, layout helpers) used by ProposalPdfService, ContractPdfService, and DocumentPdfService |
 | **DocumentPdfService** | Medium | PDF generation for generic branded Documents with template-based rendering |
+| **CommunicationService** | Small | Transactional thread/message lifecycle, direction/channel/state validation, document-reference validation, derived last activity, annulment and append-only date corrections |
 | **MarkdownParser** | Small | Parses markdown content for Document PDF rendering |
 | **CollectionAccountService** | Small | Collection account business logic |
 | **CollectionAccountPdfService** | Small | PDF generation for collection account documents |
@@ -412,6 +428,7 @@ flowchart TD
         DocumentsAdmin["/panel/documents"]
         DocumentCreate["/panel/documents/create"]
         DocumentEdit["/panel/documents/:id/edit"]
+        CommunicationsAdmin["/panel/communications"]
         EmailsPage["/panel/emails"]
         ViewsPage["/panel/views"]
         TasksPage["/panel/tasks (internal Kanban)"]
@@ -491,6 +508,7 @@ flowchart LR
         ContactStore["contacts.js"]
         LanguageStore["language.js"]
         DocumentStore["documents.js"]
+        CommunicationsStore["communications.js"]
         PanelAdmins["panel_admins.js"]
         PlatformAuth["platform-auth.js"]
         PlatformClients["platform-clients.js"]
@@ -515,6 +533,7 @@ flowchart LR
     PortfolioStore --> RequestHTTP
     ContactStore --> RequestHTTP
     DocumentStore --> RequestHTTP
+    CommunicationsStore --> RequestHTTP
     PanelAdmins --> RequestHTTP
     PlatformAuth --> PlatformHTTP["composables/usePlatformApi"]
     PlatformClients --> PlatformHTTP
@@ -757,3 +776,24 @@ flowchart LR
 ```
 
 The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.
+
+### Client Communication → Manual Send Fact → Reply Context
+
+```mermaid
+flowchart LR
+    Thread["Client thread + optional project"] --> Draft["Outgoing draft"]
+    Draft --> Copy["Operator copies/sends outside ProjectApp"]
+    Copy --> Sent["Mark sent with occurred_at"]
+    Sent --> Reply["Register incoming reply_to"]
+    Reply --> Responded["UI derives Respondido"]
+    Documents["Existing Documents"] -->|protected references| Draft
+    Sent --> Correction["Append-only date correction"]
+    Sent --> Void["Annul with reason"]
+```
+
+Phase 1 is deliberately a registry, not a transport. A manual source records the
+operator's assertion that a message was sent; it never impersonates an SMTP or
+WhatsApp delivery receipt. A later email phase must enter through
+`EmailDeliveryGateway` and atomically associate the existing `EmailLog` seam.
+Historical conversations keep their original client: when a project changes
+owner, its threads are detached from the project rather than reassigned.

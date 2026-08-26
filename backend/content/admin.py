@@ -41,6 +41,10 @@ from .models import (
     DiagnosticSection,
     EmailLog,
     ClientEmailCopyRecipient,
+    CommunicationAttachment,
+    CommunicationMessage,
+    CommunicationMessageDateCorrection,
+    CommunicationThread,
     LinkedInToken,
     LinkedInPost,
     Task,
@@ -448,6 +452,10 @@ admin_site.register(WebAppDiagnostic)
 admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
 admin_site.register(ClientEmailCopyRecipient)
+admin_site.register(CommunicationThread)
+admin_site.register(CommunicationMessage)
+admin_site.register(CommunicationAttachment)
+admin_site.register(CommunicationMessageDateCorrection)
 admin_site.register(LinkedInToken)
 
 

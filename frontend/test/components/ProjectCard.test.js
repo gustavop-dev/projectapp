@@ -39,6 +39,8 @@ describe('ProjectCard', () => {
     expect(wrapper.text()).toContain('Hostings');
     expect(wrapper.text()).toContain('Ingresos');
     expect(wrapper.text()).toContain('4 registros sin proyecto');
+    expect(wrapper.get('[data-testid="project-communications-12"]').text())
+      .toContain('Comunicaciones');
   });
 
   it('opens the action menu for its project', async () => {

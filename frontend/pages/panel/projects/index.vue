@@ -235,6 +235,19 @@
             :data-testid="`project-space-${row.id}`"
           />
           <BaseButton
+            as="NuxtLink"
+            :to="{ path: '/panel/communications', query: { project: row.id } }"
+            variant="ghost"
+            size="sm"
+            icon-only
+            aria-label="Ver comunicaciones"
+            title="Ver comunicaciones de este proyecto"
+            :data-testid="`project-communications-${row.id}`"
+            @click.stop
+          >
+            <ChatBubbleLeftRightIcon class="w-4 h-4" />
+          </BaseButton>
+          <BaseButton
             variant="ghost"
             size="sm"
             icon-only
@@ -304,6 +317,14 @@
           @click="editProjectFromActions"
         >
           Editar proyecto
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="md"
+          class="min-h-11 w-full justify-start"
+          @click="communicationsFromActions"
+        >
+          Ver comunicaciones
         </BaseButton>
         <BaseButton
           v-if="projectActionTarget.status !== 'archived'"
@@ -429,6 +450,7 @@ import {
   ArrowUturnLeftIcon,
   PencilSquareIcon,
   PlusIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
@@ -598,6 +620,17 @@ function editProjectFromActions() {
   const row = projectActionTarget.value;
   projectActionTarget.value = null;
   if (row) openEditModal(row);
+}
+
+function communicationsFromActions() {
+  const row = projectActionTarget.value;
+  projectActionTarget.value = null;
+  if (row) {
+    navigateTo({
+      path: '/panel/communications',
+      query: { project: String(row.id) },
+    });
+  }
 }
 
 function archiveProjectFromActions() {

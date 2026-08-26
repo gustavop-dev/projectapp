@@ -194,6 +194,18 @@ from content.views.client_email_copy import (
     client_email_copy_recipient_detail,
     client_email_copy_recipients,
 )
+from content.views.communication import (
+    close_communication_thread,
+    communication_message_detail,
+    communication_thread_detail,
+    communication_thread_messages,
+    communication_threads,
+    correct_communication_message_date,
+    document_communication_usage,
+    mark_communication_message_sent,
+    reopen_communication_thread,
+    void_communication_message,
+)
 from content.views.proposal_clients import (
     list_proposal_clients, search_proposal_clients, retrieve_proposal_client,
     create_proposal_client, update_proposal_client, delete_proposal_client,
@@ -417,6 +429,49 @@ urlpatterns = [
         name='client-email-copy-recipient-detail',
     ),
 
+    # ── Client communications registry ────────────────────────────
+    path('communications/threads/', communication_threads, name='communication-threads'),
+    path(
+        'communications/threads/<int:thread_id>/',
+        communication_thread_detail,
+        name='communication-thread-detail',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/close/',
+        close_communication_thread,
+        name='close-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/reopen/',
+        reopen_communication_thread,
+        name='reopen-communication-thread',
+    ),
+    path(
+        'communications/threads/<int:thread_id>/messages/',
+        communication_thread_messages,
+        name='communication-thread-messages',
+    ),
+    path(
+        'communications/messages/<int:message_id>/',
+        communication_message_detail,
+        name='communication-message-detail',
+    ),
+    path(
+        'communications/messages/<int:message_id>/mark-sent/',
+        mark_communication_message_sent,
+        name='mark-communication-message-sent',
+    ),
+    path(
+        'communications/messages/<int:message_id>/void/',
+        void_communication_message,
+        name='void-communication-message',
+    ),
+    path(
+        'communications/messages/<int:message_id>/correct-date/',
+        correct_communication_message_date,
+        name='correct-communication-message-date',
+    ),
+
     # ── Documents ──────────────────────────────────────────────────
     path('documents/', list_documents, name='list-documents'),
     path('documents/counts/', document_counts, name='document-counts'),
@@ -431,6 +486,11 @@ urlpatterns = [
     path('documents/<int:document_id>/unarchive/', unarchive_document, name='unarchive-document'),
     path('documents/<int:document_id>/duplicate/', duplicate_document, name='duplicate-document'),
     path('documents/<int:document_id>/pdf/', download_document_pdf, name='download-document-pdf'),
+    path(
+        'documents/<int:document_id>/communications/',
+        document_communication_usage,
+        name='document-communication-usage',
+    ),
 
     # Document folders (flat, inline-managed)
     path('document-folders/', list_document_folders, name='list-document-folders'),
