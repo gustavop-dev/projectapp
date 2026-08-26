@@ -1268,14 +1268,20 @@ class TestSendDailyPipelineDigest:
 
 class TestLogEmailExceptionHandling:
     @patch('content.services.proposal_email_service.logger')
-    @patch('content.models.EmailLog.objects.create', side_effect=Exception('DB error'))
-    def test_logs_exception_when_email_log_creation_fails(self, mock_create, mock_logger):
-        """_log_email catches exception and logs it when EmailLog.objects.create fails."""
+    @patch(
+        'content.services.email_log_service.record_send',
+        side_effect=Exception('DB error'),
+    )
+    def test_logs_exception_when_email_log_writer_fails(
+        self, mock_record_send, mock_logger,
+    ):
+        """_log_email logs an exception when the shared writer fails."""
         ProposalEmailService._log_email(
             'proposal_sent_client', 'test@example.com',
             subject='Test', proposal=None, status='sent',
         )
 
+        mock_record_send.assert_called_once()
         assert mock_logger.exception.call_count == 1
         mock_logger.exception.assert_called_once_with('Failed to create EmailLog entry')
 
