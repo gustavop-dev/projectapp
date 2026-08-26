@@ -71,9 +71,7 @@
           @drop.prevent="onDrop(null)"
         >
           <span>Sin carpeta</span>
-          <svg v-if="isDragging" class="w-3 h-3 text-text-subtle flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon v-if="isDragging" action="move" class="text-text-subtle" />
           <span v-else class="text-xs text-text-subtle">{{ unfiledCount }}</span>
         </button>
       </li>
@@ -151,24 +149,20 @@
                     class="flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0"
                     data-testid="folder-subfolder-count"
                   >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h3.9a2 2 0 011.6.8l.9 1.2H19a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-                    </svg>
+                    <!-- panel-action-icons: allow-status-glyph — identifies the adjacent subfolder count. -->
+                    <FolderIcon class="h-3 w-3" aria-hidden="true" />
                     {{ rowCounts(folder).subs }}
                   </span>
                   <span
                     class="flex items-center gap-0.5 text-xs text-text-subtle flex-shrink-0"
                     data-testid="folder-document-count"
                   >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 3h5l5 5v13a1 1 0 01-1 1H8a1 1 0 01-1-1V4a1 1 0 011-1zm5 0v5h5" />
-                    </svg>
+                    <!-- panel-action-icons: allow-status-glyph — identifies the adjacent document count. -->
+                    <DocumentTextIcon class="h-3 w-3" aria-hidden="true" />
                     {{ rowCounts(folder).docs }}
                   </span>
                 </template>
-                <svg v-else class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-                </svg>
+                <BaseActionIcon v-else action="move" class="text-success-strong" />
               </button>
 
               <!-- Clúster derecho: reordenar (hover) + archivar + eliminar. -->
@@ -181,9 +175,7 @@
                   ]"
                   title="Arrastrar para reordenar"
                 >
-                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 6a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 13.5a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3zM8 21a1.5 1.5 0 110-3 1.5 1.5 0 010 3zm8 0a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" />
-                  </svg>
+                  <BaseActionIcon action="sort" />
                 </div>
 
                 <!-- Editar vive acá por lo mismo que archivar y eliminar: es
@@ -200,9 +192,7 @@
                       data-testid="folder-edit"
                       @click="$emit('edit', folder)"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
+                      <BaseActionIcon action="edit" />
                     </BaseButton>
                   </template>
                   Editar carpeta
@@ -222,9 +212,7 @@
                       data-testid="folder-archive"
                       @click="$emit('archive', folder)"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-                      </svg>
+                      <BaseActionIcon action="archive" />
                     </BaseButton>
                   </template>
                   Archivar carpeta
@@ -245,9 +233,7 @@
                       data-testid="folder-delete"
                       @click="$emit('delete', folder)"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      <BaseActionIcon action="delete" />
                     </BaseButton>
                   </template>
                   {{ deleteTooltip(folder) }}
@@ -261,9 +247,7 @@
 
     <div class="p-3 border-t border-border-muted flex-shrink-0">
       <BaseButton variant="secondary" size="md" class="w-full" @click="$emit('manage')">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <BaseActionIcon action="create" />
         Nueva carpeta
       </BaseButton>
     </div>
@@ -272,6 +256,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { DocumentTextIcon, FolderIcon } from '@heroicons/vue/24/outline';
 import draggable from 'vuedraggable';
 import FolderArchivedBadge from '~/components/panel/documents/FolderArchivedBadge.vue';
 import BaseToggle from '~/components/base/BaseToggle.vue';

@@ -32,9 +32,10 @@
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
         :aria-label="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
+        :title="$t ? $t('clients.autocomplete.clear') : 'Limpiar'"
         @click="clearSelection"
       >
-        <XMarkIcon class="w-4 h-4" />
+        <BaseActionIcon action="clear" />
       </button>
     </div>
 
@@ -115,7 +116,7 @@
           data-testid="client-autocomplete-create-new"
           @click="emitCreateNew"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Crear nuevo cliente "{{ inputText.trim() }}"</span>
         </button>
       </div>
@@ -133,8 +134,6 @@ import { ref, watch } from 'vue';
 import { useDebounceFn, onClickOutside } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
-  XMarkIcon,
-  PlusIcon,
 } from '@heroicons/vue/24/outline';
 import { useProposalClientsStore } from '~/stores/proposal_clients';
 

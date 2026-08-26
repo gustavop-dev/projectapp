@@ -30,7 +30,8 @@
       </template>
     </draggable>
     <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.stages.push({ icon: '', title: '', description: '', current: false })">
-      + Agregar etapa
+      <BaseActionIcon action="create" />
+      Agregar etapa
     </button>
   </div>
 </template>

@@ -3,14 +3,16 @@
     <!-- Header row -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-4">
-        <NuxtLink :to="localePath('/panel/blog')" class="text-text-subtle hover:text-text-default transition-colors">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </NuxtLink>
+        <BaseActionButton
+          as="NuxtLink"
+          :to="localePath('/panel/blog')"
+          action="back"
+          label="Volver al blog"
+          class="text-text-subtle hover:text-text-default"
+        />
         <h1 class="text-2xl font-light text-text-default">Editar Blog Post</h1>
       </div>
-      <button
+      <BaseButton
         v-if="loaded"
         type="button"
         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
@@ -19,9 +21,9 @@
           : 'border border-border-default text-text-default hover:bg-surface-raised'"
         @click="togglePreview"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+        <BaseActionIcon :action="showPreview ? 'close' : 'view'" />
         {{ showPreview ? 'Cerrar preview' : 'Vista previa' }}
-      </button>
+      </BaseButton>
     </div>
 
     <!-- Loading -->
@@ -184,7 +186,7 @@
             <div v-if="!linkedinStatus.connected" class="flex items-center gap-3">
               <span class="text-sm text-text-muted">LinkedIn no conectado.</span>
               <BaseButton variant="ghost" size="md" @click="connectLinkedIn">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            <BaseActionIcon action="link" />
                 Conectar LinkedIn
               </BaseButton>
             </div>
@@ -199,7 +201,7 @@
                   <option value="es">Publicar en Español</option>
                 </select>
                 <BaseButton variant="ghost" size="md" :disabled="isPublishingLinkedIn || !(linkedinLang === 'es' ? form.linkedin_summary_es : form.linkedin_summary_en)" @click="publishToLinkedIn">
-                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              <BaseActionIcon action="publish" />
                   {{ isPublishingLinkedIn ? 'Publicando...' : 'Publicar en LinkedIn' }}
                 </BaseButton>
               </div>
@@ -221,7 +223,7 @@
             <label class="block text-sm font-medium text-text-default mb-2">Subir archivo</label>
             <div class="flex items-center gap-3">
               <label class="inline-flex items-center gap-2 px-4 py-2.5 border border-border-default rounded-xl text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            <BaseActionIcon action="upload" />
                 Seleccionar imagen
                 <input type="file" accept="image/*" class="hidden" @change="handleCoverUpload" />
               </label>
@@ -266,14 +268,15 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <label class="block text-sm font-medium text-text-default">Fuentes</label>
-            <button type="button" class="text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">+ Agregar fuente</button>
+            <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">
+              <BaseActionIcon action="create" />
+              Agregar fuente
+            </button>
           </div>
           <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
             <input v-model="source.name" type="text" class="flex-1 px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
             <input v-model="source.url" type="url" class="flex-[2] px-3 py-2 rounded-lg border border-input-border bg-input-bg text-input-text placeholder-input-placeholder text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
-            <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeSource(idx)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-            </BaseButton>
+            <BaseActionButton action="remove" variant="danger-ghost" label="Quitar fuente" @click="removeSource(idx)" />
           </div>
           <p v-if="form.sources.length === 0" class="text-xs text-text-subtle">No hay fuentes agregadas.</p>
         </div>
@@ -315,7 +318,7 @@
           </BaseButton>
           <a v-if="post?.slug" :href="`/blog/${post.slug}`" target="_blank" class="px-6 py-2.5 border border-border-default text-text-muted rounded-xl text-sm hover:bg-surface-raised transition-colors inline-flex items-center gap-1">
             Ver en blog
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+          <BaseActionIcon action="open-external" />
           </a>
         </div>
       </form>
@@ -376,9 +379,7 @@
                     @click="previewLang = 'en'"
                   >EN</button>
                 </div>
-                <button type="button" class="text-text-subtle hover:text-text-default" @click="showPreview = false">
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                </button>
+          <BaseActionButton action="close" label="Cerrar vista previa" @click="showPreview = false" />
               </div>
             </div>
             <div class="p-6">

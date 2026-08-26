@@ -21,16 +21,12 @@
           </div>
           <div class="flex items-center gap-2 flex-wrap">
             <template v-if="contractDoc">
-              <button type="button" aria-label="Vista previa" title="Vista previa"
+              <BaseActionButton action="view" label="Vista previa del contrato"
                 @click="openPdfPreview('Contrato de desarrollo', contractPdfUrl)"
-                class="inline-flex items-center justify-center w-8 h-8 bg-surface-raised text-text-muted rounded-lg hover:bg-surface-raised transition-colors">
-                <EyeIcon class="w-4 h-4" />
-              </button>
+                class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
               <a :href="contractPdfUrl" target="_blank"
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <BaseActionIcon action="download" />
                 Descargar PDF
               </a>
               <a :href="draftContractPdfUrl" target="_blank"
@@ -54,16 +50,12 @@
             <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF con branding</div>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" aria-label="Vista previa" title="Vista previa"
+            <BaseActionButton action="view" label="Vista previa de la propuesta comercial"
               @click="openPdfPreview('Propuesta comercial', commercialPdfUrl)"
-              class="inline-flex items-center justify-center w-8 h-8 bg-surface-raised text-text-muted rounded-lg hover:bg-surface-raised transition-colors">
-              <EyeIcon class="w-4 h-4" />
-            </button>
+              class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
             <a :href="commercialPdfUrl" target="_blank"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
+              <BaseActionIcon action="download" />
               Descargar PDF
             </a>
           </div>
@@ -76,16 +68,12 @@
             <div class="text-xs text-text-subtle dark:text-text-subtle mt-0.5">PDF con branding</div>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" aria-label="Vista previa" title="Vista previa"
+            <BaseActionButton action="view" label="Vista previa del detalle técnico"
               @click="openPdfPreview('Detalle técnico', technicalPdfUrl)"
-              class="inline-flex items-center justify-center w-8 h-8 bg-surface-raised text-text-muted rounded-lg hover:bg-surface-raised transition-colors">
-              <EyeIcon class="w-4 h-4" />
-            </button>
+              class="bg-surface-raised text-text-muted hover:bg-surface-raised" />
             <a :href="technicalPdfUrl" target="_blank"
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
+              <BaseActionIcon action="download" />
               Descargar PDF
             </a>
           </div>
@@ -114,16 +102,20 @@
             </a>
           </div>
           <div class="flex items-center gap-1">
-            <button v-if="canPreviewFile(doc.file)" type="button" aria-label="Vista previa"
-              title="Vista previa" @click="openDocPreview(doc)"
-              class="text-text-subtle hover:text-text-brand transition-colors p-1">
-              <EyeIcon class="w-4 h-4" />
-            </button>
-            <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="!doc.is_generated" @click="handleDelete(doc.id)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </BaseButton>
+            <BaseActionButton
+              v-if="canPreviewFile(doc.file)"
+              action="view"
+              :label="`Vista previa de ${doc.title}`"
+              @click="openDocPreview(doc)"
+            />
+            <BaseActionButton
+              v-if="!doc.is_generated"
+              action="delete"
+              label="Eliminar documento"
+              variant="danger-ghost"
+              size="sm"
+              @click="handleDelete(doc.id)"
+            />
           </div>
         </div>
       </div>
@@ -184,7 +176,6 @@
 
 <script setup>
 import { ref, computed, watch, onBeforeUnmount } from 'vue';
-import { EyeIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { CONTRACT_LOCKED_STATUSES } from '~/stores/proposals_constants';
 import { isPdfUrl, isImageUrl, canPreviewFile } from '~/utils/filePreview';

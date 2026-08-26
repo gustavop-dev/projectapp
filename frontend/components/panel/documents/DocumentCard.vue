@@ -6,7 +6,7 @@ import {
   formatDocumentDate, archivedAgeLabel,
 } from '~/utils/documentStatus'
 import { makeSafeExcerpt } from '~/utils/markdownExcerpt'
-import BaseButton from '~/components/base/BaseButton.vue'
+import BaseActionButton from '~/components/base/BaseActionButton.vue'
 import BaseOverflowText from '~/components/base/BaseOverflowText.vue'
 
 const props = defineProps({
@@ -98,21 +98,14 @@ const meta = computed(() => {
 
       <div class="flex items-center justify-between gap-2 mt-2 min-h-11">
         <DocumentStateList class="min-w-0" :episodes="document.active_states" :max-visible="2" />
-        <BaseButton
-          variant="ghost"
-          size="lg"
-          icon-only
-          title="Acciones"
-          :aria-label="`Acciones de ${document.title}`"
-          class="flex-shrink-0 min-w-11 min-h-11 -mr-2 text-text-subtle hover:text-text-default"
+        <BaseActionButton
+          action="more"
+          :label="`Acciones de ${document.title}`"
+          class="flex-shrink-0 flex items-center justify-center min-w-11 min-h-11 -mr-2 rounded-lg
+                 text-text-subtle hover:text-text-default hover:bg-surface-raised transition-colors
+                 outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/40"
           @click.stop="emit('action')"
-        >
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="5" r="1.6" />
-            <circle cx="12" cy="12" r="1.6" />
-            <circle cx="12" cy="19" r="1.6" />
-          </svg>
-        </BaseButton>
+        />
       </div>
     </div>
   </article>

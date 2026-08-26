@@ -15,7 +15,7 @@
         :to="localePath('/panel/proposals')"
         class="text-xs text-text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded"
       >
-        Ver análisis completo →
+        <BaseActionIcon action="forward" /> Ver análisis completo
       </NuxtLink>
     </div>
 
@@ -63,7 +63,7 @@
           :to="localePath('/panel/proposals')"
           class="text-xs text-text-brand hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring rounded"
         >
-          Ver todas →
+          <BaseActionIcon action="forward" /> Ver todas
         </NuxtLink>
       </div>
       <BaseEmptyState

@@ -50,33 +50,28 @@
             </td>
             <td data-field="actions" class="px-3 py-1">
               <div class="flex items-center justify-end gap-1">
-                <BaseButton
+                <BaseActionButton
                   v-if="entry.has_body"
+                  action="view"
                   variant="ghost"
-                  icon-only
                   size="sm"
-                  aria-label="Ver el correo como salió"
-                  title="Ver el correo como salió"
+                  label="Ver el correo como salió"
                   :data-testid="`email-log-view-body-${entry.id}`"
                   @click.stop="emit('view-body', entry)"
-                >
-                  <EyeIcon class="w-5 h-5" />
-                </BaseButton>
-                <BaseButton
+                />
+                <BaseActionButton
                   v-if="entry.status === 'failed'"
+                  action="retry"
                   variant="ghost"
-                  icon-only
                   size="sm"
-                  aria-label="Reintentar el envío"
-                  :title="entry.is_retryable
+                  label="Reintentar el envío"
+                  :tooltip="entry.is_retryable
                     ? `Reenviar solo a ${entry.recipient}`
                     : entry.retry_blocked_reason"
                   :disabled="!entry.is_retryable || retryingId === entry.id"
                   :data-testid="`email-log-retry-${entry.id}`"
                   @click.stop="emit('retry', entry)"
-                >
-                  <ArrowPathIcon class="w-5 h-5" />
-                </BaseButton>
+                />
               </div>
             </td>
           </tr>
@@ -121,7 +116,6 @@
 
 <script setup>
 import { ref } from 'vue';
-import { ArrowPathIcon, EyeIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { formatDateTime } from '~/utils/formatDate';
 import { minWidthFor, resolveColumns } from '~/utils/tableLayout';

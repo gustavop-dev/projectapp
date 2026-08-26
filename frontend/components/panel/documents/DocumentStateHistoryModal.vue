@@ -57,7 +57,7 @@ async function correctOpening(episode) {
         <h2 class="text-lg font-semibold text-text-default">Historial de estados</h2>
         <p class="text-xs text-text-subtle">Episodios más recientes primero.</p>
       </div>
-      <BaseButton variant="ghost" icon-only aria-label="Cerrar historial" @click="close">✕</BaseButton>
+      <BaseActionButton action="close" label="Cerrar historial" @click="close" />
     </div>
     <div class="max-h-[calc(100dvh-5rem)] space-y-3 overflow-y-auto p-4 sm:max-h-[75vh] sm:p-6" data-testid="document-state-history">
       <p v-if="stateStore.isLoading" class="py-8 text-center text-sm text-text-muted">Cargando historial…</p>

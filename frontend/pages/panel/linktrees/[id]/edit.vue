@@ -230,41 +230,35 @@
             </div>
 
             <div class="md:col-span-2 flex items-center justify-end gap-1 pb-1">
-              <BaseButton
+              <BaseActionButton
+                action="move-up"
                 variant="ghost"
                 size="sm"
-                icon-only
-                aria-label="Subir botón"
+                label="Subir botón"
                 :disabled="index === 0"
                 @click="moveButton(index, -1)"
-              >
-                <ArrowUpIcon class="h-4 w-4" />
-              </BaseButton>
-              <BaseButton
+              />
+              <BaseActionButton
+                action="move-down"
                 variant="ghost"
                 size="sm"
-                icon-only
-                aria-label="Bajar botón"
+                label="Bajar botón"
                 :disabled="index === form.buttons.length - 1"
                 @click="moveButton(index, 1)"
-              >
-                <ArrowDownIcon class="h-4 w-4" />
-              </BaseButton>
+              />
               <BaseToggle
                 :model-value="button.is_active"
                 :aria-label="`Activar botón ${button.label || index + 1}`"
                 @update:model-value="(value) => (button.is_active = value)"
               />
-              <BaseButton
+              <BaseActionButton
+                action="delete"
                 variant="danger-ghost"
                 size="sm"
-                icon-only
-                aria-label="Eliminar botón"
+                :label="`Eliminar botón ${index + 1}`"
                 :data-testid="`linktree-button-delete-${index}`"
                 @click="form.buttons.splice(index, 1)"
-              >
-                <TrashIcon class="h-4 w-4" />
-              </BaseButton>
+              />
             </div>
           </div>
         </div>
@@ -349,7 +343,6 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
-import { ArrowUpIcon, ArrowDownIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseInput from '~/components/base/BaseInput.vue';
 import BaseTextarea from '~/components/base/BaseTextarea.vue';

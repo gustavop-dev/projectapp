@@ -10,7 +10,7 @@
         class="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-xl
                font-medium text-sm hover:bg-primary-strong transition-colors shadow-sm"
       >
-        Ir al Django Admin →
+        <BaseActionIcon action="open-external" /> Ir al Django Admin
       </a>
     </div>
   </div>

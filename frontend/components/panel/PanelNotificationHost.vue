@@ -76,12 +76,11 @@ async function runAction(n) {
           <button
             type="button"
             aria-label="Cerrar"
+            title="Cerrar"
             class="-mr-1 -mt-1 shrink-0 rounded-lg p-1 transition-colors hover:bg-surface-raised"
             @click="dismiss(n.id)"
           >
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <BaseActionIcon action="close" />
           </button>
         </div>
       </TransitionGroup>

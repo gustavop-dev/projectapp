@@ -16,14 +16,7 @@
           <span v-if="clientEmail" class="text-text-subtle"> ({{ clientEmail }})</span>.
         </p>
       </div>
-      <button
-        type="button"
-        class="text-text-subtle hover:text-text-default text-sm px-2"
-        aria-label="Cerrar"
-        @click="handleClose"
-      >
-        ✕
-      </button>
+      <BaseActionButton action="close" label="Cerrar envío múltiple" @click="handleClose" />
     </div>
 
     <div class="px-6 py-4">

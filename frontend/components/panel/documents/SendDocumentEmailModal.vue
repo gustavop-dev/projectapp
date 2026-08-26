@@ -21,17 +21,16 @@
                 <p class="text-xs text-text-muted truncate">{{ document.title }}</p>
               </div>
             </div>
-            <BaseButton
+          <BaseButton
               variant="ghost"
               icon-only
               size="md"
               class="flex-shrink-0 ml-2"
-              aria-label="Cerrar"
+            aria-label="Cerrar"
+            title="Cerrar"
               @click="close"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <BaseActionIcon action="close" />
             </BaseButton>
           </div>
 
@@ -118,9 +117,7 @@
                           aria-label="Subir sección"
                           @click="moveSection(idx, -1)"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
-                          </svg>
+                    <BaseActionIcon action="move-up" />
                         </BaseButton>
                         <BaseButton
                           variant="ghost"
@@ -131,9 +128,7 @@
                           aria-label="Bajar sección"
                           @click="moveSection(idx, 1)"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                          </svg>
+                    <BaseActionIcon action="move-down" />
                         </BaseButton>
                         <BaseButton
                           v-if="sections.length > 1"
@@ -144,9 +139,7 @@
                           aria-label="Eliminar sección"
                           @click="removeSection(idx)"
                         >
-                          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                    <BaseActionIcon action="delete" />
                         </BaseButton>
                       </div>
                     </div>
@@ -159,9 +152,7 @@
                   </div>
                 </div>
                 <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                  </svg>
+                <BaseActionIcon action="create" />
                   Agregar sección
                 </BaseButton>
               </div>
@@ -199,17 +190,13 @@
                       aria-label="Quitar adjunto"
                       @click="removeAttachment(docId)"
                     >
-                      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                  <BaseActionIcon action="remove" />
                     </BaseButton>
                     <span v-else class="text-2xs uppercase tracking-wide text-text-subtle">Principal</span>
                   </div>
                 </div>
                 <BaseButton variant="secondary" size="sm" class="mt-2" @click="showPicker = true">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                  </svg>
+                <BaseActionIcon action="attach" />
                   Adjuntar otro documento
                 </BaseButton>
 
@@ -222,10 +209,8 @@
                   <div class="bg-surface rounded-xl shadow-xl max-w-md w-full max-h-[70vh] flex flex-col border border-border-default">
                     <header class="flex items-center justify-between px-5 py-3 border-b border-border-muted">
                       <h4 class="text-sm font-semibold text-text-default">Seleccionar documentos</h4>
-                      <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="showPicker = false">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                  <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" title="Cerrar" @click="showPicker = false">
+                    <BaseActionIcon action="close" />
                       </BaseButton>
                     </header>
                     <div class="flex-1 overflow-y-auto px-5 py-3">
@@ -243,7 +228,7 @@
                           />
                           <label :for="`pick-${d.id}`" class="flex-1 min-w-0 cursor-pointer">
                             <div class="text-sm text-text-default truncate">{{ d.title }}</div>
-                            <div v-if="d.folder_name" class="text-[11px] text-text-subtle mt-0.5">📁 {{ d.folder_name }}</div>
+                            <div v-if="d.folder_name" class="mt-0.5 flex items-center gap-1 text-[11px] text-text-subtle"><BaseActionIcon action="folders" /> {{ d.folder_name }}</div>
                           </label>
                         </li>
                       </ul>

@@ -78,7 +78,8 @@
                   class="text-[11px] font-medium text-text-brand hover:underline"
                   @click="addClause(id)"
                 >
-                  + Añadir cláusula
+                  <BaseActionIcon action="create" />
+                  Añadir cláusula
                 </button>
               </div>
               <p class="text-[11px] text-text-muted">
@@ -102,21 +103,19 @@
                     />
                   </div>
                   <div class="flex items-center gap-1 pt-6">
-                    <button
-                      type="button"
-                      class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+                    <BaseActionButton
+                      action="move-up"
+                      label="Subir cláusula"
                       :disabled="idx === 0"
-                      title="Subir"
                       @click="moveClause(id, idx, -1)"
-                    >↑</button>
-                    <button
-                      type="button"
-                      class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+                    />
+                    <BaseActionButton
+                      action="move-down"
+                      label="Bajar cláusula"
                       :disabled="idx === getClauses(id).length - 1"
-                      title="Bajar"
                       @click="moveClause(id, idx, 1)"
-                    >↓</button>
-                    <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeClause(id, idx)">×</BaseButton>
+                    />
+                    <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar cláusula" size="sm" @click="removeClause(id, idx)" />
                   </div>
                 </div>
                 <FieldTextarea
@@ -149,7 +148,8 @@
         class="text-[11px] font-medium text-text-brand hover:underline"
         @click="addGeneralClause"
       >
-        + Añadir cláusula
+        <BaseActionIcon action="create" />
+        Añadir cláusula
       </button>
     </div>
     <p class="text-[11px] text-text-muted">
@@ -179,21 +179,19 @@
           />
         </div>
         <div class="flex items-center gap-1 pt-6">
-          <button
-            type="button"
-            class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+          <BaseActionButton
+            action="move-up"
+            label="Subir cláusula general"
             :disabled="idx === 0"
-            title="Subir"
             @click="moveGeneralClause(idx, -1)"
-          >↑</button>
-          <button
-            type="button"
-            class="w-6 h-6 rounded text-text-muted hover:text-text-default hover:bg-surface-raised disabled:opacity-30"
+          />
+          <BaseActionButton
+            action="move-down"
+            label="Bajar cláusula general"
             :disabled="idx === generalClauses.length - 1"
-            title="Bajar"
             @click="moveGeneralClause(idx, 1)"
-          >↓</button>
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeGeneralClause(idx)">×</BaseButton>
+          />
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar cláusula general" size="sm" @click="removeGeneralClause(idx)" />
         </div>
       </div>
       <FieldTextarea

@@ -1,10 +1,15 @@
 <template>
   <div class="max-w-2xl mx-auto">
     <header class="mb-6">
-      <NuxtLink
+      <BaseButton
+        as="NuxtLink"
         :to="localePath('/panel/diagnostics')"
-        class="text-sm text-text-muted hover:underline"
-      >← Diagnósticos</NuxtLink>
+        variant="link"
+        size="sm"
+      >
+        <BaseActionIcon action="back" />
+        Diagnósticos
+      </BaseButton>
       <h1 class="text-2xl font-light text-text-default mt-1">Nuevo diagnóstico de aplicación</h1>
       <p class="text-sm text-text-muted mt-1">
         Crea un diagnóstico para un cliente existente. Podrás completar pricing, radiografía y documentos después.

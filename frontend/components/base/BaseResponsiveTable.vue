@@ -51,16 +51,18 @@
               @click="emit('sort', col.key)"
             >
               <span>{{ col.label }}</span>
-              <ChevronUpIcon
+              <BaseActionIcon
                 v-if="sortKey === col.key && sortDir === 'asc'"
-                class="w-3 h-3"
+                action="sort-ascending"
+                class="h-3 w-3"
               />
-              <ChevronDownIcon
+              <BaseActionIcon
                 v-else-if="sortKey === col.key && sortDir === 'desc'"
-                class="w-3 h-3"
+                action="sort-descending"
+                class="h-3 w-3"
               />
               <span v-else data-testid="sortable-hint" aria-hidden="true">
-                <ChevronUpDownIcon class="w-3 h-3 text-text-subtle" />
+                <BaseActionIcon action="sort" class="h-3 w-3 text-text-subtle" />
               </span>
             </button>
             <template v-else>{{ col.label }}</template>
@@ -258,19 +260,23 @@
             @auxclick.stop
           >
             <slot name="row-actions" :row="row" />
-            <button
+            <BaseActionButton
               v-if="showDefaultActions"
-              type="button"
-              aria-label="Editar"
+              action="edit"
+              label="Editar"
               :data-testid="`${testIdPrefix}-edit-${row[rowKey]}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
               @click.stop="emit('edit', row)"
-            >
-              <PencilSquareIcon class="w-4 h-4" />
-            </button>
-            <BaseButton v-if="showDefaultActions" variant="danger-ghost" size="sm" icon-only aria-label="Eliminar" :data-testid="`${testIdPrefix}-delete-${row[rowKey]}`" @click.stop="emit('delete', row)">
-              <TrashIcon class="w-4 h-4" />
-            </BaseButton>
+            />
+            <BaseActionButton
+              v-if="showDefaultActions"
+              action="delete"
+              label="Eliminar"
+              variant="danger-ghost"
+              size="sm"
+              :data-testid="`${testIdPrefix}-delete-${row[rowKey]}`"
+              @click.stop="emit('delete', row)"
+            />
           </td>
         </tr>
       </tbody>
@@ -280,13 +286,6 @@
 
 <script setup>
 import { computed, ref, watchEffect } from 'vue';
-import {
-  ChevronDownIcon,
-  ChevronUpDownIcon,
-  ChevronUpIcon,
-  PencilSquareIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import BaseResizeHandle from '~/components/base/BaseResizeHandle.vue';
 import { usePanelViewportProfile } from '~/composables/usePanelViewportProfile';

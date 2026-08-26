@@ -344,14 +344,14 @@ const statementActions = computed(() => {
   const actions = [];
   if (!isProcessed.value) {
     actions.push(
-      { label: 'Editar encabezado', onClick: () => emit('edit-header') },
-      { label: 'Agregar transacción', onClick: () => emit('add-tx') },
-      { label: 'Finalizar', onClick: () => emit('finalize') },
+      { action: 'edit', label: 'Editar encabezado', onClick: () => emit('edit-header') },
+      { action: 'create', label: 'Agregar transacción', onClick: () => emit('add-tx') },
+      { action: 'complete', label: 'Finalizar', onClick: () => emit('finalize') },
     );
   } else {
-    actions.push({ label: 'Reabrir', onClick: () => emit('reopen') });
+    actions.push({ action: 'restore', label: 'Reabrir', onClick: () => emit('reopen') });
   }
-  actions.push({ label: 'Eliminar', danger: true, onClick: () => emit('delete') });
+  actions.push({ action: 'delete', label: 'Eliminar', danger: true, onClick: () => emit('delete') });
   return actions;
 });
 

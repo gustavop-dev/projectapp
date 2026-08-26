@@ -266,7 +266,6 @@ test.describe('Admin Document Edit', () => {
 
     await expect(page.getByRole('textbox', { name: /^Título$/i })).toHaveValue('Contrato de Servicios');
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('✏️');
     await expect(noteButton).toHaveAccessibleName('Editar notas');
     await noteButton.click();
     await expect(page.getByTestId('client-note-subject')).toHaveValue('Contrato listo para revisión');
@@ -340,10 +339,10 @@ test.describe('Admin Document Edit', () => {
     await page.getByTestId('doc-client-note-open').click();
 
     const copyButton = page.getByTestId('client-note-custom-copy-content-0');
-    await expect(copyButton).toHaveText('📋');
+    await expect(copyButton).toHaveAttribute('data-panel-action', 'copy');
     await expect(copyButton).toHaveAccessibleName('Copiar contenido de la nota 1');
     await copyButton.click();
-    await expect(copyButton).toHaveText('✅');
+    await expect(copyButton).toHaveAccessibleName('Copiado: contenido de la nota 1');
     await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()))
       .toBe('Pago pendiente de confirmar.');
   });

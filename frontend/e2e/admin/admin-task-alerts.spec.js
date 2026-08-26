@@ -81,7 +81,10 @@ test.describe('Admin Task — Alertas section', () => {
 
     const modal = page.getByTestId('task-form-modal');
     await expect(modal.getByText('No hay alertas definidas.')).toBeVisible({ timeout: 10_000 });
-    await expect(modal.getByRole('button', { name: '+ Agregar' }).first()).toBeVisible();
+    const addAlertButton = page.getByTestId('new-alert-date')
+      .locator('../..')
+      .getByRole('button', { name: 'Agregar', exact: true });
+    await expect(addAlertButton).toBeVisible();
   });
 
   test('adding an alert calls POST and alert appears with Pendiente badge', {
@@ -119,7 +122,10 @@ test.describe('Admin Task — Alertas section', () => {
 
     await page.getByTestId('new-alert-date').fill('2026-06-01');
     await page.locator('input[placeholder*="Revisar avance"]').fill('Llamar al cliente');
-    await page.getByRole('button', { name: '+ Agregar' }).first().click();
+    await page.getByTestId('new-alert-date')
+      .locator('../..')
+      .getByRole('button', { name: 'Agregar', exact: true })
+      .click();
 
     await expect(() => expect(postCalled).toBe(true)).toPass({ timeout: 5_000 });
     await expect(page.getByText('Pendiente')).toBeVisible({ timeout: 10_000 });
@@ -154,7 +160,10 @@ test.describe('Admin Task — Alertas section', () => {
 
     await page.getByTestId('new-alert-date').fill('2026-06-01');
     await page.locator('input[placeholder*="Revisar avance"]').fill('Llamar al cliente');
-    await page.getByRole('button', { name: '+ Agregar' }).first().click();
+    await page.getByTestId('new-alert-date')
+      .locator('../..')
+      .getByRole('button', { name: 'Agregar', exact: true })
+      .click();
 
     const toast = page.getByRole('alert').filter({ hasText: 'No se pudo crear el recordatorio' });
     await expect(toast).toBeVisible({ timeout: 10_000 });

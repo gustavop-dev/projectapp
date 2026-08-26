@@ -15,7 +15,7 @@
         data-testid="hostings-new-button"
         @click="openCreateModal"
       >
-        <PlusIcon class="w-4 h-4" />
+        <BaseActionIcon action="create" />
         <span>Nuevo hosting</span>
       </BaseButton>
     </div>
@@ -131,7 +131,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo hosting</span>
         </BaseButton>
       </template>
@@ -270,56 +270,47 @@
         </template>
         <template #cell-row_actions="{ row }">
           <div class="flex items-center justify-end">
-            <BaseButton
+            <BaseActionButton
+              action="more"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Acciones del hosting"
-              title="Acciones"
+              label="Acciones del hosting"
               :data-testid="`hosting-actions-${row.id}`"
               @click="hostingActionsRow = row"
-            >
-              <EllipsisVerticalIcon class="h-5 w-5" />
-            </BaseButton>
+            />
           </div>
         </template>
         <template #row-actions="{ row }">
-          <BaseButton
+          <BaseActionButton
+            action="billing-cycles"
             variant="ghost"
-            icon-only
             size="sm"
-            aria-label="Ciclos de pago"
-            title="Registrar pago de ciclo / ver histórico"
+            label="Ciclos de pago"
+            tooltip="Registrar pago de ciclo / ver histórico"
             :data-testid="`hosting-cycles-${row.id}`"
             @click.stop="openCyclesModal(row)"
-          >
-            <ClockIcon class="w-5 h-5" />
-          </BaseButton>
-          <BaseButton
+          />
+          <BaseActionButton
+            action="send"
             variant="ghost"
-            icon-only
             size="sm"
-            aria-label="Enviar cuenta de cobro"
-            :title="row.billing_email
+            label="Enviar cuenta de cobro"
+            :tooltip="row.billing_email
               ? `Enviar cuenta de cobro a ${row.billing_email}`
               : 'Vincula un cliente con correo o escribe un email de facturación'"
             :disabled="!row.billing_email || billingId === row.id"
             :data-testid="`hosting-send-billing-${row.id}`"
             @click.stop="askSendBilling(row)"
-          >
-            <PaperAirplaneIcon class="w-5 h-5" />
-          </BaseButton>
-          <BaseButton
+          />
+          <BaseActionButton
+            action="email-history"
             variant="ghost"
-            icon-only
             size="sm"
-            aria-label="Ver correos de este hosting"
-            title="Ver qué correos salieron por este hosting"
+            label="Ver correos de este hosting"
+            tooltip="Ver qué correos salieron por este hosting"
             :data-testid="`hosting-emails-${row.id}`"
             @click.stop="goToHostingEmails(row)"
-          >
-            <EnvelopeIcon class="w-5 h-5" />
-          </BaseButton>
+          />
         </template>
       </AccountingTable>
 
@@ -423,9 +414,6 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
-import {
-  ClockIcon, EllipsisVerticalIcon, EnvelopeIcon, PaperAirplaneIcon, PlusIcon,
-} from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';

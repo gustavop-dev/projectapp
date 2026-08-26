@@ -161,6 +161,8 @@ prefer the bare class without `/N`.
 | `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled` |
 | `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`                       |
 | `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
+| `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
+| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`   |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
@@ -187,6 +189,27 @@ prefer the bare class without `/N`.
 
 Components are auto-imported by Nuxt — use them directly in templates without
 an explicit `import`.
+
+### Panel action icons
+
+Executable actions under `/panel/**` use an action key from
+`config/panelActions.js`. The catalog is the only place that selects the icon
+and default Spanish label, and every glyph comes from
+`@heroicons/vue/24/outline`.
+
+```vue
+<BaseActionButton action="copy" label="Copiar enlace" @click="copyLink" />
+<BaseActionIcon action="download" />
+```
+
+Use `BaseActionButton` for an icon-only control. It supplies a title, a
+hover/focus tooltip and an accessible name; `statusLabel` announces transient
+feedback without replacing the action glyph. Text buttons and menu items may
+render `BaseActionIcon` beside their visible label. Do not import a Heroicon,
+embed SVG, or use an emoji to represent an executable action. Run
+`npm run check:panel-action-icons` to verify the contract. Informational,
+decorative and content glyphs are outside the action vocabulary and need an
+explicit guard comment when they appear inside a selectable row.
 
 ## Responsive panel contract
 

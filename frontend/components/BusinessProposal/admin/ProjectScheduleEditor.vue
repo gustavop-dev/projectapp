@@ -107,7 +107,7 @@
           {{ isSaving[row.stage_key] ? 'Guardando…' : 'Guardar fechas' }}
         </BaseButton>
         <BaseButton variant="secondary" size="sm" v-if="!row.completed_at" :disabled="isCompleting[row.stage_key]" :data-testid="`stage-complete-${row.stage_key}`" @click="handleComplete(row.stage_key)">
-          ✅ {{ isCompleting[row.stage_key] ? 'Marcando…' : 'Marcar como completada' }}
+              <BaseActionIcon action="complete" /> {{ isCompleting[row.stage_key] ? 'Marcando…' : 'Marcar como completada' }}
         </BaseButton>
         <span
           v-if="row.completed_at"

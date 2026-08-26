@@ -24,7 +24,7 @@
           data-testid="accounting-export-workbook-button"
           @click="exportWorkbook"
         >
-          <ArrowDownTrayIcon class="w-4 h-4" />
+          <BaseActionIcon action="export" />
           <span>{{ isExportingWorkbook ? 'Exportando...' : 'Exportar Excel' }}</span>
         </BaseButton>
         <BaseButton
@@ -34,7 +34,7 @@
           data-testid="accounting-new-income-button"
           @click="openIncomeModal"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo ingreso</span>
         </BaseButton>
       </div>
@@ -242,7 +242,7 @@
             class="text-xs text-text-brand hover:underline"
             data-testid="accounting-cards-link"
           >
-            Ver historial de tarjetas →
+          <BaseActionIcon action="forward" /> Ver historial de tarjetas
           </NuxtLink>
         </div>
         <AccountingTable
@@ -325,7 +325,6 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingHeroKpi from '~/components/accounting/AccountingHeroKpi.vue';

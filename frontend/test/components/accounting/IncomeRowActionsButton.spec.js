@@ -34,7 +34,7 @@ describe('IncomeRowActionsButton', () => {
     const wrapper = mountButton();
     const button = wrapper.get('[data-testid="income-actions-42"]');
 
-    expect(button.attributes('aria-label')).toBe('Acciones');
+    expect(button.attributes('aria-label')).toBe('Acciones de ingreso 42');
     expect(button.attributes('disabled')).toBeUndefined();
   });
 

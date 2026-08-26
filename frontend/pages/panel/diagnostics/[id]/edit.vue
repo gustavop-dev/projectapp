@@ -99,12 +99,10 @@
 
     <template v-else>
       <div class="mb-8">
-        <NuxtLink
-          :to="localePath('/panel/diagnostics')"
-          class="text-sm text-text-muted hover:text-text-default transition-colors"
-        >
-          ← Volver a diagnósticos
-        </NuxtLink>
+        <BaseButton as="NuxtLink" :to="localePath('/panel/diagnostics')" variant="link" size="sm">
+          <BaseActionIcon action="back" />
+          Volver a diagnósticos
+        </BaseButton>
       </div>
 
       <!-- Sticky header: title + investment + status -->
@@ -204,15 +202,13 @@
           <div v-if="store.current.public_url">
             <div class="flex items-center gap-1">
               <span class="text-text-subtle text-xs">URL pública</span>
-              <button
-                type="button"
-                :title="urlCopied ? 'Copiado!' : 'Copiar URL'"
+              <BaseActionButton
+                action="copy"
+                :label="urlCopied ? 'Copiado: URL pública' : 'Copiar URL pública'"
+                :status-label="urlCopied ? 'Copiado: URL pública' : ''"
                 class="text-text-subtle hover:text-text-brand transition-colors"
                 @click="copyPublicUrl"
-              >
-                <DocumentDuplicateIcon v-if="!urlCopied" class="w-3.5 h-3.5" />
-                <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
-              </button>
+              />
             </div>
             <p class="mt-0.5">
               <a :href="store.current.public_url" target="_blank" rel="noopener noreferrer" class="text-text-brand hover:underline text-xs break-all">
@@ -381,9 +377,7 @@
                 class="!w-10 !h-10 !p-0"
                 @click="showActionsModal = true"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                  <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
-                </svg>
+          <BaseActionIcon action="more" />
               </BaseButton>
 
               <button
@@ -517,17 +511,15 @@
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <BaseButton variant="secondary" size="sm" @click="refreshExportJson">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
+                <BaseActionIcon action="refresh" />
                 Actualizar
               </BaseButton>
               <BaseButton variant="secondary" size="sm" @click="copyExportJson">
-                <DocumentDuplicateIcon class="w-3.5 h-3.5" />
+                <BaseActionIcon action="copy" />
                 {{ jsonCopied ? '¡Copiado!' : 'Copiar' }}
               </BaseButton>
               <BaseButton variant="secondary" size="sm" @click="downloadExportJson">
-                <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+                <BaseActionIcon action="download" />
                 Descargar
               </BaseButton>
             </div>
@@ -554,9 +546,7 @@
               class="inline-flex items-center gap-2 px-3 py-1.5 border border-border-default rounded-lg text-xs
                      text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-              </svg>
+                  <BaseActionIcon action="upload" />
               Subir .json
               <input type="file" accept=".json" class="hidden" @change="handleJsonFileUpload" />
             </label>
@@ -641,7 +631,6 @@ import DiagnosticActionsModal from '~/components/WebAppDiagnostic/DiagnosticActi
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';
-import { DocumentDuplicateIcon, CheckIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useUnsavedGuard } from '~/composables/useUnsavedGuard';
 import UnsavedChangesNotice from '~/components/panel/UnsavedChangesNotice.vue';

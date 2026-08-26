@@ -12,16 +12,12 @@
           <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
             <div class="flex items-center gap-2.5">
               <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center">
-                <svg class="w-4 h-4 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+                <BaseActionIcon action="rename" class="text-amber-600 dark:text-amber-400" />
               </div>
               <h3 class="text-base font-semibold text-text-default">Renombrar documento</h3>
             </div>
-            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" @click="close">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+            <BaseButton variant="ghost" icon-only size="md" aria-label="Cerrar" title="Cerrar" @click="close">
+              <BaseActionIcon action="close" />
             </BaseButton>
           </div>
 

@@ -90,7 +90,7 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
     await batchBar.getByRole('menuitem', { name: 'Eliminar' }).click();
 
     // ConfirmModal
-    await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(() => expect(bulkPayload).not.toBeNull()).toPass({ timeout: 5000 });
     expect(bulkPayload.action).toBe('delete');
@@ -150,8 +150,8 @@ test.describe('Admin Diagnostic Bulk Actions', () => {
     await expect(batchBar).toContainText('2 seleccionados');
 
     await page.getByLabel('Acciones de Diagnóstico Beta Inc').click();
-    await page.getByRole('button', { name: 'Eliminar' }).last().click();
-    await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(batchBar).toContainText('1 seleccionado');
   });

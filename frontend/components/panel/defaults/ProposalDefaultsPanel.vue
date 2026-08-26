@@ -190,24 +190,11 @@
                 v-if="savedSections.has(idx)"
                 class="text-xs text-text-brand font-medium"
               >✓ Modificado</span>
-              <button
-                type="button"
-                class="p-1.5 rounded-lg text-info-strong hover:bg-info-soft transition-colors"
-                title="Vista previa"
-                @click.stop="handleSectionPreview(idx)"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              </button>
-              <svg
-                class="w-4 h-4 text-text-subtle transition-transform"
-                :class="{ 'rotate-180': expandedSections.has(idx) }"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
+                <BaseActionButton action="view" label="Vista previa" @click.stop="handleSectionPreview(idx)" />
+              <BaseActionIcon
+                :action="expandedSections.has(idx) ? 'collapse' : 'expand'"
+                class="text-text-subtle"
+              />
             </div>
           </div>
 
@@ -405,7 +392,8 @@
                 </div>
               </div>
               <BaseButton variant="ghost" size="sm" :disabled="emailIsPreviewLoading" @click="handleEmailPreview(emailSelectedTemplate)">
-                {{ emailIsPreviewLoading ? 'Cargando...' : '👁 Vista previa' }}
+            <BaseActionIcon v-if="!emailIsPreviewLoading" action="view" />
+            {{ emailIsPreviewLoading ? 'Cargando...' : 'Vista previa' }}
               </BaseButton>
             </div>
 
@@ -506,15 +494,15 @@
         <div class="flex flex-wrap items-center gap-2 mb-4">
           <template v-if="!promptIsEditing">
             <BaseButton variant="secondary" size="md" @click="startEditPrompt">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              <BaseActionIcon action="edit" />
               Editar
             </BaseButton>
             <BaseButton variant="secondary" size="md" @click="handleCopyPrompt">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              <BaseActionIcon action="copy" />
               {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
             </BaseButton>
             <BaseButton variant="secondary" size="md" @click="promptDownload">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <BaseActionIcon action="download" />
               Descargar .md
             </BaseButton>
             <BaseButton variant="secondary" size="sm" v-if="promptText !== promptDefault" @click="handleResetPrompt">
@@ -566,7 +554,7 @@
               {{ technicalDefaultsPromptCopied ? '¡Copiado!' : 'Copiar' }}
             </BaseButton>
             <BaseButton variant="secondary" size="md" @click="technicalDefaultsPromptDownload">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <BaseActionIcon action="download" />
               Descargar .md
             </BaseButton>
             <BaseButton variant="secondary" size="sm" v-if="technicalDefaultsPromptText !== technicalDefaultsPromptDefault" @click="handleResetTechnicalDefaultsPrompt">
@@ -626,15 +614,15 @@
       <div class="flex flex-wrap items-center gap-2 mb-4">
         <template v-if="!jsonIsEditing">
           <BaseButton variant="secondary" size="md" @click="startEditJson">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              <BaseActionIcon action="edit" />
             Editar
           </BaseButton>
           <BaseButton variant="secondary" size="md" @click="copyDefaultsJson">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              <BaseActionIcon action="copy" />
             {{ defaultsJsonCopied ? '¡Copiado!' : 'Copiar' }}
           </BaseButton>
           <BaseButton variant="secondary" size="md" @click="downloadDefaultsJson">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <BaseActionIcon action="download" />
             Descargar .json
           </BaseButton>
         </template>
@@ -687,9 +675,7 @@
                 <h3 class="text-lg font-semibold text-text-default">Vista Previa</h3>
                 <p v-if="emailPreviewSubject" class="text-xs text-text-muted mt-0.5 truncate max-w-md">Asunto: {{ emailPreviewSubject }}</p>
               </div>
-              <button class="p-2 text-text-subtle hover:text-text-muted rounded-lg transition-colors" @click="emailShowPreview = false">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <BaseActionButton action="close" label="Cerrar vista previa" @click="emailShowPreview = false" />
             </div>
             <div class="flex-1 overflow-auto">
               <iframe v-if="emailPreviewHtml" :srcdoc="emailPreviewHtml" class="w-full h-full min-h-[500px] border-0" sandbox="allow-same-origin" />

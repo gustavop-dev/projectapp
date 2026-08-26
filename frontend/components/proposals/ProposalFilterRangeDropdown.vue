@@ -8,15 +8,9 @@
         : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
       @click="isOpen = !isOpen"
     >
-      <span v-if="icon" class="text-sm leading-none">{{ icon }}</span>
+      <BaseActionIcon action="filter" />
       {{ label }}
-      <span
-        v-if="isActive"
-        class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-surface text-text-brand"
-      >✓</span>
-      <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': isOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-      </svg>
+      <BaseActionIcon :action="isOpen ? 'collapse' : 'expand'" class="h-3 w-3 ml-0.5 opacity-60" />
     </button>
 
     <Transition name="dropdown-fade">
@@ -85,7 +79,6 @@ const props = defineProps({
   minPlaceholder: { type: String, default: 'Mín' },
   maxPlaceholder: { type: String, default: 'Máx' },
   unit: { type: String, default: null },
-  icon: { type: String, default: null },
   /** Emit while typing (debounced) instead of waiting for blur. */
   live: { type: Boolean, default: false },
 });

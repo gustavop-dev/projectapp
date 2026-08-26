@@ -15,7 +15,7 @@
         data-testid="cards-new-button"
         @click="openCreateModal"
       >
-        <PlusIcon class="w-4 h-4" />
+        <BaseActionIcon action="create" />
         <span>Nuevo registro</span>
       </BaseButton>
     </div>
@@ -102,7 +102,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo registro</span>
         </BaseButton>
       </template>
@@ -171,7 +171,6 @@
 
 <script setup>
 import { computed, onMounted } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';

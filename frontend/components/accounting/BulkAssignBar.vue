@@ -50,10 +50,6 @@
 
 <script setup>
 import { computed, ref } from 'vue';
-import {
-  BanknotesIcon, FolderPlusIcon, LinkSlashIcon, UserPlusIcon,
-} from '@heroicons/vue/24/outline';
-
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import BulkAssignModal from '~/components/accounting/BulkAssignModal.vue';
 import ClientBulkAssignSummary from '~/components/accounting/ClientBulkAssignSummary.vue';
@@ -178,15 +174,15 @@ const settleBlockedReason = computed(() => {
 const actionItems = computed(() => {
   const items = [
     {
+      action: 'add-user',
       label: 'Asignar cliente',
-      icon: UserPlusIcon,
       onClick: () => { assignTarget.value = 'client'; },
     },
   ];
   if (props.projectEnabled) {
     items.push({
+      action: 'link',
       label: 'Asignar proyecto',
-      icon: FolderPlusIcon,
       onClick: () => { assignTarget.value = 'project'; },
     });
   }
@@ -196,16 +192,16 @@ const actionItems = computed(() => {
   // presencia ya dice que la selección tiene cliente (o proyecto).
   if (canUnlink.value) {
     unlinks.push({
+      action: 'unlink',
       label: 'Desvincular cliente',
-      icon: LinkSlashIcon,
       danger: true,
       onClick: () => confirmAndSubmit(unlinkPlan.value),
     });
   }
   if (props.projectEnabled && canUnlinkProject.value) {
     unlinks.push({
+      action: 'unlink',
       label: 'Quitar proyecto',
-      icon: LinkSlashIcon,
       danger: true,
       onClick: () => confirmAndSubmitProject(unlinkProjectPlan.value),
     });
@@ -214,8 +210,8 @@ const actionItems = computed(() => {
 
   if (props.settleEnabled) {
     items.push({ divider: true }, {
+      action: 'settle',
       label: 'Registrar abono',
-      icon: BanknotesIcon,
       disabled: settleEligibleIds.value.length === 0,
       description: settleBlockedReason.value,
       onClick: emitSettle,

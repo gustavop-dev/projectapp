@@ -9,15 +9,15 @@
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <template v-if="!promptIsEditing">
         <BaseButton variant="secondary" size="md" @click="startEditPrompt">
-          <PencilIcon class="w-4 h-4" />
+          <BaseActionIcon action="edit" />
           Editar
         </BaseButton>
         <BaseButton variant="secondary" size="md" @click="handleCopyPrompt">
-          <DocumentDuplicateIcon class="w-4 h-4" />
+          <BaseActionIcon action="copy" />
           {{ promptCopied ? '¡Copiado!' : 'Copiar' }}
         </BaseButton>
         <BaseButton variant="secondary" size="md" @click="promptDownload">
-          <ArrowDownTrayIcon class="w-4 h-4" />
+          <BaseActionIcon action="download" />
           Descargar .md
         </BaseButton>
         <BaseButton
@@ -66,15 +66,15 @@
     <div class="flex flex-wrap items-center gap-2 mb-4">
       <template v-if="!technicalPromptIsEditing">
         <BaseButton variant="secondary" size="md" @click="startEditTechnicalPrompt">
-          <PencilIcon class="w-4 h-4" />
+          <BaseActionIcon action="edit" />
           Editar
         </BaseButton>
         <BaseButton variant="secondary" size="md" @click="handleCopyTechnicalPrompt">
-          <DocumentDuplicateIcon class="w-4 h-4" />
+          <BaseActionIcon action="copy" />
           {{ technicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
         </BaseButton>
         <BaseButton variant="secondary" size="md" @click="technicalPromptDownload">
-          <ArrowDownTrayIcon class="w-4 h-4" />
+          <BaseActionIcon action="download" />
           Descargar .md
         </BaseButton>
         <BaseButton
@@ -117,7 +117,6 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import { PencilIcon, DocumentDuplicateIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import PromptSubTabsPanel from '~/components/panel/PromptSubTabsPanel.vue';
 import { useSellerPrompt } from '~/composables/useSellerPrompt';
 import { useTechnicalPrompt } from '~/composables/useTechnicalPrompt';

@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue';
-import { ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import BaseDropdown from '~/components/base/BaseDropdown.vue';
 import { get_request } from '~/stores/services/request_http';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -43,8 +42,8 @@ async function exportAs(format) {
 }
 
 const items = [
-  { label: 'CSV', onClick: () => exportAs('csv') },
-  { label: 'Excel (.xlsx)', onClick: () => exportAs('xlsx') },
+  { action: 'export', label: 'CSV', onClick: () => exportAs('csv') },
+  { action: 'export', label: 'Excel (.xlsx)', onClick: () => exportAs('xlsx') },
 ];
 </script>
 
@@ -56,7 +55,7 @@ const items = [
         :class="{ 'opacity-60 pointer-events-none': isExporting }"
         data-testid="accounting-export-button"
       >
-        <ArrowDownTrayIcon class="w-4 h-4" />
+        <BaseActionIcon action="export" />
         {{ isExporting ? 'Exportando...' : 'Exportar' }}
       </span>
     </template>

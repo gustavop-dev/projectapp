@@ -78,10 +78,8 @@
                     <span class="text-[10px] font-medium text-text-muted uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
-                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                  <BaseButton v-if="sections.length > 1" variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeSection(idx)">
+                    <BaseActionIcon action="delete" />
                   </BaseButton>
                 </div>
                 <textarea v-model="section.text" v-auto-resize rows="3" placeholder="Escribe el contenido de esta sección..."
@@ -93,9 +91,7 @@
             </template>
           </draggable>
           <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+            <BaseActionIcon action="create" />
             Agregar sección
           </BaseButton>
         </div>
@@ -118,10 +114,8 @@
             <div v-for="(file, idx) in attachments" :key="idx"
               class="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-surface-muted px-3 py-1.5">
               <span class="min-w-0 truncate text-xs text-text-default">{{ file.name }}</span>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeAttachment(idx)">
+                <BaseActionIcon action="delete" />
               </BaseButton>
             </div>
           </div>
@@ -131,14 +125,8 @@
         <div class="flex flex-col items-stretch gap-3 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-between">
           <p v-if="sendError" class="break-words text-xs text-danger-strong">{{ sendError }}</p>
           <span v-else />
-          <BaseButton variant="primary" size="sm" class="panel-portrait:ml-auto" :disabled="!canSend || sending" @click="handleSend">
-            <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <svg v-else class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+          <BaseButton variant="primary" size="sm" class="panel-portrait:ml-auto" :disabled="!canSend" :loading="sending" @click="handleSend">
+            <BaseActionIcon v-if="!sending" action="send" />
             {{ sending ? 'Enviando...' : 'Enviar correo' }}
           </BaseButton>
         </div>
@@ -261,10 +249,7 @@
                 <span class="text-[10px] text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>
-            <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': expandedIds[entry.id] }"
-              fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <BaseActionIcon :action="expandedIds[entry.id] ? 'collapse' : 'expand'" />
           </button>
 
           <!-- Expanded detail -->

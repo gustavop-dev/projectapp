@@ -20,11 +20,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between px-6 py-4 border-b border-border-muted">
               <h2 class="text-lg font-bold text-text-default">Manual de Métricas</h2>
-              <button class="p-1.5 rounded-lg hover:bg-surface-raised text-text-subtle" @click="isOpen = false">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <BaseActionButton action="close" label="Cerrar métricas" @click="isOpen = false" />
             </div>
 
             <!-- Search -->

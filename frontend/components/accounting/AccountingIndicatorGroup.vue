@@ -1,6 +1,5 @@
 <script setup>
 import { computed, ref, useId } from 'vue'
-import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   /** Number of columns used once the complete indicator set is visible. */
@@ -61,11 +60,7 @@ const secondaryClass = computed(() => (
       @click="isExpanded = !isExpanded"
     >
       {{ isExpanded ? 'Ocultar indicadores' : `Ver todos los indicadores (${secondaryCount})` }}
-      <ChevronDownIcon
-        class="h-4 w-4 transition-transform"
-        :class="isExpanded ? 'rotate-180' : ''"
-        aria-hidden="true"
-      />
+      <BaseActionIcon :action="isExpanded ? 'collapse' : 'expand'" />
     </BaseButton>
   </section>
 </template>

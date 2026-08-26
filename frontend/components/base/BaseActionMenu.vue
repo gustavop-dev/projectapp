@@ -30,7 +30,7 @@ defineProps({
         aria-haspopup="menu"
       >
         {{ label }}
-        <span aria-hidden="true">▾</span>
+        <BaseActionIcon action="expand" />
       </BaseButton>
     </template>
   </BaseDropdown>

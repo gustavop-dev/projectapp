@@ -10,17 +10,13 @@
     </p>
 
     <div class="flex items-center justify-center gap-2 sm:col-start-2">
-      <button
-        type="button"
+      <BaseActionButton
+        action="previous"
         class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         :disabled="currentPage <= 1"
-        :aria-label="prevLabel"
+        :label="prevLabel"
         @click="$emit('prev')"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </button>
+      />
 
       <div class="hidden sm:flex items-center gap-1">
         <template v-for="(p, idx) in pageList" :key="idx">
@@ -44,17 +40,13 @@
         {{ currentPage }} / {{ totalPages }}
       </span>
 
-      <button
-        type="button"
+      <BaseActionButton
+        action="next"
         class="inline-flex items-center justify-center w-9 h-9 rounded-lg border border-border-default bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         :disabled="currentPage >= totalPages"
-        :aria-label="nextLabel"
+        :label="nextLabel"
         @click="$emit('next')"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
+      />
     </div>
   </nav>
 </template>

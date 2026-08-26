@@ -200,108 +200,91 @@
         </template>
         <template #cell-row_actions="{ row }">
           <div v-if="isNarrowActions" class="flex items-center justify-end">
-            <BaseButton
+            <BaseActionButton
+              action="more"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Acciones de la cuenta de cobro"
-              title="Acciones"
+              label="Acciones de la cuenta de cobro"
               :disabled="busyId === row.id"
               :data-testid="`collection-actions-${row.id}`"
               @click="actionsRow = row"
-            >
-              <EllipsisVerticalIcon class="h-5 w-5" />
-            </BaseButton>
+            />
           </div>
           <div v-else class="flex items-center justify-end gap-1">
-            <BaseButton
+            <BaseActionButton
+              action="view"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Ver detalle"
-              title="Ver detalle"
+              label="Ver detalle"
               :data-testid="`collection-view-detail-${row.id}`"
               @click="openDetail(row)"
-            >
-              <EyeIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton
+            />
+            <BaseActionButton
               v-if="row.notes"
+              action="notes"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Ver notas internas"
-              title="Notas internas"
+              label="Ver notas internas"
               :data-testid="`collection-notes-${row.id}`"
               @click="notesRow = row"
-            >
-              <ChatBubbleBottomCenterTextIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton
+            />
+            <BaseActionButton
+              action="download"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Descargar PDF"
-              title="Descargar PDF"
+              label="Descargar PDF"
               :disabled="busyId === row.id"
               :data-testid="`collection-download-pdf-${row.id}`"
               @click="downloadPdf(row)"
-            >
-              <DocumentArrowDownIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton
+            />
+            <BaseActionButton
+              action="email-history"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Ver correos de esta cuenta"
-              title="Ver qué correos salieron por esta cuenta de cobro"
+              label="Ver correos de esta cuenta"
+              tooltip="Ver qué correos salieron por esta cuenta de cobro"
               :data-testid="`collection-emails-${row.id}`"
               @click="goToCollectionEmails(row)"
-            >
-              <EnvelopeIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton
+            />
+            <BaseActionButton
               v-if="row.commercial_status === 'issued' || row.commercial_status === 'paid'"
+              action="resend"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Reenviar al cliente"
-              title="Reenviar al cliente"
+              label="Reenviar al cliente"
               :disabled="busyId === row.id"
               @click="askResend(row)"
-            >
-              <PaperAirplaneIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton
+            />
+            <BaseActionButton
               v-if="row.commercial_status === 'issued'"
+              action="complete"
               variant="ghost"
-              icon-only
               size="sm"
-              aria-label="Marcar pagada"
-              :title="row.income_kind === 'expected' ? 'Registrar pago (liquidar)' : 'Marcar pagada'"
+              :label="row.income_kind === 'expected' ? 'Registrar pago (liquidar)' : 'Marcar pagada'"
               :disabled="busyId === row.id"
               @click="askMarkPaid(row)"
-            >
-              <CheckCircleIcon class="w-5 h-5" />
-            </BaseButton>
-            <BaseButton variant="danger-ghost" icon-only size="sm" v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'" aria-label="Anular" title="Anular" :disabled="busyId === row.id" @click="askCancel(row)">
-              <NoSymbolIcon class="w-5 h-5" />
-            </BaseButton>
+            />
+            <BaseActionButton
+              v-if="row.commercial_status === 'draft' || row.commercial_status === 'issued'"
+              action="void"
+              label="Anular"
+              variant="danger-ghost"
+              size="sm"
+              :disabled="busyId === row.id"
+              @click="askCancel(row)"
+            />
             <!-- Sólo lo que nunca salió al cliente, o lo ya anulado: el
                  backend resuelve la regla y la manda en `can_delete`. -->
-            <BaseButton
+            <BaseActionButton
               v-if="row.can_delete"
+              action="delete"
               variant="danger-ghost"
-              icon-only
               size="sm"
-              aria-label="Eliminar"
-              title="Eliminar"
+              label="Eliminar cuenta de cobro"
               :disabled="busyId === row.id"
               :data-testid="`collection-delete-${row.id}`"
               @click="askDelete(row)"
-            >
-              <TrashIcon class="w-5 h-5" />
-            </BaseButton>
+            />
           </div>
         </template>
       </AccountingTable>
@@ -407,17 +390,6 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import {
-  ChatBubbleBottomCenterTextIcon,
-  CheckCircleIcon,
-  DocumentArrowDownIcon,
-  EnvelopeIcon,
-  EyeIcon,
-  EllipsisVerticalIcon,
-  NoSymbolIcon,
-  PaperAirplaneIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';

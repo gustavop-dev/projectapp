@@ -531,7 +531,7 @@ function onSubmit() {
           data-testid="income-liquidate-deductions-toggle"
           @click="deductionsOpen = !deductionsOpen"
         >
-          <span class="text-text-subtle">{{ deductionsOpen ? '−' : '+' }}</span>
+          <BaseActionIcon :action="deductionsOpen ? 'collapse' : 'expand'" class="text-text-subtle" />
           No es un cobro pendiente, es un gasto
         </button>
         <BaseCollapse id="liquidate-deductions" :open="deductionsOpen">
@@ -610,7 +610,7 @@ function onSubmit() {
           data-testid="income-liquidate-followups-toggle"
           @click="followUpsOpen = !followUpsOpen"
         >
-          <span class="text-text-subtle">{{ followUpsOpen ? '−' : '+' }}</span>
+          <BaseActionIcon :action="followUpsOpen ? 'collapse' : 'expand'" class="text-text-subtle" />
           Sí lo voy a cobrar: crear ingreso esperado
         </button>
         <BaseCollapse id="liquidate-follow-ups" :open="followUpsOpen">

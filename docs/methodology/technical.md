@@ -514,6 +514,7 @@ projectapp/
 
 ## 9. Technical Constraints
 
+0. **Panel action icon catalog** — operational glyphs under `/panel/**` use `@heroicons/vue/24/outline` through the shared action catalog. Interactive consumers must not embed action SVG paths or emojis; icon-only controls use the shared action button so accessible naming, tooltip behavior and the coarse-pointer 44 px target stay aligned.
 1. **Dual auth** — `content`/`panel` uses session/CSRF; `accounts`/`platform` uses JWT (SimpleJWT); never mix the two HTTP clients (`request_http` vs `usePlatformApi`)
 2. **Two Django apps** — `content` (proposals, blog, portfolio, documents, contracts) + `accounts` (platform users, projects, deliverables, data models, quick-access)
 3. **GoDaddy SMTP** — email delivery limited by provider (port 465 SSL only)

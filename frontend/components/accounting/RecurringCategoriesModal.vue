@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch } from 'vue'
 import draggable from 'vuedraggable'
-import { PlusIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
@@ -103,16 +102,14 @@ function onDragEnd() {
             <span class="text-xs text-text-subtle tabular-nums w-16 text-right">
               {{ category.payment_count }} pago{{ category.payment_count === 1 ? '' : 's' }}
             </span>
-            <BaseButton
+            <BaseActionButton
+              action="delete"
               variant="danger-ghost"
-              icon-only
               size="md"
-              :aria-label="`Eliminar ${category.name}`"
+              :label="`Eliminar ${category.name}`"
               :data-testid="`recurring-category-delete-${category.id}`"
               @click="emit('delete', category)"
-            >
-              <TrashIcon class="w-5 h-5" />
-            </BaseButton>
+            />
           </div>
         </template>
       </draggable>
@@ -131,7 +128,7 @@ function onDragEnd() {
           :disabled="saving || !newName.trim()"
           data-testid="recurring-category-create"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Agregar</span>
         </BaseButton>
       </form>

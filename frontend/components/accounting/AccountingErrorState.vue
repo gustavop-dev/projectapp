@@ -11,14 +11,13 @@
       data-testid="accounting-error-retry"
       @click="emit('retry')"
     >
-      <ArrowPathIcon class="w-4 h-4" :class="retrying ? 'motion-safe:animate-spin' : ''" />
+      <BaseActionIcon action="retry" :class="retrying ? 'motion-safe:animate-spin' : ''" />
       <span>{{ retrying ? 'Reintentando...' : 'Reintentar' }}</span>
     </BaseButton>
   </BaseAlert>
 </template>
 
 <script setup>
-import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import BaseAlert from '~/components/base/BaseAlert.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 

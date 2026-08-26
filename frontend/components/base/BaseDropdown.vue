@@ -5,6 +5,8 @@
 // render function. The collision leaves $setup.Menu et al as undefined.
 import { resolveComponent } from 'vue'
 import * as HeadlessUI from '@headlessui/vue'
+import BaseActionIcon from './BaseActionIcon.vue'
+import { getPanelAction } from '~/config/panelActions'
 const { Menu, MenuButton, MenuItems, MenuItem } = HeadlessUI
 
 // String names in <component :is> can't resolve Nuxt auto-imported
@@ -12,7 +14,7 @@ const { Menu, MenuButton, MenuItems, MenuItem } = HeadlessUI
 const NuxtLinkComponent = resolveComponent('NuxtLink')
 
 defineProps({
-  // Items: [{ label, description?, onClick?, to?, href?, icon?, disabled?, danger?, divider?, testid? }]
+  // Items: [{ action?, label?, description?, onClick?, to?, href?, icon?, disabled?, danger?, divider?, testid? }]
   //
   // `description` is a muted second line under the label. It exists so a
   // DISABLED item can explain itself: Headless UI's disabled MenuItems take no
@@ -31,6 +33,11 @@ defineProps({
 function itemColorClass(danger, active) {
   if (danger) return active ? 'bg-danger-soft text-danger-strong' : 'text-danger-strong'
   return active ? 'bg-surface-raised text-text-default' : 'text-text-default'
+}
+
+function itemLabel(item) {
+  if (item.label) return item.label
+  return item.action ? getPanelAction(item.action).label : ''
 }
 </script>
 
@@ -80,9 +87,10 @@ function itemColorClass(danger, active) {
               ]"
               @click="item.onClick && item.onClick($event)"
             >
-              <component v-if="item.icon" :is="item.icon" class="w-4 h-4 flex-shrink-0" />
+              <BaseActionIcon v-if="item.action" :action="item.action" />
+              <component v-else-if="item.icon" :is="item.icon" class="w-4 h-4 flex-shrink-0" aria-hidden="true" />
               <span class="flex-1 min-w-0">
-                <span class="block">{{ item.label }}</span>
+                <span class="block">{{ itemLabel(item) }}</span>
                 <span v-if="item.description" class="block text-xs text-text-muted mt-0.5">
                   {{ item.description }}
                 </span>

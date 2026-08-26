@@ -119,7 +119,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('adds a stack row when the + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaBtn = wrapper.findAll('button').find(b => b.text() === '+ Fila');
+    const filaBtn = wrapper.findAll('button').find(b => b.text() === 'Fila');
     await filaBtn.trigger('click');
 
     // 1 pre-existing row + 1 new empty row
@@ -130,7 +130,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('removes a stack row when its delete button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const deleteBtn = wrapper.findAll('button').find(b => b.text() === '✕');
+    const deleteBtn = wrapper.find('button[aria-label="Eliminar fila"]');
     await deleteBtn.trigger('click');
 
     expect(wrapper.vm.doc.stack).toHaveLength(0);
@@ -141,7 +141,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('adds a new epic when the + Módulo button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const addEpicBtn = wrapper.findAll('button').find(b => b.text() === '+ Módulo');
+    const addEpicBtn = wrapper.findAll('button').find(b => b.text() === 'Módulo');
     await addEpicBtn.trigger('click');
 
     expect(wrapper.vm.doc.epics).toHaveLength(1);
@@ -177,7 +177,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
       },
     });
 
-    const reqBtn = wrapper.findAll('button').find(b => b.text() === '+ Requerimiento');
+    const reqBtn = wrapper.findAll('button').find(b => b.text() === 'Requerimiento');
     await reqBtn.trigger('click');
 
     expect(wrapper.vm.doc.epics[0].requirements).toHaveLength(1);
@@ -465,7 +465,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addApiDomain appends a domain row when the + Dominio button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const btn = wrapper.findAll('button').find(b => b.text() === '+ Dominio');
+    const btn = wrapper.findAll('button').find(b => b.text() === 'Dominio');
     await btn.trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -480,7 +480,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addMetric appends a metric row when the + Métrica button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const btn = wrapper.findAll('button').find(b => b.text() === '+ Métrica');
+    const btn = wrapper.findAll('button').find(b => b.text() === 'Métrica');
     await btn.trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -493,7 +493,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addPractice appends a practice row when the + Práctica button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const btn = wrapper.findAll('button').find(b => b.text() === '+ Práctica');
+    const btn = wrapper.findAll('button').find(b => b.text() === 'Práctica');
     await btn.trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -508,7 +508,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addEntityRow appends an entity row when the + Entidad button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const btn = wrapper.findAll('button').find(b => b.text() === '+ Entidad');
+    const btn = wrapper.findAll('button').find(b => b.text() === 'Entidad');
     await btn.trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -523,7 +523,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addPatternRow appends a pattern row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[1].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -539,7 +539,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addGrowthStrategyRow appends a strategy row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[2].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -555,7 +555,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addIncluded appends an included integration row', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[3].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -568,7 +568,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addExcluded appends an excluded integration row', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[4].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -583,7 +583,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addEnvironmentRow appends an environment row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[5].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -599,7 +599,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addSecurityRow appends a security row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[6].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -615,7 +615,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addQualityDimension appends a quality dimension row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[7].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -629,7 +629,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addTestType appends a test type row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[8].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -645,7 +645,7 @@ describe('TechnicalDocumentEditor dynamic rows', () => {
   it('addDecision appends a decision row when its + Fila button is clicked', async () => {
     const wrapper = mountTechnicalDocumentEditor();
 
-    const filaButtons = wrapper.findAll('button').filter(b => b.text() === '+ Fila');
+    const filaButtons = wrapper.findAll('button').filter(b => b.text() === 'Fila');
     await filaButtons[9].trigger('click');
 
     const saveBtn = wrapper.findAll('button').find(b => b.text().includes('Guardar detalle técnico'));
@@ -975,7 +975,7 @@ describe('linked_item_ids (item traceability)', () => {
       itemLinkOptions: ITEM_OPTIONS,
     });
 
-    await wrapper.findAll('button').find((b) => b.text() === '+ Requerimiento').trigger('click');
+    await wrapper.findAll('button').find((b) => b.text() === 'Requerimiento').trigger('click');
     await wrapper.findAll('button').find((b) => b.text().startsWith('Guardar detalle')).trigger('click');
 
     const payload = wrapper.emitted('save')[0][0].payload;

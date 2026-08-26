@@ -13,11 +13,7 @@
               Escribe en markdown, previsualiza el PDF y adjúntalo al composer.
             </p>
           </div>
-          <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="onClose">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </BaseButton>
+          <BaseActionButton action="close" label="Cerrar editor de adjunto" @click="onClose" />
         </div>
 
         <!-- Body: 2 columns -->
@@ -37,10 +33,7 @@
                   variant="secondary" size="sm"
                   :disabled="templateBusy[t.slug]"
                   @click="copyTemplate(t.slug)">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                  <BaseActionIcon action="copy" />
                   {{ templateCopied[t.slug] ? '¡Copiado!' : `Copiar ${t.label}` }}
                 </BaseButton>
               </div>
@@ -76,10 +69,7 @@
 
             <BaseButton variant="primary" size="sm" :disabled="!canPreview" :loading="loading"
               @click="generatePreview">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              <BaseActionIcon action="view" />
               {{ loading ? 'Generando…' : (previewUrl ? 'Actualizar vista previa' : 'Vista previa') }}
             </BaseButton>
           </div>
@@ -109,9 +99,7 @@
           </BaseButton>
           <BaseButton variant="primary" size="sm" :disabled="!canAttach" :loading="loading"
             @click="attachToEmail">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-            </svg>
+            <BaseActionIcon action="attach" />
             {{ loading ? 'Procesando…' : 'Adjuntar al correo' }}
           </BaseButton>
         </div>

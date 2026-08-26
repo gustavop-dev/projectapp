@@ -6,12 +6,7 @@
         <h3 class="text-sm font-semibold text-text-default">
           Adjuntar desde Documentos
         </h3>
-        <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar"
-          @click="$emit('close')">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </BaseButton>
+        <BaseActionButton action="close" label="Cerrar selector de documentos" @click="$emit('close')" />
       </header>
 
       <div class="flex-1 overflow-y-auto px-5 py-3">

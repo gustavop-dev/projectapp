@@ -69,10 +69,10 @@ function toggleExpand(id) {
             <slot name="entry-meta" :entry="entry" />
           </div>
         </div>
-        <svg class="w-4 h-4 text-text-subtle motion-safe:transition-transform motion-safe:duration-fast" :class="{ 'rotate-180': expandedIds[entry.id] }"
-          fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon
+          :action="expandedIds[entry.id] ? 'collapse' : 'expand'"
+          class="text-text-subtle motion-safe:transition-transform motion-safe:duration-fast"
+        />
       </button>
 
       <BaseCollapse :open="Boolean(expandedIds[entry.id])">
@@ -99,7 +99,8 @@ function toggleExpand(id) {
             <div class="flex flex-wrap gap-1">
               <span v-for="(name, idx) in entry.metadata.attachment_names" :key="idx"
                 class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface border border-border-default rounded text-2xs text-text-muted">
-                &#128206; {{ name }}
+                <BaseActionIcon action="attach" />
+                {{ name }}
               </span>
             </div>
           </div>

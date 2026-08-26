@@ -33,9 +33,7 @@
       <template #cell-short_link="{ row: card }">
         <div class="flex min-w-0 items-center gap-2">
           <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ shortLinkFor(card) }}</code>
-          <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(card)">
-            <ClipboardIcon class="h-4 w-4" />
-          </BaseButton>
+          <BaseActionButton action="copy" label="Copiar link" size="sm" @click="copyLink(card)" />
         </div>
       </template>
 
@@ -148,7 +146,6 @@
 
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
-import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -198,17 +195,20 @@ const linktreeOptions = computed(() => [
 function qrCardActionItems(card) {
   return [
     {
+      action: 'download',
       label: 'Descargar QR',
       testid: `qr-card-download-${card.id}`,
       onClick: () => openDownloadModal(card),
     },
     {
+      action: 'edit',
       label: 'Editar',
       testid: `qr-card-edit-${card.id}`,
       onClick: () => openEditModal(card),
     },
     { divider: true },
     {
+      action: 'delete',
       label: 'Eliminar',
       danger: true,
       testid: `qr-card-delete-${card.id}`,

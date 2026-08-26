@@ -19,14 +19,7 @@
           ¿Cómo conectar un conector a Claude?
         </span>
         <BaseBadge variant="primary" size="sm" class="shrink-0">Guía paso a paso</BaseBadge>
-        <svg
-          class="ml-auto h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-200 group-open:rotate-180"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon action="expand" class="ml-auto text-text-subtle transition-transform duration-200 group-open:rotate-180" />
       </summary>
 
       <div class="px-4 sm:px-5 pb-5 pt-1 border-t border-border-muted">
@@ -87,15 +80,10 @@
           @keydown.enter.prevent="toggleRow(connector.slug)"
           @keydown.space.prevent="toggleRow(connector.slug)"
         >
-          <svg
-            class="h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-200"
-            :class="{ 'rotate-180': isExpanded(connector.slug) }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon
+            :action="isExpanded(connector.slug) ? 'collapse' : 'expand'"
+            class="text-text-subtle"
+          />
           <h2 class="text-base font-bold text-text-default truncate">{{ connector.name }}</h2>
 
           <div class="ml-7 flex w-full items-center justify-between gap-2 panel-portrait:ml-auto panel-portrait:w-auto panel-portrait:justify-end panel-portrait:gap-3 panel-portrait:flex-shrink-0">
@@ -179,14 +167,7 @@
               class="flex items-center gap-2 text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
               :data-testid="`mcp-activity-toggle-${connector.slug}`"
             >
-              <svg
-                class="h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
+              <BaseActionIcon action="expand" class="transition-transform duration-200 group-open:rotate-180" />
               Actividad reciente ({{ connector.recent_events.length }})
             </summary>
             <ul class="mt-2 space-y-1.5" :data-testid="`mcp-activity-list-${connector.slug}`">
@@ -212,14 +193,7 @@
               class="flex items-center gap-2 text-xs font-semibold text-text-subtle uppercase tracking-wider cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden"
               :data-testid="`mcp-tools-toggle-${connector.slug}`"
             >
-              <svg
-                class="h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
+              <BaseActionIcon action="expand" class="transition-transform duration-200 group-open:rotate-180" />
               Funciones disponibles ({{ connector.tools.length }})
             </summary>
             <ul class="mt-2 space-y-1 max-h-72 overflow-y-auto pr-1" :data-testid="`mcp-tools-list-${connector.slug}`">
@@ -238,6 +212,7 @@
               :data-testid="`mcp-generate-token-${connector.slug}`"
               @click="onGenerateToken(connector)"
             >
+              <BaseActionIcon :action="connector.has_token ? 'regenerate' : 'generate'" />
               {{ connector.has_token ? 'Regenerar token' : 'Generar token' }}
             </BaseButton>
           </div>
@@ -259,7 +234,8 @@
         >{{ tokenModal.url }}</code>
         <div class="flex flex-col-reverse items-stretch gap-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
           <BaseButton variant="secondary" size="sm" data-testid="mcp-token-copy" @click="copyTokenUrl">
-            {{ tokenModal.copied ? 'Copiada ✓' : 'Copiar URL' }}
+            <BaseActionIcon action="copy" />
+            {{ tokenModal.copied ? 'Copiada' : 'Copiar URL' }}
           </BaseButton>
           <BaseButton variant="primary" size="sm" data-testid="mcp-token-close" @click="closeTokenModal">
             Listo, la guardé

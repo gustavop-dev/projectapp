@@ -156,7 +156,7 @@ test.describe('Admin Diagnostic — Delete flow', () => {
 
     await page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`).locator('td').last().locator('button').click();
 
-    await expect(page.getByRole('button', { name: 'Eliminar' })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true })).toBeVisible({ timeout: 5000 });
   });
 
   test('confirming delete calls DELETE and removes diagnostic from list', {
@@ -186,10 +186,10 @@ test.describe('Admin Diagnostic — Delete flow', () => {
     await page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`).locator('td').last().locator('button').click();
 
     // Click Eliminar
-    await page.getByRole('button', { name: 'Eliminar' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Eliminar', exact: true }).click();
 
     // ConfirmModal: click the danger confirm button
-    await page.getByRole('button', { name: 'Eliminar', exact: true }).last().click();
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(() => expect(deleteCalled).toBe(true)).toPass({ timeout: 5000 });
     await expect(page.locator(`[data-testid="diagnostic-row-${DIAG_ID}"]`)).not.toBeVisible({ timeout: 5000 });

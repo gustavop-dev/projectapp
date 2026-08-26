@@ -46,7 +46,8 @@ const presets = [
         :data-testid="`document-state-filter-${state.id}`"
         @click="$emit('toggle', state.id)"
       >
-        <span v-if="state.system_key === 'needs_fix'" aria-hidden="true">⚠ </span>{{ state.name }}
+        <BaseActionIcon v-if="state.system_key === 'needs_fix'" action="analyze" />
+        {{ state.name }}
       </button>
       <button
         v-for="state in states.filter((item) => item.system_key === 'closed')"

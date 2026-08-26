@@ -25,7 +25,7 @@
           data-testid="incomes-new-button"
           @click="openCreateModal"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo ingreso</span>
         </BaseButton>
       </div>
@@ -180,7 +180,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo ingreso</span>
         </BaseButton>
       </template>
@@ -474,7 +474,6 @@
 
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
 import IncomeActionsModal from '~/components/accounting/IncomeActionsModal.vue';
 import IncomeRowActionsButton from '~/components/accounting/IncomeRowActionsButton.vue';
 import IncomeDetailModal from '~/components/accounting/IncomeDetailModal.vue';

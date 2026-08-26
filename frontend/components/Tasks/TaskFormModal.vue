@@ -11,7 +11,7 @@
             <h3 class="text-lg font-semibold text-text-default">
               {{ isEditing ? 'Edit task' : 'New task' }}
             </h3>
-            <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="close">✕</BaseButton>
+            <BaseActionButton action="close" label="Cerrar formulario de tarea" @click="close" />
           </div>
 
           <form class="flex flex-col flex-1 min-h-0" @submit.prevent="handleSubmit">
@@ -129,15 +129,15 @@
                     >Pendiente</span>
                     <p v-if="alert.note" class="text-xs text-text-muted mt-0.5 truncate">{{ alert.note }}</p>
                   </div>
-                  <BaseButton
+                  <BaseActionButton
+                    action="delete"
+                    label="Eliminar alerta"
                     variant="danger-ghost"
-                    icon-only
                     size="sm"
                     class="flex-shrink-0"
-                    aria-label="Eliminar alerta"
                     :disabled="deletingAlertId === alert.id"
                     @click="handleDeleteAlert(alert.id)"
-                  >✕</BaseButton>
+                  />
                 </li>
               </ul>
               <p v-else class="text-xs text-text-muted mb-3">No hay alertas definidas.</p>
@@ -168,7 +168,10 @@
                   :disabled="!newAlert.notify_at"
                   :loading="isAddingAlert"
                   @click="handleAddAlert"
-                >+ Agregar</BaseButton>
+                >
+                  <BaseActionIcon action="create" />
+                  Agregar
+                </BaseButton>
               </div>
             </div>
 
@@ -197,14 +200,14 @@
                     </div>
                     <p class="mt-0.5 text-xs text-text-muted whitespace-pre-wrap">{{ comment.text }}</p>
                   </div>
-                  <BaseButton
+                  <BaseActionButton
+                    action="delete"
+                    label="Eliminar comentario"
                     variant="danger-ghost"
-                    icon-only
                     size="sm"
                     class="flex-shrink-0"
-                    aria-label="Eliminar comentario"
                     @click="handleDeleteComment(comment.id)"
-                  >✕</BaseButton>
+                  />
                 </li>
               </ul>
               <p v-else class="text-xs text-text-muted mb-3">Sin comentarios aún.</p>
@@ -223,7 +226,10 @@
                   :disabled="!newComment.trim()"
                   :loading="isAddingComment"
                   @click="handleAddComment"
-                >+ Agregar</BaseButton>
+                >
+                  <BaseActionIcon action="create" />
+                  Agregar
+                </BaseButton>
               </div>
             </div>
 

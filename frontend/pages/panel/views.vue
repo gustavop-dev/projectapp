@@ -93,12 +93,12 @@
         <button
           v-if="search"
           type="button"
-          class="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle transition-colors hover:text-text-default"
+          class="absolute right-0 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-text-subtle transition-colors hover:text-text-default"
+          aria-label="Limpiar búsqueda"
+          title="Limpiar búsqueda"
           @click="search = ''"
         >
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <BaseActionIcon action="clear" />
         </button>
       </div>
       <FilterToggleButton
@@ -171,9 +171,7 @@
               {{ section.views.length }} vistas
             </span>
           </div>
-          <svg class="h-4 w-4 flex-shrink-0 text-text-subtle transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon action="expand" class="text-text-subtle transition-transform duration-300 group-open:rotate-180" />
         </summary>
 
         <div class="divide-y divide-border-muted">
@@ -199,21 +197,13 @@
             </div>
 
             <div class="flex items-start justify-center lg:pt-1">
-              <button
-                type="button"
+              <BaseActionButton
+                action="copy"
                 class="rounded-lg p-1.5 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-brand"
-                :title="copiedKey === `${section.id}-${view.url}` ? 'Copiado!' : 'Copiar referencia'"
+                :label="copiedKey === `${section.id}-${view.url}` ? 'Copiado: referencia' : 'Copiar referencia'"
+                :status-label="copiedKey === `${section.id}-${view.url}` ? 'Copiado: referencia' : ''"
                 @click="copyReference(section, view)"
-              >
-                <!-- Checkmark icon when copied -->
-                <svg v-if="copiedKey === `${section.id}-${view.url}`" class="h-4 w-4 text-success-strong" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                </svg>
-                <!-- Clipboard icon default -->
-                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                </svg>
-              </button>
+              />
             </div>
           </article>
         </div>

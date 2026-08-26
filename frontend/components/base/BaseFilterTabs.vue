@@ -119,11 +119,10 @@
               :data-testid="`filter-tabs-menu-${tab.id}`"
               class="touch-reveal touch-target p-0.5 rounded text-text-subtle hover:text-text-muted opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity -ml-1 mr-1"
               aria-label="Opciones del filtro"
+              title="Opciones del filtro"
               @click.stop="toggleMenu(tab.id)"
             >
-              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-              </svg>
+              <BaseActionIcon action="more" />
             </button>
             <!-- Dropdown menu -->
             <div
@@ -203,12 +202,11 @@
           ? 'text-text-subtle cursor-not-allowed'
           : 'text-text-muted hover:text-text-brand'"
         :disabled="props.isTabLimitReached"
+        :aria-label="props.isTabLimitReached ? `Máximo ${props.tabs.length} pestañas` : 'Guardar filtros como nueva pestaña'"
         :title="props.isTabLimitReached ? `Máximo ${props.tabs.length} pestañas` : 'Guardar filtros como nueva pestaña'"
         @click="!props.isTabLimitReached && startCreate()"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
+        <BaseActionIcon action="create" />
       </button>
 
       <!--

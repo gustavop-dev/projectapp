@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import ProposalFilterRangeDropdown from '../../components/proposals/ProposalFilterRangeDropdown.vue';
+import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 
 let outsideHandler = null;
 
@@ -35,14 +36,14 @@ describe('ProposalFilterRangeDropdown', () => {
     expect(wrapper.text()).toContain('Inversión');
   });
 
-  it('renders the icon and active badge when any range value is set', () => {
+  it('renders the canonical filter icon when any range value is set', () => {
     const wrapper = mountDropdown({
-      icon: '💰',
       minValue: 100,
     });
 
-    expect(wrapper.text()).toContain('💰');
-    expect(wrapper.text()).toContain('✓');
+    expect(wrapper.findAllComponents(BaseActionIcon).some((icon) => icon.props('action') === 'filter')).toBe(true);
+    expect(wrapper.text()).not.toContain('💰');
+    expect(wrapper.text()).not.toContain('✓');
   });
 
   it('emits parsed numeric min and max values', async () => {

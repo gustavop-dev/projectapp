@@ -18,7 +18,7 @@
       </div>
       <FieldInput v-model="kpi.source" label="Fuente" placeholder="HubSpot 2024" />
     </div>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ value: '', label: '', source: '' })">+ Agregar KPI</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ value: '', label: '', source: '' })"><BaseActionIcon action="create" /> Agregar KPI</button>
   </div>
   <div>
     <label class="block text-xs font-medium text-text-muted uppercase tracking-wider mb-2">Tarjetas de resumen</label>
@@ -50,7 +50,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.cards.push({ icon: '', title: '', description: '', source: 'static' })">+ Agregar tarjeta</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.cards.push({ icon: '', title: '', description: '', source: 'static' })"><BaseActionIcon action="create" /> Agregar tarjeta</button>
   </div>
 </template>
 

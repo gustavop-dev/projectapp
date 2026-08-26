@@ -45,7 +45,7 @@ test.describe('Admin Accounting Hosting Billing', () => {
 
     // The confirm previews exactly where it is going before anything is sent.
     await expect(
-      page.getByText('german@korehealths.com', { exact: false }),
+      page.getByRole('dialog').getByText('german@korehealths.com', { exact: false }),
     ).toBeVisible();
     await page.getByRole('button', { name: 'Cancelar' }).click();
     await expect(

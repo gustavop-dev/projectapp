@@ -7,9 +7,7 @@
           class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default transition-colors"
           aria-label="Volver a documentos"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
+        <BaseActionIcon action="back" />
           Volver a documentos
         </NuxtLink>
         <h1 class="text-2xl font-light text-text-default mt-2">Nuevo Documento</h1>
@@ -72,18 +70,14 @@
                   </div>
                   <p class="text-xs text-text-subtle mt-1">Asunto, correo, WhatsApp y notas personalizadas.</p>
                 </div>
-                <BaseButton
+                <BaseActionButton
                   type="button"
+                  action="notes"
                   variant="secondary"
-                  size="sm"
-                  icon-only
-                  :aria-label="notesActionLabel"
-                  :title="notesActionLabel"
+                  :label="notesActionLabel"
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
-                >
-                  <span aria-hidden="true">{{ hasNotes ? '✏️' : '📝' }}</span>
-                </BaseButton>
+                />
               </div>
             </div>
             <div>
@@ -222,9 +216,7 @@
             ]"
             @click="mode = tab.id"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="tab.iconPath" />
-            </svg>
+              <BaseActionIcon :action="tab.action" />
             {{ tab.label }}
           </button>
         </div>
@@ -242,23 +234,15 @@
                 :options="templateStyleOptions"
                 aria-label="Estilo de plantilla"
               />
-              <button
+              <BaseButton
                 type="button"
-                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-                :class="showPreview
-                  ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
-                  : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+                variant="ghost"
+                size="sm"
                 @click="showPreview = !showPreview"
               >
-                <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-                <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                </svg>
+                <BaseActionIcon :action="showPreview ? 'hide' : 'view'" />
                 {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
-              </button>
+              </BaseButton>
             </div>
           </div>
           <div :class="showPreview ? 'grid grid-cols-1 panel-desktop:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
@@ -604,12 +588,12 @@ const modeTabs = [
   {
     id: 'paste',
     label: 'Pegar Markdown',
-    iconPath: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+    action: 'paste',
   },
   {
     id: 'upload',
     label: 'Cargar Archivo',
-    iconPath: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
+    action: 'upload',
   },
 ];
 

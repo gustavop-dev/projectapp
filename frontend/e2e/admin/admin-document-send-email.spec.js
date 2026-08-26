@@ -62,7 +62,7 @@ function baseRoutes(apiPath) {
 
 async function openSendEmailModal(page) {
   await page.goto('/en-us/panel/documents', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
+  await page.getByRole('row', { name: /Contrato de Servicios/i }).getByRole('button', { name: /^Acciones de / }).click();
   await page.getByRole('button', { name: /Enviar por correo/i }).click();
   await expect(page.getByRole('heading', { name: 'Enviar por correo' })).toBeVisible();
 }

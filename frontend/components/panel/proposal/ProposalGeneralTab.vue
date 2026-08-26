@@ -49,13 +49,13 @@
       <div>
         <div class="flex items-center gap-1">
           <span class="text-text-subtle text-xs">URL pública</span>
-          <button type="button"
-            :title="copied ? 'Copiado!' : 'Copiar URL'"
+          <BaseActionButton
+            action="copy"
+            :label="copied ? 'Copiado: URL pública' : 'Copiar URL pública'"
+            :status-label="copied ? 'Copiado: URL pública' : ''"
             @click="copyUrl"
-            class="text-text-subtle hover:text-text-brand transition-colors">
-            <DocumentDuplicateIcon v-if="!copied" class="w-3.5 h-3.5" />
-            <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
-          </button>
+            class="-my-1 text-text-subtle hover:text-text-brand"
+          />
         </div>
         <p class="mt-0.5">
           <a :href="'/proposal/' + publicIdentifier" target="_blank" class="text-text-brand hover:underline text-xs break-all">
@@ -65,13 +65,13 @@
         <div v-for="link in proposalModeLinks" :key="link.mode" class="mt-2">
           <div class="flex items-center gap-1">
             <span class="text-text-subtle text-xs">{{ link.labelUrl }}</span>
-            <button type="button"
-              :title="copiedMode === link.mode ? 'Copiado!' : 'Copiar URL'"
+            <BaseActionButton
+              action="copy"
+              :label="copiedMode === link.mode ? `Copiado: ${link.labelUrl}` : `Copiar ${link.labelUrl}`"
+              :status-label="copiedMode === link.mode ? `Copiado: ${link.labelUrl}` : ''"
               @click="copyModeUrl(link.mode)"
-              class="text-text-subtle hover:text-text-brand transition-colors">
-              <DocumentDuplicateIcon v-if="copiedMode !== link.mode" class="w-3.5 h-3.5" />
-              <CheckIcon v-else class="w-3.5 h-3.5 text-success-strong" />
-            </button>
+              class="-my-1 text-text-subtle hover:text-text-brand"
+            />
           </div>
           <p class="mt-0.5">
             <a :href="'/proposal/' + publicIdentifier + '?mode=' + link.mode" target="_blank" class="text-text-brand hover:underline text-xs break-all">
@@ -102,18 +102,14 @@
           <a :href="'/api/proposals/' + proposal.uuid + '/pdf/'"
              target="_blank"
              class="inline-flex items-center gap-1.5 text-text-brand hover:text-text-brand text-xs font-medium transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <BaseActionIcon action="download" />
             Propuesta comercial
           </a>
           <span class="text-text-subtle text-xs">|</span>
           <a :href="'/api/proposals/' + proposal.uuid + '/pdf/?doc=technical'"
              target="_blank"
              class="inline-flex items-center gap-1.5 text-text-brand hover:text-text-brand text-xs font-medium transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
+            <BaseActionIcon action="download" />
             Detalle técnico
           </a>
         </div>
@@ -478,7 +474,7 @@
           </p>
         </div>
         <BaseButton variant="secondary" size="sm" class="shrink-0" data-testid="edit-email-preview-btn" @click="emit('open-email-preview')">
-          👁 Vista previa
+          <BaseActionIcon action="view" /> Vista previa
         </BaseButton>
       </div>
 
@@ -501,7 +497,8 @@
             data-testid="edit-add-feature"
             @click="addEmailFeature"
           >
-            + Agregar ítem
+            <BaseActionIcon action="create" />
+            Agregar ítem
           </button>
         </div>
         <p class="text-xs text-text-muted mb-2">
@@ -747,9 +744,7 @@
             class="!w-10 !h-10 !p-0 flex-shrink-0"
             @click="emit('open-actions')"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-              <path fill-rule="evenodd" d="M14.615 1.595a.75.75 0 0 1 .359.852L12.982 9.75h7.268a.75.75 0 0 1 .548 1.262l-10.5 11.25a.75.75 0 0 1-1.272-.71l1.992-7.302H3.818a.75.75 0 0 1-.548-1.262l10.5-11.25a.75.75 0 0 1 .845-.143Z" clip-rule="evenodd" />
-            </svg>
+          <BaseActionIcon action="more" />
           </BaseButton>
         </div>
 
@@ -775,8 +770,6 @@
 import { computed, ref, watch } from 'vue';
 import {
   QuestionMarkCircleIcon,
-  DocumentDuplicateIcon,
-  CheckIcon,
 } from '@heroicons/vue/24/outline';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import TabSplitLayout from '~/components/panel/TabSplitLayout.vue';

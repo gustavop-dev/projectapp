@@ -1,11 +1,13 @@
 <template>
   <div>
     <div class="flex items-center gap-4 mb-8">
-      <NuxtLink :to="localePath('/panel/blog')" class="text-text-subtle hover:text-text-default transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-      </NuxtLink>
+      <BaseActionButton
+        as="NuxtLink"
+        :to="localePath('/panel/blog')"
+        action="back"
+        label="Volver al blog"
+        class="text-text-subtle hover:text-text-default"
+      />
       <h1 class="text-2xl font-light text-text-default">Nuevo Blog Post</h1>
     </div>
 
@@ -110,14 +112,15 @@
       <div>
         <div class="flex items-center justify-between mb-2">
           <label class="block text-sm font-medium text-text-default">Fuentes</label>
-          <button type="button" class="text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">+ Agregar fuente</button>
+          <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:text-text-brand transition-colors" @click="addSource">
+            <BaseActionIcon action="create" />
+            Agregar fuente
+          </button>
         </div>
         <div v-for="(source, idx) in form.sources" :key="idx" class="flex gap-2 mb-2">
           <input v-model="source.name" type="text" class="bg-input-bg flex-1 px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="Nombre de la fuente" />
           <input v-model="source.url" type="url" class="bg-input-bg flex-[2] px-3 py-2 rounded-lg border border-border-default  text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring transition-all" placeholder="https://..." />
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeSource(idx)">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-          </BaseButton>
+          <BaseActionButton action="remove" variant="danger-ghost" label="Quitar fuente" @click="removeSource(idx)" />
         </div>
         <p v-if="form.sources.length === 0" class="text-xs text-text-subtle">No hay fuentes agregadas.</p>
       </div>
@@ -170,7 +173,7 @@
             <p class="text-xs text-text-subtle mt-0.5">Descarga la plantilla con todas las secciones y campos de ejemplo.</p>
           </div>
           <BaseButton variant="primary" size="md" :disabled="isDownloading" @click="downloadTemplate">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <BaseActionIcon action="download" />
             {{ isDownloading ? 'Descargando...' : 'Descargar Plantilla' }}
           </BaseButton>
         </div>
@@ -181,7 +184,7 @@
         <h3 class="text-sm font-medium text-text-default mb-3">Pegar o subir JSON</h3>
         <div class="flex items-center gap-3 mb-3">
           <label class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm text-text-default hover:bg-surface-raised cursor-pointer transition-colors">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+            <BaseActionIcon action="upload" />
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
           </label>

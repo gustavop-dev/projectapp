@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { TrashIcon, PlusIcon } from '@heroicons/vue/24/outline'
 import ConfirmModal from '~/components/ConfirmModal.vue'
 import { useConfirmModal } from '~/composables/useConfirmModal'
 import { usePanelNotify } from '~/composables/usePanelNotify'
@@ -173,15 +172,14 @@ function requestDelete(row) {
             :data-testid="`recipients-toggle-${row.id}`"
             @update:model-value="toggleRecipient(row)"
           />
-          <BaseButton
+          <BaseActionButton
+            action="remove"
             variant="danger-ghost"
             size="sm"
-            :aria-label="`Quitar ${row.email}`"
+            :label="`Quitar ${row.email}`"
             :data-testid="`recipients-remove-${row.id}`"
             @click="requestDelete(row)"
-          >
-            <TrashIcon class="w-4 h-4" />
-          </BaseButton>
+          />
         </div>
       </li>
     </ul>
@@ -205,7 +203,7 @@ function requestDelete(row) {
           data-testid="recipients-add"
           @click="addRecipient"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>{{ isAdding ? 'Agregando...' : 'Agregar' }}</span>
         </BaseButton>
       </div>

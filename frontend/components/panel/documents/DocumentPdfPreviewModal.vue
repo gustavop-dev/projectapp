@@ -17,12 +17,11 @@
         icon-only
         size="md"
         class="w-9 h-9 flex-shrink-0"
-        aria-label="Cerrar vista previa del PDF"
+          aria-label="Cerrar vista previa del PDF"
+          title="Cerrar vista previa del PDF"
         @click="emit('update:modelValue', false)"
       >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+          <BaseActionIcon action="close" />
       </BaseButton>
     </div>
 

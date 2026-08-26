@@ -397,6 +397,7 @@ Client-facing document delivery + click-to-accept signing at `/platform/document
 
 ## 5. Non-Functional Requirements
 
+- **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
 - **Responsive acceptance**: Every panel and public view must pass the same five automated reference viewports (phone 412 px, portrait tablet 835 px, landscape tablet 1195 px, laptop 1440 px, large monitor 2560 px), followed by the separately evidenced physical-device pass required for final certification. Shared components own repeated behavior; large-monitor content keeps an explicit readable maximum width.
 - **Performance**: Hybrid SSR/SPA rendering; SSR for SEO-critical pages (home, landing, portfolio, blog), SPA for admin and proposal views
 - **Security**: Dual auth — session/CSRF for `/panel/`, JWT (SimpleJWT) for `/platform/`; staff-only admin endpoints; CORS/CSRF trusted origins; Fernet encryption for project admin credentials (`PROJECT_ACCESS_CIPHER_KEY`)

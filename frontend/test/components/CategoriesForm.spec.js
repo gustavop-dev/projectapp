@@ -122,7 +122,7 @@ describe('CategoriesForm', () => {
 
   it('addFinding appends a finding row and emits update:modelValue', async () => {
     const wrapper = mountForm([makeCategory()]);
-    const addButtons = wrapper.findAll('button').filter((b) => b.text() === '+ Agregar');
+    const addButtons = wrapper.findAll('button').filter((b) => b.text() === 'Agregar');
 
     await addButtons[0].trigger('click');
     await flushPromises();
@@ -136,7 +136,7 @@ describe('CategoriesForm', () => {
 
   it('addRec appends a recommendation row and emits update:modelValue', async () => {
     const wrapper = mountForm([makeCategory()]);
-    const addButtons = wrapper.findAll('button').filter((b) => b.text() === '+ Agregar');
+    const addButtons = wrapper.findAll('button').filter((b) => b.text() === 'Agregar');
 
     await addButtons[1].trigger('click');
     await flushPromises();

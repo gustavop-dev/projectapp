@@ -23,19 +23,17 @@
             <label for="document-client-note-subject" class="text-sm font-medium text-text-default">
               Asunto del correo
             </label>
-            <BaseButton
+            <BaseActionButton
+              action="copy"
               type="button"
               variant="ghost"
               size="sm"
-              icon-only
-              :aria-label="copyLabel('subject', 'asunto')"
-              :title="copyLabel('subject', 'asunto')"
+              :label="copyLabel('subject', 'asunto')"
+              :status-label="copyStatus('subject', 'asunto')"
               :disabled="saving || !draft.subject.trim()"
               data-testid="client-note-copy-subject"
               @click="copyText('subject', draft.subject)"
-            >
-              <span aria-hidden="true">{{ copyEmoji('subject') }}</span>
-            </BaseButton>
+            />
           </div>
           <BaseInput
             id="document-client-note-subject"
@@ -52,19 +50,17 @@
             <label for="document-client-note-email" class="text-sm font-medium text-text-default">
               Correo
             </label>
-            <BaseButton
+            <BaseActionButton
+              action="copy"
               type="button"
               variant="ghost"
               size="sm"
-              icon-only
-              :aria-label="copyLabel('email', 'correo')"
-              :title="copyLabel('email', 'correo')"
+              :label="copyLabel('email', 'correo')"
+              :status-label="copyStatus('email', 'correo')"
               :disabled="saving || !draft.emailBody.trim()"
               data-testid="client-note-copy-email"
               @click="copyText('email', draft.emailBody)"
-            >
-              <span aria-hidden="true">{{ copyEmoji('email') }}</span>
-            </BaseButton>
+            />
           </div>
           <BaseTextarea
             id="document-client-note-email"
@@ -81,19 +77,17 @@
             <label for="document-client-note-whatsapp" class="text-sm font-medium text-text-default">
               WhatsApp
             </label>
-            <BaseButton
+            <BaseActionButton
+              action="copy"
               type="button"
               variant="ghost"
               size="sm"
-              icon-only
-              :aria-label="copyLabel('whatsapp', 'WhatsApp')"
-              :title="copyLabel('whatsapp', 'WhatsApp')"
+              :label="copyLabel('whatsapp', 'WhatsApp')"
+              :status-label="copyStatus('whatsapp', 'WhatsApp')"
               :disabled="saving || !draft.whatsappMessage.trim()"
               data-testid="client-note-copy-whatsapp"
               @click="copyText('whatsapp', draft.whatsappMessage)"
-            >
-              <span aria-hidden="true">{{ copyEmoji('whatsapp') }}</span>
-            </BaseButton>
+            />
           </div>
           <BaseTextarea
             id="document-client-note-whatsapp"
@@ -123,7 +117,8 @@
             data-testid="client-note-add-custom"
             @click="addCustomNote"
           >
-            + Agregar nota
+            <BaseActionIcon action="create" />
+            Agregar nota
           </BaseButton>
         </div>
 
@@ -143,20 +138,17 @@
         >
           <div class="flex items-center justify-between gap-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Nota {{ index + 1 }}</p>
-            <BaseButton
+            <BaseActionButton
               v-if="!readonly"
+              action="delete"
               type="button"
               variant="danger-ghost"
               size="sm"
-              icon-only
+              :label="`Eliminar nota ${index + 1}`"
               :disabled="saving"
-              :aria-label="`Eliminar nota ${index + 1}`"
-              :title="`Eliminar nota ${index + 1}`"
               :data-testid="`client-note-custom-delete-${index}`"
               @click="removeCustomNote(index)"
-            >
-              <TrashIcon class="w-4 h-4" />
-            </BaseButton>
+            />
           </div>
 
           <div class="space-y-1.5">
@@ -164,19 +156,17 @@
               <label :for="`document-custom-note-title-${index}`" class="text-sm font-medium text-text-default">
                 Título
               </label>
-              <BaseButton
+              <BaseActionButton
+                action="copy"
                 type="button"
                 variant="ghost"
                 size="sm"
-                icon-only
-                :aria-label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
-                :title="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
+                :label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
+                :status-label="copyStatus(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :disabled="saving || !note.title.trim()"
                 :data-testid="`client-note-custom-copy-title-${index}`"
                 @click="copyText(`custom-title-${note.key}`, note.title)"
-              >
-                <span aria-hidden="true">{{ copyEmoji(`custom-title-${note.key}`) }}</span>
-              </BaseButton>
+              />
             </div>
             <BaseInput
               :id="`document-custom-note-title-${index}`"
@@ -201,19 +191,17 @@
               <label :for="`document-custom-note-content-${index}`" class="text-sm font-medium text-text-default">
                 Contenido
               </label>
-              <BaseButton
+              <BaseActionButton
+                action="copy"
                 type="button"
                 variant="ghost"
                 size="sm"
-                icon-only
-                :aria-label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
-                :title="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
+                :label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
+                :status-label="copyStatus(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :disabled="saving || !note.content.trim()"
                 :data-testid="`client-note-custom-copy-content-${index}`"
                 @click="copyText(`custom-content-${note.key}`, note.content)"
-              >
-                <span aria-hidden="true">{{ copyEmoji(`custom-content-${note.key}`) }}</span>
-              </BaseButton>
+              />
             </div>
             <BaseTextarea
               :id="`document-custom-note-content-${index}`"
@@ -261,16 +249,16 @@
               </BaseBadge>
             </div>
             <div class="mt-2 flex justify-end">
-              <BaseButton
+              <BaseActionButton
+                action="copy"
                 type="button"
                 variant="ghost"
                 size="sm"
-                :aria-label="copyLabel(`observation-${note.id}`, `observación ${note.title || note.id}`)"
+                :label="copyLabel(`observation-${note.id}`, `observación ${note.title || note.id}`)"
+                :status-label="copyStatus(`observation-${note.id}`, `observación ${note.title || note.id}`)"
                 :data-testid="`document-observation-copy-${note.id}`"
                 @click="copyText(`observation-${note.id}`, note.content)"
-              >
-                {{ copyEmoji(`observation-${note.id}`) }} Copiar
-              </BaseButton>
+              />
             </div>
             <p v-if="note.resolution_note" class="mt-2 text-xs text-text-subtle">
               Cierre: {{ note.resolution_note }}
@@ -355,7 +343,6 @@
 
 <script setup>
 import { reactive, ref, watch } from 'vue';
-import { TrashIcon } from '@heroicons/vue/24/outline';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useDocumentStateStore } from '~/stores/document_states';
 
@@ -458,12 +445,12 @@ function submit() {
   });
 }
 
-function copyEmoji(field) {
-  return copiedField.value === field ? '✅' : '📋';
-}
-
 function copyLabel(field, label) {
   return copiedField.value === field ? `Copiado: ${label}` : `Copiar ${label}`;
+}
+
+function copyStatus(field, label) {
+  return copiedField.value === field ? `Copiado: ${label}` : '';
 }
 
 async function copyText(field, value) {

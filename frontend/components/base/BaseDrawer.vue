@@ -93,11 +93,7 @@ watch(
               {{ title }}
             </h2>
           </slot>
-          <BaseButton variant="ghost" size="md" aria-label="Cerrar" @click="close">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </BaseButton>
+          <BaseActionButton action="close" label="Cerrar" size="md" @click="close" />
         </header>
 
         <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">

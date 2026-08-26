@@ -124,7 +124,10 @@ async function createGroup() {
   <main class="mx-auto w-full max-w-6xl space-y-6" data-testid="document-state-catalog">
     <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <NuxtLink :to="localePath('/panel/documents')" class="text-sm text-text-muted hover:text-text-default">← Volver a documentos</NuxtLink>
+        <NuxtLink :to="localePath('/panel/documents')" class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default">
+          <BaseActionIcon action="back" />
+          Volver a documentos
+        </NuxtLink>
         <h1 class="mt-2 text-2xl font-light text-text-default">Estados de documentos</h1>
         <p class="mt-1 max-w-2xl text-sm text-text-muted">Administra el ciclo, las señales, sus colores y las reglas de exclusión. Los episodios históricos nunca se borran.</p>
       </div>

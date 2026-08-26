@@ -1,12 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import {
-  ClockIcon,
-  EnvelopeIcon,
-  PaperAirplaneIcon,
-  PencilSquareIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/base/BaseButton.vue'
 import BaseModal from '~/components/base/BaseModal.vue'
 
@@ -23,11 +16,11 @@ const actions = computed(() => {
   if (!row) return []
   return [
     {
-      id: 'cycles', label: 'Ciclos de pago', icon: ClockIcon, event: 'cycles',
+      id: 'cycles', action: 'billing-cycles', label: 'Ciclos de pago', event: 'cycles',
       description: 'Registrar un pago o revisar el histórico.',
     },
     {
-      id: 'send-billing', label: 'Enviar cuenta de cobro', icon: PaperAirplaneIcon,
+      id: 'send-billing', action: 'send', label: 'Enviar cuenta de cobro',
       event: 'send-billing',
       disabled: !row.billing_email || props.billingBusy,
       description: row.billing_email
@@ -35,10 +28,10 @@ const actions = computed(() => {
         : 'Vincula un cliente con correo o agrega un email de facturación.',
     },
     {
-      id: 'emails', label: 'Ver correos enviados', icon: EnvelopeIcon, event: 'emails',
+      id: 'emails', action: 'email-history', label: 'Ver correos enviados', event: 'emails',
     },
-    { id: 'edit', label: 'Editar', icon: PencilSquareIcon, event: 'edit' },
-    { id: 'delete', label: 'Eliminar', icon: TrashIcon, event: 'delete', danger: true },
+    { id: 'edit', action: 'edit', label: 'Editar', event: 'edit' },
+    { id: 'delete', action: 'delete', label: 'Eliminar', event: 'delete', danger: true },
   ]
 })
 
@@ -82,7 +75,7 @@ function run(action) {
             :data-testid="`hosting-${action.id}-${record?.id}`"
             @click="run(action)"
           >
-            <component :is="action.icon" class="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+            <BaseActionIcon :action="action.action" class="mt-0.5 h-5 w-5" />
             <span class="min-w-0">
               <span class="block">{{ action.label }}</span>
               <span v-if="action.description" class="mt-0.5 block text-xs text-text-subtle">

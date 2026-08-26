@@ -21,7 +21,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.steps.push({ title: '', description: '' })">+ Agregar paso</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.steps.push({ title: '', description: '' })"><BaseActionIcon action="create" /> Agregar paso</button>
   </div>
   <FieldTextarea v-model="form.ctaMessage" label="Mensaje CTA" :rows="2" :isSingle="true" />
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -57,7 +57,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="form.contactMethods.push({ icon: '', title: '', value: '', link: '' })">+ Agregar método</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="form.contactMethods.push({ icon: '', title: '', value: '', link: '' })"><BaseActionIcon action="create" /> Agregar método</button>
   </div>
   <FieldTextarea v-model="form.validityMessage" label="Mensaje de vigencia" :rows="2" :isSingle="true" />
   <FieldTextarea v-model="form.thankYouMessage" label="Mensaje de agradecimiento" :rows="2" :isSingle="true" />

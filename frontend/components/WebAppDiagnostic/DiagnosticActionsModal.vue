@@ -7,14 +7,12 @@
           Selecciona una acción para este diagnóstico.
         </p>
       </div>
-      <button
-        type="button"
+      <BaseActionButton
+        action="close"
+        label="Cerrar acciones del diagnóstico"
         class="w-11 h-11 -m-2 flex items-center justify-center rounded-lg text-text-subtle hover:text-text-default hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
-        aria-label="Cerrar"
         @click="$emit('close')"
-      >
-        ✕
-      </button>
+      />
     </div>
 
     <div class="px-4 sm:px-6 py-4 space-y-2">
@@ -30,7 +28,9 @@
         class="w-full flex items-start gap-3 p-3 rounded-xl border border-border-muted hover:bg-surface-raised motion-safe:transition-colors motion-safe:duration-fast text-left focus:outline-none focus:ring-2 focus:ring-focus-ring/40"
         @click="handleActionClick(action)"
       >
-        <span :class="['inline-block w-2 h-2 mt-2 rounded-full flex-shrink-0', action.dotClass]"></span>
+        <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface-raised text-text-subtle">
+          <BaseActionIcon :action="action.action" />
+        </span>
         <span class="flex-1 min-w-0">
           <span class="flex items-center gap-2 flex-wrap">
             <span class="text-sm font-medium text-text-default">{{ action.label }}</span>
@@ -82,6 +82,7 @@ const actions = computed(() => {
   if (status === 'draft' && hasEmail) {
     list.push({
       key: 'send',
+      action: 'send',
       label: 'Enviar envío inicial',
       description: 'Envía por email el diagnóstico inicial al cliente.',
       dotClass: 'bg-info-strong',
@@ -90,6 +91,7 @@ const actions = computed(() => {
   if (['sent', 'viewed'].includes(status) && hasEmail) {
     list.push({
       key: 'resend',
+      action: 'resend',
       label: 'Re-enviar al cliente',
       description: 'Vuelve a enviar el email del diagnóstico inicial.',
       dotClass: 'bg-info-strong',
@@ -98,6 +100,7 @@ const actions = computed(() => {
   if (transitions.includes('negotiating')) {
     list.push({
       key: 'analyze',
+      action: 'analyze',
       label: 'Marcar en análisis',
       description: 'Confirma que el cliente autorizó y mueve a Negociación.',
       dotClass: 'bg-warning-strong',
@@ -106,6 +109,7 @@ const actions = computed(() => {
   if (status === 'negotiating' && !d.final_sent_at) {
     list.push({
       key: 'send-final',
+      action: 'send',
       label: 'Enviar diagnóstico final',
       description: 'Envía por email el diagnóstico final con el análisis completo.',
       dotClass: 'bg-primary',
@@ -114,6 +118,7 @@ const actions = computed(() => {
   if (d.public_url) {
     list.push({
       key: 'preview',
+      action: 'open-external',
       label: 'Vista previa pública',
       description: 'Abre el diagnóstico en una nueva pestaña tal como lo ve el cliente.',
       dotClass: 'bg-surface-raised border border-border-default',
@@ -123,6 +128,7 @@ const actions = computed(() => {
   if (status && !TERMINAL.has(status)) {
     list.push({
       key: 'delete',
+      action: 'delete',
       label: 'Eliminar',
       description: 'Elimina el diagnóstico. Esta acción no se puede deshacer.',
       dotClass: 'bg-danger-strong',

@@ -61,7 +61,13 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand border border-emerald-200 dark:border-emerald-700"
       >
         {{ chip.label }}
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" @click="clearChip(chip.key)">&times;</BaseButton>
+        <BaseActionButton
+          action="remove"
+          :label="`Quitar filtro ${chip.label}`"
+          variant="danger-ghost"
+          size="sm"
+          @click="clearChip(chip.key)"
+        />
       </span>
     </div>
   </div>

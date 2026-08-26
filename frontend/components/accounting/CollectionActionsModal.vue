@@ -1,15 +1,5 @@
 <script setup>
 import { computed } from 'vue'
-import {
-  ChatBubbleBottomCenterTextIcon,
-  CheckCircleIcon,
-  DocumentArrowDownIcon,
-  EnvelopeIcon,
-  EyeIcon,
-  NoSymbolIcon,
-  PaperAirplaneIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline'
 import BaseButton from '~/components/base/BaseButton.vue'
 import BaseModal from '~/components/base/BaseModal.vue'
 import { formatMoney } from '~/utils/formatMoney'
@@ -30,30 +20,30 @@ const actions = computed(() => {
   if (!row) return []
 
   const list = [
-    { id: 'view-detail', label: 'Ver detalle', icon: EyeIcon, event: 'detail' },
+    { id: 'view-detail', action: 'view', label: 'Ver detalle', event: 'detail' },
   ]
 
   if (row.notes) {
     list.push({
-      id: 'notes', label: 'Ver notas internas', icon: ChatBubbleBottomCenterTextIcon,
+      id: 'notes', action: 'notes', label: 'Ver notas internas',
       event: 'notes',
     })
   }
 
   list.push(
     {
-      id: 'download-pdf', label: 'Descargar PDF', icon: DocumentArrowDownIcon,
+      id: 'download-pdf', action: 'download', label: 'Descargar PDF',
       event: 'download',
     },
     {
-      id: 'emails', label: 'Ver correos enviados', icon: EnvelopeIcon,
+      id: 'emails', action: 'email-history', label: 'Ver correos enviados',
       event: 'emails',
     },
   )
 
   if (['issued', 'paid'].includes(row.commercial_status)) {
     list.push({
-      id: 'resend', label: 'Reenviar al cliente', icon: PaperAirplaneIcon,
+      id: 'resend', action: 'resend', label: 'Reenviar al cliente',
       event: 'resend',
     })
   }
@@ -61,21 +51,21 @@ const actions = computed(() => {
   if (row.commercial_status === 'issued') {
     list.push({
       id: 'mark-paid',
+      action: 'complete',
       label: row.income_kind === 'expected' ? 'Registrar pago (liquidar)' : 'Marcar pagada',
-      icon: CheckCircleIcon,
       event: 'mark-paid',
     })
   }
 
   if (['draft', 'issued'].includes(row.commercial_status)) {
     list.push({
-      id: 'cancel', label: 'Anular', icon: NoSymbolIcon, event: 'cancel', danger: true,
+      id: 'cancel', action: 'void', label: 'Anular', event: 'cancel', danger: true,
     })
   }
 
   if (row.can_delete) {
     list.push({
-      id: 'delete', label: 'Eliminar', icon: TrashIcon, event: 'delete', danger: true,
+      id: 'delete', action: 'delete', label: 'Eliminar', event: 'delete', danger: true,
     })
   }
 
@@ -124,7 +114,7 @@ function run(action) {
             :data-testid="`collection-${action.id}-${record?.id}`"
             @click="run(action)"
           >
-            <component :is="action.icon" class="h-5 w-5 shrink-0" aria-hidden="true" />
+            <BaseActionIcon :action="action.action" class="h-5 w-5" />
             <span>{{ action.label }}</span>
           </button>
         </li>
