@@ -969,3 +969,17 @@ clamp and make the measurement say “complete.” The shared primitive therefor
 owns collapsed and expanded display state; consumers may supply typography and
 color only. Test both the table and the compact card, because their width and
 consumer-class combinations are materially different.
+
+## 40. A floating control belongs to the modal, not its scroll panel
+
+An absolutely positioned results list still participates in the clipping rules
+of every ancestor. Increasing one modal's fixed height only moves the defect to
+the next short modal. A reusable searchable selector therefore needs a shared
+portal target at the modal overlay boundary, plus explicit ownership of focus,
+Escape, outside clicks, viewport placement and scrolling.
+
+Teleporting alone is incomplete: a body-level list can escape the focus trap or
+outlive the dialog. The modal must register its floating descendants and trap
+focus at the dialog boundary. Behavioral tests should assert DOM ownership and
+scroll positions, not just that an option exists; otherwise a clipped option
+still produces a deceptively green test.

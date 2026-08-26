@@ -17,12 +17,8 @@ jest.mock('../../../stores/services/request_http', () => ({
   patch_request: jest.fn(),
 }));
 
-jest.mock('@vueuse/core', () => ({
-  ...jest.requireActual('@vueuse/core'),
-  onClickOutside: jest.fn(),
-}));
-
 const { get_request } = require('../../../stores/services/request_http');
+const mountedWrappers = [];
 
 const CATALOG = {
   data: {
@@ -42,7 +38,12 @@ const CATALOG = {
 
 function mountSelect(props = {}) {
   setActivePinia(createPinia());
-  return mount(ProjectCatalogSelect, { props });
+  const wrapper = mount(ProjectCatalogSelect, {
+    props,
+    global: { stubs: { Teleport: true } },
+  });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 const input = (wrapper) => wrapper.find('[data-testid="project-catalog-select"]');
@@ -51,6 +52,10 @@ describe('ProjectCatalogSelect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     get_request.mockResolvedValue(CATALOG);
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   });
 
   it('fetches the catalog lazily on first open and lists actives first', async () => {

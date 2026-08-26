@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { onClickOutside, useDebounceFn } from '@vueuse/core';
+import { computed, ref, useId, watch } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
+import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
@@ -65,6 +66,8 @@ const incomeOpen = ref(false);
 const searchingIncomes = ref(false);
 const showIncomeForm = ref(false);
 const incomeBoxRef = ref(null);
+const incomeInputRef = ref(null);
+const incomeListboxId = `${useId()}-income-listbox`;
 
 /**
  * Quick filters, applied client-side.
@@ -248,12 +251,6 @@ function onIncomeFocus() {
   // would shrink the set the chip counts describe.
   if (!incomeFetched) loadIncomes(incomeQuery.value.trim());
 }
-
-// The list is the only thing that closes on its own today (picking a row), so
-// once it also renders on zero results it needs a way out that is not a pick.
-onClickOutside(incomeBoxRef, () => {
-  incomeOpen.value = false;
-});
 
 // ── Quick filters: alcance × estado ──
 
@@ -911,6 +908,7 @@ function downloadPdf() {
           </div>
           <div class="relative">
             <input
+              ref="incomeInputRef"
               v-model="incomeQuery"
               type="text"
               role="combobox"
@@ -918,6 +916,7 @@ function downloadPdf() {
               aria-autocomplete="list"
               aria-haspopup="listbox"
               :aria-expanded="incomeOpen"
+              :aria-controls="incomeOpen ? incomeListboxId : undefined"
               placeholder="Buscar ingreso por concepto..."
               data-testid="collection-form-income"
               :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE.md]"
@@ -925,10 +924,13 @@ function downloadPdf() {
               @focus="onIncomeFocus"
               @keydown.esc.prevent="incomeOpen = false"
             >
-            <ul
-              v-if="incomeOpen"
-              class="absolute z-30 mt-1 w-full max-h-64 overflow-auto rounded-xl border border-border-default bg-surface shadow-lg"
-              role="listbox"
+            <BaseFloatingListbox
+              :id="incomeListboxId"
+              as="ul"
+              :open="incomeOpen"
+              :anchor="incomeInputRef"
+              :owner="incomeBoxRef"
+              @close="incomeOpen = false"
             >
               <li v-if="searchingIncomes" class="px-3 py-2 text-sm text-text-subtle">
                 Buscando...
@@ -1006,7 +1008,7 @@ function downloadPdf() {
                   Mostrando {{ group.rows.length }} de {{ group.total }} · escribe para filtrar
                 </li>
               </template>
-            </ul>
+            </BaseFloatingListbox>
             <p
               v-if="incomeClientConflict"
               class="text-xs text-warning-strong mt-1"

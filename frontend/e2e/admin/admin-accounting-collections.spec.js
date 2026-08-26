@@ -800,7 +800,8 @@ test.describe('Admin Accounting Collections', () => {
 
     // Before choosing a client the whole eligible ledger is on offer.
     await page.getByTestId('collection-form-income').click();
-    await expect(page.getByTestId('collection-form-income-option-22')).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-option-22'))
+      .toBeInViewport({ ratio: 1 });
 
     await page.getByTestId('collection-form-client').fill('Acme');
     await page.getByTestId('client-autocomplete-option-5').click();
