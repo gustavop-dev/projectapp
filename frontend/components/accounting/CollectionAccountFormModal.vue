@@ -79,8 +79,9 @@ const incomeListboxId = `${useId()}-income-listbox`;
  * If the eligible set ever reaches the thousands, the counts move to the
  * endpoint's `meta` and this goes back to being server-side.
  */
+const DEFAULT_INCOME_KIND = 'expected';
 const incomeScope = ref('all'); // 'client' | 'all'
-const incomeKind = ref('all'); // 'all' | 'expected' | 'liquid'
+const incomeKind = ref(DEFAULT_INCOME_KIND); // 'all' | 'expected' | 'liquid'
 
 /** Rows rendered per group; the rest are announced, never dropped in silence. */
 const INCOME_GROUP_LIMIT = 25;
@@ -153,7 +154,7 @@ watch(
     incomeQuery.value = '';
     incomeOptions.value = [];
     incomeScope.value = 'all';
-    incomeKind.value = 'all';
+    incomeKind.value = DEFAULT_INCOME_KIND;
     incomeFetched = false;
     if (props.income) {
       applyIncome(props.income);
@@ -228,7 +229,9 @@ async function loadIncomes(query) {
 watch(clientId, (id) => {
   if (!props.open) return;
   incomeScope.value = id ? 'client' : 'all';
-  incomeKind.value = 'all';
+  // A cuenta normally bills money that is still expected. Reset to that
+  // stable starting point instead of remembering the previous client's cut.
+  incomeKind.value = DEFAULT_INCOME_KIND;
 });
 
 const debouncedIncomeSearch = useDebounceFn(
@@ -416,6 +419,33 @@ const incomeEmptyMessage = computed(() => {
     ? `${selectedClientName.value} no tiene ${INCOME_KIND_PHRASE[incomeKind.value]}.`
     : `No hay ${INCOME_KIND_PHRASE[incomeKind.value]} registrados.`;
 });
+
+/**
+ * One-click escape from an empty combination.
+ *
+ * Prefer removing the kind cut while keeping the selected client. Only when
+ * that client has no eligible income at all do we fall back to widening the
+ * scope, preserving the existing route to unassigned and other-client rows.
+ */
+const incomeEmptyAction = computed(() => {
+  if (incomeKind.value !== 'all' && kindCounts.value.all > 0) {
+    return { dimension: 'kind', count: kindCounts.value.all };
+  }
+  if (effectiveIncomeScope.value === 'client' && scopeCounts.value.all > 0) {
+    return { dimension: 'scope', count: scopeCounts.value.all };
+  }
+  return null;
+});
+
+function widenEmptyIncomeResults() {
+  if (incomeEmptyAction.value?.dimension === 'kind') {
+    setIncomeKind('all');
+    return;
+  }
+  if (incomeEmptyAction.value?.dimension === 'scope') {
+    setIncomeScope('all');
+  }
+}
 
 function pickIncome(option) {
   if (option.has_collection_account) return;
@@ -944,13 +974,13 @@ function downloadPdf() {
               >
                 {{ incomeEmptyMessage }}
                 <button
-                  v-if="effectiveIncomeScope === 'client' && scopeCounts.all"
+                  v-if="incomeEmptyAction"
                   type="button"
                   class="underline text-text-brand"
                   data-testid="collection-form-income-see-all"
-                  @mousedown.prevent="setIncomeScope('all')"
+                  @click="widenEmptyIncomeResults"
                 >
-                  Ver todos ({{ scopeCounts.all }})
+                  Ver todos ({{ incomeEmptyAction.count }})
                 </button>
               </li>
               <template v-for="group in incomeGroups" :key="group.key">

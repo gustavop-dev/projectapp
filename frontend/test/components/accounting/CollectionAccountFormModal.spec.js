@@ -358,11 +358,25 @@ describe('CollectionAccountFormModal', () => {
     }
 
     it('asks for every eligible income while no client is chosen', async () => {
-      mountModal();
+      const wrapper = mountModal();
       await flushPromises();
 
       expect(lastIncomeUrl()).toContain('kind=expected%2Cliquid');
       expect(lastIncomeUrl()).not.toContain('client=');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-expected"]')
+        .attributes('aria-selected')).toBe('true');
+    });
+
+    it('keeps a partially paid expected income in the default results', async () => {
+      mockIncomes([{ ...ownIncome, payment_status: 'partial', pending_amount: '500000.00' }]);
+      const wrapper = mountModal();
+      await flushPromises();
+
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(true);
     });
 
     it('scopes to the chosen client without asking the server again', async () => {
@@ -469,7 +483,7 @@ describe('CollectionAccountFormModal', () => {
         .toBe('true');
     });
 
-    it('says which combination came back empty and offers to widen it', async () => {
+    it('widens an empty expected result to every kind for the same client', async () => {
       mockIncomes([
         { ...ownIncome, kind: 'liquid', kind_label: 'Líquido' },
         orphanIncome,
@@ -479,18 +493,38 @@ describe('CollectionAccountFormModal', () => {
       await selectClient(wrapper);
       await openOptions(wrapper);
 
-      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
-
       const empty = wrapper.find('[data-testid="collection-form-income-empty"]');
       expect(empty.text()).toContain('Acme Soluciones no tiene ingresos esperados.');
       expect(wrapper.findAll('[data-testid^="collection-form-income-option-"]'))
         .toHaveLength(0);
 
-      // The orphan expected income is one click away instead of unreachable.
+      // Remove only the kind cut: the selected client's liquid income is one
+      // click away, without leaking the global orphan into the list.
       const seeAll = wrapper.find('[data-testid="collection-form-income-see-all"]');
       expect(seeAll.text()).toContain('Ver todos (1)');
-      await seeAll.trigger('mousedown');
+      await seeAll.trigger('click');
 
+      expect(wrapper.find('[data-testid="collection-form-income-option-11"]').exists())
+        .toBe(true);
+      expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
+        .toBe(false);
+      expect(wrapper.find('[data-testid="collection-form-income-scope-client"]')
+        .attributes('aria-selected')).toBe('true');
+      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]')
+        .attributes('aria-selected')).toBe('true');
+    });
+
+    it('widens the scope when the client has no eligible income', async () => {
+      mockIncomes([orphanIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+
+      await selectClient(wrapper);
+      await openOptions(wrapper);
+      await wrapper.find('[data-testid="collection-form-income-see-all"]').trigger('click');
+
+      expect(wrapper.find('[data-testid="collection-form-income-scope-all"]')
+        .attributes('aria-selected')).toBe('true');
       expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
         .toBe(true);
     });
@@ -503,7 +537,7 @@ describe('CollectionAccountFormModal', () => {
       await openOptions(wrapper);
 
       await wrapper.find('[data-testid="collection-form-income-scope-all"]').trigger('click');
-      await wrapper.find('[data-testid="collection-form-income-kind-expected"]').trigger('click');
+      await wrapper.find('[data-testid="collection-form-income-kind-liquid"]').trigger('click');
 
       await selectClient(wrapper, otherClientFixture);
       await openOptions(wrapper);
@@ -511,10 +545,25 @@ describe('CollectionAccountFormModal', () => {
       // Back to the defaults: no recorte of the previous client survives.
       expect(wrapper.find('[data-testid="collection-form-income-scope-client"]').attributes('aria-selected'))
         .toBe('true');
-      expect(wrapper.find('[data-testid="collection-form-income-kind-all"]').attributes('aria-selected'))
+      expect(wrapper.find('[data-testid="collection-form-income-kind-expected"]').attributes('aria-selected'))
         .toBe('true');
       expect(wrapper.find('[data-testid="collection-form-income-option-12"]').exists())
         .toBe(false);
+    });
+
+    it('restores the expected default when the modal reopens', async () => {
+      mockIncomes([ownIncome]);
+      const wrapper = mountModal();
+      await flushPromises();
+      await openOptions(wrapper);
+      await wrapper.find('[data-testid="collection-form-income-kind-all"]').trigger('click');
+
+      await wrapper.setProps({ open: false });
+      await wrapper.setProps({ open: true });
+      await flushPromises();
+
+      expect(wrapper.find('[data-testid="collection-form-income-kind-expected"]')
+        .attributes('aria-selected')).toBe('true');
     });
 
     it("locks 'Del cliente' until a client is chosen", async () => {

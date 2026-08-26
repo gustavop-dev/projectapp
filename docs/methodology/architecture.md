@@ -914,6 +914,13 @@ income selector in `CollectionAccountFormModal` consume that primitive. This
 keeps accounting and Documents modals on one clipping, focus and scroll contract
 instead of repeating per-screen absolute dropdown workarounds.
 
+The linked-income selector owns a stable view-state default rather than a
+server restriction: it fetches the eligible expected/liquid pool, scopes it to
+the selected client and selects `IncomeRecord.kind === 'expected'` on open and
+client change. Payment status is deliberately outside this filter, preserving
+partially paid projections. Its empty-state action widens kind before scope, so
+the normal escape hatch keeps the selected client; no selection is persisted.
+
 ### Representative Fake Data → Coherent Cross-Module Graph
 
 ```mermaid

@@ -1010,6 +1010,8 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-form-client').fill('Acme');
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('collection-form-income').click();
+    // A liquid link is the exception, so the test opts into it explicitly.
+    await page.getByTestId('collection-form-income-kind-liquid').click();
     await page.getByTestId('collection-form-income-option-21').click();
     await page.getByTestId('collection-form-preview').click();
     await page.getByTestId('collection-form-confirm').click();
@@ -1033,7 +1035,7 @@ test.describe('Admin Accounting Collections', () => {
 
     await page.getByTestId('collection-create-button').click();
 
-    // Before choosing a client the whole eligible ledger is on offer.
+    // Before choosing a client the expected ledger is on offer globally.
     await page.getByTestId('collection-form-income').click();
     await expect(page.getByTestId('collection-form-income-option-22'))
       .toBeInViewport({ ratio: 1 });
@@ -1042,14 +1044,17 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('client-autocomplete-option-5').click();
     await expect(page.getByTestId('collection-form-number')).toHaveValue('PA-ACME-001');
 
-    // Now it is Acme's ledger and nothing else: neither Torrios' income nor the
-    // unassigned ones crowd the list the operator has to read.
+    // Now it is Acme's expected ledger. Acme only has a liquid income in this
+    // fixture, so the stable default explains the empty result instead of
+    // mixing it with Torrios or the unassigned rows.
     await page.getByTestId('collection-form-income').click();
     await expect(page.getByTestId('collection-form-income-scope-client'))
-      .toContainText('Del cliente (1)');
-    await expect(page.getByTestId('collection-form-income-group-own'))
-      .toContainText('De Acme Soluciones (1)');
-    await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
+      .toContainText('Del cliente (0)');
+    await expect(page.getByTestId('collection-form-income-kind-expected'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collection-form-income-empty'))
+      .toContainText('Acme Soluciones no tiene ingresos esperados.');
+    await expect(page.getByTestId('collection-form-income-option-21')).toHaveCount(0);
     await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
     await expect(page.getByTestId('collection-form-income-option-8')).toHaveCount(0);
 
@@ -1089,37 +1094,39 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-create-button').click();
     await page.getByTestId('collection-form-income').click();
 
-    // Before a client there is nothing to scope to, so the whole ledger is on
-    // offer and 'Del cliente' says so by being unavailable.
+    // Before a client there is nothing to scope to, so expected rows are global
+    // and 'Del cliente' says so by being unavailable.
     await expect(page.getByTestId('collection-form-income-scope-client')).toBeDisabled();
     await expect(page.getByTestId('collection-form-income-kind-all')).toContainText('Todos (3)');
     await expect(page.getByTestId('collection-form-income-kind-expected'))
       .toContainText('Esperados (2)');
     await expect(page.getByTestId('collection-form-income-kind-liquid'))
       .toContainText('Líquidos (1)');
+    await expect(page.getByTestId('collection-form-income-kind-expected'))
+      .toHaveAttribute('aria-selected', 'true');
 
     await page.getByTestId('collection-form-client').fill('Acme');
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('collection-form-income').click();
 
-    // Acme holds one income and it is liquid, so the estado counts split it.
-    await expect(page.getByTestId('collection-form-income-kind-liquid'))
-      .toContainText('Líquidos (1)');
-    await page.getByTestId('collection-form-income-kind-liquid').click();
-
-    // The whole point of the chips: they refine without ejecting you from the
-    // search box or collapsing the list you were reading.
-    await expect(page.getByTestId('collection-form-income')).toBeFocused();
-    await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
-
-    // An empty combination names itself instead of rendering a blank panel.
-    await page.getByTestId('collection-form-income-kind-expected').click();
+    // Acme holds one liquid income. The default expected cut names that empty
+    // state and offers every kind for Acme without widening to other owners.
     await expect(page.getByTestId('collection-form-income-empty'))
       .toContainText('Acme Soluciones no tiene ingresos esperados.');
     await expect(page.getByTestId('collection-form-income')).toBeFocused();
 
-    // And it offers the way out, which is the second of the two clicks.
+    // The way out keeps the client scope and does not issue another request.
     await page.getByTestId('collection-form-income-see-all').click();
+    await expect(page.getByTestId('collection-form-income-scope-client'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collection-form-income-kind-all'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collection-form-income-option-21')).toBeVisible();
+    await expect(page.getByTestId('collection-form-income-option-8')).toHaveCount(0);
+    await expect(page.getByTestId('collection-form-income-option-22')).toHaveCount(0);
+
+    // Alcance remains independently reversible when a global search is needed.
+    await page.getByTestId('collection-form-income-scope-all').click();
     await expect(page.getByTestId('collection-form-income-option-8')).toBeVisible();
     await expect(page.getByTestId('collection-form-income-client-22')).toHaveText('Torrios SAS');
 
@@ -1229,6 +1236,7 @@ test.describe('Admin Accounting Collections', () => {
     await page.getByTestId('collection-form-client').fill('Acme');
     await page.getByTestId('client-autocomplete-option-5').click();
     await page.getByTestId('collection-form-income').click();
+    await page.getByTestId('collection-form-income-kind-liquid').click();
     // Acme's own income: this test is about the preview layout, so it takes the
     // shortest route to it rather than widening the alcance.
     await page.getByTestId('collection-form-income-option-21').click();

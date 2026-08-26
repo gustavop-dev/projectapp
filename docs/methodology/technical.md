@@ -344,6 +344,12 @@ confirmed by the operator or another integration.
 - Migration `content.0208_recalculate_recurring_cop_equivalent` repairs every existing COP and USD row from its current inputs. Panel, MCP, fake-data and import writers do not accept `cop_equivalent` as an independent input.
 - Frontend calculations are previews only. The panel refetch after save remains authoritative and rebuilds both the category sums and the general monthly COP total from the server response.
 
+### Collection-account linked-income selector
+
+- `CollectionAccountFormModal.vue` keeps the eligible expected/liquid response in memory and derives scope and kind counts client-side; no API parameter or schema field is needed for its starting view.
+- `DEFAULT_INCOME_KIND = 'expected'` is reapplied when the modal opens and whenever its selected client changes. There is intentionally no local-storage/session memory.
+- The kind predicate reads `IncomeRecord.kind`, never `payment_status`, so expected rows with partial settlements remain visible. The contextual empty action changes kind to `all` first and preserves client scope; it widens scope only if that client has no eligible rows.
+
 ### Content Storage: Structured JSON
 - Proposal sections, portfolio works, and blog posts store content as JSON fields
 - Each proposal section's `content_json` matches the props schema of its Vue component
