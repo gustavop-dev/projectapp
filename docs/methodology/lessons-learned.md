@@ -980,7 +980,21 @@ owns collapsed and expanded display state; consumers may supply typography and
 color only. Test both the table and the compact card, because their width and
 consumer-class combinations are materially different.
 
-## 40. Text containment is an intrinsic-sizing contract, not a final overflow patch
+## 40. A floating control belongs to the modal, not its scroll panel
+
+An absolutely positioned results list still participates in the clipping rules
+of every ancestor. Increasing one modal's fixed height only moves the defect to
+the next short modal. A reusable searchable selector therefore needs a shared
+portal target at the modal overlay boundary, plus explicit ownership of focus,
+Escape, outside clicks, viewport placement and scrolling.
+
+Teleporting alone is incomplete: a body-level list can escape the focus trap or
+outlive the dialog. The modal must register its floating descendants and trap
+focus at the dialog boundary. Behavioral tests should assert DOM ownership and
+scroll positions, not just that an option exists; otherwise a clipped option
+still produces a deceptively green test.
+
+## 41. Text containment is an intrinsic-sizing contract, not a final overflow patch
 
 Putting `overflow-hidden` on the last cell is only a backstop. A user-owned
 identifier without spaces can enlarge the min-content contribution of a flex,
@@ -1003,7 +1017,7 @@ viewport and compare bounding boxes against their actual cell/card and adjacent
 column. Shared table/list primitives should carry the default policy so new
 panel screens are safe without rediscovering the bug.
 
-## 41. Representative fake data is an executable dependency graph
+## 42. Representative fake data is an executable dependency graph
 
 A root-record count is insufficient when child modules depend on a specific
 shape. Generate identities first, concentrate load deliberately, and route

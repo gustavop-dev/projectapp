@@ -17,16 +17,12 @@ jest.mock('../../stores/services/request_http', () => ({
   delete_request: jest.fn(),
 }));
 
-jest.mock('@vueuse/core', () => ({
-  ...jest.requireActual('@vueuse/core'),
-  onClickOutside: jest.fn(),
-  useDebounceFn: (fn) => fn,
-}));
-
 const {
   get_request,
   create_request,
 } = require('../../stores/services/request_http');
+
+const mountedWrappers = [];
 
 const PROJECTS = [
   {
@@ -47,11 +43,12 @@ const PROJECTS = [
 
 function mountSelect(props = {}) {
   setActivePinia(createPinia());
-  return mount(ProjectSelect, {
+  const wrapper = mount(ProjectSelect, {
     props: { clientProfileId: 7, clientLabel: 'Deivis Ríos', ...props },
     global: {
       plugins: [createPinia()],
       stubs: {
+        Teleport: true,
         BaseFormField: {
           props: ['label', 'hint'],
           template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
@@ -73,6 +70,8 @@ function mountSelect(props = {}) {
       },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 const input = (wrapper) => wrapper.find('[data-testid="project-select"]');
@@ -81,6 +80,10 @@ describe('ProjectSelect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     get_request.mockResolvedValue({ data: { results: PROJECTS } });
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   });
 
   it('stays disabled until a client is chosen', async () => {

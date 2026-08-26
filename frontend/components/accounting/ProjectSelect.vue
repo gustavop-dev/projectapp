@@ -18,6 +18,7 @@
           class="w-full pl-9 pr-9 py-2.5 border border-input-border bg-input-bg text-input-text placeholder:text-text-subtle rounded-xl text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-focus-ring outline-none disabled:opacity-60 disabled:cursor-not-allowed"
           role="combobox"
           :aria-expanded="isOpen"
+          :aria-controls="isOpen ? listboxId : undefined"
           aria-autocomplete="list"
           aria-haspopup="listbox"
           @input="onInput"
@@ -41,10 +42,12 @@
       </div>
 
       <!-- Dropdown -->
-      <div
-        v-if="isOpen && (clientProfileId || allowNoClient)"
-        class="absolute z-30 mt-1 w-full bg-surface border border-border-default rounded-xl shadow-lg max-h-72 overflow-auto"
-        role="listbox"
+      <BaseFloatingListbox
+        :id="listboxId"
+        :open="isOpen && Boolean(clientProfileId || allowNoClient)"
+        :anchor="inputRef"
+        :owner="wrapperRef"
+        @close="closeDropdown"
       >
         <div v-if="loading" class="px-4 py-3 text-sm text-text-subtle text-center">
           Cargando proyectos...
@@ -148,17 +151,17 @@
             <span>{{ term ? `Crear proyecto "${term}"` : 'Crear un proyecto nuevo' }}</span>
           </button>
         </div>
-      </div>
+      </BaseFloatingListbox>
     </div>
   </BaseFormField>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue';
-import { onClickOutside } from '@vueuse/core';
+import { computed, ref, useId, watch } from 'vue';
 import {
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline';
+import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import { useAccountingStore } from '~/stores/accounting';
 import { normalizeName } from '~/utils/clientMatch';
 
@@ -212,6 +215,7 @@ const store = useAccountingStore();
 
 const wrapperRef = ref(null);
 const inputRef = ref(null);
+const listboxId = `${useId()}-listbox`;
 const projects = ref([]);
 const loading = ref(false);
 const isOpen = ref(false);
@@ -428,5 +432,4 @@ async function createInlineProject() {
   selectProject(result.data);
 }
 
-onClickOutside(wrapperRef, closeDropdown);
 </script>

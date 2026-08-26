@@ -583,3 +583,9 @@ projectapp/
 7. **Bogotá timezone for day-level arithmetic** — Django's `TIME_ZONE='UTC'` means `date.today()` returns UTC date. For day-level logic (e.g., the daily Huey task computing "is the stage overdue today?") always use `today_bogota()` from `content/utils.py`. Bogotá is fixed UTC-5 with no DST so the offset is stable year-round.
 8. **Huey cron schedule is in UTC** — `crontab(hour='13', minute='30')` means 13:30 UTC = 08:30 Bogotá. Document the offset in a comment above any periodic task that's meant to land in the team inbox at a specific local time.
 9. **`PROJECT_ACCESS_CIPHER_KEY` required** — must be set in production `.env`; generate with Fernet before first deploy of quick-access feature
+10. **Modal search results use the shared floating layer** — searchable listboxes
+    inside `BaseModal` render through `BaseFloatingListbox`; consumers must pass
+    their anchor and owner elements instead of positioning a results panel inside
+    a clipped container. The primitive owns viewport clamping, above/below
+    placement, outside-click and Escape behavior, list scrolling and modal focus
+    containment.

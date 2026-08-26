@@ -393,3 +393,23 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Variables initialized for an exception path must be bound before
   rendering, not reinitialized after rendering. Centralizing transport is a
   useful audit point because every caller's final envelope becomes visible.
+
+### [ERR-027] Los resultados de selectores buscables quedaban recortados por el modal
+- **Date**: 2026-08-26
+- **Context**: En la asignación masiva de cliente apenas cabía un resultado y
+  parte del siguiente; el modal añadía su propia barra para alcanzar el resto y
+  ocultaba el alcance que pedía revisar antes de confirmar.
+- **Root Cause**: Cada desplegable absoluto se dibujaba dentro del panel con
+  `overflow-y-auto`, por lo que su tamaño dependía de la altura corta del modal.
+- **Resolution**: Añadir `BaseFloatingListbox` y un root flotante propiedad de
+  `BaseModal`; migrar los selectores compartidos de cliente, proyecto, catálogo
+  de proyectos e ingreso vinculado. El modal masivo ahora crece con el contenido
+  y conserva visibles al menos cinco opciones y cuatro registros de revisión.
+- **Files Affected**: `frontend/components/base/BaseModal.vue`,
+  `frontend/components/base/BaseFloatingListbox.vue` y consumidores de
+  Contable/Documentos.
+- **Verification**: Pruebas unitarias de portal, foco, Escape, click exterior,
+  giro y límites; E2E de los cinco consumidores; y la asignación masiva verde en
+  los cinco viewports responsivos.
+- **Lesson**: Un overlay reutilizable debe pertenecer al boundary de overlay,
+  no al contenedor desplazable del consumidor.

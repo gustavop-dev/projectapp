@@ -80,6 +80,7 @@ const otherClientFixture = {
 
 /** Rows the incomes endpoint answers with; per-test via `mockIncomes`. */
 let incomeResults = [];
+const mountedWrappers = [];
 
 function mockIncomes(rows) {
   incomeResults = rows;
@@ -144,7 +145,7 @@ function mockRequests() {
 }
 
 function mountModal(props = {}) {
-  return mount(CollectionAccountFormModal, {
+  const wrapper = mount(CollectionAccountFormModal, {
     props: { open: true, ...props },
     global: {
       plugins: [createPinia()],
@@ -205,6 +206,8 @@ function mountModal(props = {}) {
       },
     },
   });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 async function selectClient(wrapper, client = clientFixture) {
@@ -262,6 +265,7 @@ describe('CollectionAccountFormModal', () => {
   });
 
   afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
     delete window.matchMedia;
   });
 

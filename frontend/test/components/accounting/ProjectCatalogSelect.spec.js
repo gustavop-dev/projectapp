@@ -3,7 +3,8 @@
  * Proyecto target.
  *
  * Unlike ProjectSelect it searches EVERY project (by name or client),
- * fetches the catalog lazily on first open, lists actives first, and emits
+ * fetches the catalog lazily on first open, lists operational projects first,
+ * and emits
  * the FULL row — the assignment plan needs `client.profile_id` to name the
  * rows the action must not touch.
  */
@@ -17,12 +18,8 @@ jest.mock('../../../stores/services/request_http', () => ({
   patch_request: jest.fn(),
 }));
 
-jest.mock('@vueuse/core', () => ({
-  ...jest.requireActual('@vueuse/core'),
-  onClickOutside: jest.fn(),
-}));
-
 const { get_request } = require('../../../stores/services/request_http');
+const mountedWrappers = [];
 
 const CATALOG = {
   data: {
@@ -46,7 +43,12 @@ const CATALOG = {
 
 function mountSelect(props = {}) {
   setActivePinia(createPinia());
-  return mount(ProjectCatalogSelect, { props });
+  const wrapper = mount(ProjectCatalogSelect, {
+    props,
+    global: { stubs: { Teleport: true } },
+  });
+  mountedWrappers.push(wrapper);
+  return wrapper;
 }
 
 const input = (wrapper) => wrapper.find('[data-testid="project-catalog-select"]');
@@ -55,6 +57,10 @@ describe('ProjectCatalogSelect', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     get_request.mockResolvedValue(CATALOG);
+  });
+
+  afterEach(() => {
+    mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
   });
 
   it('loads the catalog lazily with operational projects before closed projects', async () => {

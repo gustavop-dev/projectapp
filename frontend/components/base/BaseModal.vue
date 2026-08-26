@@ -1,6 +1,17 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, useId, watch } from 'vue'
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  provide,
+  ref,
+  toRef,
+  useId,
+  watch,
+} from 'vue'
 import { useFocusTrap } from '~/composables/useFocusTrap'
+import { BASE_MODAL_FLOATING_CONTEXT } from './modalContext'
 import { oneOf } from './propValidators'
 
 const props = defineProps({
@@ -54,21 +65,44 @@ const sizeClass = computed(() => (
   props.kind ? kinds[props.kind] : (sizes[props.size] || sizes.md)
 ))
 const paddingClass = computed(() => (props.padding === 'md' ? 'p-6' : ''))
-const heightClass = computed(() => (props.fullHeight
-  ? 'h-dvh overflow-hidden flex flex-col panel-portrait:h-[90vh]'
-  : 'h-dvh overflow-y-auto panel-portrait:h-auto panel-portrait:max-h-[90vh]'))
+const floatingLayerCount = ref(0)
+const heightClass = computed(() => {
+  if (props.fullHeight) {
+    return 'h-dvh overflow-hidden flex flex-col panel-portrait:h-[90vh]'
+  }
+  const overflowClass = floatingLayerCount.value > 0 ? 'overflow-hidden' : 'overflow-y-auto'
+  return `h-dvh ${overflowClass} panel-portrait:h-auto panel-portrait:max-h-[90vh]`
+})
 
+const dialogRef = ref(null)
 const panelRef = ref(null)
+const floatingRootRef = ref(null)
 const autoTitleId = ref('')
 const uid = useId()
 
 const resolvedTitleId = computed(() => props.titleId || autoTitleId.value || undefined)
 
-useFocusTrap(panelRef, {
+function registerFloatingLayer() {
+  floatingLayerCount.value += 1
+  let registered = true
+  return () => {
+    if (!registered) return
+    registered = false
+    floatingLayerCount.value = Math.max(0, floatingLayerCount.value - 1)
+  }
+}
+
+provide(BASE_MODAL_FLOATING_CONTEXT, {
+  floatingRoot: floatingRootRef,
+  registerFloatingLayer,
+})
+
+useFocusTrap(dialogRef, {
   active: toRef(props, 'modelValue'),
   initialFocus: () => {
-    if (!props.initialFocus || !panelRef.value) return null
-    return panelRef.value.querySelector(props.initialFocus)
+    if (!panelRef.value) return null
+    if (!props.initialFocus) return panelRef.value
+    return panelRef.value.querySelector(props.initialFocus) || panelRef.value
   },
 })
 
@@ -122,6 +156,8 @@ watch(
     <Transition name="base-modal-fade">
       <div
         v-if="modelValue"
+        ref="dialogRef"
+        tabindex="-1"
         class="fixed inset-0 z-[9999] flex items-center justify-center p-0 panel-portrait:p-4"
         role="dialog"
         aria-modal="true"
@@ -134,9 +170,15 @@ watch(
           class="base-modal-panel relative w-full rounded-none border-0 border-border-default bg-surface shadow-overlay focus:outline-none panel-portrait:rounded-2xl panel-portrait:border"
           :class="[sizeClass, paddingClass, heightClass]"
           :data-modal-kind="kind || size"
+          :data-floating-layer-open="floatingLayerCount > 0 ? 'true' : undefined"
         >
           <slot />
         </div>
+        <div
+          ref="floatingRootRef"
+          class="pointer-events-none fixed inset-0 z-10"
+          data-modal-floating-root
+        />
       </div>
     </Transition>
   </Teleport>
