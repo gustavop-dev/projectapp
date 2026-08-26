@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useIsMobile } from '~/composables/useIsMobile'
+import { textPolicyClass } from '~/utils/tableLayout'
 
 const props = defineProps({
   /**
@@ -41,6 +42,10 @@ const tableColspan = computed(() => props.columns.length
 function displayValue(value) {
   if (value === null || value === undefined || value === '') return '—'
   return String(value)
+}
+
+function contentClass(column) {
+  return [textPolicyClass(column), column.cellContentClass]
 }
 
 function ariaSort(column) {
@@ -120,9 +125,11 @@ function activateCard(row, event) {
               class="px-4 py-3 text-text-default"
               :class="column.cellClass"
             >
-              <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
-                {{ displayValue(row[column.key]) }}
-              </slot>
+              <div :class="contentClass(column)">
+                <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
+                  {{ displayValue(row[column.key]) }}
+                </slot>
+              </div>
             </td>
             <td v-if="showActions" class="px-4 py-3 text-right" @click.stop>
               <div class="flex flex-wrap items-center justify-end gap-1" @click.stop>
@@ -167,7 +174,10 @@ function activateCard(row, event) {
               <p v-if="primaryColumns.length > 1" class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">
                 {{ column.label }}
               </p>
-              <div class="min-w-0 font-medium text-text-default" :class="column.cardClass">
+              <div
+                class="min-w-0 font-medium text-text-default"
+                :class="[contentClass(column), column.cardClass]"
+              >
                 <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
                   {{ displayValue(row[column.key]) }}
                 </slot>
@@ -184,7 +194,10 @@ function activateCard(row, event) {
             :class="column.mobile === 'meta' ? 'text-xs' : 'text-sm'"
           >
             <dt class="text-2xs font-semibold uppercase tracking-wider text-text-subtle">{{ column.label }}</dt>
-            <dd class="mt-0.5 min-w-0 text-text-default" :class="column.cardClass">
+            <dd
+              class="mt-0.5 min-w-0 text-text-default"
+              :class="[contentClass(column), column.cardClass]"
+            >
               <slot :name="`cell-${column.key}`" :row="row" :value="row[column.key]">
                 {{ displayValue(row[column.key]) }}
               </slot>

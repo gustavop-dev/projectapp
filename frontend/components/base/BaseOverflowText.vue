@@ -24,8 +24,12 @@ let observer = null
 let observedWidth = null
 
 const clampClass = computed(() => {
-  if (expanded.value) return 'block whitespace-normal break-words'
-  return props.lines === 2 ? 'line-clamp-2 break-words' : 'block truncate'
+  if (expanded.value) {
+    return 'block w-full min-w-0 max-w-full whitespace-normal [overflow-wrap:anywhere]'
+  }
+  return props.lines === 2
+    ? 'line-clamp-2 w-full min-w-0 max-w-full [overflow-wrap:anywhere]'
+    : 'block w-full min-w-0 max-w-full truncate'
 })
 
 const tooltip = computed(() => (
@@ -89,7 +93,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="rootEl" class="flex min-w-0 flex-col items-start gap-1">
+  <div ref="rootEl" class="flex w-full min-w-0 max-w-full flex-col items-start gap-1">
     <BaseRowLink
       :id="contentId"
       :to="to"

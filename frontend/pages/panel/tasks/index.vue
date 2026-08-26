@@ -53,7 +53,7 @@
                 class="flex items-center justify-between px-4 py-3 rounded-lg bg-surface border border-border-default cursor-pointer hover:bg-surface-raised transition-colors"
                 @click="openEdit(task)"
               >
-                <div class="flex items-center gap-3 min-w-0">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
                   <span
                     class="inline-block w-2 h-2 rounded-full flex-shrink-0"
                     :class="priorityDot(task.priority)"
@@ -61,12 +61,17 @@
                   <BaseRowLink
                     :to="taskDetailTo(task.id)"
                     :data-testid="`task-open-${task.id}`"
-                    class="text-sm font-medium text-text-default truncate hover:text-text-brand transition-colors"
+                    class="min-w-0 max-w-full flex-1 truncate text-sm font-medium text-text-default hover:text-text-brand transition-colors"
+                    :title="task.title"
                   >{{ task.title }}</BaseRowLink>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0 ml-3">
                   <span v-if="task.due_date" class="text-xs" :class="task.is_overdue ? 'text-danger-strong' : 'text-text-subtle'">{{ task.due_date }}</span>
-                  <span v-if="task.assignee_name" class="text-xs text-text-subtle">{{ task.assignee_name }}</span>
+                  <span
+                    v-if="task.assignee_name"
+                    class="max-w-40 truncate text-xs text-text-subtle"
+                    :title="task.assignee_name"
+                  >{{ task.assignee_name }}</span>
                 </div>
               </li>
             </ul>
@@ -117,8 +122,12 @@
               class="flex items-center justify-between px-4 py-3 rounded-lg bg-surface border border-border-default"
             >
               <div class="min-w-0">
-                <p class="text-sm text-text-muted font-medium truncate">{{ task.title }}</p>
-                <p v-if="task.archive_reason" class="text-xs text-text-subtle truncate mt-0.5">{{ task.archive_reason }}</p>
+                <p class="max-w-full truncate text-sm font-medium text-text-muted" :title="task.title">{{ task.title }}</p>
+                <p
+                  v-if="task.archive_reason"
+                  class="mt-0.5 max-w-full truncate text-xs text-text-subtle"
+                  :title="task.archive_reason"
+                >{{ task.archive_reason }}</p>
                 <p class="text-xs text-text-subtle mt-0.5">{{ boardLabel(task.board_type) }}</p>
               </div>
               <button

@@ -71,8 +71,8 @@
               class="block px-2 py-1.5 rounded-lg text-xs transition-colors cursor-pointer min-w-0"
               :class="postCardClass(post)"
             >
-              <p class="font-medium truncate leading-tight">{{ post.title_es }}</p>
-              <p v-if="post.category" class="text-[10px] opacity-70 mt-0.5 truncate">{{ post.category }}</p>
+              <p class="max-w-full truncate font-medium leading-tight" :title="post.title_es">{{ post.title_es }}</p>
+              <p v-if="post.category" class="mt-0.5 max-w-full truncate text-[10px] opacity-70" :title="post.category">{{ post.category }}</p>
             </NuxtLink>
           </div>
 
@@ -109,8 +109,8 @@
               class="block px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer min-w-0"
               :class="postCardClass(post)"
             >
-              <p class="font-medium leading-tight break-words">{{ post.title_es }}</p>
-              <p v-if="post.category" class="text-xs opacity-70 mt-0.5 break-words">{{ post.category }}</p>
+              <p class="min-w-0 max-w-full font-medium leading-tight [overflow-wrap:anywhere]">{{ post.title_es }}</p>
+              <p v-if="post.category" class="mt-0.5 min-w-0 max-w-full text-xs opacity-70 [overflow-wrap:anywhere]">{{ post.category }}</p>
             </NuxtLink>
           </div>
           <p v-else class="text-xs text-text-subtle">Sin posts</p>

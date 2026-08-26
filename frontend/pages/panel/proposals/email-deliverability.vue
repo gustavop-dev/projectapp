@@ -54,10 +54,10 @@
           <h2 class="text-sm font-semibold text-text-default">Por Plantilla</h2>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full min-w-[36rem] table-fixed text-sm">
             <thead class="bg-surface-muted">
               <tr>
-                <th class="text-left px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Plantilla</th>
+                <th class="w-2/5 text-left px-6 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Plantilla</th>
                 <th class="text-center px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Total</th>
                 <th class="text-center px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Exitosos</th>
                 <th class="text-center px-4 py-3 text-xs font-medium text-text-muted uppercase tracking-wider">Fallidos</th>
@@ -67,7 +67,10 @@
             <tbody class="divide-y divide-border-muted">
               <tr v-for="tpl in stats.by_template" :key="tpl.template_key" class="hover:bg-surface-muted transition-colors">
                 <td class="px-6 py-3 font-medium text-text-default">
-                  <code class="text-xs bg-surface-raised px-2 py-0.5 rounded">{{ tpl.template_key }}</code>
+                  <code
+                    class="inline-block min-w-0 max-w-full whitespace-normal rounded bg-surface-raised px-2 py-0.5 text-xs [overflow-wrap:anywhere]"
+                    :title="tpl.template_key"
+                  >{{ tpl.template_key }}</code>
                 </td>
                 <td class="px-4 py-3 text-center text-text-muted tabular-nums">{{ tpl.total }}</td>
                 <td class="px-4 py-3 text-center text-text-brand tabular-nums">{{ tpl.sent }}</td>
@@ -134,7 +137,11 @@
               </span>
               <span class="text-xs text-text-subtle ml-auto">{{ formatDate(failure.sent_at) }}</span>
             </div>
-            <p v-if="failure.error_message" class="text-xs text-danger-strong truncate max-w-full">
+            <p
+              v-if="failure.error_message"
+              class="max-w-full truncate text-xs text-danger-strong"
+              :title="failure.error_message"
+            >
               {{ failure.error_message }}
             </p>
           </div>

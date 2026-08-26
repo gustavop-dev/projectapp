@@ -2,6 +2,25 @@
 
 ## Current State
 
+**2026-08-26 — Contención transversal de texto y títulos de Documentos:** el
+panel dejó de depender de espacios para contener datos. `tableLayout.js` define
+`wrap`/`truncate`/`atomic`; `BaseResponsiveTable` y `BaseExploratoryList` aplican
+la política a tabla, detalles agrupados y tarjetas, y `BaseBadge` contiene sus
+etiquetas. Los strings arbitrarios usan una cadena intrínsecamente segura de
+`min-w-0`, ancho acotado y `overflow-wrap:anywhere`; fechas, dinero y números
+acotados conservan nowrap. La adopción alcanzó listas representativas de Tasks,
+Projects, Clients, Accounting, Emails, Content y MCP. En Documentos, Título usa
+una línea con elipsis y el mismo **Ver completo/Contraer** medido para nombres con
+o sin espacios; al expandir corta en cualquier punto. Carpeta queda primera en
+un renglón inferior, seguida por Cliente/Proyecto/Estado en el perfil compacto;
+sin carpeta no se reserva una línea vacía en escritorio. Los nombres reales
+`guia_apuntar_dominio_ux_26082026`,
+`Levantamiento_Fase_4_Multi-Tenant_24082026` y
+`Respuesta_Etapa_3_Inventario` permanecen dentro de fila/tarjeta en los cinco
+viewports canónicos. Verificación: slices Jest de primitives y consumidores,
+Playwright 11/11, build Nuxt, contrato responsivo 103/13/5, flow-map fresco y
+auditoría sin junk-only ni missing.
+
 **2026-08-26 — Dataset representativo, coherente y reproducible para desarrollo:**
 `create_fake_data` reconstruye el grafo completo con volumen 60, semilla aislada
 por módulo y fecha ancla explícita. El perfil produce 60 clientes/67 proyectos,

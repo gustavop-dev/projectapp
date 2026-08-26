@@ -28,6 +28,19 @@ describe('AccountingInlineCell', () => {
     expect(wrapper.find('input').exists()).toBe(false);
   });
 
+  it('contains an unbroken value inside the editable cell', () => {
+    const wrapper = mountCell({ value: 'Levantamiento_Fase_4_Multi-Tenant_24082026' });
+    const display = wrapper.get('[data-testid="inline-cell-display"]');
+    const value = display.get('span');
+
+    expect(display.classes()).toEqual(expect.arrayContaining([
+      'w-full', 'max-w-full', 'overflow-hidden',
+    ]));
+    expect(value.classes()).toEqual(expect.arrayContaining([
+      'min-w-0', 'max-w-full', '[overflow-wrap:anywhere]',
+    ]));
+  });
+
   it('opens an input on a single click', async () => {
     const wrapper = mountCell();
     const input = await openEditor(wrapper);

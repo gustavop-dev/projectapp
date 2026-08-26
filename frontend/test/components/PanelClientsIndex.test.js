@@ -83,6 +83,23 @@ function mountPage() {
   });
 }
 
+const LONG_CLIENT = {
+  id: 99,
+  name: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+  email: 'guia_apuntar_dominio_ux_26082026@example.com',
+  company: 'Respuesta_Etapa_3_Inventario',
+  is_email_placeholder: false,
+  is_orphan: false,
+  is_inactive: false,
+  total_proposals: 0,
+  projects_count: 0,
+  diagnostics_count: 0,
+  incomes_count: 0,
+  hostings_count: 0,
+  active_projects_count: 0,
+  accepted_count: 0,
+};
+
 describe('panel/clients index page', () => {
   beforeEach(() => {
     mockStore.clients = [];
@@ -103,6 +120,47 @@ describe('panel/clients index page', () => {
 
   const selectStatus = (wrapper, value) =>
     wrapper.findComponent({ name: 'BaseSegmented' }).vm.$emit('update:modelValue', value);
+
+  it('contains an unbroken client name in the row header', async () => {
+    mockStore.clients = [LONG_CLIENT];
+    const wrapper = mountPage();
+    await flushPromises();
+    const name = wrapper.get('[data-testid="client-header-99"] p');
+
+    expect(name.attributes('title')).toBe(LONG_CLIENT.name);
+    expect(name.classes()).toEqual(expect.arrayContaining(['min-w-0', 'max-w-full']));
+  });
+
+  it('contains an unbroken document title in the expanded client list', async () => {
+    mockStore.clients = [LONG_CLIENT];
+    mockStore.fetchClient.mockResolvedValueOnce({
+      success: true,
+      data: {
+        proposals: [],
+        projects: [],
+        diagnostics: [],
+        hostings: [],
+        incomes: [],
+        documents_total: 1,
+        documents: [{
+          id: 501,
+          title: 'guia_apuntar_dominio_ux_26082026',
+          project_name: 'Respuesta_Etapa_3_Inventario',
+          status: 'draft',
+          created_at: '2026-08-26T00:00:00Z',
+        }],
+      },
+    });
+    const wrapper = mountPage();
+    await flushPromises();
+
+    await wrapper.get('[data-testid="client-header-99"]').trigger('click');
+    await flushPromises();
+    const title = wrapper.get('[data-testid="client-document-row-501"] a');
+
+    expect(title.attributes('title')).toBe('guia_apuntar_dominio_ux_26082026');
+    expect(title.classes()).toContain('[overflow-wrap:anywhere]');
+  });
 
   it('loads orphan clients when the Huérfanos status is selected', async () => {
     const wrapper = mountPage();

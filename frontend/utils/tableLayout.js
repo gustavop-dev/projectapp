@@ -35,12 +35,31 @@ export const TABLE_DENSITY = {
 };
 
 /**
- * Cap for the name column's content, so one outlier concept cannot widen the
- * whole table. It lives on an inner <span> and not on the cell because auto
- * table layout ignores max-width on a <td>; bounding the content is what bounds
- * the column's max-content contribution. Longer values wrap — nothing is cut.
+ * Text containment is semantic, not a side effect of the column width.
+ *
+ * `wrap` is the safe default for data-owned strings: `anywhere` contributes
+ * soft opportunities to the intrinsic minimum, so an identifier without
+ * spaces cannot make a flex/grid/table track wider than its container.
+ * `truncate` is opt-in for values that expose the complete text elsewhere.
+ * `atomic` is reserved for genuinely bounded values (money, dates, numbers).
  */
-const NAME_CONTENT_CLASS = 'block max-w-[22rem]';
+export const TEXT_POLICY_CLASSES = Object.freeze({
+  wrap: 'block min-w-0 w-full max-w-[22rem] whitespace-normal [overflow-wrap:anywhere]',
+  truncate: 'block min-w-0 max-w-full truncate',
+  atomic: 'whitespace-nowrap',
+});
+
+const ATOMIC_SIZES = new Set(['tiny', 'icons', 'money', 'date', 'percent']);
+
+export function textPolicyFor(column = {}) {
+  if (Object.hasOwn(TEXT_POLICY_CLASSES, column.textPolicy)) return column.textPolicy;
+  const size = column.size || inferSize(column);
+  return ATOMIC_SIZES.has(size) ? 'atomic' : 'wrap';
+}
+
+export function textPolicyClass(column = {}) {
+  return TEXT_POLICY_CLASSES[textPolicyFor(column)];
+}
 
 /**
  * Page ceiling: past 1400px a wider page is not a more readable one. It lives
@@ -66,7 +85,7 @@ export const PAGE_MAX_WIDTH = 'max-w-[87.5rem] mx-auto';
  * content needs, which is why "Día" stays narrow while an amount does not.
  */
 const SIZES = {
-  name: { rem: 10, nowrap: false, contentClass: NAME_CONTENT_CLASS },
+  name: { rem: 10 },
   tiny: { rem: 2.75, nowrap: true },
   badge: { rem: 6, nowrap: true },
   // Wide enough for two 28px icon buttons AND the word "Acciones" at text-xs
@@ -74,7 +93,7 @@ const SIZES = {
   icons: { rem: 5.25, nowrap: true },
   money: { rem: 7, nowrap: true },
   date: { rem: 6, nowrap: true },
-  text: { rem: 5, nowrap: true },
+  text: { rem: 5 },
   // Fits "100%" plus the one-character "%" header; tiny (2.75) clips it.
   percent: { rem: 3.5, nowrap: true },
 };
@@ -82,7 +101,6 @@ const SIZES = {
 for (const spec of Object.values(SIZES)) {
   spec.weight = spec.rem;
   spec.track = `minmax(max-content, ${spec.rem}fr)`;
-  spec.contentClass = spec.contentClass || '';
 }
 
 /** Grid track for the drag handle column, which is not part of `columns`. */
@@ -193,15 +211,17 @@ export function resolveColumns(columns = [], { hasActions = true } = {}) {
   return columns.map((col, index) => {
     const size = sizes[index];
     const spec = SIZES[size];
+    const textPolicy = textPolicyFor({ ...col, size });
     return {
       ...col,
       size,
+      textPolicy,
       track: spec.track,
       width: totalWeight ? `${((spec.weight / totalWeight) * 100).toFixed(2)}%` : 'auto',
       minRem: spec.rem,
-      contentClass: spec.contentClass,
+      contentClass: TEXT_POLICY_CLASSES[textPolicy],
       alignClass: alignClass(col),
-      nowrapClass: spec.nowrap ? 'whitespace-nowrap' : '',
+      nowrapClass: textPolicy === 'atomic' ? 'whitespace-nowrap' : '',
       headerPadClass: padClassFor(
         col,
         columns[index - 1],

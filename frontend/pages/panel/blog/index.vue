@@ -57,9 +57,9 @@
         <template #cell-title_es="{ row: post }">
           <NuxtLink
             :to="localePath(`/panel/blog/${post.id}/edit`)"
-            class="block break-words text-sm font-medium leading-tight text-text-default transition-colors hover:text-text-brand"
+            class="block min-w-0 max-w-full text-sm font-medium leading-tight text-text-default [overflow-wrap:anywhere] transition-colors hover:text-text-brand"
           >{{ post.title_es }}</NuxtLink>
-          <p class="mt-0.5 break-words text-xs text-text-subtle">{{ post.title_en }} · {{ post.slug }}</p>
+          <p class="mt-0.5 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">{{ post.title_en }} · {{ post.slug }}</p>
         </template>
         <template #cell-status="{ row: post }">
           <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium" :class="statusBadgeClass(post)">{{ statusLabel(post) }}</span>

@@ -64,7 +64,7 @@
             :key="label"
             class="flex items-center justify-between gap-3"
           >
-            <dt class="text-text-muted truncate">{{ label }}</dt>
+            <dt class="min-w-0 max-w-full truncate text-text-muted" :title="label">{{ label }}</dt>
             <dd class="tabular-nums text-text-default whitespace-nowrap">{{ money(total) }}</dd>
           </div>
         </dl>

@@ -21,28 +21,35 @@
             class="border-b border-border-default/60 dark:border-white/[0.05]"
           >
             <!-- Paquete: name, with the note as an editable second line -->
-            <td class="py-2 pr-2 align-top">
+            <td class="min-w-0 py-2 pr-2 align-top">
               <!-- Name and note are two cells in one column, so each carries its
                    own testid: a shared one would match both. -->
-              <div :data-testid="`hour-package-cell-name-${idx}`">
+              <div
+                class="min-w-0 max-w-[22rem] [overflow-wrap:anywhere]"
+                :data-testid="`hour-package-cell-name-${idx}`"
+              >
                 <AccountingInlineCell
                   v-if="editable"
                   :value="row.name"
                   @save="emit('update', idx, 'name', $event)"
                 >
-                  <span class="font-medium text-text-default">{{ row.name || '—' }}</span>
+                  <span class="font-medium text-text-default [overflow-wrap:anywhere]">{{ row.name || '—' }}</span>
                 </AccountingInlineCell>
-                <span v-else class="font-medium text-text-default">{{ row.name }}</span>
+                <span v-else class="font-medium text-text-default [overflow-wrap:anywhere]">{{ row.name }}</span>
               </div>
-              <div v-if="editable || row.note" :data-testid="`hour-package-cell-note-${idx}`" class="mt-0.5">
+              <div
+                v-if="editable || row.note"
+                :data-testid="`hour-package-cell-note-${idx}`"
+                class="mt-0.5 min-w-0 max-w-[22rem] [overflow-wrap:anywhere]"
+              >
                 <AccountingInlineCell
                   v-if="editable"
                   :value="row.note"
                   @save="emit('update', idx, 'note', $event)"
                 >
-                  <span class="block text-[11px] text-text-subtle">{{ row.note || 'Sin nota' }}</span>
+                  <span class="block text-[11px] text-text-subtle [overflow-wrap:anywhere]">{{ row.note || 'Sin nota' }}</span>
                 </AccountingInlineCell>
-                <span v-else class="block text-[11px] text-text-subtle">{{ row.note }}</span>
+                <span v-else class="block text-[11px] text-text-subtle [overflow-wrap:anywhere]">{{ row.note }}</span>
               </div>
             </td>
 

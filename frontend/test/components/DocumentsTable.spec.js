@@ -52,6 +52,15 @@ const activeDoc = {
   }],
 };
 
+const longNamedDoc = {
+  ...activeDoc,
+  id: 3,
+  title: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+  folder_name: 'Respuesta_Etapa_3_Inventario',
+  client_display_name: 'guia_apuntar_dominio_ux_26082026',
+  project_name: 'Proyecto_Multi-Tenant_Implementacion_24082026',
+};
+
 const archivedDoc = {
   ...activeDoc,
   id: 2,
@@ -335,10 +344,38 @@ describe('DocumentsTable — title column', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 1440 });
   });
 
-  it('renders the title on two lines before clipping', () => {
+  it('truncates the title to one contained line before disclosure', () => {
     const wrapper = mountTable({ editToFor });
 
-    expect(wrapper.get('[data-testid="document-open-1"]').classes()).toContain('line-clamp-2');
+    expect(wrapper.get('[data-testid="document-open-1"]').classes()).toContain('truncate');
+  });
+
+  it('gives an unbroken title the intrinsic-safe truncation contract', () => {
+    const wrapper = mountTable({ documents: [longNamedDoc], editToFor });
+    const title = wrapper.get('[data-testid="document-open-3"]');
+
+    expect(title.classes()).toEqual(expect.arrayContaining([
+      'w-full', 'min-w-0', 'max-w-full', 'truncate',
+    ]));
+  });
+
+  it('renders the folder below the title in a contained metadata row', () => {
+    const wrapper = mountTable({ documents: [longNamedDoc], editToFor });
+    const title = wrapper.get('[data-testid="document-open-3"]');
+    const metadata = wrapper.get('[data-testid="document-title-meta-3"]');
+    const folder = wrapper.get('[data-testid="document-folder-badge-3"]');
+
+    expect(title.element.compareDocumentPosition(metadata.element) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .toBeTruthy();
+    expect(metadata.classes()).toEqual(expect.arrayContaining(['flex-wrap', 'max-w-full']));
+    expect(folder.classes()).toContain('[overflow-wrap:anywhere]');
+  });
+
+  it('does not reserve a desktop metadata line without a folder', () => {
+    const wrapper = mountTable({ documents: [activeDoc], editToFor });
+
+    expect(wrapper.get('[data-testid="document-title-meta-1"]').classes())
+      .toContain('panel-desktop:hidden');
   });
 
   it('publishes the title resize separator', () => {

@@ -180,7 +180,7 @@ const downloadModal = reactive({ open: false, card: null });
 const qrCardColumns = [
   { key: 'name', label: 'Nombre', mobile: 'primary' },
   { key: 'short_link', label: 'Link corto', mobile: 'secondary' },
-  { key: 'destination', label: 'Destino', mobile: 'secondary', cardClass: 'break-words' },
+  { key: 'destination', label: 'Destino', mobile: 'secondary', cardClass: '[overflow-wrap:anywhere]' },
   { key: 'is_active', label: 'Activa', mobile: 'meta' },
 ];
 

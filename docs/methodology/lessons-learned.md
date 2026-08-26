@@ -970,7 +970,30 @@ owns collapsed and expanded display state; consumers may supply typography and
 color only. Test both the table and the compact card, because their width and
 consumer-class combinations are materially different.
 
-## 40. Representative fake data is an executable dependency graph
+## 40. Text containment is an intrinsic-sizing contract, not a final overflow patch
+
+Putting `overflow-hidden` on the last cell is only a backstop. A user-owned
+identifier without spaces can enlarge the min-content contribution of a flex,
+grid or table child before that overflow rule has any useful effect. Carry
+`min-w-0` through every flexible ancestor, bound the inner content, and use
+`overflow-wrap:anywhere` for strings whose shape is not controlled by the UI.
+`break-words` is weaker here because its emergency breaks do not reduce the
+intrinsic minimum in the same way.
+
+Choose truncation as a product policy, not a CSS shortcut. It is valid only when
+the complete value is available by a measured disclosure, native hint or detail
+view. Then keep every badge/state/folder that describes the title in an ordered,
+wrapping metadata row below it; otherwise each new distinction recreates the
+same horizontal competition. Row height may remain natural when metadata is
+absent, but that must be explicit.
+
+Regression evidence must use the real longest naming convention and geometry,
+not a short lorem string. Exercise values with no spaces at every canonical
+viewport and compare bounding boxes against their actual cell/card and adjacent
+column. Shared table/list primitives should carry the default policy so new
+panel screens are safe without rediscovering the bug.
+
+## 41. Representative fake data is an executable dependency graph
 
 A root-record count is insufficient when child modules depend on a specific
 shape. Generate identities first, concentrate load deliberately, and route

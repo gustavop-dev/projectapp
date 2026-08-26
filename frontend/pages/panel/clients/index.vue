@@ -184,8 +184,9 @@
             <div class="min-w-0">
               <div class="flex items-center gap-2 flex-wrap">
                 <p
-                  class="text-sm font-semibold text-text-default"
-                  :class="isCompact ? 'break-words' : 'truncate'"
+                  class="min-w-0 max-w-full text-sm font-semibold text-text-default"
+                  :class="isCompact ? 'whitespace-normal [overflow-wrap:anywhere]' : 'truncate'"
+                  :title="client.name"
                 >{{ client.name }}</p>
                 <span class="text-xs text-text-subtle tabular-nums">#{{ client.id }}</span>
                 <span
@@ -211,8 +212,11 @@
                 </span>
               </div>
               <p
-                class="mt-0.5 text-xs text-text-subtle"
-                :class="isCompact ? 'break-words' : 'truncate'"
+                class="mt-0.5 min-w-0 max-w-full text-xs text-text-subtle"
+                :class="isCompact ? 'whitespace-normal [overflow-wrap:anywhere]' : 'truncate'"
+                :title="client.company
+                  ? `${client.is_email_placeholder ? 'Email pendiente' : client.email} · ${client.company}`
+                  : (client.is_email_placeholder ? 'Email pendiente' : client.email)"
               >
                 {{ client.is_email_placeholder ? 'Email pendiente' : client.email }}
                 <span v-if="client.company" class="text-text-subtle">· {{ client.company }}</span>
@@ -236,7 +240,7 @@
               </div>
             </dl>
             <div class="mt-3 flex items-center justify-between gap-2">
-              <span class="min-w-0 break-words text-xs font-medium text-text-muted">
+              <span class="min-w-0 max-w-full text-xs font-medium text-text-muted [overflow-wrap:anywhere]">
                 {{ compactContextLabel(client) }}
               </span>
               <div class="flex shrink-0 items-center gap-2">
@@ -456,7 +460,8 @@
                         <NuxtLink
                           :to="localePath(`/panel/proposals/${p.id}/edit`)"
                           draggable="false"
-                          class="font-medium text-text-default hover:text-text-brand transition-colors"
+                          class="block min-w-0 max-w-[22rem] whitespace-normal font-medium text-text-default [overflow-wrap:anywhere] hover:text-text-brand transition-colors"
+                          :title="p.title"
                         >
                           {{ p.title }}
                         </NuxtLink>
@@ -522,9 +527,11 @@
                       :key="proj.id"
                       class="hover:bg-surface-raised transition-colors bg-surface"
                     >
-                      <td class="px-5 py-3 font-medium text-text-default" data-label="Proyecto" data-card-full>{{ proj.name }}</td>
+                      <td class="px-5 py-3 font-medium text-text-default" data-label="Proyecto" data-card-full>
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="proj.name">{{ proj.name }}</span>
+                      </td>
                       <td class="px-4 py-3" data-label="Estado">
-                        <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(proj.status)">
+                        <span class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]" :class="statusClass(proj.status)">
                           {{ proj.status }}
                         </span>
                       </td>
@@ -571,9 +578,11 @@
                       @dragstart="onRowDragStart($event, client, 'diagnostic', diag)"
                       @dragend="onRowDragEnd"
                     >
-                      <td class="px-5 py-3 font-medium text-text-default" data-label="Diagnóstico" data-card-full>{{ diag.title }}</td>
+                      <td class="px-5 py-3 font-medium text-text-default" data-label="Diagnóstico" data-card-full>
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="diag.title">{{ diag.title }}</span>
+                      </td>
                       <td class="px-4 py-3" data-label="Estado">
-                        <span class="text-xs px-2.5 py-1 rounded-full font-medium" :class="statusClass(diag.status)">
+                        <span class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]" :class="statusClass(diag.status)">
                           {{ diag.status }}
                         </span>
                       </td>
@@ -633,14 +642,19 @@
                       :data-testid="`client-hosting-${hosting.id}`"
                     >
                       <td class="px-5 py-3 text-text-default" data-label="Hosting" data-card-full>
-                        {{ hosting.domain_url || hosting.client_name }}
+                        <span
+                          class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]"
+                          :title="hosting.domain_url || hosting.client_name"
+                        >{{ hosting.domain_url || hosting.client_name }}</span>
                       </td>
                       <td
                         class="px-4 py-3 text-text-muted text-xs"
                         data-label="Proyecto"
                         :data-testid="`client-hosting-project-${hosting.id}`"
                       >
-                        {{ hosting.project_name || '—' }}
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="hosting.project_name || ''">
+                          {{ hosting.project_name || '—' }}
+                        </span>
                       </td>
                       <td class="px-4 py-3 tabular-nums text-text-muted" data-label="Valor por mes">
                         {{ formatMoney(hosting.monthly_value) }}
@@ -650,7 +664,7 @@
                       </td>
                       <td class="px-4 py-3" data-label="Estado" data-card-full>
                         <span
-                          class="text-xs px-2.5 py-1 rounded-full font-medium"
+                          class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
                           :class="hosting.is_active
                             ? 'bg-success-soft text-success-strong'
                             : 'bg-surface-raised text-text-muted'"
@@ -686,20 +700,26 @@
                       class="border-t border-border-muted"
                       :data-testid="`client-income-${income.id}`"
                     >
-                      <td class="px-5 py-3 text-text-default" data-label="Concepto" data-card-full>{{ income.concept }}</td>
+                      <td class="px-5 py-3 text-text-default" data-label="Concepto" data-card-full>
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="income.concept">{{ income.concept }}</span>
+                      </td>
                       <td
                         class="px-4 py-3 text-text-muted text-xs"
                         data-label="Proyecto"
                         :data-testid="`client-income-project-${income.id}`"
                       >
-                        {{ income.project_name || '—' }}
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="income.project_name || ''">
+                          {{ income.project_name || '—' }}
+                        </span>
                       </td>
                       <td class="px-4 py-3 text-text-muted text-xs" data-label="Mes">{{ income.period_label }}</td>
                       <td class="px-4 py-3 tabular-nums text-text-muted" data-label="Total">
                         {{ formatMoney(income.total_amount) }}
                       </td>
                       <td class="px-4 py-3 text-text-muted text-xs" data-label="Cobro" data-card-full>
-                        {{ income.payment_status_label || income.kind_label }}
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]">
+                          {{ income.payment_status_label || income.kind_label }}
+                        </span>
                       </td>
                     </tr>
                   </tbody>
@@ -742,14 +762,21 @@
                       <td class="px-5 py-3" data-label="Documento" data-card-full>
                         <NuxtLink
                           :to="localePath(`/panel/documents/${doc.id}/edit`)"
-                          class="text-text-default hover:text-text-brand hover:underline"
+                          class="block min-w-0 max-w-[22rem] whitespace-normal text-text-default [overflow-wrap:anywhere] hover:text-text-brand hover:underline"
+                          :title="doc.title"
                           @click.stop
                         >
                           {{ doc.title }}
                         </NuxtLink>
                       </td>
-                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Proyecto">{{ doc.project_name || '—' }}</td>
-                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Estado">{{ documentStatusLabel(doc.status) }}</td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Proyecto">
+                        <span class="block min-w-0 max-w-[22rem] [overflow-wrap:anywhere]" :title="doc.project_name || ''">
+                          {{ doc.project_name || '—' }}
+                        </span>
+                      </td>
+                      <td class="px-4 py-3 text-text-muted text-xs" data-label="Estado">
+                        <span class="block min-w-0 max-w-full [overflow-wrap:anywhere]">{{ documentStatusLabel(doc.status) }}</span>
+                      </td>
                       <td class="px-4 py-3 text-text-muted text-xs" data-label="Creado" data-card-full>{{ formatDate(doc.created_at) }}</td>
                     </tr>
                   </tbody>

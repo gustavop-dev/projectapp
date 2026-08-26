@@ -84,7 +84,10 @@
             :action="isExpanded(connector.slug) ? 'collapse' : 'expand'"
             class="text-text-subtle"
           />
-          <h2 class="text-base font-bold text-text-default truncate">{{ connector.name }}</h2>
+          <h2
+            class="min-w-0 max-w-full flex-1 truncate text-base font-bold text-text-default"
+            :title="connector.name"
+          >{{ connector.name }}</h2>
 
           <div class="ml-7 flex w-full items-center justify-between gap-2 panel-portrait:ml-auto panel-portrait:w-auto panel-portrait:justify-end panel-portrait:gap-3 panel-portrait:flex-shrink-0">
             <!-- Connection status at a glance (hidden on narrow screens) -->
@@ -123,7 +126,7 @@
           :data-testid="`mcp-detail-${connector.slug}`"
           class="border-t border-border-muted px-4 sm:px-5 py-4 space-y-4"
         >
-          <p class="text-sm text-text-muted">{{ connector.description }}</p>
+          <p class="min-w-0 max-w-full text-sm text-text-muted [overflow-wrap:anywhere]">{{ connector.description }}</p>
 
           <!-- Connection status derived from the latest MCP request -->
           <div
@@ -132,7 +135,7 @@
             :data-testid="`mcp-connection-${connector.slug}`"
           >
             <span class="mt-1 h-2 w-2 rounded-full flex-shrink-0" :class="statusFor(connector).dot" />
-            <div>
+            <div class="min-w-0 max-w-full [overflow-wrap:anywhere]">
               <span class="font-medium">{{ statusFor(connector).label }}</span>
               <template v-if="connector.recent_events?.length">
                 <span class="text-text-muted">
@@ -181,8 +184,8 @@
                   :class="event.ok ? 'bg-success-strong' : 'bg-danger-strong'"
                 />
                 <span class="whitespace-nowrap text-text-subtle">{{ formatDate(event.created_at) }}</span>
-                <span class="break-words text-text-default">{{ eventLabel(event) }}</span>
-                <span v-if="showDetail(event)" class="min-w-0 break-words text-text-muted">{{ event.detail }}</span>
+                <span class="min-w-0 max-w-full text-text-default [overflow-wrap:anywhere]">{{ eventLabel(event) }}</span>
+                <span v-if="showDetail(event)" class="min-w-0 max-w-full text-text-muted [overflow-wrap:anywhere]">{{ event.detail }}</span>
               </li>
             </ul>
           </details>
@@ -199,7 +202,7 @@
             <ul class="mt-2 space-y-1 max-h-72 overflow-y-auto pr-1" :data-testid="`mcp-tools-list-${connector.slug}`">
               <li v-for="tool in connector.tools" :key="tool.name" class="min-w-0 text-sm">
                 <code class="break-all rounded bg-surface-muted px-1.5 py-0.5 text-xs">{{ tool.name }}</code>
-                <span class="ml-1 break-words text-text-muted">{{ tool.description }}</span>
+                <span class="ml-1 min-w-0 max-w-full text-text-muted [overflow-wrap:anywhere]">{{ tool.description }}</span>
               </li>
             </ul>
           </details>

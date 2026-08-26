@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="!editing"
-    class="touch-target group flex items-center gap-1 min-w-0 cursor-pointer rounded px-1 -mx-1 hover:bg-surface-raised transition-colors"
+    class="touch-target group flex w-full min-w-0 max-w-full items-center gap-1 overflow-hidden rounded px-1 -mx-1 cursor-pointer hover:bg-surface-raised transition-colors"
     :class="align === 'right' ? 'justify-end' : ''"
     role="button"
     tabindex="0"
@@ -12,7 +12,7 @@
     @keydown.space.prevent="start"
   >
     <span
-      class="min-w-0 border-b border-dashed border-border-muted group-hover:border-text-brand transition-colors"
+      class="min-w-0 max-w-full border-b border-dashed border-border-muted whitespace-normal [overflow-wrap:anywhere] group-hover:border-text-brand transition-colors"
       :class="align === 'right' ? '' : 'flex-1'"
     >
       <slot>{{ value ?? '—' }}</slot>

@@ -51,6 +51,21 @@ function mountTable(entries, props = {}) {
 }
 
 describe('EmailLogTable', () => {
+  it('contains unbroken labels, recipients and subjects in their columns', () => {
+    const wrapper = mountTable([{
+      ...SENT,
+      template_label: 'Respuesta_Etapa_3_Inventario',
+      recipient: 'guia_apuntar_dominio_ux_26082026@example.com',
+      subject: 'Levantamiento_Fase_4_Multi-Tenant_24082026',
+    }]);
+    const row = wrapper.get('[data-testid="email-log-row-1"]');
+
+    for (const field of ['notice', 'recipient', 'subject']) {
+      expect(row.get(`[data-field="${field}"] span:last-child`).classes())
+        .toContain('[overflow-wrap:anywhere]');
+    }
+  });
+
   it('offers the message only for the sends that kept one', () => {
     const wrapper = mountTable([SENT, FAILED]);
 

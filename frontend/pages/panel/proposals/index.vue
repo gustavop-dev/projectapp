@@ -319,7 +319,7 @@
           <BaseRowLink
             :to="proposalHref(proposal.id)"
             :data-testid="`proposal-open-${proposal.id}`"
-            class="block break-words transition-colors hover:text-text-brand"
+            class="block min-w-0 max-w-full [overflow-wrap:anywhere] transition-colors hover:text-text-brand"
           >
             <span class="block text-sm font-medium text-text-default">{{ proposal.client_name }}</span>
             <span v-if="proposal.title" class="mt-0.5 block text-xs leading-snug text-text-muted">{{ proposal.title }}</span>

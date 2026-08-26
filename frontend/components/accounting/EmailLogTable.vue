@@ -31,18 +31,18 @@
             </td>
             <td data-field="notice" :class="[cell(1), 'text-text-muted']">
               <span class="history-mobile-label panel-landscape:hidden">Aviso</span>
-              {{ entry.template_label }}
+              <span :class="resolved[1].contentClass">{{ entry.template_label }}</span>
             </td>
             <td data-field="recipient" :class="[cell(2), 'min-w-0 text-text-default font-medium']">
-              <span class="break-all">{{ entry.recipient }}</span>
+              <span :class="resolved[2].contentClass">{{ entry.recipient }}</span>
             </td>
             <td data-field="subject" :class="[cell(3), 'text-text-muted']">
               <span class="history-mobile-label panel-landscape:hidden">Asunto</span>
-              {{ entry.subject || '—' }}
+              <span :class="resolved[3].contentClass">{{ entry.subject || '—' }}</span>
             </td>
             <td data-field="status" :class="cell(4)">
               <span
-                class="text-xs px-2.5 py-1 rounded-full font-medium"
+                class="inline-flex min-w-0 max-w-full flex-wrap rounded-full px-2.5 py-1 text-xs font-medium [overflow-wrap:anywhere]"
                 :class="statusClass(entry.status)"
               >
                 {{ entry.status_label }}
@@ -83,7 +83,7 @@
             class="bg-surface-raised"
           >
             <td :colspan="resolved.length + 1" class="px-5 py-3 space-y-1.5">
-              <p v-if="entry.error_message" class="text-xs text-danger-strong">
+              <p v-if="entry.error_message" class="text-xs text-danger-strong [overflow-wrap:anywhere]">
                 {{ entry.error_message }}
               </p>
               <p v-if="entry.targets && entry.targets.length" class="text-xs text-text-muted">
@@ -101,7 +101,10 @@
                   class="flex flex-col gap-1 rounded-lg border border-border-muted bg-surface px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <span class="break-all text-xs text-text-muted">{{ copy.recipient }}</span>
-                  <span class="text-xs" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                  <span
+                    class="min-w-0 max-w-full text-xs [overflow-wrap:anywhere]"
+                    :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'"
+                  >
                     {{ copy.status_label }}<span v-if="copy.error_message"> · {{ copy.error_message }}</span>
                   </span>
                 </div>

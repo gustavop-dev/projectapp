@@ -180,10 +180,10 @@
             :key="`${section.id}-${view.url}-${view.file}`"
             class="grid gap-3 px-5 py-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)_minmax(0,1.2fr)_2.5rem] lg:items-start"
           >
-            <div>
-              <h3 class="text-sm font-medium text-text-default">{{ view.label }}</h3>
-              <p class="mt-1 text-xs text-text-muted">{{ view.reference }}</p>
-              <p v-if="view.notes" class="mt-2 text-xs leading-5 text-warning-strong">{{ view.notes }}</p>
+            <div class="min-w-0 max-w-full">
+              <h3 class="min-w-0 max-w-full text-sm font-medium text-text-default [overflow-wrap:anywhere]">{{ view.label }}</h3>
+              <p class="mt-1 min-w-0 max-w-full text-xs text-text-muted [overflow-wrap:anywhere]">{{ view.reference }}</p>
+              <p v-if="view.notes" class="mt-2 min-w-0 max-w-full text-xs leading-5 text-warning-strong [overflow-wrap:anywhere]">{{ view.notes }}</p>
             </div>
 
             <div>

@@ -7,6 +7,8 @@ import {
   isVisibleAt,
   minWidthFor,
   resolveColumns,
+  textPolicyClass,
+  textPolicyFor,
   trackListFor,
 } from '~/utils/tableLayout';
 
@@ -97,15 +99,33 @@ describe('tableLayout — proportional slack', () => {
     expect(resolved.every((col) => col.track.startsWith('minmax(max-content,'))).toBe(true);
   });
 
-  it('caps the name column so one long value cannot widen the table', () => {
+  it('contains every variable text column with intrinsic-safe wrapping', () => {
     const [name, note] = resolveColumns([
       { key: 'concept', size: 'name' },
       { key: 'note' },
     ]);
 
-    expect(name.contentClass).toBe('block max-w-[22rem]');
+    expect(name.contentClass).toContain('[overflow-wrap:anywhere]');
     expect(name.nowrapClass).toBe('');
-    expect(note.contentClass).toBe('');
+    expect(note.contentClass).toContain('[overflow-wrap:anywhere]');
+    expect(note.nowrapClass).toBe('');
+  });
+
+  it('keeps bounded values atomic', () => {
+    const [money, date] = resolveColumns([
+      { key: 'total', format: 'money' },
+      { key: 'created_at', format: 'date' },
+    ]);
+
+    expect(money.textPolicy).toBe('atomic');
+    expect(date.nowrapClass).toBe('whitespace-nowrap');
+  });
+
+  it('honours an explicit truncation policy', () => {
+    const column = { key: 'reference', textPolicy: 'truncate' };
+
+    expect(textPolicyFor(column)).toBe('truncate');
+    expect(textPolicyClass(column)).toContain('truncate');
   });
 
   it('returns an empty list for no columns', () => {

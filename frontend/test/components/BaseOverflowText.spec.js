@@ -35,6 +35,16 @@ async function setOverflow(wrapper, overflowing) {
 }
 
 describe('BaseOverflowText', () => {
+  it('constrains an unbroken real document name to the available width', () => {
+    const wrapper = mountText({ text: 'Levantamiento_Fase_4_Multi-Tenant_24082026' })
+    const content = wrapper.get('[data-testid="document-title"]')
+
+    expect(content.classes()).toEqual(expect.arrayContaining([
+      'w-full', 'min-w-0', 'max-w-full', '[overflow-wrap:anywhere]',
+    ]))
+    expect(content.classes()).not.toContain('break-words')
+  })
+
   it('omits disclosure for a complete title', async () => {
     const wrapper = mountText()
     await setOverflow(wrapper, false)

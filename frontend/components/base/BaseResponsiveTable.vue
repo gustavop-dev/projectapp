@@ -147,7 +147,7 @@
           >
             <!-- The wrapper is what caps the name column: a <td>'s own
                  max-width is ignored under auto layout. -->
-            <div :class="col.contentClass">
+            <div :class="col.contentClass" :data-text-policy="col.textPolicy">
               <slot
                 :name="`cell-${col.key}`"
                 :row="row"
@@ -191,7 +191,11 @@
                   class="grid grid-cols-[minmax(5.5rem,auto)_1fr] gap-2 text-left text-xs"
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
-                  <dd class="min-w-0 text-text-muted">
+                  <dd
+                    class="min-w-0 text-text-muted"
+                    :class="detail.contentClass"
+                    :data-text-policy="detail.textPolicy"
+                  >
                     <slot
                       :name="`cell-${detail.key}`"
                       :row="row"
@@ -215,7 +219,11 @@
                   class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
-                  <dd class="min-w-0 text-text-muted">
+                  <dd
+                    class="min-w-0 text-text-muted"
+                    :class="detail.contentClass"
+                    :data-text-policy="detail.textPolicy"
+                  >
                     <slot
                       :name="`cell-${detail.key}`"
                       :row="row"
@@ -239,7 +247,11 @@
                   class="grid grid-cols-[minmax(6rem,auto)_1fr] gap-2 text-left text-xs"
                 >
                   <dt class="font-medium text-text-subtle">{{ detail.label }}</dt>
-                  <dd class="min-w-0 text-text-muted">
+                  <dd
+                    class="min-w-0 text-text-muted"
+                    :class="detail.contentClass"
+                    :data-text-policy="detail.textPolicy"
+                  >
                     <slot
                       :name="`cell-${detail.key}`"
                       :row="row"
@@ -305,6 +317,7 @@ const props = defineProps({
   /**
    * Column config: { key, label, format ('money'|'percent'|'date'|'text'|'badge'),
    * align ('left'|'right'|'center'), badgeTones ({ value: tone }),
+   * textPolicy ('wrap'|'truncate'|'atomic'),
    * sortable (Boolean), size (see utils/tableLayout SIZE_NAMES),
    * group (String — adjacent columns sharing one draw closer together),
    * hideBelow ('md'|'lg' — legacy collapse rule), responsive: {

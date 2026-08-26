@@ -88,7 +88,7 @@
                 :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
                 class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
               />
-              <span class="truncate">{{ group.name }}</span>
+              <span class="min-w-0 max-w-full truncate" :title="group.name">{{ group.name }}</span>
               <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
             </button>
             <div class="text-xs leading-tight whitespace-nowrap">

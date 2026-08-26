@@ -111,9 +111,12 @@
             @click="selectThread(thread.id)"
           >
             <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <p class="truncate text-sm font-semibold text-text-default">{{ thread.title }}</p>
-                <p class="mt-0.5 truncate text-xs text-text-muted">
+              <div class="min-w-0 flex-1">
+                <p class="max-w-full truncate text-sm font-semibold text-text-default" :title="thread.title">{{ thread.title }}</p>
+                <p
+                  class="mt-0.5 max-w-full truncate text-xs text-text-muted"
+                  :title="thread.project_name ? `${thread.client_name} · ${thread.project_name}` : thread.client_name"
+                >
                   {{ thread.client_name }}<template v-if="thread.project_name"> · {{ thread.project_name }}</template>
                 </p>
               </div>
@@ -121,7 +124,7 @@
                 {{ thread.status === 'open' ? 'Abierto' : 'Cerrado' }}
               </BaseBadge>
             </div>
-            <p v-if="thread.latest_message" class="mt-3 line-clamp-2 text-xs text-text-subtle">
+            <p v-if="thread.latest_message" class="mt-3 line-clamp-2 min-w-0 max-w-full text-xs text-text-subtle [overflow-wrap:anywhere]">
               {{ thread.latest_message.direction === 'incoming' ? 'Cliente:' : 'Nosotros:' }}
               {{ thread.latest_message.content }}
             </p>
@@ -182,9 +185,9 @@
                   label="Volver a los hilos"
                   @click="showCompactDetail = false"
                 />
-                <div class="min-w-0">
-                  <h2 class="break-words text-lg font-semibold text-text-default">{{ currentThread.title }}</h2>
-                  <p class="mt-1 text-sm text-text-muted">
+                <div class="min-w-0 flex-1">
+                  <h2 class="min-w-0 max-w-full text-lg font-semibold text-text-default [overflow-wrap:anywhere]">{{ currentThread.title }}</h2>
+                  <p class="mt-1 min-w-0 max-w-full text-sm text-text-muted [overflow-wrap:anywhere]">
                     <NuxtLink
                       :to="{ path: '/panel/clients', query: { client: currentThread.client_id } }"
                       class="text-text-brand hover:underline"
@@ -236,7 +239,7 @@
                 </BaseBadge>
                 <span class="ml-auto text-2xs text-text-subtle">{{ formatDateTime(message.occurred_at) }}</span>
               </div>
-              <p v-if="message.subject" class="mt-3 text-sm font-semibold text-text-default">
+              <p v-if="message.subject" class="mt-3 min-w-0 max-w-full text-sm font-semibold text-text-default [overflow-wrap:anywhere]">
                 {{ message.subject }}
               </p>
               <a
@@ -249,7 +252,7 @@
                   · “{{ replyOriginPreview(message) }}”
                 </span>
               </a>
-              <p class="mt-2 whitespace-pre-wrap break-words text-sm text-text-default">{{ message.content }}</p>
+              <p class="mt-2 min-w-0 max-w-full whitespace-pre-wrap text-sm text-text-default [overflow-wrap:anywhere]">{{ message.content }}</p>
 
               <div v-if="message.documents.length" class="mt-3 space-y-1 border-t border-border-muted pt-3">
                 <p class="text-2xs font-semibold uppercase tracking-wide text-text-subtle">Documentos referenciados</p>
@@ -260,7 +263,7 @@
                   :to="`/panel/documents/${document.id}/edit`"
                   variant="link"
                   size="sm"
-                  class="mr-3"
+                  class="mr-3 max-w-full whitespace-normal [overflow-wrap:anywhere]"
                 >
                   <BaseActionIcon action="view" /> {{ document.title }}
                 </BaseButton>
