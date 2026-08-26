@@ -1,0 +1,14 @@
+{
+  "id": "admin-outbound-email-history-body",
+  "name": "Admin Inspects Retained Outbound Email Body",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin navigates to universal email history, expands a security delivery and opens the retained full body in the sandboxed viewer, matching the explicit policy that all admins can inspect even OTP and credential-bearing messages.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display"
+  ]
+}

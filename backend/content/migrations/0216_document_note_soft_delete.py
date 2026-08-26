@@ -8,8 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('content', '0213_accounting_collection_preferences'),
-        ('content', '0214_seed_project_lifecycle_states'),
+        ('content', '0215_merge_email_copy_accounting_lifecycle'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

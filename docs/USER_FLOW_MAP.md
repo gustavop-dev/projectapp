@@ -4328,9 +4328,9 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/emails?tab=defaults`
-- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias a clientes separada de los destinatarios de avisos contables. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, y permite segmentar cada dirección por Propuestas, Diagnósticos, Documentos y correos manuales, Cuentas de cobro y Plataforma.
+- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias universales separada de los destinatarios de avisos internos. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, avisa que Seguridad incluye OTP/credenciales cuyo cuerpo pueden consultar los administradores, y permite segmentar cada dirección en ocho familias: Propuestas, Diagnósticos, Documentos y comunicaciones, Cuentas de cobro, Contabilidad, Plataforma, Tareas y operación y Seguridad y acceso.
 - **Interacciones y outcomes:**
-  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, familias, modo BCC y advertencia de volumen con los datos reales de la respuesta.
+  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, ocho familias, modo BCC y advertencias de volumen/seguridad con los datos reales de la respuesta.
   2. **success:** agregar una dirección, cambiar sus familias, pausarla/reactivarla o eliminarla; cada acción persiste por su endpoint propio y actualiza la fila.
   3. **error:** intentar agregar un duplicado o guardar una selección inválida muestra el detalle de validación del backend.
   4. **failure:** un fallo 5xx al mutar conserva el estado anterior y muestra que la operación no se completó.
@@ -4341,10 +4341,10 @@ Two transitions that were previously bundled into other flows now have their own
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/emails?tab=history` y los historiales compartidos de propuestas, diagnósticos, clientes y contabilidad.
-- **Description:** El administrador expande el envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección, estado y, si falló sólo la copia, el error SMTP, sin convertirla en otra fila principal ni habilitar reintento.
+- **Routes:** `/panel/emails?tab=history`.
+- **Description:** El administrador expande cualquier envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección y estado enviado/fallido/omitido; los fallos enseñan el error SMTP y los omitidos explican la deduplicación, sin convertirlos en otra fila principal ni habilitar reintento.
 - **Interacciones y outcomes:**
-  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatario BCC, estado y error independiente.
+  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatarios BCC, estado, error independiente y omisión por duplicado.
   2. **success:** n/a; consultar la traza no muta datos.
   3. **error:** n/a; no hay entrada de usuario que validar en este bloque de lectura.
   4. **failure:** n/a como acción del usuario; el fallo SMTP de la copia es precisamente el dato persistido que cubre el outcome `display`.
@@ -6064,6 +6064,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success | 4 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
+| `admin-outbound-email-history-body` | admin | P1 | display | 1 |
+| `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
 | `admin-panel-projects` | admin | P1 | display,success,error | 8 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
@@ -7086,6 +7088,34 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-outbound-email-history-body`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador expande un correo de Seguridad y acceso y abre **Ver contenido completo**. El cuerpo retenido —incluidos OTP, invitaciones o credenciales— se carga por un endpoint administrativo y se muestra dentro de un iframe sandboxed, tal como advierte Configuración.
+- **Interacciones y outcomes:**
+  1. **display:** navegar al Historial, expandir una fila de Seguridad, abrir el visor y comprobar contenido real devuelto por la API dentro del iframe.
+  2. **success:** n/a; la consulta no muta datos.
+  3. **error:** el permiso se prueba en integración backend; una sesión no administrativa no puede alcanzar el panel.
+  4. **failure:** el error de carga se presenta dentro del modal y se cubre en unidad/store; el E2E focal valida el cuerpo exitoso.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-outbound-email-history-filter`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador llega desde la navegación del panel al Historial universal y acota las salidas por destinatario, familia, estado y rango de fechas; el servidor devuelve la fila principal coincidente sin limitar el resultado al compositor manual.
+- **Interacciones y outcomes:**
+  1. **display:** navegar a Emails, abrir Historial, completar los cuatro tipos de filtro y comprobar tanto los parámetros enviados como los datos reales de la fila resultante.
+  2. **success:** n/a; filtrar no muta datos.
+  3. **error:** n/a; los valores pertenecen a catálogos o controles de fecha y no existe una validación editable independiente.
+  4. **failure:** la falla de carga se cubre en la frontera del store; esta interacción sólo registra la consulta exitosa con datos.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
 ### FLOW: `admin-project-lifecycle-states`
 

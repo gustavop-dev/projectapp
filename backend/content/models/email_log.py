@@ -11,10 +11,12 @@ class EmailLog(models.Model):
         DELIVERED = 'delivered', 'Delivered'
         BOUNCED = 'bounced', 'Bounced'
         FAILED = 'failed', 'Failed'
+        SKIPPED = 'skipped', 'Omitida'
 
     class Audience(models.TextChoices):
         CLIENT = 'client', 'Al cliente'
         INTERNAL = 'internal', 'Interno'
+        SECURITY = 'security', 'Seguridad'
 
     class DeliveryRole(models.TextChoices):
         PRIMARY = 'primary', 'Envío principal'

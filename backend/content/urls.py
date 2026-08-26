@@ -160,7 +160,7 @@ from content.views.linkedin import (
 )
 from content.views.standalone_email import (
     send_standalone_email, standalone_email_defaults, list_standalone_emails,
-    preview_composed_email,
+    preview_composed_email, standalone_email_body,
 )
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
@@ -490,6 +490,10 @@ urlpatterns = [
     path('emails/preview/', preview_composed_email, name='preview-composed-email'),
     path('emails/defaults/', standalone_email_defaults, name='standalone-email-defaults'),
     path('emails/history/', list_standalone_emails, name='list-standalone-emails'),
+    path(
+        'emails/history/<int:log_id>/body/', standalone_email_body,
+        name='standalone-email-body',
+    ),
     path(
         'emails/copy-recipients/', client_email_copy_recipients,
         name='client-email-copy-recipients',

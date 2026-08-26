@@ -162,7 +162,7 @@
         <h3 class="text-sm font-semibold text-text-default">Configuración de emails</h3>
       </div>
       <p class="text-xs text-text-muted mb-5">
-        Administra los valores de redacción y las copias internas de los correos enviados a clientes.
+        Administra los valores de redacción y las copias internas de todas las salidas de correo de la plataforma.
       </p>
 
       <div v-if="emailStore.isLoadingDefaults" class="text-xs text-text-subtle py-4 text-center">Cargando valores...</div>
@@ -221,6 +221,18 @@
         <h3 class="text-sm font-semibold text-text-default">Historial de correos enviados</h3>
       </div>
 
+      <form class="mb-4 grid gap-3 rounded-lg border border-border-muted bg-surface-muted p-3 sm:grid-cols-2 lg:grid-cols-5" data-testid="email-history-filters" @submit.prevent="applyHistoryFilters">
+        <BaseInput v-model="historyFilters.recipient" type="search" placeholder="Buscar destinatario" aria-label="Buscar destinatario" />
+        <BaseSelect v-model="historyFilters.family" :options="familyFilterOptions" aria-label="Filtrar por familia" />
+        <BaseSelect v-model="historyFilters.status" :options="statusFilterOptions" aria-label="Filtrar por estado" />
+        <BaseInput v-model="historyFilters.date_from" type="date" aria-label="Fecha inicial" />
+        <BaseInput v-model="historyFilters.date_to" type="date" aria-label="Fecha final" />
+        <div class="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-5 lg:justify-end">
+          <BaseButton type="button" variant="ghost" size="sm" @click="clearHistoryFilters">Limpiar</BaseButton>
+          <BaseButton type="submit" variant="secondary" size="sm">Aplicar filtros</BaseButton>
+        </div>
+      </form>
+
       <div v-if="emailStore.isLoadingHistory" class="text-xs text-text-subtle py-4 text-center">Cargando historial...</div>
 
       <div v-else-if="!emailStore.history.length" class="text-xs text-text-subtle py-4 text-center">
@@ -243,9 +255,12 @@
                   }">
                   {{ statusLabel(entry.status) }}
                 </span>
+                <span class="shrink-0 rounded bg-surface-raised px-1.5 py-0.5 text-[10px] text-text-muted">{{ entry.family_label }}</span>
               </div>
               <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                 <span class="break-all text-[11px] text-text-muted">{{ entry.recipient }}</span>
+                <span class="text-[10px] text-text-subtle">{{ entry.template_label }}</span>
+                <span class="text-[10px] text-text-subtle">{{ entry.audience_label }}</span>
                 <span class="text-[10px] text-text-subtle">{{ formatDate(entry.sent_at) }}</span>
               </div>
             </div>
@@ -254,6 +269,11 @@
 
           <!-- Expanded detail -->
           <div v-if="expandedIds[entry.id]" class="border-t border-border-muted  px-4 py-3 bg-surface-muted  space-y-3">
+            <div v-if="entry.has_body" class="flex justify-end">
+              <BaseButton variant="secondary" size="sm" :data-testid="`email-history-view-body-${entry.id}`" @click="openEmailBody(entry)">
+                Ver contenido completo
+              </BaseButton>
+            </div>
             <div v-if="entry.metadata?.greeting">
               <p class="text-[10px] text-text-subtle uppercase tracking-wide mb-0.5">Saludo</p>
               <p class="text-xs text-text-default">{{ entry.metadata.greeting }}</p>
@@ -290,11 +310,11 @@
                 >
                   <div class="flex flex-wrap items-center justify-between gap-2">
                     <span class="break-all text-xs text-text-default">{{ copy.recipient }}</span>
-                    <span class="text-[10px] font-medium" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                    <span class="text-[10px] font-medium" :class="copyStatusClass(copy.status)">
                       {{ statusLabel(copy.status) }}
                     </span>
                   </div>
-                  <p v-if="copy.error_message" class="mt-1 min-w-0 max-w-full text-[10px] text-danger-strong [overflow-wrap:anywhere]">{{ copy.error_message }}</p>
+                  <p v-if="copy.error_message" class="mt-1 min-w-0 max-w-full text-[10px] [overflow-wrap:anywhere]" :class="copy.status === 'skipped' ? 'text-warning-strong' : 'text-danger-strong'">{{ copy.error_message }}</p>
                 </div>
               </div>
             </div>
@@ -327,6 +347,12 @@
       @secondary="handleSecondaryAction"
       @cancel="handleCancelled"
     />
+    <EmailBodyModal
+      :open="Boolean(selectedBodyEntry)"
+      :entry="selectedBodyEntry"
+      :fetcher="fetchEmailBody"
+      @close="selectedBodyEntry = null"
+    />
   </div>
 </template>
 
@@ -335,6 +361,7 @@ import { ref, computed, watch, onMounted } from 'vue';
 import draggable from 'vuedraggable';
 import ComposedEmailPreview from '~/components/ComposedEmailPreview.vue';
 import ClientEmailCopySettings from '~/components/emails/ClientEmailCopySettings.vue';
+import EmailBodyModal from '~/components/accounting/EmailBodyModal.vue';
 import { useEmailStore } from '~/stores/emails';
 import { validateEmailAttachments } from '~/utils/emailAttachments';
 import { vAutoResize } from '~/utils/autoResizeDirective';
@@ -389,6 +416,25 @@ const sendError = ref('');
 
 // ── History state ──
 const expandedIds = ref({});
+const selectedBodyEntry = ref(null);
+const historyFilters = ref({
+  recipient: '',
+  family: '',
+  status: '',
+  date_from: '',
+  date_to: '',
+});
+const familyFilterOptions = computed(() => [
+  { value: '', label: 'Todas las familias' },
+  ...emailStore.copyFamilies,
+]);
+const statusFilterOptions = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'sent', label: 'Enviado' },
+  { value: 'delivered', label: 'Entregado' },
+  { value: 'bounced', label: 'Rebotado' },
+  { value: 'failed', label: 'Fallido' },
+];
 
 // ── Sections ──
 function addSection() {
@@ -570,6 +616,30 @@ async function loadMore() {
   await emailStore.fetchHistory(nextPage);
 }
 
+async function applyHistoryFilters() {
+  expandedIds.value = {};
+  await emailStore.fetchHistory(1, historyFilters.value);
+}
+
+async function clearHistoryFilters() {
+  historyFilters.value = {
+    recipient: '',
+    family: '',
+    status: '',
+    date_from: '',
+    date_to: '',
+  };
+  await applyHistoryFilters();
+}
+
+function openEmailBody(entry) {
+  selectedBodyEntry.value = entry;
+}
+
+function fetchEmailBody(logId) {
+  return emailStore.fetchEmailBody(logId);
+}
+
 function toggleExpand(id) {
   if (expandedIds.value[id]) {
     delete expandedIds.value[id];
@@ -587,9 +657,15 @@ function sectionIsMarkdown(section) {
   return typeof section === 'object' && !!section?.markdown;
 }
 
-const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido' };
+const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido', skipped: 'Omitida' };
 function statusLabel(s) {
   return STATUS_LABELS[s] || s;
+}
+
+function copyStatusClass(status) {
+  if (status === 'failed') return 'text-danger-strong';
+  if (status === 'skipped') return 'text-warning-strong';
+  return 'text-success-strong';
 }
 
 function formatDate(isoString) {
@@ -597,7 +673,11 @@ function formatDate(isoString) {
 }
 
 function refreshEmails() {
-  return Promise.all([loadDefaults(), emailStore.fetchHistory(1)]);
+  return Promise.all([
+    loadDefaults(),
+    emailStore.fetchCopyRecipients(),
+    emailStore.fetchHistory(1, historyFilters.value),
+  ]);
 }
 
 onMounted(refreshEmails);

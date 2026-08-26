@@ -12,6 +12,7 @@ from content.email_copy_families import (
     PLATFORM,
     PROPOSALS,
 )
+from content.services.outbound_email_inventory import outbound_email_family
 
 
 CLIENT_EMAIL_CHANNELS = {
@@ -53,4 +54,6 @@ CLIENT_EMAIL_CHANNELS = {
 
 def client_email_family(template_key):
     """Return the configured family for a client template, or ``None``."""
-    return CLIENT_EMAIL_CHANNELS.get(template_key)
+    if template_key not in CLIENT_EMAIL_CHANNELS:
+        return None
+    return outbound_email_family(template_key)

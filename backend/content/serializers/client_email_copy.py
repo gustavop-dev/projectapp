@@ -1,17 +1,17 @@
 from rest_framework import serializers
 
 from content.email_copy_families import (
-    CLIENT_EMAIL_FAMILY_CHOICES,
-    CLIENT_EMAIL_FAMILY_VALUES,
+    EMAIL_COPY_FAMILY_CHOICES,
+    EMAIL_COPY_FAMILY_VALUES,
 )
-from content.models import ClientEmailCopyRecipient
+from content.models import EmailCopyRecipient
 
 
-class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
+class EmailCopyRecipientSerializer(serializers.ModelSerializer):
     family_labels = serializers.SerializerMethodField()
 
     class Meta:
-        model = ClientEmailCopyRecipient
+        model = EmailCopyRecipient
         fields = (
             'id', 'email', 'is_active', 'families', 'family_labels',
             'created_at', 'updated_at',
@@ -21,7 +21,7 @@ class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         normalized = (value or '').strip().lower()
-        queryset = ClientEmailCopyRecipient.objects.filter(
+        queryset = EmailCopyRecipient.objects.filter(
             email__iexact=normalized,
         )
         if self.instance is not None:
@@ -33,13 +33,13 @@ class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
     def validate_families(self, value):
         if not isinstance(value, list):
             raise serializers.ValidationError('Debe ser una lista.')
-        unknown = set(value) - set(CLIENT_EMAIL_FAMILY_VALUES)
+        unknown = set(value) - set(EMAIL_COPY_FAMILY_VALUES)
         if unknown:
             raise serializers.ValidationError(
                 f'Familias no válidas: {", ".join(sorted(unknown))}.',
             )
         selected = set(value)
-        return [family for family in CLIENT_EMAIL_FAMILY_VALUES if family in selected]
+        return [family for family in EMAIL_COPY_FAMILY_VALUES if family in selected]
 
     def validate(self, attrs):
         instance = self.instance
@@ -49,7 +49,7 @@ class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
         families = attrs.get(
             'families',
             instance.families if instance is not None
-            else list(CLIENT_EMAIL_FAMILY_VALUES),
+            else list(EMAIL_COPY_FAMILY_VALUES),
         )
         if active and not families:
             raise serializers.ValidationError({
@@ -58,5 +58,9 @@ class ClientEmailCopyRecipientSerializer(serializers.ModelSerializer):
         return attrs
 
     def get_family_labels(self, obj):
-        labels = dict(CLIENT_EMAIL_FAMILY_CHOICES)
+        labels = dict(EMAIL_COPY_FAMILY_CHOICES)
         return [labels[family] for family in obj.families if family in labels]
+
+
+# Compatibility import for callers predating the universal-copy rename.
+ClientEmailCopyRecipientSerializer = EmailCopyRecipientSerializer

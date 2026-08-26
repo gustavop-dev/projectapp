@@ -67,4 +67,22 @@ describe('EmailHistoryList', () => {
     expect(copies.text()).toContain('audit@example.com');
     expect(copies.text()).toContain('SMTP timeout');
   });
+
+  it('labels a deduplicated BCC attempt as omitted', async () => {
+    const copy = {
+      id: 13,
+      recipient: 'ana@example.com',
+      status: 'skipped',
+      error_message: 'Ya era destinatario del envío principal.',
+    };
+    const wrapper = mount(EmailHistoryList, {
+      props: { history: [{ ...entry, copies: [copy] }] },
+    });
+
+    await wrapper.find('button').trigger('click');
+
+    const copies = wrapper.get('[data-testid="email-copy-list-7"]');
+    expect(copies.text()).toContain('Omitida');
+    expect(copies.text()).toContain('Ya era destinatario');
+  });
 });
