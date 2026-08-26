@@ -303,6 +303,26 @@ class TestAutoChargeTask:
         mock_charge.assert_not_called()
         assert result['charged'] == 0
 
+    def test_legacy_unclassified_project_is_not_auto_charged(
+        self, project, subscription, pending_payment,
+    ):
+        Project.objects.filter(pk=project.pk).update(
+            status=Project.STATUS_ARCHIVED,
+            current_state=None,
+            state_review_required=True,
+        )
+        subscription.wompi_payment_source_id = '3891'
+        subscription.save(update_fields=['wompi_payment_source_id'])
+
+        with patch('accounts.services.wompi.charge_with_payment_source') as mock_charge:
+            result = auto_charge_due_subscriptions.call_local()
+
+        mock_charge.assert_not_called()
+        pending_payment.refresh_from_db()
+        assert result == {'charged': 0, 'failed': 0}
+        assert pending_payment.status == Payment.STATUS_PENDING
+        assert pending_payment.charge_attempts == 0
+
     def test_suspends_subscription_after_attempt_limit(self, subscription, pending_payment):
         subscription.wompi_payment_source_id = '3891'
         subscription.save(update_fields=['wompi_payment_source_id'])

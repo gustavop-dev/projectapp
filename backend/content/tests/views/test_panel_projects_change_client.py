@@ -87,17 +87,17 @@ class TestPreviewEndpoint:
         assert same.status_code == 400
         assert same.data['code'] == 'same_client'
 
-    def test_an_archived_project_answers_400(
+    def test_a_terminal_project_answers_400(
         self, admin_client, make_client_profile,
     ):
         owner = make_client_profile()
         target = make_client_profile()
-        project = make_project(owner, status=Project.STATUS_ARCHIVED)
+        project = make_project(owner, status=Project.STATUS_DECOMMISSIONED)
 
         response = admin_client.get(preview_url(project.pk, target.pk))
 
         assert response.status_code == 400
-        assert response.data['code'] == 'project_archived'
+        assert response.data['code'] == 'project_terminal'
 
 
 class TestApplyEndpoint:

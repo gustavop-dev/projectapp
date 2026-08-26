@@ -181,7 +181,7 @@ class TestProjectPickerEndpoint:
 
         assert response.status_code == 200
         assert [p['name'] for p in response.data['results']] == ['MIMITTOS']
-        assert response.data['results'][0]['status_label'] == 'Activo'
+        assert response.data['results'][0]['status_label'] == 'En desarrollo'
 
     def test_without_a_client_it_returns_them_all(self, super_client):
         owner = make_client('daniel@example.com')

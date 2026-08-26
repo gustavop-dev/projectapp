@@ -40,7 +40,7 @@
 
     <!-- Empty state -->
     <div
-      v-else-if="projectsStore.projects.length === 0"
+      v-else-if="filteredProjects.length === 0"
       class="rounded-3xl border border-dashed border-border-default py-20 text-center"
       data-enter
     >
@@ -58,7 +58,7 @@
     <!-- Projects table -->
     <ProjectsTable
       v-else
-      :projects="projectsStore.projects"
+      :projects="filteredProjects"
       :role="authStore.isAdmin ? 'admin' : 'client'"
       @navigate="goToProject"
     />
@@ -281,13 +281,22 @@ const createForm = reactive({
   estimated_end_date: '',
 })
 
-const statusFilters = [
+const statusFilters = computed(() => [
   { label: 'Todos', value: '' },
-  { label: 'Activos', value: 'active' },
-  { label: 'Pausados', value: 'paused' },
-  { label: 'Completados', value: 'completed' },
-  { label: 'Archivados', value: 'archived' },
-]
+  ...Array.from(new Map(projectsStore.projects
+    .filter((project) => project.current_state)
+    .map((project) => [project.current_state.id, {
+      label: project.current_state.name,
+      value: String(project.current_state.id),
+    }])).values()),
+])
+
+const filteredProjects = computed(() => {
+  if (!activeFilter.value) return projectsStore.projects
+  return projectsStore.projects.filter(
+    (project) => String(project.current_state?.id) === activeFilter.value,
+  )
+})
 
 const clientsForSelect = computed(() =>
   clientsStore.clients.filter((c) => c.is_active && c.is_onboarded),
@@ -340,21 +349,6 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onClickOutsidePr
 
 const canCreate = computed(() => Boolean(createForm.name.trim()) && Boolean(createForm.client_id))
 
-function statusBadgeClass(status) {
-  const map = {
-    active: 'bg-emerald-500/15 text-text-brand',
-    paused: 'bg-amber-500/15 text-amber-600 dark:text-amber-400',
-    completed: 'bg-blue-500/15 text-blue-600 dark:text-blue-400',
-    archived: 'bg-white/10 text-green-light/60',
-  }
-  return map[status] || map.active
-}
-
-function statusLabel(status) {
-  const map = { active: 'Activo', paused: 'Pausado', completed: 'Completado', archived: 'Archivado' }
-  return map[status] || status
-}
-
 function clientInitials(project) {
   const name = project.client_name || ''
   return name
@@ -370,7 +364,6 @@ function formatDate(value) {
 
 function handleFilterChange(value) {
   activeFilter.value = value
-  projectsStore.fetchProjects(value ? { status: value } : {})
 }
 
 function formatCurrency(amount, currency) {

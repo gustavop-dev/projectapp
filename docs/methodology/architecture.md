@@ -187,6 +187,8 @@ erDiagram
     DocumentStateGroup ||--o{ DocumentState : "groups catalog states"
     DocumentState ||--o{ DocumentStateEpisode : "occurs as"
     DocumentStateEpisode ||--o{ DocumentStateEpisodeEvent : "records immutable events"
+    Project ||--o{ DocumentStateEpisode : "has lifecycle episodes"
+    DocumentState ||--o{ Project : "is current lifecycle state"
     Document ||--o{ DocumentNote : "has observations"
     DocumentStateEpisode ||--o{ DocumentNote : "may originate"
     ContractTemplate ||--o{ ProposalDocument : "used in"
@@ -237,8 +239,8 @@ erDiagram
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
 | **Document** | Generic branded PDF document (also the client signing portal source) | uuid, title, slug, is_client_visible, legacy status (expand/contract only), language (es/en), cover_type, content_json, private delivery copy, **requires_signature, signed_at, signed_by (FK→User), signature_name, signature_ip, signature_user_agent**, client_user/project/deliverable/folder FKs, created_at |
-| **DocumentStateGroup / DocumentState** | Administrable workflow catalog | group name/order/selection_mode (exclusive or additive); state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors |
-| **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document workflow and append-only audit | document/state, opened_at/closed_at, opened_by/closed_by, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
+| **DocumentStateGroup / DocumentState** | Shared, scoped workflow catalog for documents and projects | catalog, group name/order/selection_mode; state name/normalized_name/slug/color/order/is_active/system_key/merged_into/incompatibilities/authors plus immutable project `operational_effect` |
+| **DocumentStateEpisode / DocumentStateEpisodeEvent** | Canonical document/project workflow and append-only audit | exactly one of document/project, state, opened_at/closed_at, actors, outcome, close_note, origin; each opening/closing/removal/transition/merge/date correction has effective_at, recorded_at, actor and details |
 | **DocumentNote** | Private normalized observation optionally linked to its originating episode | document, episode, title, content, order, open/resolved/discarded status, resolution_note, created/resolved actors and timestamps |
 | **DocumentFolder / DocumentTag** | Folder hierarchy plus legacy tag compatibility during rollout | name, color, parent (folder), created_by |
 | **CommunicationThread** | Client conversation container; separate from Document | client (PROTECT), optional project (SET_NULL), title, open/closed status, last_activity_at, closed_at, created/updated audit actors |
@@ -251,7 +253,7 @@ erDiagram
 | **UserProfile** | Platform user (extends Django User) | user_fk, role (admin/client), company_name, phone, avatar, is_onboarded, profile_completed, **email_verified, email_verified_at**, is_active |
 | **VerificationCode** | OTP codes (login + email validation) | user_fk, code, purpose, expires_at, is_used |
 | **SavedFilterTab** | Persisted admin filter tabs | user_fk, scope, name, filters_json, order |
-| **Project** | Client project in platform | client_fk, name, description, status (active/paused/completed/archived), progress, start_date, estimated_end_date, payment_milestones, hosting_tiers, hosting_start_date, production_url, staging_url, admin_url, repository_url, admin_username, admin_password_encrypted |
+| **Project** | Client project in platform with a real lifecycle | client_fk, name, description, current_state FK, state_review_required, compatibility status mirror (development/active/paused/suspended/completed/decommissioned; archived only for legacy review), progress, dates, payment/hosting snapshots and operational URLs/credentials |
 | **ProjectPhase** | Execution phase of a project (from an accepted proposal) | project_fk, business_proposal_fk (unique per project), order, hosting_start_date, hosting_activated_at |
 | **ProjectScopeItem** | Scope grouping mirrored from proposal FR groups | phase_fk, title, description, kind, order, archived. Chain: Project → ProjectPhase → ProjectScopeItem → Requirement |
 | **Requirement** | Kanban board card | project_fk, phase_fk, **scope_item_fk**, title, description, status (backlog/todo/in_progress/in_review), priority, order, deliverable_fk, **content_overridden** |
@@ -824,6 +826,30 @@ flowchart LR
 
 The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.
 
+### Collection Accounts → Grouped Receivables View
+
+```mermaid
+flowchart LR
+    Settings["AccountingSettings view + criterion"] --> Preferences["useCollectionAccountsViewPreferences"]
+    Preferences --> Controls["Grouped / classic + client / project"]
+    Filters["Server filters + loaded rows"] --> Grouping["collectionAccounts.js"]
+    Controls --> Grouping
+    Grouping --> Groups["Pending-desc groups + filtered footer"]
+    Groups --> Shared["IncomeGroupedTable + AccountingGroupSummaryBand"]
+    Controls -->|immediate PATCH| Settings
+```
+
+The collection list endpoint remains the row source; grouping and aggregation are
+deterministic presentation logic over the filtered result. One utility owns the
+money contract: issued includes issued + paid, pending includes issued, collected
+includes paid, cancelled includes cancelled, and drafts contribute no money. Its
+status breakdown is separate, with overdue derived from an issued row's due date
+and therefore intentionally overlapping the issued count. Project keys prefer the
+live relation, preserve a different historical snapshot as `<name> (histórico)`,
+and reserve a final unassigned group for a genuinely absent project. The global
+settings row persists both controls together; an optimistic save rolls the UI back
+when the PATCH fails.
+
 ### Document Event → Episode → Current State
 
 ```mermaid
@@ -853,6 +879,30 @@ and merging retires the source while keeping historical meaning and merge events
 `document_note_service` owns note linkage and only closes needs-fix after the final
 open linked observation is resolved or discarded. Client visibility is orthogonal and
 never derived from an episode.
+
+### Project State Preview → Consequences → Episode
+
+```mermaid
+flowchart LR
+    Catalog["Shared catalog · projects"] --> Preview["preview_transition()"]
+    Financial["Open incomes, payments, hosting"] --> Preview
+    Preview --> Token["Impact + SHA-256 token"]
+    Token --> Decision{"Operator confirms"}
+    Decision -->|Suspend| Stop["Stop new billing/reminders; keep caused debt"]
+    Decision -->|Complete| Clean["Require clean financial close"]
+    Decision -->|Decommission| Final["Cancel future service + resolve each debt"]
+    Stop --> Episode["Close prior + open dated episode"]
+    Clean --> Episode
+    Final --> Episode
+    Changed["Financial state changed"] --> Reject["409 stale preview; no write"]
+```
+
+`project_state_service` is the only lifecycle writer. It locks the project and
+financial rows, recalculates the impact token and applies consequences atomically.
+The editable label never drives behavior: `DocumentState.operational_effect` does.
+The legacy `Project.status` remains a compatibility mirror, while new panel and
+platform writes cannot mutate it directly. Hosting failure produces a manual
+suggestion only; no timer automatically moves Suspendido to Dado de baja.
 
 ### Client Communication → Manual Send Fact → Reply Context
 

@@ -113,6 +113,28 @@ authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 - **Email deliverability** (`/panel/proposals/email-deliverability`): dashboard tracking email send/delivery/bounce rates
 - **Clients list** (`/panel/clients/`): real `UserProfile` (role=client) entities. Tabs (Todos / Activos / Huérfanos), live search, "+ Nuevo cliente" modal for standalone creation (no invitation email sent — that path is reserved for the platform onboarding flow). Orphan clients (zero proposals + zero platform projects) are deletable via a trash icon gated through `requestConfirm`. Each row expands lazily to load the client's full proposal history. Replaced the legacy "synthetic clients grouped by `(name, email)`" implementation on 2026-04-09.
 
+#### Project lifecycle and operational consequences
+
+- `/panel/projects` uses the shared PA-88 state catalog and history engine, scoped
+  to `catalog='projects'`; it does not maintain a second status system.
+- The six seeded meanings are **En desarrollo**, **Activo**, **Pausado**,
+  **Suspendido**, **Completado** and **Dado de baja**. Names and colors are
+  administrable, while `operational_effect` remains the stable business meaning.
+- New projects begin En desarrollo. Later changes require a server preview and an
+  impact token; direct enum writes and the legacy archive/unarchive endpoints do
+  not bypass that flow.
+- Suspendido is reversible and stops new billing/reminders while retaining debt
+  already caused. A failed hosting payment may suggest this state, never apply it.
+  Completado means a clean close. Dado de baja is definitive, cancels future
+  service and requires an explicit keep/write-off decision for caused receivables;
+  a direct jump that skips Suspendido also requires a note.
+- Every transition opens/closes dated episodes with actor and note. Existing legacy
+  archived projects remain **Sin clasificar / Por revisar** instead of receiving an
+  invented final state, and money automation fails closed until an operator decides.
+- State filters and header counts come from the live catalog. **Clientes sin
+  proyecto** remains literal: a client with no `Project` row, regardless of the
+  lifecycle state of projects owned by other clients.
+
 #### Project Schedule Tracking (Cronograma)
 
 A new internal-only sub-system that tracks the **execution** of an accepted proposal — distinct from the client-facing `timeline` proposal section (which is sales/marketing copy with free-text durations like "1 semana").
@@ -365,6 +387,7 @@ Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to super
 - **Recurring COP projections** (2026-08-22): the server owns each recurring payment's COP equivalent. It derives the charge from price + currency + the current manually configured USD rate, then prorates it by frequency for the monthly column. Editing any input or saving a new exchange rate refreshes the row and all dependent totals; a data migration repairs historical stale values.
 - **Audit trail** (`AccountingChangeLog`) + notification-recipient settings.
 - **Responsive accounting workspace** (2026-08-22): the twelve tabs share one navigation contract, saved-filter strips collapse to selectors below 1024 px, KPI groups preserve the three business priorities and disclose secondary values, and every table declares which fields stay, group or hide. Grouped client headers stack their totals in narrow layouts; long workflows use semantic full-screen mobile modals and touch-safe action menus. Pocket never drops the running balance: compact rows relocate it below the movement amount and the independent column returns from landscape width. The repeatable 12-tab × 5-width acceptance script lives in `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
+- **Grouped collection accounts** (2026-08-26): `/panel/accounting/collections` alternates between the classic table and one grouped view, using the same segmented interaction as Incomes. Grouping is one criterion at a time — client or project — and orders groups by pending amount descending, alphabetical ties, with the unassigned group last. Every header shows count, issued, pending, collected and cancelled amounts plus draft/issued/overdue/paid/cancelled counts; overdue intentionally overlaps issued. The footer totals the complete filtered set. Live projects, historical project snapshots (`(histórico)`) and truly missing projects are distinct. View and criterion are global accounting settings, saved immediately and editable from Accounting Settings.
 
 ### 3.15 MCP Connectors (claude.ai)
 
@@ -496,7 +519,11 @@ The canonical counts, commands and exceptions are maintained in
     its historical communication threads from the project instead of moving them
     to the new client. Deleting clients or documents is blocked while historical
     communication references remain.
-23. **Searchable selectors inside modals**: result lists belong to a floating
+23. **Project lifecycle meaning outlives its label**: project billing, reminders
+    and closure use `DocumentState.operational_effect`, never an editable display
+    name. Every transition is previewed, token-bound and recorded as a dated
+    episode; legacy unclassified rows fail closed for financial automation.
+24. **Searchable selectors inside modals**: result lists belong to a floating
     layer owned by the modal, not to its scrollable panel. On desktop the picker
     exposes at least five complete options and only a long result list scrolls;
     the modal remains still and grows with its review content up to its viewport

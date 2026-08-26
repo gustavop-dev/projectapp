@@ -285,6 +285,26 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `document_states.js` store. State names are suggestions only; all mutation and
   conflict enforcement remains server-owned.
 
+### Project lifecycle reuses the shared state engine
+
+- `DocumentStateGroup`, `DocumentState`, `DocumentStateEpisode` and
+  `DocumentStateEpisodeEvent` are catalog-scoped (`documents` or `projects`). An
+  episode belongs to exactly one document or project.
+- `Project.current_state` is canonical. `Project.status` is a compatibility mirror;
+  create/update APIs reject direct lifecycle input outside the transition service.
+- `content.services.project_state_service` owns preview, token validation, atomic
+  consequences, history initialization, catalog merge and hosting-failure suggestions.
+- Session/CSRF APIs: `GET|POST /api/project-states/`, catalog update/retire/merge,
+  `POST /api/projects/<id>/state-transitions/preview/`, apply at
+  `/state-transitions/`, and `GET /state-history/`.
+- Nuxt uses the Options-API `project_states.js` store and the same
+  `StateCatalogManager` / `StateHistoryModal` primitives as Documents. The project
+  transition modal is specific because it must collect financial decisions.
+- Migrations `accounts.0055_project_lifecycle_state` and
+  `content.0213/0214_project_lifecycle_states` add the relations, seed all six
+  meanings and map known legacy statuses. Legacy `archived` remains unclassified
+  and review-required; deploy applies migrations, never a session worktree.
+
 ### Communications are a separate domain with shared infrastructure
 
 The client communications registry lives in the existing `content` Django app
@@ -406,6 +426,7 @@ confirmed by the operator or another integration.
   security traffic gets a primary `EmailLog` row at the transport boundary.
   Domain-specific `_log_email` calls enrich that row through the shared delivery
   trace instead of creating a duplicate.
+- **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
 
 ### Frontend Patterns
 
@@ -444,6 +465,12 @@ confirmed by the operator or another integration.
   `frontend/e2e/admin/admin-accounting-pocket-recurring.spec.js`; the complete
   repeatable 60-cell route/viewport matrix and long-modal scenarios are in
   `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
+- **Collection-account aggregation** — keep grouping, ordering and money/status
+  semantics in `frontend/utils/collectionAccounts.js`; pages provide rows and
+  controls, while `IncomeGroupedTable` and `AccountingGroupSummaryBand` own the
+  shared visual contract. Do not duplicate overdue or amount rules in templates.
+  `useCollectionAccountsViewPreferences` treats both settings as one save unit and
+  rolls back an optimistic change on API failure.
 
 ---
 

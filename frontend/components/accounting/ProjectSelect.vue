@@ -196,7 +196,7 @@ const props = defineProps({
   /** Turn off the create affordance where only picking makes sense. */
   allowCreate: { type: Boolean, default: true },
   /**
-   * Pre-select the client's only ACTIVE project when the field is empty
+   * Pre-select the client's only available project when the field is empty
    * (PA-51: proposing IS pre-filling — the value arrives visible and
    * editable before saving). Off by default; forms turn it on for creates
    * only, so an edit never rewrites what was stored.
@@ -290,8 +290,11 @@ function maybeAutoSelect() {
   // por el operador.
   if (!props.clientProfileId) return;
   if (props.modelValue != null) return;
-  const actives = projects.value.filter((p) => p.status === 'active');
-  if (actives.length === 1) selectProject(actives[0]);
+  const available = projects.value.filter((project) => [
+    'development',
+    'operating',
+  ].includes(project.current_state?.operational_effect));
+  if (available.length === 1) selectProject(available[0]);
 }
 
 function syncInputToSelection() {

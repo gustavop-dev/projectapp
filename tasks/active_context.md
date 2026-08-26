@@ -15,6 +15,23 @@ gateway, 9 casos de API global, 10 E2E y el build Nuxt están verdes; el flow-ma
 queda fresco con cero junk-only, unvalidated o missing. Después de desplegar y
 migrar aún debe agregarse Carlos desde Configuración con las ocho familias.
 
+**2026-08-26 — Cuentas de cobro agrupadas por cliente o proyecto:** el tab
+contable alterna entre la tabla clásica y una agrupación de un solo nivel con el
+mismo patrón de Ingresos. Los grupos se ordenan por saldo pendiente descendente,
+desempatan alfabéticamente y dejan Sin cliente/Sin proyecto al final. Cada
+encabezado muestra conteo, emitido, por cobrar, recaudado y anulado, además de
+borradores, emitidas, vencidas, pagadas y anuladas; vencida es un subconjunto
+temporal de emitida. Proyecto vivo, snapshot histórico y ausencia real se
+presentan por separado. El pie resume todo el conjunto filtrado. La vista y el
+criterio viven en `AccountingSettings`, se guardan inmediatamente con rollback de
+UI si falla el PATCH y también pueden editarse en Configuración. La implementación
+reutiliza `IncomeGroupedTable` mediante `AccountingGroupSummaryBand`, centraliza
+las reglas en `collectionAccounts.js` y registra el flujo
+`admin-accounting-collection-grouping`. Verificación focal: backend 8/8,
+frontend unit 16/16 + regresión de Ingresos 5/5, E2E de agrupación/persistencia y
+build Nuxt de producción verdes; sin ejecución de fake data por tratarse del host
+de producción.
+
 **2026-08-26 — Ingreso vinculado de cuentas de cobro abre en Esperados:**
 `CollectionAccountFormModal` usa un punto de partida estable por tipo de ingreso:
 al abrir o cambiar de cliente selecciona **Esperados**, conserva el alcance
@@ -55,6 +72,21 @@ sin carpeta no se reserva una línea vacía en escritorio. Los nombres reales
 viewports canónicos. Verificación: slices Jest de primitives y consumidores,
 Playwright 11/11, build Nuxt, contrato responsivo 103/13/5, flow-map fresco y
 auditoría sin junk-only ni missing.
+
+**2026-08-26 — Ciclo real y administrable para Proyectos:** el catálogo y los
+episodios de PA-88 ahora están explícitamente acotados por dominio y sirven también
+a `Project`, sin duplicar infraestructura. Se sembraron En desarrollo, Activo,
+Pausado, Suspendido, Completado y Dado de baja; el nombre/color se puede adaptar,
+pero `operational_effect` conserva las consecuencias aun después de un renombre.
+Cada cambio exige preview y token contra datos financieros actuales, se aplica en
+transacción y deja fecha, actor y nota. Suspender preserva deuda causada y silencia
+nuevos cobros/avisos; completar exige cierre limpio; dar de baja cancela futuro y
+obliga a decidir saldo por saldo, con nota si se salta Suspendido. No existe avance
+automático por tiempo: un hosting fallido sólo genera sugerencia. Los archivados
+legados quedan Sin clasificar/Por revisar y bloqueados para automatización monetaria
+hasta revisión manual. Panel, plataforma, filtros/conteos, fake data y contrato MCP
+ya consumen la misma verdad; los flows P1 de transición/histórico y catálogo cubren
+display/success/error/failure sin retries después de esperar hidratación observable.
 
 **2026-08-26 — Dataset representativo, coherente y reproducible para desarrollo:**
 `create_fake_data` reconstruye el grafo completo con volumen 60, semilla aislada

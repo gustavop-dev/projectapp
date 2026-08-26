@@ -5930,6 +5930,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-cards` | admin | P2 | display,success,error | 5 |
 | `admin-accounting-collection-create` | admin | P1 | display,failure,error,success | 9 |
 | `admin-accounting-collection-detail` | admin | P1 | display,success | — |
+| `admin-accounting-collection-grouping` | admin | P2 | display,success,failure | 4 |
 | `admin-accounting-collections` | admin | P2 | display,success,failure | 9 |
 | `admin-accounting-dashboard` | admin | P1 | display | 7 |
 | `admin-accounting-empty-state-cta` | admin | P4 | display | 2 |
@@ -5953,7 +5954,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-project-bulk-assign` | admin | P1 | success,failure | 3 |
 | `admin-accounting-project-coherence` | admin | P1 | success | 1 |
 | `admin-accounting-recurring` | admin | P2 | display,success,error,failure | 16 |
-| `admin-accounting-settings` | admin | P2 | display,success,error,failure | 11 |
+| `admin-accounting-settings` | admin | P2 | display,success,error,failure | 12 |
 | `admin-accounting-settings-reset-tabs` | admin | P3 | — | 0 |
 | `admin-accounting-statements` | admin | P2 | display,success,error,failure | 9 |
 | `admin-accounting-stats-modals` | admin | P2 | display | 1 |
@@ -6074,6 +6075,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
+| `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 4 |
+| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 6 |
 | `admin-proposal-actions-modal` | admin | P1 | display | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
 | `admin-proposal-analytics` | admin | P2 | display | 1 |
@@ -6511,7 +6514,7 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P2
 - **Routes:** `/panel/accounting/settings`
-- **Description:** (Ago 2026) Notification recipients are an administrable catalog of their own (`content.NotificationRecipient`, `GET/POST/PATCH/DELETE /api/accounting/notification-recipients/`, superuser-only, audited): each row shows the address, whether it is **Activo** or **Pausado** and its **fecha de alta**; adding validates the format and rejects duplicates case-insensitively (`Ese correo ya está en la lista.`) with the error inline under the field; a per-row switch pauses a recipient without deleting it (vacaciones, cambio de responsable); removing asks for confirmation naming the automations that stop arriving. Rows save individually — the page's "Guardar cambios" button governs only the toggles below. **Every automated email of the module** (cambios contables, recordatorio de deuda de tarjetas, recordatorio de extractos, calendario de cobros y pagos, cuentas de cobro y resultados de pago de hosting) resolves its destinations through `active_recipient_emails()` and reaches nobody else — no inbox is hardcoded. The global notifications toggle (`notifications_enabled`) is the master switch that pauses all of it at once without dismantling the list; with it off, or with zero active recipients, the panel says so explicitly in a warning (two distinct messages, so the fix is obvious). Changes are themselves audited, which means adding a recipient sends that address its own "creado" notice — a free delivery check. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the statement reminder toggle (`statement_reminder_enabled`, Jul 2026: emails every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the "Catálogo de tarjetas" section (see `admin-accounting-card-catalog`), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until the cuenta de cobro is sent), the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI, and (Ago 2026) the "Vista de ingresos" segmented control — `income_default_view_mode`, default `grouped`: whether `/panel/accounting/incomes` lands agrupada por cliente or as the classic table on every visit; the in-page toggle is session-only. Coverage note: the recipients catalog (list, alta, duplicado, pausa, baja con confirmación, ambas advertencias de "no le llega a nadie") + card toggle + overdue frequency + income view mode are tested; the statement reminder toggle, hosting toggle and USD rate field are not asserted yet (partial).
+- **Description:** (Ago 2026) Notification recipients are an administrable catalog of their own (`content.NotificationRecipient`, `GET/POST/PATCH/DELETE /api/accounting/notification-recipients/`, superuser-only, audited): each row shows the address, whether it is **Activo** or **Pausado** and its **fecha de alta**; adding validates the format and rejects duplicates case-insensitively (`Ese correo ya está en la lista.`) with the error inline under the field; a per-row switch pauses a recipient without deleting it (vacaciones, cambio de responsable); removing asks for confirmation naming the automations that stop arriving. Rows save individually — the page's "Guardar cambios" button governs only the toggles below. **Every automated email of the module** (cambios contables, recordatorio de deuda de tarjetas, recordatorio de extractos, calendario de cobros y pagos, cuentas de cobro y resultados de pago de hosting) resolves its destinations through `active_recipient_emails()` and reaches nobody else — no inbox is hardcoded. The global notifications toggle (`notifications_enabled`) is the master switch that pauses all of it at once without dismantling the list; with it off, or with zero active recipients, the panel says so explicitly in a warning (two distinct messages, so the fix is obvious). Changes are themselves audited, which means adding a recipient sends that address its own "creado" notice — a free delivery check. Also hosts the weekly card-debt reminder toggle (Fridays 9:00 Bogotá via Huey, re-alerts every 2 days until a snapshot dated on/after the cycle Friday exists; the global notifications toggle also gates it), the statement reminder toggle (`statement_reminder_enabled`, Jul 2026: emails every 8 days at 9:05 Bogotá while the previous month's statement of an active catalog card is missing, draft or lacks its PDF), the "Catálogo de tarjetas" section (see `admin-accounting-card-catalog`), the hosting expiry notices toggle (15/7 days before `valid_to`, then every 5 days until la cuenta de cobro is sent), the USD exchange rate (BaseCurrencyInput, min 1) used by the recurring USD KPI, and (Ago 2026) the "Vista de ingresos" segmented control — `income_default_view_mode`, default `grouped`: whether `/panel/accounting/incomes` lands agrupada por cliente or as the classic table on every visit; the in-page toggle is session-only. Cuentas de cobro adds a separate persisted pair: `collection_accounts_view_mode` (`grouped`/`classic`) and `collection_accounts_group_by` (`client`/`project`); saving here establishes the same global preference that the list updates immediately. Coverage note: the recipients catalog (list, alta, duplicado, pausa, baja con confirmación, ambas advertencias de "no le llega a nadie") + card toggle + overdue frequency + both view preference controls are tested; the statement reminder toggle, hosting toggle and USD rate field are not asserted yet (partial).
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
@@ -6586,6 +6589,18 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
  (Ago 2026) La fila ofrece además **eliminar**, que no es anular: anular deja el registro con su estado, porque el documento ya salió; eliminar borra físicamente la que nunca debió existir. El botón sólo aparece cuando el backend lo autoriza en `can_delete`: la cuenta ya está **anulada**, o **nunca llegó al cliente** (borrador, o emitida cuyo correo falló — el envío se consulta en `EmailLogTarget`, que no tiene FK y sobrevive al borrado). Una **pagada** no se puede ni anular ni eliminar. La confirmación es la única de la tabla con `requireTypeText`: muestra consecutivo, cliente y monto y exige teclear `ELIMINAR`, porque la acción es irreversible. El consecutivo **no se reutiliza** (la serie queda con un hueco explicable en vez de dos documentos con el mismo número), el ingreso vinculado vuelve a quedar facturable — la marca es derivada, así que se libera sola —, un hosting recupera sus avisos de vencimiento, y el borrado deja una fila `deleted` en el historial contable (`admin-accounting-history`) que nombra el consecutivo eliminado. (F7, 17-ago-2026) The **Proyecto column answers with the LIVE relation** — the same FK the project filter already matches on — and the frozen `customer_project_name` snapshot only fills FK-null legacy rows ("(histórico)" options intact), so the cell and the filter can never disagree: two cuentas of one client can honestly differ (one linked, one blank — the PA-DEIVISRI-001 evidence case) and a reload tells the same truth, while the PDF keeps printing the frozen snapshot untouched.
 - **Coverage:** ✅ Covered (counters + meta, Vencidas filter/badge, mark-paid + cancel with confirm, resend behind its confirm + resend-failure toast, eliminar una anulada con la palabra tecleada + contadores al día, la ausencia del botón en una cuenta ya enviada y en una pagada, y el borrado rechazado — la carrera que el botón oculto no puede evitar: la cuenta sale al cliente desde otro lado y el DELETE responde 400 diciendo que se anule; PDF download not asserted)
 - **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`
+
+### FLOW: `admin-accounting-collection-grouping`
+- **Module:** admin
+- **Role:** superuser admin
+- **Priority:** P2
+- **Routes:** `/panel/accounting/collections`, `/panel/accounting/settings`
+- **API:** `GET /api/accounting/settings/`, `PATCH /api/accounting/settings/update/`, `GET /api/accounting/collection-accounts/`
+- **Description:** Cuentas de cobro alterna entre la tabla clásica y una vista agrupada de un solo nivel. En **Cliente**, el encabezado responde a quién cobrarle; en **Proyecto**, separa proyectos vivos, snapshots huérfanos como “(histórico)” y el grupo real “Sin proyecto”. Cada encabezado reutiliza la banda de PA-60 (etiqueta arriba, valor abajo) para mostrar conteo, emitido, por cobrar, recaudado, anulado y el desglose Borradores/Emitidas/Vencidas/Pagadas/Anuladas; Vencidas es un subconjunto de Emitidas. Los grupos se ordenan por pendiente descendente, desempatan alfabéticamente y dejan el grupo sin asignar al final. El pie suma exactamente el conjunto filtrado.
+- **Steps:** abrir Cuentas de cobro → alternar Agrupado/Clásico → elegir Cliente/Proyecto → contrastar encabezados, orden y pie → recargar y comprobar que el par persiste. La misma preferencia se puede editar en Configuración.
+- **Branches:** un PATCH fallido revierte de inmediato al último par confirmado y muestra el error; no existe entrada libre que produzca un error de validación desde esta UI segmentada.
+- **Coverage:** ✅ Covered (display de montos/estados, cambio de criterio y grupos históricos, persistencia tras recarga, rollback de fallo del servidor, edición desde Configuración)
+- **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-ads-history-settings.spec.js`
 
 ### FLOW: `admin-accounting-collection-detail`
 
@@ -6870,10 +6885,10 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/projects`
-- **API:** `GET /api/projects/` (`?scope=active|archived|all`, invalid → 400), `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `PATCH /api/projects/<id>/archive/`, `PATCH /api/projects/<id>/unarchive/`, `GET /api/proposals/client-profiles/?without_projects=true`
-- **Description:** Listing of every project with client (UserProfile terms), status badge, created date and per-project hosting/income counts, loaded once with `scope=all` and filtered client-side: accent/case-blind search over project and client, a BaseSegmented Activos/Archivados/Todos, sortable columns, PAGE_SIZE 15. Stat cards count active/archived plus **clients without any project**; that card opens a panel listing each uncovered client with a Crear proyecto CTA that seeds the modal. Create = name + required client (ClientAutocomplete with inline client creation); description/status optional; a same-name project for the same client raises a non-blocking warning strip. Edit keeps the client immutable (backend answers 400 `client_immutable`) and archived rows out of circulation (400 `project_archived`); archive asks confirmation explaining records stay linked; restore returns to Activos. For superusers the counts link into the accounting tabs pre-filtered (`?project=<id>`; incomes pins `accounting_incomeTab=all`).
+- **API:** `GET /api/projects/?scope=all`, `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `GET /api/project-states/`, `GET /api/proposals/client-profiles/?without_projects=true`
+- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Each lifecycle state owns a header count. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create requires name + client, defaults to **En desarrollo**, and may choose another initial catalog state; later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
 - **Responsive contract:** En 412 px y 835 px el scope es selector, el orden sigue explícito y el listado usa tarjetas en una o dos columnas. El teléfono prioriza dos KPI y revela los otros dos bajo demanda. Desde 1195 px vuelve la tabla. Crear, editar, asignar huérfanos y cambiar cliente usan pantalla completa en teléfono; la vista previa de impacto se apila antes de la decisión y conserva acciones sticky. En 2560 px la página se centra con máximo de 1400 px.
-- **Steps:** open module → search/sort/switch scope → create from CTA or from the uncovered-clients panel → edit → archive/restore → jump into hostings/incomes by count.
+- **Steps:** open module → search/sort/filter by catalog state → create from CTA or uncovered-client panel → edit descriptive data → open the dedicated lifecycle/history actions → jump into hostings/incomes by count.
 - **Branches:** duplicate name warns and still saves; backend 400 keeps the modal open with the message; zero counts render as plain text; non-superusers see plain counts (no links).
 - **Coverage:** ✅ Covered, incluido display responsivo en los cinco anchos reales.
 - **E2E Specs:** `e2e/admin/admin-panel-projects.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
@@ -7081,6 +7096,46 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   3. **error:** n/a; los valores pertenecen a catálogos o controles de fecha y no existe una validación editable independiente.
   4. **failure:** la falla de carga se cubre en la frontera del store; esta interacción sólo registra la consulta exitosa con datos.
 - **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-project-lifecycle-states`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects`
+- **API:** `POST /api/projects/<id>/state-transitions/preview/`, `POST /api/projects/<id>/state-transitions/`, `GET /api/projects/<id>/state-history/`
+- **Description:** El cambio de estado es una operación de negocio en dos pasos: primero calcula y muestra consecuencias, después aplica exactamente ese impacto mediante token. Suspendido detiene nueva facturación y avisos sin borrar deuda causada; Completado exige cierre limpio; Dado de baja cancela futuro y obliga a decidir conservar o castigar cada saldo causado. Una baja directa requiere nota. Un cambio financiero entre preview y confirmación invalida el token y deja el modal abierto. El histórico conserva episodios, fechas efectivas, actores y notas.
+- **Interaction matrix:**
+
+| Interaction | Outcome | Start → end state |
+|---|---|---|
+| Abrir histórico desde la fila | display | Proyectos → Histórico → episodios reales con fecha, actor y nota |
+| Suspender después de revisar consecuencias | success | Activo → preview → confirmación → fila Suspendido y nuevo episodio |
+| Intentar baja directa incompleta | error | Preview de baja → falta decisión o nota → confirmar permanece bloqueado |
+| Confirmar un preview financiero obsoleto | failure | Preview → cambian cobros → HTTP 409 visible y modal conserva el contexto |
+
+- **Coverage:** ✅ Las cuatro clases están cubiertas.
+- **E2E Specs:** `e2e/admin/admin-project-lifecycle-states.spec.js`
+
+### FLOW: `admin-project-state-catalog`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects/statuses`
+- **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles, pero el usuario puede descubrir otros con el uso, crearlos, renombrarlos, recolorearlos, fusionarlos y retirarlos. El nombre es editable; el efecto operativo que gobierna cobros y cierres queda protegido cuando el estado ya se usa.
+- **Interaction matrix:**
+
+| Interaction | Outcome | Start → end state |
+|---|---|---|
+| Abrir el catálogo desde Proyectos | display | Proyectos → Administrar estados → seis semillas, usos e histórico |
+| Crear, renombrar o retirar un estado libre | success | Formulario/edición → catálogo refrescado sin perder histórico |
+| Retirar un estado usado | error | Confirmar retiro → explicación de proyectos activos → estado permanece |
+| Guardar durante una falla del servidor | failure | Editar nombre → HTTP 5xx visible → borrador permanece para reintentar |
+
+- **Coverage:** ✅ Las cuatro clases están cubiertas.
+- **E2E Specs:** `e2e/admin/admin-project-lifecycle-states.spec.js`
 
 ### FLOW: `proposal-closing-contact`
 

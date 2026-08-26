@@ -34,7 +34,13 @@ const LIST_RESPONSE = {
         incomes_count: 2,
       },
     ],
-    meta: { total: 1, active: 1, archived: 0, clients_without_projects: 3 },
+    meta: {
+      total: 1,
+      by_state: [{ state_id: 2, name: 'Activo', count: 1 }],
+      review_required: 0,
+      clients_without_projects: 3,
+      records_without_project: 0,
+    },
   },
 };
 
@@ -56,6 +62,9 @@ describe('panel_projects store', () => {
     expect(result.success).toBe(true);
     expect(store.records).toHaveLength(1);
     expect(store.meta.clients_without_projects).toBe(3);
+    expect(store.meta.by_state).toEqual([
+      { state_id: 2, name: 'Activo', count: 1 },
+    ]);
     expect(store.error).toBeNull();
   });
 
@@ -113,30 +122,15 @@ describe('panel_projects store', () => {
     expect(result.success).toBe(true);
   });
 
-  it('archive and unarchive hit their dedicated endpoints', async () => {
-    patch_request.mockResolvedValue({ data: { id: 1, status: 'archived' } });
-    get_request.mockResolvedValue(LIST_RESPONSE);
+  it('refreshAfterExternalMutation reloads lifecycle counts', async () => {
+    get_request.mockResolvedValueOnce(LIST_RESPONSE);
     const store = usePanelProjectsStore();
 
-    await store.archiveProject(1);
-    await store.unarchiveProject(1);
+    const result = await store.refreshAfterExternalMutation();
 
-    expect(patch_request).toHaveBeenNthCalledWith(1, 'projects/1/archive/', {});
-    expect(patch_request).toHaveBeenNthCalledWith(2, 'projects/1/unarchive/', {});
-    expect(get_request).toHaveBeenCalledTimes(2);
-  });
-
-  it('a failed archive keeps the error message for the toast', async () => {
-    patch_request.mockRejectedValueOnce(
-      apiError(400, { error: 'El proyecto ya está archivado.', code: 'already_archived' }),
-    );
-    const store = usePanelProjectsStore();
-
-    const result = await store.archiveProject(1);
-
-    expect(result.success).toBe(false);
-    expect(result.message).toBe('El proyecto ya está archivado.');
-    expect(result.code).toBe('already_archived');
+    expect(result.success).toBe(true);
+    expect(get_request).toHaveBeenCalledWith('projects/?scope=all');
+    expect(store.meta.by_state[0].count).toBe(1);
   });
 
   it('fetchUnlinkedRecords returns the preview without touching the listing', async () => {

@@ -330,6 +330,17 @@ class TestAccountingMcpHandlerBranches:
         assert response.data['result']['isError'] is False
         assert AccountingSettings.load().income_default_view_mode == 'classic'
 
+    def test_update_settings_changes_collection_grouping(
+        self, api_client, accounting_connector, mcp_superuser, accounting_settings,
+    ):
+        _, token = accounting_connector
+        response = _call(api_client, token, 'update_settings', {
+            'collection_accounts_group_by': 'project',
+        })
+
+        assert response.data['result']['isError'] is False
+        assert AccountingSettings.load().collection_accounts_group_by == 'project'
+
     def test_update_settings_schema_declares_every_editable_field(self):
         """The declared schema drifted behind the serializer once (it listed
         3 of 6 editable fields); pin them to each other so it cannot again."""
@@ -338,6 +349,8 @@ class TestAccountingMcpHandlerBranches:
         editable = set(AccountingSettingsSerializer.Meta.fields) - {'updated_at'}
         assert set(properties) == editable
         assert properties['income_default_view_mode']['enum'] == ['classic', 'grouped']
+        assert properties['collection_accounts_view_mode']['enum'] == ['classic', 'grouped']
+        assert properties['collection_accounts_group_by']['enum'] == ['client', 'project']
 
 
 @pytest.mark.django_db

@@ -47,6 +47,13 @@ from .document_state import (
     DocumentStateEpisodeEvent,
     DocumentStateGroup,
 )
+# Generic names for the shared PA-88 engine. The compatibility aliases keep
+# existing document imports and migrations stable while projects reuse the
+# exact same tables, constraints and service layer.
+WorkflowState = DocumentState
+WorkflowStateEpisode = DocumentStateEpisode
+WorkflowStateEpisodeEvent = DocumentStateEpisodeEvent
+WorkflowStateGroup = DocumentStateGroup
 from .document_note import DocumentNote
 from .issuer_profile import IssuerProfile
 from .document_number_sequence import (

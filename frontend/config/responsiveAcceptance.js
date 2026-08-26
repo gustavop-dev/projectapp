@@ -63,7 +63,7 @@ export const RESPONSIVE_MODULES = Object.freeze({
   ], [
     'Buscar y cambiar el alcance del listado.',
     'Crear o editar un proyecto.',
-    'Revisar la vista previa del cambio de cliente.',
+    'Revisar cambios de cliente y administrar el catálogo de estados.',
   ]),
   commercial: module('commercial', [
     'frontend/components/BusinessProposal/admin/',
@@ -224,7 +224,7 @@ export function responsiveOwnerForView(sectionId, view) {
 
   if (url === '/panel/login' || url === '/panel/styleguide') return 'foundation';
   if (url === '/panel/clients') return 'clients';
-  if (url === '/panel/projects') return 'projects';
+  if (url === '/panel/projects' || url === '/panel/projects/statuses') return 'projects';
   if (url === '/panel/documents' || url === '/panel/documents/statuses') return 'documents';
   if (url === '/panel/communications') return 'communications';
   if (file === 'frontend/pages/panel/documents/create.vue' || file === 'frontend/pages/panel/documents/[id]/edit.vue') return 'canvas';

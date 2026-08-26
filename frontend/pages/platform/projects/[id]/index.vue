@@ -43,25 +43,16 @@
       <div v-if="authStore.isAdmin" class="rounded-2xl border border-border-default bg-surface p-6">
         <h2 class="text-base font-medium text-text-default">Acciones</h2>
         <p class="mt-1 text-xs text-green-light/60">
-          La edición, archivado y eliminación del proyecto viven aquí (no en la tabla).
+          Edita los datos descriptivos aquí. Los estados y sus consecuencias se administran en la ficha comercial.
         </p>
         <div class="mt-3 flex flex-wrap gap-2">
           <BaseButton variant="secondary" size="md" @click="openEditModal">
             Editar
           </BaseButton>
-          <BaseButton variant="secondary" size="md" v-if="project.status !== 'archived'" :disabled="projectsStore.isUpdating" @click="handleArchive">
-            {{ projectsStore.isUpdating ? '…' : 'Archivar' }}
-          </BaseButton>
-          <BaseButton variant="secondary" size="md" v-else :disabled="projectsStore.isUpdating" @click="handleUnarchive">
-            {{ projectsStore.isUpdating ? '…' : 'Reactivar' }}
-          </BaseButton>
-          <BaseButton variant="danger-ghost" size="sm" :disabled="projectsStore.isUpdating" @click="handleDelete">
-            Eliminar
+          <BaseButton variant="secondary" size="md" @click="openPanelLifecycle">
+            Cambiar estado en la ficha comercial
           </BaseButton>
         </div>
-        <p v-if="actionError" class="mt-3 rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">
-          {{ actionError }}
-        </p>
       </div>
 
       <PhaseSelectorModal
@@ -93,15 +84,6 @@
                   <div>
                     <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Descripción</label>
                     <textarea v-model="editForm.description" rows="3" class="w-full resize-none rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none transition focus:border-border-default dark:bg-primary-strong dark:text-white" />
-                  </div>
-                  <div>
-                    <label class="mb-1.5 block text-xs font-medium text-esmerald/70 dark:text-white/70">Estado</label>
-                    <select v-model="editForm.status" class="w-full rounded-xl border border-border-default bg-surface-muted/40 px-4 py-3 text-sm text-text-default outline-none focus:border-border-default dark:bg-primary-strong dark:text-white">
-                      <option value="active">Activo</option>
-                      <option value="paused">Pausado</option>
-                      <option value="completed">Completado</option>
-                      <option value="archived">Archivado</option>
-                    </select>
                   </div>
                   <p v-if="editError" class="rounded-xl border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600 dark:text-red-400">{{ editError }}</p>
                   <div class="flex justify-end gap-3 pt-2">
@@ -137,16 +119,14 @@ definePageMeta({
 
 const authStore = usePlatformAuthStore()
 const projectsStore = usePlatformProjectsStore()
-const localePath = useLocalePath()
 
 const project = computed(() => projectsStore.currentProject)
 const phases = ref([])
 const showAddPhase = ref(false)
 
 const isEditOpen = ref(false)
-const editForm = reactive({ name: '', description: '', status: 'active' })
+const editForm = reactive({ name: '', description: '' })
 const editError = ref('')
-const actionError = ref('')
 
 async function loadPhases() {
   if (!project.value) return
@@ -188,7 +168,6 @@ function planLabel(plan) {
 function openEditModal() {
   editForm.name = project.value?.name || ''
   editForm.description = project.value?.description || ''
-  editForm.status = project.value?.status || 'active'
   editError.value = ''
   isEditOpen.value = true
 }
@@ -204,40 +183,7 @@ async function handleEditSubmit() {
   }
 }
 
-async function handleArchive() {
-  if (!project.value) return
-  if (!window.confirm(`¿Archivar el proyecto "${project.value.name}"? Podrás reactivarlo después.`)) return
-  actionError.value = ''
-  const result = await projectsStore.archiveProject(project.value.id)
-  if (!result.success) actionError.value = result.message
-}
-
-async function handleUnarchive() {
-  if (!project.value) return
-  actionError.value = ''
-  const result = await projectsStore.updateProject(project.value.id, { status: 'active' })
-  if (!result.success) actionError.value = result.message
-}
-
-async function handleDelete() {
-  if (!project.value) return
-  const confirm1 = window.confirm(
-    `⚠️ ¿Eliminar PERMANENTEMENTE el proyecto "${project.value.name}"?\n\n` +
-    'Esto borra todo: fases, requerimientos, bugs, solicitudes, recursos, pagos, accesos.\n' +
-    'No se puede deshacer.',
-  )
-  if (!confirm1) return
-  const typed = window.prompt(`Para confirmar, escribe el nombre del proyecto: "${project.value.name}"`)
-  if (typed !== project.value.name) {
-    if (typed !== null) window.alert('El nombre no coincide. Eliminación cancelada.')
-    return
-  }
-  actionError.value = ''
-  const result = await projectsStore.deleteProject(project.value.id)
-  if (result.success) {
-    await navigateTo(localePath('/platform/projects'))
-  } else {
-    actionError.value = result.message
-  }
+function openPanelLifecycle() {
+  window.open(`/panel/projects?highlight=${project.value.id}`, '_blank')
 }
 </script>

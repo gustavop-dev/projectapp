@@ -1,0 +1,16 @@
+{
+  "id": "admin-accounting-collection-grouping",
+  "name": "Admin Accounting Collection Account Grouping",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P2",
+  "description": "Superuser switches Cuentas de cobro between the classic table and a one-level grouped view, choosing Cliente or Proyecto. Each group shows its filtered row count; emitted (issued plus paid), pending (issued), collected (paid) and cancelled amounts; and draft, issued, overdue, paid and cancelled counts, with overdue intentionally overlapping issued. Groups order by pending descending with alphabetical ties and the unassigned bucket last. Snapshot-only projects remain distinct as historical groups, true blanks use Sin proyecto, and the footer totals exactly the filtered set. Both preferences are stored together in the global AccountingSettings singleton from either the page (immediate save with rollback on failure) or Configuracion, so a reload and another device see the last saved pair.",
+  "expectedSpecs": 4,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

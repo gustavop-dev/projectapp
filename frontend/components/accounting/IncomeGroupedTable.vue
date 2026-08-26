@@ -10,10 +10,10 @@
     class="overflow-x-auto bg-surface rounded-xl border border-border-muted shadow-sm"
     role="table"
     :aria-busy="loading ? 'true' : undefined"
-    aria-label="Ingresos por cliente"
+    :aria-label="ariaLabel"
   >
     <p class="sr-only" aria-live="polite">
-      {{ loading ? 'Cargando registros...' : `${rowCount} registros en ${groups.length} clientes` }}
+      {{ loading ? 'Cargando registros...' : `${rowCount} ${rowNoun} en ${groups.length} ${groupNoun}` }}
     </p>
 
     <div class="accounting-grid-scroll" :style="{ ...containerVars, ...gridVars }">
@@ -29,7 +29,7 @@
           <input
             type="checkbox"
             class="align-middle accent-primary"
-            aria-label="Seleccionar todos los ingresos filtrados"
+            :aria-label="`Seleccionar ${allSelectionArticle} ${rowNoun} ${filteredAdjective}`"
             data-testid="accounting-select-all"
             :checked="allSummary.all"
             :indeterminate.prop="allSummary.some && !allSummary.all"
@@ -71,10 +71,11 @@
             drop together to a second line under the name rather than wrapping
             mid amount.
           -->
-          <div
-            role="row"
-            class="accounting-grid-band accounting-group-header bg-surface-raised border-y border-border-muted px-4 py-2"
-            :data-testid="`income-group-${group.id}`"
+          <AccountingGroupSummaryBand
+            class="accounting-grid-band bg-surface-raised border-y border-border-muted px-4 py-2"
+            :data-testid="`${groupTestPrefix}-group-${group.id}`"
+            :metrics="metricsForGroup(group)"
+            :statuses="statusesFor(group)"
           >
             <div class="flex items-center gap-2 min-w-0">
               <!-- Sibling of the toggle, never inside it: a checkbox nested in
@@ -84,8 +85,8 @@
                 v-if="selectable"
                 type="checkbox"
                 class="align-middle accent-primary flex-shrink-0"
-                :aria-label="`Seleccionar los ${group.count} ingresos de ${group.name}`"
-                :data-testid="`income-group-select-${group.id}`"
+                :aria-label="`Seleccionar ${selectionArticle} ${group.count} ${rowNoun} de ${group.name}`"
+                :data-testid="`${groupTestPrefix}-group-select-${group.id}`"
                 :checked="groupSummary(group.id).all"
                 :indeterminate.prop="groupSummary(group.id).some && !groupSummary(group.id).all"
                 @change="toggleGroupSelection(group, $event.target.checked)"
@@ -95,8 +96,8 @@
                 role="columnheader"
                 class="inline-flex items-center gap-2 min-w-0 text-sm font-medium text-text-default rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring/50"
                 :aria-expanded="!isCollapsed(group.id)"
-                :aria-controls="`income-group-body-${group.id}`"
-                :data-testid="`income-group-toggle-${group.id}`"
+                :aria-controls="`${groupTestPrefix}-group-body-${group.id}`"
+                :data-testid="`${groupTestPrefix}-group-toggle-${group.id}`"
                 @click="emit('toggle-group', group.id)"
               >
                 <BaseActionIcon
@@ -105,10 +106,10 @@
                 />
                 <span class="min-w-0 max-w-full truncate" :title="group.name">{{ group.name }}</span>
                 <span
-                  v-if="group.id === NO_CLIENT_KEY"
+                  v-if="group.id === unassignedKey"
                   class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-warning-soft text-warning-strong whitespace-nowrap"
                 >
-                  por completar
+                  {{ unassignedBadge }}
                 </span>
                 <span class="text-xs text-text-subtle font-normal">({{ group.count }})</span>
               </button>
@@ -118,62 +119,18 @@
               <span
                 v-if="selectable && isCollapsed(group.id) && groupSummary(group.id).count > 0"
                 class="text-[10px] px-1.5 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-primary-soft text-text-brand whitespace-nowrap"
-                :data-testid="`income-group-selected-${group.id}`"
+                :data-testid="`${groupTestPrefix}-group-selected-${group.id}`"
               >
                 {{ groupSummary(group.id).count }}
                 seleccionado{{ groupSummary(group.id).count === 1 ? '' : 's' }}
               </span>
             </div>
-            <!--
-              Both amounts always render, zero included, so every group states
-              the same facts in the same order — the footer row and the totals
-              modal already spell out their zeros.
-
-              Each figure is its own block with the label above the value —
-              that two-line shape is what made the row legible, and it is also
-              what removes the need for separators between the blocks: the gap
-              alone tells them apart, so the middots that used to chain them
-              into one sentence are gone. The labels borrow the column headers'
-              own formula (uppercase, tracked, subtle) because that is what
-              makes the row read as totals and not as decoration.
-            -->
-            <div class="text-xs leading-tight whitespace-nowrap">
-              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-                Facturado
-              </span>
-              <span
-                class="block font-medium tabular-nums text-text-muted"
-                :data-testid="`income-group-billed-${group.id}`"
-              >{{ money(group.billed) }}</span>
-            </div>
-            <div class="text-xs leading-tight whitespace-nowrap">
-              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-                Pendiente
-              </span>
-              <span
-                class="block font-medium tabular-nums text-warning-strong"
-                :data-testid="`income-group-pending-${group.id}`"
-              >{{ money(group.pending) }}</span>
-            </div>
-            <!-- The label states what the figure actually is: the group's share
-                 OF the billed total (weightPct = group billed / Σ billed). "% de
-                 lo facturado" also read as "how much of this group is billed",
-                 which is a different question and not the one answered here. -->
-            <div v-if="group.weightPct != null" class="text-xs leading-tight whitespace-nowrap">
-              <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-                Participación en lo facturado
-              </span>
-              <span
-                class="block font-medium tabular-nums text-text-muted"
-                :data-testid="`income-group-weight-${group.id}`"
-              >{{ formatPercent(group.weightPct) }}</span>
-            </div>
-          </div>
+          </AccountingGroupSummaryBand>
 
           <!-- Rows -->
           <div
             v-show="!isCollapsed(group.id)"
-            :id="`income-group-body-${group.id}`"
+            :id="`${groupTestPrefix}-group-body-${group.id}`"
             class="accounting-grid-subgrid divide-y divide-border-muted"
           >
             <div
@@ -307,41 +264,15 @@
              after it. Pendiente keeps coming before Cobrado because those first
              two are the columns the groups also carry, and Cobrado — which has
              no group-level counterpart — closes the set. -->
-        <div
-          role="row"
-          class="accounting-grid-band accounting-group-header bg-surface-raised border-t-2 border-border-muted px-4 py-2"
+        <AccountingGroupSummaryBand
+          class="accounting-grid-band bg-surface-raised border-t-2 border-border-muted px-4 py-2"
+          :metrics="metricsForFooter"
+          :statuses="statusesFor(summaryTotals, true)"
         >
           <span role="cell" class="text-xs uppercase tracking-wider text-text-muted">
-            Total del conjunto filtrado
+            {{ footerLabel }}
           </span>
-          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
-            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-              Facturado
-            </span>
-            <span
-              class="block text-sm font-medium tabular-nums text-text-default"
-              data-testid="income-grouped-billed-total"
-            >{{ money(totals.billed) }}</span>
-          </div>
-          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
-            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-              Pendiente
-            </span>
-            <span
-              class="block text-sm font-medium tabular-nums text-warning-strong"
-              data-testid="income-grouped-pending-total"
-            >{{ money(totals.pending) }}</span>
-          </div>
-          <div role="cell" class="text-xs leading-tight whitespace-nowrap">
-            <span class="block text-[10px] uppercase tracking-wider text-text-subtle">
-              Cobrado
-            </span>
-            <span
-              class="block text-sm font-medium tabular-nums text-success-strong"
-              data-testid="income-grouped-collected-total"
-            >{{ money(totals.collected) }}</span>
-          </div>
-        </div>
+        </AccountingGroupSummaryBand>
       </template>
     </div>
   </div>
@@ -349,10 +280,11 @@
 
 <script setup>
 import { computed } from 'vue';
+import AccountingGroupSummaryBand from '~/components/accounting/AccountingGroupSummaryBand.vue';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';
-import { NO_CLIENT_KEY, sumClientGroups } from '~/utils/incomeClients';
+import { sumClientGroups } from '~/utils/incomeClients';
 import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
   SELECT_PAD,
@@ -380,6 +312,40 @@ const props = defineProps({
   selectable: { type: Boolean, default: false },
   /** Selected row ids (v-model:selected). */
   selected: { type: Array, default: () => [] },
+  ariaLabel: { type: String, default: 'Ingresos por cliente' },
+  rowNoun: { type: String, default: 'ingresos' },
+  allSelectionArticle: { type: String, default: 'todos los' },
+  selectionArticle: { type: String, default: 'los' },
+  filteredAdjective: { type: String, default: 'filtrados' },
+  groupNoun: { type: String, default: 'clientes' },
+  groupTestPrefix: { type: String, default: 'income' },
+  unassignedKey: { type: [String, Number], default: 'none' },
+  unassignedBadge: { type: String, default: 'por completar' },
+  groupMetrics: {
+    type: Array,
+    default: () => [
+      { key: 'billed', label: 'Facturado', format: 'money', tone: 'muted' },
+      { key: 'pending', label: 'Pendiente', format: 'money', tone: 'warning' },
+      {
+        key: 'weight',
+        source: 'weightPct',
+        label: 'Participación en lo facturado',
+        format: 'percent',
+        tone: 'muted',
+      },
+    ],
+  },
+  footerMetrics: {
+    type: Array,
+    default: () => [
+      { key: 'billed', label: 'Facturado', format: 'money', tone: 'default' },
+      { key: 'pending', label: 'Pendiente', format: 'money', tone: 'warning' },
+      { key: 'collected', label: 'Cobrado', format: 'money', tone: 'success' },
+    ],
+  },
+  statusDefinitions: { type: Array, default: () => [] },
+  summaryTotals: { type: Object, default: null },
+  footerLabel: { type: String, default: 'Total del conjunto filtrado' },
 });
 
 const emit = defineEmits(['edit', 'delete', 'toggle-group', 'update:selected']);
@@ -462,7 +428,47 @@ const rowCount = computed(
  */
 const showSkeleton = computed(() => props.loading && props.groups.length === 0);
 
-const totals = computed(() => sumClientGroups(props.groups));
+const summaryTotals = computed(() => props.summaryTotals || sumClientGroups(props.groups));
+
+function formatMetricValue(definition, source) {
+  const value = source?.[definition.source || definition.key];
+  if (definition.format === 'money') return money(value);
+  if (definition.format === 'percent') return formatPercent(value);
+  return value ?? '—';
+}
+
+function metricTestId(definition, groupId = null) {
+  if (groupId == null) return `${props.groupTestPrefix}-grouped-${definition.key}-total`;
+  return `${props.groupTestPrefix}-group-${definition.key}-${groupId}`;
+}
+
+function metricItems(definitions, source, groupId = null) {
+  return definitions
+    .filter((definition) => !definition.optional || source?.[definition.source || definition.key] != null)
+    .map((definition) => ({
+      ...definition,
+      value: formatMetricValue(definition, source),
+      testId: metricTestId(definition, groupId),
+    }));
+}
+
+function metricsForGroup(group) {
+  return metricItems(props.groupMetrics, group, group.id);
+}
+
+const metricsForFooter = computed(
+  () => metricItems(props.footerMetrics, summaryTotals.value),
+);
+
+function statusesFor(source, isFooter = false) {
+  return props.statusDefinitions.map((definition) => ({
+    ...definition,
+    value: source?.statusCounts?.[definition.key] || 0,
+    testId: isFooter
+      ? `${props.groupTestPrefix}-grouped-status-${definition.key}-total`
+      : `${props.groupTestPrefix}-group-status-${definition.key}-${source?.id}`,
+  }));
+}
 
 function money(value) {
   return formatMoney(Number(value) || 0, 'COP');
@@ -591,73 +597,6 @@ function formatGroupedValue(col, value) {
  * single column (client header, totals, loading skeleton). */
 .accounting-grid-band {
   grid-column: 1 / -1;
-}
-
-/* The group header and the footer are totals rows, but their figures belong to
- * the name they follow: they sit CONTIGUOUS to it at the start of the band, not
- * spread to the far edge. Both ends were tried on the real table — pinned apart
- * and spread over weighted tracks — and both put the amounts far enough from the
- * name to read as columns of some other thing. What carries the reading is the
- * two-line block (label over value), not the distance between blocks.
- *
- * Flex and not grid: a grid track list would have to choose a width for the name
- * up front, and the name is the one value that cannot be sized in advance. Here
- * it is the only flexible item (min-width:0 → it ellipsizes) while every figure
- * block keeps its natural width (flex:none), so a long name gives up space
- * instead of pushing a figure out of the row or breaking one in half.
- *
- * The gap is uniform: with each figure carrying its own label there is nothing
- * left for a separator to disambiguate. */
-.accounting-group-header {
-  display: flex;
-  flex-wrap: wrap;
-  /* The name is one line and the figure blocks are two: centring keeps it
-   * against the block as a whole instead of stranding it up on the label. */
-  align-items: center;
-  column-gap: 1.25rem;
-  row-gap: 0.25rem;
-  /* The band spans every column, so track sizing asks it how wide it wants to
-   * be — and a flex row answers with the sum of its children, i.e. the full
-   * length of the longest client name. That widened the WHOLE table (measured:
-   * a 2518px name grew a 1294px grid to 3057px) and, because the band had
-   * grown to fit, `truncate` never engaged. Declaring a zero width makes the
-   * contribution zero; min-width then stretches the band back over the tracks
-   * the COLUMNS sized. The name ellipsizes only when it actually runs out of
-   * room, which is what the flex rules below assume. */
-  width: 0;
-  min-width: 100%;
-}
-
-/* Compact and portrait tablet: identity, the two money figures, then share. */
-.accounting-group-header > :first-child {
-  min-width: 0;
-}
-
-/* Amounts never compress: the name is what yields. */
-.accounting-group-header > :not(:first-child) {
-  flex: 0 0 auto;
-}
-
-@media (max-width: 1023px) {
-  .accounting-group-header {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem 1rem;
-    align-items: start;
-  }
-  .accounting-group-header > :first-child,
-  .accounting-group-header > :last-child:nth-child(4) {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (min-width: 1024px) {
-  .accounting-group-header {
-    flex-wrap: nowrap;
-  }
-  .accounting-group-header > :first-child {
-    flex: 0 1 auto;
-  }
 }
 
 /* Same feedback flash as AccountingTable for the row just created or edited. */

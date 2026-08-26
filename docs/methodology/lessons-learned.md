@@ -28,6 +28,16 @@ This file captures important patterns, preferences, and project intelligence tha
 - Services (30 modules): `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`, `LinkedInService`, `DiagnosticService`, `DiagnosticEmailService`, `DiagnosticPdfService`, `DiagnosticDocumentsService`, `AccountingService`, `AccountingExportService`, `AccountingEmailService`, `AccountingCardReminderService`
 - MCP tool servers live in `content/mcp/` (`protocol`, `actor`, `tools` + per-domain connector modules), not in `services/` — they wrap existing service/ORM calls behind a token-authed JSON-RPC surface for claude.ai
 
+### Editable labels need immutable operational meaning
+
+- A user-managed status name cannot safely drive billing, reminders or closure.
+- `DocumentState` is shared across domains through `catalog`; project behavior keys
+  off `operational_effect`, while names/colors remain editable.
+- Financially consequential transitions use preview + token + atomic revalidation.
+  This prevents a confirmation made against stale income/payment data from applying.
+- Ambiguous migrated rows fail closed for money and stay explicitly reviewable; a
+  migration must not invent whether a legacy archive was a good close or a shutdown.
+
 ### External API Integration Pattern (LinkedIn)
 - External OAuth integrations follow the singleton model + service module pattern
 - `LinkedInToken` (singleton, pk=1) stores Fernet-encrypted access/refresh tokens in the DB; encryption key from `LINKEDIN_ENCRYPTION_KEY` env var
@@ -1031,3 +1041,19 @@ Finally, documentation alone does not keep coverage current. Compare a declared
 seeded/derived/catalog/exempt inventory with Django's concrete app registry in a
 test. A new model then forces its author to decide ownership and fake-data
 behavior in the same delivery instead of leaving the gap for a later cleanup.
+
+## 42. Group summaries need one semantic calculator and layout-aware reuse
+
+Grouped financial tables combine independent questions: which rows belong
+together, how money changes by lifecycle state, which status counts overlap and
+how groups are prioritized. Centralize those rules in a pure utility and let both
+group headers and the filtered footer consume its result. In particular, overdue
+can overlap issued while amount buckets remain exclusive; calculating either rule
+ad hoc in the template makes totals drift silently.
+
+Reuse the visual contract at the smallest stable boundary. Sharing the summary
+band and the grouped-table shell kept Incomes and Cuentas de cobro consistent,
+while parameterized labels and metrics preserved their different business
+semantics. Row slots could also be shared, but the classic table's absolute
+stretched link could not: layout-dependent affordances must be enabled by the
+owning view mode. A real pointer-driven E2E is what exposed that boundary.

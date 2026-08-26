@@ -149,16 +149,16 @@ class TestUnlinkedRecordsPreview:
         assert response.data['total'] == 2
         assert response.data['client']['profile_id'] == profile.pk
 
-    def test_an_archived_project_answers_400(
+    def test_a_terminal_project_answers_400(
         self, admin_client, make_client_profile,
     ):
         profile = make_client_profile()
-        project = make_project(profile, status=Project.STATUS_ARCHIVED)
+        project = make_project(profile, status=Project.STATUS_DECOMMISSIONED)
 
         response = admin_client.get(preview_url(project.pk))
 
         assert response.status_code == 400
-        assert response.data['code'] == 'project_archived'
+        assert response.data['code'] == 'project_terminal'
 
 
 class TestAssignUnlinkedRecords:
@@ -295,11 +295,11 @@ class TestAssignUnlinkedRecords:
 
         assert response.status_code == 400
 
-    def test_an_archived_project_answers_400(
+    def test_a_terminal_project_answers_400(
         self, admin_client, make_client_profile,
     ):
         profile = make_client_profile()
-        project = make_project(profile, status=Project.STATUS_ARCHIVED)
+        project = make_project(profile, status=Project.STATUS_DECOMMISSIONED)
         hosting = make_hosting(profile)
 
         response = admin_client.post(
@@ -307,7 +307,7 @@ class TestAssignUnlinkedRecords:
         )
 
         assert response.status_code == 400
-        assert response.data['code'] == 'project_archived'
+        assert response.data['code'] == 'project_terminal'
 
 
 class TestBacklogCounters:

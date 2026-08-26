@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue'
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue'
+import { stateBadgeVariant } from '~/utils/documentState'
 import { formatDate } from '~/utils/formatDate'
 
 const props = defineProps({
@@ -9,14 +10,12 @@ const props = defineProps({
   highlighted: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['actions', 'assign'])
+const emit = defineEmits(['actions', 'assign', 'change-state'])
 
-const statusTone = computed(() => ({
-  active: 'success',
-  paused: 'warning',
-  completed: 'info',
-  archived: 'neutral',
-}[props.project.status] || 'neutral'))
+const statusTone = computed(() => stateBadgeVariant(props.project.current_state))
+const isTerminal = computed(() => ['completed', 'decommissioned'].includes(
+  props.project.current_state?.operational_effect,
+))
 
 const unlinkedTotal = computed(() => (
   (props.project.unlinked_hostings_count ?? 0)
@@ -88,7 +87,18 @@ const unlinkedTotal = computed(() => (
     </dl>
 
     <BaseButton
-      v-if="unlinkedTotal > 0 && project.status !== 'archived'"
+      v-if="project.state_review_required || project.state_suggestion"
+      variant="ghost"
+      size="sm"
+      class="mt-3 w-full justify-start text-warning-strong"
+      :data-testid="`project-state-review-${project.id}`"
+      @click="emit('change-state', project)"
+    >
+      {{ project.state_suggestion ? 'Revisar suspensión sugerida' : 'Confirmar estado real' }}
+    </BaseButton>
+
+    <BaseButton
+      v-if="unlinkedTotal > 0 && !isTerminal"
       variant="ghost"
       size="sm"
       class="mt-3 w-full justify-start text-warning-strong"

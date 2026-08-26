@@ -414,7 +414,16 @@ contracts, not conventions repeated in individual commands.
 - **Lesson**: Un overlay reutilizable debe pertenecer al boundary de overlay,
   no al contenedor desplazable del consumidor.
 
-### [ERR-028] El destinatario interno no recibía copias de los correos salientes
+### [ERR-028] Grouped collection controls were covered by a stretched row link
+- **Date**: 2026-08-26
+- **Context**: The first Playwright pass rendered the grouped collection headers correctly, but clicking the project criterion was intercepted by a link from the first data row.
+- **Root Cause**: `BaseRowLink` kept its classic-table `stretch` overlay while the same row slots were reused inside grouped sections. The absolute overlay escaped the row's intended interaction area and covered controls above it.
+- **Resolution**: Keep the shared row/detail slots, but enable `stretch` only in classic mode (`:stretch="!isGrouped"`). Grouped rows retain their normal explicit links and the header controls remain clickable.
+- **Files Affected**: `frontend/pages/panel/accounting/collections.vue`.
+- **Verification**: Playwright switches to project grouping, confirms persisted settings and reload behavior, and exercises PATCH rollback without pointer interception.
+- **Lesson**: A slot can be reusable while one of its layout affordances is not. Absolute stretched-link behavior must be scoped to the container geometry it was designed for.
+
+### [ERR-029] El destinatario interno no recibía copias de los correos salientes
 - **Date**: 2026-08-26
 - **Context**: `carlos18bp@gmail.com` no recibía los correos que sí salían de la
   plataforma hacia sus destinatarios principales.

@@ -25,7 +25,7 @@
         >
           <td class="px-4 py-3">
             <div class="font-medium text-text-default">{{ p.name }}</div>
-            <span :class="statusChipClass(p.status)">{{ statusLabel(p.status) }}</span>
+            <span :class="statusChipClass(p.current_state)">{{ p.status_label }}</span>
           </td>
           <td v-if="isAdmin" class="px-4 py-3 text-green-light">
             {{ p.client_name }}<br>
@@ -79,7 +79,7 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <div class="truncate font-medium text-text-default">{{ p.name }}</div>
-            <span :class="statusChipClass(p.status)">{{ statusLabel(p.status) }}</span>
+            <span :class="statusChipClass(p.current_state)">{{ p.status_label }}</span>
           </div>
           <span class="shrink-0 text-green-light/40">›</span>
         </div>
@@ -142,20 +142,18 @@ const { isMobile } = useIsMobile()
 
 const isAdmin = computed(() => props.role === 'admin')
 
-const STATUS_LABELS = {
-  active: 'Activo', paused: 'Pausado',
-  completed: 'Completado', archived: 'Archivado',
-}
-function statusLabel(s) { return STATUS_LABELS[s] || s }
-function statusChipClass(s) {
+function statusChipClass(state) {
   const base = 'mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-medium'
   const map = {
-    active: 'bg-green-100 text-green-700',
-    paused: 'bg-amber-100 text-amber-700',
-    completed: 'bg-sky-100 text-sky-700',
-    archived: 'bg-slate-100 text-slate-600',
+    emerald: 'bg-green-100 text-green-700',
+    yellow: 'bg-amber-100 text-amber-700',
+    orange: 'bg-orange-100 text-orange-700',
+    blue: 'bg-sky-100 text-sky-700',
+    red: 'bg-red-100 text-red-700',
+    purple: 'bg-purple-100 text-purple-700',
+    gray: 'bg-slate-100 text-slate-600',
   }
-  return `${base} ${map[s] || map.archived}`
+  return `${base} ${map[state?.color] || map.gray}`
 }
 
 function formatCurrency(value) {

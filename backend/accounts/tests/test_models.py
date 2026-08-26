@@ -187,11 +187,12 @@ class TestProjectModel:
 
         assert project.status_display == 'Activo'
 
-    def test_status_display_for_archived(self):
+    def test_status_display_marks_legacy_archived_for_review(self):
         user = User.objects.create_user(username='ar@test.com', email='ar@test.com', password='pass')
         project = Project.objects.create(name='P', client=user, status=Project.STATUS_ARCHIVED)
 
-        assert project.status_display == 'Archivado'
+        assert project.status_display == 'Sin clasificar'
+        assert project.state_review_required is True
 
 
 @pytest.mark.django_db

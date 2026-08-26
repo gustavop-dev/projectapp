@@ -28,6 +28,14 @@ PROJECT_LABELS = (
     'Portal comercial', 'Aplicación operativa', 'Sitio institucional',
     'Automatización interna', 'Plataforma de clientes', 'Tienda digital',
 )
+PROJECT_LIFECYCLE_STATUSES = (
+    Project.STATUS_DEVELOPMENT,
+    Project.STATUS_ACTIVE,
+    Project.STATUS_PAUSED,
+    Project.STATUS_SUSPENDED,
+    Project.STATUS_COMPLETED,
+    Project.STATUS_DECOMMISSIONED,
+)
 
 
 class Command(BaseCommand):
@@ -118,11 +126,10 @@ class Command(BaseCommand):
                         'filtros, totales y relaciones entre módulos.'
                     ),
                     status=(
-                        Project.STATUS_ACTIVE,
-                        Project.STATUS_PAUSED,
-                        Project.STATUS_COMPLETED,
-                        Project.STATUS_ARCHIVED,
-                    )[project_index % 4],
+                        PROJECT_LIFECYCLE_STATUSES[
+                            project_index % len(PROJECT_LIFECYCLE_STATUSES)
+                        ]
+                    ),
                     progress=(project_index * 17) % 101,
                     start_date=start_date,
                     estimated_end_date=end_date,

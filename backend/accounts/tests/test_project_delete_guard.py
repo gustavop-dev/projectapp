@@ -1,10 +1,4 @@
-"""Hard-deleting a project stops being a silent SET_NULL sweep.
-
-``DELETE ?force=1`` used to blank every accounting/document FK with no
-trace; now it refuses while linked records exist (409 with the counts) and
-leaves a PROJECT audit row when it does run. The default DELETE (archive)
-audits its status change too.
-"""
+"""Legacy project DELETE variants are replaced by lifecycle transitions."""
 from decimal import Decimal
 
 import pytest
@@ -38,42 +32,30 @@ class TestForceDeleteGuard:
 
         response = api_client.delete(url(project.pk, force=True), **admin_headers)
 
-        assert response.status_code == 409
-        assert response.data['code'] == 'project_has_records'
-        assert response.data['counts'] == {
-            'hostings': 1,
-            'incomes': 0,
-            'documents': 0,
-            'communication_threads': 0,
-        }
+        assert response.status_code == 410
+        assert response.data['code'] == 'project_archive_replaced'
         assert type(project).objects.filter(pk=project.pk).exists()
 
-    def test_a_clean_force_delete_runs_and_leaves_a_deleted_audit_row(
+    def test_a_clean_force_delete_is_gone(
         self, api_client, admin_headers, project,
     ):
         project_id = project.pk
 
         response = api_client.delete(url(project_id, force=True), **admin_headers)
 
-        assert response.status_code == 200
-        assert not type(project).objects.filter(pk=project_id).exists()
-        row = project_audit_rows(project_id).get()
-        assert row.action == 'deleted'
-        assert row.object_repr == 'CA Project'
+        assert response.status_code == 410
+        assert response.data['code'] == 'project_archive_replaced'
+        assert type(project).objects.filter(pk=project_id).exists()
 
-    def test_the_default_delete_archives_and_audits_the_transition(
+    def test_the_default_delete_is_gone(
         self, api_client, admin_headers, project,
     ):
         response = api_client.delete(url(project.pk), **admin_headers)
 
-        assert response.status_code == 200
+        assert response.status_code == 410
+        assert response.data['code'] == 'project_archive_replaced'
         project.refresh_from_db()
-        assert project.status == 'archived'
-        row = project_audit_rows(project.pk).get()
-        assert row.action == 'updated'
-        assert any(
-            change['field'] == 'status' for change in row.changes
-        )
+        assert project.status != 'archived'
 
     def test_a_client_still_cannot_delete(
         self, api_client, client_headers, project,

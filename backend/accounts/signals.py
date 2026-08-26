@@ -16,6 +16,7 @@ from accounts.models import (
     DeliverableClientUpload,
     DeliverableFile,
     DeliverableVersion,
+    Project,
     UserProfile,
 )
 
@@ -26,6 +27,42 @@ User = get_user_model()
 # irrelevant and should not trigger the bulk-update cascade.
 _SNAPSHOT_USER_FIELDS = frozenset({'first_name', 'last_name', 'email'})
 _SNAPSHOT_PROFILE_FIELDS = frozenset({'phone', 'company_name'})
+
+
+@receiver(post_save, sender=Project)
+def initialize_project_workflow(sender, instance, created, raw=False, **kwargs):
+    """Give every direct Project creation path one shared lifecycle episode."""
+    if raw or not created or instance.current_state_id:
+        return
+    if instance.status == Project.STATUS_ARCHIVED:
+        # The old archive bucket did not say whether work finished well or
+        # was discontinued.  Preserve that ambiguity for manual review; never
+        # rewrite it silently as development/decommissioned.
+        Project.objects.filter(pk=instance.pk).update(
+            state_review_required=True,
+        )
+        instance.state_review_required = True
+        return
+    from content.models import DocumentState
+    from content.services.project_state_service import initialize_project_state
+
+    state = DocumentState.objects.filter(
+        catalog='projects',
+        system_key=instance.status,
+        is_active=True,
+        merged_into__isnull=True,
+    ).first()
+    if state is None:
+        state = DocumentState.objects.filter(
+            catalog='projects',
+            system_key=Project.STATUS_DEVELOPMENT,
+            is_active=True,
+            merged_into__isnull=True,
+        ).first()
+    # During migrations the catalog may not be seeded yet. The data migration
+    # owns those rows and will initialize them once both schemas exist.
+    if state is not None:
+        initialize_project_state(instance, state)
 
 
 def _touches_snapshot(update_fields, snapshot_fields):
