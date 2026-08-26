@@ -228,6 +228,8 @@ TRACKED_FIELDS = {
         ('overdue_reminder_frequency', 'Frecuencia de avisos vencidos'),
         ('usd_exchange_rate', 'Tasa de cambio USD'),
         ('income_default_view_mode', 'Vista por defecto de ingresos'),
+        ('collection_accounts_view_mode', 'Vista de cuentas de cobro'),
+        ('collection_accounts_group_by', 'Agrupación de cuentas de cobro'),
     ],
 }
 

@@ -421,6 +421,7 @@ confirmed by the operator or another integration.
 - **Bogotá time helpers** (`content/utils.py`) — `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`, `format_bogota_date(d)` (accepts both `date` and `datetime`), `format_bogota_datetime(dt)`. Use these for any day-level arithmetic instead of `date.today()` (UTC). Bogotá is fixed UTC-5 with no DST.
 - **Internal-only fields gated by `is_admin`** — when a model is internal-only (e.g., `ProposalProjectStage`), expose it via `SerializerMethodField` returning `[]` for non-admin context, never `read_only=True` model nesting. Precedent: `ProposalDetailSerializer.get_project_stages`.
 - **Internal team notifications skip `_log_email`** — `EmailLog` rows are reserved for client-facing single-recipient sends. Internal team alerts (`send_first_view_notification`, `send_stage_warning`, etc.) use `logger.info` only.
+- **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
 
 ### Frontend Patterns
 
@@ -466,6 +467,12 @@ confirmed by the operator or another integration.
   `frontend/e2e/admin/admin-accounting-pocket-recurring.spec.js`; the complete
   repeatable 60-cell route/viewport matrix and long-modal scenarios are in
   `docs/ACCOUNTING_RESPONSIVE_TEST_SCRIPT.md`.
+- **Collection-account aggregation** — keep grouping, ordering and money/status
+  semantics in `frontend/utils/collectionAccounts.js`; pages provide rows and
+  controls, while `IncomeGroupedTable` and `AccountingGroupSummaryBand` own the
+  shared visual contract. Do not duplicate overdue or amount rules in templates.
+  `useCollectionAccountsViewPreferences` treats both settings as one save unit and
+  rolls back an optimistic change on API failure.
 
 ---
 

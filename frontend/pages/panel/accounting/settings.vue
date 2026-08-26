@@ -245,6 +245,38 @@
       </div>
 
       <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
+        <h2 class="text-lg font-bold text-text-default mb-1">Vista de cuentas de cobro</h2>
+        <p class="text-sm text-text-muted mb-4">
+          La vista y el criterio se comparten entre sesiones y dispositivos.
+          También puedes cambiarlos directamente en
+          <NuxtLink :to="localePath('/panel/accounting/collections')" class="text-text-brand hover:underline">Cuentas de cobro</NuxtLink>;
+          ese cambio se guarda de inmediato.
+        </p>
+        <div class="space-y-4">
+          <div>
+            <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Vista</p>
+            <BaseSegmented
+              v-model="collectionAccountsViewMode"
+              :options="COLLECTION_ACCOUNT_VIEW_OPTIONS"
+              size="sm"
+              aria-label="Vista de cuentas de cobro"
+              data-testid="settings-collections-view-mode"
+            />
+          </div>
+          <div>
+            <p class="text-xs font-semibold text-text-subtle uppercase tracking-wider mb-2">Agrupar por</p>
+            <BaseSegmented
+              v-model="collectionAccountsGroupBy"
+              :options="COLLECTION_ACCOUNT_GROUP_OPTIONS"
+              size="sm"
+              aria-label="Criterio de agrupación de cuentas de cobro"
+              data-testid="settings-collections-group-by"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-surface border border-border-muted rounded-xl shadow-sm p-5 sm:p-6 mt-4">
         <h2 class="text-lg font-bold text-text-default mb-1">Pestañas de filtros guardados</h2>
         <p class="text-sm text-text-muted mb-5">
           Elige qué pestañas se muestran en cada vista del módulo contable y en
@@ -329,10 +361,22 @@ const paymentCalendarEnabled = ref(true);
 const overdueReminderFrequency = ref('biweekly');
 const usdExchangeRate = ref(null);
 const incomeDefaultViewMode = ref('grouped');
+const collectionAccountsViewMode = ref('grouped');
+const collectionAccountsGroupBy = ref('client');
 
 const INCOME_VIEW_OPTIONS = [
   { value: 'grouped', label: 'Agrupado' },
   { value: 'classic', label: 'Clásico' },
+];
+
+const COLLECTION_ACCOUNT_VIEW_OPTIONS = [
+  { value: 'grouped', label: 'Agrupado' },
+  { value: 'classic', label: 'Clásico' },
+];
+
+const COLLECTION_ACCOUNT_GROUP_OPTIONS = [
+  { value: 'client', label: 'Cliente' },
+  { value: 'project', label: 'Proyecto' },
 ];
 
 const OVERDUE_FREQUENCY_OPTIONS = [
@@ -369,6 +413,8 @@ const {
     overdueReminderFrequency: overdueReminderFrequency.value,
     usdExchangeRate: usdExchangeRate.value,
     incomeDefaultViewMode: incomeDefaultViewMode.value,
+    collectionAccountsViewMode: collectionAccountsViewMode.value,
+    collectionAccountsGroupBy: collectionAccountsGroupBy.value,
   }),
   labels: {
     notificationsEnabled: 'notificaciones',
@@ -379,6 +425,8 @@ const {
     overdueReminderFrequency: 'frecuencia de recordatorios',
     usdExchangeRate: 'tasa USD',
     incomeDefaultViewMode: 'vista por defecto de ingresos',
+    collectionAccountsViewMode: 'vista de cuentas de cobro',
+    collectionAccountsGroupBy: 'agrupación de cuentas de cobro',
   },
   save,
   reload: loadSettings,
@@ -398,6 +446,10 @@ function syncFromSettings(settings) {
   // Anything unknown lands on 'grouped', the backend default.
   incomeDefaultViewMode.value =
     settings?.income_default_view_mode === 'classic' ? 'classic' : 'grouped';
+  collectionAccountsViewMode.value =
+    settings?.collection_accounts_view_mode === 'classic' ? 'classic' : 'grouped';
+  collectionAccountsGroupBy.value =
+    settings?.collection_accounts_group_by === 'project' ? 'project' : 'client';
   usdExchangeRate.value =
     settings?.usd_exchange_rate != null ? Number(settings.usd_exchange_rate) : null;
   // Único punto de hidratación: sirve para la carga, el refresh y el eco
@@ -423,6 +475,8 @@ async function save() {
     payment_calendar_enabled: paymentCalendarEnabled.value,
     overdue_reminder_frequency: overdueReminderFrequency.value,
     income_default_view_mode: incomeDefaultViewMode.value,
+    collection_accounts_view_mode: collectionAccountsViewMode.value,
+    collection_accounts_group_by: collectionAccountsGroupBy.value,
   };
   // Only send the rate when the user has one loaded/typed: the backend
   // keeps its current value otherwise.

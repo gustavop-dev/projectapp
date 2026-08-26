@@ -6,13 +6,15 @@
  *         the is_overdue badge, mark-paid and cancel behind ConfirmModal,
  *         resend to the client, the create modal with its mandatory income
  *         link and email/PDF preview step, and the Liquidar routing when
- *         marking an expected-linked cuenta as paid.
+ *         marking an expected-linked cuenta as paid, grouped totals by client
+ *         or project, and server-persisted view preferences.
  */
 import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_ACCOUNTING_COLLECTIONS,
+  ADMIN_ACCOUNTING_COLLECTION_GROUPING,
   ADMIN_ACCOUNTING_COLLECTION_CREATE,
   ADMIN_ACCOUNTING_COLLECTION_DETAIL,
 } from '../helpers/flow-tags.js';
@@ -81,6 +83,82 @@ function makeRows() {
       commercial_status_label: 'Pagada',
       is_overdue: false,
       can_delete: false,
+    },
+  ];
+}
+
+function makeGroupingRows() {
+  const base = makeRows()[0];
+  return [
+    {
+      ...base,
+      id: 11,
+      client: 101,
+      client_display_name: 'Germán Franco',
+      project_id: 10,
+      project_name: 'Kore',
+      total: '600.00',
+      commercial_status: 'issued',
+      is_overdue: true,
+    },
+    {
+      ...base,
+      id: 12,
+      client: 101,
+      client_display_name: 'Germán Franco',
+      project_id: 11,
+      project_name: 'Xpandia',
+      total: '400.00',
+      commercial_status: 'issued',
+      is_overdue: false,
+    },
+    {
+      ...base,
+      id: 13,
+      client: 101,
+      client_display_name: 'Germán Franco',
+      project_id: 10,
+      project_name: 'Kore',
+      total: '300.00',
+      commercial_status: 'paid',
+      commercial_status_label: 'Pagada',
+      is_overdue: false,
+    },
+    {
+      ...base,
+      id: 14,
+      client: 102,
+      client_display_name: 'Néstor Franco',
+      project_id: null,
+      project_name: 'Proyecto legado',
+      total: '900.00',
+      commercial_status: 'draft',
+      commercial_status_label: 'Borrador',
+      is_overdue: false,
+    },
+    {
+      ...base,
+      id: 15,
+      client: 102,
+      client_display_name: 'Néstor Franco',
+      project_id: null,
+      project_name: '',
+      total: '200.00',
+      commercial_status: 'cancelled',
+      commercial_status_label: 'Anulada',
+      is_overdue: false,
+    },
+    {
+      ...base,
+      id: 16,
+      client: null,
+      client_display_name: null,
+      customer_name: 'Cliente del documento',
+      project_id: null,
+      project_name: '',
+      total: '1000.00',
+      commercial_status: 'issued',
+      is_overdue: false,
     },
   ];
 }
@@ -208,8 +286,22 @@ function filterIncomes(requestUrl) {
 const PREVIEW_PDF_URL =
   '/api/accounting/collection-accounts/preview/tok-e2e/PA-ACME-001.pdf';
 
-function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
-  const state = { rows: makeRows() };
+function buildHandler({
+  calls,
+  incomeDetail = null,
+  previewPdfStatus = 200,
+  rows = null,
+  collectionViewMode = 'classic',
+  collectionGroupBy = 'client',
+  settingsPatchStatus = 200,
+}) {
+  const state = {
+    rows: rows || makeRows(),
+    settings: {
+      collection_accounts_view_mode: collectionViewMode,
+      collection_accounts_group_by: collectionGroupBy,
+    },
+  };
   return async ({ route, apiPath, method }) => {
     if (apiPath === 'auth/check/') {
       return {
@@ -218,6 +310,30 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
         body: JSON.stringify({
           user: { username: 'admin', is_staff: true, is_superuser: true },
         }),
+      };
+    }
+    if (apiPath === 'accounting/settings/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.settings),
+      };
+    }
+    if (apiPath === 'accounting/settings/update/' && method === 'PATCH') {
+      const body = route.request().postDataJSON();
+      calls.push({ apiPath, method, body });
+      if (settingsPatchStatus !== 200) {
+        return {
+          status: settingsPatchStatus,
+          contentType: 'application/json',
+          body: JSON.stringify({ detail: 'No fue posible guardar la preferencia.' }),
+        };
+      }
+      state.settings = { ...state.settings, ...body };
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(state.settings),
       };
     }
     if (apiPath.startsWith('proposals/client-profiles/search/')) {
@@ -456,12 +572,12 @@ function buildHandler({ calls, incomeDetail = null, previewPdfStatus = 200 }) {
   };
 }
 
-async function gotoCollections(page) {
+async function gotoCollections(page, expectedRowId = 1) {
   await page.goto('/panel/accounting/collections', { waitUntil: 'domcontentloaded' });
   await expect(
     page.getByRole('heading', { name: 'Cuentas de cobro', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
-  await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+  await expect(page.getByTestId(`accounting-row-${expectedRowId}`)).toBeVisible();
 }
 
 test.describe('Admin Accounting Collections', () => {
@@ -483,6 +599,125 @@ test.describe('Admin Accounting Collections', () => {
     ]);
     await expect(page.getByText('Por cobrar: $1.100.004')).toBeVisible();
     await expect(page.getByText('Recaudado: $550.002')).toBeVisible();
+  });
+
+  test('grouped view shows client amounts and the five status counts', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_GROUPING, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    // quality: allow-deep-link (la navegación del módulo pertenece al flujo del subnav; este caso aísla la lectura, colapso y totales agrupados)
+    await mockApi(page, buildHandler({
+      calls: [],
+      rows: makeGroupingRows(),
+      collectionViewMode: 'grouped',
+    }));
+    await gotoCollections(page, 11);
+
+    const clientToggle = page.getByTestId('collection-group-toggle-101');
+    await clientToggle.click();
+    await expect(clientToggle).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.getByTestId('accounting-row-11')).toBeHidden();
+    await clientToggle.click();
+    await expect(page.getByTestId('accounting-row-11')).toBeVisible();
+    await expect(page.getByTestId('collections-view-grouped'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collection-group-101'))
+      .toContainText('Germán Franco');
+    await expect(page.getByTestId('collection-group-101')).toContainText('(3)');
+    await expect(page.getByTestId('collection-group-emitted-101'))
+      .toContainText('$1.300 COP');
+    await expect(page.getByTestId('collection-group-pending-101'))
+      .toContainText('$1.000 COP');
+    await expect(page.getByTestId('collection-group-status-issued-101'))
+      .toHaveText('Emitidas2');
+    await expect(page.getByTestId('collection-group-status-overdue-101'))
+      .toHaveText('Vencidas1');
+    await expect(page.getByTestId('collection-group-status-paid-101'))
+      .toHaveText('Pagadas1');
+    await expect(page.getByTestId('collection-grouped-pending-total'))
+      .toContainText('$2.000 COP');
+    await expect(page.getByTestId('collection-grouped-cancelled-total'))
+      .toContainText('$200 COP');
+  });
+
+  test('grouped view switches to ordered project groups with historical separation', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_GROUPING, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      rows: makeGroupingRows(),
+      collectionViewMode: 'grouped',
+    }));
+    await gotoCollections(page, 11);
+
+    await page.getByTestId('collections-group-project').click();
+
+    await expect(page.getByTestId('collection-group-historical:Proyecto legado'))
+      .toContainText('Proyecto legado (histórico)');
+    await expect(page.getByTestId('collection-group-none')).toContainText('Sin proyecto');
+    await expect(page.getByTestId('collection-group-none')).toContainText('por completar');
+    const headers = page.locator(
+      '[role="rowgroup"] > [data-testid^="collection-group-"]',
+    );
+    await expect(headers).toHaveCount(4);
+    expect(await headers.evaluateAll((nodes) => nodes.map((node) => node.dataset.testid)))
+      .toEqual([
+        'collection-group-10',
+        'collection-group-11',
+        'collection-group-historical:Proyecto legado',
+        'collection-group-none',
+      ]);
+    const patch = calls.find(
+      (call) => call.apiPath === 'accounting/settings/update/',
+    );
+    expect(patch.body).toEqual({
+      collection_accounts_view_mode: 'grouped',
+      collection_accounts_group_by: 'project',
+    });
+  });
+
+  test('grouped view change to classic persists after reload', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_GROUPING, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const calls = [];
+    await mockApi(page, buildHandler({
+      calls,
+      collectionViewMode: 'grouped',
+      collectionGroupBy: 'project',
+    }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collections-view-classic').click();
+    await expect(page.getByTestId('accounting-sort-project_name')).toBeVisible();
+    await page.reload({ waitUntil: 'domcontentloaded' });
+
+    await expect(page.getByTestId('accounting-row-1')).toBeVisible();
+    await expect(page.getByTestId('collections-view-classic'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collections-group-by')).toHaveCount(0);
+    expect(calls.find((call) => call.apiPath === 'accounting/settings/update/').body)
+      .toEqual({
+        collection_accounts_view_mode: 'classic',
+        collection_accounts_group_by: 'project',
+      });
+  });
+
+  test('grouped view restores its criterion when persistence fails', {
+    tag: [...ADMIN_ACCOUNTING_COLLECTION_GROUPING, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    await mockApi(page, buildHandler({
+      calls: [],
+      collectionViewMode: 'grouped',
+      settingsPatchStatus: 503,
+    }));
+    await gotoCollections(page);
+
+    await page.getByTestId('collections-group-project').click();
+
+    await expect(page.getByText('No se pudo guardar la agrupación')).toBeVisible();
+    await expect(page.getByTestId('collections-group-client'))
+      .toHaveAttribute('aria-selected', 'true');
+    await expect(page.getByTestId('collection-group-101')).toBeVisible();
   });
 
   test('the Vencidas filter keeps only overdue rows with their badge', {

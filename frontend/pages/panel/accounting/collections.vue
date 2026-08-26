@@ -86,8 +86,29 @@
         label="Estado"
         test-id-prefix="collections-status"
         size="sm"
-        class="w-full panel-portrait:ml-auto panel-portrait:w-auto"
+        class="w-full panel-portrait:w-auto"
       />
+      <div class="flex flex-wrap items-center gap-2 w-full panel-portrait:ml-auto panel-portrait:w-auto">
+        <BaseSegmented
+          :model-value="viewMode"
+          :options="viewModeOptions"
+          :disabled="isSavingViewPreferences"
+          size="sm"
+          aria-label="Vista de cuentas de cobro"
+          data-testid="collections-view-mode"
+          @update:model-value="changeViewMode"
+        />
+        <BaseSegmented
+          v-if="isGrouped"
+          :model-value="groupBy"
+          :options="groupByOptions"
+          :disabled="isSavingViewPreferences"
+          size="sm"
+          aria-label="Agrupar cuentas de cobro por"
+          data-testid="collections-group-by"
+          @update:model-value="changeGroupBy"
+        />
+      </div>
     </div>
 
     <!-- Filter panel -->
@@ -125,22 +146,17 @@
 
     <!-- Table -->
     <template v-else>
-      <AccountingTable
-        :loading="store.isLoading"
-        :columns="columns"
-        :rows="sortedRows"
-        :show-actions="false"
-        :sort-key="sortKey"
-        :sort-dir="sortDir"
-        :highlight-id="highlightId"
-        @sort="toggleSort"
+      <component
+        :is="activeTableComponent"
+        v-bind="activeTableProps"
+        v-on="activeTableListeners"
       >
         <!-- El número es la dirección del detalle: un enlace de verdad, no sólo
              el ojo de la columna de acciones. -->
         <template #cell-public_number="{ row }">
           <BaseRowLink
             :to="accountDetailTo(row.id)"
-            stretch
+            :stretch="!isGrouped"
             :data-testid="`collection-open-${row.id}`"
             class="block font-medium text-text-default hover:text-text-brand transition-colors"
             :title="row.billing_concept"
@@ -287,7 +303,7 @@
             />
           </div>
         </template>
-      </AccountingTable>
+      </component>
     </template>
 
     <CollectionActionsModal
@@ -394,6 +410,7 @@ import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingIndicatorGroup from '~/components/accounting/AccountingIndicatorGroup.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';
+import CollectionAccountsGroupedTable from '~/components/accounting/CollectionAccountsGroupedTable.vue';
 import AccountingErrorState from '~/components/accounting/AccountingErrorState.vue';
 import AccountingFilterPanel from '~/components/accounting/AccountingFilterPanel.vue';
 import ProposalFilterTabs from '~/components/proposals/ProposalFilterTabs.vue';
@@ -403,11 +420,13 @@ import CollectionActionsModal from '~/components/accounting/CollectionActionsMod
 import IncomeLiquidateModal from '~/components/accounting/IncomeLiquidateModal.vue';
 import BaseEmptyState from '~/components/base/BaseEmptyState.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
+import BaseSegmented from '~/components/base/BaseSegmented.vue';
 import BaseSegmentedMulti from '~/components/base/BaseSegmentedMulti.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ProjectSpaceLink from '~/components/panel/projects/ProjectSpaceLink.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { usePanelRefresh } from '~/composables/usePanelRefresh';
+import { useCollectionAccountsViewPreferences } from '~/composables/useCollectionAccountsViewPreferences';
 import {
   useAccountingFilters,
   matchDateRange,
@@ -423,6 +442,11 @@ import { get_request } from '~/stores/services/request_http';
 import { downloadBlob, filenameFromDisposition } from '~/utils/downloadFile';
 import { formatMoney } from '~/utils/formatMoney';
 import { historySendsLink } from '~/utils/historyDeepLink';
+import {
+  NO_COLLECTION_GROUP_KEY,
+  groupCollectionAccounts,
+  sumCollectionAccountGroups,
+} from '~/utils/collectionAccounts';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import {
   collectionStatusBadgeClass,
@@ -450,6 +474,31 @@ const statusOptions = [
   { value: 'overdue', label: 'Vencidas' },
   { value: 'paid', label: 'Pagadas' },
   { value: 'cancelled', label: 'Anuladas' },
+];
+
+const viewModeOptions = [
+  { value: 'grouped', label: 'Agrupado', testId: 'collections-view-grouped' },
+  { value: 'classic', label: 'Clásico', testId: 'collections-view-classic' },
+];
+
+const groupByOptions = [
+  { value: 'client', label: 'Cliente', testId: 'collections-group-client' },
+  { value: 'project', label: 'Proyecto', testId: 'collections-group-project' },
+];
+
+const collectionGroupMetrics = [
+  { key: 'emitted', label: 'Emitido', format: 'money', tone: 'muted' },
+  { key: 'pending', label: 'Por cobrar', format: 'money', tone: 'warning' },
+  { key: 'collected', label: 'Recaudado', format: 'money', tone: 'success' },
+  { key: 'cancelled', label: 'Anulado', format: 'money', tone: 'danger' },
+];
+
+const collectionStatusDefinitions = [
+  { key: 'draft', label: 'Borradores', tone: 'muted' },
+  { key: 'issued', label: 'Emitidas', tone: 'brand' },
+  { key: 'overdue', label: 'Vencidas', tone: 'warning' },
+  { key: 'paid', label: 'Pagadas', tone: 'success' },
+  { key: 'cancelled', label: 'Anuladas', tone: 'danger' },
 ];
 
 const NO_CLIENT_KEY = 'none';
@@ -551,6 +600,55 @@ const focusParam = consumeParam('focus');
 const highlightId = ref(focusParam ? Number(focusParam) : null);
 
 const filteredRows = computed(() => applyFilters(store.collectionAccounts));
+
+const {
+  viewMode,
+  groupBy,
+  isGrouped,
+  isSaving: isSavingViewPreferences,
+  initFromSettings,
+  setViewMode,
+  setGroupBy,
+} = useCollectionAccountsViewPreferences(store);
+
+const collapsedGroupIds = ref([]);
+
+function toggleGroup(id) {
+  collapsedGroupIds.value = collapsedGroupIds.value.includes(id)
+    ? collapsedGroupIds.value.filter((groupId) => groupId !== id)
+    : [...collapsedGroupIds.value, id];
+}
+
+async function changeViewMode(mode) {
+  const result = await setViewMode(mode);
+  if (!result.success && !result.busy) {
+    notify.error({
+      title: 'No se pudo guardar la vista',
+      detail: result.message || 'La preferencia anterior sigue activa.',
+    });
+  }
+}
+
+async function changeGroupBy(criterion) {
+  const result = await setGroupBy(criterion);
+  if (result.success) {
+    collapsedGroupIds.value = [];
+    return;
+  }
+  if (!result.busy) {
+    notify.error({
+      title: 'No se pudo guardar la agrupación',
+      detail: result.message || 'El criterio anterior sigue activo.',
+    });
+  }
+}
+
+const collectionGroups = computed(
+  () => groupCollectionAccounts(filteredRows.value, groupBy.value),
+);
+const collectionTotals = computed(
+  () => sumCollectionAccountGroups(collectionGroups.value),
+);
 
 /** Derived from the loaded rows, like every other accounting tab. */
 const clientFilterOptions = computed(() => {
@@ -695,6 +793,51 @@ const { sortKey, sortDir, toggleSort, sortedRecords: sortedRows } = useTableSort
     },
   },
 );
+
+const groupedColumns = computed(() => columns
+  .filter((column) => (
+    groupBy.value === 'client'
+      ? column.key !== 'client_display_name'
+      : column.key !== 'project_name'
+  ))
+  .map(({ sortable, ...column }) => column));
+
+const activeTableComponent = computed(
+  () => (isGrouped.value ? CollectionAccountsGroupedTable : AccountingTable),
+);
+
+const activeTableProps = computed(() => {
+  const common = {
+    loading: store.isLoading,
+    showActions: false,
+    highlightId: highlightId.value,
+    highlightQuery: currentFilters.search,
+  };
+  if (!isGrouped.value) {
+    return {
+      ...common,
+      columns,
+      rows: sortedRows.value,
+      sortKey: sortKey.value,
+      sortDir: sortDir.value,
+    };
+  }
+  return {
+    ...common,
+    columns: groupedColumns.value,
+    groups: collectionGroups.value,
+    summaryTotals: collectionTotals.value,
+    groupMetrics: collectionGroupMetrics,
+    footerMetrics: collectionGroupMetrics,
+    statusDefinitions: collectionStatusDefinitions,
+    collapsedIds: collapsedGroupIds.value,
+    unassignedKey: NO_COLLECTION_GROUP_KEY,
+  };
+});
+
+const activeTableListeners = computed(() => (
+  isGrouped.value ? { 'toggle-group': toggleGroup } : { sort: toggleSort }
+));
 
 async function loadRecords() {
   await store.fetchCollectionAccounts();
@@ -938,12 +1081,19 @@ async function handleConfirmed() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Project filter options come from the full catalog (history.vue
   // pattern); the store swallows failures, so an error just means a
   // smaller dropdown, never a blocked page.
   projectsStore.fetchProjects();
-  return loadRecords();
+  const preferenceResult = await initFromSettings();
+  if (!preferenceResult.success) {
+    notify.error({
+      title: 'No se pudieron cargar las preferencias de vista',
+      detail: 'Se usará la vista agrupada por cliente en esta visita.',
+    });
+  }
+  await loadRecords();
 });
 usePanelRefresh(loadRecords);
 </script>

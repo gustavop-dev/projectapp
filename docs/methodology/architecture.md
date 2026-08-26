@@ -837,6 +837,30 @@ flowchart LR
 
 The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.
 
+### Collection Accounts → Grouped Receivables View
+
+```mermaid
+flowchart LR
+    Settings["AccountingSettings view + criterion"] --> Preferences["useCollectionAccountsViewPreferences"]
+    Preferences --> Controls["Grouped / classic + client / project"]
+    Filters["Server filters + loaded rows"] --> Grouping["collectionAccounts.js"]
+    Controls --> Grouping
+    Grouping --> Groups["Pending-desc groups + filtered footer"]
+    Groups --> Shared["IncomeGroupedTable + AccountingGroupSummaryBand"]
+    Controls -->|immediate PATCH| Settings
+```
+
+The collection list endpoint remains the row source; grouping and aggregation are
+deterministic presentation logic over the filtered result. One utility owns the
+money contract: issued includes issued + paid, pending includes issued, collected
+includes paid, cancelled includes cancelled, and drafts contribute no money. Its
+status breakdown is separate, with overdue derived from an issued row's due date
+and therefore intentionally overlapping the issued count. Project keys prefer the
+live relation, preserve a different historical snapshot as `<name> (histórico)`,
+and reserve a final unassigned group for a genuinely absent project. The global
+settings row persists both controls together; an optimistic save rolls the UI back
+when the PATCH fails.
+
 ### Document Event → Episode → Current State
 
 ```mermaid
