@@ -413,3 +413,25 @@ contracts, not conventions repeated in individual commands.
   los cinco viewports responsivos.
 - **Lesson**: Un overlay reutilizable debe pertenecer al boundary de overlay,
   no al contenedor desplazable del consumidor.
+
+### [ERR-028] El destinatario interno no recibía copias de los correos salientes
+- **Date**: 2026-08-26
+- **Context**: `carlos18bp@gmail.com` no recibía los correos que sí salían de la
+  plataforma hacia sus destinatarios principales.
+- **Root Cause**: La migración de copias estaba aplicada, pero la tabla de
+  destinatarios configurados estaba vacía. Además, la primera versión de la
+  regla sólo cubría 23 correos dirigidos a clientes y excluía avisos internos y
+  seguridad, contrario al alcance universal requerido.
+- **Resolution**: Mantener la dirección fuera del código; ampliar el gateway a
+  un inventario fail-closed de 56 canales y ocho familias, copiar toda audiencia
+  como BCC independiente, y exponer configuración e historial universal. Tras
+  desplegar `content.0213`, agregar la dirección desde Panel → Emails →
+  Configuración con las ocho familias.
+- **Files Affected**: `content/services/email_delivery_service.py`,
+  `content/services/outbound_email_inventory.py`, `content/models/email_log.py`,
+  `content/models/email_copy_recipient.py`, API y panel de Emails.
+- **Verification**: Inventario exacto canal por canal, guard SMTP estático,
+  pruebas del gateway y API, pruebas unitarias/E2E del panel e historial.
+- **Lesson**: Una configuración administrable sin fila activa equivale a una
+  regla deshabilitada; el rollout debe distinguir claramente código desplegado,
+  migración aplicada y dato operativo activado.

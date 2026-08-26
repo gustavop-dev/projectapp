@@ -329,27 +329,26 @@ This supersedes the earlier rule "stores self-maintain state after CRUD, parents
 
 ---
 
-## 12. Internal Team Notifications vs Client-Facing Sends
+## 12. Notification recipients vs universal outbound copies
 
-Every outbound message uses `EmailDeliveryGateway`, but its policy is explicit:
-
-- `client`: the stable key must be in `CLIENT_EMAIL_CHANNELS`; after the
-  primary succeeds, configured customer-copy BCCs are attempted.
-- `internal`: team/operations traffic is delivered once and never triggers the
-  customer-copy audience.
-- `security`: OTPs, invitations, temporary credentials and password links are
-  deliberately excluded from copies.
+Every outbound message uses `EmailDeliveryGateway`. Its audience classification
+(`client`, `internal`, `security`) remains explicit for traceability, but no
+classification bypasses the configured copy rule. The stable key must exist in
+`OUTBOUND_EMAIL_CHANNELS`; unknown channels fail before SMTP so a future sender
+cannot silently escape the inventory.
 
 The recipient catalogs are separate by design. Operational notifications use
-`NotificationRecipient` and legacy `NOTIFICATION_EMAIL(S)` consumers; customer
-communication copies use `ClientEmailCopyRecipient` and its family selection.
-Never infer one list from the other — volume, privacy and responsibility differ.
+`NotificationRecipient` and legacy `NOTIFICATION_EMAIL(S)` consumers; universal
+copies use `EmailCopyRecipient` and its family selection. Never infer one list
+from the other — volume, privacy and responsibility differ. Deduplicate copy
+addresses against the complete original envelope so overlap never sends twice.
 
-`EmailLog` may contain both client and internal business traffic. For a copied
-customer delivery it stores the customer row as `primary` and each independent
-BCC attempt as `copy`. Readers that calculate deliverability, cooldowns, contact
-counts or retries must filter to `primary`; history readers may nest the copy
-rows using their shared `delivery_id`.
+`EmailLog` contains every gateway delivery, including security traffic and its
+full body by explicit product decision. It stores original recipients as
+`primary` and each independent BCC attempt as `copy` (or `skipped` when already
+addressed). Readers that calculate deliverability, cooldowns, contact counts or
+retries must filter to `primary`; history readers nest copy rows through their
+shared `delivery_id`.
 
 ---
 

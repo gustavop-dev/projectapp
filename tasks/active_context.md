@@ -2,6 +2,19 @@
 
 ## Current State
 
+**2026-08-26 — Copias BCC universales de correo listas para integración:** la auditoría
+read-only de producción confirmó que `content.0209` está aplicada pero
+`ClientEmailCopyRecipient` no tiene filas; por eso
+`carlos18bp@gmail.com` registra cero intentos de copia aunque sí existen envíos
+primarios posteriores al despliegue. La implementación de esta sesión amplía el
+gateway vigente de 23 salidas al cliente a todo correo de plataforma, mantiene
+segmentación por familias, deduplica contra destinatarios primarios y centraliza
+la traza de principales/copias, incluidos los canales internos y de seguridad.
+La migración `content.0213`, el inventario exacto de 56 canales, los 21 casos del
+gateway, 9 casos de API global, 10 E2E y el build Nuxt están verdes; el flow-map
+queda fresco con cero junk-only, unvalidated o missing. Después de desplegar y
+migrar aún debe agregarse Carlos desde Configuración con las ocho familias.
+
 **2026-08-26 — Resultados buscables de modales sin recorte:** `BaseModal`
 expone un root flotante fuera de su panel desplazable y `BaseFloatingListbox`
 teleporta allí los resultados, conserva el foco dentro del diálogo, cierra por
@@ -168,22 +181,23 @@ aprobado. La revisión transversal dejó Propuestas y Diagnósticos como P1, Blo
 Paquetes de horas como P2, y Portfolio/Linktrees como P3, sin ampliar este cambio;
 detalle en `docs/audits/2026-08-25-list-detail-return-navigation.md`.
 
-**2026-08-23 — Copias BCC configurables para toda salida al cliente:** el
-backend quedó cerrado alrededor de `EmailDeliveryGateway`, único dueño de
-Django mail I/O. Un inventario ejecutable de 23 claves cliente cubre propuestas
-(14), diagnósticos (4), documentos/correos manuales (3), cuentas de cobro (1,
-incluye emisión/reenvío/retry) y plataforma (1). La configuración vive separada
-de los avisos internos en Panel → Emails → Configuración, admite destinatarios
-activos/pausados y segmentación por las cinco familias, con todas seleccionadas
-al crear. El primario sale primero y las copias se envían después como sobres
-BCC independientes; fallas de copia no cambian ni reintentan el primario.
-`EmailLog.delivery_id`/`delivery_role` agrupa y muestra destinatario, estado y
-error de cada copia en historiales, excluyéndolas de dashboards, rate limits,
-contact counts y retries. Invitaciones, OTP y credenciales se clasifican como
-seguridad y nunca se copian. La migración es `content.0209`; inventario y rollout
-están en `docs/client-email-copy-inventory.md`. Falta, después del despliegue,
-crear desde Configuración la fila `carlos18bp@gmail.com` con las cinco familias;
-no se sembró en código por decisión explícita de administrabilidad.
+**2026-08-26 — Copias BCC configurables para toda salida de correo:**
+`EmailDeliveryGateway` quedó como único dueño de Django mail I/O y ahora exige
+que cada clave pertenezca al inventario universal exacto de 56 canales. Ocho
+familias cubren propuestas, diagnósticos, documentos/comunicaciones, cuentas de
+cobro, contabilidad, plataforma, tareas/operación y seguridad/acceso; por
+decisión explícita se incluyen invitaciones, OTP, contraseñas temporales y
+recuperación. La lista sigue separada de avisos internos y nace con todas las
+familias seleccionadas. Cada primario exitoso dispara sobres BCC independientes;
+se deduplican `to`/`cc`/`bcc`, y un lookup o SMTP de copia fallido nunca bloquea
+ni reintenta el primario. El gateway crea la traza base de todo correo y el
+Historial global filtra por familia/destinatario/estado/fecha, anida copias
+enviadas/fallidas/omitidas y permite a cualquier admin ver el cuerpo completo,
+incluido seguridad, con advertencia visible. Migración `content.0213`;
+inventario y activación en `docs/client-email-copy-inventory.md`. El diagnóstico
+read-only de producción confirmó la causa de que Carlos no recibiera: la tabla
+de copias estaba vacía. Tras deploy/migración todavía hay que crear desde
+Configuración `carlos18bp@gmail.com` con las ocho familias; no se hardcodea.
 
 **2026-08-22 — Auditoría final responsiva Fase 5 sobre `main`:** las fases 0–4 quedaron integradas antes de iniciar el censo. La revisión triestado corrigió el E2E de Proyectos para sus representaciones fila/tarjeta y segmento/select, eliminó el breakpoint local de Blog edit y dio paridad táctil/teclado a completar tarjeta en Kanban y al avatar de Perfil. El contrato ahora fija también alturas, rechaza breakpoints JS locales del panel y detecta acciones interactivas ocultas sólo por hover; `.testquality.yml` expone al ledger los 12 módulos, breakpoints y viewports exactos. Verificación focal aprobada por QA independiente: contrato 101/12/5, 7/7 unitarias de configuración, Proyectos 5/5, Perfil/Kanban 15/15 y flujos de selector/guardado 2/2. El veredicto permanece amarillo: no hubo acceso a dispositivos físicos; PA-45 conserva overlays locales; el estándar fleet del toolkit está desfasado y el harness/ledger modela los módulos de forma distinta. El informe `docs/audits/2026-08-22-responsive-phase-5-final.md` y las fichas RSP-F5-01…04 registran esos pendientes.
 

@@ -3,19 +3,23 @@
     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <div class="flex items-center gap-2">
-          <h4 class="text-sm font-semibold text-text-default">Copias de correos a clientes</h4>
+          <h4 class="text-sm font-semibold text-text-default">Copias de todos los correos</h4>
           <span class="rounded bg-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-brand">
             BCC
           </span>
         </div>
         <p class="mt-1 max-w-2xl text-xs text-text-muted">
-          Cada salida al cliente se copia de forma oculta. La lista es independiente de los avisos internos de Contabilidad.
+          Cada salida registrada se copia de forma oculta. Esta lista es independiente de los destinatarios de avisos internos.
         </p>
       </div>
     </div>
 
     <div class="mt-4 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-warning-strong">
-      Cada destinatario activo añade hasta un envío por correo al cliente. Con un destinatario, el volumen SMTP y el volumen de esa bandeja pueden duplicarse.
+      Cada destinatario activo añade hasta un envío BCC por correo. Con un destinatario y todas las familias, el volumen SMTP y el volumen de esa bandeja pueden duplicarse.
+    </div>
+
+    <div class="mt-3 rounded-lg border border-danger-strong/30 bg-danger-soft px-3 py-2 text-xs text-danger-strong" data-testid="email-copy-security-warning">
+      La familia Seguridad copia y conserva el contenido completo de códigos de verificación (OTP), enlaces de recuperación e invitaciones con contraseña temporal. Toda persona administradora puede consultar este historial.
     </div>
 
     <p v-if="store.isLoadingCopyRecipients" class="py-5 text-center text-xs text-text-subtle">
@@ -47,7 +51,7 @@
       </form>
 
       <p v-if="!store.copyRecipients.length" class="py-6 text-center text-xs text-text-subtle">
-        No hay destinatarios configurados. Los correos siguen saliendo al cliente sin copia interna.
+        No hay destinatarios configurados. Los correos siguen saliendo a sus destinatarios principales sin copia interna.
       </p>
 
       <div v-else class="mt-4 space-y-3">

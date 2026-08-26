@@ -86,13 +86,15 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 **Internal team recipients** are read from the `NOTIFICATION_EMAIL` env var (CSV-supported). One env var, all internal notifications. To target a different audience for stage tracking specifically, change the env var — there is no per-feature recipient setting.
 
-**Copies of client communication** use a separate administrable list under
+**Copies of every outbound email** use a separate administrable list under
 `/panel/emails` and never reuse `NOTIFICATION_EMAIL`. The starting behavior is
-all client email, with optional segmentation by Propuestas, Diagnósticos,
-Documentos/correos manuales, Cuentas de cobro and Plataforma. Copies are sent
-as separate BCC-only envelopes after the customer delivery succeeds; their
-success or failure is nested in the same delivery history. The authoritative
-23-channel inventory is `docs/client-email-copy-inventory.md`.
+all platform email, with optional segmentation by Propuestas, Diagnósticos,
+Documentos/comunicaciones, Cuentas de cobro, Contabilidad, Plataforma, Tareas y
+operación, and Seguridad y acceso. This includes customer, supplier, agency,
+OTP, invitation, temporary-credential and password-recovery messages. Copies
+are sent as separate BCC-only envelopes after the primary delivery succeeds;
+their success, skip or failure is nested in the same delivery history. The
+authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 
 #### Admin Panel — Proposals
 

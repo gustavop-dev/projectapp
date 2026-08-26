@@ -12,7 +12,7 @@
  *   test('...', { tag: [...ADMIN_LOGIN, '@role:admin'] }, async ({ page }) => { ... });
  */
 
-// Registry version: 2.86.0
+// Registry version: 2.87.0
 
 // ── admin ──
 export const ADMIN_ACCOUNTING_ADS = ['@flow:admin-accounting-ads', '@module:admin', '@priority:P3'];
@@ -151,6 +151,8 @@ export const ADMIN_LINKEDIN_MODULE = ['@flow:admin-linkedin-module', '@module:ad
 export const ADMIN_LINKTREES = ['@flow:admin-linktrees', '@module:admin', '@priority:P2'];
 export const ADMIN_MCPS = ['@flow:admin-mcps', '@module:admin', '@priority:P2'];
 export const ADMIN_MINI_CRM_CLIENTS = ['@flow:admin-mini-crm-clients', '@module:admin', '@priority:P2'];
+export const ADMIN_OUTBOUND_EMAIL_HISTORY_BODY = ['@flow:admin-outbound-email-history-body', '@module:admin', '@priority:P1'];
+export const ADMIN_OUTBOUND_EMAIL_HISTORY_FILTER = ['@flow:admin-outbound-email-history-filter', '@module:admin', '@priority:P1'];
 export const ADMIN_PANEL_PROJECTS = ['@flow:admin-panel-projects', '@module:admin', '@priority:P1'];
 export const ADMIN_PANEL_UNSAVED_GUARD = ['@flow:admin-panel-unsaved-guard', '@module:admin', '@priority:P2'];
 export const ADMIN_PORTFOLIO_CREATE = ['@flow:admin-portfolio-create', '@module:admin', '@priority:P2'];
