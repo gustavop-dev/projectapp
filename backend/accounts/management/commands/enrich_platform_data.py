@@ -13,13 +13,13 @@ and ensures admin-settings singletons exist (``CompanySettings``,
 ``EmailTemplateConfig``, default configs, a few ``SavedFilterTab``).
 """
 
-import random
-
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
+from accounts.management.commands._seed_helpers import ensure_phase
 from accounts.models import (
+    BugReport,
+    ChangeRequest,
     Deliverable,
     DeliverableClientFolder,
     DeliverableClientUpload,
@@ -29,9 +29,11 @@ from accounts.models import (
     PaymentHistory,
     Project,
     ProjectDataModelEntity,
+    Requirement,
     SavedFilterTab,
     UserProfile,
 )
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 User = get_user_model()
 
@@ -77,11 +79,15 @@ class Command(BaseCommand):
             '--notifications', type=int, default=40,
             help='Target total number of notifications (default: 40).',
         )
+        add_seed_arguments(parser, count_default=60)
 
     def handle(self, *args, **options):
-        rng = random.Random(23)
+        ensure_fake_data_allowed('enrich_platform_data')
+        context = seed_context(options, 'platform-enrichment')
+        rng = context.rng
         admin = User.objects.filter(is_staff=True).first()
 
+        self._representative_volume(admin, options['count'], context)
         self._payment_history(rng)
         self._data_model_entities(admin)
         self._deliverable_uploads(rng, admin)
@@ -89,6 +95,131 @@ class Command(BaseCommand):
         self._admin_settings(admin)
 
         self.stdout.write(self.style.SUCCESS('Platform graph enriched.'))
+
+    def _representative_volume(self, admin, target, context):
+        """Top up the busiest project so every platform list can paginate."""
+
+        project = (
+            Project.objects.filter(client__isnull=False)
+            .select_related('client')
+            .order_by('pk')
+            .first()
+        )
+        if not project or not admin:
+            self.stdout.write(self.style.WARNING(
+                '  Platform volume skipped: a client project and staff actor are required.',
+            ))
+            return
+
+        target = max(1, target)
+        phase = ensure_phase(project)
+        client = project.client
+
+        requirement_statuses = [value for value, _ in Requirement.STATUS_CHOICES]
+        requirement_priorities = [value for value, _ in Requirement.PRIORITY_CHOICES]
+        requirement_count = Requirement.objects.filter(phase=phase).count()
+        requirement_rows = []
+        for index in range(requirement_count, target):
+            title = f'[Volume] Requerimiento representativo {index + 1:03d}'
+            if index == target - 1:
+                title = ('RequerimientoExtremoSinEspacios' * 12)[:300]
+            requirement_rows.append(Requirement(
+                phase=phase,
+                title=title,
+                description='Caso funcional para probar volumen, filtros y extremos.',
+                configuration='Visible según rol del cliente.',
+                flow='Cliente abre la vista, filtra el listado y revisa el detalle.',
+                status=requirement_statuses[index % len(requirement_statuses)],
+                priority=requirement_priorities[index % len(requirement_priorities)],
+                order=index,
+                source_flow_key=f'fake-volume-{index + 1:03d}',
+                source_epic_key=f'fake-volume-{index % 8:02d}',
+                source_epic_title=f'Módulo representativo {index % 8 + 1}',
+                is_archived=index % 17 == 0,
+                archived_at=(
+                    context.anchor_now if index % 17 == 0 else None
+                ),
+            ))
+        Requirement.objects.bulk_create(requirement_rows)
+
+        categories = [value for value, _ in Deliverable.CATEGORY_CHOICES]
+        deliverable_count = Deliverable.objects.filter(project=project).count()
+        deliverable_rows = []
+        for index in range(deliverable_count, target):
+            deliverable_rows.append(Deliverable(
+                project=project,
+                category=categories[index % len(categories)],
+                title=f'[Volume] Entregable representativo {index + 1:03d}',
+                description='Entregable lógico sin archivo real para el ambiente demo.',
+                source_epic_key=f'fake-volume-{index + 1:03d}',
+                source_epic_title=f'Módulo representativo {index % 8 + 1}',
+                current_version=index % 4 + 1,
+                uploaded_by=admin,
+                is_archived=index % 19 == 0,
+                archived_at=(
+                    context.anchor_now if index % 19 == 0 else None
+                ),
+            ))
+        Deliverable.objects.bulk_create(deliverable_rows)
+
+        change_statuses = [value for value, _ in ChangeRequest.STATUS_CHOICES]
+        change_priorities = [value for value, _ in ChangeRequest.PRIORITY_CHOICES]
+        change_count = ChangeRequest.objects.filter(project=project).count()
+        change_rows = []
+        for index in range(change_count, target):
+            change_rows.append(ChangeRequest(
+                project=project,
+                created_by=client,
+                title=f'[Volume] Solicitud de cambio {index + 1:03d}',
+                description='Cambio representativo para validar estados y filtros.',
+                module_or_screen=f'Módulo {index % 8 + 1}',
+                suggested_priority=change_priorities[index % len(change_priorities)],
+                is_urgent=index % 9 == 0,
+                status=change_statuses[index % len(change_statuses)],
+                estimated_cost=(index + 1) * 100000,
+                estimated_time=f'{index % 5 + 1} días',
+                phase=phase,
+                is_archived=index % 23 == 0,
+                archived_at=(
+                    context.anchor_now if index % 23 == 0 else None
+                ),
+            ))
+        ChangeRequest.objects.bulk_create(change_rows)
+
+        bug_statuses = [value for value, _ in BugReport.STATUS_CHOICES]
+        severities = [value for value, _ in BugReport.SEVERITY_CHOICES]
+        environments = [value for value, _ in BugReport.ENV_CHOICES]
+        bug_count = BugReport.objects.filter(project=project).count()
+        bug_rows = []
+        for index in range(bug_count, target):
+            bug_rows.append(BugReport(
+                project=project,
+                reported_by=client,
+                title=f'[Volume] Incidente representativo {index + 1:03d}',
+                description='Fallo simulado que permite probar el ciclo completo de bugs.',
+                severity=severities[index % len(severities)],
+                steps_to_reproduce=['Abrir la vista', 'Ejecutar la acción', 'Observar el resultado'],
+                expected_behavior='La operación finaliza correctamente.',
+                actual_behavior='La operación muestra el fallo simulado.',
+                environment=environments[index % len(environments)],
+                device_browser=f'Navegador demo {index % 6 + 1}',
+                is_recurring=index % 3 == 0,
+                status=bug_statuses[index % len(bug_statuses)],
+                phase=phase,
+                is_archived=index % 29 == 0,
+                archived_at=(
+                    context.anchor_now if index % 29 == 0 else None
+                ),
+            ))
+        BugReport.objects.bulk_create(bug_rows)
+
+        self.stdout.write(self.style.SUCCESS(
+            '  Representative platform volume: '
+            f'{Requirement.objects.filter(phase=phase).count()} requirements, '
+            f'{Deliverable.objects.filter(project=project).count()} deliverables, '
+            f'{ChangeRequest.objects.filter(project=project).count()} changes, '
+            f'{BugReport.objects.filter(project=project).count()} bugs.',
+        ))
 
     def _payment_history(self, rng):
         with_history = set(PaymentHistory.objects.values_list('payment_id', flat=True))

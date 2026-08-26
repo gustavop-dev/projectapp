@@ -5,8 +5,8 @@ from copy import deepcopy
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
+from accounts.models import UserProfile
 from content.demo_technical_document import DEMO_TECHNICAL_DOCUMENT_JSON
 from django.core.files.base import ContentFile
 
@@ -29,6 +29,12 @@ from content.services.hour_package_service import (
 )
 from content.services.proposal_service import ProposalService
 from content.services.proposal_stage_tracker import ProposalStageTracker
+from content.fake_data import (
+    add_seed_arguments,
+    ensure_fake_data_allowed,
+    seed_context,
+    seed_global_random,
+)
 
 # Pool of realistic client data for random selection
 CLIENT_NAMES = [
@@ -138,19 +144,34 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--count', type=int, default=10,
-            help='Number of proposals to create (default: 10)',
-        )
+        add_seed_arguments(parser, count_default=10)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_proposals')
+        context = seed_context(options, 'proposals')
+        self.seed_context = context
+        seed_global_random(context)
         count = options['count']
-        now = timezone.now()
+        now = context.anchor_now
+        existing_clients = list(UserProfile.objects.clients().order_by('pk'))
+        # The canonical --replace flow starts from the same graph and therefore
+        # always uses generation zero. Direct additive runs remain supported by
+        # the historical command and receive a deterministic next generation.
+        generation = BusinessProposal.objects.count() // max(1, count)
 
         created = 0
         for i in range(count):
             status = STATUSES[i % len(STATUSES)]
-            client_name = CLIENT_NAMES[i % len(CLIENT_NAMES)]
+            existing_client = (
+                existing_clients[i % len(existing_clients)]
+                if existing_clients else None
+            )
+            client_name = (
+                existing_client.user.get_full_name()
+                or existing_client.company_name
+                or existing_client.user.email
+                if existing_client else CLIENT_NAMES[i % len(CLIENT_NAMES)]
+            )
             project_type, investment, currency = PROJECT_TYPES[i % len(PROJECT_TYPES)]
             discount = random.choice([0, 10, 15, 20, 25])
 
@@ -160,10 +181,17 @@ class Command(BaseCommand):
             chosen_market_type = random.choice(MARKET_TYPE_CHOICES)
 
             data = {
+                'uuid': context.uuid(f'proposal-{generation}-{i}'),
                 'title': f'Propuesta {project_type} — {client_name.split()[0]}',
                 'client_name': client_name,
-                'client_email': f'{client_name.split()[0].lower()}@example.com',
-                'client_phone': random.choice(CLIENT_PHONES),
+                'client_email': (
+                    existing_client.user.email if existing_client
+                    else f'{client_name.split()[0].lower()}@example.com'
+                ),
+                'client_phone': (
+                    existing_client.phone if existing_client
+                    else random.choice(CLIENT_PHONES)
+                ),
                 'total_investment': investment,
                 'currency': currency,
                 'nationality': (
@@ -251,12 +279,17 @@ class Command(BaseCommand):
             # on BusinessProposal is populated. get_or_create_client_for_proposal
             # reuses existing profiles by email (case-insensitive), so repeated
             # CLIENT_NAMES share a single UserProfile — mirroring production.
-            data['client'] = proposal_client_service.get_or_create_client_for_proposal(
-                name=client_name,
-                email=data['client_email'],
-                phone=data.get('client_phone', ''),
-                company=random.choice(CLIENT_COMPANIES),
+            data['client'] = existing_client or (
+                proposal_client_service.get_or_create_client_for_proposal(
+                    name=client_name,
+                    email=data['client_email'],
+                    phone=data.get('client_phone', ''),
+                    company=random.choice(CLIENT_COMPANIES),
+                )
             )
+
+            if i == count - 1:
+                data['title'] = ('PropuestaExtremaSinEspacios' * 12)[:255]
 
             proposal = BusinessProposal.objects.create(**data)
             self.stdout.write(
@@ -512,6 +545,7 @@ class Command(BaseCommand):
         if proposal.status in ('viewed', 'accepted', 'rejected'):
             if random.random() < 0.5:
                 ProposalShareLink.objects.create(
+                    uuid=self.seed_context.uuid(f'proposal-share-{proposal.uuid}'),
                     proposal=proposal,
                     shared_by_name=proposal.client_name,
                     shared_by_email=proposal.client_email,

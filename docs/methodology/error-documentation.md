@@ -45,6 +45,31 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
+### [ERR-027] Fake data could be partial, inconsistent and unsafe to replay
+
+- **Date**: 2026-08-26
+- **Context**: Seeders had drifted independently as Documents, accounting,
+  hosting and Communications evolved. Some list modules had only a handful of
+  rows, documents/accounts did not share their real origin graph, clocks and RNGs
+  differed, and the root command swallowed child failures while creating a known
+  `admin/admin` credential.
+- **Root Cause**: There was no shared execution contract, explicit per-entity
+  target, concrete-model inventory or positive environment capability. The
+  orchestrator optimized for leaving any partial data behind instead of an
+  internally valid graph.
+- **Resolution**: Centralize guard/seed/anchor/model ownership in
+  `content.fake_data`; rebuild in dependency order inside one transaction; create
+  collection accounts through the income service; add the 60-row skewed volume
+  profile, communication extremes and auxiliary modules; remove default
+  passwords; make populated additive runs fail and expose explicit `--replace`.
+- **Verification**: Focused contract tests cover all 102 concrete models, the
+  60/67 client-project distribution, platform pagination targets, accounting and
+  document relationships, the 12/36/12 communication distribution, auxiliary
+  history, environment refusal and whole-run rollback.
+- **Lesson**: Fake data is production-like infrastructure. Safety, clock,
+  randomness, dependency order and coverage ownership must be executable
+  contracts, not conventions repeated in individual commands.
+
 ### [ERR-026] A display utility disabled two-line clipping in document cards
 - **Date**: 2026-08-25
 - **Context**: The desktop document row exposed the conditional full-title control, but the same long title in the portrait-tablet card never showed **Ver completo**.
