@@ -2,7 +2,13 @@ import random
 from datetime import timedelta
 
 from django.core.management.base import BaseCommand
-from django.utils import timezone
+
+from content.fake_data import (
+    add_seed_arguments,
+    ensure_fake_data_allowed,
+    seed_context,
+    seed_global_random,
+)
 
 from content.models import BlogPost
 
@@ -336,14 +342,14 @@ class Command(BaseCommand):
     """
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            '--count', type=int, default=5,
-            help='Number of blog posts to create (default: 5)',
-        )
+        add_seed_arguments(parser, count_default=5)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('create_fake_blog_posts')
+        context = seed_context(options, 'blog')
+        seed_global_random(context)
         count = options['count']
-        now = timezone.now()
+        now = context.anchor_now
 
         created = 0
         for i in range(count):

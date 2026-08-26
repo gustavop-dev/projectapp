@@ -864,3 +864,34 @@ WhatsApp delivery receipt. A later email phase must enter through
 `EmailDeliveryGateway` and atomically associate the existing `EmailLog` seam.
 Historical conversations keep their original client: when a project changes
 owner, its threads are detached from the project rather than reassigned.
+
+### Representative Fake Data → Coherent Cross-Module Graph
+
+```mermaid
+flowchart TD
+    Guard["FAKE_DATA_ALLOWED is literally true"] --> Atomic["One outer transaction"]
+    Atomic --> Identity["Platform identities + 60-client skew"]
+    Identity --> Content["Proposals, blog, portfolio, tasks, diagnostics"]
+    Identity --> Platform["Heavy project: 60 requirements/deliverables/changes/bugs"]
+    Platform --> Accounting["Accounting + dated hosting"]
+    Accounting --> Documents["IncomeRecord → collection-account service"]
+    Documents --> Communications["Client threads + protected document references"]
+    Communications --> Auxiliary["Email, QR, Linktree, LinkedIn, MCP history"]
+    Auxiliary --> Commit{Every stage succeeded?}
+    Commit -->|yes| Dataset["Commit complete dataset"]
+    Commit -->|no| Rollback["Rollback every stage + non-zero exit"]
+```
+
+`content.fake_data.SeedContext` derives an isolated deterministic stream for
+each namespace from one seed and provides a shared aware noon anchored to an
+explicit business date. Child commands enforce the guard independently, so
+calling a seeder directly cannot bypass the production stop. The orchestrator
+orders accounting before documents because collection accounts are created by
+the real income-backed service, and orders documents before communications so
+messages can reference only documents belonging to the thread's client.
+
+The concrete-model registry is an architectural dependency check: every
+`accounts`/`content` model must be classified as seeded, derived, catalog or
+explicitly exempt. The focused contract test compares that inventory with
+Django's app registry and fails when a new model has no declared fake-data
+owner.

@@ -2,8 +2,8 @@
 Seed the platform with demo data for development.
 
 Creates:
-  - 1 admin user (admin@projectapp.dev / Admin1234!)
-  - 1 onboarded client (maria@techstartup.co / Client1234!)
+  - 1 admin user (admin@projectapp.dev; optional SEED_ADMIN_PASSWORD)
+  - 1 onboarded client (maria@techstartup.co; optional SEED_CLIENT_PASSWORD)
   - 1 full demo BusinessProposal (all default sections + populated technical_document) for TechStartup
   - 2 demo projects for the client
   - Kanban, change requests, bugs, deliverables, hosting + extra payments (pending / overdue / failed)
@@ -17,12 +17,11 @@ Usage:
 """
 
 import os
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db.models import Q
-from django.utils import timezone
 
 from accounts.models import (
     BugComment,
@@ -42,6 +41,7 @@ from accounts.models import (
 )
 
 from accounts.management.commands._seed_helpers import ensure_phase
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 User = get_user_model()
 
@@ -51,8 +51,8 @@ CLIENT_EMAIL = 'maria@techstartup.co'
 # Synthetic notifications / markdown docs; removed on --flush.
 SEED_PREFIX = '[Seed]'
 
-ADMIN_PASSWORD = os.environ.get('SEED_ADMIN_PASSWORD', 'Admin1234!')
-CLIENT_PASSWORD = os.environ.get('SEED_CLIENT_PASSWORD', 'Client1234!')
+ADMIN_PASSWORD = os.environ.get('SEED_ADMIN_PASSWORD')
+CLIENT_PASSWORD = os.environ.get('SEED_CLIENT_PASSWORD')
 
 EPICS_ECOMMERCE = {
     'AUTH':          'Autenticación y Cuenta',
@@ -168,8 +168,16 @@ class Command(BaseCommand):
             action='store_true',
             help='Remove existing seed users before creating new ones.',
         )
+        parser.add_argument(
+            '--skip-collection-accounts', action='store_true',
+            help='Leave collection-account seeding to create_fake_documents.',
+        )
+        add_seed_arguments(parser)
 
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('seed_platform_data')
+        self.seed_context = seed_context(options, 'platform')
+        self.skip_collection_accounts = options['skip_collection_accounts']
         if options['flush']:
             self._flush()
 
@@ -178,8 +186,14 @@ class Command(BaseCommand):
         self._create_projects(client_user, admin_user)
 
         self.stdout.write(self.style.SUCCESS('\nSeed data created successfully:'))
-        self.stdout.write(f'  Admin  → {ADMIN_EMAIL} / (env SEED_ADMIN_PASSWORD or Admin1234!)')
-        self.stdout.write(f'  Client → {CLIENT_EMAIL} / (env SEED_CLIENT_PASSWORD or Client1234!)')
+        self.stdout.write(
+            f'  Admin  → {ADMIN_EMAIL} / '
+            f'{"password from SEED_ADMIN_PASSWORD" if ADMIN_PASSWORD else "unusable password"}'
+        )
+        self.stdout.write(
+            f'  Client → {CLIENT_EMAIL} / '
+            f'{"password from SEED_CLIENT_PASSWORD" if CLIENT_PASSWORD else "unusable password"}'
+        )
         self.stdout.write('')
 
     def _flush(self):
@@ -285,16 +299,17 @@ class Command(BaseCommand):
                 self._create_inventory_requirements(inventory_project)
                 self._create_inventory_change_requests(inventory_project, client_user, admin_user)
                 self._create_inventory_bug_reports(inventory_project, client_user, admin_user)
-            self._create_collection_accounts(
-                ecommerce_project, inventory_project, client_user, admin_user,
-            )
+            if not self.skip_collection_accounts:
+                self._create_collection_accounts(
+                    ecommerce_project, inventory_project, client_user, admin_user,
+                )
             if ecommerce_project:
                 self._create_extended_seed_data(admin_user, client_user, ecommerce_project)
             return
 
         proposal = self._create_demo_proposal(client_user)
 
-        today = date.today()
+        today = self.seed_context.anchor_date
 
         ecommerce_project = Project.objects.create(
             name='Plataforma E-commerce',
@@ -347,9 +362,10 @@ class Command(BaseCommand):
             self._create_inventory_change_requests(inventory_project, client_user, admin_user)
             self._create_inventory_bug_reports(inventory_project, client_user, admin_user)
 
-        self._create_collection_accounts(
-            ecommerce_project, inventory_project, client_user, admin_user,
-        )
+        if not self.skip_collection_accounts:
+            self._create_collection_accounts(
+                ecommerce_project, inventory_project, client_user, admin_user,
+            )
         self._create_extended_seed_data(admin_user, client_user, ecommerce_project)
 
     def _create_extended_seed_data(self, admin_user, client_user, ecommerce_project):
@@ -369,7 +385,7 @@ class Command(BaseCommand):
         client profiles are split verified/unverified so the portal's OTP gate is
         exercised both ways. Only sets fields when not already verified.
         """
-        now = timezone.now()
+        now = self.seed_context.anchor_now
         verified = 0
         for profile in (
             UserProfile.objects.filter(role=UserProfile.ROLE_CLIENT).order_by('id')
@@ -458,7 +474,7 @@ class Command(BaseCommand):
         marker = 'seed payment diversity'
         if Payment.objects.filter(subscription=sub, description__icontains=marker).exists():
             return
-        today = date.today()
+        today = self.seed_context.anchor_date
         Payment.objects.create(
             subscription=sub,
             amount=sub.billing_amount,
@@ -625,15 +641,21 @@ class Command(BaseCommand):
                 '- Export\n'
             )
             Document.objects.create(
+                uuid=self.seed_context.uuid('platform-markdown-playbook'),
                 document_type=dt_md,
                 title=title_en,
                 created_by=admin_user,
-                client_name='Internal QA',
+                client_name='TechStartup Co.',
                 language=Document.Language.EN,
                 status=Document.Status.PUBLISHED,
                 is_client_visible=True,
                 content_markdown=body,
-                content_json={'meta': meta_block(title_en, 'Internal QA'), 'blocks': markdown_to_blocks(body)},
+                content_json={
+                    'meta': meta_block(title_en, 'TechStartup Co.'),
+                    'blocks': markdown_to_blocks(body),
+                },
+                client_user=client_user,
+                project=project,
             )
             self.stdout.write(self.style.SUCCESS(f'  Created markdown document: {title_en}'))
 
@@ -641,6 +663,7 @@ class Command(BaseCommand):
         if not Document.objects.filter(title=title_es).exists():
             body_es = '# Guía\n\nContenido de prueba **semilla** enlazado al proyecto demo.\n'
             Document.objects.create(
+                uuid=self.seed_context.uuid('platform-markdown-guide'),
                 document_type=dt_md,
                 title=title_es,
                 created_by=admin_user,
@@ -673,6 +696,7 @@ class Command(BaseCommand):
 
         proposal_title = 'Propuesta Plataforma E-commerce — TechStartup Co.'
         proposal = BusinessProposal.objects.create(
+            uuid=self.seed_context.uuid('platform-proposal-techstartup'),
             title=proposal_title,
             client=client_user.profile,
             client_name='TechStartup Co.',
@@ -1243,7 +1267,7 @@ class Command(BaseCommand):
 
         from decimal import Decimal
 
-        today = date.today()
+        today = self.seed_context.anchor_date
 
         sub = HostingSubscription.objects.create(
             project=project,
@@ -1265,7 +1289,7 @@ class Command(BaseCommand):
             billing_period_end=today - timedelta(days=1),
             due_date=today - timedelta(days=90),
             status=Payment.STATUS_PAID,
-            paid_at=timezone.now() - timedelta(days=88),
+            paid_at=self.seed_context.anchor_now - timedelta(days=88),
         )
         Payment.objects.create(
             subscription=sub,
@@ -1275,7 +1299,7 @@ class Command(BaseCommand):
             billing_period_end=today + timedelta(days=89),
             due_date=today,
             status=Payment.STATUS_PAID,
-            paid_at=timezone.now() - timedelta(hours=2),
+            paid_at=self.seed_context.anchor_now - timedelta(hours=2),
         )
 
         self.stdout.write(self.style.SUCCESS(f'  Created subscription + 2 payments for {project.name}'))
@@ -1330,10 +1354,11 @@ class Command(BaseCommand):
             )
             return
 
-        today = date.today()
+        today = self.seed_context.anchor_date
 
         def new_draft(title, project, *, billing_concept, payment_term_days=30, support_ref=''):
             doc = Document.objects.create(
+                uuid=self.seed_context.uuid(f'platform-collection-{title}'),
                 title=title,
                 document_type=doc_type,
                 commercial_status=Document.CommercialStatus.DRAFT,

@@ -2,7 +2,7 @@
 Create additional demo client users for admin CRM / platform tests.
 
 Covers: onboarded vs pending, active vs inactive, empty phone, long company names.
-Password: env DEMO_CLIENT_PASSWORD or default "demo1234".
+Passwords are unusable unless DEMO_CLIENT_PASSWORD is explicitly provided.
 
 Usage:
   python manage.py seed_demo_clients
@@ -13,13 +13,13 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from accounts.models import UserProfile
+from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 
 User = get_user_model()
 
-DEMO_PASSWORD = os.environ.get('DEMO_CLIENT_PASSWORD', 'demo1234')
+DEMO_PASSWORD = os.environ.get('DEMO_CLIENT_PASSWORD')
 
 DEMO_CLIENTS = [
     {
@@ -107,7 +107,12 @@ DEMO_CLIENTS = [
 class Command(BaseCommand):
     help = 'Seed demo client accounts for development and CRM UI tests.'
 
+    def add_arguments(self, parser):
+        add_seed_arguments(parser)
+
     def handle(self, *args, **options):
+        ensure_fake_data_allowed('seed_demo_clients')
+        context = seed_context(options, 'demo-clients')
         admin = User.objects.filter(profile__role=UserProfile.ROLE_ADMIN).first()
 
         created = 0
@@ -142,7 +147,7 @@ class Command(BaseCommand):
                     'cedula': client_data.get('cedula', ''),
                     'created_by': admin,
                     'deactivated_at': (
-                        timezone.now() - timedelta(days=client_data['deactivated_days_ago'])
+                        context.anchor_now - timedelta(days=client_data['deactivated_days_ago'])
                         if 'deactivated_days_ago' in client_data else None
                     ),
                 },
@@ -164,6 +169,9 @@ class Command(BaseCommand):
             ))
             created += 1
 
+        password_state = (
+            'from DEMO_CLIENT_PASSWORD' if DEMO_PASSWORD else 'unusable'
+        )
         self.stdout.write(self.style.SUCCESS(
-            f'\nDone: {created} created, {skipped} skipped. Password: env DEMO_CLIENT_PASSWORD or {DEMO_PASSWORD!r}',
+            f'\nDone: {created} created, {skipped} skipped. Password: {password_state}.',
         ))
