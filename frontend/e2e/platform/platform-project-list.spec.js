@@ -28,6 +28,14 @@ const mockProjects = [
     name: 'E-commerce Platform',
     description: 'Full-stack e-commerce solution',
     status: 'active',
+    status_label: 'Activo',
+    current_state: {
+      id: 2,
+      name: 'Activo',
+      system_key: 'active',
+      operational_effect: 'operating',
+      color: 'emerald',
+    },
     progress: 65,
     client_id: 9002,
     client_name: 'Client E2E',
@@ -41,6 +49,14 @@ const mockProjects = [
     name: 'Mobile App MVP',
     description: 'React Native mobile application',
     status: 'paused',
+    status_label: 'Pausado',
+    current_state: {
+      id: 3,
+      name: 'Pausado',
+      system_key: 'paused',
+      operational_effect: 'paused',
+      color: 'yellow',
+    },
     progress: 20,
     client_id: 9002,
     client_name: 'Client E2E',
@@ -99,31 +115,32 @@ test.describe('Platform Project List — Admin', () => {
     await expect(page.getByText('E-commerce Platform')).toBeVisible();
     await expect(page.getByText('Mobile App MVP')).toBeVisible();
     await expect(page.getByText('65%')).toBeVisible();
-    await expect(page.getByText('Activo', { exact: true })).toBeVisible();
-    await expect(page.getByText('Pausado', { exact: true })).toBeVisible();
+    await expect(
+      page.getByTestId('project-row-1').getByText('Activo', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByTestId('project-row-2').getByText('Pausado', { exact: true }),
+    ).toBeVisible();
     // Merged from the deleted 'shows Nuevo proyecto button for admin' test
     // (same route/mocks, redundant standalone test).
     await expect(page.getByRole('button', { name: /nuevo proyecto/i })).toBeVisible();
   });
 
-  test('shows status filter tabs for admin', {
+  test('filters projects with state controls derived from the returned catalog', {
     tag: ['@outcome:success', ...PLATFORM_PROJECT_LIST, '@role:platform-admin'],
   }, async ({ page }) => {
     await setupProjectMocks(page, { user: mockPlatformAdmin });
     await page.goto('/platform/projects', { waitUntil: 'domcontentloaded' });
 
-    await expect(page.getByRole('button', { name: /todos/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /activos/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /pausados/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: /completados/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Todos', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Activo', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Pausado', exact: true })).toBeVisible();
 
     await expect(page.getByText('E-commerce Platform')).toBeVisible();
     await expect(page.getByText('Mobile App MVP')).toBeVisible();
 
-    // Selecting the "Activos" tab re-fetches with ?status=active; the paused
-    // project must drop out of the list. Catches a regression where the tabs
-    // render but the click handler stops narrowing the fetched data.
-    await page.getByRole('button', { name: /activos/i }).click();
+    // Selecting the catalog state narrows the already-fetched project rows.
+    await page.getByRole('button', { name: 'Activo', exact: true }).click();
 
     await expect(page.getByText('Mobile App MVP')).not.toBeVisible();
     await expect(page.getByText('E-commerce Platform')).toBeVisible();

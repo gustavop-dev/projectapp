@@ -28,11 +28,15 @@ const CATALOG = {
   data: {
     results: [
       {
-        id: 40, name: 'Kore Web', status: 'archived', status_label: 'Archivado',
+        id: 40, name: 'Kore Web', status: 'decommissioned', status_label: 'Dado de baja',
+        current_state: {
+          id: 6, name: 'Dado de baja', operational_effect: 'decommissioned', color: 'gray',
+        },
         client: { profile_id: 7, name: 'Kore SAS' },
       },
       {
         id: 41, name: 'Vastago', status: 'active', status_label: 'Activo',
+        current_state: { id: 2, name: 'Activo', operational_effect: 'operating', color: 'emerald' },
         client: { profile_id: 9, name: 'Deivis Ríos' },
       },
     ],
@@ -53,7 +57,7 @@ describe('ProjectCatalogSelect', () => {
     get_request.mockResolvedValue(CATALOG);
   });
 
-  it('fetches the catalog lazily on first open and lists actives first', async () => {
+  it('loads the catalog lazily with operational projects before closed projects', async () => {
     const wrapper = mountSelect();
     expect(get_request).not.toHaveBeenCalled();
 
@@ -62,10 +66,10 @@ describe('ProjectCatalogSelect', () => {
 
     expect(get_request).toHaveBeenCalledWith('projects/?scope=all');
     const options = wrapper.findAll('[role="option"]');
-    // Active Vastago outranks archived Kore Web despite the alphabet.
+    // Operating Vastago outranks decommissioned Kore Web despite the alphabet.
     expect(options.map((option) => option.text())).toEqual([
       'Vastago · Deivis Ríos',
-      'Kore Web · Kore SAS · Archivado',
+      'Kore Web · Kore SAS · Dado de baja',
     ]);
   });
 
