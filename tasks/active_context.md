@@ -18,6 +18,25 @@ están verdes: 25/25 en lotes de 20+5, gate focal sin errores y auditoría QA co
 los 25 tests en `KEEP`. La integración queda a cargo del PR y su CI, sin ejecutar
 la generación contra producción.
 
+**2026-08-26 — Comunicaciones por MCP y revalidación transversal:** PA-89 ya
+había resuelto Comunicaciones como dominio propio dentro de `content`, por lo que
+el catálogo nuevo se apoya en sus serializers, querysets y
+`communication_service.py`: lista y abre hilos, crea hilos obligatoriamente ligados
+a un cliente, agrega mensajes con canal/dirección/reply/documentos y registra como
+enviado un borrador saliente sin fingir una integración de entrega. El seed `0212`
+lo deja desactivado y sin token. La revisión de los ocho conectores previos cerró
+drift real en detalle de Blog, cliente/proyecto/estados de Documentos, períodos de
+hosting y pagos parciales de Contable, orfandad de Clientes y metadata/copia de
+Propuestas y Diagnósticos. `content/mcp/contracts.py` clasifica todos los campos de
+los nueve dominios y falla si aparece uno sin decisión; descripciones, schemas,
+pruebas focales y `docs/MCP_VALIDATION_RUNBOOK.md` dejan una validación repetible.
+La regla operativa queda explícita: todo cambio del modelo revisa su MCP en la misma
+entrega. Verificación local: 49/49 casos MCP nuevos y 31/31 regresiones compartidas
+verdes, Django sin issues, migraciones sin drift y quality gate focal 91/100 sin
+errores ni warnings. El gate global local puntuó 97/100 y quedó pendiente de la
+confirmación de CI únicamente porque este worktree backend-only no tiene
+`frontend/node_modules` para cargar `@babel/parser`.
+
 **2026-08-26 — Refresh patch/minor de dependencias y auditoría de vulnerabilidades:**
 el candidato de release actualiza diez dependencias directas de frontend y once
 de backend sin cruzar majors ni la frontera breaking de `@pinia/nuxt` 0.x. Los

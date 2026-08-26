@@ -319,7 +319,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'get_task',
-        'description': 'Devuelve una tarea por id.',
+        'description': (
+            'Abre una tarea por ID con descripción, tablero, estado, prioridad, '
+            'responsable, vencimiento, posición y estado de archivo.'
+        ),
         'input_schema': {'type': 'object', 'properties': _TASK_ID_PROP, 'required': ['task_id']},
         'handler': get_task,
     },
@@ -369,7 +372,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'delete_task',
-        'description': 'Elimina una tarea.',
+        'description': (
+            'Elimina permanentemente una tarea por ID. Usa archive_task cuando '
+            'el historial deba conservarse en el tablero.'
+        ),
         'input_schema': {'type': 'object', 'properties': _TASK_ID_PROP, 'required': ['task_id']},
         'handler': delete_task,
     },
@@ -397,7 +403,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'list_task_comments',
-        'description': 'Lista los comentarios de una tarea.',
+        'description': (
+            'Lista en orden todos los comentarios de una tarea, con autor y '
+            'fecha de creación. No modifica el hilo de comentarios.'
+        ),
         'input_schema': {'type': 'object', 'properties': _TASK_ID_PROP, 'required': ['task_id']},
         'handler': list_task_comments,
     },
@@ -413,7 +422,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'delete_task_comment',
-        'description': 'Elimina un comentario de una tarea.',
+        'description': (
+            'Elimina permanentemente un comentario identificado dentro de una '
+            'tarea; falla si el comentario pertenece a otra tarea.'
+        ),
         'input_schema': {
             'type': 'object',
             'properties': {**_TASK_ID_PROP, 'comment_id': {'type': 'integer'}},
@@ -423,7 +435,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'list_task_alerts',
-        'description': 'Lista las alertas de una tarea.',
+        'description': (
+            'Lista las alertas manuales de una tarea, incluidas fecha de aviso, '
+            'nota, estado de envío y fecha de creación.'
+        ),
         'input_schema': {'type': 'object', 'properties': _TASK_ID_PROP, 'required': ['task_id']},
         'handler': list_task_alerts,
     },
@@ -443,7 +458,10 @@ TASK_TOOLS = [
     },
     {
         'name': 'delete_task_alert',
-        'description': 'Elimina una alerta de una tarea.',
+        'description': (
+            'Elimina permanentemente una alerta identificada dentro de una '
+            'tarea; falla si la alerta pertenece a otra tarea.'
+        ),
         'input_schema': {
             'type': 'object',
             'properties': {**_TASK_ID_PROP, 'alert_id': {'type': 'integer'}},

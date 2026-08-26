@@ -21,8 +21,14 @@ receive the raw `arguments` dict, return a JSON-serializable dict, and raise
 ToolError for business errors. They reuse the exact same parser and
 document_type helpers as the panel so the PDF pipeline stays identical.
 """
+import json
+
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from rest_framework import serializers
+
+from accounts.models import Project, UserProfile
+from accounts.services.proposal_client_service import build_client_display_name
 
 from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
@@ -33,6 +39,7 @@ from content.models import (
     DocumentState,
     DocumentStateEpisode,
 )
+from content.serializers.document import apply_client_project_association
 from content.services.document_content import build_content_json
 from content.services.document_notes import (
     DocumentNotesValidationError, normalize_client_custom_notes,
@@ -64,7 +71,12 @@ def _markdown_qs():
     callers, no sólo para el panel. Esto cierra de una vez list/read/update/
     append/delete, que se apoyan en este queryset.
     """
-    return Document.objects.filter(document_type__code=MARKDOWN, is_archived=False)
+    return (
+        Document.objects
+        .filter(document_type__code=MARKDOWN, is_archived=False)
+        .select_related('folder', 'project', 'client_user__profile')
+        .prefetch_related('tags')
+    )
 
 
 def _get_markdown_doc_or_error(document_id):
@@ -100,6 +112,47 @@ def _resolve_folder(folder_id):
     return folder
 
 
+def _resolve_client(client_id):
+    if client_id in (None, '', 'none', 'null'):
+        return None
+    try:
+        client = UserProfile.objects.clients().get(pk=int(client_id))
+    except (UserProfile.DoesNotExist, TypeError, ValueError) as exc:
+        raise ToolError(
+            f'No existe un cliente con id={client_id}. Usa el MCP de clientes '
+            'para ver los disponibles.'
+        ) from exc
+    return client
+
+
+def _resolve_project(project_id):
+    if project_id in (None, '', 'none', 'null'):
+        return None
+    try:
+        return Project.objects.get(pk=int(project_id))
+    except (Project.DoesNotExist, TypeError, ValueError) as exc:
+        raise ToolError(f'No existe un proyecto con id={project_id}.') from exc
+
+
+def _association_data(arguments, *, instance=None):
+    """Apply the exact client/project invariant used by panel serializers."""
+    attrs = {}
+    if 'client_id' in arguments:
+        attrs['client'] = _resolve_client(arguments.get('client_id'))
+    if 'project_id' in arguments:
+        attrs['project'] = _resolve_project(arguments.get('project_id'))
+    if 'client_name' in arguments:
+        attrs['client_name'] = arguments.get('client_name', '') or ''
+    try:
+        return apply_client_project_association(attrs, instance)
+    except serializers.ValidationError as exc:
+        raise ToolError(
+            'Datos inválidos: ' + json.dumps(
+                exc.detail, ensure_ascii=False, default=str,
+            )
+        ) from exc
+
+
 # ── Payload shaping ──────────────────────────────────────────────────────────
 
 def _folder_path(folder):
@@ -121,6 +174,9 @@ def _folder_payload(folder):
 
 
 def _doc_summary(doc):
+    client_profile = (
+        getattr(doc.client_user, 'profile', None) if doc.client_user_id else None
+    )
     active_states = list(
         doc.state_episodes.filter(closed_at__isnull=True)
         .select_related('state__group')
@@ -130,7 +186,15 @@ def _doc_summary(doc):
         'id': doc.id,
         'title': doc.title,
         'slug': doc.slug,
+        'status': doc.status,
         'is_client_visible': doc.is_client_visible,
+        'client_id': client_profile.id if client_profile else None,
+        'client_name': doc.client_name,
+        'client_display_name': (
+            build_client_display_name(client_profile) if client_profile else None
+        ),
+        'project_id': doc.project_id,
+        'project_name': doc.project.name if doc.project else None,
         'active_states': [
             {
                 'episode_id': episode.id,
@@ -148,6 +212,10 @@ def _doc_summary(doc):
         'language': doc.language,
         'folder_id': doc.folder_id,
         'folder_name': doc.folder.name if doc.folder else None,
+        'tags': [
+            {'id': tag.id, 'name': tag.name, 'color': tag.color}
+            for tag in doc.tags.all()
+        ],
         'has_client_note': any((
             doc.client_email_subject.strip(),
             doc.client_email_body.strip(),
@@ -155,6 +223,7 @@ def _doc_summary(doc):
             doc.client_custom_notes,
         )),
         'updated_at': doc.updated_at.isoformat() if doc.updated_at else None,
+        'created_at': doc.created_at.isoformat() if doc.created_at else None,
     }
 
 
@@ -309,13 +378,29 @@ def list_documents(arguments):
     except (TypeError, ValueError):
         raise ToolError('page y page_size deben ser enteros.')
 
-    qs = _markdown_qs().select_related('folder')
+    qs = _markdown_qs()
     folder_arg = arguments.get('folder_id')
     if folder_arg == 'none':
         qs = qs.filter(folder__isnull=True)
     elif folder_arg not in (None, '', 'all'):
         folder = _resolve_folder(folder_arg)
         qs = qs.filter(folder=folder)
+
+    for argument_name, lookup in (
+        ('client_id', 'client_user__profile__id'),
+        ('project_id', 'project_id'),
+    ):
+        value = arguments.get(argument_name)
+        if value == 'none':
+            qs = qs.filter(**{f'{lookup}__isnull': True})
+        elif value not in (None, '', 'all'):
+            try:
+                value = int(value)
+            except (TypeError, ValueError) as exc:
+                raise ToolError(
+                    f'{argument_name} debe ser un ID, "none" o "all".'
+                ) from exc
+            qs = qs.filter(**{lookup: value})
 
     total = qs.count()
     start = (page - 1) * page_size
@@ -346,7 +431,7 @@ def create_document(arguments):
         raise ToolError(f'language inválido: usa uno de {sorted(LANGUAGE_CHOICES)}.')
 
     folder = _resolve_folder(arguments.get('folder_id'))
-    client_name = arguments.get('client_name', '') or ''
+    association_data = _association_data(arguments)
     covers = {
         name: _cover_flag(arguments, name)
         for name in COVER_FLAGS if name in arguments
@@ -363,13 +448,13 @@ def create_document(arguments):
         title=title,
         document_type=get_markdown_document_type(),
         folder=folder,
-        client_name=client_name,
         language=language,
         content_markdown=markdown_text,
         **covers,
         **client_note,
         created_by=actor,
         updated_by=actor,
+        **association_data,
     )
     doc.content_json = build_content_json(doc, markdown_text)
     doc.save()
@@ -387,10 +472,6 @@ def update_document(arguments):
         doc.title = title
         update_fields.add('title')
 
-    if 'client_name' in arguments:
-        doc.client_name = arguments.get('client_name', '') or ''
-        update_fields.add('client_name')
-
     if 'language' in arguments:
         language = arguments.get('language')
         if language not in LANGUAGE_CHOICES:
@@ -407,6 +488,14 @@ def update_document(arguments):
     if 'folder_id' in arguments:
         doc.folder = _resolve_folder(arguments.get('folder_id'))
         update_fields.add('folder')
+
+    if any(
+        field in arguments for field in ('client_id', 'project_id', 'client_name')
+    ):
+        association_data = _association_data(arguments, instance=doc)
+        for field, value in association_data.items():
+            setattr(doc, field, value)
+            update_fields.add(field)
 
     for flag in COVER_FLAGS:
         if flag in arguments:
@@ -433,7 +522,8 @@ def update_document(arguments):
     if not update_fields:
         raise ToolError(
             'No se indicó ningún campo para actualizar. Envía al menos uno de: '
-            'title, markdown, folder_id, is_client_visible, client_name, language, '
+            'title, markdown, folder_id, is_client_visible, client_id, project_id, '
+            'client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
             'client_email_subject, client_email_body, client_whatsapp_message, '
             'client_custom_notes.'
@@ -659,6 +749,23 @@ _DOCUMENT_ID_PROP = {
     'document_id': {'type': 'integer', 'description': 'ID del documento markdown.'},
 }
 
+_CLIENT_PROJECT_PROPS = {
+    'client_id': {
+        'type': ['integer', 'null'],
+        'description': (
+            'ID del perfil de cliente; null desvincula. Usa el MCP de clientes '
+            'para localizarlo.'
+        ),
+    },
+    'project_id': {
+        'type': ['integer', 'null'],
+        'description': (
+            'ID del proyecto; debe pertenecer al cliente seleccionado. Si se '
+            'envía sin client_id, el cliente se deriva del proyecto.'
+        ),
+    },
+}
+
 DOCUMENT_TOOLS = [
     {
         'name': 'list_folders',
@@ -710,6 +817,7 @@ DOCUMENT_TOOLS = [
         'description': (
             'Lista documentos markdown con paginación. Filtra por carpeta con '
             'folder_id (un id, "none" para los que están en la raíz, o "all"). '
+            'También filtra por client_id o project_id con la misma gramática. '
             'Devuelve resúmenes sin el contenido; usa read_document para el markdown.'
         ),
         'input_schema': {
@@ -718,6 +826,14 @@ DOCUMENT_TOOLS = [
                 'folder_id': {
                     'type': ['integer', 'string'],
                     'description': 'ID de carpeta, "none" (raíz) o "all" (todas).',
+                },
+                'client_id': {
+                    'type': ['integer', 'string'],
+                    'description': 'ID de cliente, "none" (sin cliente) o "all".',
+                },
+                'project_id': {
+                    'type': ['integer', 'string'],
+                    'description': 'ID de proyecto, "none" (sin proyecto) o "all".',
                 },
                 'page': {'type': 'integer', 'default': 1},
                 'page_size': {'type': 'integer', 'default': 20, 'maximum': 50},
@@ -728,8 +844,8 @@ DOCUMENT_TOOLS = [
     {
         'name': 'read_document',
         'description': (
-            'Devuelve un documento markdown completo, incluido su content_markdown '
-            'y todas sus notas privadas.'
+            'Devuelve un documento markdown completo, incluida su asociación a '
+            'cliente/proyecto, content_markdown, estados y notas privadas.'
         ),
         'input_schema': {
             'type': 'object',
@@ -743,7 +859,7 @@ DOCUMENT_TOOLS = [
         'description': (
             'Crea un documento nuevo a partir de markdown. El sistema lo '
             'convierte en PDF con marca luego; basta con enviar buen markdown. '
-            'Opcional: folder_id (de list_folders), language (es/en), client_name, '
+            'Opcional: folder_id, client_id, project_id, language (es/en), client_name, '
             'y las casillas include_portada / include_subportada / '
             'include_contraportada, que deciden qué páginas trae el PDF. También '
             'puede guardar asunto, correo, WhatsApp y notas personalizadas privadas.'
@@ -756,6 +872,7 @@ DOCUMENT_TOOLS = [
                 'folder_id': {'type': 'integer', 'description': 'Carpeta destino (opcional).'},
                 'language': {'type': 'string', 'enum': ['es', 'en'], 'default': 'es'},
                 'client_name': {'type': 'string'},
+                **_CLIENT_PROJECT_PROPS,
                 **_COVER_FLAG_PROPS,
                 **_CLIENT_NOTE_PROPS,
             },
@@ -768,7 +885,7 @@ DOCUMENT_TOOLS = [
         'description': (
             'Actualiza un documento markdown existente (parcial). Envía '
             'document_id y al menos uno de: title, markdown, folder_id, '
-            'is_client_visible, client_name, language, '
+            'is_client_visible, client_id, project_id, client_name, language, '
             'include_portada, include_subportada, include_contraportada, '
             'client_email_subject, client_email_body, client_whatsapp_message, '
             'client_custom_notes. Al '
@@ -789,6 +906,7 @@ DOCUMENT_TOOLS = [
                     'description': 'Mostrar este documento en el portal del cliente.',
                 },
                 'client_name': {'type': 'string'},
+                **_CLIENT_PROJECT_PROPS,
                 'language': {'type': 'string', 'enum': ['es', 'en']},
                 **_COVER_FLAG_PROPS,
                 **_CLIENT_NOTE_PROPS,

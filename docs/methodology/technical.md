@@ -225,8 +225,16 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### MCP connector concurrency
 
 - Connector URLs remain token-authenticated capability URLs; tokens are not part of the throttle key.
-- Registered connectors receive independent per-IP buckets keyed by slug, allowing Codex to initialize the configured domains in parallel.
+- Nine registered connectors — blog, documents, proposals, diagnostics, clients,
+  tasks, accounting, LinkedIn personal and communications — receive independent
+  per-IP buckets keyed by slug, allowing Codex to initialize configured domains in
+  parallel.
 - Unknown slugs share one `unknown` bucket. Never key untrusted paths directly without first checking them against `TOOLS_BY_SLUG`.
+- `content/mcp/contracts.py` is the field-level anti-drift manifest. A model change
+  in one of those domains must update its classification, tool schemas and
+  descriptions in the same delivery; focused tests fail on missing or stale fields.
+- `docs/MCP_VALIDATION_RUNBOOK.md` is the repeatable create/read/update/error script
+  for connector delivery and later revalidation.
 
 ### Single outbound email gateway
 
@@ -295,6 +303,12 @@ by ID and expose reverse usage through
 `GET /api/documents/<id>/communications/`.
 
 Both parallel `0210` leaves converge through `content.0211_merge_document_states_communications`.
+
+`content.0212_seed_communications_mcp` registers the Communications connector
+inactive and tokenless. `content/mcp/communication_tools.py` exposes five JSON-RPC
+tools and reuses the same queryset/serializer/service boundary as the panel. No MCP
+tool sends email or WhatsApp: `mark_message_sent` only records a delivery fact already
+confirmed by the operator or another integration.
 
 ### Authentication: Dual Strategy
 - **Panel (`/panel/`)**: Django session + CSRF; middleware `admin-auth.js` checks `/api/auth/check/`; unauthenticated → Django admin login
@@ -486,7 +500,7 @@ projectapp/
 │   │   ├── models/              # 56 model files (business_proposal, proposal_section, blog, portfolio, contact, document, email, diagnostic, accounting_base/income_record/expense_record/credit_card/credit_card_statement/…, task, mcp_connector, mcp_request_log, linkedin_token, etc.)
 │   │   ├── serializers/         # DRF serializers (proposal, blog, portfolio, contact, proposal_clients, diagnostic, accounting, document, mcp)
 │   │   ├── views/               # 19 FBV modules (proposal is dominant; blog, portfolio, diagnostic, diagnostic_template, accounting, accounting_export, document*, email_templates, standalone_email, task, mcp_blog, contact, proposal_clients)
-│   │   ├── mcp/                 # MCP tool package (protocol, actor, tools + blog/documents/proposals/diagnostics/clients/tasks/accounting connectors for claude.ai)
+│   │   ├── mcp/                 # MCP protocol, actor, field contracts + nine module catalogs (including communications and LinkedIn)
 │   │   ├── services/            # 30 service/support modules (proposal_*, contract_pdf_service, document_pdf_service, markdown_parser, linkedin_service, collection_account*, technical_document*, document_type_*, platform_onboarding_pdf, diagnostic_* (service/email/pdf/documents), accounting_* (service/export/email/card_reminder))
 │   │   ├── tasks.py             # Huey async tasks (incl. notify_proposal_stage_deadlines daily 13:30 UTC = 08:30 Bogotá; send_card_debt_reminder Fridays)
 │   │   ├── templates/emails/    # 73 content email templates (37 HTML + 36 TXT)

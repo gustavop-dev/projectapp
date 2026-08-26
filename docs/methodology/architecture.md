@@ -134,6 +134,22 @@ Documents API or schema.
 
 Remote MCP connectors enter through `/api/mcp/<slug>/<token>/`. Django validates the capability token, connector active state and allowed Origin before dispatching JSON-RPC tools. Anonymous throttling is isolated by `client IP + registered connector slug`; concurrent startup traffic for one connector therefore cannot exhaust another connector's quota. Any unregistered slug maps to the shared `unknown` bucket so callers cannot evade throttling by manufacturing paths.
 
+`TOOLS_BY_SLUG` dispatches nine module catalogs: blog, documents, proposals,
+diagnostics, clients, tasks, accounting, LinkedIn personal and communications.
+The Communications catalog is deliberately five-tool: list/open a thread,
+create a thread, append a message and mark an outgoing draft as sent. Its writes
+delegate to `communication_service.py`, so client ownership, project scope,
+direction/channel/status transitions, reply linkage and protected Document
+references are identical to the panel. It records a confirmed send; provider
+delivery remains outside this phase.
+
+MCP parity is an architectural boundary, not informal documentation.
+`content/mcp/contracts.py` classifies every concrete field of every exposed model
+as read-only, read-write or intentionally excluded with a reason. Contract tests
+reject an unclassified/stale field and validate unique snake-case tool names,
+descriptions and object schemas. The repeatable manual/API matrix lives in
+`docs/MCP_VALIDATION_RUNBOOK.md`.
+
 The Documents connector treats client delivery copy and observations as private
 document metadata. `client_email_subject`, `client_email_body`,
 `client_whatsapp_message`, and the ordered legacy `client_custom_notes` array travel
