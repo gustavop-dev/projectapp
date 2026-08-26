@@ -67,7 +67,6 @@ from content.serializers.accounting import (
     IncomeProjectBulkAssignSerializer,
     IncomeReminderMuteSerializer,
     IncomeSettlementSerializer,
-    LiquidSettlementSerializer,
     NotificationRecipientCreateUpdateSerializer,
     NotificationRecipientSerializer,
     PocketMovementCreateUpdateSerializer,
@@ -85,6 +84,7 @@ from content.services import (
     accounting_email_retry_service,
     accounting_history_service,
     accounting_income_duplicate_service,
+    accounting_income_detail_service,
     accounting_income_mute_service,
     accounting_service,
     accounting_settlement_service,
@@ -810,46 +810,13 @@ def retrieve_income_detail(request, record_id):
     is_shared/allocation_count/allocations share one cache walk per row
     regardless of how many siblings an abono has.
     """
-    config = _ENTITIES['income']
     income = get_object_or_404(
-        config['model'].objects.select_related(
-            'client', 'client__user', 'project',
-        ).annotate(**config['annotations']),
+        accounting_income_detail_service.income_detail_queryset(),
         pk=record_id,
     )
-    children = income.liquid_records.filter(
-        kind=IncomeRecord.Kind.LIQUID,
-    ).select_related(
-        'client', 'client__user', 'project', 'pocket_movement',
-    ).prefetch_related(
-        'pocket_movement__income_records',
-    ).order_by(
-        'period_date', 'id',
+    return Response(
+        accounting_income_detail_service.build_income_detail_payload(income),
     )
-    # Deductions credit the gross total without ever arriving as a liquid
-    # child, so the history is incomplete without them.
-    deductions = income.deduction_records.exclude(
-        deduction_type='',
-    ).order_by('period_date', 'id')
-    cuenta = (
-        income.collection_documents
-        .exclude(commercial_status=Document.CommercialStatus.CANCELLED)
-        .order_by('-created_at')
-        .first()
-    )
-    return Response({
-        'income': config['read'](income).data,
-        'liquid': LiquidSettlementSerializer(children, many=True).data,
-        'expenses': ExpenseRecordSerializer(deductions, many=True).data,
-        'collection_account': {
-            'id': cuenta.pk,
-            'public_number': cuenta.public_number,
-            'commercial_status': cuenta.commercial_status,
-            'total': cuenta.total,
-            'issue_date': cuenta.issue_date,
-            'due_date': cuenta.due_date,
-        } if cuenta else None,
-    })
 
 
 @api_view(['GET'])

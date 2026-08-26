@@ -43,6 +43,22 @@ After completing this implementation or fix, the previously-created fake data ma
 
 **To execute the refresh:** invoke the `fake-data-refresh` skill on this project. It runs the project's own `delete_fake_data` then `create_fake_data` management commands and refuses on production environments.
 
+### MCP parity review
+
+If the changed model, serializer, service, lifecycle, or relation belongs to a
+module listed in `backend/content/mcp/contracts.py`, the same delivery MUST:
+
+- classify every added/changed field as read-only, read/write, or deliberately
+  excluded with a concrete reason;
+- compare tool descriptions, input schemas, handlers, filters, and response
+  payloads with the panel's current serializer/service contract;
+- preserve the shared token auth, actor attribution, audit, and throttle pattern;
+- update `docs/MCP_VALIDATION_RUNBOOK.md` and run the focused MCP contract plus
+  create/read/update/error tests.
+
+An unclassified model field or a tool that advertises data it silently drops is
+a failed checklist, even if the ordinary panel tests are green.
+
 ## 2. Test Coverage
 
 ### Create tests for the new functionality:
