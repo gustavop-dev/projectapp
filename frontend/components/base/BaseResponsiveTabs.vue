@@ -79,7 +79,7 @@ function tabClass(tab) {
         :aria-selected="modelValue === t.id"
         :disabled="t.disabled"
         :title="t.disabled ? t.disabledReason : undefined"
-        :aria-label="t.disabled && t.disabledReason ? `${t.label}: ${t.disabledReason}` : undefined"
+        :aria-description="t.disabled ? t.disabledReason : undefined"
         :class="[
           'transition-colors whitespace-nowrap outline-none focus:ring-2 focus:ring-focus-ring/30 disabled:opacity-50 disabled:cursor-not-allowed',
           fullWidth ? 'flex-1' : '',

@@ -106,9 +106,7 @@ function toggle(opt) {
       :aria-pressed="isOn(opt)"
       :disabled="disabled || opt.disabled"
       :title="(disabled && disabledReason) || opt.disabledReason || undefined"
-      :aria-label="(disabled || opt.disabled) && ((disabled && disabledReason) || opt.disabledReason)
-        ? `${opt.label}: ${(disabled && disabledReason) || opt.disabledReason}`
-        : undefined"
+      :aria-description="(disabled && disabledReason) || opt.disabledReason || undefined"
       :class="[
         SEGMENTED_ITEM_BASE,
         sizeClass,
