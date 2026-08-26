@@ -67,7 +67,7 @@ describe('DiagnosticActionsModal', () => {
   describe('close', () => {
     it('emits close when the close button is clicked', async () => {
       const wrapper = mountModal();
-      await wrapper.find('button[aria-label="Cerrar"]').trigger('click');
+      await wrapper.find('button[aria-label="Cerrar acciones del diagnóstico"]').trigger('click');
 
       expect(wrapper.emitted('close')).toBeTruthy();
     });

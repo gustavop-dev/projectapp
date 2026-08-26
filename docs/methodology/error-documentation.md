@@ -81,6 +81,14 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Files Affected**: `frontend/composables/useDocumentFilterQuery.js`, Documents list/editor pages, `frontend/utils/documentReturnNavigation.js`.
 - **Regression coverage**: Unit tests cover query round trips, browser history, validation, labels and focus; Playwright covers explicit return, native Back and an untrusted-origin fallback.
 
+### [ERR-024] Panel action symbols were inconsistent across modules
+- **Date**: 2026-08-25
+- **Context**: Copy, duplicate, edit, rename, delete, close and other panel actions mixed Heroicons, inline SVG paths and emojis; some distinct actions shared one symbol.
+- **Root Cause**: Screens selected glyphs locally and no executable inventory enforced family, semantic uniqueness, tooltip/accessibility or touch geometry.
+- **Resolution**: Added an 84-action Heroicons 24 Outline catalog, shared action icon/button primitives, contextual accessible labels with stable feedback glyphs, a visual styleguide inventory and a CI guard covering all panel-reachable modules.
+- **Files Affected**: `frontend/config/panelActions.js`, `frontend/components/base/BaseActionIcon.vue`, `BaseActionButton.vue`, panel pages/components, `frontend/scripts/check-panel-action-icons.mjs`, `.github/workflows/ci.yml`.
+- **Regression coverage**: Catalog/component unit tests, focused consumer suites and the static guard verify icon uniqueness, copy-vs-duplicate semantics, tooltip/accessibility, stable feedback and panel adoption.
+
 ### [ERR-022] Editing a recurring payment left its monthly COP projection stale
 - **Date**: 2026-08-22
 - **Context**: Chat-GPT was edited from USD 20 to USD 200, but its stored COP equivalent remained 80,000. Reloading preserved the wrong value, which also understated the general and category monthly totals.

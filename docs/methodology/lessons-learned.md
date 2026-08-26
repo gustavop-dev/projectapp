@@ -355,6 +355,8 @@ rows using their shared `delivery_id`.
 
 ## 13. Single Source of Truth for Small Catalogs
 
+Action iconography follows the same rule as business catalogs: semantic identity belongs in one executable map, while handlers and runtime state stay with the consumer. A component may override contextual copy such as “Copiar URL”, but not the glyph assigned to the canonical `copy` action.
+
 When you have a small enum-like catalog (e.g., the two project stages `design` + `development`), put the canonical list in **one place** and have all consumers delegate to it.
 
 For project stages, that place is `ProposalStageTracker` in `backend/content/services/proposal_stage_tracker.py`:

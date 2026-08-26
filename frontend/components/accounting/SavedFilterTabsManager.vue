@@ -7,10 +7,7 @@
         :data-testid="`tabs-manager-toggle-${view}`"
         @click="toggle"
       >
-        <ChevronRightIcon
-          class="w-4 h-4 text-text-muted transition-transform"
-          :class="{ 'rotate-90': isOpen }"
-        />
+        <BaseActionIcon :action="isOpen ? 'collapse' : 'expand'" class="text-text-muted" />
         {{ label }}
       </button>
       <BaseButton
@@ -60,26 +57,24 @@
           >
             De fábrica
           </span>
-          <BaseButton
+          <BaseActionButton
+            action="move-up"
             variant="ghost"
             size="sm"
             :disabled="index === 0"
             :data-testid="`tabs-manager-up-${tab.id}`"
-            aria-label="Subir"
+            label="Subir pestaña"
             @click="move(index, -1)"
-          >
-            <ChevronUpIcon class="w-4 h-4" />
-          </BaseButton>
-          <BaseButton
+          />
+          <BaseActionButton
+            action="move-down"
             variant="ghost"
             size="sm"
             :disabled="index === orderedTabs.length - 1"
             :data-testid="`tabs-manager-down-${tab.id}`"
-            aria-label="Bajar"
+            label="Bajar pestaña"
             @click="move(index, 1)"
-          >
-            <ChevronDownIcon class="w-4 h-4" />
-          </BaseButton>
+          />
         </li>
       </ul>
     </div>
@@ -96,11 +91,6 @@
  * open.
  */
 import { computed, ref } from 'vue';
-import {
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-} from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseCheckbox from '~/components/base/BaseCheckbox.vue';
 import { useSavedFilterTabs } from '~/composables/useSavedFilterTabs';

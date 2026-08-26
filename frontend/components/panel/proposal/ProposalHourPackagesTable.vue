@@ -131,7 +131,8 @@
         class="shrink-0 text-xs font-medium text-text-brand hover:underline"
         @click="emit('add')"
       >
-        + Agregar paquete
+        <BaseActionIcon action="create" />
+        Agregar paquete
       </button>
     </div>
   </div>

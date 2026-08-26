@@ -48,9 +48,7 @@ function copyReference(view) {
         data-testid="view-module-back"
         @click="emit('back')"
       >
-        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
+        <BaseActionIcon action="back" />
         Módulos
       </button>
       <span class="text-text-subtle">/</span>
@@ -99,31 +97,23 @@ function copyReference(view) {
               </div>
 
               <div class="flex flex-shrink-0 items-center gap-0.5">
-                <a
+                <BaseActionButton
                   v-if="isOpenableViewUrl(view.url)"
-                  :href="view.url"
+                  action="open-external"
+                  :label="`Abrir ${view.url} en una nueva pestaña`"
+                  as="a"
+                  :to="view.url"
                   target="_blank"
                   rel="noopener"
-                  class="rounded-lg p-1.5 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-brand"
-                  :title="`Abrir ${view.url} en una nueva pestaña`"
-                >
-                  <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                  </svg>
-                </a>
-                <button
-                  type="button"
-                  class="rounded-lg p-1.5 text-text-subtle transition-colors hover:bg-surface-raised hover:text-text-brand"
-                  :title="copiedKey === view.url ? 'Copiado!' : 'Copiar referencia'"
+                  class="text-text-subtle hover:text-text-brand"
+                />
+                <BaseActionButton
+                  action="copy"
+                  :label="copiedKey === view.url ? 'Copiado: referencia' : 'Copiar referencia'"
+                  :status-label="copiedKey === view.url ? 'Copiado: referencia' : ''"
+                  class="text-text-subtle hover:text-text-brand"
                   @click="copyReference(view)"
-                >
-                  <svg v-if="copiedKey === view.url" class="h-4 w-4 text-success-strong" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                </button>
+                />
               </div>
             </div>
 

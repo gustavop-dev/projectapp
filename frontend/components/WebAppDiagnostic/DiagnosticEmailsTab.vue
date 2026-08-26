@@ -53,10 +53,8 @@
                     <span class="text-2xs text-text-subtle uppercase tracking-wide">Markdown</span>
                     <BaseToggle v-model="section.markdown" size="sm" aria-label="Activar Markdown en esta sección" />
                   </span>
-                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                  <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" v-if="sections.length > 1" @click="removeSection(idx)">
+                    <BaseActionIcon action="delete" />
                   </BaseButton>
                 </div>
                 <textarea v-model="section.text" rows="3" placeholder="Escribe el contenido de esta sección..."
@@ -68,9 +66,7 @@
             </template>
           </draggable>
           <BaseButton variant="secondary" size="sm" class="mt-3" @click="addSection">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-            </svg>
+            <BaseActionIcon action="create" />
             Agregar sección
           </BaseButton>
         </div>
@@ -86,17 +82,11 @@
           <div class="flex flex-col items-start gap-3">
             <div class="flex flex-wrap items-center gap-2">
               <BaseButton variant="secondary" size="sm" @click="showAttachFromDocsModal = true">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
+                <BaseActionIcon action="attach" />
                 Adjuntar desde Documentos
               </BaseButton>
               <BaseButton variant="ghost" size="sm" v-if="canCreateMarkdownAttachment" @click="showMarkdownModal = true">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <BaseActionIcon action="create" />
                 Crear documento desde markdown
               </BaseButton>
             </div>
@@ -112,19 +102,15 @@
                 <span class="px-1.5 py-0.5 bg-primary-soft text-text-brand rounded text-2xs font-medium">Documento</span>
                 <span class="text-xs text-text-default dark:text-white/70 truncate">{{ ref.label }}</span>
               </span>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeDocRef(idx)">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeDocRef(idx)">
+                <BaseActionIcon action="delete" />
               </BaseButton>
             </div>
             <div v-for="(file, idx) in attachments" :key="`file-${idx}`"
               class="flex items-center justify-between py-1.5 px-3 bg-surface-muted rounded-lg">
               <span class="text-xs text-text-default dark:text-white/70 truncate">{{ file.name }}</span>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="removeAttachment(idx)">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" title="Eliminar" @click="removeAttachment(idx)">
+                <BaseActionIcon action="delete" />
               </BaseButton>
             </div>
           </div>
@@ -134,14 +120,8 @@
           <p v-if="sendError" class="text-xs text-red-500">{{ sendError }}</p>
           <p v-else-if="sendSuccess" class="text-xs text-text-brand">Correo enviado correctamente.</p>
           <span v-else />
-          <BaseButton variant="primary" size="sm" :disabled="!canSend || sending" @click="handleSend">
-            <svg v-if="!sending" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-            </svg>
-            <svg v-else class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
+          <BaseButton variant="primary" size="sm" :disabled="!canSend" :loading="sending" @click="handleSend">
+            <BaseActionIcon v-if="!sending" action="send" />
             {{ sending ? 'Enviando…' : 'Enviar correo' }}
           </BaseButton>
         </div>

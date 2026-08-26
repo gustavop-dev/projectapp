@@ -15,7 +15,7 @@
         data-testid="ads-new-button"
         @click="openCreateModal"
       >
-        <PlusIcon class="w-4 h-4" />
+        <BaseActionIcon action="create" />
         <span>Nuevo gasto en Ads</span>
       </BaseButton>
     </div>
@@ -93,7 +93,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo gasto en Ads</span>
         </BaseButton>
       </template>
@@ -169,7 +169,6 @@
 
 <script setup>
 import { computed, onMounted } from 'vue';
-import { PlusIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';

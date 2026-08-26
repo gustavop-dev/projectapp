@@ -13,7 +13,7 @@
         data-testid="communications-new-thread"
         @click="openThreadModal"
       >
-        <PlusIcon class="h-4 w-4" />
+        <BaseActionIcon action="create" />
         Nuevo hilo
       </BaseButton>
     </header>
@@ -174,16 +174,14 @@
           <header class="border-b border-border-muted px-4 py-4 sm:px-5">
             <div class="flex items-start justify-between gap-3">
               <div class="flex min-w-0 items-start gap-2">
-                <BaseButton
+                <BaseActionButton
                   v-if="isPhone"
+                  action="back"
                   variant="ghost"
                   size="sm"
-                  icon-only
-                  aria-label="Volver a los hilos"
+                  label="Volver a los hilos"
                   @click="showCompactDetail = false"
-                >
-                  <ArrowLeftIcon class="h-4 w-4" />
-                </BaseButton>
+                />
                 <div class="min-w-0">
                   <h2 class="break-words text-lg font-semibold text-text-default">{{ currentThread.title }}</h2>
                   <p class="mt-1 text-sm text-text-muted">
@@ -264,7 +262,7 @@
                   size="sm"
                   class="mr-3"
                 >
-                  <PaperClipIcon class="h-3.5 w-3.5" /> {{ document.title }}
+                  <BaseActionIcon action="view" /> {{ document.title }}
                 </BaseButton>
               </div>
 
@@ -288,7 +286,7 @@
                   size="sm"
                   @click="copyMessage(message)"
                 >
-                  <ClipboardIcon class="h-3.5 w-3.5" /> Copiar
+                  <BaseActionIcon action="copy" /> Copiar
                 </BaseButton>
                 <BaseButton
                   v-if="message.status === 'draft'"
@@ -547,13 +545,7 @@
 
 <script setup>
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
-import {
-  ArrowLeftIcon,
-  ChatBubbleLeftRightIcon,
-  ClipboardIcon,
-  PaperClipIcon,
-  PlusIcon,
-} from '@heroicons/vue/24/outline';
+import { ChatBubbleLeftRightIcon } from '@heroicons/vue/24/outline';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import { useIsMobile } from '~/composables/useIsMobile';

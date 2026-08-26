@@ -56,7 +56,7 @@ describe('RadiographyForm', () => {
 
   it('clicking Agregar include button appends a new include row', async () => {
     const wrapper = mountForm()
-    const agregar = wrapper.findAll('button').find((b) => b.text() === '+ Agregar')
+    const agregar = wrapper.findAll('button').find((b) => b.text() === 'Agregar')
     await agregar.trigger('click')
     const inputs = wrapper.findAll('input[placeholder="Título"]')
     expect(inputs.length).toBe(1)
@@ -64,7 +64,7 @@ describe('RadiographyForm', () => {
 
   it('the new include row renders an empty title input', async () => {
     const wrapper = mountForm()
-    const agregar = wrapper.findAll('button').find((b) => b.text() === '+ Agregar')
+    const agregar = wrapper.findAll('button').find((b) => b.text() === 'Agregar')
     await agregar.trigger('click')
     const titleInput = wrapper.find('input[placeholder="Título"]')
     expect(titleInput.element.value).toBe('')
@@ -80,7 +80,7 @@ describe('RadiographyForm', () => {
 
   it('clicking add classification row button appends a new row', async () => {
     const wrapper = mountForm()
-    const agrega = wrapper.findAll('button').filter((b) => b.text() === '+ Agregar')
+    const agrega = wrapper.findAll('button').filter((b) => b.text() === 'Agregar')
     await agrega[agrega.length - 1].trigger('click')
     expect(wrapper.find('input[placeholder="Dimensión"]').exists()).toBe(true)
   })
@@ -91,7 +91,7 @@ describe('RadiographyForm', () => {
       classificationRows: [{ dimension: 'D', small: 'S', medium: 'M', large: 'L' }],
     }
     const wrapper = mountForm(model)
-    const removeBtn = wrapper.findAll('button').find((b) => b.text() === '×')
+    const removeBtn = wrapper.find('button[aria-label="Eliminar tecnología"]')
     await removeBtn.trigger('click')
     expect(wrapper.find('input[placeholder="Dimensión"]').exists()).toBe(false)
   })

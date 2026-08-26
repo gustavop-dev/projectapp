@@ -24,7 +24,7 @@
     <div>
       <div class="flex items-center justify-between mb-1">
         <span class="text-xs font-medium text-text-muted">Descripción de los pagos</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addItem">+ Agregar</button>
+        <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addItem"><BaseActionIcon action="create" /> Agregar</button>
       </div>
       <div class="space-y-2">
         <div
@@ -34,7 +34,7 @@
         >
           <input v-model="p.label" type="text" placeholder="al inicio / al final" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default" />
           <textarea v-model="p.detail" rows="2" placeholder="Detalle" class="px-2 py-1.5 border border-border-default rounded-lg text-sm bg-surface text-text-default"></textarea>
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="form.paymentDescription.splice(idx,1)">×</BaseButton>
+        <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar descripción" size="sm" @click="form.paymentDescription.splice(idx,1)" />
         </div>
       </div>
     </div>

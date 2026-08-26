@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
-import { TrashIcon } from '@heroicons/vue/24/outline';
 
 import DocumentClientNoteModal from '../../components/panel/documents/DocumentClientNoteModal.vue';
+import BaseActionIcon from '../../components/base/BaseActionIcon.vue';
 import BaseButton from '../../components/base/BaseButton.vue';
 import BaseInput from '../../components/base/BaseInput.vue';
 import BaseModal from '../../components/base/BaseModal.vue';
@@ -95,7 +95,7 @@ describe('DocumentClientNoteModal', () => {
     await nextTick();
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Correo para copiar');
-    expect(wrapper.find('[data-testid="client-note-copy-email"]').text()).toBe('✅');
+    expect(wrapper.get('[role="status"]').text()).toBe('Copiado: correo');
     expect(wrapper.find('[data-testid="client-note-copy-email"]').attributes('aria-label'))
       .toBe('Copiado: correo');
   });
@@ -143,9 +143,7 @@ describe('DocumentClientNoteModal', () => {
     });
 
     const remove = wrapper.find('[data-testid="client-note-custom-delete-0"]');
-    // The panel uses one delete affordance everywhere (heroicons TrashIcon,
-    // see BaseResponsiveTable), never a bare emoji glyph.
-    expect(remove.findComponent(TrashIcon).exists()).toBe(true);
+    expect(remove.findComponent(BaseActionIcon).props('action')).toBe('delete');
     expect(remove.text()).toBe('');
   });
 
@@ -194,7 +192,7 @@ describe('DocumentClientNoteModal', () => {
     await nextTick();
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Llamar el viernes.');
-    expect(wrapper.find('[data-testid="client-note-custom-copy-content-0"]').text()).toBe('✅');
+    expect(wrapper.get('[role="status"]').text()).toBe('Copiado: contenido de la nota 1');
   });
 
   it('copies a custom note title', async () => {
@@ -202,13 +200,13 @@ describe('DocumentClientNoteModal', () => {
       customNotes: [{ title: 'Seguimiento', content: 'Llamar el viernes.' }],
     });
     const copyButton = wrapper.find('[data-testid="client-note-custom-copy-title-0"]');
-    expect(copyButton.text()).toBe('📋');
+    expect(copyButton.findComponent(BaseActionIcon).props('action')).toBe('copy');
 
     await copyButton.trigger('click');
     await nextTick();
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('Seguimiento');
-    expect(copyButton.text()).toBe('✅');
+    expect(wrapper.get('[role="status"]').text()).toBe('Copiado: título de la nota 1');
     expect(copyButton.attributes('aria-label')).toBe('Copiado: título de la nota 1');
   });
 });

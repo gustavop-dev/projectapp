@@ -14,7 +14,7 @@
         data-testid="clients-new-button"
         @click="openCreateModal"
       >
-        <PlusIcon class="w-4 h-4" />
+        <BaseActionIcon action="create" />
         <span>Nuevo cliente</span>
       </BaseButton>
     </div>
@@ -250,16 +250,10 @@
                 >
                   Acciones
                 </BaseButton>
-                <svg
-                  class="h-5 w-5 shrink-0 text-text-subtle transition-transform"
-                  :class="{ 'rotate-180': expandedClients.has(client.id) }"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  aria-hidden="true"
-                >
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                </svg>
+                <BaseActionIcon
+                  :action="expandedClients.has(client.id) ? 'collapse' : 'expand'"
+                  class="h-5 w-5 text-text-subtle"
+                />
               </div>
             </div>
           </div>
@@ -339,61 +333,49 @@
               <template v-if="client.last_email_at"> · {{ formatDate(client.last_email_at) }}</template>
             </button>
 
-            <button
+            <BaseActionButton
               v-if="client.accepted_count > 0"
-              type="button"
+              action="open-platform"
+              label="Ver cliente en plataforma"
               :data-testid="`client-platform-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
               :disabled="isBridging"
-              title="Ver en plataforma"
               @click.stop="goToPlatform('/platform/clients/' + client.user_id)"
-            >
-              <SidebarIcon name="external" class="w-4 h-4" />
-            </button>
+            />
 
             <!-- Edit button -->
-            <button
-              type="button"
+            <BaseActionButton
+              action="edit"
+              label="Editar cliente"
               :data-testid="`client-edit-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-text-brand hover:bg-primary-soft transition-colors"
-              title="Editar cliente"
               @click.stop="openEditModal(client)"
-            >
-              <PencilSquareIcon class="w-4 h-4" />
-            </button>
+            />
 
             <!-- Inactive toggle button -->
-            <button
-              type="button"
+            <BaseActionButton
+              :action="client.is_inactive ? 'activate' : 'deactivate'"
+              :label="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
               :data-testid="`client-toggle-inactive-${client.id}`"
               class="p-1.5 rounded-lg text-text-subtle hover:text-warning-strong hover:bg-warning-soft transition-colors"
-              :title="client.is_inactive ? 'Reactivar cliente' : 'Marcar como inactivo'"
               @click.stop="toggleInactive(client)"
-            >
-              <PlayCircleIcon v-if="client.is_inactive" class="w-4 h-4" />
-              <PauseCircleIcon v-else class="w-4 h-4" />
-            </button>
+            />
 
             <!-- Trash button -->
-            <BaseButton variant="danger-ghost" size="sm" :data-testid="`client-delete-${client.id}`" :title="'Eliminar cliente'" @click.stop="confirmDelete(client)">
-              <TrashIcon class="w-4 h-4" />
-            </BaseButton>
+            <BaseActionButton
+              action="delete"
+              label="Eliminar cliente"
+              variant="danger-ghost"
+              size="sm"
+              :data-testid="`client-delete-${client.id}`"
+              @click.stop="confirmDelete(client)"
+            />
 
             <!-- Expand chevron -->
-            <svg
-              class="w-4 h-4 text-text-subtle transition-transform flex-shrink-0"
-              :class="{ 'rotate-180': expandedClients.has(client.id) }"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
+            <BaseActionIcon
+              :action="expandedClients.has(client.id) ? 'collapse' : 'expand'"
+              class="text-text-subtle"
+            />
           </div>
         </div>
 
@@ -503,9 +485,15 @@
                         >
                           Mover
                         </BaseButton>
-                        <BaseButton variant="danger-ghost" size="sm" :class="isCompact ? 'min-h-11 min-w-11' : ''" :data-testid="`client-proposal-delete-${p.id}`" title="Eliminar propuesta" @click.stop="confirmDeleteProposal(client, p)">
-                          <TrashIcon class="w-4 h-4" />
-                        </BaseButton>
+                        <BaseActionButton
+                          action="delete"
+                          label="Eliminar propuesta"
+                          variant="danger-ghost"
+                          size="sm"
+                          :class="isCompact ? 'min-h-11 min-w-11' : ''"
+                          :data-testid="`client-proposal-delete-${p.id}`"
+                          @click.stop="confirmDeleteProposal(client, p)"
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -602,9 +590,15 @@
                         >
                           Mover
                         </BaseButton>
-                        <BaseButton variant="danger-ghost" size="sm" :class="isCompact ? 'min-h-11 min-w-11' : ''" :data-testid="`client-diagnostic-delete-${diag.id}`" title="Eliminar diagnóstico" @click.stop="confirmDeleteDiagnostic(client, diag)">
-                          <TrashIcon class="w-4 h-4" />
-                        </BaseButton>
+                        <BaseActionButton
+                          action="delete"
+                          label="Eliminar diagnóstico"
+                          variant="danger-ghost"
+                          size="sm"
+                          :class="isCompact ? 'min-h-11 min-w-11' : ''"
+                          :data-testid="`client-diagnostic-delete-${diag.id}`"
+                          @click.stop="confirmDeleteDiagnostic(client, diag)"
+                        />
                       </td>
                     </tr>
                   </tbody>
@@ -1013,12 +1007,10 @@
 <script setup>
 import { ref, reactive, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { PlusIcon, TrashIcon, PencilSquareIcon, PauseCircleIcon, PlayCircleIcon } from '@heroicons/vue/24/outline';
 import { formatDate } from '~/utils/formatDate';
 import { documentStatusLabel } from '~/utils/documentStatus';
 import { formatMoney as formatMoneyRaw } from '~/utils/formatMoney';
 import { clientFormPayload, emptyClientForm } from '~/utils/billingCode';
-import SidebarIcon from '~/components/platform/SidebarIcon.vue';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import ClientFilterPanel from '~/components/clients/ClientFilterPanel.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';

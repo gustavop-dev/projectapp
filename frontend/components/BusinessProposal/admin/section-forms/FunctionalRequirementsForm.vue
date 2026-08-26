@@ -15,9 +15,7 @@
     <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
          @click="group._collapsed = !group._collapsed">
       <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
-        <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !group._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-        </svg>
+        <BaseActionIcon :action="group._collapsed ? 'expand' : 'collapse'" />
         <span>{{ group.icon }}</span> {{ group.title }}
         <span class="text-[10px] text-text-subtle font-normal">({{ (group.items || []).length }} elementos)</span>
       </h4>
@@ -28,13 +26,7 @@
         <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
           :class="group._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
           @click="onToggleGroupPaste(group, true)">Pegar contenido</button>
-        <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-border-default dark:border-white/[0.08] bg-surface text-text-muted hover:bg-surface-raised transition-colors"
-          @click="openSubPreview(group, gIdx)">
-          <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        </button>
+        <BaseActionButton action="view" label="Previsualizar módulo" size="sm" @click="openSubPreview(group, gIdx)" />
         <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
           <input type="checkbox" v-model="group.selected" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
           <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
@@ -43,13 +35,13 @@
           :class="group.is_calculator_module ? 'bg-info-soft text-info-strong border-info-strong/30' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
           :title="group.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
           @click="group.is_calculator_module = !group.is_calculator_module">
-          {{ group.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
+          <BaseActionIcon action="calculate" /> {{ group.is_calculator_module ? 'En calc.' : 'No calc.' }}
         </button>
         <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
           :class="group.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-danger-soft text-danger-strong border-danger-strong/30'"
           :title="group.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
           @click="group.is_visible = group.is_visible === false ? true : false">
-          {{ group.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
+          <BaseActionIcon :action="group.is_visible !== false ? 'view' : 'hide'" /> {{ group.is_visible !== false ? 'Visible' : 'Oculto' }}
         </button>
         <BaseButton variant="danger-ghost" size="sm" class="ml-2" v-if="group.id !== 'views' && group.id !== 'components' && group.id !== 'features'" title="Eliminar este grupo de la propuesta" @click="form.groups.splice(gIdx, 1)">Eliminar</BaseButton>
       </div>
@@ -99,7 +91,7 @@
               </div>
             </template>
           </draggable>
-          <button type="button" class="text-xs text-text-brand font-medium" @click="group.items.push({ id: '', icon: '', name: '', description: '' })">+ Agregar elemento</button>
+          <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="group.items.push({ id: '', icon: '', name: '', description: '' })"><BaseActionIcon action="create" /> Agregar elemento</button>
         </div>
       </div>
     </div>
@@ -112,9 +104,7 @@
       <div class="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-4 py-3 bg-surface-raised cursor-pointer hover:bg-surface-raised transition-colors"
            @click="mod._collapsed = !mod._collapsed">
         <h4 class="text-sm font-semibold text-text-default flex items-center gap-2">
-          <svg class="w-4 h-4 text-text-subtle transition-transform" :class="{ 'rotate-180': !mod._collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon :action="mod._collapsed ? 'expand' : 'collapse'" />
           <span>{{ mod.icon || '🧩' }}</span> {{ mod.title || 'Módulo adicional' }}
         </h4>
         <div class="flex flex-wrap items-center gap-2" @click.stop>
@@ -124,13 +114,7 @@
           <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
             :class="mod._pasteMode ? 'bg-primary text-on-primary border-primary' : 'bg-surface text-text-muted border-border-default'"
             @click="onToggleGroupPaste(mod, true)">Pegar contenido</button>
-          <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border border-border-default dark:border-white/[0.08] bg-surface text-text-muted hover:bg-surface-raised transition-colors"
-            @click="openSubPreview(mod, mIdx, true)">
-            <svg class="w-3.5 h-3.5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
+          <BaseActionButton action="view" label="Previsualizar funcionalidad" size="sm" @click="openSubPreview(mod, mIdx, true)" />
           <label class="flex items-center gap-1 cursor-pointer" title="Si está marcado, este módulo aparecerá preseleccionado en la calculadora del cliente">
             <input type="checkbox" v-model="mod.selected" class="rounded border-input-border text-text-brand focus:ring-focus-ring/30" />
             <span class="text-[10px] text-text-muted font-medium">Seleccionado</span>
@@ -139,13 +123,13 @@
             :class="mod.is_calculator_module ? 'bg-info-soft text-info-strong border-info-strong/30' : 'bg-surface-raised text-text-subtle border-border-default dark:border-white/[0.08]'"
             :title="mod.is_calculator_module ? 'Este módulo aparece en la calculadora de inversión del cliente' : 'Este módulo NO aparece en la calculadora de inversión'"
             @click="mod.is_calculator_module = !mod.is_calculator_module">
-            {{ mod.is_calculator_module ? '🧮 En calc.' : '🧮 No calc.' }}
+            <BaseActionIcon action="calculate" /> {{ mod.is_calculator_module ? 'En calc.' : 'No calc.' }}
           </button>
           <button type="button" class="text-[10px] font-medium px-2 py-1 rounded border transition-colors"
             :class="mod.is_visible !== false ? 'bg-primary-soft text-text-brand border-emerald-300' : 'bg-danger-soft text-danger-strong border-danger-strong/30'"
             :title="mod.is_visible !== false ? 'Este módulo se muestra en la propuesta del cliente' : 'Este módulo está oculto en la propuesta del cliente'"
             @click="mod.is_visible = mod.is_visible === false ? true : false">
-            {{ mod.is_visible !== false ? '👁 Visible' : '🚫 Oculto' }}
+            <BaseActionIcon :action="mod.is_visible !== false ? 'view' : 'hide'" /> {{ mod.is_visible !== false ? 'Visible' : 'Oculto' }}
           </button>
           <BaseButton variant="danger-ghost" size="sm" class="ml-2" title="Eliminar este módulo de la propuesta" @click="form.additionalModules.splice(mIdx, 1)">Eliminar</BaseButton>
         </div>
@@ -190,15 +174,14 @@
                 </div>
               </template>
             </draggable>
-            <button type="button" class="text-xs text-text-brand font-medium" @click="mod.items.push({ id: '', icon: '', name: '', description: '' })">+ Agregar elemento</button>
+            <BaseButton variant="link" size="sm" @click="mod.items.push({ id: '', icon: '', name: '', description: '' })"><BaseActionIcon action="create" /> Agregar elemento</BaseButton>
           </div>
         </div>
       </div>
     </div>
-    <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium"
-      @click="form.additionalModules.push({ id: `module_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, icon: '🧩', title: '', description: '', is_visible: true, selected: false, is_calculator_module: false, default_selected: false, price_percent: null, is_invite: false, invite_note: '', items: [], _pasteMode: false, _pasteText: '', _collapsed: false })">
-      + Agregar módulo adicional
-    </button>
+    <BaseButton variant="link" size="sm" @click="addAdditionalModule">
+      <BaseActionIcon action="create" /> Agregar módulo adicional
+    </BaseButton>
   </div>
 </template>
 
@@ -235,6 +218,26 @@ function openSubPreview(group, idx, isAdditional = false) {
   emit('preview-sub', {
     group: { ...group, items: [...(group.items || [])] },
     subIndex: `${baseIndex}.${offset}`,
+  });
+}
+
+function addAdditionalModule() {
+  form.additionalModules.push({
+    id: `module_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    icon: '🧩',
+    title: '',
+    description: '',
+    is_visible: true,
+    selected: false,
+    is_calculator_module: false,
+    default_selected: false,
+    price_percent: null,
+    is_invite: false,
+    invite_note: '',
+    items: [],
+    _pasteMode: false,
+    _pasteText: '',
+    _collapsed: false,
   });
 }
 

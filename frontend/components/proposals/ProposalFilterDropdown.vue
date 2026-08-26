@@ -9,16 +9,14 @@
         : 'bg-surface text-text-muted border-border-default hover:border-text-muted'"
       @click="isOpen = !isOpen"
     >
-      <span v-if="icon" class="text-sm leading-none">{{ icon }}</span>
+      <BaseActionIcon action="filter" />
       {{ label }}
       <span
         v-if="modelValue.length > 0"
         class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold"
         :class="isActive ? 'bg-surface text-text-brand' : 'bg-primary text-white'"
       >{{ modelValue.length }}</span>
-      <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': isOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-      </svg>
+      <BaseActionIcon :action="isOpen ? 'collapse' : 'expand'" class="h-3 w-3 ml-0.5 opacity-60" />
     </button>
 
     <Transition name="dropdown-fade">
@@ -59,7 +57,6 @@ const props = defineProps({
   label: { type: String, required: true },
   options: { type: Array, required: true },
   modelValue: { type: Array, default: () => [] },
-  icon: { type: String, default: null },
   // Same knob its single-choice sibling already had: the panels that assert
   // "every predefined filter also exists as a control" address it by testid.
   testId: { type: String, default: null },

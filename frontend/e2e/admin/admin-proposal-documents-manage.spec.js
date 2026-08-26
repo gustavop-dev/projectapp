@@ -139,7 +139,7 @@ test.describe('Admin Proposal Documents Manage', () => {
 
     // The additional docs section should have at least one delete button (for the non-generated doc)
     const additionalSection = page.locator('section').filter({ hasText: 'Documentos adjuntos' });
-    const deleteButtons = additionalSection.locator('button').filter({ has: page.locator('svg path[d*="M19 7l"]') });
+    const deleteButtons = additionalSection.getByRole('button', { name: 'Eliminar documento' });
     await expect(deleteButtons).toHaveCount(1);
   });
 
@@ -170,7 +170,7 @@ test.describe('Admin Proposal Documents Manage', () => {
     const additionalSection = page.locator('section').filter({ hasText: 'Documentos adjuntos' });
     await expect(additionalSection.getByRole('link', { name: 'Otrosí No. 1' })).toBeVisible();
 
-    const deleteButton = additionalSection.locator('button').filter({ has: page.locator('svg path[d*="M19 7l"]') });
+    const deleteButton = additionalSection.getByRole('button', { name: 'Eliminar documento' });
     await Promise.all([
       page.waitForResponse((r) =>
         r.url().includes(`proposals/${PROPOSAL_ID}/documents/${additionalDoc.id}/delete/`) && r.status() === 204

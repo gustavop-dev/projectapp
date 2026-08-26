@@ -36,7 +36,7 @@
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ icon: '', value: '', label: '', sublabel: '', source: '' })">+ Agregar KPI</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="if (!form.kpis) form.kpis = []; form.kpis.push({ icon: '', value: '', label: '', sublabel: '', source: '' })"><BaseActionIcon action="create" /> Agregar KPI</button>
   </div>
 
   <FieldInput v-model="form.scenariosTitle" label="Título de escenarios" placeholder="Escenarios proyectados al primer año" />
@@ -61,9 +61,9 @@
           <label class="block text-[10px] text-text-subtle mb-1">Supuestos (palancas que distinguen este escenario)</label>
           <div v-for="(assumption, aIdx) in (scenario.assumptions || [])" :key="'a-' + aIdx" class="grid grid-cols-[1fr_28px] gap-2 mb-1 items-center">
             <FieldInput v-model="scenario.assumptions[aIdx]" label="" placeholder="3 de cada 100 visitas agendan" />
-            <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="scenario.assumptions.splice(aIdx, 1)">×</BaseButton>
+            <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar supuesto" size="sm" @click="scenario.assumptions.splice(aIdx, 1)" />
           </div>
-          <button type="button" class="text-[11px] text-text-brand font-medium mt-1 mb-2" @click="if (!scenario.assumptions) scenario.assumptions = []; scenario.assumptions.push('')">+ Supuesto</button>
+          <button type="button" class="mt-1 mb-2 inline-flex items-center gap-1 text-[11px] text-text-brand font-medium" @click="if (!scenario.assumptions) scenario.assumptions = []; scenario.assumptions.push('')"><BaseActionIcon action="create" /> Supuesto</button>
           <label class="block text-[10px] text-text-subtle mb-1">Métricas</label>
           <div v-for="(metric, mIdx) in (scenario.metrics || [])" :key="'m-' + mIdx" class="bg-surface rounded-lg p-2 mb-1 border border-border-muted">
             <div class="grid grid-cols-[1fr_120px_60px_28px] gap-2 items-center">
@@ -73,15 +73,15 @@
                 <input type="checkbox" v-model="metric.emphasis" class="rounded" />
                 Énfasis
               </label>
-              <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="scenario.metrics.splice(mIdx, 1)">×</BaseButton>
+              <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar métrica" size="sm" @click="scenario.metrics.splice(mIdx, 1)" />
             </div>
             <FieldInput v-model="metric.basis" label="" placeholder="Cómo se calculó — ej. ≈ 6.500 clientes × $43.000 ticket promedio" class="mt-1" />
           </div>
-          <button type="button" class="text-[11px] text-text-brand font-medium mt-1" @click="if (!scenario.metrics) scenario.metrics = []; scenario.metrics.push({ label: '', value: '', basis: '', emphasis: false })">+ Métrica</button>
+          <button type="button" class="mt-1 inline-flex items-center gap-1 text-[11px] text-text-brand font-medium" @click="if (!scenario.metrics) scenario.metrics = []; scenario.metrics.push({ label: '', value: '', basis: '', emphasis: false })"><BaseActionIcon action="create" /> Métrica</button>
         </div>
       </template>
     </draggable>
-    <button type="button" class="text-xs text-text-brand font-medium" @click="if (!form.scenarios) form.scenarios = []; form.scenarios.push({ name: '', label: '', icon: '', assumptions: [], metrics: [] })">+ Agregar escenario</button>
+    <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand font-medium" @click="if (!form.scenarios) form.scenarios = []; form.scenarios.push({ name: '', label: '', icon: '', assumptions: [], metrics: [] })"><BaseActionIcon action="create" /> Agregar escenario</button>
   </div>
 
   <FieldTextarea v-model="form.ctaNote" label="Nota de cierre" :rows="2" :isSingle="true" placeholder="En cualquier escenario, los ingresos cubren la inversión antes de…" />

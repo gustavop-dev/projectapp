@@ -22,16 +22,12 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap">
               <template v-if="ndaDoc">
-                <button type="button" aria-label="Vista previa" title="Vista previa"
+                <BaseActionButton action="view" label="Vista previa del acuerdo"
                   @click="openPdfPreview('Acuerdo de confidencialidad', ndaPdfUrl)"
-                  class="inline-flex items-center justify-center w-8 h-8 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-white/70 rounded-lg hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors">
-                  <EyeIcon class="w-4 h-4" />
-                </button>
+                  class="bg-surface-muted text-text-muted dark:bg-surface/[0.03] dark:text-white/70" />
                 <a :href="ndaPdfUrl" target="_blank"
                   class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-soft text-text-brand rounded-lg text-xs font-medium hover:bg-primary-soft transition-colors">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  <BaseActionIcon action="download" />
                   Descargar PDF
                 </a>
                 <a :href="ndaDraftPdfUrl" target="_blank"
@@ -63,19 +59,20 @@
               </div>
               <div class="flex items-center gap-2 flex-wrap">
                 <BaseButton variant="secondary" size="sm" :disabled="templateBusy[t.slug]" @click="copyTemplate(t.slug)">
+                  <BaseActionIcon action="copy" />
                   {{ templateCopied[t.slug] ? '¡Copiado!' : 'Copiar contenido' }}
                 </BaseButton>
                 <BaseButton variant="secondary" size="sm" :disabled="templateBusy[t.slug]" @click="downloadTemplate(t.slug, t.filename)">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  <BaseActionIcon action="download" />
                   Descargar .md
                 </BaseButton>
-                <button type="button" :disabled="templateBusy[t.slug]" aria-label="Vista previa"
-                  title="Vista previa" @click="openMarkdownPreview(t)"
-                  class="inline-flex items-center justify-center w-8 h-8 bg-surface-muted dark:bg-surface/[0.03] text-text-muted dark:text-green-light rounded-lg hover:bg-surface-raised dark:hover:bg-surface/[0.06] transition-colors disabled:opacity-50">
-                  <EyeIcon class="w-4 h-4" />
-                </button>
+                <BaseActionButton
+                  action="view"
+                  :label="`Vista previa de ${t.title}`"
+                  :disabled="templateBusy[t.slug]"
+                  class="bg-surface-muted text-text-muted dark:bg-surface/[0.03] dark:text-green-light"
+                  @click="openMarkdownPreview(t)"
+                />
               </div>
             </div>
           </li>
@@ -105,16 +102,19 @@
             </a>
           </div>
           <div class="flex items-center gap-1">
-            <button v-if="canPreviewFile(att.file)" type="button" aria-label="Vista previa"
-              title="Vista previa" @click="openAttachmentPreview(att)"
-              class="text-text-muted hover:text-text-brand transition-colors p-1">
-              <EyeIcon class="w-4 h-4" />
-            </button>
-            <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar" @click="handleDelete(att.id)">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </BaseButton>
+            <BaseActionButton
+              v-if="canPreviewFile(att.file)"
+              action="view"
+              :label="`Vista previa de ${att.title}`"
+              @click="openAttachmentPreview(att)"
+            />
+            <BaseActionButton
+              action="delete"
+              label="Eliminar documento"
+              variant="danger-ghost"
+              size="sm"
+              @click="handleDelete(att.id)"
+            />
           </div>
         </div>
       </div>
@@ -182,7 +182,6 @@
 
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue';
-import { EyeIcon } from '@heroicons/vue/24/outline';
 import ConfidentialityParamsModal from '~/components/WebAppDiagnostic/ConfidentialityParamsModal.vue';
 import MarkdownPreviewModal from '~/components/panel/documents/MarkdownPreviewModal.vue';
 import { useDiagnosticsStore } from '~/stores/diagnostics';

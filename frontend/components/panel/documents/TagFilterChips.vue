@@ -35,7 +35,7 @@
       class="font-medium text-text-brand hover:text-text-brand"
       @click="$emit('manage')"
     >
-      Crear la primera →
+        <BaseActionIcon action="tags" /> Crear la primera
     </button>
   </div>
 </template>

@@ -33,7 +33,7 @@
       <div>
         <div class="flex items-center justify-between mb-1">
           <span class="text-xs font-medium text-text-muted">Niveles de severidad</span>
-          <button type="button" class="text-xs text-text-brand hover:underline" @click="addLevel">+ Agregar</button>
+          <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addLevel"><BaseActionIcon action="create" /> Agregar</button>
         </div>
         <div class="space-y-2">
           <div

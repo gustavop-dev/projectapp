@@ -16,7 +16,7 @@
           data-testid="recurring-manage-categories"
           @click="showCategoriesModal = true"
         >
-          <TagIcon class="w-4 h-4" />
+          <BaseActionIcon action="tags" />
           <span>Gestionar categorías</span>
         </BaseButton>
         <BaseButton
@@ -26,7 +26,7 @@
           data-testid="recurring-new-button"
           @click="openCreateModal"
         >
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo pago recurrente</span>
         </BaseButton>
       </div>
@@ -117,7 +117,7 @@
         data-testid="recurring-charts-button"
         @click="showChartsModal = true"
       >
-        <ChartPieIcon class="w-4 h-4" />
+        <BaseActionIcon action="stats" />
         <span>Gráfico</span>
       </BaseButton>
     </div>
@@ -160,7 +160,7 @@
           Limpiar filtros
         </BaseButton>
         <BaseButton v-else variant="primary" size="sm" @click="openCreateModal">
-          <PlusIcon class="w-4 h-4" />
+          <BaseActionIcon action="create" />
           <span>Nuevo pago recurrente</span>
         </BaseButton>
       </template>
@@ -368,7 +368,6 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue';
-import { ChartPieIcon, PlusIcon, TagIcon } from '@heroicons/vue/24/outline';
 import AccountingSubnav from '~/components/accounting/AccountingSubnav.vue';
 import AccountingStatCard from '~/components/accounting/AccountingStatCard.vue';
 import AccountingTable from '~/components/accounting/AccountingTable.vue';

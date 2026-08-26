@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue'
-import { XMarkIcon, TrashIcon, PencilIcon } from '@heroicons/vue/24/outline'
 import { useDiagnosticDarkMode } from '~/composables/useDiagnosticDarkMode'
+import { PANEL_ACTIONS } from '~/config/panelActions'
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] })
 
@@ -98,10 +98,10 @@ const responsiveTableRows = [
 ]
 
 const responsiveActions = [
-  { label: 'Editar selección', onClick: () => { dropdownLog.value = 'editar selección' } },
-  { label: 'Exportar', onClick: () => { dropdownLog.value = 'exportar selección' } },
+  { action: 'edit', label: 'Editar selección', onClick: () => { dropdownLog.value = 'editar selección' } },
+  { action: 'export', label: 'Exportar', onClick: () => { dropdownLog.value = 'exportar selección' } },
   { divider: true },
-  { label: 'Archivar', danger: true, onClick: () => { dropdownLog.value = 'archivar selección' } },
+  { action: 'archive', label: 'Archivar', danger: true, onClick: () => { dropdownLog.value = 'archivar selección' } },
 ]
 
 const tokenSwatches = [
@@ -129,6 +129,11 @@ const shadowScale = [
   { cls: 'shadow-raised', role: 'Dropdowns, popovers, botones flotantes, sticky bars' },
   { cls: 'shadow-overlay', role: 'Modales y drawers' },
 ]
+
+const canonicalActionEntries = Object.entries(PANEL_ACTIONS).map(([key, definition]) => ({
+  key,
+  ...definition,
+}))
 </script>
 
 <template>
@@ -142,7 +147,8 @@ const shadowScale = [
         </p>
       </div>
       <BaseButton variant="secondary" size="sm" @click="toggle">
-        {{ isDark ? '☀️ Modo claro' : '🌙 Modo oscuro' }}
+        <BaseActionIcon :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'" />
+        {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
       </BaseButton>
     </header>
 
@@ -194,21 +200,43 @@ const shadowScale = [
         </div>
         <!-- Icon-only: square padding, aria-label is required -->
         <div class="flex flex-wrap items-center gap-3 mt-4">
-          <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar">
-            <XMarkIcon class="w-4 h-4" />
-          </BaseButton>
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar">
-            <TrashIcon class="w-4 h-4" />
-          </BaseButton>
-          <BaseButton variant="secondary" icon-only size="md" aria-label="Editar">
-            <PencilIcon class="w-4 h-4" />
-          </BaseButton>
+          <BaseActionButton action="close" size="sm" />
+          <BaseActionButton action="delete" variant="danger-ghost" size="sm" />
+          <BaseActionButton action="edit" variant="secondary" size="md" />
         </div>
         <p class="mt-4 text-xs text-text-muted">
           One variant per kind of action: <code>danger</code> for confirmed destruction
           (modal footer), <code>danger-ghost</code> for inline destruction (row trash).
           See <code>components/base/README.md</code> → Button variants.
         </p>
+      </BaseCard>
+    </section>
+
+    <!-- Canonical action catalog -->
+    <section class="space-y-4" aria-labelledby="canonical-actions-title">
+      <div>
+        <h2 id="canonical-actions-title" class="text-lg font-semibold text-text-default">
+          2a. Catálogo canónico de acciones
+        </h2>
+        <p class="mt-1 text-sm text-text-muted">
+          Un solo símbolo de Heroicons 24 Outline por acción. Cada botón expone el mismo nombre al cursor,
+          al foco y al lector de pantalla.
+        </p>
+      </div>
+      <BaseCard padding="md">
+        <ul class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" role="list">
+          <li
+            v-for="entry in canonicalActionEntries"
+            :key="entry.key"
+            class="flex min-w-0 items-center gap-3 rounded-lg border border-border-muted bg-surface-muted p-2"
+          >
+            <BaseActionButton :action="entry.key" :label="entry.label" />
+            <span class="min-w-0">
+              <span class="block truncate text-sm font-medium text-text-default">{{ entry.label }}</span>
+              <code class="block truncate text-xs text-text-muted">{{ entry.key }} · {{ entry.iconName }}</code>
+            </span>
+          </li>
+        </ul>
       </BaseCard>
     </section>
 
@@ -524,15 +552,15 @@ const shadowScale = [
       <BaseCard padding="md">
         <BaseDropdown
           :items="[
-            { label: 'Editar', onClick: () => (dropdownLog = 'editar') },
-            { label: 'Duplicar', onClick: () => (dropdownLog = 'duplicar') },
+            { action: 'edit', label: 'Editar', onClick: () => (dropdownLog = 'editar') },
+            { action: 'duplicate', label: 'Duplicar', onClick: () => (dropdownLog = 'duplicar') },
             { divider: true },
-            { label: 'Archivar', onClick: () => (dropdownLog = 'archivar') },
-            { label: 'Eliminar', danger: true, onClick: () => (dropdownLog = 'eliminar') },
+            { action: 'archive', label: 'Archivar', onClick: () => (dropdownLog = 'archivar') },
+            { action: 'delete', label: 'Eliminar', danger: true, onClick: () => (dropdownLog = 'eliminar') },
           ]"
         >
           <template #trigger>
-            <BaseButton variant="secondary" size="md">Acciones ▾</BaseButton>
+            <BaseButton variant="secondary" size="md"><BaseActionIcon action="more" /> Acciones</BaseButton>
           </template>
         </BaseDropdown>
         <p class="text-xs text-text-muted mt-3">Última acción: <code>{{ dropdownLog || '—' }}</code></p>
@@ -629,6 +657,7 @@ const shadowScale = [
     <section class="space-y-4">
       <h2 class="text-lg font-semibold text-text-default">14. BaseCollapse / BaseSkeleton</h2>
       <BaseCard padding="md">
+        <!-- panel-action-icons: allow-content-glyph — 0fr→1fr documents the demonstrated CSS transition. -->
         <button
           type="button"
           class="flex items-center gap-2 text-sm font-medium text-text-default focus:outline-none focus:ring-2 focus:ring-focus-ring/40 rounded-lg px-2 py-1"
@@ -636,9 +665,7 @@ const shadowScale = [
           aria-controls="styleguide-collapse"
           @click="collapseOpen = !collapseOpen"
         >
-          <svg class="w-4 h-4 motion-safe:transition-transform motion-safe:duration-fast" :class="collapseOpen ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+          <BaseActionIcon :action="collapseOpen ? 'collapse' : 'expand'" />
           Acordeón animado (grid 0fr→1fr, sin medir altura; se congela bajo reduced-motion)
         </button>
         <BaseCollapse id="styleguide-collapse" :open="collapseOpen">

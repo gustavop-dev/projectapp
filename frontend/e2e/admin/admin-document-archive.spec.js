@@ -112,7 +112,7 @@ function baseRoutes({ apiPath, url }) {
 async function openDocumentDeleteModal(page) {
   await page.goto('/panel/documents');
   await page.getByRole('row', { name: /Contrato de Servicios/i })
-    .locator('button[title="Acciones"]').click();
+    .getByRole('button', { name: /^Acciones de / }).click();
   await sheetAction(page, /^Eliminar/).click();
   await expect(page.getByText('Eliminar documento')).toBeVisible();
 }
@@ -142,7 +142,7 @@ test.describe('Admin Document Archive', () => {
 
     await page.goto('/panel/documents');
     await page.getByRole('row', { name: /Contrato de Servicios/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Archivar/).click();
 
     await expect(page.getByText('Documento archivado')).toBeVisible();
@@ -276,7 +276,7 @@ test.describe('Admin Document Archive', () => {
     await page.goto('/panel/documents');
     await page.getByTestId('folder-archived-entry').click();
     await page.getByRole('row', { name: /Acta de cierre/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Restaurar/).click();
 
     await expect(page.getByText('Documento restaurado')).toBeVisible();
@@ -499,7 +499,7 @@ test.describe('Admin Document Archive', () => {
     await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('1');
 
     await page.getByRole('row', { name: /Contrato de Servicios/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Archivar/).click();
 
     await expect(sidebar.getByRole('button', { name: /^Todos/ })).toContainText('0');
@@ -565,7 +565,7 @@ test.describe('Admin Document Archive', () => {
     await page.goto('/panel/documents');
     await page.getByTestId('folder-archived-entry').click();
     await page.getByRole('row', { name: /Acta de cierre/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Restaurar/).click();
 
     await expect(page.getByText('Documento restaurado')).toBeVisible();
@@ -651,7 +651,7 @@ test.describe('Admin Document Archive', () => {
 
     await page.goto('/panel/documents');
     await page.getByRole('row', { name: /Contrato de Servicios/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Archivar/).click();
 
     // exact: el toast repite casi el mismo texto en título y detalle.
@@ -711,7 +711,7 @@ test.describe('Admin Document Archive', () => {
     await page.getByRole('row', { name: /temp/i }).click();
 
     await page.getByRole('row', { name: /Corrida_Calculadora_Fase_1\.5/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Restaurar/).click();
     await expect(page.getByText('Documento restaurado')).toBeVisible();
 
@@ -787,7 +787,7 @@ test.describe('Admin Document Archive', () => {
     await expect(page.getByRole('table').getByText('Acta parcial')).toBeVisible();
 
     await page.getByRole('row', { name: /Acta parcial/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await sheetAction(page, /^Eliminar/).click();
     await page.getByTestId('confirm-type-input').fill('DELETE');
     await page.getByTestId('confirm-modal-confirm').click();
@@ -823,7 +823,7 @@ test.describe('Admin Document Archive', () => {
     await page.goto('/panel/documents');
     await page.getByTestId('folder-list').getByRole('button', { name: /^Contratos/ }).click();
     await page.getByRole('row', { name: /Brief inicial/i })
-      .locator('button[title="Acciones"]').click();
+      .getByRole('button', { name: /^Acciones de / }).click();
     await page.getByRole('button', { name: 'Mover a carpeta' }).click();
     const modal = page.locator('div.z-\\[9990\\]').filter({ hasText: 'Mover documento' });
     await modal.getByRole('button', { name: /^temp/ }).click();

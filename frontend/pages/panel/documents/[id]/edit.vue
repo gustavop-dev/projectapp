@@ -10,9 +10,7 @@
           class="inline-flex items-center gap-1 text-sm text-text-muted hover:text-text-default transition-colors"
           :aria-label="returnLabel"
         >
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
+          <BaseActionIcon action="back" />
           {{ returnLabel }}
         </NuxtLink>
         <h1
@@ -154,12 +152,10 @@
       <p>Verifica tu conexión e inténtalo de nuevo.</p>
       <div class="mt-3 flex items-center gap-4">
         <BaseButton variant="secondary" size="sm" @click="reloadDocument">Reintentar</BaseButton>
-        <NuxtLink
-          :to="returnTarget"
-          class="text-sm text-text-brand hover:underline"
-        >
-          ← {{ returnLabel }}
-        </NuxtLink>
+        <BaseButton as="NuxtLink" :to="returnTarget" variant="link" size="sm">
+          <BaseActionIcon action="back" />
+          {{ returnLabel }}
+        </BaseButton>
       </div>
     </BaseAlert>
 
@@ -251,8 +247,8 @@
                   data-testid="doc-client-note-open"
                   @click="showClientNote = true"
                 >
+                  <BaseActionIcon action="notes" />
                   <span v-if="lockedCuenta">Ver notas</span>
-                  <span v-else aria-hidden="true">{{ hasNotes ? '✏️' : '📝' }}</span>
                 </BaseButton>
               </div>
             </div>
@@ -445,33 +441,25 @@
             <span v-if="form.content_markdown" class="text-xs text-text-subtle tabular-nums">
               {{ form.content_markdown.length.toLocaleString() }} caracteres
             </span>
-            <button
+            <BaseButton
               type="button"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-              :class="copiedMarkdown
-                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
-                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+              variant="ghost"
+              size="sm"
               :disabled="!form.content_markdown.trim()"
               @click="handleCopyContent"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
+              <BaseActionIcon action="copy" />
               {{ copiedMarkdown ? 'Copiado' : 'Copiar' }}
-            </button>
-            <button
+            </BaseButton>
+            <BaseButton
               type="button"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-              :class="pastedMarkdown
-                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
-                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+              variant="ghost"
+              size="sm"
               @click="handlePasteContent"
             >
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <BaseActionIcon action="paste" />
               {{ pastedMarkdown ? 'Pegado' : 'Pegar' }}
-            </button>
+            </BaseButton>
             <BaseSegmented
               v-model="form.template_style"
               size="sm"
@@ -479,28 +467,18 @@
               aria-label="Estilo de plantilla"
             />
             <BaseButton variant="secondary" size="sm" :disabled="!form.content_markdown.trim()" @click="showFullPreview = true">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-              </svg>
+              <BaseActionIcon action="enter-fullscreen" />
               Vista completa
             </BaseButton>
-            <button
+            <BaseButton
               type="button"
-              class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg transition-colors"
-              :class="showPreview
-                ? 'bg-primary-soft text-text-brand hover:bg-primary-soft'
-                : 'bg-surface-raised text-text-muted hover:bg-surface-raised'"
+              variant="ghost"
+              size="sm"
               @click="showPreview = !showPreview"
             >
-              <svg v-if="showPreview" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg v-else class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-              </svg>
+              <BaseActionIcon :action="showPreview ? 'hide' : 'view'" />
               {{ showPreview ? 'Ocultar vista previa' : 'Vista previa' }}
-            </button>
+            </BaseButton>
           </div>
         </div>
         <div :class="showPreview ? 'grid grid-cols-1 panel-desktop:grid-cols-2 gap-4 flex-1 min-h-0' : 'flex-1 min-h-0 flex'">
@@ -1017,8 +995,8 @@ async function handleSave() {
 }
 
 const downloadItems = computed(() => [
-  { label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },
-  { label: 'Descargar PDF · Profesional', onClick: () => handleDownloadPdf('professional') },
+  { action: 'download', label: 'Descargar PDF · Amigable', onClick: () => handleDownloadPdf('friendly') },
+  { action: 'download', label: 'Descargar PDF · Profesional', onClick: () => handleDownloadPdf('professional') },
 ]);
 
 async function handleDownloadPdf(template = null) {

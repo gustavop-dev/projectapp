@@ -6,17 +6,9 @@
       @click.self="$emit('close')"
     >
       <!-- Close button -->
-      <button
-        type="button"
-        class="absolute top-4 right-4 z-[10000] w-10 h-10 flex items-center justify-center
-               rounded-full bg-surface text-text-muted hover:bg-surface-raised hover:text-text-default
-               shadow-lg transition-colors"
-        @click="$emit('close')"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
+      <div class="absolute right-4 top-4 z-[10000]">
+        <BaseActionButton action="close" label="Cerrar vista previa" @click="$emit('close')" />
+      </div>
 
       <!-- Preview panel -->
       <div class="preview-panel w-[95vw] h-[90vh] rounded-2xl overflow-hidden shadow-2xl bg-surface">

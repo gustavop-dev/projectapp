@@ -198,19 +198,20 @@ function linkedinActionItems(post) {
   const items = [];
   if (post.status !== 'published') {
     items.push(
-      { label: 'Editar', onClick: () => openEdit(post) },
+      { action: 'edit', label: 'Editar', onClick: () => openEdit(post) },
       {
+        action: 'publish',
         label: publishingId.value === post.id ? 'Publicando…' : 'Publicar ahora',
         disabled: publishingId.value === post.id,
         onClick: () => askPublish(post),
       },
     );
   } else if (post.linkedin_post_id) {
-    items.push({ label: 'Ver en LinkedIn', href: linkedinPostUrl(post) });
+    items.push({ action: 'open-external', label: 'Ver en LinkedIn', href: linkedinPostUrl(post) });
   }
   items.push(
     { divider: true },
-    { label: 'Eliminar', danger: true, onClick: () => askDelete(post) },
+    { action: 'delete', label: 'Eliminar', danger: true, onClick: () => askDelete(post) },
   );
   return items;
 }

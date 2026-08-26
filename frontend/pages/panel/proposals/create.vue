@@ -1,9 +1,10 @@
 <template>
   <div>
     <div class="mb-8">
-      <NuxtLink :to="localePath('/panel/proposals')" class="text-sm text-text-muted hover:text-text-default transition-colors">
-        ← Volver a propuestas
-      </NuxtLink>
+      <BaseButton as="NuxtLink" :to="localePath('/panel/proposals')" variant="link" size="sm">
+        <BaseActionIcon action="back" />
+        Volver a propuestas
+      </BaseButton>
       <h1 class="text-2xl font-light text-text-default mt-2">Nueva Propuesta</h1>
     </div>
 
@@ -449,7 +450,8 @@
                 data-testid="create-add-feature"
                 @click="addEmailFeature"
               >
-                + Agregar ítem
+                <BaseActionIcon action="create" />
+                Agregar ítem
               </button>
             </div>
             <p class="text-xs text-text-muted mb-2">
@@ -570,11 +572,11 @@
               <option value="en">English</option>
             </select>
             <BaseButton variant="secondary" size="md" @click="copyTemplate">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            <BaseActionIcon action="copy" />
               {{ templateCopied ? '¡Copiado!' : 'Copiar' }}
             </BaseButton>
             <BaseButton variant="secondary" size="md" :disabled="isDownloading" @click="downloadTemplate">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+            <BaseActionIcon action="download" />
               {{ isDownloading ? 'Descargando...' : 'Descargar' }}
             </BaseButton>
           </div>
@@ -612,9 +614,7 @@
             class="inline-flex items-center gap-2 px-4 py-2 border border-border-default rounded-lg text-sm
                    text-text-default hover:bg-surface-raised cursor-pointer transition-colors"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
+              <BaseActionIcon action="upload" />
             Subir archivo .json
             <input type="file" accept=".json" class="hidden" @change="handleFileUpload" />
           </label>
@@ -929,11 +929,11 @@
                 Editar
               </BaseButton>
               <BaseButton variant="secondary" size="md" @click="handleCopyCreateCommercialPrompt">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+              <BaseActionIcon action="copy" />
                 {{ createCommercialPromptCopied ? '¡Copiado!' : 'Copiar' }}
               </BaseButton>
               <BaseButton variant="secondary" size="md" @click="createCommercialPromptDownload">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <BaseActionIcon action="download" />
                 Descargar .md
               </BaseButton>
               <BaseButton variant="secondary" size="sm" v-if="createCommercialPromptText !== createCommercialPromptDefault" @click="handleResetCreateCommercialPrompt">
@@ -979,7 +979,7 @@
                 {{ createTechnicalPromptCopied ? '¡Copiado!' : 'Copiar' }}
               </BaseButton>
               <BaseButton variant="secondary" size="md" @click="createTechnicalPromptDownload">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+              <BaseActionIcon action="download" />
                 Descargar .md
               </BaseButton>
               <BaseButton variant="secondary" size="sm" v-if="createTechnicalPromptText !== createTechnicalPromptDefault" @click="handleResetCreateTechnicalPrompt">
@@ -1042,7 +1042,7 @@
               target="_blank"
               class="w-full px-5 py-2.5 bg-surface-raised text-text-default rounded-xl font-medium text-sm hover:bg-surface-raised transition-colors inline-flex items-center justify-center gap-2"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+            <BaseActionIcon action="view" />
               Ver Preview
             </a>
             <BaseButton variant="ghost" size="md" class="w-full" v-if="canSendDirectly" :disabled="proposalStore.isUpdating" @click="handleSendCreated">

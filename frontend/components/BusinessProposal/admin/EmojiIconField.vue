@@ -8,6 +8,7 @@
         class="bg-input-bg w-full px-3 py-2 border border-border-default rounded-lg text-sm focus:ring-1 focus:ring-focus-ring/30 focus:border-emerald-500 outline-none"
         @input="$emit('update:modelValue', $event.target.value)"
       />
+      <!-- panel-action-icons: allow-content-glyph — the button previews the emoji value being edited. -->
       <button
         ref="buttonRef"
         type="button"

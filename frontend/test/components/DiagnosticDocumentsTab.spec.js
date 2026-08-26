@@ -145,7 +145,7 @@ describe('DiagnosticDocumentsTab', () => {
       });
       await flushPromises();
 
-      await wrapper.find('button[aria-label="Eliminar"]').trigger('click');
+      await wrapper.find('button[aria-label="Eliminar documento"]').trigger('click');
       await flushPromises();
 
       expect(mockDiagnosticsStore.deleteAttachment).toHaveBeenCalledWith(42, 5);
@@ -272,7 +272,7 @@ describe('DiagnosticDocumentsTab', () => {
       const wrapper = mountTab();
       await flushPromises();
 
-      await wrapper.find('button[aria-label="Vista previa"][title="Vista previa"]').trigger('click');
+      await wrapper.find('button[aria-label="Vista previa de Informe"]').trigger('click');
       await flushPromises();
 
       const modal = wrapper.find('[data-testid="preview-modal"]');
@@ -287,7 +287,7 @@ describe('DiagnosticDocumentsTab', () => {
       });
       await flushPromises();
 
-      await wrapper.find('button[aria-label="Vista previa"]').trigger('click');
+      await wrapper.find('button[aria-label="Vista previa del acuerdo"]').trigger('click');
       await flushPromises();
 
       const modal = wrapper.find('[data-testid="preview-modal"]');
@@ -302,7 +302,7 @@ describe('DiagnosticDocumentsTab', () => {
       });
       await flushPromises();
 
-      await wrapper.find('button[aria-label="Vista previa"]').trigger('click');
+      await wrapper.find('button[aria-label="Vista previa de Anexo técnico"]').trigger('click');
       await flushPromises();
 
       const modal = wrapper.find('[data-testid="preview-modal"]');

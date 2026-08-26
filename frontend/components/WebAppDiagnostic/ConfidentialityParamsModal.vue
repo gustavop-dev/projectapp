@@ -96,11 +96,8 @@
           <div class="border-t border-border-muted px-6 py-4 rounded-b-2xl bg-surface">
             <div class="flex items-center justify-end gap-3">
               <BaseButton variant="ghost" size="md" @click="$emit('cancel')">Cancelar</BaseButton>
-              <BaseButton variant="primary" size="md" :disabled="saving" @click="handleSave">
-                <svg v-if="saving" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+              <BaseButton variant="primary" size="md" :loading="saving" @click="handleSave">
+                <BaseActionIcon v-if="!saving" action="generate" />
                 {{ saving ? 'Generando…' : 'Guardar y generar PDF' }}
               </BaseButton>
             </div>

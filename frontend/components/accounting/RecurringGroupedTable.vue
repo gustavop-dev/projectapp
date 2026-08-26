@@ -40,10 +40,10 @@
             @click="emit('toggle-weight-sort')"
           >
             <span>{{ col.label }}</span>
-            <ChevronUpIcon v-if="weightSort === 'asc'" class="w-3 h-3" />
-            <ChevronDownIcon v-else-if="weightSort === 'desc'" class="w-3 h-3" />
+            <BaseActionIcon v-if="weightSort === 'asc'" action="sort-ascending" class="h-3 w-3" />
+            <BaseActionIcon v-else-if="weightSort === 'desc'" action="sort-descending" class="h-3 w-3" />
             <span v-else aria-hidden="true">
-              <ChevronUpDownIcon class="w-3 h-3 text-text-subtle" />
+              <BaseActionIcon action="sort" class="h-3 w-3 text-text-subtle" />
             </span>
           </button>
           <template v-else>{{ col.label }}</template>
@@ -84,9 +84,9 @@
               :data-testid="`recurring-group-toggle-${group.id}`"
               @click="emit('toggle-group', group.id)"
             >
-              <ChevronDownIcon
+              <BaseActionIcon
+                :action="isCollapsed(group.id) ? 'expand' : 'collapse'"
                 class="w-4 h-4 flex-shrink-0 text-text-subtle transition-transform"
-                :class="isCollapsed(group.id) ? '-rotate-90' : ''"
               />
               <span class="truncate">{{ group.name }}</span>
               <span class="text-xs text-text-subtle font-normal">({{ group.rows.length }})</span>
@@ -225,26 +225,22 @@
                   </div>
                 </span>
                 <span role="cell" :class="[DENSITY.cell, 'text-center whitespace-nowrap']">
-                  <BaseButton
+                  <BaseActionButton
+                    action="edit"
                     variant="ghost"
-                    icon-only
                     size="sm"
-                    aria-label="Editar"
+                    label="Editar pago recurrente"
                     :data-testid="`accounting-edit-${row.id}`"
                     @click.stop="emit('edit', row)"
-                  >
-                    <PencilSquareIcon class="w-4 h-4" />
-                  </BaseButton>
-                  <BaseButton
+                  />
+                  <BaseActionButton
+                    action="delete"
                     variant="danger-ghost"
-                    icon-only
                     size="sm"
-                    aria-label="Eliminar"
+                    label="Eliminar pago recurrente"
                     :data-testid="`accounting-delete-${row.id}`"
                     @click.stop="emit('delete', row)"
-                  >
-                    <TrashIcon class="w-4 h-4" />
-                  </BaseButton>
+                  />
                 </span>
               </div>
             </template>
@@ -278,13 +274,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
 import draggable from 'vuedraggable';
-import {
-  ChevronDownIcon,
-  ChevronUpDownIcon,
-  ChevronUpIcon,
-  PencilSquareIcon,
-  TrashIcon,
-} from '@heroicons/vue/24/outline';
 import HighlightText from '~/components/ui/HighlightText.vue';
 import { formatMoney } from '~/utils/formatMoney';
 import { formatPercent } from '~/utils/percent';

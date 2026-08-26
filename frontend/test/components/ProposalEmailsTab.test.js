@@ -143,7 +143,7 @@ describe('ProposalEmailsTab', () => {
     await wrapper.findAll('button').find((button) => button.text().includes('Agregar sección')).trigger('click');
     expect(wrapper.text()).toContain('Sección 2');
 
-    await wrapper.findAll('button').find((button) => button.html().includes('M19 7l-.867')).trigger('click');
+    await wrapper.find('button[aria-label="Eliminar"]').trigger('click');
     expect(wrapper.text()).not.toContain('Sección 2');
   });
 
@@ -212,7 +212,7 @@ describe('ProposalEmailsTab', () => {
     await fileInput.trigger('change');
     expect(wrapper.text()).toContain('brief.pdf');
 
-    await wrapper.findAll('button').find((button) => button.html().includes('M6 18L18 6')).trigger('click');
+    await wrapper.find('button[aria-label="Eliminar"]').trigger('click');
     expect(wrapper.text()).not.toContain('brief.pdf');
   });
 

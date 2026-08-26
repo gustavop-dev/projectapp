@@ -2,6 +2,8 @@
 
 ## Current State
 
+**2026-08-25 — iconos de acción del panel unificados:** las 51 páginas bajo `/panel` y sus componentes alcanzables resuelven 84 acciones desde un catálogo Heroicons 24 Outline. Copiar y duplicar, editar y renombrar, cerrar/quitar/eliminar y las flechas de descarga/expansión ya tienen símbolos distintos y estables; el módulo concurrente de Comunicaciones adoptó el catálogo al integrarse. `BaseActionButton` aporta tooltip en hover/foco, nombre accesible y el target táctil compartido de 44 px; el feedback de copiado se anuncia sin cambiar de glifo. El styleguide muestra el inventario completo y un guard de CI revisa 273 archivos contra SVG/emoji locales, Heroicons directos, claves desconocidas y controles icon-only sin etiqueta. El flow-map quedó fresco; auditoría: 261 covered, 39 partial, 0 junk-only, 0 missing y 34 exempt, sin cambio de rutas ni outcomes.
+
 **2026-08-25 — Registro de comunicaciones con clientes, fase 1:** la decisión
 de producto es un módulo Comunicaciones propio que reutiliza el Django app
 `content`, clientes, proyectos, Documentos y primitivas del panel sin deformar

@@ -95,7 +95,7 @@ test.describe('Admin Blog Calendar', () => {
     calendarRequestCount = 0;
 
     // Navigate to next week
-    await page.locator('svg path[d="M9 5l7 7-7 7"]').locator('..').click();
+    await page.getByRole('button', { name: 'Semana siguiente' }).click();
 
     expect(calendarRequestCount).toBeGreaterThanOrEqual(1);
 

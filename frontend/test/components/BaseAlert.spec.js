@@ -34,12 +34,12 @@ describe('BaseAlert', () => {
 
   it('does not render dismiss button by default', () => {
     const wrapper = mount(BaseAlert, { slots: { default: 'x' } })
-    expect(wrapper.find('button[aria-label="Cerrar"]').exists()).toBe(false)
+    expect(wrapper.find('button[aria-label="Cerrar alerta"]').exists()).toBe(false)
   })
 
   it('emits dismiss when the close button is clicked', async () => {
     const wrapper = mount(BaseAlert, { props: { dismissible: true }, slots: { default: 'x' } })
-    await wrapper.find('button[aria-label="Cerrar"]').trigger('click')
+    await wrapper.find('button[aria-label="Cerrar alerta"]').trigger('click')
     expect(wrapper.emitted('dismiss')).toBeTruthy()
   })
 

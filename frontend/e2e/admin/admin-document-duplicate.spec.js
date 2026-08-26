@@ -29,7 +29,7 @@ function baseRoutes(apiPath, documents) {
 
 async function openActionsAndDuplicate(page) {
   await page.goto('/panel/documents');
-  await page.getByRole('row', { name: /Contrato de Servicios/i }).locator('button[title="Acciones"]').click();
+  await page.getByRole('row', { name: /Contrato de Servicios/i }).getByRole('button', { name: /^Acciones de / }).click();
   await page.getByRole('button', { name: /Duplicar/i }).click();
 }
 

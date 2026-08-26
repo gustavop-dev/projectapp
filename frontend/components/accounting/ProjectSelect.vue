@@ -32,10 +32,11 @@
           type="button"
           class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-subtle hover:text-text-default transition-colors"
           aria-label="Quitar proyecto"
+          title="Quitar proyecto"
           :data-testid="`${testid}-clear`"
           @click="clearSelection"
         >
-          <XMarkIcon class="w-4 h-4" />
+          <BaseActionIcon action="clear" />
         </button>
       </div>
 
@@ -143,7 +144,7 @@
             :data-testid="`${testid}-create-new`"
             @click="openInlineCreate"
           >
-            <PlusIcon class="w-4 h-4" />
+            <BaseActionIcon action="create" />
             <span>{{ term ? `Crear proyecto "${term}"` : 'Crear un proyecto nuevo' }}</span>
           </button>
         </div>
@@ -157,8 +158,6 @@ import { computed, ref, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 import {
   MagnifyingGlassIcon,
-  PlusIcon,
-  XMarkIcon,
 } from '@heroicons/vue/24/outline';
 import { useAccountingStore } from '~/stores/accounting';
 import { normalizeName } from '~/utils/clientMatch';

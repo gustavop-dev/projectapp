@@ -14,20 +14,7 @@
           :disabled="refreshing"
           @click="handleRefresh"
         >
-          <svg
-            class="w-3.5 h-3.5"
-            :class="{ 'animate-spin': refreshing }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
+          <BaseActionIcon action="refresh" :class="{ 'animate-spin': refreshing }" />
           Actualizar
         </BaseButton>
         <BaseButton
@@ -36,7 +23,7 @@
           :disabled="!markdown"
           @click="handleCopy"
         >
-          <DocumentDuplicateIcon class="w-3.5 h-3.5" />
+          <BaseActionIcon action="copy" />
           {{ copied ? '¡Copiado!' : 'Copiar' }}
         </BaseButton>
         <BaseButton
@@ -45,7 +32,7 @@
           :disabled="!markdown"
           @click="handleDownload"
         >
-          <ArrowDownTrayIcon class="w-3.5 h-3.5" />
+          <BaseActionIcon action="download" />
           Descargar
         </BaseButton>
       </div>
@@ -64,7 +51,6 @@
 
 <script setup>
 import { ref, toRef } from 'vue';
-import { DocumentDuplicateIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/outline';
 import { useDevChecklistMarkdown } from '~/composables/useDevChecklistMarkdown';
 
 const props = defineProps({

@@ -112,14 +112,13 @@
               : 'bg-surface text-text-muted border-border-default hover:border-focus-ring/40'"
             @click="engagementOpen = !engagementOpen"
           >
-            🔬 Engagement
+            <BaseActionIcon action="filter" />
+            Engagement
             <span
               v-if="modelValue.technicalViewed"
               class="inline-flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold bg-surface text-teal-600"
             >1</span>
-            <svg class="w-3 h-3 ml-0.5 opacity-60" :class="{ 'rotate-180': engagementOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
-            </svg>
+            <BaseActionIcon :action="engagementOpen ? 'collapse' : 'expand'" class="h-3 w-3 ml-0.5 opacity-60" />
           </button>
           <Transition name="dropdown-fade">
             <div
@@ -154,7 +153,14 @@
         class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-primary-soft text-text-brand"
       >
         {{ chip.label }}
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Quitar" :data-testid="`filter-chip-clear-${chip.key}`" @click="clearChip(chip.key)">&times;</BaseButton>
+        <BaseActionButton
+          action="remove"
+          :label="`Quitar filtro ${chip.label}`"
+          variant="danger-ghost"
+          size="sm"
+          :data-testid="`filter-chip-clear-${chip.key}`"
+          @click="clearChip(chip.key)"
+        />
       </span>
     </div>
   </div>

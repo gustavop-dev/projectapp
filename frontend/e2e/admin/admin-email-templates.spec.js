@@ -195,8 +195,8 @@ test.describe('Admin Email Templates Config', () => {
     // Active toggle renders
     await expect(page.getByText('Estado del email')).toBeVisible();
 
-    // Action buttons render (use exact emoji text to avoid matching row preview icons)
-    await expect(page.getByRole('button', { name: '👁 Vista previa' })).toBeVisible();
+    // Action buttons render with their accessible canonical action names.
+    await expect(page.getByRole('button', { name: 'Vista previa' })).toBeVisible();
     await expect(page.getByRole('button', { name: /Restaurar/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /Guardar Cambios/ })).toBeVisible();
   });
@@ -217,7 +217,7 @@ test.describe('Admin Email Templates Config', () => {
     // Click preview button and wait for preview API response
     const [previewResponse] = await Promise.all([
       page.waitForResponse(resp => resp.url().includes('email-templates/proposal_sent_client/preview/') && resp.status() === 200),
-      page.getByRole('button', { name: '👁 Vista previa' }).click(),
+      page.getByRole('button', { name: 'Vista previa' }).click(),
     ]);
     await previewResponse;
 

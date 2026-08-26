@@ -24,11 +24,7 @@
           <span class="text-xl font-bold tracking-tight text-text-default">
             Project<span class="text-text-brand">App.</span>
           </span>
-          <BaseButton variant="ghost" size="md" icon-only aria-label="Cerrar menú" @click="$emit('close')">
-            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </BaseButton>
+          <BaseActionButton action="close" label="Cerrar menú" size="md" @click="$emit('close')" />
         </div>
 
         <nav class="flex-1 overflow-y-auto px-3 py-4">
@@ -74,17 +70,12 @@
           </div>
 
           <BaseButton variant="secondary" size="md" class="w-full" :disabled="isBridging" @click="goToPlatform('/platform/dashboard')">
-            <SidebarIcon name="external" class="h-4 w-4 shrink-0" />
+            <BaseActionIcon action="open-platform" />
             {{ isBridging ? 'Abriendo...' : 'Plataforma' }}
           </BaseButton>
 
           <BaseButton variant="secondary" size="md" class="mt-2 w-full" @click="$emit('close'); $emit('toggle-theme')">
-            <svg v-if="isDark" class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <svg v-else class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-            </svg>
+            <BaseActionIcon :action="isDark ? 'enable-light-theme' : 'enable-dark-theme'" />
             {{ isDark ? 'Modo claro' : 'Modo oscuro' }}
           </BaseButton>
         </div>
@@ -99,7 +90,6 @@ import { getPanelNavSections } from '~/config/panelNav'
 import { isPanelNavItemActive } from '~/utils/panelNavActive'
 import { usePanelToPlatformBridge } from '~/composables/usePanelToPlatformBridge'
 import { useProposalStore } from '~/stores/proposals'
-import SidebarIcon from '~/components/platform/SidebarIcon.vue'
 import SidebarItem from '~/components/platform/SidebarItem.vue'
 import { useFocusTrap } from '~/composables/useFocusTrap'
 

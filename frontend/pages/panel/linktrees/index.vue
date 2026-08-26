@@ -33,9 +33,7 @@
       <template #cell-public_url="{ row: tree }">
         <div class="flex min-w-0 items-center gap-2">
           <code class="min-w-0 break-all rounded bg-surface-muted px-2 py-1 text-xs">{{ publicLinkFor(tree) }}</code>
-          <BaseButton variant="ghost" size="sm" icon-only aria-label="Copiar link" @click="copyLink(tree)">
-            <ClipboardIcon class="h-4 w-4" />
-          </BaseButton>
+          <BaseActionButton action="copy" label="Copiar link" size="sm" @click="copyLink(tree)" />
         </div>
       </template>
 
@@ -121,7 +119,6 @@
 
 <script setup>
 import { onMounted, reactive } from 'vue';
-import { ClipboardIcon } from '@heroicons/vue/24/outline';
 import BaseButton from '~/components/base/BaseButton.vue';
 import BaseActionMenu from '~/components/base/BaseActionMenu.vue';
 import BaseModal from '~/components/base/BaseModal.vue';
@@ -158,12 +155,14 @@ const linktreeColumns = [
 function linktreeActionItems(tree) {
   return [
     {
+      action: 'edit',
       label: 'Editar',
       to: lp(`/panel/linktrees/${tree.id}/edit`),
       testid: `linktree-edit-${tree.id}`,
     },
     { divider: true },
     {
+      action: 'delete',
       label: 'Eliminar',
       danger: true,
       testid: `linktree-delete-${tree.id}`,

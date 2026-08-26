@@ -90,7 +90,7 @@ test.describe('Admin Document Create', () => {
     await page.goto('/panel/documents/create');
 
     const noteButton = page.getByTestId('doc-client-note-open');
-    await expect(noteButton).toHaveText('📝');
+    await expect(noteButton).toHaveAttribute('data-panel-action', 'notes');
     await expect(noteButton).toHaveAccessibleName('Agregar notas');
     await noteButton.click();
     await page.getByTestId('client-note-subject').fill('Caso resuelto');
@@ -103,7 +103,6 @@ test.describe('Admin Document Create', () => {
     expect(postBody).toBeNull();
     await expect(page.getByText('Notas aplicadas al borrador', { exact: true })).toBeVisible();
     await expect(page.getByText('Todavía falta crear el documento para guardarlas.')).toBeVisible();
-    await expect(noteButton).toHaveText('✏️');
     await expect(noteButton).toHaveAccessibleName('Editar notas');
 
     // Opening the modal proves Nuxt hydration completed before we edit the

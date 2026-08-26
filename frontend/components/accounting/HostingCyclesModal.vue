@@ -94,9 +94,13 @@
                   {{ formatMoney(cycle.amount, 'COP') }}
                 </td>
                 <td class="px-3 py-2 text-right">
-                  <BaseButton variant="danger-ghost" size="sm" aria-label="Eliminar ciclo" @click="askDelete(cycle)">
-                    <TrashIcon class="w-4 h-4" />
-                  </BaseButton>
+                  <BaseActionButton
+                    action="delete"
+                    label="Eliminar ciclo"
+                    variant="danger-ghost"
+                    size="sm"
+                    @click="askDelete(cycle)"
+                  />
                 </td>
               </tr>
             </tbody>
@@ -124,7 +128,6 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
-import { TrashIcon } from '@heroicons/vue/24/outline';
 import ConfirmModal from '~/components/ConfirmModal.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
 import { useAccountingStore } from '~/stores/accounting';

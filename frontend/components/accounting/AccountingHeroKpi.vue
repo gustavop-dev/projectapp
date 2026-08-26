@@ -34,7 +34,7 @@
           aria-label="Ver estadísticas de utilidad"
           @click="emit('open-stats')"
         >
-          <ChartBarIcon class="w-4 h-4" aria-hidden="true" />
+          <BaseActionIcon action="stats" />
           <span class="hidden sm:inline">Estadísticas</span>
         </BaseButton>
       </div>
@@ -81,7 +81,6 @@
 
 <script setup>
 import { computed, toRef } from 'vue';
-import { ChartBarIcon } from '@heroicons/vue/24/outline';
 import AccountingHeroUtilityChart from '~/components/accounting/charts/AccountingHeroUtilityChart.vue';
 import BaseButton from '~/components/base/BaseButton.vue';
 import { useAnimatedNumber } from '~/composables/useAnimatedNumber';

@@ -1,6 +1,4 @@
 <script setup>
-import { ArrowPathIcon, EllipsisVerticalIcon } from '@heroicons/vue/24/outline';
-import BaseButton from '~/components/base/BaseButton.vue';
 
 /**
  * The kebab that opens an income's action menu.
@@ -23,18 +21,16 @@ const emit = defineEmits(['open']);
 
 <template>
   <div class="flex items-center justify-end">
-    <BaseButton
+    <BaseActionButton
+      action="more"
       variant="ghost"
-      icon-only
       size="sm"
-      :aria-label="busy ? 'Preparando duplicado' : 'Acciones'"
-      :title="busy ? 'Preparando duplicado' : 'Acciones'"
+      :label="`Acciones de ${row.concept || `ingreso ${row.id}`}`"
+      :status-label="busy ? 'Preparando duplicado' : ''"
+      :loading="busy"
       :disabled="busy"
       :data-testid="`income-actions-${row.id}`"
       @click.stop="emit('open', row)"
-    >
-      <ArrowPathIcon v-if="busy" class="w-5 h-5 animate-spin" />
-      <EllipsisVerticalIcon v-else class="w-5 h-5" />
-    </BaseButton>
+    />
   </div>
 </template>

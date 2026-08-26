@@ -1,5 +1,7 @@
 import { config } from '@vue/test-utils';
 import BaseButton from '../components/base/BaseButton.vue';
+import BaseActionButton from '../components/base/BaseActionButton.vue';
+import BaseActionIcon from '../components/base/BaseActionIcon.vue';
 import BaseFormRow from '../components/base/BaseFormRow.vue';
 import BaseMobileTabSelect from '../components/base/BaseMobileTabSelect.vue';
 
@@ -21,6 +23,8 @@ if (typeof globalThis.structuredClone === 'undefined') {
 // drive a tab strip through `get('select')` would fail to find it.
 config.global.components = {
   ...config.global.components,
+  BaseActionButton,
+  BaseActionIcon,
   BaseButton,
   BaseFormRow,
   BaseMobileTabSelect,

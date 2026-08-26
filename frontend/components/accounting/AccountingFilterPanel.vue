@@ -106,9 +106,10 @@
             size="sm"
             class="-my-1 -mr-1"
             :aria-label="`Quitar filtro ${chip.label} ${value.label}`.trim()"
+            :title="`Quitar filtro ${chip.label} ${value.label}`.trim()"
             :data-testid="`accounting-filter-chip-remove-${chip.id}-${value.token}`"
             @click="value.clear()"
-          ><XMarkIcon class="w-3 h-3" /></BaseButton></span>
+          ><BaseActionIcon action="remove" class="h-3 w-3" /></BaseButton></span>
         </span>
 
         <span v-if="appliedChips.length === 0 && resultsCount !== null" class="text-xs text-text-subtle">
@@ -125,7 +126,6 @@
 
 <script setup>
 import { computed } from 'vue';
-import { XMarkIcon } from '@heroicons/vue/24/outline';
 import ProposalFilterDropdown from '~/components/proposals/ProposalFilterDropdown.vue';
 import ProposalFilterRangeDropdown from '~/components/proposals/ProposalFilterRangeDropdown.vue';
 import BaseInput from '~/components/base/BaseInput.vue';

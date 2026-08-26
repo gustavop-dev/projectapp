@@ -183,9 +183,9 @@ describe('TaskFormModal', () => {
       expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
     });
 
-    it('emits update:modelValue with false when the X header button is clicked', async () => {
+    it('emits update:modelValue with false when the accessible close action is clicked', async () => {
       const wrapper = mountModal();
-      await wrapper.findAll('button').find((btn) => btn.text() === '✕').trigger('click');
+      await wrapper.get('button[aria-label="Cerrar formulario de tarea"]').trigger('click');
 
       expect(wrapper.emitted('update:modelValue')[0]).toEqual([false]);
     });
@@ -314,7 +314,7 @@ describe('TaskFormModal', () => {
       const wrapper = mountModal({ task: baseTask });
       const dateInputs = wrapper.findAll('input[type="date"]');
       await dateInputs[1].setValue('2026-06-01');
-      const addButtons = wrapper.findAll('button').filter((btn) => btn.text().trim() === '+ Agregar');
+      const addButtons = wrapper.findAll('button').filter((btn) => btn.text().trim() === 'Agregar');
       await addButtons[0].trigger('click');
       await flushPromises();
 

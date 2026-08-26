@@ -70,7 +70,7 @@
         @click="toggleSection('purpose')"
       >
         <span class="text-sm font-semibold text-text-default">Propósito</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.purpose }} <span aria-hidden="true">{{ openSections.has('purpose') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.purpose }} <BaseActionIcon :action="openSections.has('purpose') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('purpose')">
       <textarea
@@ -93,18 +93,18 @@
         @click="toggleSection('stack')"
       >
         <span class="text-sm font-semibold text-text-default">Stack tecnológico</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.stack }} <span aria-hidden="true">{{ openSections.has('stack') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.stack }} <BaseActionIcon :action="openSections.has('stack') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('stack')">
       <div class="flex justify-end">
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addStackRow">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addStackRow"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.stack" :key="'st-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
         <input v-model="row.layer" placeholder="Capa" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <input v-model="row.technology" placeholder="Tecnología" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.rationale" placeholder="Justificación técnica" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.stack.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar fila" size="sm" class="shrink-0" @click="doc.stack.splice(i, 1)" />
         </div>
       </div>
       </template>
@@ -120,20 +120,20 @@
         @click="toggleSection('architecture')"
       >
         <span class="text-sm font-semibold text-text-default">Arquitectura</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.architecture }} <span aria-hidden="true">{{ openSections.has('architecture') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.architecture }} <BaseActionIcon :action="openSections.has('architecture') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('architecture')">
       <textarea v-model="doc.architecture.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen de capas y comunicación..." />
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Patrones por componente</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addPatternRow">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addPatternRow"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.architecture.patterns" :key="'pat-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
         <input v-model="row.component" placeholder="Componente" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <input v-model="row.pattern" placeholder="Patrón" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.architecture.patterns.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar fila" size="sm" @click="doc.architecture.patterns.splice(i, 1)" />
         </div>
       </div>
       <p class="text-xs text-text-muted">Diagramas / anexo (opcional)</p>
@@ -156,7 +156,7 @@
         @click="toggleSection('data-model')"
       >
         <span class="text-sm font-semibold text-text-default">Modelo de datos</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts['data-model'] }} <span aria-hidden="true">{{ openSections.has('data-model') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts['data-model'] }} <BaseActionIcon :action="openSections.has('data-model') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('data-model')">
       <textarea v-model="doc.dataModel.summary" v-auto-resize class="w-full px-3 py-2 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-xl text-sm" placeholder="Resumen..." />
@@ -168,14 +168,14 @@
         placeholder="Ej. Usuario tiene muchos Pedidos..."
       />
       <div class="flex justify-end">
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addEntityRow">+ Entidad</button>
+        <BaseButton variant="link" size="sm" @click="addEntityRow"><BaseActionIcon action="create" /> Entidad</BaseButton>
       </div>
       <div v-for="(row, i) in doc.dataModel.entities" :key="'ent-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
         <input v-model="row.name" placeholder="Entidad" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <input v-model="row.description" placeholder="Descripción" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.keyFields" placeholder="Campos clave (texto libre)" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.dataModel.entities.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar entidad" size="sm" @click="doc.dataModel.entities.splice(i, 1)" />
         </div>
       </div>
       </template>
@@ -191,7 +191,7 @@
         @click="toggleSection('growth')"
       >
         <span class="text-sm font-semibold text-text-default">Preparación para el crecimiento</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.growth }} <span aria-hidden="true">{{ openSections.has('growth') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.growth }} <BaseActionIcon :action="openSections.has('growth') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('growth')">
       <p class="text-xs text-text-muted">
@@ -205,7 +205,7 @@
       />
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Estrategias por dimensión (tabla)</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addGrowthStrategyRow">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addGrowthStrategyRow"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div
         v-for="(row, i) in doc.growthReadiness.strategies"
@@ -216,7 +216,7 @@
         <input v-model="row.preparation" placeholder="Preparación actual" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.evolution" placeholder="Evolución ante crecimiento" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <BaseButton variant="danger-ghost" icon-only size="sm" class="shrink-0" aria-label="Eliminar fila" @click="doc.growthReadiness.strategies.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar estrategia" size="sm" class="shrink-0" @click="doc.growthReadiness.strategies.splice(i, 1)" />
         </div>
       </div>
       </template>
@@ -232,11 +232,14 @@
         @click="toggleSection('epics')"
       >
         <span class="text-sm font-semibold text-text-default">Módulos del producto</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.epics }} <span aria-hidden="true">{{ openSections.has('epics') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.epics }} <BaseActionIcon :action="openSections.has('epics') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('epics')">
       <div class="flex justify-end">
-        <BaseButton variant="primary" size="sm" @click="addEpic">+ Módulo</BaseButton>
+        <BaseButton variant="primary" size="sm" @click="addEpic">
+          <BaseActionIcon action="create" />
+          Módulo
+        </BaseButton>
       </div>
       <div
         v-for="(epic, ei) in doc.epics"
@@ -272,7 +275,7 @@
         <div class="pl-3 border-l-2 border-emerald-200 space-y-2">
           <div class="flex justify-between items-center">
             <span class="text-xs font-medium text-text-muted/60">Requerimientos</span>
-            <button type="button" class="text-xs text-text-brand" @click="addRequirement(epic)">+ Requerimiento</button>
+            <BaseButton variant="link" size="sm" @click="addRequirement(epic)"><BaseActionIcon action="create" /> Requerimiento</BaseButton>
           </div>
           <div
             v-for="(req, ri) in epic.requirements"
@@ -316,7 +319,7 @@
         @click="toggleSection('api')"
       >
         <span class="text-sm font-semibold text-text-default">API y endpoints (resumen)</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.api }} <span aria-hidden="true">{{ openSections.has('api') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.api }} <BaseActionIcon :action="openSections.has('api') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('api')">
       <textarea
@@ -327,13 +330,13 @@
       />
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Por dominio / módulo</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addApiDomain">+ Dominio</button>
+        <BaseButton variant="link" size="sm" @click="addApiDomain"><BaseActionIcon action="create" /> Dominio</BaseButton>
       </div>
       <div v-for="(row, i) in doc.apiDomains" :key="'api-' + i" class="grid grid-cols-1 md:grid-cols-2 gap-2 p-3 bg-surface-raised rounded-xl border border-border-muted">
         <input v-model="row.domain" placeholder="Dominio o área" class="px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
         <div class="flex gap-2">
           <input v-model="row.summary" placeholder="Resumen de endpoints / contratos" class="flex-1 px-2 py-1.5 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded-lg text-sm">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.apiDomains.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar dominio" size="sm" @click="doc.apiDomains.splice(i, 1)" />
         </div>
       </div>
       </template>
@@ -349,11 +352,11 @@
         @click="toggleSection('integrations')"
       >
         <span class="text-sm font-semibold text-text-default">Integraciones</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.integrations }} <span aria-hidden="true">{{ openSections.has('integrations') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.integrations }} <BaseActionIcon :action="openSections.has('integrations') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('integrations')">
       <h3 class="text-sm font-semibold text-text-default">Integraciones incluidas</h3>
-      <button type="button" class="text-xs text-text-brand mb-2" @click="addIncluded">+ Fila</button>
+      <BaseButton variant="link" size="sm" @click="addIncluded"><BaseActionIcon action="create" /> Fila</BaseButton>
       <div v-for="(row, i) in doc.integrations.included" :key="'inc-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
         <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <input v-model="row.provider" placeholder="Proveedor" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
@@ -361,17 +364,17 @@
         <input v-model="row.dataExchange" placeholder="Datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.accountOwner" placeholder="Responsable cuenta" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.integrations.included.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar integración" size="sm" @click="doc.integrations.included.splice(i, 1)" />
         </div>
       </div>
       <h3 class="text-sm font-semibold text-text-default pt-2">No incluidas</h3>
-      <button type="button" class="text-xs text-text-brand mb-2" @click="addExcluded">+ Fila</button>
+      <BaseButton variant="link" size="sm" @click="addExcluded"><BaseActionIcon action="create" /> Fila</BaseButton>
       <div v-for="(row, i) in doc.integrations.excluded" :key="'exc-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
         <input v-model="row.service" placeholder="Servicio" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <input v-model="row.reason" placeholder="Motivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.availability" placeholder="Disponibilidad futura" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.integrations.excluded.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar exclusión" size="sm" @click="doc.integrations.excluded.splice(i, 1)" />
         </div>
       </div>
       <p class="text-xs text-text-muted pt-2">Notas técnicas (viñetas, una por línea)</p>
@@ -394,7 +397,7 @@
         @click="toggleSection('environments')"
       >
         <span class="text-sm font-semibold text-text-default">Ambientes (opcional)</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.environments }} <span aria-hidden="true">{{ openSections.has('environments') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.environments }} <BaseActionIcon :action="openSections.has('environments') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('environments')">
       <textarea
@@ -405,7 +408,7 @@
       />
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Tabla por ambiente</span>
-        <button type="button" class="text-xs text-text-brand hover:underline" @click="addEnvironmentRow">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addEnvironmentRow"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.environments" :key="'env-' + i" class="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
         <input v-model="row.name" placeholder="Nombre" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
@@ -414,7 +417,7 @@
         <input v-model="row.database" placeholder="Base de datos" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.whoAccesses" placeholder="Quién accede" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.environments.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar ambiente" size="sm" @click="doc.environments.splice(i, 1)" />
         </div>
       </div>
       </template>
@@ -430,16 +433,16 @@
         @click="toggleSection('security')"
       >
         <span class="text-sm font-semibold text-text-default">Seguridad técnica</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.security }} <span aria-hidden="true">{{ openSections.has('security') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.security }} <BaseActionIcon :action="openSections.has('security') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('security')">
       <div class="flex justify-end">
-        <button type="button" class="text-xs text-text-brand" @click="addSecurityRow">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addSecurityRow"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.security" :key="'sec-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
         <input v-model="row.aspect" placeholder="Aspecto" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <input v-model="row.implementation" placeholder="Implementación" class="flex-[2] px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.security.splice(i, 1)">✕</BaseButton>
+        <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar control" size="sm" @click="doc.security.splice(i, 1)" />
       </div>
       </template>
     </section>
@@ -454,25 +457,25 @@
         @click="toggleSection('performance')"
       >
         <span class="text-sm font-semibold text-text-default">Rendimiento y calidad</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.performance }} <span aria-hidden="true">{{ openSections.has('performance') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.performance }} <BaseActionIcon :action="openSections.has('performance') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('performance')">
       <p class="text-xs text-text-muted">Métricas</p>
-      <button type="button" class="text-xs text-text-brand" @click="addMetric">+ Métrica</button>
+      <BaseButton variant="link" size="sm" @click="addMetric"><BaseActionIcon action="create" /> Métrica</BaseButton>
       <div v-for="(row, i) in doc.performanceQuality.metrics" :key="'met-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
         <input v-model="row.metric" placeholder="Métrica" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <input v-model="row.target" placeholder="Objetivo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.howMeasured" placeholder="Cómo se mide" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.performanceQuality.metrics.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar métrica" size="sm" @click="doc.performanceQuality.metrics.splice(i, 1)" />
         </div>
       </div>
       <p class="text-xs text-text-muted">Prácticas</p>
-      <button type="button" class="text-xs text-text-brand" @click="addPractice">+ Práctica</button>
+      <BaseButton variant="link" size="sm" @click="addPractice"><BaseActionIcon action="create" /> Práctica</BaseButton>
       <div v-for="(row, i) in doc.performanceQuality.practices" :key="'prac-' + i" class="flex gap-2 p-2 bg-surface-raised rounded-lg">
         <input v-model="row.strategy" placeholder="Estrategia" class="w-1/3 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
         <input v-model="row.description" placeholder="Descripción" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded text-sm">
-        <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.performanceQuality.practices.splice(i, 1)">✕</BaseButton>
+        <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar práctica" size="sm" @click="doc.performanceQuality.practices.splice(i, 1)" />
       </div>
       </template>
     </section>
@@ -487,7 +490,7 @@
         @click="toggleSection('backups')"
       >
         <span class="text-sm font-semibold text-text-default">Backups</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.backups }} <span aria-hidden="true">{{ openSections.has('backups') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.backups }} <BaseActionIcon :action="openSections.has('backups') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('backups')">
       <textarea
@@ -509,24 +512,24 @@
         @click="toggleSection('quality')"
       >
         <span class="text-sm font-semibold text-text-default">Calidad y pruebas</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.quality }} <span aria-hidden="true">{{ openSections.has('quality') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.quality }} <BaseActionIcon :action="openSections.has('quality') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('quality')">
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Dimensiones</span>
-        <button type="button" class="text-xs text-text-brand" @click="addQualityDimension">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addQualityDimension"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.quality.dimensions" :key="'qd-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
         <input v-model="row.dimension" placeholder="Dimensión" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <input v-model="row.evaluates" placeholder="Qué evalúa" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.standard" placeholder="Estándar / umbral" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.quality.dimensions.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar dimensión" size="sm" @click="doc.quality.dimensions.splice(i, 1)" />
         </div>
       </div>
       <div class="flex items-center justify-between">
         <span class="text-xs text-text-muted">Tipos de prueba</span>
-        <button type="button" class="text-xs text-text-brand" @click="addTestType">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addTestType"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.quality.testTypes" :key="'qt-' + i" class="grid grid-cols-1 md:grid-cols-4 gap-2 p-2 bg-surface-raised rounded-lg text-xs">
         <input v-model="row.type" placeholder="Tipo" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
@@ -534,7 +537,7 @@
         <input v-model="row.tool" placeholder="Herramienta" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.whenRun" placeholder="Cuándo" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.quality.testTypes.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar tipo de prueba" size="sm" @click="doc.quality.testTypes.splice(i, 1)" />
         </div>
       </div>
       <p class="text-xs text-text-muted">Flujos críticos de aceptación (texto; no duplicar módulos)</p>
@@ -557,18 +560,18 @@
         @click="toggleSection('decisions')"
       >
         <span class="text-sm font-semibold text-text-default">Decisiones técnicas (ADRs)</span>
-        <span class="text-xs text-text-subtle">{{ sectionCounts.decisions }} <span aria-hidden="true">{{ openSections.has('decisions') ? '▾' : '▸' }}</span></span>
+        <span class="flex items-center gap-1 text-xs text-text-subtle">{{ sectionCounts.decisions }} <BaseActionIcon :action="openSections.has('decisions') ? 'collapse' : 'expand'" /></span>
       </button>
       <template v-if="openSections.has('decisions')">
       <div class="flex justify-end">
-        <button type="button" class="text-xs text-text-brand" @click="addDecision">+ Fila</button>
+        <BaseButton variant="link" size="sm" @click="addDecision"><BaseActionIcon action="create" /> Fila</BaseButton>
       </div>
       <div v-for="(row, i) in doc.decisions" :key="'dec-' + i" class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2 bg-surface-raised rounded-lg text-sm">
         <input v-model="row.decision" placeholder="Decisión" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <input v-model="row.alternative" placeholder="Alternativa descartada" class="px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
         <div class="flex gap-1">
           <input v-model="row.reason" placeholder="Razón" class="flex-1 px-2 py-1 border border-input-border bg-input-bg text-input-text placeholder-input-placeholder rounded">
-          <BaseButton variant="danger-ghost" icon-only size="sm" aria-label="Eliminar fila" @click="doc.decisions.splice(i, 1)">✕</BaseButton>
+          <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar decisión" size="sm" @click="doc.decisions.splice(i, 1)" />
         </div>
       </div>
       </template>

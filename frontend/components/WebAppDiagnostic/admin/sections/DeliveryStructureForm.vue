@@ -17,7 +17,7 @@
 
     <div class="flex items-center justify-between pt-2">
       <span class="text-xs font-medium text-text-muted">Bloques (lo que se encontró bien / hallazgos / recomendaciones)</span>
-      <button type="button" class="text-xs text-text-brand hover:underline" @click="addBlock">+ Agregar</button>
+      <button type="button" class="inline-flex items-center gap-1 text-xs text-text-brand hover:underline" @click="addBlock"><BaseActionIcon action="create" /> Agregar</button>
     </div>
     <div class="space-y-2">
       <div

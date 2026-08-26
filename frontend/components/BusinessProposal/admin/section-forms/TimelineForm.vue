@@ -28,7 +28,8 @@
       </template>
     </draggable>
     <button type="button" class="text-xs text-text-brand hover:text-text-brand font-medium" @click="form.phases.push({ title: '', duration: '', description: '', tasks: '', milestone: '' })">
-      + Agregar fase
+      <BaseActionIcon action="create" />
+      Agregar fase
     </button>
   </div>
 </template>

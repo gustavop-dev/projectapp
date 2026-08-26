@@ -9,7 +9,7 @@
         <div class="h-[100dvh] w-full max-w-md overflow-y-auto bg-surface p-6 shadow-2xl panel-portrait:h-auto panel-portrait:max-h-[90vh] panel-portrait:rounded-2xl">
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-lg font-semibold text-text-default">Gestionar etiquetas</h3>
-            <BaseButton variant="ghost" icon-only size="sm" aria-label="Cerrar" @click="close">✕</BaseButton>
+            <BaseActionButton action="close" label="Cerrar gestor de etiquetas" size="sm" @click="close" />
           </div>
 
           <!-- New tag form -->

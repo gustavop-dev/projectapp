@@ -46,7 +46,7 @@
             class="hidden text-xs font-medium text-text-subtle transition-colors group-hover:text-text-brand motion-reduce:transition-none panel-portrait:inline"
             aria-hidden="true"
           >
-            Resolver →
+          Resolver <BaseActionIcon action="forward" />
           </span>
         </NuxtLink>
       </li>

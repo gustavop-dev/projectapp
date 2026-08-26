@@ -9,17 +9,13 @@
         <h2 class="text-sm font-semibold text-text-default">{{ label }}</h2>
         <span class="text-[11px] text-text-subtle">{{ tasks.length }}</span>
       </div>
-      <button
-        type="button"
+      <BaseActionButton
+        action="create"
+        :label="`Agregar tarea en ${label}`"
         class="text-text-subtle hover:text-text-brand transition-colors"
-        :aria-label="`New task in ${label}`"
         :data-testid="`add-task-${status}`"
         @click="$emit('add')"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14" />
-        </svg>
-      </button>
+      />
     </header>
 
     <div class="flex-1 flex flex-col gap-3 p-3 overflow-y-auto">

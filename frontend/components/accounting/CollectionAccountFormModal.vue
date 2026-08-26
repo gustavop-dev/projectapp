@@ -1054,7 +1054,8 @@ function downloadPdf() {
               data-testid="collection-form-create-income"
               @click="showIncomeForm = true"
             >
-              + Crear ingreso esperado
+              <BaseActionIcon action="create" />
+              Crear ingreso esperado
             </button>
           </div>
         </div>
