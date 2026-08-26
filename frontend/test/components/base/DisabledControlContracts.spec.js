@@ -21,9 +21,10 @@ describe('disabled control contracts', () => {
     })
 
     const option = wrapper.findAll('button')[1]
+    expect(option.text()).toContain('Del cliente')
     expect(option.attributes('title')).toBe('Selecciona un cliente primero.')
-    expect(option.attributes('aria-label'))
-      .toBe('Del cliente: Selecciona un cliente primero.')
+    expect(option.attributes('aria-description'))
+      .toBe('Selecciona un cliente primero.')
   })
 
   it('exposes a control-wide reason in BaseSegmentedMulti', () => {
@@ -36,10 +37,12 @@ describe('disabled control contracts', () => {
       },
     })
 
-    expect(wrapper.get('button').attributes('title'))
+    const option = wrapper.get('button')
+    expect(option.text()).toContain('Borrador')
+    expect(option.attributes('title'))
       .toBe('Espera a que termine la carga.')
-    expect(wrapper.get('button').attributes('aria-label'))
-      .toBe('Borrador: Espera a que termine la carga.')
+    expect(option.attributes('aria-description'))
+      .toBe('Espera a que termine la carga.')
   })
 
   it('carries a disabled reason through responsive tab renderings', () => {
