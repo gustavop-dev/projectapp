@@ -15,6 +15,16 @@ gateway, 9 casos de API global, 10 E2E y el build Nuxt están verdes; el flow-ma
 queda fresco con cero junk-only, unvalidated o missing. Después de desplegar y
 migrar aún debe agregarse Carlos desde Configuración con las ocho familias.
 
+**2026-08-26 — Ingreso vinculado de cuentas de cobro abre en Esperados:**
+`CollectionAccountFormModal` usa un punto de partida estable por tipo de ingreso:
+al abrir o cambiar de cliente selecciona **Esperados**, conserva el alcance
+**Del cliente** y sigue incluyendo esperados con pagos parciales porque no usa
+`payment_status` para el recorte. El operador puede cambiar a Todos o Líquidos;
+si el resultado esperado del cliente queda vacío, **Ver todos** amplía primero
+el tipo sin perder el cliente y sólo amplía el alcance cuando ese cliente no
+tiene ningún ingreso elegible. No se persiste la última elección y no cambió la
+API ni el esquema.
+
 **2026-08-26 — Resultados buscables de modales sin recorte:** `BaseModal`
 expone un root flotante fuera de su panel desplazable y `BaseFloatingListbox`
 teleporta allí los resultados, conserva el foco dentro del diálogo, cierra por
