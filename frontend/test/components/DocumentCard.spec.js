@@ -117,8 +117,7 @@ describe('DocumentCard', () => {
     const priority = wrapper.get('[data-testid="document-card-priority-row-7"]')
     const metadata = wrapper.get('[data-testid="document-card-secondary-meta-7"]')
 
-    expect(priority.element.compareDocumentPosition(metadata.element) & Node.DOCUMENT_POSITION_FOLLOWING)
-      .toBeTruthy()
+    expect(priority.element.nextElementSibling).toBe(metadata.element)
   })
 
   it('orders secondary metadata by business priority', async () => {
