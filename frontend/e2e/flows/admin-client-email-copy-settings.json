@@ -6,7 +6,7 @@
     "admin"
   ],
   "priority": "P1",
-  "description": "Admin manages the independent BCC recipient catalog under /panel/emails?tab=defaults. Each recipient can be added, paused, activated, removed and segmented across proposals, diagnostics, manual documents, collection accounts and platform confirmations. The view explains hidden-copy privacy and volume impact. Validation and server failures remain visible without claiming a change succeeded.",
+  "description": "Admin manages the independent universal BCC recipient catalog under /panel/emails?tab=defaults. Each recipient can be added, paused, activated, removed and segmented across proposals, diagnostics, documents/communications, collection accounts, accounting, platform, tasks/operations and security/access. The view explains hidden-copy privacy, security-body visibility and volume impact. Validation and server failures remain visible without claiming a change succeeded.",
   "expectedSpecs": 7,
   "outcomes": [
     "display",

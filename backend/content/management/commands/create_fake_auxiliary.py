@@ -7,7 +7,7 @@ from django.core.management.base import BaseCommand
 from accounts.models import UserProfile
 from content.fake_data import add_seed_arguments, ensure_fake_data_allowed, seed_context
 from content.models import (
-    ClientEmailCopyRecipient,
+    EmailCopyRecipient,
     EmailLog,
     LinkedInPost,
     Linktree,
@@ -178,11 +178,11 @@ class Command(BaseCommand):
                 created_at=context.anchor_now - timedelta(hours=index * 6),
             )
 
-        ClientEmailCopyRecipient.objects.update_or_create(
+        EmailCopyRecipient.objects.update_or_create(
             email='copies-active@example.test',
             defaults={'is_active': True},
         )
-        ClientEmailCopyRecipient.objects.update_or_create(
+        EmailCopyRecipient.objects.update_or_create(
             email='copies-paused@example.test',
             defaults={'is_active': False},
         )

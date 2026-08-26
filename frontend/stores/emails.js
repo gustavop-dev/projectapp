@@ -11,6 +11,7 @@ export const useEmailStore = defineStore('emails', {
   state: () => ({
     history: [],
     historyPagination: { total: 0, page: 1, has_next: false },
+    historyFilters: {},
     defaults: { greeting: '', footer: '' },
     copyRecipients: [],
     copyFamilies: [],
@@ -60,11 +61,16 @@ export const useEmailStore = defineStore('emails', {
       }
     },
 
-    async fetchHistory(page = 1) {
+    async fetchHistory(page = 1, filters = null) {
       this.isLoadingHistory = true;
       this.error = null;
       try {
-        const response = await get_request(`emails/history/?page=${page}`);
+        if (filters !== null) this.historyFilters = { ...filters };
+        const params = new URLSearchParams({ scope: 'all', page: String(page) });
+        for (const [key, value] of Object.entries(this.historyFilters)) {
+          if (value) params.set(key, value);
+        }
+        const response = await get_request(`emails/history/?${params.toString()}`);
         if (page === 1) {
           this.history = response.data.results;
         } else {
@@ -83,6 +89,18 @@ export const useEmailStore = defineStore('emails', {
       /* c8 ignore next 3 */
       } finally {
         this.isLoadingHistory = false;
+      }
+    },
+
+    async fetchEmailBody(logId) {
+      try {
+        const response = await get_request(`emails/history/${logId}/body/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.error || 'No se pudo cargar el correo.',
+        };
       }
     },
 

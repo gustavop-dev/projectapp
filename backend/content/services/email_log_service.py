@@ -118,7 +118,6 @@ def record_send(
     from content.models import EmailBody, EmailLog, EmailLogTarget
     from content.services.email_delivery_service import (
         complete_delivery_log_write,
-        DeliveryClassification,
         matching_delivery_trace,
     )
 
@@ -139,25 +138,45 @@ def record_send(
     if trace is not None and body is not None:
         trace.body = body
 
-    logs = [
-        EmailLog.objects.create(
-            template_key=template_key,
-            recipient=recipient,
-            subject=subject,
-            status=status,
-            error_message=error_message or '',
-            metadata=metadata or {},
-            body=body,
-            origin_action=origin_action or '',
-            retry_of=retry_of,
-            proposal=proposal,
-            client_id=client_id,
-            audience=audience,
-            delivery_id=delivery_id,
-            delivery_role=delivery_role,
-        )
-        for recipient in recipients
-    ]
+    logs = []
+    can_enrich_gateway_rows = (
+        trace is not None
+        and delivery_role == EmailLog.DeliveryRole.PRIMARY
+        and trace.enrichment_count == 0
+        and trace.gateway_primary_log_ids
+    )
+    gateway_rows = {}
+    if can_enrich_gateway_rows:
+        for log in EmailLog.objects.filter(
+            pk__in=trace.gateway_primary_log_ids,
+        ):
+            gateway_rows.setdefault(log.recipient.strip().lower(), []).append(log)
+
+    for recipient in recipients:
+        normalized = (recipient or '').strip().lower()
+        candidates = gateway_rows.get(normalized, [])
+        log = candidates.pop(0) if candidates else None
+        if log is None:
+            log = EmailLog(
+                template_key=template_key,
+                recipient=recipient,
+                delivery_id=delivery_id,
+                delivery_role=delivery_role,
+            )
+        merged_metadata = dict(log.metadata or {})
+        merged_metadata.update(metadata or {})
+        log.subject = subject
+        log.status = status
+        log.error_message = error_message or ''
+        log.metadata = merged_metadata
+        log.body = body
+        log.origin_action = origin_action or ''
+        log.retry_of = retry_of
+        log.proposal = proposal
+        log.client_id = client_id
+        log.audience = audience
+        log.save()
+        logs.append(log)
 
     rows = _normalize_targets(targets)
     if rows:
@@ -172,53 +191,36 @@ def record_send(
             for entity_type, object_id, object_repr in rows
         ])
 
-    # The gateway deliberately does not write history before the primary
-    # caller has recorded its own result. Folding copy attempts in here gives
-    # primary and copies one body, target set and delivery id, and avoids a
-    # second logging dialect in every sender.
-    if (
-        trace is not None
-        and trace.classification == DeliveryClassification.CLIENT
-        and not trace.copies_recorded
-    ):
-        copy_logs = []
-        for attempt in trace.copy_attempts:
-            copy_metadata = dict(metadata or {})
-            copy_metadata['client_email_copy'] = {
-                'family': trace.family,
-                'primary_recipients': list(trace.primary_recipients),
-                'attempted_at': attempt.attempted_at,
-            }
-            copy_logs.append(EmailLog.objects.create(
-                template_key=template_key,
-                recipient=attempt.recipient,
-                subject=subject,
-                status=attempt.status,
-                error_message=attempt.error_message,
-                metadata=copy_metadata,
-                body=body,
-                origin_action=origin_action or '',
-                retry_of=None,
-                proposal=proposal,
-                client_id=client_id,
-                audience=EmailLog.Audience.INTERNAL,
-                delivery_id=trace.delivery_id,
-                delivery_role=EmailLog.DeliveryRole.COPY,
-            ))
-        if rows and copy_logs:
-            EmailLogTarget.objects.bulk_create([
-                EmailLogTarget(
-                    email_log=log,
-                    entity_type=entity_type,
-                    object_id=object_id,
-                    object_repr=object_repr,
-                )
-                for log in copy_logs
-                for entity_type, object_id, object_repr in rows
-            ])
-        trace.copies_recorded = True
+    # The gateway creates copy rows immediately, even for senders that have no
+    # business-specific logger. Enrich those rows when a caller does provide
+    # proposal/client/target context, without producing a second BCC record.
+    if trace is not None and trace.gateway_copy_log_ids:
+        copy_logs = list(EmailLog.objects.filter(pk__in=trace.gateway_copy_log_ids))
+        if trace.enrichment_count == 0:
+            for copy_log in copy_logs:
+                copy_metadata = dict(copy_log.metadata or {})
+                copy_metadata.update(metadata or {})
+                copy_log.metadata = copy_metadata
+                copy_log.subject = subject
+                copy_log.body = body
+                copy_log.origin_action = origin_action or ''
+                copy_log.proposal = proposal
+                copy_log.client_id = client_id
+                copy_log.save()
+            if rows:
+                EmailLogTarget.objects.bulk_create([
+                    EmailLogTarget(
+                        email_log=log,
+                        entity_type=entity_type,
+                        object_id=object_id,
+                        object_repr=object_repr,
+                    )
+                    for log in copy_logs
+                    for entity_type, object_id, object_repr in rows
+                ])
 
     if trace is not None:
+        trace.enrichment_count += 1
         complete_delivery_log_write(trace)
 
     return logs

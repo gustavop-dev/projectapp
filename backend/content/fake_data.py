@@ -121,7 +121,7 @@ SEEDED_MODELS = {
     'accounts.ProjectDataModelEntity', 'accounts.Requirement',
     'accounts.SavedFilterTab', 'accounts.UserProfile',
     'content.AdsSpendRecord', 'content.BlogPost', 'content.BusinessProposal',
-    'content.CardBalanceSnapshot', 'content.ClientEmailCopyRecipient',
+    'content.CardBalanceSnapshot', 'content.EmailCopyRecipient',
     'content.CommunicationMessage', 'content.CommunicationThread',
     'content.CompanySettings', 'content.Contact', 'content.CreditCard',
     'content.CreditCardStatement', 'content.Document',

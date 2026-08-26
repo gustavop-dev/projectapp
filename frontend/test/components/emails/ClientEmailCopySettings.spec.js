@@ -2,7 +2,13 @@ const mockEmailStore = {
   copyRecipients: [],
   copyFamilies: [
     { value: 'proposals', label: 'Propuestas' },
+    { value: 'diagnostics', label: 'Diagnósticos' },
+    { value: 'documents_communications', label: 'Documentos y comunicaciones' },
     { value: 'collections', label: 'Cuentas de cobro' },
+    { value: 'accounting', label: 'Contabilidad' },
+    { value: 'platform', label: 'Plataforma' },
+    { value: 'tasks_operations', label: 'Tareas y operaciones' },
+    { value: 'security', label: 'Seguridad y acceso' },
   ],
   isLoadingCopyRecipients: false,
   isSavingCopyRecipient: false,
@@ -62,6 +68,7 @@ describe('ClientEmailCopySettings', () => {
     expect(wrapper.text()).toContain('audit@example.com');
     expect(wrapper.text()).toContain('volumen SMTP');
     expect(wrapper.text()).toContain('BCC');
+    expect(wrapper.text()).toContain('códigos de verificación');
   });
 
   it('creates a recipient with every selected family', async () => {
@@ -76,7 +83,16 @@ describe('ClientEmailCopySettings', () => {
     expect(mockEmailStore.createCopyRecipient).toHaveBeenCalledWith({
       email: 'new@example.com',
       is_active: true,
-      families: ['proposals', 'collections'],
+      families: [
+        'proposals',
+        'diagnostics',
+        'documents_communications',
+        'collections',
+        'accounting',
+        'platform',
+        'tasks_operations',
+        'security',
+      ],
     });
   });
 

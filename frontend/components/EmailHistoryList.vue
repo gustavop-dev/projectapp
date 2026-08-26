@@ -20,8 +20,20 @@ defineProps({
 
 defineEmits(['load-more'])
 
-const STATUS_LABELS = { sent: 'Enviado', delivered: 'Entregado', bounced: 'Rebotado', failed: 'Fallido' }
+const STATUS_LABELS = {
+  sent: 'Enviado',
+  delivered: 'Entregado',
+  bounced: 'Rebotado',
+  failed: 'Fallido',
+  skipped: 'Omitida',
+}
 function statusLabel(s) { return STATUS_LABELS[s] || s }
+
+function copyStatusClass(status) {
+  if (status === 'failed') return 'text-danger-strong'
+  if (status === 'skipped') return 'text-warning-strong'
+  return 'text-success-strong'
+}
 
 function formatDate(isoString) {
   return formatDateTime(isoString, { fallback: '' })
@@ -114,11 +126,15 @@ function toggleExpand(id) {
               >
                 <div class="flex flex-wrap items-center justify-between gap-2">
                   <span class="break-all text-xs text-text-default">{{ copy.recipient }}</span>
-                  <span class="text-2xs font-medium" :class="copy.status === 'failed' ? 'text-danger-strong' : 'text-success-strong'">
+                  <span class="text-2xs font-medium" :class="copyStatusClass(copy.status)">
                     {{ statusLabel(copy.status) }}
                   </span>
                 </div>
-                <p v-if="copy.error_message" class="mt-1 text-2xs text-danger-strong">{{ copy.error_message }}</p>
+                <p
+                  v-if="copy.error_message"
+                  class="mt-1 text-2xs"
+                  :class="copy.status === 'skipped' ? 'text-warning-strong' : 'text-danger-strong'"
+                >{{ copy.error_message }}</p>
               </div>
             </div>
           </div>
