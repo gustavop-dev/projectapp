@@ -3,6 +3,8 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
+from accounts.models import Project
+from django.contrib.auth import get_user_model
 from django.core import mail
 
 from content.models import (
@@ -21,6 +23,7 @@ from content.services.accounting_payment_calendar_service import (
 pytestmark = pytest.mark.django_db
 
 TODAY = date(2026, 7, 10)
+User = get_user_model()
 
 
 @pytest.fixture(autouse=True)
@@ -86,6 +89,22 @@ class TestIncomeCadence:
     def test_silent_before_the_window(self):
         make_expected(days_left=16)
         assert run_payment_calendar(TODAY) == 0
+
+    def test_unclassified_legacy_project_is_silent(self):
+        client = User.objects.create_user(
+            username='legacy-project@example.com',
+            email='legacy-project@example.com',
+        )
+        project = Project.objects.create(
+            name='Legacy archive',
+            client=client,
+            status=Project.STATUS_ARCHIVED,
+        )
+        record = make_expected(days_left=7, project=project)
+
+        assert run_payment_calendar(TODAY) == 0
+        record.refresh_from_db()
+        assert record.reminder_count == 0
 
     def test_announces_again_when_crossing_7_days(self):
         make_expected(days_left=15)

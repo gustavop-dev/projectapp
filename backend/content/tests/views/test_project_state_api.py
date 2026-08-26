@@ -61,6 +61,24 @@ def test_user_can_create_a_project_state_with_an_operational_effect(
     assert response.data['operational_effect'] == 'operating'
 
 
+def test_project_state_operational_effect_is_immutable(admin_client):
+    custom = admin_client.post('/api/project-states/', {
+        'name': 'En garantía',
+        'color': 'purple',
+        'operational_effect': 'operating',
+    }, format='json').data
+
+    response = admin_client.patch(
+        f"/api/project-states/{custom['id']}/",
+        {'operational_effect': 'suspended'},
+        format='json',
+    )
+
+    assert response.status_code == 409
+    assert response.data['code'] == 'state_effect_immutable'
+    assert DocumentState.objects.get(pk=custom['id']).operational_effect == 'operating'
+
+
 def test_new_project_defaults_to_development_with_history(
     admin_client, client_profile,
 ):

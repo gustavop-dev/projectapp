@@ -283,6 +283,26 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
   `document_states.js` store. State names are suggestions only; all mutation and
   conflict enforcement remains server-owned.
 
+### Project lifecycle reuses the shared state engine
+
+- `DocumentStateGroup`, `DocumentState`, `DocumentStateEpisode` and
+  `DocumentStateEpisodeEvent` are catalog-scoped (`documents` or `projects`). An
+  episode belongs to exactly one document or project.
+- `Project.current_state` is canonical. `Project.status` is a compatibility mirror;
+  create/update APIs reject direct lifecycle input outside the transition service.
+- `content.services.project_state_service` owns preview, token validation, atomic
+  consequences, history initialization, catalog merge and hosting-failure suggestions.
+- Session/CSRF APIs: `GET|POST /api/project-states/`, catalog update/retire/merge,
+  `POST /api/projects/<id>/state-transitions/preview/`, apply at
+  `/state-transitions/`, and `GET /state-history/`.
+- Nuxt uses the Options-API `project_states.js` store and the same
+  `StateCatalogManager` / `StateHistoryModal` primitives as Documents. The project
+  transition modal is specific because it must collect financial decisions.
+- Migrations `accounts.0055_project_lifecycle_state` and
+  `content.0213/0214_project_lifecycle_states` add the relations, seed all six
+  meanings and map known legacy statuses. Legacy `archived` remains unclassified
+  and review-required; deploy applies migrations, never a session worktree.
+
 ### Communications are a separate domain with shared infrastructure
 
 The client communications registry lives in the existing `content` Django app

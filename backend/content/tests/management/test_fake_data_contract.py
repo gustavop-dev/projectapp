@@ -222,6 +222,22 @@ def test_client_project_seed_has_the_target_skew():
     assert project_counts == Counter({0: 30, 1: 20, 3: 9, 20: 1})
 
 
+def test_client_project_seed_covers_the_real_lifecycle():
+    run_command(
+        'create_fake_clients_projects', '--count', '60',
+        '--seed', '19', '--anchor-date', '2026-08-26',
+    )
+
+    assert set(Project.objects.values_list(
+        'current_state__operational_effect', flat=True,
+    )) == {
+        'development', 'operating', 'paused', 'suspended',
+        'completed', 'decommissioned',
+    }
+    assert not Project.objects.filter(current_state__isnull=True).exists()
+    assert not Project.objects.filter(state_review_required=True).exists()
+
+
 def test_accounting_seed_links_each_record_to_a_client(seeded_accounting):
     assert not IncomeRecord.objects.filter(client__isnull=True).exists()
     assert not HostingRecord.objects.filter(client__isnull=True).exists()

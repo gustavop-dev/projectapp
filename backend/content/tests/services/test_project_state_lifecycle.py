@@ -16,6 +16,7 @@ from content.services.project_state_service import (
     ProjectStateError,
     apply_transition,
     preview_transition,
+    project_allows_billing,
     project_state_suggestion,
 )
 
@@ -92,6 +93,19 @@ def test_direct_project_creation_opens_the_requested_legacy_state(project):
         state=project.current_state,
         closed_at__isnull=True,
     ).count() == 1
+
+
+def test_unclassified_legacy_archive_blocks_billing(client_profile):
+    legacy = Project.objects.create(
+        name='Proyecto archivado sin clasificar',
+        client=client_profile.user,
+        status=Project.STATUS_ARCHIVED,
+    )
+
+    legacy.refresh_from_db()
+    assert legacy.current_state_id is None
+    assert legacy.state_review_required is True
+    assert project_allows_billing(legacy) is False
 
 
 def test_suspended_preview_preserves_caused_debt(project, client_profile):

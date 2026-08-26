@@ -237,7 +237,7 @@ function activeCount(state) {
             <select v-model="editDraft(state).color" aria-label="Color del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">
               <option v-for="color in DOCUMENT_STATE_COLORS" :key="color.value" :value="color.value">{{ color.label }}</option>
             </select>
-            <select v-if="hasOperationalEffects" v-model="editDraft(state).operational_effect" aria-label="Efecto operativo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm" :disabled="activeCount(state) > 0">
+            <select v-if="hasOperationalEffects" v-model="editDraft(state).operational_effect" aria-label="Efecto operativo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm" disabled title="El efecto operativo es inmutable">
               <option v-for="effect in operationalEffects" :key="effect.value" :value="effect.value">{{ effect.label }}</option>
             </select>
             <select v-else v-model="editDraft(state).group" aria-label="Grupo del estado" class="rounded-lg border border-input-border bg-input-bg px-2 py-2 text-sm">

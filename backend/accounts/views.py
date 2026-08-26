@@ -782,6 +782,15 @@ def project_list_view(request):
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    if 'status' in request.data or 'state_id' in request.data:
+        from content.api_errors import error_response
+
+        return error_response(
+            'Los proyectos nuevos empiezan En desarrollo; cambia el estado '
+            'desde el flujo con vista previa del panel.',
+            code='project_state_transition_required',
+        )
+
     serializer = CreateProjectSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data

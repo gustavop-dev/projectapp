@@ -27,6 +27,8 @@ from content.models import (
     HostingRecord,
     IncomeRecord,
 )
+
+
 class ProjectStateError(ValueError):
     def __init__(self, message, *, code='invalid_project_state'):
         super().__init__(message)
@@ -65,7 +67,12 @@ OPEN_PAYMENT_STATUSES = (
 
 def project_allows_billing(project):
     state = getattr(project, 'current_state', None)
-    return not state or state.operational_effect not in BLOCKS_BILLING_EFFECTS
+    if state is None:
+        # Legacy ``archived`` rows deliberately remain unclassified after the
+        # migration.  Ambiguity must fail closed for money: an operator first
+        # chooses the real lifecycle state before billing can resume.
+        return not project.state_review_required
+    return state.operational_effect not in BLOCKS_BILLING_EFFECTS
 
 
 def project_state_suggestion(project):

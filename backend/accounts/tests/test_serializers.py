@@ -309,15 +309,13 @@ class TestCreateProjectSerializer:
         assert serializer.is_valid() is False
         assert 'client_id' in serializer.errors
 
-    def test_invalid_status_choice_fails_validation(self, client_user):
+    def test_status_is_not_a_writable_field(self, client_user):
         serializer = CreateProjectSerializer(data={
             'name': 'Test',
             'client_id': client_user.id,
-            'status': 'nonexistent',
         })
 
-        assert serializer.is_valid() is False
-        assert 'status' in serializer.errors
+        assert 'status' not in serializer.fields
 
     def test_progress_out_of_range_fails_validation(self, client_user):
         serializer = CreateProjectSerializer(data={
@@ -340,11 +338,10 @@ class TestUpdateProjectSerializer:
 
         assert serializer.is_valid() is True
 
-    def test_invalid_status_fails(self):
-        serializer = UpdateProjectSerializer(data={'status': 'bad'})
+    def test_status_is_not_a_writable_field(self):
+        serializer = UpdateProjectSerializer(data={'name': 'New Name'})
 
-        assert serializer.is_valid() is False
-        assert 'status' in serializer.errors
+        assert 'status' not in serializer.fields
 
 
 # =========================================================================

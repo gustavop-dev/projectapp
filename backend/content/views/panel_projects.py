@@ -13,9 +13,11 @@ Endpoints
 ---------
 - ``GET   /api/projects/``                        listing with scope, counts, meta
 - ``POST  /api/projects/create/``                 PA-38 minimum create
-- ``PATCH /api/projects/<id>/update/``            name/description/status
-- ``PATCH /api/projects/<id>/archive/``           status -> archived (PA-29)
-- ``PATCH /api/projects/<id>/unarchive/``         status -> active
+- ``PATCH /api/projects/<id>/update/``            name/description only
+- ``POST  /api/projects/<id>/state-transitions/preview/`` consequences
+- ``POST  /api/projects/<id>/state-transitions/`` apply confirmed transition
+- ``GET   /api/projects/<id>/state-history/``     dated lifecycle history
+- ``PATCH /api/projects/<id>/(un)archive/``       legacy endpoint (HTTP 410)
 - ``GET   /api/projects/<id>/unlinked-records/``  assign preview (PA-51)
 - ``POST  /api/projects/<id>/assign-unlinked/``   assign confirmed ids (PA-51)
 - ``GET   /api/projects/<id>/change-client/preview/``  cascade preview
@@ -218,8 +220,9 @@ def list_panel_projects(request):
     """Full project listing for the module: rows plus header meta.
 
     Query params:
-        - ``scope``: ``active`` (default — everything not archived, paused
-          and completed included), ``archived`` or ``all``.
+        - ``scope``: compatibility selector for legacy consumers. The panel
+          requests ``all`` and filters by ``current_state`` from the shared
+          project catalog.
     """
     scope = _scope_or_none(request)
     if scope is None:
@@ -280,6 +283,13 @@ def _annotated_row(project_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def create_panel_project(request):
+    if 'status' in request.data:
+        return Response({
+            'status': [
+                'El estado legado no se acepta. Usa state_id para elegir '
+                'un estado del catálogo de proyectos.'
+            ],
+        }, status=status.HTTP_400_BAD_REQUEST)
     serializer = CreatePanelProjectSerializer(
         data=request.data,
         context={'request': request},

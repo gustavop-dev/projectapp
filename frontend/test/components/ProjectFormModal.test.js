@@ -9,6 +9,7 @@
 import { mount, flushPromises } from '@vue/test-utils';
 import { setActivePinia, createPinia } from 'pinia';
 import ProjectFormModal from '../../components/panel/projects/ProjectFormModal.vue';
+import { get_request } from '../../stores/services/request_http';
 
 jest.mock('../../stores/services/request_http', () => ({
   get_request: jest.fn(),
@@ -32,6 +33,12 @@ const RECORD = {
   description: 'App de gestión',
   status: 'paused',
   status_label: 'Pausado',
+  current_state: {
+    id: 12,
+    name: 'Pausado',
+    system_key: 'paused',
+    operational_effect: 'paused',
+  },
   client: { profile_id: 7, name: 'Deivis Ríos', company: 'Vástago' },
 };
 
@@ -55,6 +62,7 @@ function mountModal(props = {}) {
           props: ['label', 'hint', 'required'],
           template: '<div><label v-if="label">{{ label }}</label><slot /></div>',
         },
+        BaseFormRow: { template: '<div><slot /></div>' },
         BaseInput: {
           props: ['modelValue', 'type', 'placeholder'],
           emits: ['update:modelValue'],
@@ -88,6 +96,19 @@ function mountModal(props = {}) {
 describe('ProjectFormModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    get_request.mockImplementation((url) => Promise.resolve({
+      data: url.startsWith('project-states/')
+        ? [{
+          id: 10,
+          name: 'En desarrollo',
+          system_key: 'development',
+          operational_effect: 'development',
+          is_active: true,
+          merged_into: null,
+          group: 4,
+        }]
+        : [{ id: 4, name: 'Ciclo del proyecto', selection_mode: 'exclusive' }],
+    }));
   });
 
   it('gates the submit on the PA-38 minimum: name AND client', async () => {
@@ -110,7 +131,7 @@ describe('ProjectFormModal', () => {
       name: 'Kore',
       client_profile_id: 7,
       description: '',
-      status: 'active',
+      state_id: 10,
     });
   });
 
@@ -130,7 +151,6 @@ describe('ProjectFormModal', () => {
     expect(payload).toEqual({
       name: 'Vástago App',
       description: 'App de gestión',
-      status: 'paused',
     });
     expect(payload).not.toHaveProperty('client_profile_id');
   });

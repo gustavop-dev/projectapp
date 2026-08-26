@@ -502,13 +502,6 @@ class CreateProjectSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, default='', allow_blank=True)
     client_id = serializers.IntegerField()
     proposal_id = serializers.IntegerField(required=False, allow_null=True)
-    status = serializers.ChoiceField(
-        choices=[
-            choice for choice in Project.STATUS_CHOICES
-            if choice[0] != Project.STATUS_ARCHIVED
-        ],
-        default=Project.STATUS_DEVELOPMENT,
-    )
     progress = serializers.IntegerField(min_value=0, max_value=100, default=0)
     start_date = serializers.DateField(required=False, allow_null=True)
     estimated_end_date = serializers.DateField(required=False, allow_null=True)

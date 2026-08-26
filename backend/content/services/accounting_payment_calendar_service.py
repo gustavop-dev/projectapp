@@ -115,6 +115,10 @@ def collect_income_notices(today, config):
                 'suspended', 'completed', 'decommissioned',
             ),
         )
+        .exclude(
+            project__current_state__isnull=True,
+            project__state_review_required=True,
+        )
         .annotate(paid_amount=accounting_service.paid_amount_subquery())
         # Mirrors the 'paid' branch of the income list filter in
         # views/accounting.py, which mirrors payment_status_for: keep the three

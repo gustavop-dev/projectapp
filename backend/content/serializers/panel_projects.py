@@ -18,14 +18,6 @@ from content.services.project_state_service import (
     project_state_suggestion,
 )
 
-# ``archived`` is never a form choice: a project is archived through its
-# dedicated endpoint, and it is not born that way either.
-_EDITABLE_STATUS_CHOICES = [
-    choice for choice in Project.STATUS_CHOICES
-    if choice[0] != Project.STATUS_ARCHIVED
-]
-
-
 class PanelProjectSerializer(serializers.ModelSerializer):
     """Listing row for ``/panel/projects``."""
 
@@ -71,7 +63,7 @@ class PanelProjectSerializer(serializers.ModelSerializer):
 
     def get_status(self, project):
         state = project.current_state
-        return state.system_key or state.slug if state else None
+        return (state.system_key or state.slug) if state else None
 
     def get_status_label(self, project):
         return project.current_state.name if project.current_state else 'Sin clasificar'
@@ -171,9 +163,9 @@ class ProjectAssignUnlinkedSerializer(serializers.Serializer):
 class UpdatePanelProjectSerializer(serializers.ModelSerializer):
     """Partial update with the platform's field semantics, panel-scoped.
 
-    Same max lengths and choices as the platform ``UpdateProjectSerializer``,
-    restricted to what the panel edits; the client is immutable here and the
-    archive transition belongs to its dedicated endpoint.
+    Same max lengths as the platform ``UpdateProjectSerializer``, restricted
+    to what the panel edits. Client and lifecycle changes use their dedicated
+    preview-and-apply flows.
     """
 
     class Meta:

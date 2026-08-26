@@ -65,7 +65,7 @@ Los valores son objetivos mínimos o perfiles deliberados, no repartos uniformes
 | Módulo / entidad raíz | Objetivo con `--count 60` | Distribución relevante |
 |---|---:|---|
 | Clientes | 60 | 30 sin proyecto, 20 con uno, 9 con tres y 1 con veinte |
-| Proyectos | 67 | activos, pausados, completados y archivados; fechas pasadas y futuras |
+| Proyectos | 67 | los seis efectos reales: desarrollo, operación, pausa, suspensión, cierre correcto y baja definitiva; sin estados nulos ni revisión pendiente |
 | Requerimientos del proyecto de carga | 60 | todos los estados Kanban y prioridades |
 | Entregables del proyecto de carga | 60 | seis categorías, versiones y archivados |
 | Solicitudes de cambio del proyecto de carga | 60 | seis estados, urgentes/no urgentes y costos grandes |

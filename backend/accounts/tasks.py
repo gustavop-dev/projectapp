@@ -97,6 +97,9 @@ def auto_charge_due_subscriptions():
             'suspended', 'completed', 'decommissioned',
         ),
     ).exclude(
+        subscription__project__current_state__isnull=True,
+        subscription__project__state_review_required=True,
+    ).exclude(
         subscription__wompi_payment_source_id='',
     )
 
@@ -223,6 +226,9 @@ def _onboard_due_phases():
         project__current_state__operational_effect__in=(
             'suspended', 'completed', 'decommissioned',
         ),
+    ).exclude(
+        project__current_state__isnull=True,
+        project__state_review_required=True,
     )
 
     onboarded = 0

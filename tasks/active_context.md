@@ -21,6 +21,21 @@ viewports canónicos. Verificación: slices Jest de primitives y consumidores,
 Playwright 11/11, build Nuxt, contrato responsivo 103/13/5, flow-map fresco y
 auditoría sin junk-only ni missing.
 
+**2026-08-26 — Ciclo real y administrable para Proyectos:** el catálogo y los
+episodios de PA-88 ahora están explícitamente acotados por dominio y sirven también
+a `Project`, sin duplicar infraestructura. Se sembraron En desarrollo, Activo,
+Pausado, Suspendido, Completado y Dado de baja; el nombre/color se puede adaptar,
+pero `operational_effect` conserva las consecuencias aun después de un renombre.
+Cada cambio exige preview y token contra datos financieros actuales, se aplica en
+transacción y deja fecha, actor y nota. Suspender preserva deuda causada y silencia
+nuevos cobros/avisos; completar exige cierre limpio; dar de baja cancela futuro y
+obliga a decidir saldo por saldo, con nota si se salta Suspendido. No existe avance
+automático por tiempo: un hosting fallido sólo genera sugerencia. Los archivados
+legados quedan Sin clasificar/Por revisar y bloqueados para automatización monetaria
+hasta revisión manual. Panel, plataforma, filtros/conteos, fake data y contrato MCP
+ya consumen la misma verdad; los flows P1 de transición/histórico y catálogo cubren
+display/success/error/failure sin retries después de esperar hidratación observable.
+
 **2026-08-26 — Dataset representativo, coherente y reproducible para desarrollo:**
 `create_fake_data` reconstruye el grafo completo con volumen 60, semilla aislada
 por módulo y fecha ancla explícita. El perfil produce 60 clientes/67 proyectos,

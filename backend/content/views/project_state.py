@@ -161,11 +161,13 @@ def update_project_state(request, state_id):
     if (
         'operational_effect' in request.data
         and request.data['operational_effect'] != state.operational_effect
-        and state.current_projects.exists()
     ):
         return Response({
-            'detail': 'Mueve primero los proyectos que usan este estado.',
-            'code': 'state_effect_in_use',
+            'detail': (
+                'El efecto operativo no se puede cambiar. Crea otro estado '
+                'con el efecto correcto y fusiona o retira este si corresponde.'
+            ),
+            'code': 'state_effect_immutable',
         }, status=status.HTTP_409_CONFLICT)
     payload = request.data.copy()
     payload['catalog'] = DocumentStateGroup.Catalog.PROJECTS

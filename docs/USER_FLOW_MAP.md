@@ -6072,6 +6072,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-project-change-client` | admin | P2 | display,success | 2 |
 | `admin-project-fly-create` | admin | P2 | success,error | 4 |
 | `admin-project-inline-assign-offer` | admin | P2 | success | 1 |
+| `admin-project-lifecycle-states` | admin | P1 | display,success,error,failure | 4 |
+| `admin-project-state-catalog` | admin | P1 | display,success,error,failure | 6 |
 | `admin-proposal-actions-modal` | admin | P1 | display | 1 |
 | `admin-proposal-advanced-filters` | admin | P2 | display | 1 |
 | `admin-proposal-analytics` | admin | P2 | display | 1 |
@@ -6868,10 +6870,10 @@ The Plataforma sidebar space (placed after Contabilidad on purpose: it doubles t
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/projects`
-- **API:** `GET /api/projects/` (`?scope=active|archived|all`, invalid → 400), `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `PATCH /api/projects/<id>/archive/`, `PATCH /api/projects/<id>/unarchive/`, `GET /api/proposals/client-profiles/?without_projects=true`
-- **Description:** Listing of every project with client (UserProfile terms), status badge, created date and per-project hosting/income counts, loaded once with `scope=all` and filtered client-side: accent/case-blind search over project and client, a BaseSegmented Activos/Archivados/Todos, sortable columns, PAGE_SIZE 15. Stat cards count active/archived plus **clients without any project**; that card opens a panel listing each uncovered client with a Crear proyecto CTA that seeds the modal. Create = name + required client (ClientAutocomplete with inline client creation); description/status optional; a same-name project for the same client raises a non-blocking warning strip. Edit keeps the client immutable (backend answers 400 `client_immutable`) and archived rows out of circulation (400 `project_archived`); archive asks confirmation explaining records stay linked; restore returns to Activos. For superusers the counts link into the accounting tabs pre-filtered (`?project=<id>`; incomes pins `accounting_incomeTab=all`).
+- **API:** `GET /api/projects/?scope=all`, `POST /api/projects/create/`, `PATCH /api/projects/<id>/update/`, `GET /api/project-states/`, `GET /api/proposals/client-profiles/?without_projects=true`
+- **Description:** Listing of every project with client, administrable lifecycle state, created date and per-project hosting/income counts. It loads once and filters client-side by every active catalog state plus the manual-review bucket; search is accent/case-blind and columns remain sortable. Each lifecycle state owns a header count. **Clients without project** remains literal (no `Project` row) and opens a create path pre-seeded with that client. Create requires name + client, defaults to **En desarrollo**, and may choose another initial catalog state; later state changes are intentionally absent from edit and use the consequence-preview flow. A same-name project warns without blocking. For superusers, counts link into accounting pre-filtered by project.
 - **Responsive contract:** En 412 px y 835 px el scope es selector, el orden sigue explícito y el listado usa tarjetas en una o dos columnas. El teléfono prioriza dos KPI y revela los otros dos bajo demanda. Desde 1195 px vuelve la tabla. Crear, editar, asignar huérfanos y cambiar cliente usan pantalla completa en teléfono; la vista previa de impacto se apila antes de la decisión y conserva acciones sticky. En 2560 px la página se centra con máximo de 1400 px.
-- **Steps:** open module → search/sort/switch scope → create from CTA or from the uncovered-clients panel → edit → archive/restore → jump into hostings/incomes by count.
+- **Steps:** open module → search/sort/filter by catalog state → create from CTA or uncovered-client panel → edit descriptive data → open the dedicated lifecycle/history actions → jump into hostings/incomes by count.
 - **Branches:** duplicate name warns and still saves; backend 400 keeps the modal open with the message; zero counts render as plain text; non-superusers see plain counts (no links).
 - **Coverage:** ✅ Covered, incluido display responsivo en los cinco anchos reales.
 - **E2E Specs:** `e2e/admin/admin-panel-projects.spec.js`, `e2e/admin/admin-responsive-documents-clients-projects.spec.js`
@@ -7051,6 +7053,46 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-project-lifecycle-states`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects`
+- **API:** `POST /api/projects/<id>/state-transitions/preview/`, `POST /api/projects/<id>/state-transitions/`, `GET /api/projects/<id>/state-history/`
+- **Description:** El cambio de estado es una operación de negocio en dos pasos: primero calcula y muestra consecuencias, después aplica exactamente ese impacto mediante token. Suspendido detiene nueva facturación y avisos sin borrar deuda causada; Completado exige cierre limpio; Dado de baja cancela futuro y obliga a decidir conservar o castigar cada saldo causado. Una baja directa requiere nota. Un cambio financiero entre preview y confirmación invalida el token y deja el modal abierto. El histórico conserva episodios, fechas efectivas, actores y notas.
+- **Interaction matrix:**
+
+| Interaction | Outcome | Start → end state |
+|---|---|---|
+| Abrir histórico desde la fila | display | Proyectos → Histórico → episodios reales con fecha, actor y nota |
+| Suspender después de revisar consecuencias | success | Activo → preview → confirmación → fila Suspendido y nuevo episodio |
+| Intentar baja directa incompleta | error | Preview de baja → falta decisión o nota → confirmar permanece bloqueado |
+| Confirmar un preview financiero obsoleto | failure | Preview → cambian cobros → HTTP 409 visible y modal conserva el contexto |
+
+- **Coverage:** ✅ Las cuatro clases están cubiertas.
+- **E2E Specs:** `e2e/admin/admin-project-lifecycle-states.spec.js`
+
+### FLOW: `admin-project-state-catalog`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/projects/statuses`
+- **API:** `GET|POST /api/project-states/`, `PATCH /api/project-states/<id>/`, `POST /api/project-states/<id>/retire/`, `POST /api/project-states/<id>/merge/`
+- **Description:** El catálogo compartido de PA-88 se reutiliza para proyectos con el mismo componente de administración. Los seis estados semilla son visibles, pero el usuario puede descubrir otros con el uso, crearlos, renombrarlos, recolorearlos, fusionarlos y retirarlos. El nombre es editable; el efecto operativo que gobierna cobros y cierres queda protegido cuando el estado ya se usa.
+- **Interaction matrix:**
+
+| Interaction | Outcome | Start → end state |
+|---|---|---|
+| Abrir el catálogo desde Proyectos | display | Proyectos → Administrar estados → seis semillas, usos e histórico |
+| Crear, renombrar o retirar un estado libre | success | Formulario/edición → catálogo refrescado sin perder histórico |
+| Retirar un estado usado | error | Confirmar retiro → explicación de proyectos activos → estado permanece |
+| Guardar durante una falla del servidor | failure | Editar nombre → HTTP 5xx visible → borrador permanece para reintentar |
+
+- **Coverage:** ✅ Las cuatro clases están cubiertas.
+- **E2E Specs:** `e2e/admin/admin-project-lifecycle-states.spec.js`
 
 ### FLOW: `proposal-closing-contact`
 

@@ -208,6 +208,21 @@ class TestPhaseOnboarding:
         phase.refresh_from_db()
         assert phase.hosting_activated_at is None
 
+    def test_skips_legacy_unclassified_project(self, project):
+        Project.objects.filter(pk=project.pk).update(
+            status=Project.STATUS_ARCHIVED,
+            current_state=None,
+            state_review_required=True,
+        )
+        phase = _phase(project, 6_000_000, order=1, start_date=date(2026, 3, 1))
+        self._active_subscription(project)
+
+        count = _onboard_due_phases()
+
+        assert count == 0
+        phase.refresh_from_db()
+        assert phase.hosting_activated_at is None
+
 
 # ===========================================================================
 # Frequency change while the subscription is still pending

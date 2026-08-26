@@ -28,6 +28,16 @@ This file captures important patterns, preferences, and project intelligence tha
 - Services (30 modules): `ProposalService`, `ProposalEmailService`, `ProposalPdfService`, `ContractPdfService`, `EmailTemplateRegistry`, `PdfUtils`, `DocumentPdfService`, `MarkdownParser`, `CollectionAccountService`, `CollectionAccountPdfService`, `TechnicalDocumentPdf`, `TechnicalDocumentFilter`, `PlatformOnboardingPdf`, `LinkedInService`, `DiagnosticService`, `DiagnosticEmailService`, `DiagnosticPdfService`, `DiagnosticDocumentsService`, `AccountingService`, `AccountingExportService`, `AccountingEmailService`, `AccountingCardReminderService`
 - MCP tool servers live in `content/mcp/` (`protocol`, `actor`, `tools` + per-domain connector modules), not in `services/` — they wrap existing service/ORM calls behind a token-authed JSON-RPC surface for claude.ai
 
+### Editable labels need immutable operational meaning
+
+- A user-managed status name cannot safely drive billing, reminders or closure.
+- `DocumentState` is shared across domains through `catalog`; project behavior keys
+  off `operational_effect`, while names/colors remain editable.
+- Financially consequential transitions use preview + token + atomic revalidation.
+  This prevents a confirmation made against stale income/payment data from applying.
+- Ambiguous migrated rows fail closed for money and stay explicitly reviewable; a
+  migration must not invent whether a legacy archive was a good close or a shutdown.
+
 ### External API Integration Pattern (LinkedIn)
 - External OAuth integrations follow the singleton model + service module pattern
 - `LinkedInToken` (singleton, pk=1) stores Fernet-encrypted access/refresh tokens in the DB; encryption key from `LINKEDIN_ENCRYPTION_KEY` env var
