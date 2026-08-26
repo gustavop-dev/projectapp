@@ -27,8 +27,8 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
     records: [],
     meta: {
       total: 0,
-      active: 0,
-      archived: 0,
+      by_state: [],
+      review_required: 0,
       clients_without_projects: 0,
       records_without_project: 0,
     },
@@ -61,6 +61,12 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
       }
     },
 
+    async refreshAfterExternalMutation() {
+      const result = await this.fetchProjects();
+      if (result.success) invalidatePickerCache();
+      return result;
+    },
+
     /** `(entity, payload)` — signature shared with useAccountingCrudPage. */
     async createRecord(entity, payload) {
       this.isUpdating = true;
@@ -90,40 +96,6 @@ export const usePanelProjectsStore = defineStore('panel_projects', {
         return {
           success: false,
           ...normalizeApiError(error, 'No se pudo actualizar el proyecto.'),
-        };
-      } finally {
-        this.isUpdating = false;
-      }
-    },
-
-    async archiveProject(id) {
-      this.isUpdating = true;
-      try {
-        const response = await patch_request(`projects/${id}/archive/`, {});
-        await this.fetchProjects();
-        invalidatePickerCache();
-        return { success: true, data: response.data };
-      } catch (error) {
-        return {
-          success: false,
-          ...normalizeApiError(error, 'No se pudo archivar el proyecto.'),
-        };
-      } finally {
-        this.isUpdating = false;
-      }
-    },
-
-    async unarchiveProject(id) {
-      this.isUpdating = true;
-      try {
-        const response = await patch_request(`projects/${id}/unarchive/`, {});
-        await this.fetchProjects();
-        invalidatePickerCache();
-        return { success: true, data: response.data };
-      } catch (error) {
-        return {
-          success: false,
-          ...normalizeApiError(error, 'No se pudo restaurar el proyecto.'),
         };
       } finally {
         this.isUpdating = false;

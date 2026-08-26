@@ -120,6 +120,12 @@ def create_hosting_collection_account(hosting, *, acting_user=None):
 def send_hosting_collection_account(hosting, *, acting_user=None):
     """Create + issue + email the cuenta de cobro. Returns
     {'document': Document, 'email_sent': bool}."""
+    from content.services.project_state_service import project_allows_billing
+
+    if hosting.project_id and not project_allows_billing(hosting.project):
+        raise HostingBillingError(
+            'El estado actual del proyecto no permite generar nuevos cobros.'
+        )
     recipient = hosting.billing_email
     if not recipient:
         raise HostingBillingError(

@@ -63,6 +63,7 @@ def _catalog_queryset(include_retired=False):
             historical_episode_count=Count('episodes', distinct=True),
         )
         .order_by('group__order', 'order', 'name')
+        .filter(catalog=DocumentStateGroup.Catalog.DOCUMENTS)
     )
     if not include_retired:
         queryset = queryset.filter(is_active=True, merged_into__isnull=True)
@@ -149,11 +150,15 @@ def _similar_states(query):
 @permission_classes([IsAdminUser])
 def document_state_groups(request):
     if request.method == 'GET':
-        groups = DocumentStateGroup.objects.annotate(
+        groups = DocumentStateGroup.objects.filter(
+            catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+        ).annotate(
             state_count=Count('states', filter=Q(states__is_active=True)),
         )
         return Response(DocumentStateGroupSerializer(groups, many=True).data)
-    serializer = DocumentStateGroupSerializer(data=request.data)
+    payload = request.data.copy()
+    payload['catalog'] = DocumentStateGroup.Catalog.DOCUMENTS
+    serializer = DocumentStateGroupSerializer(data=payload)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     serializer.save()
@@ -163,7 +168,11 @@ def document_state_groups(request):
 @api_view(['PATCH', 'POST'])
 @permission_classes([IsAdminUser])
 def document_state_group_detail(request, group_id):
-    group = get_object_or_404(DocumentStateGroup, pk=group_id)
+    group = get_object_or_404(
+        DocumentStateGroup,
+        pk=group_id,
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+    )
     if request.method == 'POST':
         if group.states.filter(is_active=True).exists():
             return Response(
@@ -228,9 +237,11 @@ def document_states(request):
         )
 
     payload = request.data.copy()
+    payload['catalog'] = DocumentStateGroup.Catalog.DOCUMENTS
     confirm_similar = bool(payload.pop('confirm_similar', False))
     if not payload.get('group'):
         signals = DocumentStateGroup.objects.filter(
+            catalog=DocumentStateGroup.Catalog.DOCUMENTS,
             selection_mode=DocumentStateGroup.SelectionMode.ADDITIVE,
             is_active=True,
         ).order_by('order').first()
@@ -270,7 +281,9 @@ def document_state_suggestions(request):
 @permission_classes([IsAdminUser])
 def update_document_state(request, state_id):
     state = get_object_or_404(
-        DocumentState.objects.select_related('group'), pk=state_id,
+        DocumentState.objects.select_related('group'),
+        pk=state_id,
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
     )
     serializer = DocumentStateSerializer(state, data=request.data, partial=True)
     if not serializer.is_valid():
@@ -288,7 +301,11 @@ def update_document_state(request, state_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def retire_document_state(request, state_id):
-    state = get_object_or_404(DocumentState, pk=state_id)
+    state = get_object_or_404(
+        DocumentState,
+        pk=state_id,
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+    )
     try:
         retire_state(state, actor=request.user)
     except DocumentStateError as exc:
@@ -299,8 +316,16 @@ def retire_document_state(request, state_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def merge_document_state(request, state_id):
-    source = get_object_or_404(DocumentState, pk=state_id)
-    target = get_object_or_404(DocumentState, pk=request.data.get('target_state_id'))
+    source = get_object_or_404(
+        DocumentState,
+        pk=state_id,
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+    )
+    target = get_object_or_404(
+        DocumentState,
+        pk=request.data.get('target_state_id'),
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+    )
     try:
         merge_states(source, target, actor=request.user)
     except DocumentStateError as exc:

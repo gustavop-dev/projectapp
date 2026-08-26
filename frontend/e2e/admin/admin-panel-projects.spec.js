@@ -2,9 +2,9 @@
  * E2E tests for the /panel/projects module (Plataforma space).
  *
  * FLOWS: admin-panel-projects
- * Covers: listing + search + scope segmented; minimal create through the
+ * Covers: listing + search + lifecycle-state filter; minimal create through the
  *         modal (with the non-blocking duplicate warning); backend 400
- *         keeping the modal open; archive through the confirm; the
+ *         keeping the modal open; state-count filtering; the
  *         clients-without-projects panel seeding the create modal; and the
  *         count link jumping into hostings pre-filtered by project.
  */
@@ -12,6 +12,7 @@ import { test, expect } from '../helpers/test.js';
 import { mockApi } from '../helpers/api.js';
 import { setAuthLocalStorage } from '../helpers/auth.js';
 import { ADMIN_PANEL_PROJECTS } from '../helpers/flow-tags.js';
+import { PANEL_BREAKPOINTS } from '../../config/responsive.js';
 
 test.setTimeout(60_000);
 
@@ -22,6 +23,15 @@ const PROJECT_ROWS = [
     description: '',
     status: 'active',
     status_label: 'Activo',
+    current_state: {
+      id: 2,
+      name: 'Activo',
+      system_key: 'active',
+      operational_effect: 'operating',
+      color: 'emerald',
+    },
+    state_review_required: false,
+    state_suggestion: null,
     created_at: '2026-08-01T10:00:00Z',
     client: { profile_id: 5, name: 'Germán Franco', company: 'Kore' },
     hostings_count: 2,
@@ -31,8 +41,17 @@ const PROJECT_ROWS = [
     id: 2,
     name: 'Vástago',
     description: 'App de gestión',
-    status: 'archived',
-    status_label: 'Archivado',
+    status: 'decommissioned',
+    status_label: 'Dado de baja',
+    current_state: {
+      id: 6,
+      name: 'Dado de baja',
+      system_key: 'decommissioned',
+      operational_effect: 'decommissioned',
+      color: 'gray',
+    },
+    state_review_required: false,
+    state_suggestion: null,
     created_at: '2026-07-01T10:00:00Z',
     client: { profile_id: 7, name: 'Deivis Ríos', company: 'Vástago' },
     hostings_count: 0,
@@ -40,7 +59,28 @@ const PROJECT_ROWS = [
   },
 ];
 
-const META = { total: 2, active: 1, archived: 1, clients_without_projects: 2 };
+const PROJECT_STATES = [
+  { id: 1, name: 'En desarrollo', system_key: 'development', operational_effect: 'development', color: 'blue', group: 1, order: 0, is_active: true, merged_into: null },
+  { id: 2, name: 'Activo', system_key: 'active', operational_effect: 'operating', color: 'emerald', group: 1, order: 1, is_active: true, merged_into: null },
+  { id: 3, name: 'Pausado', system_key: 'paused', operational_effect: 'paused', color: 'yellow', group: 1, order: 2, is_active: true, merged_into: null },
+  { id: 4, name: 'Suspendido', system_key: 'suspended', operational_effect: 'suspended', color: 'orange', group: 1, order: 3, is_active: true, merged_into: null },
+  { id: 5, name: 'Completado', system_key: 'completed', operational_effect: 'completed', color: 'purple', group: 1, order: 4, is_active: true, merged_into: null },
+  { id: 6, name: 'Dado de baja', system_key: 'decommissioned', operational_effect: 'decommissioned', color: 'gray', group: 1, order: 5, is_active: true, merged_into: null },
+];
+
+const META = {
+  total: 2,
+  by_state: PROJECT_STATES.map((state) => ({
+    state_id: state.id,
+    name: state.name,
+    color: state.color,
+    operational_effect: state.operational_effect,
+    count: [2, 6].includes(state.id) ? 1 : 0,
+  })),
+  review_required: 0,
+  clients_without_projects: 2,
+  records_without_project: 0,
+};
 
 const CLIENT_SEARCH_RESULT = [{
   id: 5,
@@ -118,6 +158,27 @@ function buildHandler({ calls, createStatus = 201, projects = PROJECT_ROWS, meta
         }),
       };
     }
+    if (apiPath.startsWith('project-states/') && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(PROJECT_STATES),
+      };
+    }
+    if (apiPath === 'project-state-groups/' && method === 'GET') {
+      return {
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([{
+          id: 1,
+          name: 'Ciclo del proyecto',
+          catalog: 'projects',
+          selection_mode: 'exclusive',
+          order: 0,
+          is_active: true,
+        }]),
+      };
+    }
     if (apiPath.startsWith('projects/') && method === 'GET') {
       return {
         status: 200,
@@ -144,18 +205,21 @@ function buildHandler({ calls, createStatus = 201, projects = PROJECT_ROWS, meta
           ...PROJECT_ROWS[0],
           id: 99,
           name: body.name,
+          status: 'development',
+          status_label: 'En desarrollo',
+          current_state: PROJECT_STATES[0],
           hostings_count: 0,
           incomes_count: 0,
         }),
       };
     }
-    if (/^projects\/\d+\/(archive|unarchive|update)\/$/.test(apiPath) && method === 'PATCH') {
+    if (/^projects\/\d+\/update\/$/.test(apiPath) && method === 'PATCH') {
       const body = route.request().postDataJSON() || {};
       calls.push({ apiPath, method, body });
       return {
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ ...PROJECT_ROWS[0], status: 'archived', status_label: 'Archivado' }),
+        body: JSON.stringify({ ...PROJECT_ROWS[0], ...body }),
       };
     }
     if (apiPath.startsWith('proposals/client-profiles/search/')) {
@@ -194,25 +258,23 @@ function buildHandler({ calls, createStatus = 201, projects = PROJECT_ROWS, meta
 }
 
 async function gotoProjects(page) {
-  await page.goto('/panel/projects', { waitUntil: 'domcontentloaded' });
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  if (page.viewportSize().width < PANEL_BREAKPOINTS.landscape) {
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+  }
+  const link = page.getByRole('link', { name: 'Proyectos', exact: true });
+  await expect(link).toBeVisible({ timeout: 25_000 });
+  await link.click();
   await expect(
     page.getByRole('heading', { name: 'Proyectos', exact: true }),
   ).toBeVisible({ timeout: 25_000 });
+  // The heading is server-rendered. Waiting for a real row proves the Pinia
+  // load and Nuxt hydration finished before an interaction is attempted.
+  await expect(getProjectResult(page, 1)).toBeVisible({ timeout: 25_000 });
 }
 
 function getProjectResult(page, projectId) {
   return page.getByTestId(new RegExp(`^(?:accounting-row|project-card)-${projectId}$`));
-}
-
-const ARCHIVED_SCOPE_ACTIONS = {
-  'responsive-compact': (page) => page.getByTestId('projects-scope-mobile').selectOption('archived'),
-  'responsive-portrait': (page) => page.getByTestId('projects-scope-mobile').selectOption('archived'),
-};
-
-async function chooseArchivedScope(page, projectName) {
-  const action = ARCHIVED_SCOPE_ACTIONS[projectName]
-    ?? ((currentPage) => currentPage.getByTestId('projects-scope-archived').click());
-  await action(page);
 }
 
 test.describe('Admin Panel Projects', () => {
@@ -227,12 +289,7 @@ test.describe('Admin Panel Projects', () => {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     await mockApi(page, buildHandler({ calls: [] }));
-    // Real entry path: the new Plataforma sidebar section is the way in.
-    await page.goto('/panel', { waitUntil: 'domcontentloaded' });
-    await page.getByRole('link', { name: 'Proyectos', exact: true }).click();
-    await expect(
-      page.getByRole('heading', { name: 'Proyectos', exact: true }),
-    ).toBeVisible({ timeout: 25_000 });
+    await gotoProjects(page);
 
     await expect(page.getByTestId('accounting-row-1')).toBeVisible();
     await expect(page.getByTestId('panel-projects-stat-orphans')).toContainText('2');
@@ -245,21 +302,20 @@ test.describe('Admin Panel Projects', () => {
     await expect(page.getByText('Sin resultados con esos filtros')).toBeVisible();
   });
 
-  test('the scope control reveals archived projects', {
+  test('the state control filters projects by the administrable catalog', {
     tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display', '@responsive:projects'],
-  }, async ({ page }, testInfo) => {
-    // quality: allow-deep-link (the sidebar entry path is covered by the search test; this one pins the scope control)
+  }, async ({ page }) => {
+    // quality: allow-deep-link (sidebar navigation is covered by the search test)
     await mockApi(page, buildHandler({ calls: [] }));
     await gotoProjects(page);
 
-    // Landing scope hides the archived row.
     await expect(getProjectResult(page, 1)).toBeVisible();
-    await expect(getProjectResult(page, 2)).toHaveCount(0);
+    await expect(getProjectResult(page, 2)).toBeVisible();
 
-    await chooseArchivedScope(page, testInfo.project.name);
+    await page.getByTestId('projects-state-filter').selectOption('state:6');
     await expect(getProjectResult(page, 2)).toBeVisible();
     await expect(getProjectResult(page, 1)).toHaveCount(0);
-    await expect(getProjectResult(page, 2)).toContainText('Archivado');
+    await expect(getProjectResult(page, 2)).toContainText('Dado de baja');
   });
 
   test('creates a project with the PA-38 minimum through the modal', {
@@ -280,7 +336,7 @@ test.describe('Admin Panel Projects', () => {
       name: 'Crushme',
       client_profile_id: 5,
       description: '',
-      status: 'active',
+      state_id: 1,
     });
   });
 
@@ -322,19 +378,15 @@ test.describe('Admin Panel Projects', () => {
     await expect(page.getByTestId('project-form-name')).toBeVisible();
   });
 
-  test('archiving asks confirmation and reports the row left circulation', {
-    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:success'],
+  test('a state count card applies the same lifecycle filter', {
+    tag: [...ADMIN_PANEL_PROJECTS, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
-    const calls = [];
-    await mockApi(page, buildHandler({ calls }));
+    await mockApi(page, buildHandler({ calls: [] }));
     await gotoProjects(page);
 
-    await page.getByTestId('project-archive-1').click();
-    await expect(page.getByText('saldrá de la vista de activos', { exact: false })).toBeVisible();
-    await page.getByTestId('confirm-modal-confirm').click();
-
-    await expect(page.getByText('Proyecto archivado')).toBeVisible();
-    expect(calls[0].apiPath).toBe('projects/1/archive/');
+    await page.getByTestId('panel-projects-stat-state-2').click();
+    await expect(getProjectResult(page, 1)).toContainText('Activo');
+    await expect(getProjectResult(page, 2)).toHaveCount(0);
   });
 
   test('the uncovered-clients panel seeds the create modal', {

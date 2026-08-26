@@ -251,7 +251,11 @@ def ensure_initial_state(document, *, actor=None):
     """Give new generic documents the seeded draft cycle state when available."""
     if not document_supports_states(document):
         return None
-    state = DocumentState.objects.filter(system_key='draft', is_active=True).first()
+    state = DocumentState.objects.filter(
+        catalog=DocumentStateGroup.Catalog.DOCUMENTS,
+        system_key='draft',
+        is_active=True,
+    ).first()
     if not state:
         return None
     episode, _ = open_state(
@@ -364,7 +368,7 @@ def merge_states(source, target, *, actor=None):
 def retire_state(state, *, actor=None):
     if state.episodes.filter(closed_at__isnull=True).exists():
         raise DocumentStateError(
-            'Retira primero el estado de los documentos que todavía lo usan.',
+            'Retira primero el estado de los registros que todavía lo usan.',
             code='state_in_use',
         )
     state.is_active = False

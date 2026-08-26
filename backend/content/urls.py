@@ -201,6 +201,17 @@ from content.views.document_state import (
     update_document_note,
     update_document_state,
 )
+from content.views.project_state import (
+    apply_project_state_transition,
+    merge_project_state,
+    preview_project_state_transition,
+    project_state_groups,
+    project_state_history,
+    project_state_suggestions,
+    project_states,
+    retire_project_state,
+    update_project_state,
+)
 from content.views.client_emails import (
     client_email_body,
     list_client_emails,
@@ -296,6 +307,47 @@ urlpatterns = [
     path('projects/<int:project_id>/assign-unlinked/', assign_project_unlinked_records, name='panel-projects-assign-unlinked'),
     path('projects/<int:project_id>/change-client/preview/', preview_project_client_change, name='panel-projects-change-client-preview'),
     path('projects/<int:project_id>/change-client/', change_project_client, name='panel-projects-change-client'),
+    path(
+        'projects/<int:project_id>/state-transitions/preview/',
+        preview_project_state_transition,
+        name='panel-project-state-transition-preview',
+    ),
+    path(
+        'projects/<int:project_id>/state-transitions/',
+        apply_project_state_transition,
+        name='panel-project-state-transition',
+    ),
+    path(
+        'projects/<int:project_id>/state-history/',
+        project_state_history,
+        name='panel-project-state-history',
+    ),
+    path(
+        'project-state-groups/',
+        project_state_groups,
+        name='project-state-groups',
+    ),
+    path('project-states/', project_states, name='project-states'),
+    path(
+        'project-states/suggestions/',
+        project_state_suggestions,
+        name='project-state-suggestions',
+    ),
+    path(
+        'project-states/<int:state_id>/',
+        update_project_state,
+        name='update-project-state',
+    ),
+    path(
+        'project-states/<int:state_id>/retire/',
+        retire_project_state,
+        name='retire-project-state',
+    ),
+    path(
+        'project-states/<int:state_id>/merge/',
+        merge_project_state,
+        name='merge-project-state',
+    ),
 
     # Proposals — admin CRUD
     path('proposals/', list_proposals, name='list-proposals'),

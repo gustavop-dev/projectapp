@@ -1,0 +1,17 @@
+{
+  "id": "admin-project-state-catalog",
+  "name": "Admin Project State Catalog",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "The Administrar estados action opens the shared state-catalog component scoped to projects. It shows the six seeded meanings (En desarrollo, Activo, Pausado, Suspendido, Completado and Dado de baja), usage and historical counts, and lets the admin create, rename, recolor, merge or retire reusable states. Editable names stay separate from the immutable operational effect that controls billing and closure. A state in use cannot change effect or be retired, and failed catalog writes preserve the local draft so the user can retry.",
+  "expectedSpecs": 6,
+  "outcomes": [
+    "display",
+    "success",
+    "error",
+    "failure"
+  ]
+}

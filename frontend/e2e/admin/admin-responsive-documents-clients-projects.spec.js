@@ -267,6 +267,13 @@ const PROJECT = {
   description: 'Operación comercial y contable',
   status: 'active',
   status_label: 'Activo',
+  current_state: {
+    id: 2,
+    name: 'Activo',
+    system_key: 'active',
+    operational_effect: 'operating',
+    color: 'emerald',
+  },
   created_at: '2026-08-01T10:00:00Z',
   client: {
     profile_id: 101,
@@ -288,8 +295,14 @@ async function mockProjects(page) {
         results: [PROJECT],
         meta: {
           total: 1,
-          active: 1,
-          archived: 2,
+          by_state: [{
+            state_id: 2,
+            name: 'Activo',
+            color: 'emerald',
+            operational_effect: 'operating',
+            count: 1,
+          }],
+          review_required: 0,
           clients_without_projects: 3,
           records_without_project: 3,
         },
@@ -313,15 +326,8 @@ test.describe('Proyectos — matriz responsiva', () => {
         await expect(page.getByTestId('projects-card-list')).toBeVisible();
         await expect(page.getByTestId('project-card-12'))
           .toContainText('Plataforma Atlas Internacional');
-        await expect(page.getByTestId('projects-scope-mobile')).toBeVisible();
-
-        if (viewport.phone) {
-          await expect(page.getByTestId('panel-projects-stat-archived')).toHaveCount(0);
-          await page.getByTestId('projects-stats-toggle').click();
-          await expect(page.getByTestId('panel-projects-stat-archived')).toBeVisible();
-        } else {
-          await expect(page.getByTestId('panel-projects-stat-archived')).toBeVisible();
-        }
+        await expect(page.getByTestId('projects-state-filter')).toBeVisible();
+        await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
 
         await page.getByTestId('project-actions-12').click();
         const actions = page.getByTestId('project-actions-drawer');
@@ -331,7 +337,8 @@ test.describe('Proyectos — matriz responsiva', () => {
         await expect(page.getByTestId('accounting-row-12'))
           .toContainText('Plataforma Atlas Internacional');
         await expect(page.getByTestId('projects-card-list')).toHaveCount(0);
-        await expect(page.getByTestId('projects-scope-all')).toBeVisible();
+        await expect(page.getByTestId('projects-state-filter')).toBeVisible();
+        await expect(page.getByTestId('panel-projects-stat-state-2')).toContainText('Activo');
       }
 
       await expectNoViewportOverflow(page);

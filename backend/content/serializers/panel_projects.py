@@ -10,19 +10,21 @@ from rest_framework import serializers
 
 from accounts.models import Project, UserProfile
 from accounts.services.proposal_client_service import build_client_display_name
-
-# ``archived`` is never a form choice: a project is archived through its
-# dedicated endpoint, and it is not born that way either.
-_EDITABLE_STATUS_CHOICES = [
-    choice for choice in Project.STATUS_CHOICES
-    if choice[0] != Project.STATUS_ARCHIVED
-]
-
+from content.models import DocumentState, DocumentStateGroup
+from content.serializers.document_state import DocumentStateSummarySerializer
+from content.services.project_state_service import (
+    LEGACY_STATUS_BY_EFFECT,
+    initialize_project_state,
+    project_state_suggestion,
+)
 
 class PanelProjectSerializer(serializers.ModelSerializer):
     """Listing row for ``/panel/projects``."""
 
-    status_label = serializers.CharField(source='status_display', read_only=True)
+    status = serializers.SerializerMethodField()
+    status_label = serializers.SerializerMethodField()
+    current_state = DocumentStateSummarySerializer(read_only=True)
+    state_suggestion = serializers.SerializerMethodField()
     client = serializers.SerializerMethodField()
     hostings_count = serializers.IntegerField(read_only=True)
     incomes_count = serializers.IntegerField(read_only=True)
@@ -36,6 +38,7 @@ class PanelProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = [
             'id', 'name', 'description', 'status', 'status_label',
+            'current_state', 'state_review_required', 'state_suggestion',
             'created_at', 'client', 'hostings_count', 'incomes_count',
             'unlinked_hostings_count', 'unlinked_incomes_count',
             'unlinked_documents_count',
@@ -58,6 +61,16 @@ class PanelProjectSerializer(serializers.ModelSerializer):
             'company': profile.company_name or '',
         }
 
+    def get_status(self, project):
+        state = project.current_state
+        return (state.system_key or state.slug) if state else None
+
+    def get_status_label(self, project):
+        return project.current_state.name if project.current_state else 'Sin clasificar'
+
+    def get_state_suggestion(self, project):
+        return project_state_suggestion(project)
+
 
 class CreatePanelProjectSerializer(serializers.Serializer):
     """Create payload: the PA-38 minimum — name and client, the rest optional.
@@ -73,10 +86,14 @@ class CreatePanelProjectSerializer(serializers.Serializer):
     description = serializers.CharField(
         required=False, allow_blank=True, default='',
     )
-    status = serializers.ChoiceField(
-        choices=_EDITABLE_STATUS_CHOICES,
+    state_id = serializers.PrimaryKeyRelatedField(
+        source='state',
+        queryset=DocumentState.objects.filter(
+            catalog=DocumentStateGroup.Catalog.PROJECTS,
+            is_active=True,
+            merged_into__isnull=True,
+        ),
         required=False,
-        default=Project.STATUS_ACTIVE,
     )
 
     def validate_client_profile_id(self, value):
@@ -89,12 +106,27 @@ class CreatePanelProjectSerializer(serializers.Serializer):
         return value
 
     def create(self, validated_data):
-        return Project.objects.create(
+        state = validated_data.pop('state', None)
+        if state is None:
+            state = DocumentState.objects.get(
+                catalog=DocumentStateGroup.Catalog.PROJECTS,
+                system_key=Project.STATUS_DEVELOPMENT,
+                is_active=True,
+            )
+        project = Project.objects.create(
             name=validated_data['name'],
             description=validated_data.get('description', ''),
-            status=validated_data.get('status', Project.STATUS_ACTIVE),
             client=self.client_profile.user,
+            current_state=state,
+            status=LEGACY_STATUS_BY_EFFECT[state.operational_effect],
         )
+        request = self.context.get('request')
+        initialize_project_state(
+            project,
+            state,
+            actor=request.user if request else None,
+        )
+        return project
 
 
 class ProjectAssignUnlinkedSerializer(serializers.Serializer):
@@ -131,18 +163,46 @@ class ProjectAssignUnlinkedSerializer(serializers.Serializer):
 class UpdatePanelProjectSerializer(serializers.ModelSerializer):
     """Partial update with the platform's field semantics, panel-scoped.
 
-    Same max lengths and choices as the platform ``UpdateProjectSerializer``,
-    restricted to what the panel edits; the client is immutable here and the
-    archive transition belongs to its dedicated endpoint.
+    Same max lengths as the platform ``UpdateProjectSerializer``, restricted
+    to what the panel edits. Client and lifecycle changes use their dedicated
+    preview-and-apply flows.
     """
-
-    status = serializers.ChoiceField(
-        choices=_EDITABLE_STATUS_CHOICES, required=False,
-    )
 
     class Meta:
         model = Project
-        fields = ['name', 'description', 'status']
+        fields = ['name', 'description']
+
+
+class ProjectTransitionPreviewSerializer(serializers.Serializer):
+    state_id = serializers.PrimaryKeyRelatedField(
+        source='state',
+        queryset=DocumentState.objects.filter(
+            catalog=DocumentStateGroup.Catalog.PROJECTS,
+        ),
+    )
+    effective_at = serializers.DateTimeField(required=False)
+
+
+class ProjectIncomeResolutionSerializer(serializers.Serializer):
+    income_id = serializers.IntegerField()
+    action = serializers.ChoiceField(
+        choices=('keep_receivable', 'write_off'),
+    )
+
+
+class ProjectTransitionApplySerializer(ProjectTransitionPreviewSerializer):
+    impact_token = serializers.CharField(min_length=64, max_length=64)
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        default='',
+    )
+    resolutions = ProjectIncomeResolutionSerializer(
+        many=True,
+        required=False,
+        default=list,
+    )
 
 
 class ProjectChangeClientSerializer(serializers.Serializer):

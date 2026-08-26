@@ -132,7 +132,7 @@ class TestProjectCreate:
         data = resp.json()
         assert data['name'] == 'New Project'
         assert data['client_id'] == client_user.id
-        assert data['status'] == 'active'
+        assert data['status'] == Project.STATUS_DEVELOPMENT
 
     def test_client_cannot_create_project(self, api_client, client_headers, client_user):
         resp = api_client.post('/api/accounts/projects/', {
@@ -180,13 +180,25 @@ class TestProjectUpdate:
     def test_admin_updates_project(self, api_client, admin_headers, sample_project):
         resp = api_client.patch(
             f'/api/accounts/projects/{sample_project.id}/',
-            {'name': 'Updated Name', 'status': 'paused'},
+            {'name': 'Updated Name'},
             format='json', **admin_headers,
         )
 
         assert resp.status_code == 200
         assert resp.json()['name'] == 'Updated Name'
-        assert resp.json()['status'] == 'paused'
+        assert resp.json()['status'] == Project.STATUS_ACTIVE
+
+    def test_admin_must_use_the_transition_flow_for_status(
+        self, api_client, admin_headers, sample_project,
+    ):
+        resp = api_client.patch(
+            f'/api/accounts/projects/{sample_project.id}/',
+            {'status': Project.STATUS_PAUSED},
+            format='json', **admin_headers,
+        )
+
+        assert resp.status_code == 400
+        assert resp.json()['code'] == 'project_state_transition_required'
 
     def test_client_cannot_update_project(self, api_client, client_headers, sample_project):
         resp = api_client.patch(
@@ -200,12 +212,15 @@ class TestProjectUpdate:
 
 @pytest.mark.django_db
 class TestProjectArchive:
-    def test_admin_archives_project(self, api_client, admin_headers, sample_project):
+    def test_admin_delete_is_replaced_by_lifecycle(
+        self, api_client, admin_headers, sample_project,
+    ):
         resp = api_client.delete(f'/api/accounts/projects/{sample_project.id}/', **admin_headers)
 
-        assert resp.status_code == 200
+        assert resp.status_code == 410
+        assert resp.json()['code'] == 'project_archive_replaced'
         sample_project.refresh_from_db()
-        assert sample_project.status == Project.STATUS_ARCHIVED
+        assert sample_project.status == Project.STATUS_ACTIVE
 
     def test_client_cannot_archive_project(self, api_client, client_headers, sample_project):
         resp = api_client.delete(f'/api/accounts/projects/{sample_project.id}/', **client_headers)

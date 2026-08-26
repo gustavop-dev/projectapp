@@ -1,0 +1,485 @@
+/**
+ * E2E coverage for the real project lifecycle and its administrable catalog.
+ *
+ * @flow:admin-project-lifecycle-states
+ * @flow:admin-project-state-catalog
+ */
+import { test, expect } from '../helpers/test.js';
+import { mockApi } from '../helpers/api.js';
+import { setAuthLocalStorage } from '../helpers/auth.js';
+import {
+  ADMIN_PROJECT_LIFECYCLE_STATES,
+  ADMIN_PROJECT_STATE_CATALOG,
+} from '../helpers/flow-tags.js';
+
+test.setTimeout(60_000);
+
+const json = (body, status = 200) => ({
+  status,
+  contentType: 'application/json',
+  body: JSON.stringify(body),
+});
+
+const GROUPS = [{
+  id: 1,
+  name: 'Ciclo del proyecto',
+  catalog: 'projects',
+  selection_mode: 'exclusive',
+  order: 0,
+  is_active: true,
+  state_count: 7,
+}];
+
+function projectState(
+  id,
+  name,
+  systemKey,
+  operationalEffect,
+  color,
+  overrides = {},
+) {
+  return {
+    id,
+    name,
+    slug: name.toLowerCase().replaceAll(' ', '-'),
+    color,
+    system_key: systemKey,
+    operational_effect: operationalEffect,
+    order: id,
+    group: 1,
+    group_id: 1,
+    group_name: 'Ciclo del proyecto',
+    group_mode: 'exclusive',
+    group_order: 0,
+    is_active: true,
+    merged_into: null,
+    incompatibility_ids: [],
+    active_project_count: 0,
+    historical_episode_count: 0,
+    ...overrides,
+  };
+}
+
+function initialCatalog() {
+  return [
+    projectState(1, 'En desarrollo', 'development', 'development', 'blue'),
+    projectState(2, 'Activo', 'active', 'operating', 'emerald', {
+      active_project_count: 1,
+      historical_episode_count: 3,
+    }),
+    projectState(3, 'Pausado', 'paused', 'paused', 'yellow'),
+    projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange'),
+    projectState(5, 'Completado', 'completed', 'completed', 'purple'),
+    projectState(6, 'Dado de baja', 'decommissioned', 'decommissioned', 'gray'),
+    projectState(7, 'En garantía', '', 'operating', 'blue'),
+  ];
+}
+
+function projectRow(state) {
+  return {
+    id: 9,
+    name: 'Kore',
+    description: 'Plataforma clínica',
+    status: state.system_key || state.slug,
+    status_label: state.name,
+    current_state: state,
+    state_review_required: false,
+    state_suggestion: null,
+    created_at: '2026-06-01T10:00:00Z',
+    client: { profile_id: 5, name: 'Germán Franco', company: 'Kore' },
+    hostings_count: 1,
+    incomes_count: 2,
+    unlinked_hostings_count: 0,
+    unlinked_incomes_count: 0,
+    unlinked_documents_count: 0,
+  };
+}
+
+function listing(catalog, currentState) {
+  return {
+    results: [projectRow(currentState)],
+    meta: {
+      total: 1,
+      by_state: catalog.filter((state) => state.is_active).map((state) => ({
+        state_id: state.id,
+        name: state.name,
+        color: state.color,
+        operational_effect: state.operational_effect,
+        count: state.id === currentState.id ? 1 : 0,
+      })),
+      review_required: 0,
+      clients_without_projects: 0,
+      records_without_project: 0,
+    },
+  };
+}
+
+const HISTORY = [
+  {
+    id: 31,
+    state: projectState(4, 'Suspendido', 'suspended', 'suspended', 'orange'),
+    opened_at: '2026-08-12T10:00:00Z',
+    opening_time_known: true,
+    opened_by_name: 'Ana Admin',
+    closed_at: null,
+    closed_by_name: '',
+    close_note: '',
+    outcome: '',
+    duration_seconds: 1209600,
+    notes: [],
+    events: [],
+  },
+  {
+    id: 30,
+    state: projectState(2, 'Activo', 'active', 'operating', 'emerald'),
+    opened_at: '2026-06-01T10:00:00Z',
+    opening_time_known: true,
+    opened_by_name: 'Ana Admin',
+    closed_at: '2026-08-12T10:00:00Z',
+    closed_by_name: 'Ana Admin',
+    close_note: 'Hosting sin pago desde agosto.',
+    outcome: 'transitioned',
+    duration_seconds: 6220800,
+    notes: [],
+    events: [],
+  },
+];
+
+function baseRoutes(apiPath, method, catalog, currentState) {
+  if (apiPath === 'auth/check/') {
+    return json({ user: { username: 'admin', is_staff: true, is_superuser: true } });
+  }
+  if (apiPath === 'project-states/' && method === 'GET') return json(catalog);
+  if (apiPath === 'project-state-groups/' && method === 'GET') return json(GROUPS);
+  if (apiPath === 'projects/' && method === 'GET') {
+    return json(listing(catalog, currentState));
+  }
+  if (apiPath === 'projects/9/state-history/' && method === 'GET') {
+    return json(HISTORY);
+  }
+  if (apiPath.startsWith('accounts/saved-filter-tabs')) return json([]);
+  return null;
+}
+
+async function openProjects(page) {
+  await page.goto('/panel', { waitUntil: 'domcontentloaded' });
+  await page.getByRole('link', { name: 'Proyectos', exact: true }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Proyectos', exact: true }),
+  ).toBeVisible({ timeout: 25_000 });
+  // The SSR heading arrives before the client store. A populated row is the
+  // observable readiness boundary for lifecycle buttons and links.
+  await expect(page.getByTestId('accounting-row-9')).toBeVisible({ timeout: 25_000 });
+}
+
+async function openCatalog(page) {
+  await openProjects(page);
+  await page.getByTestId('projects-manage-states').click();
+  await expect(page.getByTestId('project-state-catalog')).toBeVisible();
+}
+
+test.describe('Admin project lifecycle states', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('shows the dated lifecycle history reached from the project row', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[3];
+    await mockApi(page, async ({ apiPath, method }) => (
+      baseRoutes(apiPath, method, catalog, currentState)
+    ));
+
+    await openProjects(page);
+    await page.getByTestId('project-state-history-9').click();
+
+    const history = page.getByTestId('project-state-history');
+    await expect(history).toContainText('Suspendido');
+    await expect(history).toContainText('Activo');
+    await expect(history).toContainText('Hosting sin pago desde agosto.');
+    await expect(history).toContainText('Ana Admin');
+  });
+
+  test('previews suspension consequences before changing the row', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    let currentState = catalog[1];
+    const calls = [];
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        calls.push({ kind: 'preview', body: route.request().postDataJSON() });
+        return json({
+          target_effect: 'suspended',
+          impact_token: 'a'.repeat(64),
+          effective_at: '2026-08-26T10:00:00Z',
+          pending_incomes: [],
+          future_incomes: [],
+          future_payments: [],
+          active_hostings: [{ id: 80, domain_url: 'https://korehealths.com' }],
+          blockers: [],
+        });
+      }
+      if (apiPath === 'projects/9/state-transitions/' && method === 'POST') {
+        calls.push({ kind: 'apply', body: route.request().postDataJSON() });
+        currentState = catalog[3];
+        return json({ project: projectRow(currentState), episode: HISTORY[0] });
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await page.getByTestId('project-change-state-9').click();
+    await page.getByTestId('project-state-target').selectOption('4');
+    await page.getByTestId('project-state-preview').click();
+
+    await expect(page.getByTestId('project-state-impact')).toContainText(
+      'La deuda ya causada se conserva',
+    );
+    await page.getByTestId('project-state-apply').click();
+
+    await expect(page.getByRole('alert')).toContainText('Estado actualizado');
+    await expect(page.getByTestId('accounting-row-9')).toContainText('Suspendido');
+    expect(calls.map((call) => call.kind)).toEqual(['preview', 'apply']);
+    expect(calls[1].body.state_id).toBe(4);
+  });
+
+  test('blocks a direct decommission until debt and note decisions exist', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        return json({
+          target_effect: 'decommissioned',
+          impact_token: 'b'.repeat(64),
+          effective_at: '2026-08-26T10:00:00Z',
+          pending_incomes: [{
+            id: 41,
+            concept: 'Hosting agosto',
+            pending_amount: '120000.00',
+          }],
+          future_incomes: [],
+          future_payments: [],
+          active_hostings: [],
+          blockers: [],
+        });
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await page.getByTestId('project-change-state-9').click();
+    await page.getByTestId('project-state-target').selectOption('6');
+    await page.getByTestId('project-state-preview').click();
+
+    const apply = page.getByTestId('project-state-apply');
+    await expect(apply).toBeDisabled();
+    await page.getByTestId('project-state-income-41').selectOption('keep_receivable');
+    await expect(apply).toBeDisabled();
+    await page.getByTestId('project-state-note').fill('Baja directa confirmada.');
+    await expect(apply).toBeEnabled();
+  });
+
+  test('keeps the transition open when its impact preview became stale', {
+    tag: [...ADMIN_PROJECT_LIFECYCLE_STATES, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'projects/9/state-transitions/preview/' && method === 'POST') {
+        return json({
+          target_effect: 'suspended',
+          impact_token: 'c'.repeat(64),
+          effective_at: '2026-08-26T10:00:00Z',
+          pending_incomes: [],
+          future_incomes: [],
+          future_payments: [],
+          active_hostings: [],
+          blockers: [],
+        });
+      }
+      if (apiPath === 'projects/9/state-transitions/' && method === 'POST') {
+        return json({
+          detail: 'Los cobros cambiaron. Revisa de nuevo las consecuencias.',
+          code: 'stale_transition_preview',
+        }, 409);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openProjects(page);
+    await page.getByTestId('project-change-state-9').click();
+    await page.getByTestId('project-state-target').selectOption('4');
+    await page.getByTestId('project-state-preview').click();
+    await page.getByTestId('project-state-apply').click();
+
+    await expect(page.getByTestId('project-state-error')).toContainText(
+      'Los cobros cambiaron',
+    );
+    await expect(page.getByTestId('project-state-transition-modal')).toBeVisible();
+    await expect(page.getByTestId('accounting-row-9')).toContainText('Activo');
+  });
+});
+
+test.describe('Admin project state catalog', () => {
+  test.beforeEach(async ({ page }) => {
+    await setAuthLocalStorage(page, {
+      token: 'e2e-token',
+      userAuth: { id: 9001, role: 'admin', is_staff: true },
+    });
+  });
+
+  test('shows the six seeded meanings and their usage counts', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:display'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => (
+      baseRoutes(apiPath, method, catalog, currentState)
+    ));
+
+    await openCatalog(page);
+
+    await expect(page.getByTestId('catalog-state-1')).toContainText('En desarrollo');
+    await expect(page.getByTestId('catalog-state-4')).toContainText('Suspendido');
+    await expect(page.getByTestId('catalog-state-5')).toContainText('Completado');
+    await expect(page.getByTestId('catalog-state-6')).toContainText('Dado de baja');
+    await expect(page.getByTestId('catalog-state-2')).toContainText('1 proyectos activos · 3 episodios');
+  });
+
+  test('creates a reusable state with an explicit operational effect', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    let createBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'project-states/' && method === 'POST') {
+        createBody = route.request().postDataJSON();
+        const created = projectState(
+          8,
+          createBody.name,
+          '',
+          createBody.operational_effect,
+          createBody.color,
+        );
+        catalog.push(created);
+        return json(created, 201);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    await page.getByTestId('catalog-new-state-name').fill('En estabilización');
+    await page.getByLabel('Efecto operativo del nuevo estado').selectOption('operating');
+    await page.getByLabel('Color del nuevo estado').selectOption('purple');
+    await page.getByTestId('catalog-create-state').click();
+
+    await expect.poll(() => createBody).not.toBeNull();
+    expect(createBody).toMatchObject({
+      name: 'En estabilización',
+      operational_effect: 'operating',
+      color: 'purple',
+    });
+    await expect(page.getByTestId('catalog-state-8')).toContainText('En estabilización');
+  });
+
+  test('renames a state without changing its business effect', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    let updateBody = null;
+    await mockApi(page, async ({ route, apiPath, method }) => {
+      if (apiPath === 'project-states/7/' && method === 'PATCH') {
+        updateBody = route.request().postDataJSON();
+        Object.assign(catalog.find((state) => state.id === 7), updateBody);
+        return json(catalog.find((state) => state.id === 7));
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    const row = page.getByTestId('catalog-state-7');
+    await row.getByLabel('Nombre del estado').fill('Garantía activa');
+    await page.getByTestId('catalog-save-state-7').click();
+
+    await expect.poll(() => updateBody).not.toBeNull();
+    expect(updateBody.operational_effect).toBe('operating');
+    await expect(page.getByTestId('catalog-state-7')).toContainText('Garantía activa');
+  });
+
+  test('retires an unused custom state while keeping it in the catalog history', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:success'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'project-states/7/retire/' && method === 'POST') {
+        const retired = catalog.find((state) => state.id === 7);
+        retired.is_active = false;
+        return json(retired);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByTestId('catalog-retire-state-7').click();
+
+    await expect(page.getByRole('alert')).toContainText('Estado retirado');
+    await expect(page.getByTestId('catalog-state-7')).toContainText('Retirado');
+  });
+
+  test('rejects retiring a state that still has active projects', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:error'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'project-states/2/retire/' && method === 'POST') {
+        return json({
+          detail: 'Mueve primero los proyectos que todavía usan este estado.',
+          code: 'state_in_use',
+        }, 409);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    page.once('dialog', (dialog) => dialog.accept());
+    await page.getByTestId('catalog-retire-state-2').click();
+
+    await expect(page.getByRole('alert')).toContainText('No se puede retirar');
+    await expect(page.getByRole('alert')).toContainText('Mueve primero los proyectos');
+    await expect(page.getByTestId('catalog-state-2')).toContainText('Activo');
+  });
+
+  test('keeps the edited name when the catalog server fails', {
+    tag: [...ADMIN_PROJECT_STATE_CATALOG, '@role:admin', '@outcome:failure'],
+  }, async ({ page }) => {
+    const catalog = initialCatalog();
+    const currentState = catalog[1];
+    await mockApi(page, async ({ apiPath, method }) => {
+      if (apiPath === 'project-states/7/' && method === 'PATCH') {
+        return json({ detail: 'El catálogo no está disponible.' }, 503);
+      }
+      return baseRoutes(apiPath, method, catalog, currentState);
+    });
+
+    await openCatalog(page);
+    const name = page.getByTestId('catalog-state-7').getByLabel('Nombre del estado');
+    await name.fill('Garantía hoy');
+    await page.getByTestId('catalog-save-state-7').click();
+
+    await expect(page.getByRole('alert')).toContainText('No se pudo actualizar');
+    await expect(name).toHaveValue('Garantía hoy');
+  });
+});
