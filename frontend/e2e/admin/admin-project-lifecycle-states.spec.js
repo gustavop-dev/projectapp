@@ -431,8 +431,9 @@ test.describe('Admin project state catalog', () => {
     });
 
     await openCatalog(page);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('catalog-retire-state-7').click();
+    await expect(page.getByRole('dialog')).toContainText('“En garantía” dejará de aparecer');
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByRole('alert')).toContainText('Estado retirado');
     await expect(page.getByTestId('catalog-state-7')).toContainText('Retirado');
@@ -454,8 +455,9 @@ test.describe('Admin project state catalog', () => {
     });
 
     await openCatalog(page);
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('catalog-retire-state-2').click();
+    await expect(page.getByRole('dialog')).toContainText('“Activo” dejará de aparecer');
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByRole('alert')).toContainText('No se puede retirar');
     await expect(page.getByRole('alert')).toContainText('Mueve primero los proyectos');
