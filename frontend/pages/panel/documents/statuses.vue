@@ -1,4 +1,5 @@
 <script setup>
+import StateCatalogManager from '~/components/panel/states/StateCatalogManager.vue';
 import { useDocumentStateStore } from '~/stores/document_states';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });

@@ -36,10 +36,12 @@ describe('BaseControlGate', () => {
     const trigger = wrapper.get('[data-testid="preview-gate-trigger"]')
 
     expect(trigger.attributes('tabindex')).toBe('0')
-    expect(trigger.attributes('aria-label')).toContain('Agrega un correo válido.')
+    expect(trigger.attributes('aria-label')).toBe('Previsualizar no disponible')
     expect(trigger.attributes('aria-describedby')).toBe(
       wrapper.get('[data-testid="preview-gate-reasons"]').attributes('id'),
     )
+    expect(wrapper.get('[data-testid="preview-gate-reasons"]').text())
+      .toContain('Agrega un correo válido.')
   })
 
   it('keeps non-resolvable reasons accessible without showing adjacent copy', () => {
@@ -50,6 +52,8 @@ describe('BaseControlGate', () => {
 
     expect(wrapper.get('[data-testid="preview-gate-reasons"]').classes()).toContain('sr-only')
     expect(wrapper.get('[data-testid="preview-gate-trigger"]').attributes('aria-label'))
+      .toBe('Previsualizar no disponible')
+    expect(wrapper.get('[data-testid="preview-gate-reasons"]').text())
       .toContain('El documento emitido es de solo lectura.')
   })
 

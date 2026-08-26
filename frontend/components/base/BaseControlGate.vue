@@ -39,7 +39,6 @@ const normalizedReasons = computed(() => {
 })
 
 const blocked = computed(() => normalizedReasons.value.length > 0)
-const reasonText = computed(() => normalizedReasons.value.join(' '))
 const alignmentClass = computed(() => ({
   start: 'items-start text-left',
   end: 'items-end text-right',
@@ -63,7 +62,7 @@ const alignmentClass = computed(() => ({
         <div
           class="inline-flex max-w-full"
           :tabindex="blocked ? 0 : undefined"
-          :aria-label="blocked ? `${label}: ${reasonText}` : undefined"
+          :aria-label="blocked ? label : undefined"
           :aria-describedby="blocked ? descriptionId : undefined"
           :data-testid="testid ? `${testid}-trigger` : undefined"
         >
