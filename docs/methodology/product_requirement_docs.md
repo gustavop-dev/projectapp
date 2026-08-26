@@ -366,9 +366,22 @@ Internal double-ledger bookkeeping at `/panel/accounting/*`, restricted to super
 
 Remote Model-Context-Protocol connectors that expose panel modules to claude.ai custom connectors, managed at `/panel/mcps` (superuser-gated; shipped 2026-07-02/03).
 
-- **Connectors**: blog, documents, proposals, diagnostics, clients, tasks, accounting — each a token-authenticated JSON-RPC tool server (`content/mcp/*`).
+- **Connectors**: blog, documents, proposals, diagnostics, clients, tasks,
+  accounting, LinkedIn personal and communications — each a token-authenticated
+  JSON-RPC tool server (`content/mcp/*`) grouped by module and exposed through one
+  registered slug.
 - **Management**: generate/rotate a one-time connector URL (plaintext token shown once, only its SHA-256 hash stored), toggle active, and watch a connection-activity feed (handshake / tool_call / auth_error / origin_rejected).
 - **Security**: Origin validation (DNS-rebinding defense), per-connector token, active-state gate.
+- **Communications**: lists threads by client/project, opens the ordered message
+  history, creates client-owned threads, records incoming/outgoing messages with
+  existing Document references and marks an outgoing draft as sent. It reuses the
+  panel services and invariants; it records delivery facts but does not send through
+  a provider. Migration `content.0212_seed_communications_mcp` creates this connector
+  disabled and without a token so activation remains an explicit operator action.
+- **Parity**: Documents exposes client, project and workflow states; Accounting
+  exposes hosting periods, allocations, partial payments and settlement history.
+  `content/mcp/contracts.py`, focused tests and `docs/MCP_VALIDATION_RUNBOOK.md`
+  make every exposed model field and repeatable validation scenario explicit.
 - The `client-report` skill publishes session change-reports and their canonical
   subject/email/WhatsApp note to the Documents connector; custom notes remain
   available for manual or direct MCP use.

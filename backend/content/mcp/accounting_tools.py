@@ -25,12 +25,26 @@ Each entry: {'name', 'description', 'input_schema', 'handler'}.
 from accounts.models import Project
 from content.mcp.actor import mcp_actor
 from content.mcp.protocol import ToolError
-from content.models import AccountingChangeLog, AccountingSettings
+from content.models import (
+    AccountingChangeLog,
+    AccountingSettings,
+    ExpenseRecord,
+    IncomeRecord,
+)
 from content.serializers.accounting import (
     AccountingChangeLogSerializer,
     AccountingSettingsSerializer,
+    ExpenseRecordSerializer,
+    IncomeBulkSettlementSerializer,
+    IncomeRecordSerializer,
+    IncomeSettlementSerializer,
+    PocketMovementSerializer,
 )
-from content.services import accounting_service
+from content.services import (
+    accounting_income_detail_service,
+    accounting_service,
+    accounting_settlement_service,
+)
 from content.utils import today_bogota
 from content.views.accounting import (
     EntityType,
@@ -264,6 +278,71 @@ def mute_income(arguments):
         user=mcp_actor(),
     )
     return IncomeRecordSerializer(income).data
+
+
+def get_income_detail(arguments):
+    """Read payments, deductions and collection-account state for one income."""
+    try:
+        income = accounting_income_detail_service.income_detail_queryset().get(
+            pk=int(arguments.get('record_id')),
+        )
+    except (IncomeRecord.DoesNotExist, TypeError, ValueError) as exc:
+        raise ToolError(
+            f'No existe un registro income con id={arguments.get("record_id")}.'
+        ) from exc
+    return accounting_income_detail_service.build_income_detail_payload(income)
+
+
+def settle_income(arguments):
+    """Register one payment through the same settlement flow as the panel."""
+    income = _get_instance_or_error('income', arguments.get('record_id'))
+    serializer = IncomeSettlementSerializer(data={
+        key: value for key, value in arguments.items() if key != 'record_id'
+    })
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    try:
+        result = accounting_settlement_service.settle_expected_income(
+            income, serializer.validated_data, mcp_actor(),
+        )
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return {
+        'income': IncomeRecordSerializer(result['income']).data,
+        'liquid': (
+            IncomeRecordSerializer(result['liquid']).data
+            if result['liquid'] is not None else None
+        ),
+        'expenses': ExpenseRecordSerializer(result['expenses'], many=True).data,
+        'expected_incomes': IncomeRecordSerializer(
+            result['expected_incomes'], many=True,
+        ).data,
+    }
+
+
+def bulk_settle_incomes(arguments):
+    """Distribute one real payment across several expected incomes."""
+    serializer = IncomeBulkSettlementSerializer(data=arguments)
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    try:
+        result = accounting_settlement_service.bulk_settle_expected_incomes(
+            serializer.validated_data, mcp_actor(),
+        )
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+
+    parent_ids = [income.pk for income in result['incomes']]
+    records = list(
+        IncomeRecord.objects.filter(expected_income_id__in=parent_ids)
+    ) + list(result['incomes'])
+    if result['credit'] is not None:
+        records.append(result['credit'])
+    return {
+        'updated': len(result['incomes']),
+        'results': IncomeRecordSerializer(records, many=True).data,
+        'movement': PocketMovementSerializer(result['movement']).data,
+    }
 
 
 def get_settings(arguments):
@@ -585,6 +664,59 @@ def _list_schema(key):
 
 _RECORD_ID_PROP = {'record_id': {'type': 'integer', 'description': 'ID del registro.'}}
 
+_SETTLEMENT_PROPS = {
+    **_RECORD_ID_PROP,
+    'concept': {'type': 'string', 'description': 'Concepto del pago recibido.'},
+    'period_date': {'type': 'string', 'description': 'Fecha o período del pago (YYYY-MM-DD o YYYY-MM).'},
+    'destination': {'type': 'string', 'enum': ['partners', 'pocket'], 'default': 'partners'},
+    'total_amount': {'type': ['number', 'string'], 'description': 'Monto efectivamente recibido; puede ser cero si todo se resuelve con deducciones o saldos futuros.'},
+    'gustavo_amount': {'type': ['number', 'string']},
+    'carlos_amount': {'type': ['number', 'string']},
+    'notes': {'type': 'string'},
+    'deductions': {
+        'type': 'array',
+        'description': 'Comisiones, retenciones u otros descuentos que no se cobrarán después.',
+        'items': {
+            'type': 'object',
+            'properties': {
+                'type': {'type': 'string', 'enum': [value for value, _ in ExpenseRecord.DeductionType.choices]},
+                'detail': {'type': 'string', 'description': 'Obligatorio cuando type=other.'},
+                'amount': {'type': ['number', 'string']},
+            },
+            'required': ['type', 'amount'],
+        },
+    },
+    'expected_incomes': {
+        'type': 'array',
+        'description': 'Partes del saldo que sí se cobrarán después como nuevos ingresos esperados.',
+        'items': {
+            'type': 'object',
+            'properties': {
+                'concept': {'type': 'string'},
+                'period_date': {'type': 'string'},
+                'amount': {'type': ['number', 'string']},
+            },
+            'required': ['concept', 'period_date', 'amount'],
+        },
+    },
+    'period': {
+        'type': ['object', 'null'],
+        'description': 'Período de hosting que completa el ingreso esperado padre.',
+        'properties': {
+            'period_start': {'type': 'string'},
+            'period_end': {'type': 'string'},
+            'period_cadence': {
+                'type': 'string',
+                'enum': [
+                    'monthly', 'bimonthly', 'quarterly', 'four_monthly',
+                    'semiannual', 'annual', 'biennial', 'triennial', 'custom',
+                ],
+            },
+        },
+        'required': ['period_start', 'period_end', 'period_cadence'],
+    },
+}
+
 
 def _build_ledger_tools():
     tools = []
@@ -598,13 +730,19 @@ def _build_ledger_tools():
         })
         tools.append({
             'name': f'get_{key}',
-            'description': f'Devuelve un registro de {label} por id.',
+            'description': (
+                f'Abre un registro de {label} por ID con todos los campos '
+                'vigentes de lectura del módulo contable.'
+            ),
             'input_schema': {'type': 'object', 'properties': _RECORD_ID_PROP, 'required': ['record_id']},
             'handler': _make_get(key),
         })
         tools.append({
             'name': f'create_{key}',
-            'description': f'Crea un registro de {label}.',
+            'description': (
+                f'Crea un registro de {label} usando las mismas validaciones, '
+                'auditoría y efectos secundarios que el formulario del panel.'
+            ),
             'input_schema': {
                 'type': 'object',
                 'properties': fields['props'],
@@ -641,6 +779,64 @@ _NON_CRUD_TOOLS = [
         ),
         'input_schema': {'type': 'object', 'properties': {'year': {'type': 'integer'}}},
         'handler': get_dashboard,
+    },
+    {
+        'name': 'get_income_detail',
+        'description': (
+            'Abre un ingreso con su estado de cobro, pagos parciales, '
+            'deducciones, movimiento de bolsillo compartido y cuenta de cobro '
+            'vigente. Úsala en lugar de get_income para auditar el historial.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _RECORD_ID_PROP,
+            'required': ['record_id'],
+        },
+        'handler': get_income_detail,
+    },
+    {
+        'name': 'settle_income',
+        'description': (
+            'Registra un abono a un ingreso esperado y resuelve el saldo entre '
+            'deducciones y nuevos ingresos esperados. Puede completar el período '
+            'de hosting. Crea los mismos registros, auditoría y efectos que el panel.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _SETTLEMENT_PROPS,
+            'required': ['record_id', 'concept', 'period_date', 'total_amount'],
+        },
+        'handler': settle_income,
+    },
+    {
+        'name': 'bulk_settle_incomes',
+        'description': (
+            'Distribuye un único abono real entre varios ingresos esperados. '
+            'Crea un solo movimiento de bolsillo; cualquier excedente queda como '
+            'saldo a favor cuando todos los ingresos pertenecen al mismo cliente.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'allocations': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'object',
+                        'properties': {
+                            'income_id': {'type': 'integer'},
+                            'amount': {'type': ['number', 'string']},
+                        },
+                        'required': ['income_id', 'amount'],
+                    },
+                    'minItems': 1,
+                },
+                'total_amount': {'type': ['number', 'string']},
+                'period_date': {'type': 'string', 'description': 'Fecha o período del abono.'},
+                'notes': {'type': 'string'},
+            },
+            'required': ['allocations', 'total_amount', 'period_date'],
+        },
+        'handler': bulk_settle_incomes,
     },
     {
         'name': 'list_change_logs',

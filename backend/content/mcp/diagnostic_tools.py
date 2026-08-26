@@ -326,7 +326,8 @@ DIAGNOSTIC_TOOLS = [
     {
         'name': 'update_diagnostic',
         'description': (
-            'Actualiza datos generales (parcial): title, language, investment_amount, '
+            'Actualiza datos generales (parcial): title, slug, language, expires_at, '
+            'client_id, investment_amount, '
             'currency, payment_terms, duration_label, size_category, radiography, y '
             'datos de cliente (client_name/email/phone/company, propagate_client_updates).'
         ),
@@ -335,7 +336,16 @@ DIAGNOSTIC_TOOLS = [
             'properties': {
                 **_DIAG_ID_PROP,
                 'title': {'type': 'string'},
+                'slug': {'type': 'string'},
                 'language': {'type': 'string', 'enum': ['es', 'en']},
+                'expires_at': {
+                    'type': ['string', 'null'],
+                    'description': 'Fecha-hora ISO de expiración o null.',
+                },
+                'client_id': {
+                    'type': ['integer', 'null'],
+                    'description': 'ID del perfil de cliente asociado.',
+                },
                 'investment_amount': {'type': ['number', 'string', 'null']},
                 'currency': {'type': 'string', 'enum': ['COP', 'USD']},
                 'payment_terms': {'type': 'object'},
@@ -441,7 +451,10 @@ DIAGNOSTIC_TOOLS = [
     },
     {
         'name': 'delete_diagnostic',
-        'description': 'Elimina un diagnóstico.',
+        'description': (
+            'Elimina permanentemente un diagnóstico por ID, junto con sus '
+            'secciones dependientes, siguiendo la misma regla del panel.'
+        ),
         'input_schema': {'type': 'object', 'properties': _DIAG_ID_PROP, 'required': ['diagnostic_id']},
         'handler': delete_diagnostic,
     },

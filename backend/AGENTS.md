@@ -107,6 +107,12 @@ api/
 - Use serializer field validation for input sanitization
 - Properly handle nested relationships with appropriate serializers
 
+### MCP Parity Gate
+- A model, serializer, service, lifecycle, or relation change in an MCP-exposed module must include an MCP review in the same delivery.
+- Update `content/mcp/contracts.py`: every concrete model field is read-only, read/write, or excluded with an explicit reason.
+- Keep tool descriptions/input schemas truthful and reuse the panel's serializers/services so the conversational path cannot bypass UI rules.
+- Update `docs/MCP_VALIDATION_RUNBOOK.md` and run the focused MCP contract plus create/read/update/error tests.
+
 ### Authentication and Permissions
 - JWT Authentication: Use djangorestframework_simplejwt for token-based auth
 - Custom Permissions: Implement granular permission classes for different user roles

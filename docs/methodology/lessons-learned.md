@@ -667,6 +667,14 @@ A build step that prerenders pages by fetching the app's **own public API** is, 
 - The MCP endpoint (`content/views/mcp_blog.py`) validates **Origin** (DNS-rebinding defense) + token + active-state on every JSON-RPC call, and logs `handshake/tool_call/auth_error/origin_rejected` to `McpRequestLog` (the panel's connection-activity feed reads this).
 - Rate limits for a multi-connector client must be keyed by **IP + registered connector slug**, not IP alone: Codex starts its connectors concurrently, so a shared IP bucket turns legitimate sibling startups into HTTP 429 failures. Unknown slugs must collapse into one defensive bucket; using arbitrary path text would make the throttle bypassable.
 - MCP tools wrap existing services/ORM — they are **not** a new business layer. Guardrails live in the tool module (e.g. Documents connector only exposes MARKDOWN docs, refuses to delete published docs). The machine-facing endpoint is integration-tested in pytest, not E2E.
+- **MCP drift fails silently.** Omitting a newly stored field still produces a valid
+  response, so uptime cannot reveal that the assistant sees an incomplete domain.
+  Every change to an MCP-exposed model, serializer, service, relation or lifecycle
+  must review that module's tools, schemas, precise descriptions, field contract and
+  validation script in the same delivery. `content/mcp/contracts.py` forces every
+  concrete field into read-only, read-write or an exclusion with a reason;
+  `docs/MCP_VALIDATION_RUNBOOK.md` preserves the behavioral create/read/update/error
+  check. Share panel services instead of recreating their rules in a tool handler.
 
 ### Accounting partner-split invariant
 - `PartnerSplitMixin.clean()` is the single source of truth for the money rule: no negative amounts, `gustavo + carlos ≤ total`, and a **personal-ledger record must be 100% the owning partner's** (other partner = 0). `company_amount` is a derived property, never stored. Keep validation in `clean()` so both the API and the admin enforce it; don't re-implement in serializers.

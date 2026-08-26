@@ -60,12 +60,13 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 8 ledgers × 5 CRUD + 5 non-CRUD + 15 statement tools = 60
-        assert len(names) == 60
+        # 8 ledgers × 5 CRUD + 8 non-CRUD + 15 statement tools = 63
+        assert len(names) == 63
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
             'get_settings', 'update_settings', 'mute_income',
+            'get_income_detail', 'settle_income', 'bulk_settle_incomes',
             'get_statement_instructions',
             'create_statement', 'resolve_merchants', 'finalize_statement',
             'list_notification_recipient', 'create_notification_recipient',
@@ -74,7 +75,7 @@ class TestAccountingMcpToolList:
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 60
+        assert len(ACCOUNTING_TOOLS) == 63
 
 
 @pytest.mark.django_db
