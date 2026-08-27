@@ -216,6 +216,24 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Every panel page in this family consumes `PAGE_MAX_WIDTH` (`max-w-[87.5rem] mx-auto`). At 2560 px, measure the page root rather than inferring the cap from a class.
 - Responsive acceptance uses that exact matrix. A qualifying E2E enters from panel navigation, asserts fixture data and verifies `scrollWidth <= clientWidth`.
 
+### Panel-owned dialogs and observation deletion
+
+- Browser-native `window.alert`, `window.confirm` and `window.prompt` are not UI
+  primitives. Panel flows use `BaseModal`, `ConfirmModal` or an inline actionable
+  error; `npm run check:panel-native-dialogs` scans `pages/panel` and
+  `components/panel`, and CI runs it independently of the affected-flow selector.
+- `DocumentNote` soft deletion uses nullable `deleted_at`/`deleted_by`; ordinary
+  document, episode and history reads filter deleted rows. `DocumentNoteEvent`
+  stores `deleted`/`restored`, actor, timestamp and structural details only.
+- All removal paths call `document_note_service.delete_notes()` under one
+  transaction and document/note locks. `DELETE .../notes/:id/` is the single-row
+  facade; `POST .../notes/bulk-delete/` accepts 1–100 unique IDs from one document.
+  Trash, restore and activity use `?scope=deleted`, `.../:id/restore/` and
+  `.../notes/events/` respectively.
+- The Documents MCP mirrors the lifecycle with `delete_document_notes`,
+  `list_deleted_document_notes` and `restore_document_note`; its catalog now has
+  17 tools. It reuses the service rather than reproducing workflow rules.
+
 ### Static payload and collection policy
 
 - Production sets `experimental.payloadExtraction: false`. The generated site is mounted below Django's `/static/frontend/` CDN prefix; keeping payloads inline prevents Nitro from treating CDN payload URLs as prerenderable HTML routes.
@@ -241,17 +259,19 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 - Production code may perform Django mail I/O only through
   `content.services.email_delivery_service.EmailDeliveryGateway`; a focused
   static test scans every backend Python file and rejects direct alternatives.
-- Every call carries a stable `template_key`. A customer delivery must also be
-  registered in `client_email_inventory.CLIENT_EMAIL_CHANNELS`; unknown client
-  keys raise before SMTP. Internal and security messages require an explicit
-  classification and never receive customer-copy BCCs.
+- Every call carries a stable `template_key` registered in
+  `outbound_email_inventory.OUTBOUND_EMAIL_CHANNELS`. Unknown keys raise before
+  SMTP, and every non-client message also requires an explicit classification.
+  The same copy rule applies to client, internal and security traffic.
 - The primary envelope is sent before any copy lookup or copy SMTP attempt.
   Configured internal recipients then receive independent BCC-only envelopes.
   A lookup/copy failure is logged independently and cannot alter or retry the
   already-successful primary delivery.
 - `EmailLog.delivery_id` groups primary and copy attempts;
   `delivery_role=primary|copy` keeps dashboards, cooldowns, contact counts and
-  retry endpoints from treating internal copies as new customer sends.
+  retry endpoints from treating internal copies as new primary sends. Every
+  gateway send has baseline history, including internal and security messages;
+  complete bodies are retained by the explicit product policy.
 - Copy recipients are database configuration, separate from
   `NotificationRecipient`/`NOTIFICATION_EMAIL`, and can subscribe to one or
   more stable families. See `docs/client-email-copy-inventory.md`.
@@ -420,7 +440,10 @@ confirmed by the operator or another integration.
 - **Fernet encryption** — `accounts/services/credential_cipher.py`; `encrypt_password`/`decrypt_password` with key from `PROJECT_ACCESS_CIPHER_KEY`; `@lru_cache` on cipher instance
 - **Bogotá time helpers** (`content/utils.py`) — `now_bogota()`, `today_bogota()`, `to_bogota_date(dt)`, `format_bogota_date(d)` (accepts both `date` and `datetime`), `format_bogota_datetime(dt)`. Use these for any day-level arithmetic instead of `date.today()` (UTC). Bogotá is fixed UTC-5 with no DST.
 - **Internal-only fields gated by `is_admin`** — when a model is internal-only (e.g., `ProposalProjectStage`), expose it via `SerializerMethodField` returning `[]` for non-admin context, never `read_only=True` model nesting. Precedent: `ProposalDetailSerializer.get_project_stages`.
-- **Internal team notifications skip `_log_email`** — `EmailLog` rows are reserved for client-facing single-recipient sends. Internal team alerts (`send_first_view_notification`, `send_stage_warning`, etc.) use `logger.info` only.
+- **Gateway baseline history for every outbound message** — client, internal and
+  security traffic gets a primary `EmailLog` row at the transport boundary.
+  Domain-specific `_log_email` calls enrich that row through the shared delivery
+  trace instead of creating a duplicate.
 - **Global accounting presentation preferences** — `AccountingSettings` owns the collection-account view (`grouped`/`classic`) and one grouping criterion (`client`/`project`). They travel through the existing settings serializer/API and audit labels; migration `content.0213` defaults existing installations to grouped-by-client without changing collection-account rows.
 
 ### Frontend Patterns
@@ -609,3 +632,9 @@ projectapp/
     a clipped container. The primitive owns viewport clamping, above/below
     placement, outside-click and Escape behavior, list scrolling and modal focus
     containment.
+11. **Panel flows never use browser-native dialogs** — confirmation and text input
+    stay inside application-owned modal primitives; errors remain inline or in the
+    panel notification system. The static guard is mandatory in CI.
+12. **Deleted observations are recoverable but inactive** — every active queryset,
+    count and prefetched episode filters `deleted_at IS NULL`; restoration must pass
+    state compatibility in the same transaction before clearing the tombstone.

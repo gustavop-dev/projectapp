@@ -1,6 +1,6 @@
 from difflib import SequenceMatcher
 
-from django.db.models import Count, Q
+from django.db.models import Count, Prefetch, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -10,16 +10,19 @@ from rest_framework.response import Response
 from content.models import (
     Document,
     DocumentNote,
+    DocumentNoteEvent,
     DocumentState,
     DocumentStateEpisode,
     DocumentStateGroup,
 )
 from content.models.document_state import normalize_document_state_name
 from content.serializers.document_state import (
+    BulkDeleteDocumentNotesSerializer,
     CloseDocumentStateSerializer,
     CorrectEpisodeOpeningSerializer,
     CreateDocumentNoteSerializer,
     DocumentNoteSerializer,
+    DocumentNoteEventSerializer,
     DocumentStateEpisodeSerializer,
     DocumentStateGroupSerializer,
     DocumentStateSerializer,
@@ -30,7 +33,9 @@ from content.serializers.document_state import (
 from content.services.document_note_service import (
     DocumentNoteError,
     create_note,
+    delete_notes,
     finish_note,
+    restore_note,
     update_note,
 )
 from content.services.document_state_service import (
@@ -405,7 +410,14 @@ def document_state_history(request, document_id):
             'state__group', 'opened_by', 'closed_by',
         )
         .prefetch_related(
-            'events__actor', 'notes__created_by', 'notes__resolved_by',
+            'events__actor',
+            Prefetch(
+                'notes',
+                queryset=DocumentNote.objects.filter(
+                    deleted_at__isnull=True,
+                ).select_related('created_by', 'resolved_by', 'deleted_by'),
+                to_attr='_active_notes',
+            ),
         )
         .order_by('-updated_at', '-id')
     )
@@ -417,8 +429,16 @@ def document_state_history(request, document_id):
 def document_notes(request, document_id):
     document = get_object_or_404(Document, pk=document_id)
     if request.method == 'GET':
+        scope = str(request.query_params.get('scope') or 'active').lower()
+        if scope not in ('active', 'deleted'):
+            return Response(
+                {'detail': 'El alcance de observaciones no es válido.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         notes = document.document_notes.select_related(
-            'created_by', 'resolved_by', 'episode',
+            'created_by', 'resolved_by', 'deleted_by', 'episode',
+        ).filter(
+            deleted_at__isnull=(scope == 'active'),
         )
         return Response(DocumentNoteSerializer(notes, many=True).data)
     serializer = CreateDocumentNoteSerializer(data=request.data)
@@ -431,10 +451,23 @@ def document_notes(request, document_id):
     return Response(DocumentNoteSerializer(note).data, status=status.HTTP_201_CREATED)
 
 
-@api_view(['PATCH'])
+@api_view(['PATCH', 'DELETE'])
 @permission_classes([IsAdminUser])
 def update_document_note(request, document_id, note_id):
     note = get_object_or_404(DocumentNote, pk=note_id, document_id=document_id)
+    if request.method == 'DELETE':
+        try:
+            result = delete_notes(
+                note.document, note_ids=[note.id], actor=request.user,
+            )
+        except (DocumentNoteError, DocumentStateError) as exc:
+            return _state_error(exc, status.HTTP_409_CONFLICT)
+        return Response(result)
+    if note.deleted_at is not None:
+        return Response(
+            {'detail': 'La observación está en la papelera.', 'code': 'note_deleted'},
+            status=status.HTTP_409_CONFLICT,
+        )
     serializer = UpdateDocumentNoteSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -448,7 +481,12 @@ def update_document_note(request, document_id, note_id):
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
 def finish_document_note(request, document_id, note_id):
-    note = get_object_or_404(DocumentNote, pk=note_id, document_id=document_id)
+    note = get_object_or_404(
+        DocumentNote,
+        pk=note_id,
+        document_id=document_id,
+        deleted_at__isnull=True,
+    )
     serializer = FinishDocumentNoteSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -462,3 +500,45 @@ def finish_document_note(request, document_id, note_id):
         'note': DocumentNoteSerializer(note).data,
         **transitions,
     })
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def bulk_delete_document_notes(request, document_id):
+    document = get_object_or_404(Document, pk=document_id)
+    serializer = BulkDeleteDocumentNotesSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        result = delete_notes(
+            document,
+            note_ids=serializer.validated_data['note_ids'],
+            actor=request.user,
+        )
+    except (DocumentNoteError, DocumentStateError) as exc:
+        return _state_error(exc, status.HTTP_409_CONFLICT)
+    return Response(result)
+
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def restore_document_note(request, document_id, note_id):
+    note = get_object_or_404(DocumentNote, pk=note_id, document_id=document_id)
+    try:
+        note, transitions = restore_note(note, actor=request.user)
+    except (DocumentNoteError, DocumentStateError) as exc:
+        return _state_error(exc, status.HTTP_409_CONFLICT)
+    return Response({
+        'note': DocumentNoteSerializer(note).data,
+        **transitions,
+    })
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def document_note_events(request, document_id):
+    get_object_or_404(Document, pk=document_id)
+    events = DocumentNoteEvent.objects.filter(
+        document_id=document_id,
+    ).select_related('actor')
+    return Response(DocumentNoteEventSerializer(events, many=True).data)

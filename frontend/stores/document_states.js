@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import {
   create_request,
+  delete_request,
   get_request,
   patch_request,
 } from './services/request_http';
@@ -222,6 +223,57 @@ export const useDocumentStateStore = defineStore('documentStates', {
         return { success: true, data: response.data };
       } catch (error) {
         return { success: false, ...normalizeApiError(error, 'No se pudo cerrar la observación.') };
+      }
+    },
+
+    async fetchDeletedNotes(documentId) {
+      try {
+        const response = await get_request(`documents/${documentId}/notes/?scope=deleted`);
+        return { success: true, data: Array.isArray(response.data) ? response.data : [] };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo cargar la papelera.') };
+      }
+    },
+
+    async fetchNoteEvents(documentId) {
+      try {
+        const response = await get_request(`documents/${documentId}/notes/events/`);
+        return { success: true, data: Array.isArray(response.data) ? response.data : [] };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo cargar la actividad.') };
+      }
+    },
+
+    async deleteNote(documentId, noteId) {
+      try {
+        const response = await delete_request(`documents/${documentId}/notes/${noteId}/`);
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo eliminar la observación.') };
+      }
+    },
+
+    async bulkDeleteNotes(documentId, noteIds) {
+      try {
+        const response = await create_request(
+          `documents/${documentId}/notes/bulk-delete/`,
+          { note_ids: noteIds },
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudieron eliminar las observaciones.') };
+      }
+    },
+
+    async restoreNote(documentId, noteId) {
+      try {
+        const response = await create_request(
+          `documents/${documentId}/notes/${noteId}/restore/`,
+          {},
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        return { success: false, ...normalizeApiError(error, 'No se pudo restaurar la observación.') };
       }
     },
   },

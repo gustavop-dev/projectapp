@@ -4328,9 +4328,9 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/emails?tab=defaults`
-- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias a clientes separada de los destinatarios de avisos contables. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, y permite segmentar cada dirección por Propuestas, Diagnósticos, Documentos y correos manuales, Cuentas de cobro y Plataforma.
+- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias universales separada de los destinatarios de avisos internos. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, avisa que Seguridad incluye OTP/credenciales cuyo cuerpo pueden consultar los administradores, y permite segmentar cada dirección en ocho familias: Propuestas, Diagnósticos, Documentos y comunicaciones, Cuentas de cobro, Contabilidad, Plataforma, Tareas y operación y Seguridad y acceso.
 - **Interacciones y outcomes:**
-  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, familias, modo BCC y advertencia de volumen con los datos reales de la respuesta.
+  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, ocho familias, modo BCC y advertencias de volumen/seguridad con los datos reales de la respuesta.
   2. **success:** agregar una dirección, cambiar sus familias, pausarla/reactivarla o eliminarla; cada acción persiste por su endpoint propio y actualiza la fila.
   3. **error:** intentar agregar un duplicado o guardar una selección inválida muestra el detalle de validación del backend.
   4. **failure:** un fallo 5xx al mutar conserva el estado anterior y muestra que la operación no se completó.
@@ -4341,10 +4341,10 @@ Two transitions that were previously bundled into other flows now have their own
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/emails?tab=history` y los historiales compartidos de propuestas, diagnósticos, clientes y contabilidad.
-- **Description:** El administrador expande el envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección, estado y, si falló sólo la copia, el error SMTP, sin convertirla en otra fila principal ni habilitar reintento.
+- **Routes:** `/panel/emails?tab=history`.
+- **Description:** El administrador expande cualquier envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección y estado enviado/fallido/omitido; los fallos enseñan el error SMTP y los omitidos explican la deduplicación, sin convertirlos en otra fila principal ni habilitar reintento.
 - **Interacciones y outcomes:**
-  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatario BCC, estado y error independiente.
+  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatarios BCC, estado, error independiente y omisión por duplicado.
   2. **success:** n/a; consultar la traza no muta datos.
   3. **error:** n/a; no hay entrada de usuario que validar en este bloque de lectura.
   4. **failure:** n/a como acción del usuario; el fallo SMTP de la copia es precisamente el dato persistido que cubre el outcome `display`.
@@ -6037,6 +6037,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
+| `admin-document-observation-delete` | admin | P1 | display,success,failure | 1 |
 | `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
 | `admin-document-pdf-preview` | admin | P2 | display | 1 |
 | `admin-document-rename` | admin | P2 | success,failure | 1 |
@@ -6063,6 +6064,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success | 4 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
+| `admin-outbound-email-history-body` | admin | P1 | display | 1 |
+| `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
 | `admin-panel-projects` | admin | P1 | display,success,error | 8 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
@@ -6983,7 +6986,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/statuses`
 - **API:** `/api/document-state-groups/`, `/api/document-states/`, `/api/document-states/:id/merge/`, `/api/document-states/:id/retire/`
 - **Descripción:** El catálogo compartido separa grupos exclusivos —el ciclo— de grupos aditivos —las señales—. Muestra cuántos documentos tienen cada estado vigente y cuántos episodios históricos existen. El usuario puede crear grupos y estados, cambiar nombre, color, orden, grupo e incompatibilidades, fusionar duplicados y retirar valores que ya no se usan. Las semillas son editables, pero conservan su clave interna para presets e integraciones.
-- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → guardar → reutilizarlo desde cualquier documento.
+- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → confirmar nombres similares, fusiones o retiros dentro del panel → guardar → reutilizarlo desde cualquier documento.
 - **Ramas:**
   - [Display] Ciclo y Señales muestran sus semillas y conteos.
   - [Success] Crear, editar y fusionar refresca el catálogo global.
@@ -7000,8 +7003,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/:id/edit`
 - **API:** `/api/documents/:id/state-episodes/`, `/api/documents/:id/state-history/`, `/api/documents/:id/notes/`
 - **Descripción:** Un documento conserva un episodio por cada período en que tuvo un estado. El ciclo admite uno vigente y puede avanzar o volver; las señales se suman. Abrir, cerrar, quitar, corregir la fecha efectiva y repetir un estado dejan movimientos con fecha/hora y autor. **Cerrar** registra que el trabajo terminó; **quitar** registra que la marca no aplicaba. El historial muestra fecha exacta, tiempo relativo, duración, nota de cierre, autor y observaciones enlazadas.
-- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar con una nota → consultar la línea de tiempo.
-- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver la última observación enlazada ofrece cerrar la señal y mover el ciclo a **Bug atendido**; descartarla ofrece quitar la señal.
+- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar desde un modal propio con nota opcional → consultar la línea de tiempo.
+- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver o descartar la última observación pendiente cierra o quita automáticamente la señal enlazada; eliminar y restaurar se cubren en `admin-document-observation-delete`.
 - **Ramas:**
   - [Display] El encabezado y el historial muestran episodios vigentes e históricos con duración y atribución.
   - [Success] Cambiar el ciclo cierra el episodio anterior; las señales permanecen concurrentes.
@@ -7025,6 +7028,25 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Failure] Un fallo conserva un aviso persistente con opción de reintento.
 - **Cobertura:** ✅ display/success/failure.
 - **E2E:** `e2e/admin/admin-document-state-workflow.spec.js`
+
+### FLOW: `admin-document-observation-delete`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P1
+- **Ruta:** `/panel/documents/:id/edit`
+- **API:** `/api/documents/:id/notes/`, `/api/documents/:id/notes/bulk-delete/`, `/api/documents/:id/notes/:note_id/restore/`, `/api/documents/:id/notes/events/`
+- **Descripción:** **Descartar** conserva una observación real y el motivo por el que no se atendió. **Eliminar** limpia una prueba, duplicado o error: la observación desaparece de la lista y de los conteos, pero queda recuperable en la papelera. La confirmación muestra el contenido completo y recuerda que una copia enviada por correo o mensaje no se borra fuera del sistema. La actividad conserva solamente quién eliminó o restauró y cuándo, sin duplicar el contenido.
+- **Recorrido:** abrir un documento → abrir **Notas** → elegir una observación de cualquier estado → **Eliminar** → revisar contenido y advertencia → confirmar → revisar la papelera o restaurar. Para limpieza, seleccionar varias y confirmar una sola operación atómica.
+- **Coherencia:** si la última observación pendiente de un episodio originado por observaciones se elimina, **Solucionar bug** deja de estar activo. Restaurarla reabre o reutiliza el estado compatible; un conflicto cancela toda la restauración.
+- **Ramas:**
+  - [Display] Cancelar conserva la observación; la confirmación explica eliminación, recuperación y copias externas.
+  - [Display] La actividad identifica actor y fecha sin mostrar el contenido eliminado.
+  - [Success] Eliminar la última pendiente limpia la señal originada por observaciones.
+  - [Success] El borrado masivo envía una sola selección atómica y la restauración devuelve una observación desde la papelera.
+  - [Failure] Un fallo mantiene la confirmación y el contenido visibles para reintentar o cancelar.
+- **Cobertura:** ✅ display/success/failure.
+- **E2E:** `e2e/admin/admin-document-observation-delete.spec.js`
 
 
 ## Unsectioned flows
@@ -7066,6 +7088,34 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-outbound-email-history-body`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador expande un correo de Seguridad y acceso y abre **Ver contenido completo**. El cuerpo retenido —incluidos OTP, invitaciones o credenciales— se carga por un endpoint administrativo y se muestra dentro de un iframe sandboxed, tal como advierte Configuración.
+- **Interacciones y outcomes:**
+  1. **display:** navegar al Historial, expandir una fila de Seguridad, abrir el visor y comprobar contenido real devuelto por la API dentro del iframe.
+  2. **success:** n/a; la consulta no muta datos.
+  3. **error:** el permiso se prueba en integración backend; una sesión no administrativa no puede alcanzar el panel.
+  4. **failure:** el error de carga se presenta dentro del modal y se cubre en unidad/store; el E2E focal valida el cuerpo exitoso.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-outbound-email-history-filter`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador llega desde la navegación del panel al Historial universal y acota las salidas por destinatario, familia, estado y rango de fechas; el servidor devuelve la fila principal coincidente sin limitar el resultado al compositor manual.
+- **Interacciones y outcomes:**
+  1. **display:** navegar a Emails, abrir Historial, completar los cuatro tipos de filtro y comprobar tanto los parámetros enviados como los datos reales de la fila resultante.
+  2. **success:** n/a; filtrar no muta datos.
+  3. **error:** n/a; los valores pertenecen a catálogos o controles de fecha y no existe una validación editable independiente.
+  4. **failure:** la falla de carga se cubre en la frontera del store; esta interacción sólo registra la consulta exitosa con datos.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
 ### FLOW: `admin-project-lifecycle-states`
 

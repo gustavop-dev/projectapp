@@ -5,11 +5,11 @@
     initial-focus="#document-client-note-subject"
     @update:model-value="updateOpenState"
   >
-    <form class="p-6 space-y-6" data-testid="document-client-note-modal" @submit.prevent="submit">
+    <div class="space-y-6 p-6" data-testid="document-client-note-modal">
       <div>
         <h3 class="text-base font-semibold text-text-default">Notas</h3>
-        <p class="text-xs text-text-muted mt-1">
-          Guarda textos listos para usar y notas adicionales. Son privadas y no aparecen en el PDF ni en el portal del cliente.
+        <p class="mt-1 text-xs text-text-muted">
+          Guarda textos listos para usar y observaciones privadas. No aparecen en el PDF ni en el portal del cliente.
         </p>
       </div>
 
@@ -18,15 +18,13 @@
       </BaseAlert>
 
       <section class="space-y-5" aria-labelledby="document-client-messages-heading">
-        <h4 id="document-client-messages-heading" class="text-xs uppercase tracking-wide font-semibold text-text-muted">
+        <h4 id="document-client-messages-heading" class="text-xs font-semibold uppercase tracking-wide text-text-muted">
           Mensajes para el cliente
         </h4>
 
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-3">
-            <label for="document-client-note-subject" class="text-sm font-medium text-text-default">
-              Asunto del correo
-            </label>
+            <label for="document-client-note-subject" class="text-sm font-medium text-text-default">Asunto del correo</label>
             <BaseActionButton
               action="copy"
               type="button"
@@ -34,8 +32,8 @@
               size="sm"
               :label="copyLabel('subject', 'asunto')"
               :status-label="copyStatus('subject', 'asunto')"
-              :disabled="saving || !draft.subject.trim()"
-              :disabled-reason="!draft.subject.trim() ? 'Escribe un asunto antes de copiarlo.' : ''"
+              :disabled="isBusy || !draft.subject.trim()"
+              :disabled-reason="isBusy ? busyDisabledReason : !draft.subject.trim() ? 'Escribe un asunto antes de copiarlo.' : ''"
               data-testid="client-note-copy-subject"
               @click="copyText('subject', draft.subject)"
             />
@@ -43,7 +41,7 @@
           <BaseInput
             id="document-client-note-subject"
             v-model="draft.subject"
-            :disabled="readonly || saving"
+            :disabled="readonly || isBusy"
             :disabled-reason="fieldDisabledReason"
             maxlength="255"
             placeholder="Asunto breve y concreto"
@@ -53,9 +51,7 @@
 
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-3">
-            <label for="document-client-note-email" class="text-sm font-medium text-text-default">
-              Correo
-            </label>
+            <label for="document-client-note-email" class="text-sm font-medium text-text-default">Correo</label>
             <BaseActionButton
               action="copy"
               type="button"
@@ -63,8 +59,8 @@
               size="sm"
               :label="copyLabel('email', 'correo')"
               :status-label="copyStatus('email', 'correo')"
-              :disabled="saving || !draft.emailBody.trim()"
-              :disabled-reason="!draft.emailBody.trim() ? 'Escribe el correo antes de copiarlo.' : ''"
+              :disabled="isBusy || !draft.emailBody.trim()"
+              :disabled-reason="isBusy ? busyDisabledReason : !draft.emailBody.trim() ? 'Escribe el correo antes de copiarlo.' : ''"
               data-testid="client-note-copy-email"
               @click="copyText('email', draft.emailBody)"
             />
@@ -72,19 +68,17 @@
           <BaseTextarea
             id="document-client-note-email"
             v-model="draft.emailBody"
-            :disabled="readonly || saving"
+            :disabled="readonly || isBusy"
             :disabled-reason="fieldDisabledReason"
             rows="9"
-            placeholder="Saludo, contenido y cierre del correo..."
+            placeholder="Saludo, contenido y cierre del correo…"
             data-testid="client-note-email"
           />
         </div>
 
         <div class="space-y-1.5">
           <div class="flex items-center justify-between gap-3">
-            <label for="document-client-note-whatsapp" class="text-sm font-medium text-text-default">
-              WhatsApp
-            </label>
+            <label for="document-client-note-whatsapp" class="text-sm font-medium text-text-default">WhatsApp</label>
             <BaseActionButton
               action="copy"
               type="button"
@@ -92,8 +86,8 @@
               size="sm"
               :label="copyLabel('whatsapp', 'WhatsApp')"
               :status-label="copyStatus('whatsapp', 'WhatsApp')"
-              :disabled="saving || !draft.whatsappMessage.trim()"
-              :disabled-reason="!draft.whatsappMessage.trim() ? 'Escribe el mensaje antes de copiarlo.' : ''"
+              :disabled="isBusy || !draft.whatsappMessage.trim()"
+              :disabled-reason="isBusy ? busyDisabledReason : !draft.whatsappMessage.trim() ? 'Escribe el mensaje antes de copiarlo.' : ''"
               data-testid="client-note-copy-whatsapp"
               @click="copyText('whatsapp', draft.whatsappMessage)"
             />
@@ -101,29 +95,32 @@
           <BaseTextarea
             id="document-client-note-whatsapp"
             v-model="draft.whatsappMessage"
-            :disabled="readonly || saving"
+            :disabled="readonly || isBusy"
             :disabled-reason="fieldDisabledReason"
             rows="5"
-            placeholder="Mensaje breve que invita a revisar el correo..."
+            placeholder="Mensaje breve que invita a revisar el correo…"
             data-testid="client-note-whatsapp"
           />
         </div>
       </section>
 
-      <section v-if="!documentId || (!notes.length && customNotes.length)" class="space-y-3 border-t border-border-muted pt-5" aria-labelledby="document-custom-notes-heading">
+      <section
+        v-if="!documentId"
+        class="space-y-3 border-t border-border-muted pt-5"
+        aria-labelledby="document-custom-notes-heading"
+      >
         <div class="flex items-center justify-between gap-3">
           <div>
-            <h4 id="document-custom-notes-heading" class="text-sm font-semibold text-text-default">
-              Notas adicionales
-            </h4>
-            <p class="text-xs text-text-subtle mt-0.5">Agrega títulos y contenidos personalizados.</p>
+            <h4 id="document-custom-notes-heading" class="text-sm font-semibold text-text-default">Notas adicionales</h4>
+            <p class="mt-0.5 text-xs text-text-subtle">Agrega títulos y contenidos personalizados.</p>
           </div>
           <BaseButton
             v-if="!readonly"
             type="button"
             variant="secondary"
             size="sm"
-            :disabled="saving"
+            :disabled="isBusy"
+            :disabled-reason="busyDisabledReason"
             data-testid="client-note-add-custom"
             @click="addCustomNote"
           >
@@ -132,11 +129,7 @@
           </BaseButton>
         </div>
 
-        <p
-          v-if="!draft.customNotes.length"
-          class="rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-3 text-sm text-text-subtle"
-          data-testid="client-note-custom-empty"
-        >
+        <p v-if="!draft.customNotes.length" class="rounded-xl border border-dashed border-border-default bg-surface-raised px-4 py-3 text-sm text-text-subtle" data-testid="client-note-custom-empty">
           Aún no hay notas adicionales.
         </p>
 
@@ -155,7 +148,8 @@
               variant="danger-ghost"
               size="sm"
               :label="`Eliminar nota ${index + 1}`"
-              :disabled="saving"
+              :disabled="isBusy"
+              :disabled-reason="busyDisabledReason"
               :data-testid="`client-note-custom-delete-${index}`"
               @click="removeCustomNote(index)"
             />
@@ -163,9 +157,7 @@
 
           <div class="space-y-1.5">
             <div class="flex items-center justify-between gap-3">
-              <label :for="`document-custom-note-title-${index}`" class="text-sm font-medium text-text-default">
-                Título
-              </label>
+              <label :for="`document-custom-note-title-${index}`" class="text-sm font-medium text-text-default">Título</label>
               <BaseActionButton
                 action="copy"
                 type="button"
@@ -173,8 +165,8 @@
                 size="sm"
                 :label="copyLabel(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-title-${note.key}`, `título de la nota ${index + 1}`)"
-                :disabled="saving || !note.title.trim()"
-                :disabled-reason="!note.title.trim() ? 'Escribe el título antes de copiarlo.' : ''"
+                :disabled="isBusy || !note.title.trim()"
+                :disabled-reason="isBusy ? busyDisabledReason : !note.title.trim() ? 'Escribe el título antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-title-${index}`"
                 @click="copyText(`custom-title-${note.key}`, note.title)"
               />
@@ -182,27 +174,21 @@
             <BaseInput
               :id="`document-custom-note-title-${index}`"
               v-model="note.title"
-              :disabled="readonly || saving"
+              :disabled="readonly || isBusy"
               :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.title.trim()"
               maxlength="255"
               placeholder="Ej. Contexto para seguimiento"
               :data-testid="`client-note-custom-title-${index}`"
             />
-            <p
-              v-if="validationAttempted && !note.title.trim()"
-              class="text-xs text-danger-strong"
-              :data-testid="`client-note-custom-title-error-${index}`"
-            >
+            <p v-if="validationAttempted && !note.title.trim()" class="text-xs text-danger-strong" :data-testid="`client-note-custom-title-error-${index}`">
               El título es obligatorio.
             </p>
           </div>
 
           <div class="space-y-1.5">
             <div class="flex items-center justify-between gap-3">
-              <label :for="`document-custom-note-content-${index}`" class="text-sm font-medium text-text-default">
-                Contenido
-              </label>
+              <label :for="`document-custom-note-content-${index}`" class="text-sm font-medium text-text-default">Contenido</label>
               <BaseActionButton
                 action="copy"
                 type="button"
@@ -210,8 +196,8 @@
                 size="sm"
                 :label="copyLabel(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
                 :status-label="copyStatus(`custom-content-${note.key}`, `contenido de la nota ${index + 1}`)"
-                :disabled="saving || !note.content.trim()"
-                :disabled-reason="!note.content.trim() ? 'Escribe el contenido antes de copiarlo.' : ''"
+                :disabled="isBusy || !note.content.trim()"
+                :disabled-reason="isBusy ? busyDisabledReason : !note.content.trim() ? 'Escribe el contenido antes de copiarlo.' : ''"
                 :data-testid="`client-note-custom-copy-content-${index}`"
                 @click="copyText(`custom-content-${note.key}`, note.content)"
               />
@@ -219,108 +205,32 @@
             <BaseTextarea
               :id="`document-custom-note-content-${index}`"
               v-model="note.content"
-              :disabled="readonly || saving"
+              :disabled="readonly || isBusy"
               :disabled-reason="fieldDisabledReason"
               :error="validationAttempted && !note.content.trim()"
               rows="5"
-              placeholder="Escribe el contenido de la nota..."
+              placeholder="Escribe el contenido de la nota…"
               :data-testid="`client-note-custom-content-${index}`"
             />
-            <p
-              v-if="validationAttempted && !note.content.trim()"
-              class="text-xs text-danger-strong"
-              :data-testid="`client-note-custom-content-error-${index}`"
-            >
+            <p v-if="validationAttempted && !note.content.trim()" class="text-xs text-danger-strong" :data-testid="`client-note-custom-content-error-${index}`">
               El contenido es obligatorio.
             </p>
           </div>
         </article>
       </section>
 
-      <section v-else class="space-y-4 border-t border-border-muted pt-5" aria-labelledby="document-observations-heading">
-        <div>
-          <h4 id="document-observations-heading" class="text-sm font-semibold text-text-default">
-            Observaciones del documento
-          </h4>
-          <p class="mt-0.5 text-xs text-text-subtle">
-            Cada observación queda en el historial y puede abrir la señal Solucionar bug.
-          </p>
-        </div>
-
-        <div v-if="localNotes.length" class="space-y-2" data-testid="document-observation-list">
-          <article
-            v-for="note in localNotes"
-            :key="note.id"
-            class="rounded-xl border border-border-default bg-surface-raised p-3"
-          >
-            <div class="flex flex-wrap items-start justify-between gap-2">
-              <div class="min-w-0">
-                <p class="text-sm font-medium text-text-default">{{ note.title || 'Observación' }}</p>
-                <p class="mt-1 whitespace-pre-wrap text-sm text-text-muted">{{ note.content }}</p>
-              </div>
-              <BaseBadge :variant="note.status === 'open' ? 'warning' : 'neutral'" size="sm">
-                {{ noteStatusLabel(note.status) }}
-              </BaseBadge>
-            </div>
-            <div class="mt-2 flex justify-end">
-              <BaseActionButton
-                action="copy"
-                type="button"
-                variant="ghost"
-                size="sm"
-                :label="copyLabel(`observation-${note.id}`, `observación ${note.title || note.id}`)"
-                :status-label="copyStatus(`observation-${note.id}`, `observación ${note.title || note.id}`)"
-                :data-testid="`document-observation-copy-${note.id}`"
-                @click="copyText(`observation-${note.id}`, note.content)"
-              />
-            </div>
-            <p v-if="note.resolution_note" class="mt-2 text-xs text-text-subtle">
-              Cierre: {{ note.resolution_note }}
-            </p>
-            <div v-if="note.status === 'open' && !readonly" class="mt-3 flex flex-wrap justify-end gap-2">
-              <BaseButton type="button" variant="ghost" size="sm" :data-testid="`document-observation-edit-${note.id}`" @click="editObservation(note)">Editar</BaseButton>
-              <BaseButton type="button" variant="danger-ghost" size="sm" :data-testid="`document-observation-discard-${note.id}`" @click="finishObservation(note, 'discarded')">Descartar</BaseButton>
-              <BaseButton type="button" variant="secondary" size="sm" :data-testid="`document-observation-resolve-${note.id}`" @click="finishObservation(note, 'resolved')">Resolver</BaseButton>
-            </div>
-          </article>
-        </div>
-        <p v-else class="rounded-xl border border-dashed border-border-default px-4 py-3 text-sm text-text-subtle">
-          Aún no hay observaciones.
-        </p>
-
-        <div v-if="!readonly" class="space-y-3 rounded-xl border border-border-default bg-surface p-4">
-          <p class="text-xs font-semibold uppercase tracking-wide text-text-muted">Nueva observación</p>
-          <BaseInput
-            v-model="observationDraft.title"
-            maxlength="120"
-            placeholder="Título breve (opcional)"
-            data-testid="document-observation-title"
-          />
-          <BaseTextarea
-            v-model="observationDraft.content"
-            rows="4"
-            placeholder="Describe la observación…"
-            data-testid="document-observation-content"
-          />
-          <label class="flex items-center gap-2 text-sm text-text-muted">
-            <BaseToggle v-model="observationDraft.markNeedsFix" size="sm" />
-            Marcar también Solucionar bug
-          </label>
-          <div class="flex justify-end">
-            <BaseButton
-              type="button"
-              variant="secondary"
-              size="sm"
-              :loading="observationBusy"
-              :disabled="!observationDraft.content.trim()"
-              data-testid="document-observation-add"
-              @click="addObservation"
-            >
-              Agregar observación
-            </BaseButton>
-          </div>
-        </div>
-      </section>
+      <DocumentObservationManager
+        v-else
+        :key="`${documentId}-${modelValue}`"
+        :document-id="documentId"
+        :notes="localNotes"
+        :readonly="readonly"
+        allow-delete-when-readonly
+        class="border-t border-border-muted pt-5"
+        @update:notes="localNotes = $event"
+        @workflow-changed="emit('workflow-changed')"
+        @busy-change="observationBusy = $event"
+      />
 
       <p
         v-if="mode === 'draft' && !readonly"
@@ -331,34 +241,21 @@
       </p>
 
       <div class="flex justify-end gap-2 pt-1">
-        <BaseButton
-          type="button"
-          variant="ghost"
-          :disabled="saving"
-          data-testid="client-note-cancel"
-          @click="close"
-        >
+        <BaseButton type="button" variant="ghost" :disabled="isBusy" :disabled-reason="busyDisabledReason" data-testid="client-note-cancel" @click="close">
           {{ readonly ? 'Cerrar' : 'Cancelar' }}
         </BaseButton>
-        <BaseButton
-          v-if="!readonly"
-          type="submit"
-          variant="primary"
-          :disabled="saving"
-          :loading="saving"
-          data-testid="client-note-submit"
-        >
+        <BaseButton v-if="!readonly" type="button" variant="primary" :disabled="isBusy" :disabled-reason="busyDisabledReason" :loading="saving" data-testid="client-note-submit" @click="submit">
           {{ mode === 'draft' ? 'Aplicar al borrador' : 'Guardar cambios' }}
         </BaseButton>
       </div>
-    </form>
+    </div>
   </BaseModal>
 </template>
 
 <script setup>
 import { computed, reactive, ref, watch } from 'vue';
+import DocumentObservationManager from '~/components/panel/documents/DocumentObservationManager.vue';
 import { usePanelNotify } from '~/composables/usePanelNotify';
-import { useDocumentStateStore } from '~/stores/document_states';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -377,28 +274,25 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
 });
 
-const fieldDisabledReason = computed(() => {
-  if (props.readonly) {
-    return 'Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiarla.';
-  }
-  if (props.saving) return 'Guardando los cambios. Espera un momento.';
-  return undefined;
-});
-
 const emit = defineEmits(['update:modelValue', 'submit', 'workflow-changed']);
 const notify = usePanelNotify();
-const stateStore = useDocumentStateStore();
 const copiedField = ref('');
 const validationAttempted = ref(false);
 const observationBusy = ref(false);
 const localNotes = ref([]);
-const observationDraft = reactive({ title: '', content: '', markNeedsFix: true });
-const draft = reactive({
-  subject: '',
-  emailBody: '',
-  whatsappMessage: '',
-  customNotes: [],
+const isBusy = computed(() => props.saving || observationBusy.value);
+const busyDisabledReason = computed(() => {
+  if (props.saving) return 'Guardando los cambios. Espera un momento.';
+  if (observationBusy.value) return 'Actualizando las observaciones. Espera un momento.';
+  return '';
 });
+const fieldDisabledReason = computed(() => {
+  if (props.readonly) {
+    return 'Esta cuenta de cobro ya fue emitida y es de solo lectura. Anúlala y crea una nueva para cambiarla.';
+  }
+  return busyDisabledReason.value || undefined;
+});
+const draft = reactive({ subject: '', emailBody: '', whatsappMessage: '', customNotes: [] });
 let nextCustomNoteKey = 0;
 
 function makeDraftNote(note = {}) {
@@ -419,11 +313,9 @@ watch(
     draft.whatsappMessage = props.whatsappMessage;
     draft.customNotes = props.customNotes.map(makeDraftNote);
     localNotes.value = props.notes.map((note) => ({ ...note }));
-    observationDraft.title = '';
-    observationDraft.content = '';
-    observationDraft.markNeedsFix = true;
     copiedField.value = '';
     validationAttempted.value = false;
+    observationBusy.value = false;
   },
   { immediate: true },
 );
@@ -435,12 +327,12 @@ watch(
 );
 
 function updateOpenState(open) {
-  if (!open && props.saving) return;
+  if (!open && isBusy.value) return;
   emit('update:modelValue', open);
 }
 
 function close() {
-  if (props.saving) return;
+  if (isBusy.value) return;
   emit('update:modelValue', false);
 }
 
@@ -455,7 +347,6 @@ function removeCustomNote(index) {
 function submit() {
   validationAttempted.value = true;
   if (draft.customNotes.some((note) => !note.title.trim() || !note.content.trim())) return;
-
   emit('submit', {
     subject: draft.subject.trim(),
     emailBody: draft.emailBody.trim(),
@@ -485,80 +376,5 @@ async function copyText(field, value) {
       detail: 'Tu navegador bloqueó el acceso al portapapeles.',
     });
   }
-}
-
-function noteStatusLabel(status) {
-  return { open: 'Pendiente', resolved: 'Resuelta', discarded: 'Descartada' }[status] || status;
-}
-
-async function addObservation() {
-  if (!props.documentId || !observationDraft.content.trim() || observationBusy.value) return;
-  observationBusy.value = true;
-  const result = await stateStore.createNote(props.documentId, {
-    title: observationDraft.title.trim(),
-    content: observationDraft.content.trim(),
-    mark_needs_fix: observationDraft.markNeedsFix,
-  });
-  observationBusy.value = false;
-  if (!result.success) {
-    notify.error({ title: 'No se pudo agregar la observación', detail: result.message });
-    return;
-  }
-  localNotes.value.push(result.data);
-  observationDraft.title = '';
-  observationDraft.content = '';
-  emit('workflow-changed');
-}
-
-async function editObservation(note) {
-  const title = window.prompt('Título de la observación', note.title || '');
-  if (title === null) return;
-  const content = window.prompt('Contenido de la observación', note.content || '');
-  if (content === null || !content.trim()) return;
-  const result = await stateStore.updateNote(props.documentId, note.id, {
-    title: title.trim(),
-    content: content.trim(),
-  });
-  if (!result.success) {
-    notify.error({ title: 'No se pudo editar la observación', detail: result.message });
-    return;
-  }
-  Object.assign(note, result.data);
-  emit('workflow-changed');
-}
-
-async function finishObservation(note, outcome) {
-  const resolutionNote = window.prompt(
-    outcome === 'resolved' ? '¿Qué se hizo? (opcional)' : '¿Por qué se descarta? (opcional)',
-    '',
-  );
-  if (resolutionNote === null) return;
-
-  const isLastForEpisode = note.episode && !localNotes.value.some(
-    (candidate) => candidate.id !== note.id
-      && candidate.status === 'open'
-      && candidate.episode === note.episode,
-  );
-  const closeLinkedState = Boolean(isLastForEpisode) && window.confirm(
-    outcome === 'resolved'
-      ? '¿Cerrar también Solucionar bug?'
-      : '¿Quitar también Solucionar bug porque la observación no aplicaba?',
-  );
-  const moveCycle = closeLinkedState
-    && outcome === 'resolved'
-    && window.confirm('¿Mover el ciclo del documento a Bug atendido?');
-
-  const result = await stateStore.finishNote(props.documentId, note.id, {
-    outcome,
-    resolution_note: resolutionNote.trim(),
-    close_linked_state: closeLinkedState,
-    move_cycle_to_bug_attended: moveCycle,
-  });
-  if (!result.success) {
-    notify.error({ title: 'No se pudo cerrar la observación', detail: result.message });
-    return;
-  }
-  Object.assign(note, result.data.note);
-  emit('workflow-changed');
 }
 </script>

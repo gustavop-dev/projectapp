@@ -2,10 +2,12 @@
 import json
 
 import pytest
+from django.utils import timezone
 
 from content.models import (
     Document,
     DocumentFolder,
+    DocumentNote,
     DocumentState,
     DocumentStateEpisode,
     DocumentType,
@@ -86,7 +88,8 @@ class TestDocumentsMcpToolList:
             'read_document', 'create_document', 'update_document',
             'append_document', 'delete_document', 'list_document_states',
             'set_document_state', 'close_document_state', 'add_document_note',
-            'finish_document_note',
+            'finish_document_note', 'delete_document_notes',
+            'list_deleted_document_notes', 'restore_document_note',
         ]
 
     def test_serverinfo_handshake_works_on_shared_endpoint(self, api_client, documents_connector):
@@ -673,6 +676,95 @@ class TestDocumentsMcpWorkflow:
         assert payload['note']['status'] == 'resolved'
         assert payload['state_closed'] is True
         assert payload['cycle_moved'] is True
+
+    def test_delete_note_tool_soft_deletes_note(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        note = DocumentNote.objects.create(document=doc, content='Ruido')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'delete_document_notes', {
+            'document_id': doc.id,
+            'note_ids': [note.id],
+        })
+
+        note.refresh_from_db()
+        assert response.data['result']['isError'] is False
+        assert note.deleted_at is not None
+
+    def test_read_document_hides_deleted_note(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        note = DocumentNote.objects.create(document=doc, content='No mostrar')
+        note.deleted_at = timezone.now()
+        note.save(update_fields=('deleted_at', 'updated_at'))
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'read_document', {'document_id': doc.id})
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert payload['notes'] == []
+
+    def test_list_deleted_notes_returns_recoverable_content(
+        self, api_client, documents_connector, markdown_doc_type, superuser,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        note = DocumentNote.objects.create(
+            document=doc,
+            content='Recuperable',
+            deleted_at=timezone.now(),
+            deleted_by=superuser,
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'list_deleted_document_notes', {
+            'document_id': doc.id,
+        })
+
+        payload = json.loads(response.data['result']['content'][0]['text'])
+        assert payload['notes'][0]['id'] == note.id
+        assert payload['notes'][0]['content'] == 'Recuperable'
+
+    def test_restore_note_tool_returns_note_to_active_scope(
+        self, api_client, documents_connector, markdown_doc_type, superuser,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        note = DocumentNote.objects.create(
+            document=doc,
+            content='Restaurar',
+            deleted_at=timezone.now(),
+            deleted_by=superuser,
+        )
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'restore_document_note', {
+            'document_id': doc.id,
+            'note_id': note.id,
+        })
+
+        note.refresh_from_db()
+        assert response.data['result']['isError'] is False
+        assert note.deleted_at is None
+
+    def test_bulk_delete_tool_rejects_foreign_note_atomically(
+        self, api_client, documents_connector, markdown_doc_type,
+    ):
+        doc = _make_doc(markdown_doc_type)
+        other = _make_doc(markdown_doc_type, title='Otro')
+        local = DocumentNote.objects.create(document=doc, content='Local')
+        foreign = DocumentNote.objects.create(document=other, content='Ajena')
+        _, token = documents_connector
+
+        response = _call(api_client, token, 'delete_document_notes', {
+            'document_id': doc.id,
+            'note_ids': [local.id, foreign.id],
+        })
+
+        local.refresh_from_db()
+        assert response.data['result']['isError'] is True
+        assert local.deleted_at is None
 
 
 @pytest.mark.django_db

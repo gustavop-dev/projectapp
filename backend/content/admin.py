@@ -40,7 +40,7 @@ from .models import (
     WebAppDiagnostic,
     DiagnosticSection,
     EmailLog,
-    ClientEmailCopyRecipient,
+    EmailCopyRecipient,
     CommunicationAttachment,
     CommunicationMessage,
     CommunicationMessageDateCorrection,
@@ -451,7 +451,7 @@ admin_site.register(ProposalShareLink)
 admin_site.register(WebAppDiagnostic)
 admin_site.register(DiagnosticSection)
 admin_site.register(EmailLog)
-admin_site.register(ClientEmailCopyRecipient)
+admin_site.register(EmailCopyRecipient)
 admin_site.register(CommunicationThread)
 admin_site.register(CommunicationMessage)
 admin_site.register(CommunicationAttachment)

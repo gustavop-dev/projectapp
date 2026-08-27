@@ -160,7 +160,7 @@ from content.views.linkedin import (
 )
 from content.views.standalone_email import (
     send_standalone_email, standalone_email_defaults, list_standalone_emails,
-    preview_composed_email,
+    preview_composed_email, standalone_email_body,
 )
 from content.views.document import (
     list_documents, create_document, create_document_from_markdown,
@@ -186,9 +186,11 @@ from content.views.document_tag import (
     update_document_tag, delete_document_tag,
 )
 from content.views.document_state import (
+    bulk_delete_document_notes,
     close_document_state,
     correct_document_state_opening,
     document_notes,
+    document_note_events,
     document_state_group_detail,
     document_state_groups,
     document_state_history,
@@ -198,6 +200,7 @@ from content.views.document_state import (
     merge_document_state,
     open_document_state,
     retire_document_state,
+    restore_document_note,
     update_document_note,
     update_document_state,
 )
@@ -488,6 +491,10 @@ urlpatterns = [
     path('emails/defaults/', standalone_email_defaults, name='standalone-email-defaults'),
     path('emails/history/', list_standalone_emails, name='list-standalone-emails'),
     path(
+        'emails/history/<int:log_id>/body/', standalone_email_body,
+        name='standalone-email-body',
+    ),
+    path(
         'emails/copy-recipients/', client_email_copy_recipients,
         name='client-email-copy-recipients',
     ),
@@ -580,6 +587,16 @@ urlpatterns = [
         name='document-notes',
     ),
     path(
+        'documents/<int:document_id>/notes/events/',
+        document_note_events,
+        name='document-note-events',
+    ),
+    path(
+        'documents/<int:document_id>/notes/bulk-delete/',
+        bulk_delete_document_notes,
+        name='bulk-delete-document-notes',
+    ),
+    path(
         'documents/<int:document_id>/notes/<int:note_id>/',
         update_document_note,
         name='update-document-note',
@@ -588,6 +605,11 @@ urlpatterns = [
         'documents/<int:document_id>/notes/<int:note_id>/finish/',
         finish_document_note,
         name='finish-document-note',
+    ),
+    path(
+        'documents/<int:document_id>/notes/<int:note_id>/restore/',
+        restore_document_note,
+        name='restore-document-note',
     ),
     path(
         'documents/<int:document_id>/communications/',

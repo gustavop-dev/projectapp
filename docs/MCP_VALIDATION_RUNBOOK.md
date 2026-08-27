@@ -4,7 +4,8 @@
 
 Este documento es el procedimiento repetible para validar los conectores MCP de
 ProjectApp. Cubre el transporte compartido, las cinco herramientas de
-Comunicaciones y la paridad de los ocho conectores preexistentes. La fuente
+Comunicaciones, el ciclo recuperable de observaciones en Documentos y la
+paridad de los ocho conectores preexistentes. La fuente
 ejecutable del inventario está en `backend/content/views/mcp_blog.py`; la
 clasificación de campos vive en `backend/content/mcp/contracts.py`.
 
@@ -26,7 +27,7 @@ clasificación de campos vive en `backend/content/mcp/contracts.py`.
 | Slug | Herramientas | Alcance |
 |---|---:|---|
 | `blog` | 7 | Plantilla, CRUD, apertura completa y calendario editorial |
-| `documents` | 14 | Carpetas, markdown, cliente/proyecto, estados y observaciones |
+| `documents` | 17 | Carpetas, markdown, cliente/proyecto, estados y observaciones recuperables |
 | `clients` | 6 | Búsqueda, detalle, CRUD y regla de huérfano transversal |
 | `communications` | 5 | Hilos y registro conversacional de mensajes |
 | `tasks` | 17 | Tareas, archivo, comentarios, alertas y orden del tablero |
@@ -161,12 +162,59 @@ entrante, uno ya enviado, uno anulado, un ID inexistente y una fecha no ISO.
 Confirmar que no se creó `EmailLog` ni se invocó ningún proveedor: la herramienta
 sólo registra el envío realizado por fuera.
 
+## Documentos: eliminación recuperable de observaciones
+
+Usar un documento markdown con dos observaciones, una pendiente enlazada a un
+episodio **Solucionar bug** con `origin=note` y otra resuelta o descartada. Las
+herramientas reutilizan el mismo servicio transaccional que el panel.
+
+### 1. `delete_document_notes`
+
+```json
+{"document_id": 40, "note_ids": [70, 71]}
+```
+
+Verificar que una sola llamada elimina lógicamente toda la selección, devuelve
+`deleted_note_ids` y no deja resultados parciales. Las observaciones salen de
+`read_document`, de la lista activa y de los conteos. Si la selección contenía
+la última pendiente de un episodio originado por observaciones, ese episodio se
+cierra como `removed`; un estado manual nunca se cierra por esta regla.
+
+Deben fallar sin modificar nada: selección vacía, IDs repetidos, observación de
+otro documento, ID inexistente y observación ya eliminada. Se puede eliminar
+una observación pendiente, resuelta o descartada; una copia enviada antes por
+correo o mensaje permanece fuera del sistema.
+
+### 2. `list_deleted_document_notes`
+
+```json
+{"document_id": 40}
+```
+
+Verificar que sólo devuelve la papelera recuperable con contenido, estado,
+`deleted_at` y actor. La lectura normal del documento debe seguir ocultando esas
+filas. El historial técnico de eliminación es distinto: registra actor y fecha,
+pero no crea una copia del título o contenido.
+
+### 3. `restore_document_note`
+
+```json
+{"document_id": 40, "note_id": 70}
+```
+
+Verificar que la observación vuelve al alcance activo. Si era pendiente y su
+eliminación había cerrado el episodio enlazado, la restauración reabre o
+reutiliza **Solucionar bug** y vuelve a enlazarla. Una incompatibilidad de
+estados o un estado retirado debe revertir toda la operación y conservar la
+observación en la papelera. Restaurar una fila activa o de otro documento debe
+fallar de forma explícita.
+
 ## Revalidación de conectores existentes
 
 | Conector | Lectura que debe comprobarse | Escritura/acción que debe comprobarse | Error representativo |
 |---|---|---|---|
 | Blog | `get_blog_post` devuelve JSON bilingüe, fuentes, SEO, portada y LinkedIn | crear/editar conserva esos campos | post inexistente o payload incompleto |
-| Documents | resumen/detalle y filtros muestran cliente, proyecto, estados y tags | crear/editar deriva cliente desde proyecto y desvincula proyecto al cambiar cliente | proyecto ajeno, archivado o ID inválido |
+| Documents | resumen/detalle y filtros muestran cliente, proyecto, estados, tags y sólo observaciones activas | crear/editar mantiene asociaciones; eliminar/restaurar observaciones reconcilia estados y papelera en una transacción | proyecto ajeno, archivado, selección de observaciones mezclada o restauración incompatible |
 | Clients | métricas incluyen documentos, ingresos, hostings y comunicaciones | CRUD usa `proposal_client_service` | un hilo impide tratar/eliminar el cliente como huérfano |
 | Tasks | detalle, comentarios y alertas reflejan el modelo actual | CRUD, archivo, orden y duplicación | comentario/alerta de otra tarea |
 | Accounting | detalle incluye pagos, deducciones, cuenta de cobro y período de hosting | `settle_income` y `bulk_settle_incomes` crean pagos parciales/abonos por el servicio del panel | no esperado, repetido, excedido o ID perdido |
@@ -189,6 +237,15 @@ de tres comandos.
 
 /home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
   content/tests/views/test_mcp_parity_refresh.py -q
+```
+
+Para cambios en observaciones de Documentos, agregar el archivo focal sin
+superar 20 tests por ejecución:
+
+```bash
+/home/ryzepeck/webapps/projectapp/backend/venv/bin/python -m pytest \
+  content/tests/views/test_mcp_documents.py::TestDocumentsMcpToolList \
+  content/tests/views/test_mcp_documents.py::TestDocumentsMcpWorkflow -q
 ```
 
 Luego ejecutar una regresión mínima de los handlers compartidos modificados y:
@@ -227,7 +284,9 @@ qué queda fuera del MCP.
   inventario.
 - Comunicaciones cubre las cinco operaciones mínimas y todos sus rechazos dejan
   la base consistente.
-- Los MCP existentes devuelven y aceptan los campos descritos en su contrato.
+- Los MCP existentes devuelven y aceptan los campos descritos en su contrato;
+  Documentos expone 17 herramientas y conserva paridad para borrar, listar la
+  papelera y restaurar observaciones.
 - No se alteraron tokens ni estados activos de conectores existentes durante la
   migración; Comunicaciones sigue inactivo/sin token hasta activación manual.
 - Tests focales, regresión, Django check, migraciones sin drift y quality gate

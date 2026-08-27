@@ -46,6 +46,14 @@ class DocumentNote(models.Model):
         related_name='+',
     )
     resolved_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     created_at_known = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -53,9 +61,46 @@ class DocumentNote(models.Model):
     class Meta:
         ordering = ('order', 'created_at', 'id')
         indexes = [
-            models.Index(fields=('document', 'status')),
-            models.Index(fields=('episode', 'status')),
+            models.Index(fields=('document', 'deleted_at', 'status')),
+            models.Index(fields=('episode', 'deleted_at', 'status')),
         ]
 
     def __str__(self):
         return self.title or self.content[:60]
+
+
+class DocumentNoteEvent(models.Model):
+    """Append-only audit entry without a snapshot of note content."""
+
+    class EventType(models.TextChoices):
+        DELETED = 'deleted', 'Eliminada'
+        RESTORED = 'restored', 'Restaurada'
+
+    document = models.ForeignKey(
+        'content.Document',
+        on_delete=models.CASCADE,
+        related_name='document_note_events',
+    )
+    note = models.ForeignKey(
+        DocumentNote,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='events',
+    )
+    event_type = models.CharField(max_length=16, choices=EventType.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='+',
+    )
+    recorded_at = models.DateTimeField(auto_now_add=True)
+    details = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ('-recorded_at', '-id')
+        indexes = [models.Index(fields=('document', 'recorded_at'))]
+
+    def __str__(self):
+        return f'{self.note_id} — {self.event_type}'

@@ -2,7 +2,13 @@ from django.db import transaction
 from django.db.models import Max
 from django.utils import timezone
 
-from content.models import DocumentNote, DocumentState, DocumentStateEpisode
+from content.models import (
+    Document,
+    DocumentNote,
+    DocumentNoteEvent,
+    DocumentState,
+    DocumentStateEpisode,
+)
 from content.services.document_state_service import (
     active_episode_for_key,
     close_episode,
@@ -11,7 +17,9 @@ from content.services.document_state_service import (
 
 
 class DocumentNoteError(ValueError):
-    pass
+    def __init__(self, message, *, code='invalid_note_operation'):
+        super().__init__(message)
+        self.code = code
 
 
 def sync_legacy_notes(document, *, actor=None):
@@ -80,6 +88,11 @@ def create_note(
 
 
 def update_note(note, *, title=None, content=None):
+    if note.deleted_at is not None:
+        raise DocumentNoteError(
+            'La observación está en la papelera.',
+            code='note_deleted',
+        )
     if note.status != DocumentNote.Status.OPEN:
         raise DocumentNoteError('Sólo se pueden editar observaciones pendientes.')
     update_fields = ['updated_at']
@@ -106,9 +119,15 @@ def finish_note(
     close_linked_state=False,
     move_cycle_to_bug_attended=False,
 ):
+    locked_document = Document.objects.select_for_update().get(pk=note.document_id)
     note = DocumentNote.objects.select_for_update().select_related(
         'episode__state', 'document',
-    ).get(pk=note.pk)
+    ).get(pk=note.pk, document=locked_document)
+    if note.deleted_at is not None:
+        raise DocumentNoteError(
+            'La observación está en la papelera.',
+            code='note_deleted',
+        )
     if note.status != DocumentNote.Status.OPEN:
         raise DocumentNoteError('La observación ya no está pendiente.')
     if outcome not in (DocumentNote.Status.RESOLVED, DocumentNote.Status.DISCARDED):
@@ -124,10 +143,15 @@ def finish_note(
 
     state_closed = False
     cycle_moved = False
-    if close_linked_state and note.episode_id and note.episode.closed_at is None:
+    if (
+        note.episode_id
+        and note.episode.closed_at is None
+        and note.episode.origin == DocumentStateEpisode.Origin.NOTE
+    ):
         still_open = DocumentNote.objects.filter(
             episode_id=note.episode_id,
             status=DocumentNote.Status.OPEN,
+            deleted_at__isnull=True,
         ).exists()
         if not still_open:
             state_outcome = (
@@ -159,4 +183,161 @@ def finish_note(
     return note, {
         'state_closed': state_closed,
         'cycle_moved': cycle_moved,
+    }
+
+
+@transaction.atomic
+def delete_notes(document, *, note_ids, actor=None):
+    """Soft-delete one or more notes atomically and reconcile note states."""
+    note_ids = list(note_ids)
+    if not note_ids:
+        raise DocumentNoteError(
+            'Selecciona al menos una observación.',
+            code='empty_note_selection',
+        )
+    if len(note_ids) != len(set(note_ids)):
+        raise DocumentNoteError(
+            'La selección contiene observaciones repetidas.',
+            code='duplicate_note_ids',
+        )
+
+    locked_document = Document.objects.select_for_update().get(pk=document.pk)
+    notes = list(
+        DocumentNote.objects.select_for_update()
+        .filter(pk__in=note_ids, document=locked_document)
+        .select_related('episode__state')
+    )
+    if len(notes) != len(note_ids):
+        raise DocumentNoteError(
+            'Una o más observaciones no pertenecen a este documento.',
+            code='note_selection_invalid',
+        )
+    if any(note.deleted_at is not None for note in notes):
+        raise DocumentNoteError(
+            'Una o más observaciones ya están en la papelera.',
+            code='note_already_deleted',
+        )
+
+    affected_episode_ids = {
+        note.episode_id
+        for note in notes
+        if note.episode_id and note.status == DocumentNote.Status.OPEN
+    }
+    episodes = {
+        episode.id: episode
+        for episode in DocumentStateEpisode.objects.select_for_update()
+        .filter(pk__in=affected_episode_ids)
+        .select_related('state')
+    }
+    now = timezone.now()
+    for note in notes:
+        note.deleted_at = now
+        note.deleted_by = actor
+        note.updated_at = now
+    DocumentNote.objects.bulk_update(notes, ('deleted_at', 'deleted_by', 'updated_at'))
+
+    closed_episode_ids = set()
+    for episode in episodes.values():
+        if (
+            episode.closed_at is not None
+            or episode.origin != DocumentStateEpisode.Origin.NOTE
+        ):
+            continue
+        has_open_notes = DocumentNote.objects.filter(
+            episode=episode,
+            status=DocumentNote.Status.OPEN,
+            deleted_at__isnull=True,
+        ).exists()
+        if not has_open_notes:
+            close_episode(
+                episode,
+                actor=actor,
+                outcome=DocumentStateEpisode.Outcome.REMOVED,
+                close_note='Sin observaciones pendientes.',
+            )
+            closed_episode_ids.add(episode.id)
+
+    DocumentNoteEvent.objects.bulk_create([
+        DocumentNoteEvent(
+            document=locked_document,
+            note=note,
+            event_type=DocumentNoteEvent.EventType.DELETED,
+            actor=actor,
+            details=(
+                {'closed_episode_id': note.episode_id}
+                if note.episode_id in closed_episode_ids
+                else {}
+            ),
+        )
+        for note in notes
+    ])
+    return {
+        'deleted_note_ids': sorted(note.id for note in notes),
+        'closed_episode_ids': sorted(closed_episode_ids),
+        'state_closed': bool(closed_episode_ids),
+    }
+
+
+@transaction.atomic
+def restore_note(note, *, actor=None):
+    """Restore a soft-deleted note, reopening its note-origin state if needed."""
+    locked_document = Document.objects.select_for_update().get(pk=note.document_id)
+    note = (
+        DocumentNote.objects.select_for_update()
+        .select_related('document', 'episode__state')
+        .get(pk=note.pk, document=locked_document)
+    )
+    if note.deleted_at is None:
+        raise DocumentNoteError(
+            'La observación no está en la papelera.',
+            code='note_not_deleted',
+        )
+
+    restored_episode_id = None
+    deletion_event = (
+        note.events.filter(event_type=DocumentNoteEvent.EventType.DELETED)
+        .order_by('-recorded_at', '-id')
+        .first()
+    )
+    closed_episode_id = (
+        (deletion_event.details or {}).get('closed_episode_id')
+        if deletion_event
+        else None
+    )
+    if note.status == DocumentNote.Status.OPEN and closed_episode_id:
+        closed_episode = (
+            DocumentStateEpisode.objects.select_for_update()
+            .select_related('state')
+            .get(pk=closed_episode_id, document=note.document)
+        )
+        episode, _ = open_state(
+            note.document,
+            closed_episode.state,
+            actor=actor,
+            origin=DocumentStateEpisode.Origin.NOTE,
+            idempotent=True,
+        )
+        note.episode = episode
+        restored_episode_id = episode.id
+
+    note.deleted_at = None
+    note.deleted_by = None
+    update_fields = ['deleted_at', 'deleted_by', 'updated_at']
+    if restored_episode_id:
+        update_fields.append('episode')
+    note.save(update_fields=update_fields)
+    DocumentNoteEvent.objects.create(
+        document=note.document,
+        note=note,
+        event_type=DocumentNoteEvent.EventType.RESTORED,
+        actor=actor,
+        details=(
+            {'restored_episode_id': restored_episode_id}
+            if restored_episode_id
+            else {}
+        ),
+    )
+    return note, {
+        'restored_episode_id': restored_episode_id,
+        'state_reopened': bool(restored_episode_id),
     }

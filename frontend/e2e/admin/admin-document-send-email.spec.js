@@ -126,15 +126,16 @@ test.describe('Admin Document Send Email', () => {
       return baseRoutes(apiPath);
     });
     await openSendEmailModal(page);
-    page.once('dialog', (dialog) => dialog.accept());
 
     await page.getByPlaceholder('correo@ejemplo.com').fill('cliente@acme.com');
     await page.getByPlaceholder('Escribe el contenido de esta sección...').fill('Adjunto el documento.');
     await page.getByRole('button', { name: 'Enviar', exact: true }).click();
+    await expect(page.getByTestId('document-email-post-send')).toContainText('Enviado');
+    await page.getByTestId('document-email-confirm-sent-state').click();
 
     await expect.poll(() => episodeBody).not.toBeNull();
     expect(episodeBody).toEqual({ state_id: 11, origin: 'email' });
-    await expect(page.getByText(/Estado Enviado registrado/)).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Enviar por correo' })).toBeHidden();
   });
 
   test('shows the rate-limited message when the backend answers 429', {

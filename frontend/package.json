@@ -26,6 +26,7 @@
     "check:design-tokens:strict": "node scripts/check-design-tokens.mjs --strict",
     "check:design-tokens:rows": "node scripts/check-design-tokens.mjs --scope=panel --strict --strict-rows",
     "check:panel-action-icons": "node scripts/check-panel-action-icons.mjs",
+    "check:panel-native-dialogs": "node scripts/check-panel-native-dialogs.mjs",
     "check:responsive-contract": "node scripts/check-responsive-contract.mjs",
     "check:disabled-controls": "node scripts/check-disabled-controls.mjs --strict",
     "ci:e2e-flow-summary": "node scripts/report-e2e-flow-coverage-ci.mjs",

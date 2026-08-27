@@ -15,7 +15,7 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.api_errors import error_response
-from content.models import Document, DocumentStateEpisode
+from content.models import Document, DocumentNote, DocumentStateEpisode
 from content.serializers.document import (
     DocumentListSerializer,
     DocumentDetailSerializer,
@@ -453,8 +453,13 @@ def retrieve_document(request, document_id):
         Document.objects.select_related(
             'document_type', 'folder', 'project', 'client_user__profile',
         ).prefetch_related(
-            'document_notes__created_by',
-            'document_notes__resolved_by',
+            Prefetch(
+                'document_notes',
+                queryset=DocumentNote.objects.filter(
+                    deleted_at__isnull=True,
+                ).select_related('created_by', 'resolved_by', 'deleted_by'),
+                to_attr='_active_document_notes',
+            ),
             'state_episodes__state__group',
         ),
         pk=document_id,

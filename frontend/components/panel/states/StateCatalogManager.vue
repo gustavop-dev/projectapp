@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { DOCUMENT_STATE_COLORS, stateBadgeVariant } from '~/utils/documentState';
 
 const props = defineProps({
@@ -27,6 +28,12 @@ const newGroup = reactive({ name: '', selection_mode: 'additive' });
 const editing = reactive({});
 const groupEditing = reactive({});
 const mergeTargets = reactive({});
+const {
+  confirmState,
+  requestConfirm,
+  handleConfirmed,
+  handleCancelled,
+} = useConfirmModal();
 
 const groups = computed(() => props.stateStore.groups.map((group) => ({
   ...group,
@@ -63,7 +70,13 @@ async function createState(confirmSimilar = false) {
   const result = await props.stateStore.createState(payload);
   if (result.needsConfirmation) {
     const names = result.suggestions.map((item) => item.name).join(', ');
-    if (window.confirm(`Se parecen a: ${names}. ¿Crear de todas formas?`)) {
+    const confirmed = await requestConfirm({
+      title: 'Revisar estados parecidos',
+      message: `Ya existen estados parecidos: ${names}. Crear otro puede fragmentar los filtros y el historial.`,
+      confirmText: 'Crear de todas formas',
+      variant: 'warning',
+    });
+    if (confirmed) {
       await createState(true);
     }
     return;
@@ -127,7 +140,13 @@ async function saveState(state) {
 }
 
 async function retire(state) {
-  if (!window.confirm(`¿Retirar "${state.name}" del selector?`)) return;
+  const confirmed = await requestConfirm({
+    title: 'Retirar estado',
+    message: `“${state.name}” dejará de aparecer en el selector. Su historial se conservará.`,
+    confirmText: 'Retirar estado',
+    variant: 'warning',
+  });
+  if (!confirmed) return;
   const result = await props.stateStore.retireState(state.id);
   if (result.success) notify.success({ title: 'Estado retirado' });
   else notify.error({ title: 'No se puede retirar', detail: result.message });
@@ -135,10 +154,17 @@ async function retire(state) {
 
 async function merge(state) {
   const target = mergeTargets[state.id];
-  if (
-    !target
-    || !window.confirm(`¿Fusionar "${state.name}"? Su historial se conservará.`)
-  ) return;
+  if (!target) return;
+  const targetState = props.stateStore.states.find(
+    (item) => item.id === Number(target),
+  );
+  const confirmed = await requestConfirm({
+    title: 'Fusionar estados',
+    message: `“${state.name}” se fusionará con “${targetState?.name || 'el estado elegido'}”. Los episodios históricos se conservarán.`,
+    confirmText: 'Fusionar estados',
+    variant: 'warning',
+  });
+  if (!confirmed) return;
   const result = await props.stateStore.mergeState(state.id, target);
   if (result.success) notify.success({ title: 'Estados fusionados' });
   else {
@@ -335,4 +361,14 @@ function activeCount(state) {
       </div>
     </section>
   </main>
+  <ConfirmModal
+    v-model="confirmState.open"
+    :title="confirmState.title"
+    :message="confirmState.message"
+    :confirm-text="confirmState.confirmText"
+    :cancel-text="confirmState.cancelText"
+    :variant="confirmState.variant"
+    @confirm="handleConfirmed"
+    @cancel="handleCancelled"
+  />
 </template>
