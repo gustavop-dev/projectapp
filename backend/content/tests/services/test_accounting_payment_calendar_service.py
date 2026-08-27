@@ -242,6 +242,40 @@ class TestRecurring:
         make_recurring(cycle_anchor_date=TODAY + timedelta(days=7), is_active=False)
         assert run_payment_calendar(TODAY) == 0
 
+    def test_an_archived_payment_is_skipped(self):
+        make_recurring(
+            cycle_anchor_date=TODAY + timedelta(days=7),
+            is_archived=True,
+        )
+        assert run_payment_calendar(TODAY) == 0
+
+    def test_an_indefinitely_muted_payment_is_skipped(self):
+        make_recurring(
+            cycle_anchor_date=TODAY + timedelta(days=7),
+            reminders_muted=True,
+        )
+        assert run_payment_calendar(TODAY) == 0
+
+    def test_a_future_recurring_mute_is_skipped(self):
+        make_recurring(
+            cycle_anchor_date=TODAY + timedelta(days=7),
+            reminders_muted=True,
+            reminders_muted_until=TODAY + timedelta(days=30),
+        )
+        assert run_payment_calendar(TODAY) == 0
+
+    def test_an_expired_recurring_mute_reactivates(self):
+        payment = make_recurring(
+            cycle_anchor_date=TODAY + timedelta(days=7),
+            reminders_muted=True,
+            reminders_muted_until=TODAY,
+        )
+
+        assert run_payment_calendar(TODAY) == 1
+        payment.refresh_from_db()
+        assert payment.reminders_muted is False
+        assert payment.reminders_muted_until is None
+
     def test_a_non_monthly_payment_without_an_anchor_is_skipped(self):
         make_recurring(frequency=RecurringPayment.Frequency.ANNUAL, billing_day=10)
         assert run_payment_calendar(TODAY) == 0

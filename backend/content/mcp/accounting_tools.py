@@ -39,9 +39,14 @@ from content.serializers.accounting import (
     IncomeRecordSerializer,
     IncomeSettlementSerializer,
     PocketMovementSerializer,
+    RecurringBulkActionSerializer,
+    RecurringPaymentSerializer,
+    RecurringReminderMuteSerializer,
+    RecurringStateSerializer,
 )
 from content.services import (
     accounting_income_detail_service,
+    accounting_recurring_service,
     accounting_service,
     accounting_settlement_service,
 )
@@ -278,6 +283,74 @@ def mute_income(arguments):
         user=mcp_actor(),
     )
     return IncomeRecordSerializer(income).data
+
+
+def get_recurring_duplicate_draft(arguments):
+    payment = _get_instance_or_error('recurring', arguments.get('record_id'))
+    return accounting_recurring_service.build_duplicate_draft(payment)
+
+
+def set_recurring_active(arguments):
+    payment = _get_instance_or_error('recurring', arguments.get('record_id'))
+    serializer = RecurringStateSerializer(data=arguments)
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    try:
+        payment = accounting_recurring_service.set_active(
+            payment,
+            active=serializer.validated_data['is_active'],
+            user=mcp_actor(),
+        )
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return RecurringPaymentSerializer(payment).data
+
+
+def archive_recurring(arguments):
+    payment = _get_instance_or_error('recurring', arguments.get('record_id'))
+    payment = accounting_recurring_service.archive(payment, user=mcp_actor())
+    return RecurringPaymentSerializer(payment).data
+
+
+def restore_recurring(arguments):
+    payment = _get_instance_or_error('recurring', arguments.get('record_id'))
+    payment = accounting_recurring_service.restore(payment, user=mcp_actor())
+    return RecurringPaymentSerializer(payment).data
+
+
+def mute_recurring(arguments):
+    payment = _get_instance_or_error('recurring', arguments.get('record_id'))
+    serializer = RecurringReminderMuteSerializer(data=arguments)
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    try:
+        payment = accounting_recurring_service.set_reminder_mute(
+            payment,
+            muted=serializer.validated_data['muted'],
+            until=serializer.validated_data.get('until'),
+            user=mcp_actor(),
+        )
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return RecurringPaymentSerializer(payment).data
+
+
+def bulk_action_recurring(arguments):
+    serializer = RecurringBulkActionSerializer(data=arguments)
+    if not serializer.is_valid():
+        raise ToolError(_serializer_errors_to_message(serializer.errors))
+    try:
+        updated = accounting_recurring_service.bulk_apply(
+            serializer.validated_data['recurring_ids'],
+            action=serializer.validated_data['action'],
+            user=mcp_actor(),
+        )
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
+    return {
+        'updated': len(updated),
+        'results': RecurringPaymentSerializer(updated, many=True).data,
+    }
 
 
 def get_income_detail(arguments):
@@ -620,6 +693,13 @@ def _list_schema(key):
         props[field] = {'type': 'string', 'description': 'Uno o varios valores separados por coma.'}
     for field in config.get('bool_filters', ()):
         props[field] = {'type': 'boolean'}
+    if config.get('archive_scope'):
+        props['archive_scope'] = {
+            'type': 'string',
+            'enum': ['current', 'archived', 'all'],
+            'default': 'current',
+            'description': 'Vigentes, archivados o ambos.',
+        }
     for field in config.get('null_filters', ()):
         props[field] = {
             'type': 'string',
@@ -888,6 +968,99 @@ _NON_CRUD_TOOLS = [
             'required': ['record_id', 'muted'],
         },
         'handler': mute_income,
+    },
+    {
+        'name': 'get_recurring_duplicate_draft',
+        'description': (
+            'Construye, sin guardar, el borrador para duplicar un pago '
+            'recurrente. Recalcula la próxima fecha y limpia notas, archivo y avisos.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': _RECORD_ID_PROP,
+            'required': ['record_id'],
+        },
+        'handler': get_recurring_duplicate_draft,
+    },
+    {
+        'name': 'set_recurring_active',
+        'description': (
+            'Activa o desactiva un pago recurrente. Los archivados deben '
+            'restaurarse antes de activarse.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_RECORD_ID_PROP,
+                'is_active': {'type': 'boolean'},
+            },
+            'required': ['record_id', 'is_active'],
+        },
+        'handler': set_recurring_active,
+    },
+    {
+        'name': 'archive_recurring',
+        'description': 'Archiva y desactiva un pago recurrente sin borrar sus datos.',
+        'input_schema': {
+            'type': 'object',
+            'properties': _RECORD_ID_PROP,
+            'required': ['record_id'],
+        },
+        'handler': archive_recurring,
+    },
+    {
+        'name': 'restore_recurring',
+        'description': 'Restaura un pago recurrente archivado y lo deja inactivo.',
+        'input_schema': {
+            'type': 'object',
+            'properties': _RECORD_ID_PROP,
+            'required': ['record_id'],
+        },
+        'handler': restore_recurring,
+    },
+    {
+        'name': 'mute_recurring',
+        'description': (
+            'Silencia o reactiva los avisos del próximo cobro de un pago '
+            'recurrente vigente; admite una fecha futura de reanudación.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                **_RECORD_ID_PROP,
+                'muted': {'type': 'boolean'},
+                'until': {
+                    'type': ['string', 'null'],
+                    'description': 'YYYY-MM-DD, posterior a hoy.',
+                },
+            },
+            'required': ['record_id', 'muted'],
+        },
+        'handler': mute_recurring,
+    },
+    {
+        'name': 'bulk_action_recurring',
+        'description': (
+            'Activa, desactiva o archiva una selección completa de pagos '
+            'recurrentes en una sola transacción.'
+        ),
+        'input_schema': {
+            'type': 'object',
+            'properties': {
+                'recurring_ids': {
+                    'type': 'array',
+                    'items': {'type': 'integer'},
+                    'minItems': 1,
+                    'maxItems': 500,
+                },
+                'action': {
+                    'type': 'string',
+                    'enum': ['activate', 'deactivate', 'archive'],
+                },
+            },
+            'required': ['recurring_ids', 'action'],
+        },
+        'handler': bulk_action_recurring,
     },
     {
         'name': 'update_settings',

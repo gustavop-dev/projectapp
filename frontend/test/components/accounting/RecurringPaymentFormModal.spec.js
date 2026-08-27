@@ -281,4 +281,51 @@ describe('RecurringPaymentFormModal', () => {
     expect(wrapper.emitted('submit')).toHaveLength(1);
     expect(wrapper.emitted('submit')[0][0]).not.toHaveProperty('cop_equivalent');
   });
+
+  it('opens a duplicate seed as an unsaved create form', () => {
+    const wrapper = mountModal({
+      seed: {
+        name: 'Figma equipo',
+        price: '270000.00',
+        currency: 'COP',
+        payment_method: 'credit_card',
+        frequency: 'quarterly',
+        billing_day: 17,
+        cycle_anchor_date: '2026-10-17',
+        cost_type: 'variable',
+        category: 8,
+        is_active: true,
+        notes: '',
+        schedule_notice: 'La fecha se recalculó.',
+      },
+      categories: [{ id: 8, name: 'Diseño' }],
+    });
+
+    expect(wrapper.text()).toContain('Duplicar pago recurrente');
+    expect(wrapper.find('input[type="text"]').element.value).toBe('Figma equipo');
+    expect(wrapper.get(CYCLE_ANCHOR).element.value).toBe('2026-10-17');
+    expect(wrapper.text()).toContain('La fecha se recalculó.');
+    expect(wrapper.emitted('submit')).toBeUndefined();
+  });
+
+  it('requires a missing duplicate schedule before save', () => {
+    const wrapper = mountModal({
+      seed: {
+        name: 'Dominio',
+        price: '180000.00',
+        currency: 'COP',
+        payment_method: 'credit_card',
+        frequency: 'annual',
+        cycle_anchor_date: null,
+        cost_type: 'fixed',
+        is_active: true,
+        schedule_requires_anchor: true,
+        schedule_notice: 'Define una fecha de referencia antes de guardar.',
+      },
+    });
+
+    expect(wrapper.get(CYCLE_ANCHOR).attributes('required')).toBeDefined();
+    expect(wrapper.get('[data-testid="recurring-duplicate-schedule-notice"]').text())
+      .toContain('Define una fecha de referencia');
+  });
 });

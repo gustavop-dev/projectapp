@@ -13,6 +13,7 @@ from content.models import (
     IncomeRecord,
     McpConnector,
     NotificationRecipient,
+    RecurringPayment,
 )
 from content.serializers.accounting import AccountingSettingsSerializer
 from content.services import accounting_service
@@ -60,8 +61,8 @@ class TestAccountingMcpToolList:
         _, token = accounting_connector
         response = api_client.post(_url(token), _rpc('tools/list'), format='json')
         names = [t['name'] for t in response.data['result']['tools']]
-        # 8 ledgers × 5 CRUD + 8 non-CRUD + 15 statement tools = 63
-        assert len(names) == 63
+        # 8 ledgers × 5 CRUD + 14 non-CRUD + 15 statement tools = 69
+        assert len(names) == 69
         for expected in (
             'list_income', 'create_expense', 'delete_pocket', 'get_hosting',
             'update_recurring', 'get_dashboard', 'list_change_logs',
@@ -71,11 +72,14 @@ class TestAccountingMcpToolList:
             'create_statement', 'resolve_merchants', 'finalize_statement',
             'list_notification_recipient', 'create_notification_recipient',
             'update_notification_recipient', 'delete_notification_recipient',
+            'get_recurring_duplicate_draft', 'set_recurring_active',
+            'archive_recurring', 'restore_recurring', 'mute_recurring',
+            'bulk_action_recurring',
         ):
             assert expected in names
 
     def test_registry_length_matches_endpoint(self):
-        assert len(ACCOUNTING_TOOLS) == 63
+        assert len(ACCOUNTING_TOOLS) == 69
 
 
 @pytest.mark.django_db
@@ -167,6 +171,104 @@ class TestAccountingMcpNonCrud:
 
 def _payload(response):
     return json.loads(response.data['result']['content'][0]['text'])
+
+
+def _make_recurring(**overrides):
+    fields = {
+        'name': 'Figma equipo',
+        'price': Decimal('270000.00'),
+        'frequency': RecurringPayment.Frequency.QUARTERLY,
+        'cycle_anchor_date': date(2026, 7, 17),
+        'is_active': True,
+    }
+    fields.update(overrides)
+    return RecurringPayment.objects.create(**fields)
+
+
+@pytest.mark.django_db
+class TestAccountingMcpRecurringLifecycle:
+    @pytest.fixture(autouse=True)
+    def _mute_notifications(self):
+        with patch.object(accounting_service, '_notify'):
+            yield
+
+    def test_duplicate_tool_returns_an_unsaved_prefill(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        payment = _make_recurring()
+
+        response = _call(
+            api_client, accounting_connector[1],
+            'get_recurring_duplicate_draft', {'record_id': payment.pk},
+        )
+
+        assert _payload(response)['name'] == 'Figma equipo'
+        assert RecurringPayment.objects.count() == 1
+
+    def test_state_tool_deactivates_the_payment(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        payment = _make_recurring()
+
+        response = _call(
+            api_client, accounting_connector[1], 'set_recurring_active',
+            {'record_id': payment.pk, 'is_active': False},
+        )
+
+        assert _payload(response)['is_active'] is False
+
+    def test_archive_tool_preserves_the_record(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        payment = _make_recurring()
+
+        response = _call(
+            api_client, accounting_connector[1],
+            'archive_recurring', {'record_id': payment.pk},
+        )
+
+        assert _payload(response)['is_archived'] is True
+        assert RecurringPayment.objects.filter(pk=payment.pk).exists()
+
+    def test_restore_tool_returns_an_inactive_payment(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        payment = _make_recurring(is_active=False, is_archived=True)
+
+        response = _call(
+            api_client, accounting_connector[1],
+            'restore_recurring', {'record_id': payment.pk},
+        )
+
+        payload = _payload(response)
+        assert payload['is_archived'] is False
+        assert payload['is_active'] is False
+
+    def test_mute_tool_silences_the_payment(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        payment = _make_recurring()
+
+        response = _call(
+            api_client, accounting_connector[1], 'mute_recurring',
+            {'record_id': payment.pk, 'muted': True},
+        )
+
+        assert _payload(response)['reminders_effectively_muted'] is True
+
+    def test_bulk_tool_applies_one_transactional_action(
+        self, api_client, accounting_connector, mcp_superuser,
+    ):
+        first = _make_recurring(name='Figma')
+        second = _make_recurring(name='Notion')
+
+        response = _call(
+            api_client, accounting_connector[1], 'bulk_action_recurring',
+            {'recurring_ids': [first.pk, second.pk], 'action': 'deactivate'},
+        )
+
+        assert _payload(response)['updated'] == 2
+        assert not RecurringPayment.objects.filter(is_active=True).exists()
 
 
 @pytest.mark.django_db

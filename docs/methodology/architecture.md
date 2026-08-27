@@ -867,13 +867,21 @@ flowchart LR
     Save --> Equivalent["cop_equivalent (server-owned cache)"]
     Equivalent --> Monthly["monthly_cop_cost ÷ frequency_months"]
     Frequency["frequency / custom_months"] --> Monthly
-    Monthly --> General["API monthly_cop_total"]
-    Monthly --> Category["Frontend category totals"]
+    Monthly --> BudgetGate{"is_active && !is_archived"}
+    BudgetGate --> General["API monthly_cop_total"]
+    BudgetGate --> Category["Frontend totals / weights / charts"]
+    BudgetGate --> Notices["Dashboard + payment-calendar notices"]
     RateChange["AccountingSettings.save() rate change"] --> Sync["synchronize_cop_equivalents()"]
     Sync --> Equivalent
+    RowActions["Panel row / bulk actions + MCP"] --> Lifecycle["accounting_recurring_service"]
+    Lifecycle --> State["active · archived · reminder mute"]
+    State --> BudgetGate
+    Lifecycle --> Audit["AccountingChangeLog"]
 ```
 
 The configured rate is a current-rate policy, not a historical snapshot. A settings-rate change updates every stored USD equivalent atomically; ordinary recurring writes derive their own equivalent and ignore client-supplied cache values. The API then serializes the refreshed monthly projection, so the general total and the frontend category sums consume the same canonical rows. Migration `content.0208` performs the one-time historical repair.
+
+Lifecycle is a separate service boundary. `accounting_recurring_service` owns state, archive/restore, reminder mute, duplicate drafts and transaction-locked bulk writes; the panel endpoints and six accounting MCP tools converge there and audit every changed row without sending accounting-change email noise. List/export scope is explicit (`archive_scope=current|archived|all`), restore is inactive by construction, and hard delete is rejected until archive. Migration `content.0219_recurring_lifecycle` adds the archive and mute state. A duplicate endpoint returns form seed data only: the ordinary create path remains the sole writer. No edge in this graph creates an `ExpenseRecord` or `PocketMovement`; registering a period charge is intentionally a later ledger-origin architecture.
 
 ### Collection Accounts → Grouped Receivables View
 

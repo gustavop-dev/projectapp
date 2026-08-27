@@ -353,7 +353,7 @@ class TestRecurringAndCatalogEndpoints:
         assert response.data['name'] == 'Notion'
 
     def test_delete_recurring_payment_removes_the_row(self, super_client):
-        record = make_recurring()
+        record = make_recurring(is_active=False, is_archived=True)
         response = super_client.delete(
             f'/api/accounting/recurring/{record.pk}/delete/',
         )

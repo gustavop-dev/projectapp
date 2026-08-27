@@ -75,11 +75,16 @@ describe('groupByCategory', () => {
     { id: 2, name: 'Infraestructura', order: 1 },
     { id: 3, name: 'Vacía', order: 2 },
   ];
+  const activeRow = (overrides = {}) => ({
+    is_active: true,
+    is_archived: false,
+    ...overrides,
+  });
 
   it('groups rows in catalog order and skips empty categories', () => {
     const rows = [
-      { id: 10, category: 2, monthly_cop_cost: '32900.00' },
-      { id: 11, category: 1, monthly_cop_cost: '800000.00' },
+      activeRow({ id: 10, category: 2, monthly_cop_cost: '32900.00' }),
+      activeRow({ id: 11, category: 1, monthly_cop_cost: '800000.00' }),
     ];
 
     const groups = groupByCategory(rows, categories);
@@ -91,8 +96,8 @@ describe('groupByCategory', () => {
 
   it('preserves the row order it was given, which is the manual order', () => {
     const rows = [
-      { id: 11, category: 1, monthly_cop_cost: '800000.00' },
-      { id: 10, category: 1, monthly_cop_cost: '80000.00' },
+      activeRow({ id: 11, category: 1, monthly_cop_cost: '800000.00' }),
+      activeRow({ id: 10, category: 1, monthly_cop_cost: '80000.00' }),
     ];
 
     const [group] = groupByCategory(rows, categories);
@@ -100,10 +105,12 @@ describe('groupByCategory', () => {
     expect(group.rows.map((r) => r.id)).toEqual([11, 10]);
   });
 
-  it('subtotals each group in monthly COP', () => {
+  it('subtotals only payments in the operating budget', () => {
     const rows = [
-      { id: 11, category: 1, monthly_cop_cost: '800000.00' },
-      { id: 12, category: 1, monthly_cop_cost: '80000.00' },
+      activeRow({ id: 11, category: 1, monthly_cop_cost: '800000.00' }),
+      activeRow({ id: 12, category: 1, monthly_cop_cost: '80000.00' }),
+      activeRow({ id: 13, category: 1, monthly_cop_cost: '99999.00', is_active: false }),
+      activeRow({ id: 14, category: 1, monthly_cop_cost: '88888.00', is_archived: true }),
     ];
 
     const [group] = groupByCategory(rows, categories);
@@ -113,8 +120,8 @@ describe('groupByCategory', () => {
 
   it('collects uncategorized rows into a trailing bucket', () => {
     const rows = [
-      { id: 10, category: null, monthly_cop_cost: '1000.00' },
-      { id: 11, category: 1, monthly_cop_cost: '800000.00' },
+      activeRow({ id: 10, category: null, monthly_cop_cost: '1000.00' }),
+      activeRow({ id: 11, category: 1, monthly_cop_cost: '800000.00' }),
     ];
 
     const groups = groupByCategory(rows, categories);

@@ -113,7 +113,7 @@ export const useAccountingStore = defineStore('accounting', {
      */
     recurringMonthlyTotalsBy: (state) => (field) =>
       state.recurringPayments
-        .filter((payment) => payment.is_active)
+        .filter((payment) => payment.is_active && !payment.is_archived)
         .reduce((totals, payment) => {
           const key = payment[`${field}_label`] || payment[field];
           if (key == null) return totals;
@@ -148,7 +148,7 @@ export const useAccountingStore = defineStore('accounting', {
       let uncategorized = 0;
 
       state.recurringPayments
-        .filter((payment) => payment.is_active)
+        .filter((payment) => payment.is_active && !payment.is_archived)
         .forEach((payment) => {
           const amount = Number(payment.monthly_cop_cost) || 0;
           const bucket = payment.category != null ? totals.get(payment.category) : null;
@@ -251,6 +251,90 @@ export const useAccountingStore = defineStore('accounting', {
         this.error = 'reorder_failed';
         console.error('Error reordering recurring payments:', error);
         return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    _replaceRecurring(payment) {
+      this.recurringPayments = this.recurringPayments.map((row) =>
+        row.id === payment.id ? payment : row,
+      );
+    },
+
+    async fetchRecurringDuplicateDraft(id) {
+      try {
+        const response = await get_request(
+          `accounting/recurring/${id}/duplicate-draft/`,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        console.error(`Error fetching recurring duplicate draft ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      }
+    },
+
+    async setRecurringActive(id, isActive) {
+      return this._runRecurringAction(
+        id, 'state/', { is_active: isActive }, 'state_failed',
+      );
+    },
+
+    async archiveRecurring(id) {
+      return this._runRecurringAction(id, 'archive/', {}, 'archive_failed');
+    },
+
+    async restoreRecurring(id) {
+      return this._runRecurringAction(id, 'restore/', {}, 'restore_failed');
+    },
+
+    async muteRecurringReminders(id, payload) {
+      return this._runRecurringAction(
+        id, 'reminders/mute/', payload, 'mute_failed',
+      );
+    },
+
+    async _runRecurringAction(id, suffix, payload, errorCode) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          `accounting/recurring/${id}/${suffix}`, payload,
+        );
+        this._replaceRecurring(response.data);
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = errorCode;
+        console.error(`Error applying recurring action ${suffix} to ${id}:`, error);
+        return { success: false, ...normalizeApiError(error) };
+      } finally {
+        this.isUpdating = false;
+      }
+    },
+
+    async bulkRecurringAction(ids, action) {
+      this.isUpdating = true;
+      this.error = null;
+      try {
+        const response = await create_request(
+          'accounting/recurring/bulk-action/',
+          { recurring_ids: ids, action },
+        );
+        const replacements = new Map(
+          (response.data.results || []).map((row) => [row.id, row]),
+        );
+        this.recurringPayments = this.recurringPayments.map(
+          (row) => replacements.get(row.id) || row,
+        );
+        return { success: true, data: response.data };
+      } catch (error) {
+        this.error = 'bulk_action_failed';
+        console.error(`Error applying recurring bulk action ${action}:`, error);
+        return {
+          success: false,
+          ...normalizeApiError(error),
+          missingIds: numericIdsFromError(error),
+        };
       } finally {
         this.isUpdating = false;
       }

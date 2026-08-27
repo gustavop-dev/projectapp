@@ -12,6 +12,7 @@ import {
 const props = defineProps({
   open: { type: Boolean, default: false },
   record: { type: Object, default: null },
+  seed: { type: Object, default: null },
   saving: { type: Boolean, default: false },
   categories: { type: Array, default: () => [] },
   usdExchangeRate: { type: [Number, String], default: null },
@@ -20,8 +21,13 @@ const props = defineProps({
 const emit = defineEmits(['close', 'submit'])
 
 const isEdit = computed(() => !!props.record)
+const isDuplicate = computed(() => !props.record && !!props.seed)
 const title = computed(() =>
-  isEdit.value ? 'Editar Pago recurrente' : 'Nuevo Pago recurrente',
+  isEdit.value
+    ? 'Editar pago recurrente'
+    : isDuplicate.value
+      ? 'Duplicar pago recurrente'
+      : 'Nuevo pago recurrente',
 )
 
 const currencyOptions = [
@@ -70,6 +76,9 @@ const form = ref(defaultForm())
 
 const isCustomFrequency = computed(() => form.value.frequency === CUSTOM_FREQUENCY)
 const isMonthlyFrequency = computed(() => form.value.frequency === 'monthly')
+const duplicateNeedsAnchor = computed(() => (
+  isDuplicate.value && props.seed?.schedule_requires_anchor
+))
 
 // A day of the month cannot say *which* month a quarterly or annual charge
 // lands on, so anything beyond monthly needs the reference date to be announced.
@@ -80,23 +89,24 @@ const anchorHint = computed(() => (
 ))
 
 watch(
-  () => [props.open, props.record],
+  () => [props.open, props.record, props.seed],
   () => {
     if (!props.open) return
-    if (props.record) {
+    const source = props.record || props.seed
+    if (source) {
       form.value = {
-        name: props.record.name ?? '',
-        price: props.record.price ?? '',
-        currency: props.record.currency ?? 'COP',
-        payment_method: props.record.payment_method ?? 'cash',
-        frequency: props.record.frequency ?? 'monthly',
-        custom_months: props.record.custom_months ?? '',
-        billing_day: props.record.billing_day ?? '',
-        cycle_anchor_date: props.record.cycle_anchor_date ?? '',
-        cost_type: props.record.cost_type ?? 'fixed',
-        category: props.record.category ?? '',
-        is_active: props.record.is_active ?? true,
-        notes: props.record.notes ?? '',
+        name: source.name ?? '',
+        price: source.price ?? '',
+        currency: source.currency ?? 'COP',
+        payment_method: source.payment_method ?? 'cash',
+        frequency: source.frequency ?? 'monthly',
+        custom_months: source.custom_months ?? '',
+        billing_day: source.billing_day ?? '',
+        cycle_anchor_date: source.cycle_anchor_date ?? '',
+        cost_type: source.cost_type ?? 'fixed',
+        category: source.category ?? '',
+        is_active: source.is_active ?? true,
+        notes: source.notes ?? '',
       }
     } else {
       form.value = defaultForm()
@@ -223,12 +233,22 @@ function onSubmit() {
       <BaseFormField
         label="Fecha de referencia del cobro"
         :hint="anchorHint"
+        :required="duplicateNeedsAnchor"
       >
         <BaseInput
           v-model="form.cycle_anchor_date"
           type="date"
+          :required="duplicateNeedsAnchor"
           data-testid="recurring-payment-form-cycle-anchor-date"
         />
+        <p
+          v-if="isDuplicate"
+          class="mt-1 text-xs"
+          :class="duplicateNeedsAnchor ? 'text-warning-strong' : 'text-text-subtle'"
+          data-testid="recurring-duplicate-schedule-notice"
+        >
+          {{ seed?.schedule_notice }}
+        </p>
       </BaseFormField>
 
       <BaseFormRow :cols="2" :gap="4">
