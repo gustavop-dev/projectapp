@@ -20,9 +20,10 @@ const props = defineProps({
   maxHeight: { type: Number, default: 320 },
   offset: { type: Number, default: 4 },
   viewportPadding: { type: Number, default: 16 },
+  endThreshold: { type: Number, default: 48 },
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'reach-end']);
 
 const modalContext = inject(BASE_MODAL_FLOATING_CONTEXT, null);
 const panelRef = ref(null);
@@ -120,6 +121,13 @@ function onKeydown(event) {
   emit('close');
 }
 
+function onScroll(event) {
+  const panel = event.currentTarget;
+  if (!panel) return;
+  const remaining = panel.scrollHeight - panel.scrollTop - panel.clientHeight;
+  if (remaining <= props.endThreshold) emit('reach-end');
+}
+
 function observeElements() {
   anchorObserver?.disconnect();
   panelObserver?.disconnect();
@@ -210,6 +218,7 @@ onBeforeUnmount(deactivate);
       class="pointer-events-auto fixed z-[10020] overflow-y-auto overscroll-contain rounded-xl border border-border-default bg-surface shadow-raised"
       :style="panelStyle"
       data-floating-listbox
+      @scroll.passive="onScroll"
     >
       <slot />
     </component>

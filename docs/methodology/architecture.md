@@ -1019,6 +1019,16 @@ income selector in `CollectionAccountFormModal` consume that primitive. This
 keeps accounting and Documents modals on one clipping, focus and scroll contract
 instead of repeating per-screen absolute dropdown workarounds.
 
+Geometry and data readiness are separate parts of that contract.
+`ClientAutocomplete` requests the empty query when an uncommitted picker gains
+focus, so a modal whose picker is its primary decision can focus it on open and
+render a real catalog immediately. `search_proposal_clients` orders by the
+display-name fallback (person name → company → email), returns at most 20 rows
+for `limit`/`offset`, and keeps its historical array body while publishing the
+filtered total in `X-Total-Count`. `BaseFloatingListbox` signals its scroll end;
+the client picker appends the next page without duplicates while the modal stays
+fixed. Empty and failed reads remain actionable inside the same layer.
+
 The linked-income selector owns a stable view-state default rather than a
 server restriction: it fetches the eligible expected/liquid pool, scopes it to
 the selected client and selects `IncomeRecord.kind === 'expected'` on open and

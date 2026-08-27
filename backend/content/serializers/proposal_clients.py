@@ -442,7 +442,7 @@ class ProposalNestedClientSerializer(serializers.ModelSerializer):
 
 
 class ProposalClientSearchSerializer(serializers.ModelSerializer):
-    """Lightweight payload for the autocomplete dropdown (max 20 results)."""
+    """Lightweight payload for a client-picker page (up to 20 results)."""
 
     name = serializers.SerializerMethodField()
     email = serializers.SerializerMethodField()

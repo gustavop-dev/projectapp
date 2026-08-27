@@ -2,6 +2,7 @@
   <BaseModal
     :model-value="open"
     size="xl"
+    initial-focus="[data-testid='folder-change-client-picker']"
     @update:model-value="$emit('close')"
   >
     <div class="p-6 space-y-5" data-testid="folder-change-client-modal">
