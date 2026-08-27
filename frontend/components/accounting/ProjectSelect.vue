@@ -1,5 +1,5 @@
 <template>
-  <BaseFormField :label="label" :hint="hint">
+  <BaseFormField :label="label" :hint="showHint ? hint : ''">
     <div ref="wrapperRef" class="relative">
       <div class="relative">
         <span
@@ -210,6 +210,9 @@ const props = defineProps({
    * showing its owner) so choosing a project first can complete the client.
    */
   allowNoClient: { type: Boolean, default: false },
+  /** Filter bars and grouped rows render one explanation below the complete
+   * field/action group instead of letting this field change the row height. */
+  showHint: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['update:modelValue', 'created', 'select']);

@@ -246,7 +246,7 @@ export DJANGO_SETTINGS_MODULE
   --file '<ruta absoluta del .md temporal>'
 ```
 
-> En producción (`settings_prod`) el documento queda además visible vía el conector MCP **"Gestor de Documentos"** de claude.ai — el panel y el conector comparten la misma base de datos.
+> En producción (`settings_prod`) el documento queda además visible vía el conector MCP **"Gestor Documental"** de claude.ai — el panel y el conector comparten la misma base de datos.
 
 **Saneo del título:** el nombre corto usa solo letras (con tildes/ñ), números, espacios y guiones — nunca comillas (`"` `'`), `$`, backticks ni saltos de línea. El guion largo `—` del separador de fecha sí es válido. Pasa `--title` y `--file` entre comillas simples y con rutas absolutas.
 

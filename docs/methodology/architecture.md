@@ -364,6 +364,16 @@ module components in CI.
 
 Responsive behavior is part of the design-system contract rather than a page-level exception. The canonical device profiles live in frontend configuration and cover 412, 835, 1195, 1440 and 2560 px widths. Shared navigation stays compact through portrait tablet, modal geometry is centralized in `BaseModal`, repeated tables declare business-priority columns, and the admin content column stops growing on large monitors.
 
+Short interface controls are atomic by default. `BaseButton`, `BaseBadge`,
+`BaseSegmented` and `BaseSegmentedMulti` keep text, count and icon together;
+segmented groups may wrap between complete options while preserving equal-height
+controls. `BaseModal` maps intent to one width contract (`confirm`, `form`,
+`form-wide`, `wizard`, `detail`, `workspace`) instead of letting consumers tune
+one-off sizes. Form columns converge through `BaseFormRow`: direct fields share
+label/control/error bands, explanatory copy spans the complete group, and
+`BaseFormRowAction` occupies the control band so a companion action is not
+centred against the label and help block.
+
 Semantic theme tokens live in `frontend/assets/styles/theme.css` and are exposed
 as Tailwind colors (`bg-surface`, `text-text-default`, `border-input-border`,
 etc.). Light/dark values flip with the `.dark` class on `<html>`, toggled by

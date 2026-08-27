@@ -167,7 +167,8 @@ function mountModal(props = {}) {
         Teleport: { template: '<div><slot /></div>' },
         Transition: { template: '<div><slot /></div>' },
         BaseModal: {
-          props: ['modelValue', 'size', 'fullHeight'],
+          name: 'BaseModal',
+          props: ['modelValue', 'kind', 'fullHeight'],
           emits: ['close'],
           template: '<div v-if="modelValue"><slot /></div>',
         },
@@ -282,6 +283,20 @@ describe('CollectionAccountFormModal', () => {
   afterEach(() => {
     mountedWrappers.splice(0).forEach((wrapper) => wrapper.unmount());
     delete window.matchMedia;
+  });
+
+  it('uses the wizard width for the form step', () => {
+    const wrapper = mountModal();
+
+    expect(wrapper.findComponent({ name: 'BaseModal' }).props('kind')).toBe('wizard');
+  });
+
+  it('uses the workspace width for the preview step', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await goToPreview(wrapper);
+
+    expect(wrapper.find('[data-testid="collection-preview-subject"]').exists()).toBe(true);
+    expect(wrapper.findComponent({ name: 'BaseModal' }).props('kind')).toBe('workspace');
   });
 
   it('prefills concept and amount from the income prop and locks the selector', async () => {

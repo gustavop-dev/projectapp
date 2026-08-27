@@ -4,10 +4,10 @@
  * Returns null when no next action is appropriate (terminal states, or draft
  * without a client email).
  *
- * Descriptor shape: { key, label, colorClass }
+ * Descriptor shape: { key, label, variant }
  *   - key: 'send' | 'analyze' | 'send-final' | 'approve' | 'finish'
  *   - label: button label (Spanish)
- *   - colorClass: Tailwind classes for the button background / hover
+ *   - variant: BaseButton semantic variant
  */
 export function getDiagnosticNextAction(diagnostic) {
   if (!diagnostic) return null;
@@ -21,7 +21,7 @@ export function getDiagnosticNextAction(diagnostic) {
     return {
       key: 'send',
       label: 'Enviar envío inicial',
-      colorClass: 'bg-info-strong text-white hover:bg-info-strong/90',
+      variant: 'primary',
     };
   }
 
@@ -30,7 +30,7 @@ export function getDiagnosticNextAction(diagnostic) {
       return {
         key: 'analyze',
         label: 'Marcar en análisis',
-        colorClass: 'bg-warning-strong text-white hover:bg-warning-strong/90',
+        variant: 'accent',
       };
     }
     return null;
@@ -40,7 +40,7 @@ export function getDiagnosticNextAction(diagnostic) {
     return {
       key: 'send-final',
       label: 'Enviar diagnóstico final',
-      colorClass: 'bg-primary text-white hover:bg-primary-strong',
+      variant: 'primary',
     };
   }
 

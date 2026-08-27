@@ -60,31 +60,41 @@
       <!-- Identity -->
       <section class="bg-surface border border-border-default rounded-xl shadow-card p-5">
         <h2 class="text-base font-semibold text-text-default mb-4">Identidad</h2>
-        <BaseFormRow :cols="2" :gap="4" at="md">
-          <BaseFormField label="Nombre interno" for="lt-name" required :error="fieldErrors.name">
-            <BaseInput id="lt-name" v-model="form.name" data-testid="linktree-name-input" />
-          </BaseFormField>
+        <div class="space-y-4">
+          <BaseFormRow :cols="2" :gap="4" at="md">
+            <BaseFormField label="Nombre interno" for="lt-name" required :error="fieldErrors.name">
+              <BaseInput id="lt-name" v-model="form.name" data-testid="linktree-name-input" />
+            </BaseFormField>
 
-          <BaseFormField label="Handle" for="lt-handle" required :error="fieldErrors.handle">
-            <BaseInput id="lt-handle" v-model="form.handle" data-testid="linktree-handle-input" />
-          </BaseFormField>
+            <BaseFormField label="Handle" for="lt-handle" required :error="fieldErrors.handle">
+              <BaseInput id="lt-handle" v-model="form.handle" data-testid="linktree-handle-input" />
+            </BaseFormField>
+          </BaseFormRow>
 
-          <BaseFormField label="Tipo" for="lt-kind">
-            <BaseSegmented
-              id="lt-kind"
-              v-model="form.kind"
-              :options="[
-                { value: 'personal', label: 'Personal' },
-                { value: 'company', label: 'Empresa' },
-              ]"
-            />
-          </BaseFormField>
+          <BaseFormRow
+            :cols="2"
+            :gap="4"
+            at="md"
+            help="Ejemplo de badge: TECH WEEK CO. Déjalo vacío para ocultarlo."
+          >
+            <BaseFormField label="Tipo" for="lt-kind">
+              <BaseSegmented
+                id="lt-kind"
+                v-model="form.kind"
+                :options="[
+                  { value: 'personal', label: 'Personal' },
+                  { value: 'company', label: 'Empresa' },
+                ]"
+              />
+            </BaseFormField>
 
-          <BaseFormField label="Badge del evento" for="lt-badge" hint="Ej: TECH WEEK CO — vacío lo oculta.">
-            <BaseInput id="lt-badge" v-model="form.badge_text" data-testid="linktree-badge-input" />
-          </BaseFormField>
+            <BaseFormField label="Badge del evento" for="lt-badge">
+              <BaseInput id="lt-badge" v-model="form.badge_text" data-testid="linktree-badge-input" />
+            </BaseFormField>
+          </BaseFormRow>
 
           <template v-if="form.kind === 'personal'">
+            <BaseFormRow :cols="2" :gap="4" at="md">
             <BaseFormField label="Nombre a mostrar" for="lt-display-name">
               <BaseInput id="lt-display-name" v-model="form.display_name" data-testid="linktree-display-name-input" />
             </BaseFormField>
@@ -92,11 +102,16 @@
             <BaseFormField label="Cargo" for="lt-role">
               <BaseInput id="lt-role" v-model="form.role" />
             </BaseFormField>
+            </BaseFormRow>
 
+            <BaseFormRow
+              :cols="1"
+              :gap="4"
+              help="JPG, PNG o WebP, máximo 5 MB. Sin foto se muestran las iniciales."
+            >
             <BaseFormField
               label="Foto de perfil"
               for="lt-avatar"
-              hint="JPG, PNG o WebP, máx. 5MB. Sin foto se muestran las iniciales del nombre."
               :error="fieldErrors.avatar"
             >
               <div class="flex items-center gap-3">
@@ -136,9 +151,10 @@
                 </BaseButton>
               </div>
             </BaseFormField>
+            </BaseFormRow>
           </template>
 
-          <template v-else>
+          <BaseFormRow v-else :cols="2" :gap="4" at="md">
             <BaseFormField label="Claim — línea 1" for="lt-claim-1">
               <BaseInput id="lt-claim-1" v-model="form.claim_line_1" placeholder="En 30 días deja" />
             </BaseFormField>
@@ -146,20 +162,22 @@
             <BaseFormField label="Claim — línea 2 (resaltada)" for="lt-claim-2">
               <BaseInput id="lt-claim-2" v-model="form.claim_line_2" placeholder="de ser una idea." />
             </BaseFormField>
-          </template>
+          </BaseFormRow>
 
-          <BaseFormField label="Bio" for="lt-bio" class="md:col-span-2">
+          <BaseFormField label="Bio" for="lt-bio">
             <BaseTextarea id="lt-bio" v-model="form.bio" :rows="2" />
           </BaseFormField>
 
-          <BaseFormField label="Tagline del pie" for="lt-tagline">
-            <BaseInput id="lt-tagline" v-model="form.footer_tagline" />
-          </BaseFormField>
+          <BaseFormRow :cols="2" :gap="4" at="md">
+            <BaseFormField label="Tagline del pie" for="lt-tagline">
+              <BaseInput id="lt-tagline" v-model="form.footer_tagline" />
+            </BaseFormField>
 
-          <BaseFormField label="Mostrar marca ProjectApp" for="lt-brand">
-            <BaseToggle id="lt-brand" v-model="form.show_brand_header" aria-label="Mostrar marca" />
-          </BaseFormField>
-        </BaseFormRow>
+            <BaseFormField label="Mostrar marca ProjectApp" for="lt-brand">
+              <BaseToggle id="lt-brand" v-model="form.show_brand_header" aria-label="Mostrar marca" />
+            </BaseFormField>
+          </BaseFormRow>
+        </div>
       </section>
 
       <!-- Buttons -->

@@ -1,5 +1,5 @@
 <template>
-  <BaseModal :model-value="open" kind="detail" size="xl" title-id="hosting-cycles-title" @close="emit('close')">
+  <BaseModal :model-value="open" kind="detail" title-id="hosting-cycles-title" @close="emit('close')">
     <div class="px-6 pt-6 pb-2">
       <h3 id="hosting-cycles-title" class="text-lg font-bold text-text-default">
         Ciclos de pago — {{ record?.display_label || record?.client_name }}

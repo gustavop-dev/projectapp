@@ -99,4 +99,15 @@ describe('BaseSegmentedMulti', () => {
     const wrapper = mountControl({ options: ['uno', 'dos'], modelValue: ['dos'] });
     expect(buttonFor(wrapper, 'dos').attributes('aria-pressed')).toBe('true');
   });
+
+  it('keeps a four-digit count attached to its label', () => {
+    const wrapper = mountControl({
+      options: [{ value: '', label: 'Todos (9999)' }, { value: 'orphan', label: 'Huérfanos (9999)' }],
+    });
+
+    wrapper.findAll('button').forEach((button) => {
+      expect(button.classes()).toContain('whitespace-nowrap');
+      expect(button.classes()).toContain('self-stretch');
+    });
+  });
 });

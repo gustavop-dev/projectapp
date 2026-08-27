@@ -1,8 +1,8 @@
 <template>
-  <BaseModal :model-value="visible" size="2xl" @update:model-value="(open) => { if (!open) $emit('cancel') }">
+  <BaseModal :model-value="visible" kind="form-wide" @update:model-value="(open) => { if (!open) $emit('cancel') }">
     <div class="flex flex-col max-h-[90vh]">
           <div class="sticky top-0 bg-surface border-b border-border-muted px-6 py-4 rounded-t-2xl z-10">
-            <h2 class="text-lg font-semibold text-text-default dark:text-white">Acuerdo de Confidencialidad</h2>
+            <h2 class="text-lg font-semibold text-text-default">Acuerdo de Confidencialidad</h2>
             <p class="text-xs text-text-muted mt-0.5">
               Datos para rellenar la plantilla. Los campos vacíos quedarán como
               <span class="font-mono">_______________</span> en el PDF.
@@ -14,83 +14,109 @@
               <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Cliente
               </h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Razón social / Nombre</span>
-                  <input v-model="form.client_full_name" type="text" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">NIT / C.C.</span>
-                  <input v-model="form.client_cedula" type="text" class="nda-input" />
-                </label>
-                <label class="block sm:col-span-2">
-                  <span class="text-xs text-text-muted dark:text-white/70">Representante legal</span>
-                  <input v-model="form.client_legal_representative" type="text" class="nda-input" />
-                </label>
-                <label class="block sm:col-span-2">
-                  <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
-                  <input v-model="form.client_email" type="email" class="nda-input" />
-                </label>
-              </div>
+              <BaseFormRow :cols="2" :gap="3" at="sm">
+                <BaseFormField
+                  label="Razón social / Nombre"
+                  for="confidentiality-client-name"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-client-name"
+                    v-model="form.client_full_name"
+                    type="text"
+                    size="sm"
+                  />
+                </BaseFormField>
+                <BaseFormField label="NIT / C.C." for="confidentiality-client-id" size="sm">
+                  <BaseInput id="confidentiality-client-id" v-model="form.client_cedula" type="text" size="sm" />
+                </BaseFormField>
+                <BaseFormField
+                  label="Representante legal"
+                  for="confidentiality-client-representative"
+                  size="sm"
+                  class="sm:col-span-2"
+                >
+                  <BaseInput
+                    id="confidentiality-client-representative"
+                    v-model="form.client_legal_representative"
+                    type="text"
+                    size="sm"
+                  />
+                </BaseFormField>
+                <BaseFormField label="Correo electrónico" for="confidentiality-client-email" size="sm" class="sm:col-span-2">
+                  <BaseInput id="confidentiality-client-email" v-model="form.client_email" type="email" size="sm" />
+                </BaseFormField>
+              </BaseFormRow>
             </section>
 
             <section>
               <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Consultor (Project App)
               </h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Razón social / Nombre</span>
-                  <input v-model="form.contractor_full_name" type="text" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">NIT</span>
-                  <input v-model="form.contractor_nit" type="text" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Cédula</span>
-                  <input v-model="form.contractor_cedula" type="text" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Correo electrónico</span>
-                  <input v-model="form.contractor_email" type="email" class="nda-input" />
-                </label>
-                <p class="sm:col-span-2 text-xs text-text-muted dark:text-white/70">
-                  Indica al menos uno entre NIT y cédula. El NIT tiene prioridad en el acuerdo.
-                </p>
-                <p v-if="idError" class="sm:col-span-2 text-xs text-red-500">{{ idError }}</p>
-              </div>
+              <BaseFormRow :cols="2" :gap="3" at="sm">
+                <BaseFormField
+                  label="Razón social / Nombre"
+                  for="confidentiality-contractor-name"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-contractor-name"
+                    v-model="form.contractor_full_name"
+                    type="text"
+                    size="sm"
+                  />
+                </BaseFormField>
+                <BaseFormField label="NIT" for="confidentiality-contractor-nit" size="sm">
+                  <BaseInput id="confidentiality-contractor-nit" v-model="form.contractor_nit" type="text" size="sm" />
+                </BaseFormField>
+                <BaseFormField label="Cédula" for="confidentiality-contractor-id" size="sm">
+                  <BaseInput id="confidentiality-contractor-id" v-model="form.contractor_cedula" type="text" size="sm" />
+                </BaseFormField>
+                <BaseFormField label="Correo electrónico" for="confidentiality-contractor-email" size="sm">
+                  <BaseInput id="confidentiality-contractor-email" v-model="form.contractor_email" type="email" size="sm" />
+                </BaseFormField>
+                <template #help>
+                  <span>Indica NIT o cédula. El NIT tiene prioridad en el acuerdo.</span>
+                  <span v-if="idError" class="mt-1 block text-danger-strong" role="alert">{{ idError }}</span>
+                </template>
+              </BaseFormRow>
             </section>
 
             <section>
               <h3 class="text-xs font-semibold uppercase tracking-wide text-text-brand mb-3">
                 Datos del acuerdo
               </h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <label class="block sm:col-span-2">
-                  <span class="text-xs text-text-muted dark:text-white/70">Ciudad</span>
-                  <input v-model="form.contract_city" type="text" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Día</span>
-                  <input v-model="form.contract_day" type="text" placeholder="Ej: 16" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Mes</span>
-                  <input v-model="form.contract_month" type="text" placeholder="Ej: abril" class="nda-input" />
-                </label>
-                <label class="block">
-                  <span class="text-xs text-text-muted dark:text-white/70">Año</span>
-                  <input v-model="form.contract_year" type="text" placeholder="Ej: 2026" class="nda-input" />
-                </label>
-                <label class="block sm:col-span-2">
-                  <span class="text-xs text-text-muted dark:text-white/70">Cláusula penal (valor)</span>
-                  <input v-model="form.penal_clause_value" type="text" class="nda-input" />
-                </label>
+              <div class="space-y-3">
+                <BaseFormField label="Ciudad" for="confidentiality-city" size="sm">
+                  <BaseInput id="confidentiality-city" v-model="form.contract_city" type="text" size="sm" />
+                </BaseFormField>
+                <BaseFormRow :cols="3" :gap="3" at="sm">
+                  <BaseFormField label="Día" for="confidentiality-day" size="sm">
+                    <BaseInput id="confidentiality-day" v-model="form.contract_day" type="text" placeholder="Ej: 16" size="sm" />
+                  </BaseFormField>
+                  <BaseFormField label="Mes" for="confidentiality-month" size="sm">
+                    <BaseInput id="confidentiality-month" v-model="form.contract_month" type="text" placeholder="Ej: abril" size="sm" />
+                  </BaseFormField>
+                  <BaseFormField label="Año" for="confidentiality-year" size="sm">
+                    <BaseInput id="confidentiality-year" v-model="form.contract_year" type="text" placeholder="Ej: 2026" size="sm" />
+                  </BaseFormField>
+                </BaseFormRow>
+                <BaseFormField
+                  label="Cláusula penal (valor)"
+                  for="confidentiality-penal-clause"
+                  size="sm"
+                >
+                  <BaseInput
+                    id="confidentiality-penal-clause"
+                    v-model="form.penal_clause_value"
+                    type="text"
+                    size="sm"
+                  />
+                </BaseFormField>
               </div>
             </section>
 
-            <p v-if="error" class="text-xs text-red-500">{{ error }}</p>
+            <p v-if="error" class="text-xs text-danger-strong">{{ error }}</p>
           </form>
 
           <div class="border-t border-border-muted px-6 py-4 rounded-b-2xl bg-surface">
@@ -195,9 +221,3 @@ async function handleSave() {
   }
 }
 </script>
-
-<style scoped>
-.nda-input {
-  @apply mt-1 w-full px-3 py-2 border border-border-default dark:text-white dark:placeholder:text-text-muted rounded-lg text-sm focus:ring-2 focus:ring-focus-ring/30 focus:border-emerald-500;
-}
-</style>

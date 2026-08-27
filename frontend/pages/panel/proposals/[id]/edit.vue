@@ -257,7 +257,7 @@
     </template>
 
     <!-- Pre-send scorecard modal -->
-    <BaseModal v-model="showSendChecklist" size="md" padding="md">
+    <BaseModal v-model="showSendChecklist" kind="confirm" padding="md">
       <div class="flex items-center justify-between mb-1">
         <h3 class="text-lg font-bold text-text-default">Scorecard pre-envío</h3>
         <BaseBadge
@@ -306,7 +306,7 @@
       </div>
     </BaseModal>
 
-    <BaseModal v-model="isPreviewOpen" size="5xl" padding="none">
+    <BaseModal v-model="isPreviewOpen" kind="workspace" padding="none">
       <div class="flex flex-col h-[85vh]">
         <div class="flex items-center justify-between gap-4 p-4 border-b border-input-border">
           <div>
@@ -352,7 +352,7 @@
       </div>
     </BaseModal>
 
-    <BaseModal v-model="showDiscountModal" size="5xl" padding="none">
+    <BaseModal v-model="showDiscountModal" kind="workspace" padding="none">
       <div class="flex flex-col h-[85vh]">
         <div class="flex items-center justify-between gap-4 p-4 border-b border-input-border">
           <div class="flex items-center gap-4">

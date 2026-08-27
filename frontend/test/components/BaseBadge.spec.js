@@ -41,4 +41,25 @@ describe('BaseBadge', () => {
     expect(cls).toContain('rounded-full')
     expect(cls).toContain('inline-flex')
   })
+
+  it('keeps status icon and label on one line by default', () => {
+    const wrapper = mount(BaseBadge, {
+      slots: { default: '<span>⚠</span><span>Solucionar bug</span>' },
+    })
+
+    expect(wrapper.get('span').classes()).toEqual(
+      expect.arrayContaining(['flex-nowrap', 'whitespace-nowrap']),
+    )
+  })
+
+  it('allows arbitrary badge data to wrap explicitly', () => {
+    const wrapper = mount(BaseBadge, {
+      props: { textPolicy: 'wrap' },
+      slots: { default: 'Contenido arbitrario muy largo' },
+    })
+
+    expect(wrapper.get('span').classes()).toEqual(
+      expect.arrayContaining(['flex-wrap', 'whitespace-normal']),
+    )
+  })
 })

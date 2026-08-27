@@ -152,7 +152,7 @@ test.describe('Admin Document Folder Manage', () => {
     await mockApi(page, async ({ apiPath }) => baseRoutes(apiPath, [ownedFolder]));
     await page.goto('/panel');
     await page.getByRole('navigation', { name: 'Navegación del panel' })
-      .getByRole('link', { name: 'Documentos PDF' })
+      .getByRole('link', { name: 'Gestor Documental' })
       .click();
     await expect(page).toHaveURL(/\/panel\/documents/);
     await page.getByTestId('folder-list').getByText('Contratos').first().click();

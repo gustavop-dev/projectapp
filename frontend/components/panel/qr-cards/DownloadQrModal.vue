@@ -1,5 +1,5 @@
 <template>
-  <BaseModal v-model="open" size="md" padding="md">
+  <BaseModal v-model="open" kind="form" padding="md">
     <div data-testid="qr-download-modal">
       <h3 class="text-lg font-bold text-text-default mb-4">Descargar QR — {{ card?.name }}</h3>
 

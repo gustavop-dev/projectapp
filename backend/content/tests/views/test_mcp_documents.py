@@ -38,7 +38,7 @@ def collection_account_type(db):
 def documents_connector(db, superuser):
     """Active connector with an actor available for audited MCP mutations."""
     connector, _ = McpConnector.objects.get_or_create(
-        slug='documents', defaults={'name': 'Gestor de Documentos'},
+        slug='documents', defaults={'name': 'Gestor Documental'},
     )
     connector.is_active = True
     connector.save(update_fields=['is_active'])
@@ -479,6 +479,7 @@ class TestDocumentsConnectorPanel:
     def test_panel_lists_documents_connector_with_tools(self, superuser_client, documents_connector):
         response = superuser_client.get('/api/mcp-connectors/')
         docs = next(c for c in response.data if c['slug'] == 'documents')
+        assert docs['name'] == 'Gestor Documental'
         tool_names = [t['name'] for t in docs['tools']]
         assert 'create_document' in tool_names
         assert 'list_folders' in tool_names
