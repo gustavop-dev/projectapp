@@ -1091,15 +1091,25 @@ findable. A client or operator, however, starts with what the product enables,
 not with file paths or framework boundaries. Keep a curated capability taxonomy
 as a projection over the canonical inventory: commercial labels, operational
 value and functional relationships may evolve independently, while validators
-prove that every referenced route exists and every in-scope Platform route is
-classified exactly once.
+prove that every route and technical section is classified exactly once. Partial
+coverage of only the deepest area creates a misleading hierarchy; the first
+level should be a small set of understandable product spaces, each deep enough
+to expose its principal modules and representative submodules.
 
 Visual exploration should preserve ordinary web semantics. Position real buttons
 around an orbit, draw connectors in a non-interactive SVG layer and keep the
 selected node in the URL. This provides motion and spatial discovery without
 making keyboard access, deep links, reduced-motion preferences or testing depend
-on a canvas-only graph library. Technical references can remain available behind
-an explicit disclosure after the user understands the capability.
+on a canvas-only graph library. The spatial rendering is not the information
+architecture: the same nodes should become a card grid where the orbit no longer
+fits. Technical references can remain available behind an explicit disclosure
+after the user understands the capability.
+
+Separate preview, selection and guidance as three states. Hover/focus may replace
+the context panel transiently but must not mutate a shareable URL; selection owns
+`node`; a guided journey adds an orthogonal `tour` key and removes only that key
+on exit. Deriving ordered tour steps from the same main-module taxonomy prevents
+a second walkthrough script from drifting away from free navigation.
 
 ## 45. Removing a record requires explicit product semantics
 

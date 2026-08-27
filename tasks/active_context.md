@@ -89,15 +89,20 @@ limpios. La corrección de esquema permanece en PR hasta integración/despliegue
 
 **2026-08-27 — Mapa de vistas convertido en un explorador operativo:**
 `/panel/views` conserva el inventario completo y el mapa modular, y suma un modo
-Explorador orientado al valor del producto. La portada orbital muestra los siete
-dominios de ProjectApp; Plataforma se abre en ocho capacidades, nueve relaciones
-funcionales y beneficios concretos, con las rutas/archivos relegados a una
-referencia técnica secundaria. La navegación admite búsqueda, enlaces profundos,
-arrastre, teclado, zoom, pausa y preferencias de movimiento reducido. El modo
-puede guardarse como predeterminado en `ViewMapSettings`. Un nuevo guard de CI
-compara las 104 páginas reales con `viewCatalog` y valida que las 33 rutas de
-Plataforma pertenezcan exactamente a una capacidad. La verificación focal cubre
-backend, catálogo/taxonomía, composables, componente, flujo E2E y build Nuxt.
+Explorador orientado al valor del producto. La portada se simplificó a tres
+espacios: **Panel interno**, **Plataforma de clientes** y **Experiencias
+públicas**. El Panel despliega ocho módulos principales con sus submódulos más
+representativos; Plataforma conserva sus ocho capacidades profundas; y el
+recorrido público incorpora captación, contenido/prueba social, propuesta y
+diagnóstico. Cada interacción muestra propósito, valor operativo, actores,
+etapa, relaciones y referencias técnicas de forma contextual: hover/foco sólo
+previsualiza y el click fija un `node` compartible. Cada espacio permite recorrido
+libre o guiado mediante `tour=<space-id>`; salir conserva el módulo actual. En
+412/835 se usan tarjetas y desde 1195 se mantiene la órbita, con pausa automática
+durante el tour y soporte de movimiento reducido. No se agregaron métricas vivas,
+API ni backend. El validador ahora asigna exactamente una vez las 104 rutas y las
+siete secciones técnicas. Cobertura focal: catálogo, composables, componente,
+flujo E2E, guards de UI y build Nuxt.
 
 **2026-08-26 — Copias BCC universales de correo listas para integración:** la auditoría
 read-only de producción confirmó que `content.0209` está aplicada pero

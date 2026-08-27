@@ -45,7 +45,7 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 
 ## Resolved Issues
 
-### [ERR-031] MySQL ignored DocumentState system-key uniqueness
+### [ERR-033] MySQL ignored DocumentState system-key uniqueness
 
 - **Date**: 2026-08-27
 - **Context**: `manage.py check --database default` emitted `models.W036` for
@@ -68,6 +68,16 @@ _Reviewed 2026-07-22 during the QA-campaign methodology refresh (fase 1): no new
 - **Lesson**: If absence is stored as `NULL`, first use the backend-portable
   nullable unique semantics. A partial unique predicate is both redundant and
   unsupported on MySQL.
+
+### [ERR-032] Explorer idle context resolved to the root node
+
+- **Date**: 2026-08-27
+- **Context**: Opening any selected Explorer space or feature showed its orbit and breadcrumb correctly, but the new context panel displayed **Ecosistema ProjectApp** until a node received hover or focus. The guided-tour entry and technical disclosure were consequently absent.
+- **Root Cause**: `findCapabilityNode(null)` intentionally resolves to the catalog root. The preview computed called it even when no transient node existed, so the root was always truthy and shadowed the stable selection.
+- **Resolution**: Resolve a preview node only when `activeNodeId` is non-null, then fall back to the selected node. Preview remains ephemeral and URL-neutral.
+- **Files Affected**: `frontend/components/views/ViewOperationalExplorer.vue`.
+- **Verification**: Focused component cases now cover stable feature details, guided-tour entry and hover restoration; all 16 component cases pass and the Nuxt production build completes.
+- **Lesson**: A lookup helper whose empty input means “root” cannot also encode the absence of transient UI state. Guard optional IDs before resolving them.
 
 ### [ERR-030] The Explorer preference migration initially left parallel leaves
 

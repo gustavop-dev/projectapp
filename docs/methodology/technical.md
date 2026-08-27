@@ -205,8 +205,10 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 ### View inventory and operational taxonomy are separate contracts
 
 - `frontend/config/viewCatalog.js` is the exhaustive technical inventory. `npm run check:view-catalog` derives Nuxt routes from `frontend/pages/` and rejects orphan pages, stale entries, duplicate URLs/files, route mismatches and invalid metadata in CI.
-- `frontend/config/viewCapabilityCatalog.js` is a curated commercial projection over that inventory. Its validator guarantees unique nodes, valid references and exact one-capability coverage for all Platform views without turning source-code dependencies into product relationships.
-- The Explorer uses positioned semantic buttons plus SVG connectors instead of a graph dependency. `useOrbitalExplorer` owns rotation, pointer drag, keyboard adjustments, zoom and reduced-motion behavior; `useViewMapMode` owns shareable `viewMode`, `node` and `relations` query state.
+- `frontend/config/viewCapabilityCatalog.js` is a curated commercial projection over that inventory. It owns three spaces (Panel interno, Plataforma de clientes and Experiencias públicas), their 20 main modules and representative submodules. Its validator guarantees complete metadata, unique nodes, valid relationship endpoints, exact ownership for all 104 routes and exact ownership for all seven technical sections without turning source-code dependencies into product relationships.
+- `ViewExplorerContextPanel` derives purpose, value, actors, stage, child modules and technical references from the selected or previewed node. Hover/focus preview is ephemeral; selection remains the only interaction that changes the shareable URL. Context is curated and deterministic, with no live-metrics API.
+- The Explorer uses compact cards below the landscape breakpoint and positioned semantic buttons plus SVG connectors from landscape upward. `useOrbitalExplorer` owns rotation, pointer drag, keyboard adjustments, zoom and reduced-motion behavior, and accepts an external pause while a tour is active.
+- `useViewMapMode` owns shareable `viewMode`, `node`, `tour` and `relations` query state. A valid `tour=<space-id>` normalizes to one of that space's main modules; stopping it preserves `node`, while navigation outside its ordered steps returns to free mode.
 - `ViewMapSettings.default_view_mode` accepts `list`, `map` or `explorer`. The backend persists only the preferred entry mode; the active route remains the authority for shared links.
 
 ### Client chart loading and bundle budget

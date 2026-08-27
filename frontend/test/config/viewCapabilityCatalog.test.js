@@ -1,25 +1,53 @@
 import {
+  EXPLORER_SPACE_IDS,
   capabilityCatalogFindings,
   capabilityNodePath,
   capabilityViewRecords,
+  descendantCapabilityViewUrls,
+  explorerTourSteps,
   findCapabilityNode,
   flattenCapabilityCatalog,
   viewCapabilityCatalog,
 } from '../../config/viewCapabilityCatalog'
-import { viewCatalogSections } from '../../config/viewCatalog'
+import { countCatalogViews, viewCatalogSections } from '../../config/viewCatalog'
 
 describe('viewCapabilityCatalog', () => {
-  it('starts with every high-level application domain', () => {
-    expect(viewCapabilityCatalog.children.map((node) => node.id)).toEqual(
-      viewCatalogSections.map((section) => section.id),
+  it('starts with the three product spaces', () => {
+    expect(EXPLORER_SPACE_IDS).toEqual([
+      'panel-internal',
+      'client-platform',
+      'public-experiences',
+    ])
+    expect(viewCapabilityCatalog.children.map((node) => node.label)).toEqual([
+      'Panel interno',
+      'Plataforma de clientes',
+      'Experiencias públicas',
+    ])
+  })
+
+  it('classifies every canonical view exactly once', () => {
+    expect(capabilityCatalogFindings()).toEqual([])
+    expect(descendantCapabilityViewUrls(viewCapabilityCatalog)).toHaveLength(
+      countCatalogViews(viewCatalogSections),
     )
   })
 
-  it('classifies every Platform view once', () => {
-    expect(capabilityCatalogFindings()).toEqual([])
+  it('organizes the Panel into its main operational modules', () => {
+    const panel = findCapabilityNode('panel-internal')
+
+    expect(panel.children.map((node) => node.label)).toEqual([
+      'Panorama y tareas',
+      'Comercial',
+      'Contenido',
+      'Documentos y comunicaciones',
+      'Proyectos',
+      'Control financiero',
+      'Integraciones',
+      'Gobierno del sistema',
+    ])
   })
 
-  it('organizes Platform into business capabilities', () => {
+  it('organizes the Platform into business capabilities', () => {
     const platform = findCapabilityNode('client-platform')
 
     expect(platform.children.map((node) => node.label)).toEqual([
@@ -34,12 +62,36 @@ describe('viewCapabilityCatalog', () => {
     ])
   })
 
-  it('resolves the breadcrumb path for a feature', () => {
-    expect(capabilityNodePath('platform-project-board').map((node) => node.id)).toEqual([
+  it('organizes public content and commercial experiences', () => {
+    const publicExperiences = findCapabilityNode('public-experiences')
+
+    expect(publicExperiences.children.map((node) => node.label)).toEqual([
+      'Marca y captación',
+      'Contenido y prueba social',
+      'Propuesta comercial',
+      'Diagnóstico',
+    ])
+  })
+
+  it('builds one guided step per main module', () => {
+    expect(explorerTourSteps('panel-internal').map((node) => node.id)).toEqual([
+      'panel-overview-work',
+      'panel-commercial',
+      'panel-content',
+      'panel-documents-communications',
+      'panel-projects',
+      'panel-finance',
+      'panel-integrations',
+      'panel-governance',
+    ])
+  })
+
+  it('resolves the breadcrumb path for a Panel submodule', () => {
+    expect(capabilityNodePath('panel-editorial-content').map((node) => node.id)).toEqual([
       'projectapp',
-      'client-platform',
-      'platform-work-tracking',
-      'platform-project-board',
+      'panel-internal',
+      'panel-content',
+      'panel-editorial-content',
     ])
   })
 

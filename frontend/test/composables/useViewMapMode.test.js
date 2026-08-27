@@ -1,6 +1,6 @@
 /**
  * Tests para useViewMapMode: toggle Lista/Mapa de /panel/views con
- * deep-linking via ?viewMode y ?module, y aplicación del modo por
+ * deep-linking via ?viewMode, ?module, ?node y ?tour, y aplicación del modo por
  * defecto configurado en backend (applyDefaultMode).
  */
 import { nextTick } from 'vue';
@@ -47,6 +47,32 @@ describe('useViewMapMode', () => {
 
     expect(viewMode.value).toBe('explorer');
     expect(selectedExplorerNodeId.value).toBe('platform-work-tracking');
+  });
+
+  it('initializes a guided tour from URL state', () => {
+    mockRoute.query = {
+      viewMode: 'explorer',
+      tour: 'panel-internal',
+      node: 'panel-content',
+    };
+
+    const { selectedExplorerNodeId, selectedExplorerTourId } = useViewMapMode();
+
+    expect(selectedExplorerTourId.value).toBe('panel-internal');
+    expect(selectedExplorerNodeId.value).toBe('panel-content');
+  });
+
+  it('normalizes an invalid tour step to the first module', () => {
+    mockRoute.query = {
+      viewMode: 'explorer',
+      tour: 'panel-internal',
+      node: 'platform-work-tracking',
+    };
+
+    const { selectedExplorerNodeId, selectedExplorerTourId } = useViewMapMode();
+
+    expect(selectedExplorerTourId.value).toBe('panel-internal');
+    expect(selectedExplorerNodeId.value).toBe('panel-overview-work');
   });
 
   it('removes the legacy persisted-mode key and no longer reads it', () => {
@@ -129,6 +155,55 @@ describe('useViewMapMode', () => {
 
     expect(mockReplace).toHaveBeenCalledWith({
       query: { viewMode: 'explorer', node: 'client-platform' },
+    });
+  });
+
+  it('starts and stops a guided tour while preserving the current module', async () => {
+    mockRoute.query = { viewMode: 'explorer' };
+    const {
+      selectedExplorerNodeId,
+      selectedExplorerTourId,
+      startExplorerTour,
+      stopExplorerTour,
+    } = useViewMapMode();
+
+    startExplorerTour('panel-internal');
+    await nextTick();
+
+    expect(selectedExplorerTourId.value).toBe('panel-internal');
+    expect(selectedExplorerNodeId.value).toBe('panel-overview-work');
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: {
+        viewMode: 'explorer',
+        node: 'panel-overview-work',
+        tour: 'panel-internal',
+      },
+    });
+
+    stopExplorerTour();
+    await nextTick();
+
+    expect(selectedExplorerTourId.value).toBeNull();
+    expect(selectedExplorerNodeId.value).toBe('panel-overview-work');
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: { viewMode: 'explorer', node: 'panel-overview-work' },
+    });
+  });
+
+  it('exits the guided tour when free navigation leaves its steps', async () => {
+    mockRoute.query = {
+      viewMode: 'explorer',
+      tour: 'panel-internal',
+      node: 'panel-overview-work',
+    };
+    const { selectedExplorerTourId, selectExplorerNode } = useViewMapMode();
+
+    selectExplorerNode('platform-work-tracking');
+    await nextTick();
+
+    expect(selectedExplorerTourId.value).toBeNull();
+    expect(mockReplace).toHaveBeenLastCalledWith({
+      query: { viewMode: 'explorer', node: 'platform-work-tracking' },
     });
   });
 
