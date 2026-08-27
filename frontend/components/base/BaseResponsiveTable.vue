@@ -19,6 +19,11 @@
       :style="tableStyle"
     >
       <caption v-if="caption" class="sr-only">{{ caption }}</caption>
+      <colgroup v-if="hasMenuStart">
+        <col v-if="selectable" :style="{ width: SELECT_TRACK }">
+        <col :style="{ width: ROW_ACTION_MENU_TRACK }">
+        <col v-for="col in resolved" :key="col.key">
+      </colgroup>
       <thead>
         <tr class="bg-surface-raised text-left text-xs text-text-muted uppercase tracking-wider">
           <th v-if="selectable" class="w-10 px-3 py-2">
@@ -344,6 +349,7 @@ import { selectionSummary, toggleKeys } from '~/utils/rowSelection';
 import {
   ROW_ACTION_LAYOUTS,
   ROW_ACTION_MENU_TRACK,
+  SELECT_TRACK,
   TABLE_DENSITY,
   actionsWidthFor,
   minWidthFor,
@@ -500,9 +506,12 @@ const hasResponsivePolicy = computed(() =>
 
 const tableStyle = computed(() => {
   if (hasColumnResize.value) return resize.tableStyle.value;
-  return hasResponsivePolicy.value
+  const widthStyle = hasResponsivePolicy.value
     ? { '--table-min-width': tableMinWidth.value }
     : { minWidth: tableMinWidth.value };
+  return hasMenuStart.value
+    ? { ...widthStyle, tableLayout: 'fixed' }
+    : widthStyle;
 });
 
 function columnHeaderStyle(column) {

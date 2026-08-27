@@ -174,6 +174,21 @@ describe('BaseResponsiveTable', () => {
     expect(header.element.style.width).toBe('3.5rem')
   })
 
+  it('pins leading control tracks in the fixed table layout', () => {
+    const wrapper = mountTable({
+      selectable: true,
+      showActions: true,
+      showDefaultActions: false,
+      rowActionsLayout: 'menu-start',
+    })
+    const controlTracks = wrapper.findAll('colgroup col')
+
+    expect(wrapper.get('table').element.style.tableLayout).toBe('fixed')
+    expect(controlTracks).toHaveLength(columns.length + 2)
+    expect(controlTracks[0].element.style.width).toBe('2.5rem')
+    expect(controlTracks[1].element.style.width).toBe('3.5rem')
+  })
+
   it('keeps custom menu activation out of interactive row navigation', async () => {
     const wrapper = mount(BaseResponsiveTable, {
       props: {

@@ -62,7 +62,7 @@ test.describe('Admin Document List', () => {
   });
 
   test('renders actions as the leading unlabeled column', {
-    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display', '@responsive:documents'],
+    tag: [...ADMIN_DOCUMENT_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
     // quality: allow-no-interaction (display contract: DOM order, blank label and computed fixed width are the observable outcome)
     // quality: allow-deep-link (the canonical list-entry flow is covered elsewhere; this test isolates the table layout contract)

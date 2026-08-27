@@ -104,6 +104,7 @@ test.describe('Admin Diagnostic List', () => {
   test('opens row actions without navigating', {
     tag: [...ADMIN_DIAGNOSTIC_LIST, '@role:admin', '@outcome:display'],
   }, async ({ page }) => {
+    // quality: allow-deep-link (row navigation is covered separately; this test isolates click propagation from the menu control)
     await setupMock(page);
     await page.goto('/panel/diagnostics/');
 
