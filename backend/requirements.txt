@@ -5,7 +5,7 @@ django-dbbackup>=4.0.0
 django-silk>=5.5.2
 djangorestframework==3.18.0
 djangorestframework-simplejwt>=5.3,<6.0
-Faker==28.4.1
+Faker==40.37.0
 huey>=3.3.4
 pillow==12.3.0
 python-dateutil
