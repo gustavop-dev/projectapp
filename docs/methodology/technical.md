@@ -185,8 +185,15 @@ All configuration via `python-decouple` reading from `backend/.env`. Key variabl
 
 ### MySQL uniqueness for optional sync keys
 
-- MySQL does not enforce Django conditional unique constraints, so optional sync keys use functional `UniqueConstraint` expressions with `NullIf(F(key), Value(''))`.
-- Empty strings become `NULL` and can repeat; non-empty values remain unique inside their project/user scope.
+- MySQL does not enforce Django conditional unique constraints. Do not add a
+  `condition=... IS NOT NULL` when the field already stores absence as SQL
+  `NULL`: a plain composite `UniqueConstraint` preserves multiple `NULL` rows
+  and enforces every non-null value on MySQL, SQLite and PostgreSQL.
+- `DocumentState.system_key` follows that nullable-column pattern and is unique
+  with `catalog`. Optional sync keys that instead encode absence as an empty
+  string use functional constraints with `NullIf(F(key), Value(''))`.
+- Empty strings converted through `NullIf` can repeat; non-empty values remain
+  unique inside their project/user scope.
 - Schema migrations must check for existing duplicate non-empty keys before replacing an index, so deployment fails before DDL with a useful remediation message.
 
 ### Migration graph convergence

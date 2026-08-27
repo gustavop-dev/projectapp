@@ -159,7 +159,6 @@ class DocumentState(models.Model):
             ),
             models.UniqueConstraint(
                 fields=('catalog', 'system_key'),
-                condition=models.Q(system_key__isnull=False),
                 name='unique_state_system_key_per_catalog',
             ),
         ]

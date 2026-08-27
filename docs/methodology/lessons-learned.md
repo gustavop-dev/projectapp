@@ -1132,3 +1132,17 @@ as a real landscape column while moving client/project beneath the primary
 title cell; compact cards preserve the same facts in secondary metadata. Fixed
 business order also avoids a second persistence contract competing with the
 existing user preference for title width.
+
+## 46. Nullable uniqueness is already a portable partial-uniqueness primitive
+
+When absence is stored as SQL `NULL`, a plain unique constraint already permits
+multiple absent values while rejecting duplicate concrete values. Adding
+`condition=field IS NOT NULL` does not strengthen that invariant; on MySQL it
+causes Django to skip the complete constraint and emit `models.W036`.
+
+Before choosing a functional or partial index, distinguish `NULL` from an empty
+string. Use a plain composite unique constraint for nullable integration keys
+such as `(catalog, system_key)`. Reserve `NullIf(field, '')` for domains that
+deliberately persist blank strings. Any migration that activates a previously
+ignored production invariant must query for duplicates before DDL and stop with
+the conflicting business keys instead of failing halfway through deployment.

@@ -2,6 +2,20 @@
 
 ## Current State
 
+**2026-08-27 — Integridad MySQL de `DocumentState`, refresh operativo y GC:**
+`system_key` deja de depender de un `UniqueConstraint` condicional que MySQL
+ignoraba. La unicidad simple `(catalog, system_key)` conserva múltiples `NULL`,
+bloquea duplicados concretos y elimina `models.W036`; `content.0218` prevalida
+duplicados antes del DDL. El contrato MCP no cambia y su suite 19/19 permanece
+verde, junto con 4/4 pruebas focales, `sqlmigrate`, check de base y ausencia de
+drift. En paralelo, los 13 updates compatibles que explicaban 18 paquetes
+outdated se probaron en un venv aislado y se promovieron al productivo: audits y
+compatibilidad en cero, cinco majors aún diferidos, Gunicorn/Huey activos. El
+worktree mergeado `vuln-audit` fue retirado conservando su rama y un GC con poda
+de dos semanas llevó objetos loose 7.003→0 y packs 34→2; `gc.log` desapareció,
+los objetos dangling recientes se preservaron y la conectividad/fetch quedaron
+limpios. La corrección de esquema permanece en PR hasta integración/despliegue.
+
 **2026-08-27 — Mapa de vistas convertido en un explorador operativo:**
 `/panel/views` conserva el inventario completo y el mapa modular, y suma un modo
 Explorador orientado al valor del producto. La portada orbital muestra los siete
