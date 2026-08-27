@@ -562,22 +562,36 @@ flowchart LR
     Routes --> List["Lista: complete reference"]
     Routes --> Map["Mapa: module drill-down"]
     Routes --> Capabilities["viewCapabilityCatalog"]
-    Capabilities --> Explorer["Explorador: commercial constellation"]
-    Explorer --> Domains["All product domains"]
-    Domains --> Platform["Platform: 8 operational capabilities"]
-    Platform --> Benefits["Actions, value and functional relations"]
+    Capabilities --> Explorer["Explorador: contextual journey"]
+    Explorer --> Spaces["3 product spaces"]
+    Spaces --> Panel["Panel: 8 main modules"]
+    Spaces --> Platform["Platform: 8 main modules"]
+    Spaces --> Public["Public experiences: 4 modules"]
+    Panel --> Benefits["Purpose, actors, stage and relations"]
+    Platform --> Benefits
+    Public --> Benefits
+    Explorer --> Tour["Free navigation or guided tour"]
     Benefits -. secondary disclosure .-> Routes
 ```
 
 `viewCatalog.js` remains the canonical technical inventory. A CI scanner derives
 routes from real page files and rejects missing, stale, duplicated or invalid
 records. `viewCapabilityCatalog.js` is a curated operational projection: its
-validator requires every Platform view to belong to exactly one capability and
-requires relationship endpoints to exist. The orbital component renders semantic
-buttons over a lightweight SVG line layer, so navigation and focus do not depend
-on a canvas or third-party graph engine. Mode, selected node and relation
-visibility are URL state; only the default mode is persisted by
-`ViewMapSettings`.
+validator requires all 104 routes and all seven technical sections to belong to
+exactly one product feature/space, while every relationship endpoint must exist.
+The hierarchy starts with Panel interno, Plataforma de clientes and Experiencias
+públicas; main modules lead to representative submodules and technical routes.
+
+`ViewOperationalExplorer` has one semantic interaction model with two visual
+branches: compact/portrait renders module cards, while landscape and wider
+profiles render positioned buttons over a lightweight SVG relationship layer.
+Hover or focus writes only an ephemeral preview into
+`ViewExplorerContextPanel`; selection writes the stable node. Guided tours use
+the main modules of one space as ordered steps, pause automatic rotation, and
+are rendered by `ViewExplorerTourControls`. Mode, selected node, tour and
+relation visibility are URL state (`viewMode`, `node`, `tour`, `relations`);
+stopping a tour removes only `tour`, preserving `node`. Only the default mode is
+persisted by `ViewMapSettings`. No live metrics or additional API are involved.
 
 ### 6.1.2 Client Chart Loading
 

@@ -1,4 +1,4 @@
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, unref } from 'vue'
 
 const MIN_ZOOM = 0.82
 const MAX_ZOOM = 1.07
@@ -8,9 +8,9 @@ const AUTO_ROTATION_DEGREES_PER_SECOND = 2.4
 const ORBIT_RADII = Object.freeze({
   compact: { x: 35.5, y: 39 },
   portrait: { x: 39, y: 38 },
-  landscape: { x: 40, y: 38 },
-  desktop: { x: 40, y: 39 },
-  wide: { x: 41, y: 40 },
+  landscape: { x: 35, y: 38 },
+  desktop: { x: 36, y: 39 },
+  wide: { x: 38, y: 40 },
 })
 
 export function clampExplorerZoom(value) {
@@ -32,7 +32,7 @@ export function orbitalPosition(index, total, angle, profile = 'desktop', zoom =
   }
 }
 
-export function useOrbitalExplorer() {
+export function useOrbitalExplorer({ isExternallyPaused = false } = {}) {
   const angle = ref(0)
   const zoom = ref(1)
   const isManuallyPaused = ref(false)
@@ -50,6 +50,7 @@ export function useOrbitalExplorer() {
     && !isDragging.value
     && !prefersReducedMotion.value
     && isPageVisible.value
+    && !unref(isExternallyPaused)
   ))
 
   let frameId = null

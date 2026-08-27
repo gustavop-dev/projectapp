@@ -7,7 +7,8 @@ const feature = (id, label, summary, value, viewUrls, options = {}) => ({
   summary,
   value,
   viewUrls,
-  actors: options.actors || ['client'],
+  icon: options.icon || 'file',
+  actors: options.actors || ['team'],
   stage: options.stage || 'Operación',
   secondary: options.secondary === true,
 })
@@ -19,226 +20,427 @@ const capability = (id, label, summary, value, children, options = {}) => ({
   summary,
   value,
   children,
-  actors: options.actors || ['client', 'team'],
+  icon: options.icon || 'dashboard',
+  actors: options.actors || ['team'],
   stage: options.stage || 'Operación',
+  relations: options.relations || [],
+  secondary: options.secondary === true,
 })
 
-const shallowDomain = (id, label, summary, value) => ({
+const space = (
   id,
-  kind: 'domain',
-  sectionId: id,
   label,
   summary,
   value,
-  children: [],
-  isDeep: false,
+  sectionIds,
+  children,
+  relations,
+  options = {},
+) => ({
+  id,
+  kind: 'space',
+  label,
+  summary,
+  value,
+  sectionIds,
+  children,
+  relations,
+  icon: options.icon || 'sitemap',
+  actors: options.actors || ['team'],
+  stage: options.stage || 'Ecosistema',
 })
+
+const panelCapabilities = [
+  capability(
+    'panel-overview-work',
+    'Panorama y tareas',
+    'Dirección diaria, prioridades y trabajo interno reunidos en un mismo punto.',
+    'Ayuda al equipo a decidir qué atender primero y convertirlo en acciones visibles.',
+    [
+      feature('panel-command-center', 'Leer el estado del negocio',
+        'Resume pipeline, operación, alertas y señales financieras relevantes.',
+        'Reduce el tiempo necesario para detectar riesgos y oportunidades.', ['/panel'],
+        { icon: 'dashboard', stage: 'Dirección' }),
+      feature('panel-team-tasks', 'Organizar el trabajo del equipo',
+        'Permite priorizar y mover tareas internas en un tablero Kanban.',
+        'Convierte decisiones operativas en responsabilidades trazables.', ['/panel/tasks'],
+        { icon: 'board', stage: 'Ejecución' }),
+    ],
+    { icon: 'dashboard', stage: 'Dirección' },
+  ),
+  capability(
+    'panel-commercial',
+    'Comercial',
+    'Clientes, propuestas, diagnósticos y configuración de la oferta comercial.',
+    'Conecta la oportunidad inicial con una propuesta medible y lista para cerrar.',
+    [
+      feature('panel-proposals', 'Gestionar propuestas',
+        'Crea, edita, envía y sigue propuestas comerciales personalizadas.',
+        'Mantiene el proceso de venta en un flujo medible y reutilizable.',
+        ['/panel/proposals', '/panel/proposals/create', '/panel/proposals/:id/edit'],
+        { icon: 'send', stage: 'Venta' }),
+      feature('panel-diagnostics', 'Entregar diagnósticos',
+        'Administra diagnósticos iniciales y finales con seguimiento de lectura.',
+        'Permite demostrar oportunidades antes de definir la solución completa.',
+        ['/panel/diagnostics', '/panel/diagnostics/create', '/panel/diagnostics/:id/edit'],
+        { icon: 'file', stage: 'Diagnóstico' }),
+      feature('panel-clients-offers', 'Administrar clientes y paquetes',
+        'Centraliza identidades comerciales y ofertas de horas reutilizables.',
+        'Evita duplicar contexto al preparar nuevas oportunidades.',
+        ['/panel/clients', '/panel/hour-packages', '/panel/hour-packages/create', '/panel/hour-packages/:id/edit'],
+        { icon: 'users', stage: 'Relación' }),
+      feature('panel-commercial-settings', 'Configurar mensajes y valores base',
+        'Reúne defaults, plantillas y señales de entregabilidad para los flujos comerciales.',
+        'Mantiene una voz consistente y reduce errores antes de enviar.',
+        ['/panel/defaults', '/panel/proposals/defaults', '/panel/diagnostics/defaults', '/panel/proposals/email-templates', '/panel/proposals/email-deliverability'],
+        { icon: 'settings', stage: 'Configuración' }),
+    ],
+    { icon: 'send', stage: 'Venta' },
+  ),
+  capability(
+    'panel-content',
+    'Contenido',
+    'Publicaciones, casos, recursos QR y canales de distribución de ProjectApp.',
+    'Convierte el conocimiento del equipo en presencia digital y prueba social.',
+    [
+      feature('panel-editorial-content', 'Publicar blog y LinkedIn',
+        'Gestiona artículos, calendario editorial y distribución en LinkedIn.',
+        'Sostiene una presencia regular sin separar creación y publicación.',
+        ['/panel/blog', '/panel/blog/create', '/panel/blog/:id/edit', '/panel/blog/calendar', '/panel/linkedin'],
+        { icon: 'blog', stage: 'Publicación' }),
+      feature('panel-portfolio-content', 'Mostrar resultados',
+        'Administra los casos de portafolio y su contenido bilingüe.',
+        'Transforma entregas reales en evidencia para nuevas oportunidades.',
+        ['/panel/portfolio', '/panel/portfolio/create', '/panel/portfolio/:id/edit'],
+        { icon: 'portfolio', stage: 'Prueba social' }),
+      feature('panel-shareable-resources', 'Crear recursos compartibles',
+        'Configura tarjetas QR y Linktrees para conectar puntos físicos y digitales.',
+        'Facilita distribuir accesos y campañas con destinos administrables.',
+        ['/panel/qr-cards', '/panel/linktrees', '/panel/linktrees/:id/edit'],
+        { icon: 'qrcode', stage: 'Distribución' }),
+    ],
+    { icon: 'blog', stage: 'Contenido' },
+  ),
+  capability(
+    'panel-documents-communications',
+    'Documentos y comunicaciones',
+    'Documentos, estados, conversaciones y envíos ligados al contexto del cliente.',
+    'Conserva la evidencia comercial y operativa sin dispersarla en herramientas externas.',
+    [
+      feature('panel-documents', 'Crear y seguir documentos',
+        'Administra documentos PDF, su contenido y sus estados operativos.',
+        'Mantiene entregables formales y su evolución en una sola fuente.',
+        ['/panel/documents', '/panel/documents/create', '/panel/documents/:id/edit', '/panel/documents/statuses'],
+        { icon: 'file', stage: 'Documentación' }),
+      feature('panel-client-threads', 'Registrar conversaciones',
+        'Ordena hilos y mensajes por cliente y proyecto.',
+        'Preserva decisiones, respuestas y referencias documentales.', ['/panel/communications'],
+        { icon: 'mail', stage: 'Comunicación' }),
+      feature('panel-email-center', 'Preparar y revisar emails',
+        'Centraliza composición, configuración e historial de correo.',
+        'Da continuidad a los mensajes enviados desde distintos módulos.', ['/panel/emails'],
+        { icon: 'send', stage: 'Comunicación' }),
+    ],
+    { icon: 'file', stage: 'Relación' },
+  ),
+  capability(
+    'panel-projects',
+    'Proyectos',
+    'Portafolio operativo y ciclo de vida de los proyectos de clientes.',
+    'Convierte una venta cerrada en una iniciativa gobernada y visible.',
+    [
+      feature('panel-project-portfolio', 'Administrar proyectos',
+        'Relaciona cada proyecto con su cliente, contexto y accesos operativos.',
+        'Crea una referencia común entre el panel y la plataforma del cliente.', ['/panel/projects'],
+        { icon: 'folder', stage: 'Ejecución' }),
+      feature('panel-project-lifecycle', 'Gobernar el ciclo del proyecto',
+        'Configura y aplica estados con consecuencias operativas trazables.',
+        'Evita que una etiqueta visual sustituya decisiones reales de operación.', ['/panel/projects/statuses'],
+        { icon: 'refresh', stage: 'Gobierno' }),
+    ],
+    { icon: 'folder', stage: 'Ejecución' },
+  ),
+  capability(
+    'panel-finance',
+    'Control financiero',
+    'Ingresos, gastos, cobros, hosting, efectivo, tarjetas y controles contables.',
+    'Hace visibles los compromisos financieros y su impacto en la operación.',
+    [
+      feature('panel-financial-flow', 'Leer ingresos y gastos',
+        'Resume resultados y permite gestionar entradas y salidas de dinero.',
+        'Expone la utilidad y los movimientos que la explican.',
+        ['/panel/accounting', '/panel/accounting/incomes', '/panel/accounting/expenses'],
+        { icon: 'dashboard', stage: 'Resultados' }),
+      feature('panel-service-revenue', 'Seguir servicios y cobros',
+        'Relaciona hosting, recurrentes, publicidad y cuentas de cobro.',
+        'Anticipa obligaciones y mantiene trazabilidad sobre lo facturable.',
+        ['/panel/accounting/hostings', '/panel/accounting/recurring', '/panel/accounting/ads', '/panel/accounting/collections'],
+        { icon: 'refresh', stage: 'Proyección' }),
+      feature('panel-cash-credit', 'Controlar caja y crédito',
+        'Reúne bolsillo, tarjetas y extractos mensuales.',
+        'Permite entender liquidez, deuda y movimientos asociados.',
+        ['/panel/accounting/pocket', '/panel/accounting/cards', '/panel/accounting/statements'],
+        { icon: 'credit-card', stage: 'Tesorería' }),
+      feature('panel-financial-governance', 'Auditar y configurar',
+        'Expone historial y preferencias transversales del módulo contable.',
+        'Da contexto a los cambios y mantiene reglas operativas explícitas.',
+        ['/panel/accounting/history', '/panel/accounting/settings'],
+        { icon: 'settings', stage: 'Control' }),
+    ],
+    { icon: 'credit-card', stage: 'Finanzas' },
+  ),
+  capability(
+    'panel-integrations',
+    'Integraciones',
+    'Conectores autorizados que exponen capacidades del panel a asistentes externos.',
+    'Reduce trabajo repetitivo sin saltarse permisos ni reglas del producto.',
+    [
+      feature('panel-mcp-connectors', 'Administrar conectores MCP',
+        'Permite activar, rotar y observar conectores especializados por dominio.',
+        'Extiende la operación del panel con accesos controlados y auditables.', ['/panel/mcps'],
+        { icon: 'database', stage: 'Automatización' }),
+    ],
+    { icon: 'database', stage: 'Automatización' },
+  ),
+  capability(
+    'panel-governance',
+    'Gobierno del sistema',
+    'Referencia visual, administración de accesos y entrada segura al panel.',
+    'Mantiene coherencia entre quienes operan, las vistas disponibles y el sistema de diseño.',
+    [
+      feature('panel-product-reference', 'Consultar mapa y sistema de diseño',
+        'Expone la taxonomía de vistas y los componentes visuales compartidos.',
+        'Facilita explicar el producto y mantener una interfaz consistente.',
+        ['/panel/views', '/panel/styleguide'],
+        { icon: 'sitemap', stage: 'Referencia' }),
+      feature('panel-admin-access', 'Administrar operadores',
+        'Permite gestionar las cuentas que acceden al panel interno.',
+        'Conserva el acceso operativo dentro de un perímetro administrado.', ['/panel/admins'],
+        { icon: 'shield', stage: 'Seguridad' }),
+      feature('panel-secure-login', 'Entrar al panel',
+        'Protege el acceso inicial antes de mostrar herramientas internas.',
+        'Separa la operación administrativa de las experiencias públicas.', ['/panel/login'],
+        { icon: 'key', stage: 'Ingreso', secondary: true }),
+    ],
+    { icon: 'shield', stage: 'Gobierno' },
+  ),
+]
 
 const platformCapabilities = [
   capability(
-    'platform-access-account',
-    'Acceso y cuenta',
+    'platform-access-account', 'Acceso y cuenta',
     'Entrada segura, verificación de identidad y administración del perfil.',
     'Acompaña al usuario desde su primer ingreso hasta una cuenta lista para operar.',
     [
-      feature(
-        'platform-secure-entry',
-        'Ingresar de forma segura',
+      feature('platform-secure-entry', 'Ingresar de forma segura',
         'Permite entrar, validar el código de acceso y completar el perfil inicial.',
         'Reduce fricción en el onboarding sin perder control sobre la identidad.',
         ['/platform', '/platform/login', '/platform/verify', '/platform/complete-profile'],
-        { stage: 'Ingreso' },
-      ),
-      feature(
-        'platform-account-recovery',
-        'Recuperar el acceso',
+        { icon: 'key', actors: ['client', 'team'], stage: 'Ingreso' }),
+      feature('platform-account-recovery', 'Recuperar el acceso',
         'Guía la recuperación de contraseña y la verificación de códigos.',
         'Ayuda al cliente a volver a operar sin depender de soporte manual.',
-        [
-          '/platform/admin-login',
-          '/platform/forgot-password',
-          '/platform/reset-password',
-          '/platform/verify-code',
-        ],
-        { stage: 'Ingreso' },
-      ),
-      feature(
-        'platform-profile-management',
-        'Mantener el perfil al día',
+        ['/platform/admin-login', '/platform/forgot-password', '/platform/reset-password', '/platform/verify-code'],
+        { icon: 'refresh', actors: ['client', 'team'], stage: 'Ingreso' }),
+      feature('platform-profile-management', 'Mantener el perfil al día',
         'Centraliza los datos personales y la configuración de la cuenta.',
-        'Mantiene la experiencia y las comunicaciones vinculadas a la persona correcta.',
-        ['/platform/profile'],
-        { stage: 'Cuenta' },
-      ),
+        'Mantiene la experiencia y las comunicaciones vinculadas a la persona correcta.', ['/platform/profile'],
+        { icon: 'settings', actors: ['client', 'team'], stage: 'Cuenta' }),
     ],
-    { stage: 'Ingreso' },
+    { icon: 'key', actors: ['client', 'team'], stage: 'Ingreso' },
   ),
   capability(
-    'platform-client-projects',
-    'Clientes y proyectos',
+    'platform-client-projects', 'Clientes y proyectos',
     'Panorama de clientes, proyectos activos y contexto de cada iniciativa.',
     'Convierte cada proyecto en un espacio operativo con una visión compartida.',
     [
-      feature(
-        'platform-project-portfolio',
-        'Consultar los proyectos',
+      feature('platform-project-portfolio', 'Consultar los proyectos',
         'Permite recorrer el portafolio y entrar al resumen de una iniciativa.',
         'Da una lectura clara de qué se está construyendo y dónde continuar.',
         ['/platform/projects', '/platform/projects/:id', '/platform/dashboard'],
-        { stage: 'Proyecto' },
-      ),
-      feature(
-        'platform-client-administration',
-        'Administrar clientes',
+        { icon: 'folder', actors: ['client', 'team'], stage: 'Proyecto' }),
+      feature('platform-client-administration', 'Administrar clientes',
         'Permite al equipo consultar clientes y abrir su contexto operativo.',
         'Relaciona cada iniciativa con la persona y organización responsables.',
         ['/platform/clients', '/platform/clients/:id'],
-        { actors: ['team'], stage: 'Administración' },
-      ),
+        { icon: 'users', actors: ['team'], stage: 'Administración' }),
     ],
-    { stage: 'Proyecto' },
+    { icon: 'folder', actors: ['client', 'team'], stage: 'Proyecto' },
   ),
   capability(
-    'platform-work-tracking',
-    'Seguimiento del trabajo',
+    'platform-work-tracking', 'Seguimiento del trabajo',
     'Tablero, solicitudes, bugs y estructura funcional reunidos por proyecto.',
     'Hace visible el avance y ordena las conversaciones sobre lo que falta por resolver.',
     [
-      feature(
-        'platform-project-board',
-        'Seguir el avance',
+      feature('platform-project-board', 'Seguir el avance',
         'Presenta el tablero de trabajo dentro del contexto del proyecto.',
         'Permite entender prioridades, estado y próximos movimientos.',
         ['/platform/projects/:id/board', '/platform/board'],
-        { stage: 'Seguimiento' },
-      ),
-      feature(
-        'platform-bug-follow-up',
-        'Reportar y seguir bugs',
+        { icon: 'board', actors: ['client', 'team'], stage: 'Seguimiento' }),
+      feature('platform-bug-follow-up', 'Reportar y seguir bugs',
         'Concentra los problemas reportados y su evolución.',
         'Da trazabilidad a los incidentes sin dispersarlos en conversaciones externas.',
         ['/platform/projects/:id/bugs', '/platform/bugs'],
-        { stage: 'Soporte' },
-      ),
-      feature(
-        'platform-change-requests',
-        'Gestionar solicitudes de cambio',
+        { icon: 'bug', actors: ['client', 'team'], stage: 'Soporte' }),
+      feature('platform-change-requests', 'Gestionar solicitudes de cambio',
         'Organiza nuevas solicitudes y decisiones fuera del alcance inicial.',
         'Separa los cambios del trabajo acordado y facilita priorizarlos.',
         ['/platform/projects/:id/changes', '/platform/changes'],
-        { stage: 'Seguimiento' },
-      ),
-      feature(
-        'platform-data-model',
-        'Comprender la estructura funcional',
+        { icon: 'refresh', actors: ['client', 'team'], stage: 'Seguimiento' }),
+      feature('platform-data-model', 'Comprender la estructura funcional',
         'Expone el modelo de datos asociado al proyecto cuando está disponible.',
         'Ayuda a conversar sobre la información del producto en un mismo contexto.',
         ['/platform/projects/:id/data-model'],
-        { actors: ['client', 'team'], stage: 'Planeación' },
-      ),
+        { icon: 'database', actors: ['client', 'team'], stage: 'Planeación' }),
     ],
-    { stage: 'Seguimiento' },
+    { icon: 'board', actors: ['client', 'team'], stage: 'Seguimiento' },
   ),
   capability(
-    'platform-deliverables',
-    'Entregables y recursos',
+    'platform-deliverables', 'Entregables y recursos',
     'Materiales, versiones y resultados compartidos durante el proyecto.',
     'Mantiene las entregas localizables y conectadas con el trabajo que las produjo.',
     [
-      feature(
-        'platform-deliverable-library',
-        'Consultar entregables',
+      feature('platform-deliverable-library', 'Consultar entregables',
         'Permite revisar la biblioteca del proyecto y abrir el detalle de cada entrega.',
         'Ofrece un punto estable para encontrar y validar los recursos recibidos.',
-        [
-          '/platform/projects/:id/deliverables',
-          '/platform/projects/:id/deliverables/:deliverableId',
-          '/platform/deliverables',
-        ],
-        { stage: 'Entrega' },
-      ),
+        ['/platform/projects/:id/deliverables', '/platform/projects/:id/deliverables/:deliverableId', '/platform/deliverables'],
+        { icon: 'file', actors: ['client', 'team'], stage: 'Entrega' }),
     ],
-    { stage: 'Entrega' },
+    { icon: 'file', actors: ['client', 'team'], stage: 'Entrega' },
   ),
   capability(
-    'platform-documents',
-    'Documentos y aprobaciones',
+    'platform-documents', 'Documentos y aprobaciones',
     'Contratos y anexos disponibles para consulta, descarga y aceptación.',
     'Reduce pasos manuales en la entrega documental y deja una aprobación trazable.',
     [
-      feature(
-        'platform-document-portal',
-        'Revisar y aprobar documentos',
+      feature('platform-document-portal', 'Revisar y aprobar documentos',
         'Reúne documentos del cliente y el flujo de firma del documento principal.',
         'Facilita pasar de la lectura a una aprobación verificable en el mismo portal.',
         ['/platform/documents'],
-        { stage: 'Aprobación' },
-      ),
+        { icon: 'file', actors: ['client'], stage: 'Aprobación' }),
     ],
-    { stage: 'Aprobación' },
+    { icon: 'file', actors: ['client', 'team'], stage: 'Aprobación' },
   ),
   capability(
-    'platform-commercial-operations',
-    'Pagos, hosting y cobros',
+    'platform-commercial-operations', 'Pagos, hosting y cobros',
     'Estado comercial del proyecto, pagos y documentos de cobro.',
     'Da transparencia sobre compromisos económicos y continuidad operativa.',
     [
-      feature(
-        'platform-project-payments',
-        'Consultar pagos y hosting',
+      feature('platform-project-payments', 'Consultar pagos y hosting',
         'Presenta la operación de pagos asociada al proyecto.',
         'Ayuda al cliente a entender obligaciones, cobertura y continuidad del servicio.',
         ['/platform/projects/:id/payments', '/platform/payments'],
-        { stage: 'Cobro' },
-      ),
-      feature(
-        'platform-collection-accounts',
-        'Consultar cuentas de cobro',
+        { icon: 'credit-card', actors: ['client', 'team'], stage: 'Cobro' }),
+      feature('platform-collection-accounts', 'Consultar cuentas de cobro',
         'Reúne las cuentas vinculadas al proyecto y sus accesos anteriores.',
         'Mantiene los soportes de cobro dentro del contexto comercial correcto.',
-        [
-          '/platform/projects/:id/collection-accounts',
-          '/platform/collection-accounts',
-          '/platform/collection-accounts/:id',
-        ],
-        { stage: 'Cobro' },
-      ),
+        ['/platform/projects/:id/collection-accounts', '/platform/collection-accounts', '/platform/collection-accounts/:id'],
+        { icon: 'file', actors: ['client', 'team'], stage: 'Cobro' }),
     ],
-    { stage: 'Cobro' },
+    { icon: 'credit-card', actors: ['client', 'team'], stage: 'Cobro' },
   ),
   capability(
-    'platform-notifications',
-    'Comunicación y notificaciones',
+    'platform-notifications', 'Comunicación y notificaciones',
     'Novedades relevantes de la relación y de los proyectos.',
     'Mantiene al usuario enterado sin obligarlo a revisar cada espacio por separado.',
     [
-      feature(
-        'platform-notification-center',
-        'Revisar novedades',
+      feature('platform-notification-center', 'Revisar novedades',
         'Agrupa las notificaciones que requieren atención del usuario.',
         'Funciona como bandeja operativa para regresar al contexto indicado.',
         ['/platform/notifications'],
-        { stage: 'Comunicación' },
-      ),
+        { icon: 'bell', actors: ['client', 'team'], stage: 'Comunicación' }),
     ],
-    { stage: 'Comunicación' },
+    { icon: 'bell', actors: ['client', 'team'], stage: 'Comunicación' },
   ),
   capability(
-    'platform-access-management',
-    'Administración de accesos',
+    'platform-access-management', 'Administración de accesos',
     'URLs y credenciales operativas disponibles exclusivamente para el equipo autorizado.',
     'Acelera el soporte y la operación sin exponer información sensible a clientes.',
     [
-      feature(
-        'platform-project-access',
-        'Abrir accesos operativos',
+      feature('platform-project-access', 'Abrir accesos operativos',
         'Centraliza accesos del proyecto y conserva el enlace global anterior.',
         'Permite al equipo llegar rápidamente a los entornos necesarios para operar.',
         ['/platform/projects/:id/access', '/platform/access'],
-        { actors: ['team'], stage: 'Administración' },
-      ),
+        { icon: 'key', actors: ['team'], stage: 'Administración' }),
     ],
-    { actors: ['team'], stage: 'Administración' },
+    { icon: 'key', actors: ['team'], stage: 'Administración' },
+  ),
+]
+
+const publicCapabilities = [
+  capability(
+    'public-brand-acquisition', 'Marca y captación',
+    'Páginas que presentan la empresa, sus servicios y los caminos para iniciar una conversación.',
+    'Convierte una primera visita en confianza y en una oportunidad comercial.',
+    [
+      feature('public-brand-entry', 'Descubrir ProjectApp',
+        'Reúne la portada, landings especializadas y la historia de la empresa.',
+        'Permite que cada necesidad encuentre una explicación relevante.',
+        ['/', '/landing-apps', '/landing-software', '/landing-web-design', '/about-us'],
+        { icon: 'dashboard', actors: ['visitor'], stage: 'Descubrimiento' }),
+      feature('public-contact', 'Iniciar una conversación',
+        'Presenta el formulario de contacto y confirma la recepción de la solicitud.',
+        'Reduce la distancia entre interés y una conversación comercial.',
+        ['/contact', '/contact-success'],
+        { icon: 'mail', actors: ['visitor'], stage: 'Conversión' }),
+      feature('public-trust-pages', 'Consultar información institucional',
+        'Incluye políticas, términos y el manejo de rutas no encontradas.',
+        'Sostiene transparencia y una salida clara ante enlaces incorrectos.',
+        ['/privacy-policy', '/terms-and-conditions', '/:slug*'],
+        { icon: 'shield', actors: ['visitor'], stage: 'Confianza', secondary: true }),
+    ],
+    { icon: 'dashboard', actors: ['visitor'], stage: 'Descubrimiento' },
+  ),
+  capability(
+    'public-content-proof', 'Contenido y prueba social',
+    'Casos, artículos y recursos públicos que muestran conocimiento y resultados.',
+    'Permite evaluar la experiencia de ProjectApp antes de iniciar una relación.',
+    [
+      feature('public-portfolio', 'Explorar casos de trabajo',
+        'Presenta el portafolio y el detalle de cada proyecto destacado.',
+        'Convierte entregas anteriores en evidencia concreta.',
+        ['/portfolio-works', '/portfolio-works/:slug'],
+        { icon: 'portfolio', actors: ['visitor'], stage: 'Evaluación' }),
+      feature('public-blog', 'Leer conocimiento aplicado',
+        'Organiza artículos y sus páginas de lectura completas.',
+        'Demuestra criterio y mantiene conversaciones más allá de una venta puntual.',
+        ['/blog', '/blog/:slug'],
+        { icon: 'blog', actors: ['visitor'], stage: 'Evaluación' }),
+      feature('public-linktree', 'Abrir recursos compartidos',
+        'Ofrece páginas compactas de enlaces para personas y campañas.',
+        'Concentra destinos relevantes en un acceso fácil de compartir.', ['/lk/:handle'],
+        { icon: 'link', actors: ['visitor'], stage: 'Distribución' }),
+      feature('public-linkedin-callback', 'Completar conexión editorial',
+        'Recibe el retorno técnico de LinkedIn durante su autorización.',
+        'Sostiene la distribución editorial sin convertirse en una experiencia principal.',
+        ['/auth/linkedin/callback'],
+        { icon: 'linkedin', actors: ['team'], stage: 'Integración', secondary: true }),
+    ],
+    { icon: 'portfolio', actors: ['visitor'], stage: 'Evaluación' },
+  ),
+  capability(
+    'public-proposal-experience', 'Propuesta comercial',
+    'Experiencia interactiva para comprender, comparar y responder una propuesta.',
+    'Convierte un documento estático en una conversación comercial medible.',
+    [
+      feature('public-proposal', 'Revisar una propuesta',
+        'Presenta alcance, inversión, condiciones y acciones de respuesta.',
+        'Ayuda al prospecto a decidir con contexto y permite medir su interés.', ['/proposal/:uuid'],
+        { icon: 'send', actors: ['prospect'], stage: 'Decisión' }),
+    ],
+    { icon: 'send', actors: ['prospect'], stage: 'Decisión' },
+  ),
+  capability(
+    'public-diagnostic-experience', 'Diagnóstico',
+    'Lectura ejecutiva y técnica del estado actual de una iniciativa.',
+    'Hace visibles prioridades y oportunidades antes de comprometer una solución.',
+    [
+      feature('public-diagnostic', 'Revisar un diagnóstico',
+        'Presenta hallazgos, alcance y recomendaciones en una experiencia compartible.',
+        'Prepara una conversación comercial basada en evidencia.', ['/diagnostic/:uuid'],
+        { icon: 'file', actors: ['prospect'], stage: 'Diagnóstico' }),
+    ],
+    { icon: 'file', actors: ['prospect'], stage: 'Diagnóstico' },
   ),
 ]
 
@@ -246,55 +448,31 @@ export const viewCapabilityCatalog = {
   id: 'projectapp',
   kind: 'root',
   label: 'Ecosistema ProjectApp',
-  summary: 'Una vista de alto nivel de las capacidades que conectan venta, operación y entrega.',
-  value: 'Permite explicar la aplicación desde lo que hace por el negocio, no desde su arquitectura.',
+  summary: 'Tres experiencias conectan la operación interna, la colaboración con clientes y la presencia pública.',
+  value: 'Permite explicar el producto desde su recorrido y sus resultados, sin exponer datos sensibles.',
+  icon: 'sitemap',
   children: [
-    shallowDomain(
-      'public-site',
-      'Presencia digital',
-      'Marketing, contenido y puntos de contacto públicos.',
-      'Atrae oportunidades y presenta la experiencia de ProjectApp.',
-    ),
-    shallowDomain(
-      'public-proposals',
-      'Propuestas comerciales',
-      'Experiencias compartidas para presentar y cerrar una propuesta.',
-      'Convierte una propuesta estática en una conversación medible.',
-    ),
-    shallowDomain(
-      'public-diagnostics',
-      'Diagnósticos',
-      'Lecturas ejecutivas y técnicas del estado de una iniciativa.',
-      'Ayuda a priorizar oportunidades de mejora antes de ejecutar.',
-    ),
-    shallowDomain(
-      'admin-panel',
-      'Operación interna',
-      'Herramientas del equipo para ventas, contenido, clientes y documentos.',
-      'Centraliza el trabajo administrativo que sostiene la relación comercial.',
-    ),
-    shallowDomain(
-      'panel-accounting',
-      'Control financiero',
-      'Ingresos, egresos, cobros, hosting y seguimiento contable.',
-      'Hace visible la operación financiera y sus compromisos.',
-    ),
-    shallowDomain(
-      'panel-mcps',
-      'Automatización asistida',
-      'Conectores que acercan capacidades del panel a asistentes autorizados.',
-      'Reduce trabajo repetitivo manteniendo los controles del producto.',
-    ),
-    {
-      id: 'client-platform',
-      kind: 'domain',
-      sectionId: 'client-platform',
-      label: 'Plataforma de clientes',
-      summary: 'El espacio donde clientes y equipo siguen la ejecución y sus entregas.',
-      value: 'Conecta el proyecto, la comunicación y la operación comercial en una sola experiencia.',
-      children: platformCapabilities,
-      isDeep: true,
-      relations: [
+    space('panel-internal', 'Panel interno',
+      'El espacio donde el equipo dirige ventas, contenido, proyectos, comunicaciones y finanzas.',
+      'Concentra la operación que sostiene cada relación comercial y cada entrega.',
+      ['admin-panel', 'panel-accounting', 'panel-mcps'], panelCapabilities,
+      [
+        { from: 'panel-overview-work', to: 'panel-commercial', label: 'prioriza oportunidades' },
+        { from: 'panel-commercial', to: 'panel-content', label: 'activa contenido' },
+        { from: 'panel-commercial', to: 'panel-documents-communications', label: 'formaliza y conversa' },
+        { from: 'panel-commercial', to: 'panel-projects', label: 'convierte ventas en ejecución' },
+        { from: 'panel-projects', to: 'panel-documents-communications', label: 'conecta evidencia' },
+        { from: 'panel-projects', to: 'panel-finance', label: 'conecta compromisos' },
+        { from: 'panel-finance', to: 'panel-overview-work', label: 'alimenta decisiones' },
+        { from: 'panel-documents-communications', to: 'panel-integrations', label: 'habilita automatización' },
+        { from: 'panel-governance', to: 'panel-overview-work', label: 'sostiene la operación' },
+      ],
+      { icon: 'dashboard', stage: 'Operación' }),
+    space('client-platform', 'Plataforma de clientes',
+      'El espacio donde clientes y equipo siguen la ejecución, sus entregas y compromisos.',
+      'Conecta el proyecto, la comunicación y la operación comercial en una sola experiencia.',
+      ['client-platform'], platformCapabilities,
+      [
         { from: 'platform-access-account', to: 'platform-client-projects', label: 'habilita la operación' },
         { from: 'platform-client-projects', to: 'platform-work-tracking', label: 'organiza el trabajo' },
         { from: 'platform-work-tracking', to: 'platform-deliverables', label: 'conduce a entregas' },
@@ -303,11 +481,24 @@ export const viewCapabilityCatalog = {
         { from: 'platform-documents', to: 'platform-access-account', label: 'requiere identidad' },
         { from: 'platform-work-tracking', to: 'platform-notifications', label: 'genera novedades' },
         { from: 'platform-commercial-operations', to: 'platform-notifications', label: 'comunica vencimientos' },
-        { from: 'platform-client-projects', to: 'platform-access-management', label: 'habilita la operación interna' },
+        { from: 'platform-client-projects', to: 'platform-access-management', label: 'habilita soporte interno' },
       ],
-    },
+      { icon: 'folder', actors: ['client', 'team'], stage: 'Colaboración' }),
+    space('public-experiences', 'Experiencias públicas',
+      'Presencia digital, contenido y experiencias comerciales compartidas con visitantes y prospectos.',
+      'Atrae oportunidades, demuestra experiencia y acompaña la decisión antes del proyecto.',
+      ['public-site', 'public-proposals', 'public-diagnostics'], publicCapabilities,
+      [
+        { from: 'public-brand-acquisition', to: 'public-content-proof', label: 'construye confianza' },
+        { from: 'public-brand-acquisition', to: 'public-diagnostic-experience', label: 'convierte interés en diagnóstico' },
+        { from: 'public-diagnostic-experience', to: 'public-proposal-experience', label: 'prepara la propuesta' },
+        { from: 'public-content-proof', to: 'public-proposal-experience', label: 'respalda la decisión' },
+      ],
+      { icon: 'portfolio', actors: ['visitor', 'prospect'], stage: 'Atracción' }),
   ],
 }
+
+export const EXPLORER_SPACE_IDS = Object.freeze(viewCapabilityCatalog.children.map((node) => node.id))
 
 export function flattenCapabilityCatalog(root = viewCapabilityCatalog) {
   const result = []
@@ -336,17 +527,27 @@ export function capabilityNodePath(nodeId, root = viewCapabilityCatalog) {
   return path.length > 0 ? path : [root]
 }
 
-export function capabilityViewRecords(node, sections = viewCatalogSections) {
+export function descendantCapabilityViewUrls(node) {
+  return [
+    ...(node?.viewUrls || []),
+    ...(node?.children || []).flatMap((child) => descendantCapabilityViewUrls(child)),
+  ]
+}
+
+export function capabilityViewRecords(node, sections = viewCatalogSections, { recursive = false } = {}) {
   const entriesByUrl = new Map(
     sections.flatMap((section) => section.views.map((view) => [view.url, view])),
   )
-  return (node?.viewUrls || []).map((url) => entriesByUrl.get(url)).filter(Boolean)
+  const urls = recursive ? descendantCapabilityViewUrls(node) : (node?.viewUrls || [])
+  return [...new Set(urls)].map((url) => entriesByUrl.get(url)).filter(Boolean)
 }
 
-export function capabilityCatalogFindings(
-  root = viewCapabilityCatalog,
-  sections = viewCatalogSections,
-) {
+export function explorerTourSteps(spaceId, root = viewCapabilityCatalog) {
+  const selectedSpace = root.children.find((node) => node.id === spaceId)
+  return (selectedSpace?.children || []).filter((node) => !node.secondary)
+}
+
+export function capabilityCatalogFindings(root = viewCapabilityCatalog, sections = viewCatalogSections) {
   const findings = []
   const nodes = flattenCapabilityCatalog(root)
   const sectionById = new Map(sections.map((section) => [section.id, section]))
@@ -357,8 +558,12 @@ export function capabilityCatalogFindings(
     if (!node.label?.trim() || !node.summary?.trim() || !node.value?.trim()) {
       findings.push(`Nodo operativo incompleto: ${node.id}`)
     }
-    if (node.sectionId && !sectionById.has(node.sectionId)) {
-      findings.push(`Sección inexistente en nodo operativo: ${node.id}:${node.sectionId}`)
+    if (!node.icon?.trim()) findings.push(`Nodo operativo sin icono: ${node.id}`)
+    for (const sectionId of node.sectionIds || []) {
+      if (!sectionById.has(sectionId)) findings.push(`Sección inexistente en nodo operativo: ${node.id}:${sectionId}`)
+    }
+    if (node.kind === 'feature' && !(node.viewUrls || []).length) {
+      findings.push(`Submódulo sin vistas: ${node.id}`)
     }
   }
 
@@ -366,19 +571,25 @@ export function capabilityCatalogFindings(
     if (count > 1) findings.push(`ID operativo duplicado: ${nodeId}`)
   }
 
-  const allCatalogUrls = new Set(sections.flatMap((section) => section.views.map((view) => view.url)))
+  const allCatalogUrls = sections.flatMap((section) => section.views.map((view) => view.url))
+  const allCatalogUrlSet = new Set(allCatalogUrls)
   const taxonomyUrls = nodes.flatMap((node) => node.viewUrls || [])
+  const taxonomyCounts = new Map()
   for (const url of taxonomyUrls) {
-    if (!allCatalogUrls.has(url)) findings.push(`Vista operativa inexistente: ${url}`)
+    taxonomyCounts.set(url, (taxonomyCounts.get(url) || 0) + 1)
+    if (!allCatalogUrlSet.has(url)) findings.push(`Vista operativa inexistente: ${url}`)
+  }
+  for (const url of allCatalogUrls) {
+    const count = taxonomyCounts.get(url) || 0
+    if (count === 0) findings.push(`Vista sin espacio operativo: ${url}`)
+    if (count > 1) findings.push(`Vista repetida entre submódulos: ${url}`)
   }
 
-  const platformUrls = sectionById.get('client-platform')?.views.map((view) => view.url) || []
-  const platformCounts = new Map()
-  for (const url of taxonomyUrls) platformCounts.set(url, (platformCounts.get(url) || 0) + 1)
-  for (const url of platformUrls) {
-    const count = platformCounts.get(url) || 0
-    if (count === 0) findings.push(`Vista de Plataforma sin capacidad: ${url}`)
-    if (count > 1) findings.push(`Vista de Plataforma repetida entre capacidades: ${url}`)
+  const coveredSectionIds = root.children.flatMap((node) => node.sectionIds || [])
+  for (const section of sections) {
+    const count = coveredSectionIds.filter((sectionId) => sectionId === section.id).length
+    if (count === 0) findings.push(`Sección sin espacio operativo: ${section.id}`)
+    if (count > 1) findings.push(`Sección repetida entre espacios: ${section.id}`)
   }
 
   for (const node of nodes) {

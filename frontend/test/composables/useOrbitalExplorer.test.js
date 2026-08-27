@@ -14,7 +14,7 @@ describe('orbitalPosition', () => {
   it('rotates nodes around the center', () => {
     const position = orbitalPosition(0, 4, 90, 'desktop', 1)
 
-    expect(position.x).toBeCloseTo(90)
+    expect(position.x).toBeCloseTo(86)
     expect(position.y).toBeCloseTo(50)
   })
 

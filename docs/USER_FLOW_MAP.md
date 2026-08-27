@@ -1973,7 +1973,7 @@ No active browser flow is registered for client profile editing at this time.
 - **Role:** admin
 - **Priority:** P4
 - **Routes:** `/panel/views`
-- **Description:** Admin explores the complete route inventory in Lista, drills through modules in Mapa, or presents ProjectApp as a commercial capability constellation in Explorador. The operational mode starts with all product domains, opens Platform into eight capabilities and keeps route/file references as secondary disclosure. Seeded filters and Configuración retain the technical workflow; `ViewMapSettings` persists any of the three default modes and an explicit URL always wins.
+- **Description:** Admin explores the complete route inventory in Lista, drills through modules in Mapa, or presents ProjectApp as a contextual journey in Explorador. The operational mode starts with Panel interno, Plataforma de clientes and Experiencias públicas; each space exposes its main modules, representative submodules and dynamically previewed value/context while route/file references remain secondary. Seeded filters and Configuración retain the technical workflow; `ViewMapSettings` persists any of the three default modes and an explicit URL always wins.
 - **Steps:**
   1. Admin opens `/panel/views` from the Reference section in the panel sidebar; the configured default view mode and default filters apply when no `?viewMode=`/`?viewTab=` deep-link is present.
   2. Grouped route catalog renders with section totals, seeded filter tabs and a proposal reference guide.
@@ -1981,10 +1981,12 @@ No active browser flow is registered for client profile editing at this time.
   4. Admin clicks the copy button on a view row and sees copied feedback.
   5. Admin toggles to "Mapa" mode: module cards render with operational labels, view counts, sub-module counts and a viewType distribution bar.
   6. Admin clicks a module card, drills into its sub-modules and returns via the breadcrumb; the URL reflects the state for deep-linking.
-  7. Admin toggles to "Explorador", opens Plataforma and navigates its capability orbit by pointer, keyboard, search or a shared `?viewMode=explorer&node=<id>` URL.
-  8. Admin can pause the slow rotation, zoom, hide functional relations or rely on the operating-system reduced-motion preference; technical references remain available in a closed disclosure.
-  9. Admin switches to "Configuración", saves any default mode and receives success or failure feedback from the settings request.
-- **Outcome matrix:** display ✅ Lista/Mapa/Explorador navigation; success ✅ default-mode persistence; failure ✅ rejected settings save; error n/a because the page exposes bounded controls rather than user-authored values, so invalid modes cannot be submitted through the UI.
+  7. Admin toggles to "Explorador" and chooses Panel interno, Plataforma de clientes or Experiencias públicas. Hover/focus previews purpose and operational value without changing the URL; click selection writes a shared `?viewMode=explorer&node=<id>` state.
+  8. Admin explores Panel and Platform through eight main modules each, or the four public modules that connect acquisition, content/proof, proposal and diagnostic experiences. Representative submodules and technical references remain available in progressive disclosure.
+  9. Admin starts a guided space tour. `tour=<space-id>` and `node=<module-id>` track ordered progress; next/previous moves between main modules and exiting removes only `tour`, preserving context.
+  10. At compact and portrait widths the hierarchy becomes cards; from landscape upward it uses the orbit. Admin can pause rotation, zoom, hide functional relations or rely on reduced motion.
+  11. Admin switches to "Configuración", saves any default mode and receives success or failure feedback from the settings request.
+- **Outcome matrix:** display ✅ Lista/Mapa plus all three Explorer spaces, responsive representations and dynamic context; success ✅ guided navigation and default-mode persistence; failure ✅ rejected settings save; error n/a because the page exposes bounded controls rather than user-authored values, so invalid modes cannot be submitted through the UI.
 - **Coverage:** ✅ Covered
 - **E2E Spec:** `e2e/admin/admin-view-map.spec.js`
 - **Known gaps:** default-filters autosave from the Configuración section and default-filters application on open are unit-covered only; saved-tab CRUD (create/rename/delete) is unasserted on this view (shared `ProposalFilterTabs` component, exercised in proposals specs).
