@@ -24,10 +24,15 @@
             v-model="backgroundColor"
             type="color"
             :disabled="transparentBackground"
+            :title="transparentBackground ? 'Desactiva el fondo transparente para elegir un color de fondo.' : undefined"
             data-testid="qr-background-color"
             class="h-10 w-16 rounded-md border border-input-border bg-input-bg cursor-pointer disabled:opacity-50"
           />
         </BaseFormField>
+
+        <p v-if="transparentBackground" class="text-xs text-text-subtle">
+          Desactiva el fondo transparente para elegir un color de fondo.
+        </p>
 
         <BaseCheckbox v-model="transparentBackground" data-testid="qr-transparent-toggle">
           Fondo transparente

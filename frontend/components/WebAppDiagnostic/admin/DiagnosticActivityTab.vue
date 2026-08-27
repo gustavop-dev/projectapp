@@ -15,7 +15,26 @@
           class="flex-1 px-3 py-2 border border-border-default bg-surface text-text-default rounded-xl text-sm"
           @keydown.enter.prevent="submit"
         />
-        <BaseButton variant="primary" size="md" class="whitespace-nowrap" :disabled="!form.description.trim() || submitting" @click="submit">Registrar</BaseButton>
+        <BaseControlGate
+          :reasons="!form.description.trim() ? ['Escribe una descripción para registrar la actividad.'] : []"
+          label="Registrar no disponible"
+          align="end"
+        >
+          <template #default="{ describedBy }">
+            <BaseButton
+              variant="primary"
+              size="md"
+              class="whitespace-nowrap"
+              :loading="submitting"
+              :disabled="!form.description.trim()"
+              disabled-reason="Escribe una descripción para registrar la actividad."
+              :aria-describedby="describedBy"
+              @click="submit"
+            >
+              Registrar
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </div>
 

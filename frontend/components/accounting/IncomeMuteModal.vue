@@ -118,7 +118,9 @@ function onSubmit() {
         <BaseButton
           type="submit"
           variant="primary"
-          :disabled="saving || !!dateError"
+          :loading="saving"
+          :disabled="!!dateError"
+          :disabled-reason="dateError"
           data-testid="income-mute-submit"
         >
           {{ saving ? 'Guardando...' : 'Silenciar' }}

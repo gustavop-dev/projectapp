@@ -1,0 +1,16 @@
+{
+  "id": "admin-document-observation-delete",
+  "name": "Admin Document Observation Deletion",
+  "module": "admin",
+  "roles": [
+    "admin"
+  ],
+  "priority": "P1",
+  "description": "Admin distinguishes discarding a real observation from deleting one that never should have existed. Deletion always shows the complete observation and an external-copy warning, uses recoverable soft deletion for any status, removes deleted rows from active counts, reconciles the last note-origin pending state, supports one atomic bulk request, exposes a trash restore action, and shows actor/time-only audit activity without copying deleted content.",
+  "expectedSpecs": 1,
+  "outcomes": [
+    "display",
+    "success",
+    "failure"
+  ]
+}

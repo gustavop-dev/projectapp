@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { nextTick } from 'vue';
 import { createPinia, setActivePinia } from 'pinia';
 
@@ -72,7 +72,7 @@ describe('DocumentClientNoteModal', () => {
     await customTitleField(wrapper).setValue('  Próximo paso  ');
     await customContentField(wrapper).setValue('  Confirmar la fecha.  ');
 
-    await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
+    await wrapper.find('[data-testid="client-note-submit"]').trigger('click');
 
     expect(wrapper.emitted('submit')[0]).toEqual([{
       subject: 'Informe listo',
@@ -117,6 +117,17 @@ describe('DocumentClientNoteModal', () => {
     expect(wrapper.find('[data-testid="client-note-submit"]').exists()).toBe(false);
   });
 
+  it('permits observation deletion on a read-only issued document', () => {
+    const wrapper = mountModal({
+      readonly: true,
+      documentId: 8,
+      notes: [{ id: 9, title: 'Prueba', content: 'No debía existir', status: 'open' }],
+    });
+
+    expect(wrapper.find('[data-testid="document-observation-delete-9"]').exists()).toBe(true);
+    expect(wrapper.find('[data-testid="document-observation-edit-9"]').exists()).toBe(false);
+  });
+
   it('renders custom notes as read only', () => {
     const wrapper = mountModal({
       readonly: true,
@@ -133,7 +144,7 @@ describe('DocumentClientNoteModal', () => {
     const wrapper = mountModal();
     await wrapper.find('[data-testid="client-note-add-custom"]').trigger('click');
 
-    await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
+    await wrapper.find('[data-testid="client-note-submit"]').trigger('click');
 
     expect(wrapper.emitted('submit')).toBeFalsy();
     expect(wrapper.find('[data-testid="client-note-custom-title-error-0"]').text())
@@ -158,7 +169,7 @@ describe('DocumentClientNoteModal', () => {
     });
 
     await wrapper.find('[data-testid="client-note-custom-delete-0"]').trigger('click');
-    await wrapper.find('[data-testid="document-client-note-modal"]').trigger('submit');
+    await wrapper.find('[data-testid="client-note-submit"]').trigger('click');
 
     expect(wrapper.emitted('submit')[0][0].customNotes).toEqual([]);
   });
@@ -221,7 +232,12 @@ describe('DocumentClientNoteModal', () => {
       success: true,
       data: { id: 9, title: '', content: 'Corregir el total', status: 'open', episode: 30 },
     });
-    const wrapper = mountModal({ documentId: 8, notes: [] });
+    const wrapper = mountModal({
+      documentId: 8,
+      notes: [],
+      customNotes: [{ title: 'Legado', content: 'Ya normalizada' }],
+    });
+    expect(wrapper.find('[data-testid="client-note-custom-0"]').exists()).toBe(false);
     await wrapper.find('[data-testid="document-observation-content"]').setValue('Corregir el total');
 
     await wrapper.find('[data-testid="document-observation-add"]').trigger('click');
@@ -234,26 +250,117 @@ describe('DocumentClientNoteModal', () => {
     expect(wrapper.emitted('workflow-changed')).toHaveLength(1);
   });
 
-  it('offers to close needs-fix when resolving its last observation', async () => {
+  it('resolves an observation from the panel form', async () => {
     const store = useDocumentStateStore();
     jest.spyOn(store, 'finishNote').mockResolvedValue({
       success: true,
       data: { note: { id: 9, status: 'resolved', episode: 30 } },
     });
-    jest.spyOn(window, 'prompt').mockReturnValue('Corregido');
-    jest.spyOn(window, 'confirm').mockReturnValue(true);
     const wrapper = mountModal({
       documentId: 8,
       notes: [{ id: 9, title: 'Total', content: 'Corregir', status: 'open', episode: 30 }],
     });
 
     await wrapper.find('[data-testid="document-observation-resolve-9"]').trigger('click');
+    await wrapper.find('[data-testid="document-observation-resolution"]').setValue('Corregido');
+    await wrapper.find('[data-testid="document-observation-finish-form"] input[type="checkbox"]').setValue(true);
+    await wrapper.find('[data-testid="document-observation-finish-form"]').trigger('submit');
+    await flushPromises();
 
     expect(store.finishNote).toHaveBeenCalledWith(8, 9, {
       outcome: 'resolved',
       resolution_note: 'Corregido',
-      close_linked_state: true,
       move_cycle_to_bug_attended: true,
     });
+  });
+
+  it('shows the note content before deleting it', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'deleteNote').mockResolvedValue({
+      success: true,
+      data: { deleted_note_ids: [9] },
+    });
+    const wrapper = mountModal({
+      documentId: 8,
+      notes: [{ id: 9, title: 'Prueba', content: 'Texto equivocado', status: 'open' }],
+    });
+
+    await wrapper.find('[data-testid="document-observation-delete-9"]').trigger('click');
+
+    const confirmation = wrapper.get('[data-testid="document-observation-delete-confirmation"]');
+    expect(confirmation.text()).toContain('Texto equivocado');
+    expect(confirmation.text()).toContain('podrás recuperarlas desde la papelera');
+    expect(confirmation.text()).toContain('no lo borra de la bandeja');
+  });
+
+  it('deletes a finished observation', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'deleteNote').mockResolvedValue({
+      success: true,
+      data: { deleted_note_ids: [9] },
+    });
+    const wrapper = mountModal({
+      documentId: 8,
+      notes: [{ id: 9, title: 'Duplicada', content: 'No aplica', status: 'discarded' }],
+    });
+
+    await wrapper.find('[data-testid="document-observation-delete-9"]').trigger('click');
+    await wrapper.find('[data-testid="document-observation-confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(store.deleteNote).toHaveBeenCalledWith(8, 9);
+    expect(wrapper.find('[data-testid="document-observation-9"]').exists()).toBe(false);
+  });
+
+  it('deletes selected observations in one request', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'bulkDeleteNotes').mockResolvedValue({
+      success: true,
+      data: { deleted_note_ids: [9, 10] },
+    });
+    const wrapper = mountModal({
+      documentId: 8,
+      notes: [
+        { id: 9, title: 'Prueba uno', content: 'Uno', status: 'open' },
+        { id: 10, title: 'Prueba dos', content: 'Dos', status: 'resolved' },
+      ],
+    });
+    await wrapper.find('[data-testid="document-observation-select-9"] input').setValue(true);
+    await wrapper.find('[data-testid="document-observation-select-10"] input').setValue(true);
+
+    await wrapper.find('[data-testid="document-observation-bulk-delete"]').trigger('click');
+    await wrapper.find('[data-testid="document-observation-confirm-delete"]').trigger('click');
+    await flushPromises();
+
+    expect(store.bulkDeleteNotes).toHaveBeenCalledWith(8, [9, 10]);
+  });
+
+  it('restores a note from the trash', async () => {
+    const store = useDocumentStateStore();
+    jest.spyOn(store, 'fetchDeletedNotes').mockResolvedValue({
+      success: true,
+      data: [{
+        id: 9,
+        title: 'Recuperable',
+        content: 'Volver a mostrar',
+        status: 'open',
+        order: 0,
+        deleted_at: '2026-08-26T12:00:00Z',
+        deleted_by_name: 'Ana',
+      }],
+    });
+    jest.spyOn(store, 'restoreNote').mockResolvedValue({
+      success: true,
+      data: { note: { id: 9, title: 'Recuperable', content: 'Volver a mostrar', status: 'open', order: 0 } },
+    });
+    const wrapper = mountModal({ documentId: 8, notes: [] });
+
+    await wrapper.find('[data-testid="document-observation-tab-trash"]').trigger('click');
+    await flushPromises();
+    await wrapper.find('[data-testid="document-observation-restore-9"]').trigger('click');
+    await flushPromises();
+
+    expect(store.restoreNote).toHaveBeenCalledWith(8, 9);
+    expect(wrapper.text()).toContain('La papelera está vacía');
   });
 });

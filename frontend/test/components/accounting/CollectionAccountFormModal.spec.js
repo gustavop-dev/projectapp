@@ -21,7 +21,7 @@ jest.mock('../../../utils/downloadFile', () => ({
 
 const { downloadUrl } = require('../../../utils/downloadFile');
 
-const { get_request, create_request } = require('../../../stores/services/request_http');
+const { get_request, create_request, patch_request } = require('../../../stores/services/request_http');
 
 const ClientAutocompleteStub = {
   name: 'ClientAutocomplete',
@@ -76,6 +76,13 @@ const otherClientFixture = {
   nit: '900111222',
   cedula: '',
   is_email_placeholder: false,
+};
+
+const clientWithoutEmailFixture = {
+  ...clientFixture,
+  id: 15,
+  email: 'cliente_15@temp.example.com',
+  is_email_placeholder: true,
 };
 
 /** Rows the incomes endpoint answers with; per-test via `mockIncomes`. */
@@ -142,6 +149,13 @@ function mockRequests() {
       },
     });
   });
+  patch_request.mockResolvedValue({
+    data: {
+      ...clientWithoutEmailFixture,
+      email: 'nuevo@acme.co',
+      is_email_placeholder: false,
+    },
+  });
 }
 
 function mountModal(props = {}) {
@@ -165,12 +179,12 @@ function mountModal(props = {}) {
             '<div><label v-if="label">{{ label }}</label><slot /><p v-if="hint">{{ hint }}</p></div>',
         },
         BaseInput: {
-          props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength'],
+          props: ['modelValue', 'type', 'size', 'error', 'placeholder', 'disabled', 'min', 'max', 'maxlength', 'title'],
           emits: ['update:modelValue'],
           // min/max are rendered, not just declared: they are the native guard
           // that keeps a negative plazo out of the form.
           template:
-            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :min="min" :max="max" @input="$emit(\'update:modelValue\', $event.target.value)" />',
+            '<input :type="type || \'text\'" :value="modelValue" :placeholder="placeholder" :disabled="disabled" :title="title" :min="min" :max="max" @input="$emit(\'update:modelValue\', $event.target.value)" />',
         },
         BaseCurrencyInput: {
           props: ['modelValue', 'decimals', 'size', 'error', 'placeholder', 'disabled', 'suggestion'],
@@ -197,7 +211,8 @@ function mountModal(props = {}) {
             + '{{ o.label }}</button></div>',
         },
         BaseButton: {
-          props: ['variant', 'size', 'disabled', 'type', 'iconOnly'],
+          props: ['variant', 'size', 'disabled', 'type', 'iconOnly', 'loading'],
+          emits: ['click'],
           template:
             '<button :type="type || \'button\'" :disabled="disabled" @click="$emit(\'click\')"><slot /></button>',
         },
@@ -662,6 +677,103 @@ describe('CollectionAccountFormModal', () => {
     expect(
       wrapper.find('[data-testid="collection-form-customer-identification"]').element.value,
     ).toBe('901234567');
+  });
+
+  it('lists every missing prerequisite beside the preview control', async () => {
+    const wrapper = mountModal();
+    await flushPromises();
+
+    const reasons = wrapper.get('[data-testid="collection-form-preview-gate-reasons"]');
+    expect(reasons.text()).toContain('Selecciona un cliente.');
+    expect(reasons.text()).toContain('Selecciona un ingreso vinculado.');
+    expect(reasons.text()).toContain('Ingresa un valor mayor a cero.');
+    expect(reasons.text()).toContain('Escribe el concepto del servicio.');
+    expect(reasons.findAll('li')).toHaveLength(4);
+  });
+
+  it('warns immediately when the selected client has no real email', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+
+    await selectClient(wrapper, clientWithoutEmailFixture);
+
+    expect(wrapper.get('[data-testid="collection-form-client-email-warning"]').text())
+      .toContain('Este cliente no tiene correo.');
+    expect(wrapper.get('[data-testid="collection-form-preview-gate-reasons"]').text())
+      .toContain('Agrega y guarda un correo real');
+    expect(wrapper.get('[data-testid="collection-form-customer-email"]').element.disabled)
+      .toBe(true);
+  });
+
+  it('saves a missing client email without losing the account draft', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper, clientWithoutEmailFixture);
+    await wrapper.get('[data-testid="collection-form-description"]')
+      .setValue('Detalle que debe sobrevivir');
+    await wrapper.get('[data-testid="collection-form-notes"]')
+      .setValue('Nota que debe sobrevivir');
+
+    await wrapper.get('[data-testid="collection-form-client-email-repair"]')
+      .setValue('Nuevo@Acme.co');
+    await wrapper.get('[data-testid="collection-form-client-email-save"]').trigger('click');
+    await flushPromises();
+
+    expect(patch_request).toHaveBeenCalledWith(
+      'proposals/client-profiles/15/update/',
+      { email: 'nuevo@acme.co' },
+    );
+    expect(wrapper.find('[data-testid="collection-form-client-email-warning"]').exists())
+      .toBe(false);
+    expect(wrapper.get('[data-testid="collection-form-customer-email"]').element.value)
+      .toBe('nuevo@acme.co');
+    expect(wrapper.get('[data-testid="collection-form-description"]').element.value)
+      .toBe('Detalle que debe sobrevivir');
+    expect(wrapper.get('[data-testid="collection-form-notes"]').element.value)
+      .toBe('Nota que debe sobrevivir');
+    expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled)
+      .toBe(false);
+  });
+
+  it('keeps the email repair open when validation or the API rejects it', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper, clientWithoutEmailFixture);
+
+    await wrapper.get('[data-testid="collection-form-client-email-repair"]')
+      .setValue('correo-invalido');
+    await wrapper.get('[data-testid="collection-form-client-email-save"]').trigger('click');
+    expect(wrapper.get('[data-testid="collection-form-client-email-error"]').text())
+      .toContain('Escribe un correo válido');
+    expect(patch_request).not.toHaveBeenCalled();
+
+    patch_request.mockRejectedValueOnce({
+      response: { data: { message: 'Otro usuario ya está usando ese correo.' } },
+    });
+    await wrapper.get('[data-testid="collection-form-client-email-repair"]')
+      .setValue('duplicado@acme.co');
+    await wrapper.get('[data-testid="collection-form-client-email-save"]').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.get('[data-testid="collection-form-client-email-error"]').text())
+      .toContain('Otro usuario ya está usando ese correo.');
+    expect(wrapper.get('[data-testid="collection-form-client-email-warning"]').exists())
+      .toBe(true);
+  });
+
+  it('names the missing fixed payment date before preview', async () => {
+    const wrapper = mountModal({ income: incomeFixture });
+    await flushPromises();
+    await selectClient(wrapper);
+
+    const fixed = wrapper.findAll('button')
+      .find(button => button.text().includes('Fecha fija'));
+    await fixed.trigger('click');
+
+    expect(wrapper.get('[data-testid="collection-form-preview-gate-reasons"]').text())
+      .toContain('Selecciona la fecha fija de pago.');
+    expect(wrapper.get('[data-testid="collection-form-preview"]').element.disabled)
+      .toBe(true);
   });
 
   it('omits the consecutivo from the payload while it matches the suggestion', async () => {

@@ -143,6 +143,7 @@
             variant="secondary"
             size="sm"
             :disabled="store.page <= 1"
+            disabled-reason="Ya estás en la primera página."
             @click="changePage(store.page - 1)"
           >
             Anterior
@@ -152,6 +153,7 @@
             variant="secondary"
             size="sm"
             :disabled="store.page >= store.numPages"
+            disabled-reason="Ya estás en la última página."
             @click="changePage(store.page + 1)"
           >
             Siguiente
@@ -363,6 +365,7 @@
                   v-model="messageForm.direction"
                   :options="DIRECTION_OPTIONS"
                   :disabled="Boolean(editingMessageId)"
+                  disabled-reason="La dirección de un borrador existente no se puede cambiar. Crea un mensaje nuevo para usar otra dirección."
                   data-testid="communication-message-direction"
                   @update:model-value="onDirectionChange"
                 />
@@ -543,6 +546,18 @@
         </BaseModalActions>
       </form>
     </BaseModal>
+
+    <ConfirmModal
+      v-model="confirmState.open"
+      :title="confirmState.title"
+      :message="confirmState.message"
+      :confirm-text="confirmState.confirmText"
+      :cancel-text="confirmState.cancelText"
+      :variant="confirmState.variant"
+      :loading="confirmState.busy"
+      @confirm="handleConfirmed"
+      @cancel="handleCancelled"
+    />
   </div>
 </template>
 
@@ -553,6 +568,7 @@ import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ProjectSelect from '~/components/accounting/ProjectSelect.vue';
 import { useIsMobile } from '~/composables/useIsMobile';
 import { usePanelNotify } from '~/composables/usePanelNotify';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useCommunicationsStore } from '~/stores/communications';
 import { useDocumentStore } from '~/stores/documents';
@@ -564,6 +580,7 @@ const route = useRoute();
 const store = useCommunicationsStore();
 const documentStore = useDocumentStore();
 const notify = usePanelNotify();
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 const { isMobile: isPhone } = useIsMobile(PANEL_BREAKPOINTS.portrait - 1);
 
 const selectedThreadId = ref(null);
@@ -797,14 +814,22 @@ function editDraft(message) {
 }
 
 async function deleteDraft(message) {
-  if (typeof window !== 'undefined' && !window.confirm('¿Eliminar este borrador?')) return;
-  const result = await store.deleteDraft(message);
-  if (!result.success) {
-    notify.error({ title: 'No se pudo eliminar el borrador', detail: result.message });
-    return;
-  }
-  await loadThreads();
-  notify.success({ title: 'Borrador eliminado' });
+  await requestConfirm({
+    title: 'Eliminar borrador',
+    message: `Se eliminará el borrador “${message.subject || message.content.slice(0, 80)}”. Esta acción no se puede deshacer.`,
+    confirmText: 'Eliminar borrador',
+    variant: 'danger',
+    waitForConfirm: true,
+    onConfirm: async () => {
+      const result = await store.deleteDraft(message);
+      if (!result.success) {
+        notify.error({ title: 'No se pudo eliminar el borrador', detail: result.message });
+        return;
+      }
+      await loadThreads();
+      notify.success({ title: 'Borrador eliminado' });
+    },
+  });
 }
 
 async function markSent(message) {

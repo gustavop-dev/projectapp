@@ -106,16 +106,27 @@
       >
         {{ isEmpty ? 'Cerrar' : 'Cancelar' }}
       </BaseButton>
-      <BaseButton
+      <BaseControlGate
         v-if="!isEmpty"
-        variant="primary"
-        size="sm"
-        :disabled="selectedCount === 0 || store.isUpdating || isLoadingPreview"
-        data-testid="project-assign-unlinked-confirm"
-        @click="confirmAssign"
+        :reasons="selectedCount === 0 ? ['Selecciona al menos un registro para asignar.'] : []"
+        label="Asignar no disponible"
+        align="end"
       >
-        {{ store.isUpdating ? 'Asignando...' : `Asignar ${selectedCount} ${selectedCount === 1 ? 'registro' : 'registros'}` }}
-      </BaseButton>
+        <template #default="{ describedBy }">
+          <BaseButton
+            variant="primary"
+            size="sm"
+            :loading="store.isUpdating || isLoadingPreview"
+            :disabled="selectedCount === 0"
+            disabled-reason="Selecciona al menos un registro para asignar."
+            :aria-describedby="describedBy"
+            data-testid="project-assign-unlinked-confirm"
+            @click="confirmAssign"
+          >
+            {{ store.isUpdating ? 'Asignando...' : `Asignar ${selectedCount} ${selectedCount === 1 ? 'registro' : 'registros'}` }}
+          </BaseButton>
+        </template>
+      </BaseControlGate>
     </div>
   </BaseModal>
 </template>

@@ -19,6 +19,7 @@ const props = defineProps({
   error: { type: Boolean, default: false },
   placeholder: { type: String, default: '' },
   disabled: { type: Boolean, default: false },
+  disabledReason: { type: String, default: '' },
   /** Keep a leading "-" so negative amounts can be typed and edited. */
   allowNegative: { type: Boolean, default: false },
   /** Amount offered while empty; a zero suggests without auto-filling. */
@@ -148,6 +149,7 @@ watch(
     :value="display"
     :placeholder="effectivePlaceholder"
     :disabled="disabled"
+    :title="disabled && disabledReason ? disabledReason : undefined"
     :class="[INPUT_FIELD_BASE, INPUT_FIELD_SIZE[size] || INPUT_FIELD_SIZE.md, error ? INPUT_FIELD_ERROR : '']"
     @input="onInput"
     @focus="onFocus"

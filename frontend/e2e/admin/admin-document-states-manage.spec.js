@@ -172,8 +172,9 @@ test.describe('Admin Document States Manage', () => {
     await openCatalog(page);
 
     await page.getByLabel('Destino para fusionar Prioritario').selectOption('22');
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('catalog-merge-state-23').click();
+    await expect(page.getByRole('dialog')).toContainText('Fusionar estados');
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect.poll(() => mergeBody).not.toBeNull();
     expect(mergeBody.target_state_id).toBe(22);
@@ -192,8 +193,9 @@ test.describe('Admin Document States Manage', () => {
     });
     await openCatalog(page);
 
-    page.once('dialog', (dialog) => dialog.accept());
     await page.getByTestId('catalog-retire-state-22').click();
+    await expect(page.getByRole('dialog')).toContainText('Retirar estado');
+    await page.getByTestId('confirm-modal-confirm').click();
 
     await expect(page.getByRole('alert')).toContainText('No se puede retirar');
     await expect(page.getByRole('alert')).toContainText('Cierra o fusiona primero');

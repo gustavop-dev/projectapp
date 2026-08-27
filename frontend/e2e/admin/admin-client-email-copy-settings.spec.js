@@ -4,6 +4,8 @@ import { setAuthLocalStorage } from '../helpers/auth.js';
 import {
   ADMIN_CLIENT_EMAIL_COPY_HISTORY,
   ADMIN_CLIENT_EMAIL_COPY_SETTINGS,
+  ADMIN_OUTBOUND_EMAIL_HISTORY_BODY,
+  ADMIN_OUTBOUND_EMAIL_HISTORY_FILTER,
 } from '../helpers/flow-tags.js';
 
 test.setTimeout(60_000);
@@ -30,9 +32,12 @@ const defaults = {
 const families = [
   { value: 'proposals', label: 'Propuestas' },
   { value: 'diagnostics', label: 'Diagnósticos' },
-  { value: 'documents_manual', label: 'Documentos y correos manuales' },
+  { value: 'documents_communications', label: 'Documentos y comunicaciones' },
   { value: 'collections', label: 'Cuentas de cobro' },
+  { value: 'accounting', label: 'Contabilidad' },
   { value: 'platform', label: 'Plataforma' },
+  { value: 'tasks_operations', label: 'Tareas y operación' },
+  { value: 'security', label: 'Seguridad y acceso' },
 ];
 
 const configuredRecipient = {
@@ -50,6 +55,13 @@ const history = {
     recipient: 'client@example.com',
     status: 'sent',
     sent_at: '2026-08-23T10:00:00Z',
+    template_key: 'verification_code_password_reset',
+    template_label: 'Código de recuperación',
+    family: 'security',
+    family_label: 'Seguridad y acceso',
+    audience: 'security',
+    audience_label: 'Seguridad y acceso',
+    has_body: true,
     metadata: { greeting: 'Hola Ana', sections: ['Adjuntamos el contrato.'] },
     copies: [{
       id: 42,
@@ -57,6 +69,12 @@ const history = {
       status: 'failed',
       status_label: 'Fallido',
       error_message: 'SMTP timeout interno',
+    }, {
+      id: 43,
+      recipient: 'client@example.com',
+      status: 'skipped',
+      status_label: 'Omitido',
+      error_message: 'Ya era destinatario del correo principal.',
     }],
   }],
   total: 1,
@@ -71,7 +89,17 @@ async function setupMocks(page, options = {}) {
     if (apiPath === 'auth/check/') return authCheck;
     if (apiPath === 'panel/dashboard/') return json({});
     if (apiPath === 'emails/defaults/' && method === 'GET') return json(defaults);
-    if (apiPath.startsWith('emails/history') && method === 'GET') return json(history);
+    if (apiPath === 'emails/history/41/body/' && method === 'GET') {
+      calls.push({ method, path: apiPath, url: route.request().url() });
+      return json({
+        html: '<html><body><p>Código privado 123456</p></body></html>',
+        text: 'Código privado 123456',
+      });
+    }
+    if (apiPath.startsWith('emails/history') && method === 'GET') {
+      calls.push({ method, path: apiPath, url: route.request().url() });
+      return json(options.history ?? history);
+    }
     if (apiPath === 'emails/copy-recipients/' && method === 'GET') {
       return json({ results: rows, families, copy_mode: 'bcc' });
     }
@@ -103,8 +131,12 @@ async function setupMocks(page, options = {}) {
 async function navigateToEmails(page) {
   await page.goto('/panel', { waitUntil: 'domcontentloaded' });
   const navigation = page.getByRole('navigation', { name: 'Navegación del panel' });
-  await navigation.getByRole('link', { name: 'Enviar emails', exact: true }).click();
-  await page.waitForURL(/\/panel\/emails(?:\?|$)/);
+  const emailLink = navigation.getByRole('link', { name: 'Enviar emails', exact: true });
+  await expect(emailLink).toBeVisible({ timeout: 20_000 });
+  await Promise.all([
+    page.waitForURL(/\/panel\/emails(?:\?|$)/, { waitUntil: 'domcontentloaded' }),
+    emailLink.click(),
+  ]);
   await expect(page.getByRole('heading', { name: 'Emails' }))
     .toBeVisible({ timeout: 20_000 });
 }
@@ -133,6 +165,8 @@ test('shows configured BCC families and the volume impact', {
   await expect(row.getByText('Activo')).toBeVisible();
   await expect(page.getByText(/volumen SMTP/)).toBeVisible();
   await expect(page.getByText(/copia de forma oculta/)).toBeVisible();
+  await expect(page.getByTestId('email-copy-security-warning'))
+    .toContainText('códigos de verificación (OTP)');
   await expect(page.getByTestId('client-copy-8-proposals')).toBeChecked();
   await expect(page.getByTestId('client-copy-8-diagnostics')).not.toBeChecked();
 });
@@ -233,4 +267,47 @@ test('shows a failed BCC attempt under its primary history row', {
   await expect(copies).toContainText('audit@projectapp.co');
   await expect(copies).toContainText('Fallido');
   await expect(copies).toContainText('SMTP timeout interno');
+  await expect(copies).toContainText('Omitida');
+  await expect(copies).toContainText('Ya era destinatario');
+});
+
+test('filters the universal outbound history by recipient, family, status and dates', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_FILTER, '@role:admin', '@outcome:display'],
+}, async ({ page }) => {
+  const calls = await setupMocks(page);
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+
+  await page.getByRole('searchbox', { name: 'Buscar destinatario' })
+    .fill('client@example.com');
+  await page.getByLabel('Filtrar por familia').selectOption('security');
+  await page.getByLabel('Filtrar por estado').selectOption('sent');
+  await page.getByLabel('Fecha inicial').fill('2026-08-01');
+  await page.getByLabel('Fecha final').fill('2026-08-26');
+  await page.getByRole('button', { name: 'Aplicar filtros' }).click();
+
+  await expect(page.getByText('Código de recuperación')).toBeVisible();
+  await expect.poll(() => calls.some(call =>
+    call.url?.includes('recipient=client%40example.com')
+      && call.url.includes('family=security')
+      && call.url.includes('status=sent')
+      && call.url.includes('date_from=2026-08-01')
+      && call.url.includes('date_to=2026-08-26'))).toBe(true);
+});
+
+test('lets an admin inspect the retained full body of a security email', {
+  tag: [...ADMIN_OUTBOUND_EMAIL_HISTORY_BODY, '@role:admin', '@outcome:display'],
+}, async ({ page }) => {
+  const calls = await setupMocks(page);
+  await navigateToEmails(page);
+  await page.getByRole('tab', { name: 'Historial' }).click();
+
+  await page.getByText('Seguimiento contractual').click();
+  await page.getByTestId('email-history-view-body-41').click();
+
+  await expect(page.getByTestId('email-body-modal')).toContainText('El correo como salió');
+  await expect(page.getByTitle('Contenido del correo')).toBeVisible();
+  await expect(page.frameLocator('[title="Contenido del correo"]')
+    .getByText('Código privado 123456')).toBeVisible();
+  expect(calls.some(call => call.path === 'emails/history/41/body/')).toBe(true);
 });

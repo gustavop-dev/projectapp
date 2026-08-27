@@ -422,3 +422,49 @@ contracts, not conventions repeated in individual commands.
 - **Files Affected**: `frontend/pages/panel/accounting/collections.vue`.
 - **Verification**: Playwright switches to project grouping, confirms persisted settings and reload behavior, and exercises PATCH rollback without pointer interception.
 - **Lesson**: A slot can be reusable while one of its layout affordances is not. Absolute stretched-link behavior must be scoped to the container geometry it was designed for.
+
+### [ERR-029] El destinatario interno no recibía copias de los correos salientes
+- **Date**: 2026-08-26
+- **Context**: `carlos18bp@gmail.com` no recibía los correos que sí salían de la
+  plataforma hacia sus destinatarios principales.
+- **Root Cause**: La migración de copias estaba aplicada, pero la tabla de
+  destinatarios configurados estaba vacía. Además, la primera versión de la
+  regla sólo cubría 23 correos dirigidos a clientes y excluía avisos internos y
+  seguridad, contrario al alcance universal requerido.
+- **Resolution**: Mantener la dirección fuera del código; ampliar el gateway a
+  un inventario fail-closed de 56 canales y ocho familias, copiar toda audiencia
+  como BCC independiente, y exponer configuración e historial universal. Tras
+  desplegar `content.0213`, agregar la dirección desde Panel → Emails →
+  Configuración con las ocho familias.
+- **Files Affected**: `content/services/email_delivery_service.py`,
+  `content/services/outbound_email_inventory.py`, `content/models/email_log.py`,
+  `content/models/email_copy_recipient.py`, API y panel de Emails.
+- **Verification**: Inventario exacto canal por canal, guard SMTP estático,
+  pruebas del gateway y API, pruebas unitarias/E2E del panel e historial.
+- **Lesson**: Una configuración administrable sin fila activa equivale a una
+  regla deshabilitada; el rollout debe distinguir claramente código desplegado,
+  migración aplicada y dato operativo activado.
+
+### [ERR-030] Los cuadros nativos borraban el contexto de decisiones del panel
+
+- **Date**: 2026-08-26
+- **Context**: Descartar observaciones pedía el motivo con `prompt`; cerrar o
+  quitar estados, fusionar/retirar el catálogo, eliminar borradores de
+  comunicaciones y confirmar Enviado usaban `confirm`. El navegador bloqueaba
+  la página y no podía mostrar el registro afectado ni la consecuencia.
+- **Root Cause**: Los primeros consumidores resolvieron cada decisión localmente
+  con `window.confirm`/`window.prompt`, sin una política transversal ni un gate
+  que impidiera nuevas apariciones. En observaciones, además, no existía una
+  operación separada para limpiar pruebas o duplicados.
+- **Resolution**: Migrar cada flujo alcanzable bajo `/panel` a `BaseModal`,
+  `ConfirmModal` o pasos inline; añadir eliminación lógica recuperable de
+  observaciones, confirmación con contenido completo, papelera, restauración,
+  auditoría sin snapshot y borrado masivo atómico. Retirar el modal huérfano de
+  tags y añadir `check-panel-native-dialogs.mjs` al CI.
+- **Files Affected**: componentes/páginas de Documentos y Comunicaciones,
+  `document_note_service`, APIs/MCP de Documentos, modelos/migración y workflow CI.
+- **Verification**: barrido versionado de 14 llamadas alcanzables, guard estático,
+  pruebas focales backend/unit/E2E, build Nuxt, contratos MCP y flow-map fresco.
+- **Lesson**: Una decisión destructiva necesita identidad, consecuencia y salida
+  segura en el mismo contexto visual; el browser dialog no puede expresar ese
+  contrato ni ofrecer recuperación.

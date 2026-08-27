@@ -25,9 +25,26 @@
         class="flex-1"
         @keydown.enter.prevent="submitActivity"
       />
-      <BaseButton variant="primary" size="md" class="whitespace-nowrap" :disabled="!activityForm.description.trim() || isSubmittingActivity" @click="submitActivity">
-        {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
-      </BaseButton>
+      <BaseControlGate
+        :reasons="!activityForm.description.trim() ? ['Escribe la descripción de la actividad.'] : []"
+        label="Agregar actividad no disponible"
+        align="end"
+      >
+        <template #default="{ describedBy }">
+          <BaseButton
+            variant="primary"
+            size="md"
+            class="whitespace-nowrap"
+            :loading="isSubmittingActivity"
+            :disabled="!activityForm.description.trim()"
+            disabled-reason="Escribe la descripción de la actividad."
+            :aria-describedby="describedBy"
+            @click="submitActivity"
+          >
+            {{ isSubmittingActivity ? 'Guardando...' : 'Agregar' }}
+          </BaseButton>
+        </template>
+      </BaseControlGate>
     </div>
   </div>
 

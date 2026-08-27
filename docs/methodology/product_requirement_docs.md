@@ -86,13 +86,15 @@ DRAFT → SENT → VIEWED → ACCEPTED
 
 **Internal team recipients** are read from the `NOTIFICATION_EMAIL` env var (CSV-supported). One env var, all internal notifications. To target a different audience for stage tracking specifically, change the env var — there is no per-feature recipient setting.
 
-**Copies of client communication** use a separate administrable list under
+**Copies of every outbound email** use a separate administrable list under
 `/panel/emails` and never reuse `NOTIFICATION_EMAIL`. The starting behavior is
-all client email, with optional segmentation by Propuestas, Diagnósticos,
-Documentos/correos manuales, Cuentas de cobro and Plataforma. Copies are sent
-as separate BCC-only envelopes after the customer delivery succeeds; their
-success or failure is nested in the same delivery history. The authoritative
-23-channel inventory is `docs/client-email-copy-inventory.md`.
+all platform email, with optional segmentation by Propuestas, Diagnósticos,
+Documentos/comunicaciones, Cuentas de cobro, Contabilidad, Plataforma, Tareas y
+operación, and Seguridad y acceso. This includes customer, supplier, agency,
+OTP, invitation, temporary-credential and password-recovery messages. Copies
+are sent as separate BCC-only envelopes after the primary delivery succeeds;
+their success, skip or failure is nested in the same delivery history. The
+authoritative 56-channel inventory is `docs/client-email-copy-inventory.md`.
 
 #### Admin Panel — Proposals
 
@@ -198,10 +200,20 @@ A new internal-only sub-system that tracks the **execution** of an accepted prop
 - State filters are OR within the dimension, support absence (for example “without
   Cerrado”), and include the recurring presets Algo por solucionar, Enviados sin
   cerrar, Cerrados and Por clasificar.
-- Adding an observation may open Solucionar bug. Resolving/discarding the final
-  linked observation may complete/remove the signal and optionally move the cycle
-  to Bug atendido. Sending a standalone document email may open Enviado after
-  explicit confirmation.
+- Adding an observation may open Solucionar bug. Resolving or discarding the
+  final pending observation closes/removes a linked signal created by notes;
+  manually opened states are never closed by note reconciliation. Sending a
+  standalone document email may open Enviado after explicit confirmation.
+- **Discarding is evidence; deletion is cleanup**: discarding preserves the
+  observation and its optional reason because it existed and was intentionally
+  not addressed. Deletion is available for pending, resolved and discarded
+  observations that never should have existed. It removes them from active
+  lists/counts but keeps a recoverable trash row.
+- Every deletion confirmation shows the complete selected content and warns that
+  copies already sent by email or message remain external to ProjectApp. Bulk
+  deletion is one atomic operation within one document. Restoring a pending note
+  reopens or reuses its compatible note-origin state; conflicts roll back the
+  restoration. Audit activity records actor and time without copying content.
 - Structured JSON content stored in `content_json` field
 - PDF generation via `DocumentPdfService` + `MarkdownParser` + shared `PdfUtils` layer
 - Admin CRUD panel (`/panel/documents/`) with create, edit, list and state-catalog management
@@ -469,6 +481,13 @@ The canonical counts, commands and exceptions are maintained in
 
 ## 5. Non-Functional Requirements
 
+- **Explain disabled controls**: A disabled panel control must state why it is
+  unavailable. If the operator can resolve the block, every missing prerequisite
+  is shown as adjacent text and remains available on hover, keyboard focus and
+  touch; lifecycle, permission and positional limits still expose a specific
+  reason. A transient operation uses its active status label. The collection
+  account flow additionally warns about clients without email in the selector
+  and permits an explicit inline repair without losing the draft.
 - **Consistent panel actions**: Every operational action rendered with an icon under `/panel/**` must resolve its glyph and default accessible name from one shared Heroicons 24 Outline catalog. Icon-only controls expose hover/focus help, an accessible name and a touch target of at least 44×44 px; decorative, status and editable-content symbols are not action glyphs.
 - **Text containment**: Every panel table, card and metadata row must contain
   arbitrary user/API strings, including values with no spaces, at every canonical
@@ -534,3 +553,10 @@ The canonical counts, commands and exceptions are maintained in
     limit. On narrow screens the modal follows the shared full-screen contract.
     A bulk action must show the affected count and record identities before its
     confirmation without requiring the operator to scroll the modal.
+24. **Observation removal semantics**: discard retains the row and optional
+    reason; soft delete removes it from active reads and counts while preserving
+    recoverability. Deleting the last pending note reconciles only a linked
+    note-origin episode, and the entire bulk selection succeeds or fails together.
+25. **No browser-native dialogs in panel flows**: `/panel` confirmations, data
+    requests and errors use application-owned modals or inline alerts. Native
+    `alert`, `confirm` and `prompt` are prohibited and guarded in CI.

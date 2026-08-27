@@ -180,6 +180,7 @@
 
         <div class="space-y-1 pt-2">
           <p
+            id="income-bulk-settle-submit-reason"
             class="text-xs text-danger-strong text-right min-h-4"
             aria-live="polite"
             data-testid="income-bulk-settle-submit-reason"
@@ -192,7 +193,10 @@
             </BaseButton>
             <BaseButton
               type="submit"
-              :disabled="saving || !canSubmit"
+              :loading="saving"
+              :disabled="!canSubmit"
+              :disabled-reason="submitBlockReason"
+              aria-describedby="income-bulk-settle-submit-reason"
               data-testid="income-bulk-settle-submit"
             >
               {{ saving ? 'Guardando...' : 'Registrar abono' }}

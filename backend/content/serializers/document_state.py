@@ -3,6 +3,7 @@ from rest_framework import serializers
 
 from content.models import (
     DocumentNote,
+    DocumentNoteEvent,
     DocumentState,
     DocumentStateEpisode,
     DocumentStateEpisodeEvent,
@@ -146,6 +147,7 @@ class DocumentStateSerializer(DocumentStateSummarySerializer):
 class DocumentNoteSerializer(serializers.ModelSerializer):
     created_by_name = serializers.SerializerMethodField()
     resolved_by_name = serializers.SerializerMethodField()
+    deleted_by_name = serializers.SerializerMethodField()
 
     class Meta:
         model = DocumentNote
@@ -153,7 +155,8 @@ class DocumentNoteSerializer(serializers.ModelSerializer):
             'id', 'document', 'episode', 'title', 'content', 'order',
             'status', 'resolution_note', 'created_by', 'created_by_name',
             'resolved_by', 'resolved_by_name', 'resolved_at', 'created_at',
-            'created_at_known', 'updated_at',
+            'created_at_known', 'deleted_at', 'deleted_by',
+            'deleted_by_name', 'updated_at',
         )
         read_only_fields = fields
 
@@ -162,6 +165,24 @@ class DocumentNoteSerializer(serializers.ModelSerializer):
 
     def get_resolved_by_name(self, obj):
         return actor_display(obj.resolved_by)
+
+    def get_deleted_by_name(self, obj):
+        return actor_display(obj.deleted_by)
+
+
+class DocumentNoteEventSerializer(serializers.ModelSerializer):
+    actor_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DocumentNoteEvent
+        fields = (
+            'id', 'note', 'event_type', 'actor', 'actor_name',
+            'recorded_at', 'details',
+        )
+        read_only_fields = fields
+
+    def get_actor_name(self, obj):
+        return actor_display(obj.actor)
 
 
 class DocumentStateEventSerializer(serializers.ModelSerializer):
@@ -185,7 +206,7 @@ class DocumentStateEpisodeSerializer(serializers.ModelSerializer):
     opened_by_name = serializers.SerializerMethodField()
     closed_by_name = serializers.SerializerMethodField()
     events = DocumentStateEventSerializer(many=True, read_only=True)
-    notes = DocumentNoteSerializer(many=True, read_only=True)
+    notes = serializers.SerializerMethodField()
 
     class Meta:
         model = DocumentStateEpisode
@@ -211,6 +232,14 @@ class DocumentStateEpisodeSerializer(serializers.ModelSerializer):
 
     def get_closed_by_name(self, obj):
         return actor_display(obj.closed_by)
+
+    def get_notes(self, obj):
+        notes = getattr(obj, '_active_notes', None)
+        if notes is None:
+            notes = obj.notes.filter(deleted_at__isnull=True).select_related(
+                'created_by', 'resolved_by', 'deleted_by',
+            )
+        return DocumentNoteSerializer(notes, many=True).data
 
 
 class OpenDocumentStateSerializer(serializers.Serializer):
@@ -277,3 +306,18 @@ class FinishDocumentNoteSerializer(serializers.Serializer):
     move_cycle_to_bug_attended = serializers.BooleanField(
         required=False, default=False,
     )
+
+
+class BulkDeleteDocumentNotesSerializer(serializers.Serializer):
+    note_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        allow_empty=False,
+        max_length=100,
+    )
+
+    def validate_note_ids(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                'La selección contiene observaciones repetidas.',
+            )
+        return value

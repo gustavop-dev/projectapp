@@ -3,6 +3,7 @@ import StateCatalogManager from '~/components/panel/states/StateCatalogManager.v
 import { useDocumentStateStore } from '~/stores/document_states';
 
 definePageMeta({ layout: 'admin', middleware: ['admin-auth'] });
+
 useHead({ title: 'Estados de documentos | ProjectApp' });
 
 const stateStore = useDocumentStateStore();

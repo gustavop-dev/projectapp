@@ -33,7 +33,7 @@
                 class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors">
                 Borrador
               </a>
-              <BaseButton variant="secondary" size="sm" :disabled="contractActionsDisabled" @click="$emit('editContract')">
+              <BaseButton variant="secondary" size="sm" :disabled="contractActionsDisabled" disabled-reason="El contrato ya no se puede editar en el estado actual de la propuesta." @click="$emit('editContract')">
                 Editar parámetros
               </BaseButton>
             </template>

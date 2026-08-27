@@ -156,24 +156,25 @@ prefer the bare class without `/N`.
 
 | Component       | Props                                                                                  |
 | --------------- | -------------------------------------------------------------------------------------- |
-| `BaseInput`     | `modelValue`, `type`, `size` (`sm`/`md`), `error`, `placeholder`, `disabled`           |
+| `BaseInput`     | `modelValue`, `type`, `size` (`sm`/`md`), `error`, `placeholder`, `disabled`, `disabledReason` |
 | `BaseCurrencyInput` | `modelValue` (Number/null), `decimals` (0 = COP; 2 allows a decimal comma), `size`, `error`, `placeholder`, `disabled` — money input that live-formats es-CO thousands (`1234567` → `1.234.567`) and emits the numeric value |
-| `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled` |
-| `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`                       |
-| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `iconOnly`, `as` — see [Button variants](#button-variants) |
+| `BaseSelect`    | `modelValue`, `options` (array or default slot), `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
+| `BaseTextarea`  | `modelValue`, `rows`, `size`, `error`, `placeholder`, `disabled`, `disabledReason` |
+| `BaseButton`    | `variant` (`primary`/`secondary`/`ghost`/`danger`/`danger-ghost`/`link`/`accent`), `size` (`sm`/`md`/`lg`), `loading`, `disabled`, `disabledReason`, `iconOnly`, `as` — see [Button variants](#button-variants) |
 | `BaseActionIcon` | `action` — renders the canonical 16 px Heroicons 24 Outline glyph from `config/panelActions.js`; consumers cannot replace it |
-| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
+| `BaseActionButton` | `action`, `label`, `tooltip`, `statusLabel`, `variant`, `size`, `loading`, `disabled`, `disabledReason`, `as`, `to` — canonical icon-only action with hover/focus tooltip and accessible name |
+| `BaseControlGate` | `reasons`, `label`, `visible`, `reserveSpace`, `align`, `position` — complete visible + hover/focus/touch explanation around a native disabled control |
 | `BaseBadge`     | `variant` (`neutral`/`success`/`warning`/`danger`/`info`/`accent`/`primary`), `size`; contains and wraps unbroken labels by default |
 | `BaseCard`      | `padding` (`none`/`sm`/`md`/`lg`), `as`                                                |
 | `BaseModal`     | `modelValue`, `kind` (`confirm`/`form`/`detail`/`workspace`; preferred), legacy `size`, `closeOnBackdrop`, `closeOnEsc`, `padding`, `fullHeight` — fullscreen below 640 px |
 | `BaseFloatingListbox` | `open`, `anchor`, `owner`, `id`, `as`, `maxHeight`, `offset`, `viewportPadding` — portal de listbox que iguala el ancho del control, se voltea al lado con espacio y evita que un modal lo recorte |
 | `BaseModalActions` | Responsive footer: full-width stacked actions below 640 px, right-aligned row above it |
-| `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
-| `BaseCheckbox`  | `modelValue`, `value`, `disabled` — label via default slot                             |
+| `BaseToggle`    | `modelValue`, `size` (`sm`/`md`), `disabled`, `disabledReason`, `ariaLabel`, `onClass` / `offClass` (override colors for status toggles, e.g. `on-class="bg-warning-strong"`) |
+| `BaseCheckbox`  | `modelValue`, `value`, `disabled`, `disabledReason` — label via default slot |
 | `BaseFormField` | `label`, `hint`, `error`, `required`, `for`, `size`, `standalone` — wrap any control in the default slot |
 | `BaseFormRow`   | `cols` (`1`–`4`), `lg` (wider step on large screens), `gap`, `at` (`portrait` by default; also `sm`/`md`/`landscape`), `as` (`div`/`form`) — wrap two or three `BaseFormField`s instead of a hand-written grid, see [Form rows](#form-rows) |
-| `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId? }` or strings), `size` (`sm`/`md`), `fullWidth` — segmented control / pill tabs |
-| `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1024 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
+| `BaseSegmented` | `modelValue`, `options` (array of `{ value, label, testId?, disabled?, disabledReason? }` or strings), `size` (`sm`/`md`), `fullWidth`, `disabledReason` — segmented control / pill tabs |
+| `BaseResponsiveTabs` | `modelValue`, `tabs` (array of `{ id, label, badge?, disabled?, disabledReason? }`), `variant` (`underline`/`pill`), `fullWidth`, `ariaLabel` — selector below 1024 px, wrapping strip from landscape up. `BaseTabs` remains as a compatibility alias |
 | `BaseFilterTabs` | Saved-filter strip: same selector/strip breakpoint, wrapping, drag with touch delay, keyboard/menu reorder. `ProposalFilterTabs` remains as a compatibility alias |
 | `BaseMobileTabSelect` | `modelValue`, `options` (array of `{ value, label, disabled? }`), `ariaLabel` (required), `testId`, `variant` (`nav`/`filter`) — hides from `panel-landscape` (1024 px), paired with `hidden panel-landscape:flex` |
 | `BaseDropdown`  | `items` (array of `{ label, onClick?, to?, href?, testid?, icon?, disabled?, danger?, divider? }`), `align` (`left`/`right`), `width` — Headless UI Menu wrapper. Trigger via `#trigger` slot |

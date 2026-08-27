@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, reactive } from 'vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { DOCUMENT_STATE_COLORS, stateBadgeVariant } from '~/utils/documentState';
 
 const props = defineProps({
@@ -27,6 +28,12 @@ const newGroup = reactive({ name: '', selection_mode: 'additive' });
 const editing = reactive({});
 const groupEditing = reactive({});
 const mergeTargets = reactive({});
+const {
+  confirmState,
+  requestConfirm,
+  handleConfirmed,
+  handleCancelled,
+} = useConfirmModal();
 
 const groups = computed(() => props.stateStore.groups.map((group) => ({
   ...group,
@@ -34,6 +41,13 @@ const groups = computed(() => props.stateStore.groups.map((group) => ({
 })));
 
 const hasOperationalEffects = computed(() => props.operationalEffects.length > 0);
+const createStateBlockReasons = computed(() => [
+  !newState.name.trim() ? 'Escribe el nombre del estado.' : '',
+  !newState.group ? 'Elige el grupo del estado.' : '',
+].filter(Boolean));
+const createGroupBlockReasons = computed(() => [
+  !newGroup.name.trim() ? 'Escribe el nombre del grupo.' : '',
+].filter(Boolean));
 
 onMounted(async () => {
   await props.stateStore.fetchCatalog({ includeRetired: true });
@@ -56,7 +70,13 @@ async function createState(confirmSimilar = false) {
   const result = await props.stateStore.createState(payload);
   if (result.needsConfirmation) {
     const names = result.suggestions.map((item) => item.name).join(', ');
-    if (window.confirm(`Se parecen a: ${names}. ¿Crear de todas formas?`)) {
+    const confirmed = await requestConfirm({
+      title: 'Revisar estados parecidos',
+      message: `Ya existen estados parecidos: ${names}. Crear otro puede fragmentar los filtros y el historial.`,
+      confirmText: 'Crear de todas formas',
+      variant: 'warning',
+    });
+    if (confirmed) {
       await createState(true);
     }
     return;
@@ -120,7 +140,13 @@ async function saveState(state) {
 }
 
 async function retire(state) {
-  if (!window.confirm(`¿Retirar "${state.name}" del selector?`)) return;
+  const confirmed = await requestConfirm({
+    title: 'Retirar estado',
+    message: `“${state.name}” dejará de aparecer en el selector. Su historial se conservará.`,
+    confirmText: 'Retirar estado',
+    variant: 'warning',
+  });
+  if (!confirmed) return;
   const result = await props.stateStore.retireState(state.id);
   if (result.success) notify.success({ title: 'Estado retirado' });
   else notify.error({ title: 'No se puede retirar', detail: result.message });
@@ -128,10 +154,17 @@ async function retire(state) {
 
 async function merge(state) {
   const target = mergeTargets[state.id];
-  if (
-    !target
-    || !window.confirm(`¿Fusionar "${state.name}"? Su historial se conservará.`)
-  ) return;
+  if (!target) return;
+  const targetState = props.stateStore.states.find(
+    (item) => item.id === Number(target),
+  );
+  const confirmed = await requestConfirm({
+    title: 'Fusionar estados',
+    message: `“${state.name}” se fusionará con “${targetState?.name || 'el estado elegido'}”. Los episodios históricos se conservarán.`,
+    confirmText: 'Fusionar estados',
+    variant: 'warning',
+  });
+  if (!confirmed) return;
   const result = await props.stateStore.mergeState(state.id, target);
   if (result.success) notify.success({ title: 'Estados fusionados' });
   else {
@@ -140,6 +173,13 @@ async function merge(state) {
       detail: result.message,
     });
   }
+}
+
+function mergeBlockReasons(state) {
+  return [
+    !mergeTargets[state.id] ? 'Elige el estado de destino.' : '',
+    state.system_key ? 'Los estados semilla del sistema no se pueden fusionar.' : '',
+  ].filter(Boolean);
 }
 
 async function createGroup() {
@@ -194,7 +234,25 @@ function activeCount(state) {
         <p v-if="hasOperationalEffects" class="text-xs text-text-subtle">
           El nombre se puede cambiar; el efecto define cobros, avisos y cierre.
         </p>
-        <BaseButton type="submit" variant="primary" size="sm" data-testid="catalog-create-state" :disabled="!newState.name.trim() || !newState.group">Crear estado</BaseButton>
+        <BaseControlGate
+          :reasons="createStateBlockReasons"
+          label="Crear estado no disponible"
+          align="start"
+        >
+          <template #default="{ describedBy }">
+            <BaseButton
+              type="submit"
+              variant="primary"
+              size="sm"
+              data-testid="catalog-create-state"
+              :disabled="Boolean(createStateBlockReasons.length)"
+              :disabled-reason="createStateBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+            >
+              Crear estado
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </form>
       <form v-if="manageGroups" class="space-y-3 border-t border-border-muted pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0" @submit.prevent="createGroup">
         <h2 class="text-sm font-semibold text-text-default">Crear grupo</h2>
@@ -205,7 +263,25 @@ function activeCount(state) {
             <option value="additive">Varios activos</option>
           </select>
         </div>
-        <BaseButton type="submit" variant="secondary" size="sm" data-testid="catalog-create-group" :disabled="!newGroup.name.trim()">Crear grupo</BaseButton>
+        <BaseControlGate
+          :reasons="createGroupBlockReasons"
+          label="Crear grupo no disponible"
+          align="start"
+        >
+          <template #default="{ describedBy }">
+            <BaseButton
+              type="submit"
+              variant="secondary"
+              size="sm"
+              data-testid="catalog-create-group"
+              :disabled="Boolean(createGroupBlockReasons.length)"
+              :disabled-reason="createGroupBlockReasons.join(' ')"
+              :aria-describedby="describedBy"
+            >
+              Crear grupo
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </form>
     </section>
 
@@ -251,7 +327,25 @@ function activeCount(state) {
               <option value="">Fusionar con…</option>
               <option v-for="target in stateStore.activeStates.filter((item) => item.id !== state.id && item.group === state.group && (!hasOperationalEffects || item.operational_effect === state.operational_effect))" :key="target.id" :value="target.id">{{ target.name }}</option>
             </select>
-            <BaseButton variant="ghost" size="sm" :data-testid="`catalog-merge-state-${state.id}`" :disabled="!mergeTargets[state.id] || !!state.system_key" @click="merge(state)">Fusionar</BaseButton>
+            <BaseControlGate
+              :reasons="mergeBlockReasons(state)"
+              label="Fusionar no disponible"
+              align="start"
+            >
+              <template #default="{ describedBy }">
+                <BaseButton
+                  variant="ghost"
+                  size="sm"
+                  :data-testid="`catalog-merge-state-${state.id}`"
+                  :disabled="Boolean(mergeBlockReasons(state).length)"
+                  :disabled-reason="mergeBlockReasons(state).join(' ')"
+                  :aria-describedby="describedBy"
+                  @click="merge(state)"
+                >
+                  Fusionar
+                </BaseButton>
+              </template>
+            </BaseControlGate>
             <BaseButton variant="danger-ghost" size="sm" :data-testid="`catalog-retire-state-${state.id}`" @click="retire(state)">Retirar</BaseButton>
           </div>
           <details v-if="state.is_active && !hasOperationalEffects" class="rounded-lg border border-border-muted bg-surface-raised px-3 py-2">
@@ -267,4 +361,14 @@ function activeCount(state) {
       </div>
     </section>
   </main>
+  <ConfirmModal
+    v-model="confirmState.open"
+    :title="confirmState.title"
+    :message="confirmState.message"
+    :confirm-text="confirmState.confirmText"
+    :cancel-text="confirmState.cancelText"
+    :variant="confirmState.variant"
+    @confirm="handleConfirmed"
+    @cancel="handleCancelled"
+  />
 </template>

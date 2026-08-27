@@ -226,7 +226,7 @@
           <BaseButton variant="secondary" size="sm" :disabled="isSaving" @click="handleReset">
             Restaurar valores originales
           </BaseButton>
-          <BaseButton variant="primary" size="md" :disabled="savedSections.size === 0 || isSaving" @click="handleSaveAll">
+          <BaseButton variant="primary" size="md" :loading="isSaving" :disabled="savedSections.size === 0" disabled-reason="Modifica al menos una sección antes de guardar." @click="handleSaveAll">
             {{ isSaving ? 'Guardando...' : 'Guardar Todos los Cambios' }}
           </BaseButton>
         </div>

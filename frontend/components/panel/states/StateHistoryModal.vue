@@ -6,15 +6,21 @@ import {
   stateBadgeVariant,
 } from '~/utils/documentState';
 
-defineProps({
+const props = defineProps({
   modelValue: { type: Boolean, default: false },
   history: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   title: { type: String, default: 'Historial de estados' },
   testId: { type: String, default: 'state-history' },
   allowOpeningCorrection: { type: Boolean, default: false },
+  busy: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue', 'correct-opening']);
+
+function updateOpen(value) {
+  if (!value && props.busy) return;
+  emit('update:modelValue', value);
+}
 
 const outcomeLabels = {
   completed: 'Cerrado',
@@ -37,7 +43,9 @@ const eventLabels = {
     :model-value="modelValue"
     kind="detail"
     padding="none"
-    @update:model-value="emit('update:modelValue', $event)"
+    :close-on-backdrop="!busy"
+    :close-on-esc="!busy"
+    @update:model-value="updateOpen"
   >
     <div class="flex items-center justify-between border-b border-border-muted px-5 py-4 sm:px-6">
       <div>
@@ -47,7 +55,8 @@ const eventLabels = {
       <BaseActionButton
         action="close"
         label="Cerrar historial"
-        @click="emit('update:modelValue', false)"
+        :disabled="busy"
+        @click="updateOpen(false)"
       />
     </div>
     <div
@@ -112,9 +121,11 @@ const eventLabels = {
               </li>
             </ol>
           </details>
-          <div v-if="allowOpeningCorrection" class="mt-3 flex justify-end">
-            <BaseButton variant="ghost" size="sm" @click="emit('correct-opening', episode)">Corregir apertura</BaseButton>
-          </div>
+          <slot name="episode-actions" :episode="episode">
+            <div v-if="allowOpeningCorrection" class="mt-3 flex justify-end">
+              <BaseButton variant="ghost" size="sm" @click="emit('correct-opening', episode)">Corregir apertura</BaseButton>
+            </div>
+          </slot>
         </article>
       </template>
     </div>

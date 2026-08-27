@@ -4328,9 +4328,9 @@ Two transitions that were previously bundled into other flows now have their own
 - **Role:** admin
 - **Priority:** P1
 - **Routes:** `/panel/emails?tab=defaults`
-- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias a clientes separada de los destinatarios de avisos contables. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, y permite segmentar cada dirección por Propuestas, Diagnósticos, Documentos y correos manuales, Cuentas de cobro y Plataforma.
+- **Description:** El administrador abre **Emails → Configuración** y gestiona una lista de copias universales separada de los destinatarios de avisos internos. La pantalla declara que la copia es BCC, advierte que cada destinatario aumenta el volumen SMTP y de bandeja, avisa que Seguridad incluye OTP/credenciales cuyo cuerpo pueden consultar los administradores, y permite segmentar cada dirección en ocho familias: Propuestas, Diagnósticos, Documentos y comunicaciones, Cuentas de cobro, Contabilidad, Plataforma, Tareas y operación y Seguridad y acceso.
 - **Interacciones y outcomes:**
-  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, familias, modo BCC y advertencia de volumen con los datos reales de la respuesta.
+  1. **display:** navegar desde el panel, abrir Configuración y ver dirección, estado, ocho familias, modo BCC y advertencias de volumen/seguridad con los datos reales de la respuesta.
   2. **success:** agregar una dirección, cambiar sus familias, pausarla/reactivarla o eliminarla; cada acción persiste por su endpoint propio y actualiza la fila.
   3. **error:** intentar agregar un duplicado o guardar una selección inválida muestra el detalle de validación del backend.
   4. **failure:** un fallo 5xx al mutar conserva el estado anterior y muestra que la operación no se completó.
@@ -4341,10 +4341,10 @@ Two transitions that were previously bundled into other flows now have their own
 - **Module:** admin
 - **Role:** admin
 - **Priority:** P2
-- **Routes:** `/panel/emails?tab=history` y los historiales compartidos de propuestas, diagnósticos, clientes y contabilidad.
-- **Description:** El administrador expande el envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección, estado y, si falló sólo la copia, el error SMTP, sin convertirla en otra fila principal ni habilitar reintento.
+- **Routes:** `/panel/emails?tab=history`.
+- **Description:** El administrador expande cualquier envío principal y ve debajo la lista **Copias internas (BCC)**. Cada intento muestra dirección y estado enviado/fallido/omitido; los fallos enseñan el error SMTP y los omitidos explican la deduplicación, sin convertirlos en otra fila principal ni habilitar reintento.
 - **Interacciones y outcomes:**
-  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatario BCC, estado y error independiente.
+  1. **display:** navegar al historial, expandir un envío con datos reales y comprobar destinatarios BCC, estado, error independiente y omisión por duplicado.
   2. **success:** n/a; consultar la traza no muta datos.
   3. **error:** n/a; no hay entrada de usuario que validar en este bloque de lectura.
   4. **failure:** n/a como acción del usuario; el fallo SMTP de la copia es precisamente el dato persistido que cubre el outcome `display`.
@@ -5928,7 +5928,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-accounting-ads` | admin | P3 | display,success,error | 2 |
 | `admin-accounting-card-catalog` | admin | P2 | display,success,error | 4 |
 | `admin-accounting-cards` | admin | P2 | display,success,error | 5 |
-| `admin-accounting-collection-create` | admin | P1 | display,failure,error,success | 9 |
+| `admin-accounting-collection-create` | admin | P1 | display,failure,error,success | 11 |
 | `admin-accounting-collection-detail` | admin | P1 | display,success | — |
 | `admin-accounting-collection-grouping` | admin | P2 | display,success,failure | 4 |
 | `admin-accounting-collections` | admin | P2 | display,success,failure | 9 |
@@ -6037,6 +6037,7 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-document-gallery` | admin | P2 | display | 1 |
 | `admin-document-list` | admin | P2 | display,success | 1 |
 | `admin-document-move-folder` | admin | P1 | display,success,failure | 3 |
+| `admin-document-observation-delete` | admin | P1 | display,success,failure | 1 |
 | `admin-document-pdf-download` | admin | P2 | success,failure,display | 1 |
 | `admin-document-pdf-preview` | admin | P2 | display | 1 |
 | `admin-document-rename` | admin | P2 | success,failure | 1 |
@@ -6063,6 +6064,8 @@ Two transitions that were previously bundled into other flows now have their own
 | `admin-login` | auth | P1 | display | 1 |
 | `admin-mcps` | admin | P2 | display,success | 4 |
 | `admin-mini-crm-clients` | admin | P2 | display | 3 |
+| `admin-outbound-email-history-body` | admin | P1 | display | 1 |
+| `admin-outbound-email-history-filter` | admin | P1 | display | 1 |
 | `admin-panel-projects` | admin | P1 | display,success,error | 8 |
 | `admin-panel-session-expired` | auth | P1 | error | 1 |
 | `admin-panel-unsaved-guard` | admin | P2 | display,success,failure | 1 |
@@ -6616,13 +6619,13 @@ Internal accounting module for the company owners (Gustavo & Carlos). Every subv
 - **Role:** superuser admin
 - **Priority:** P1
 - **Routes:** `/panel/accounting/collections`, `/panel/accounting/incomes`
-- **Description:** Create a cuenta de cobro from the tab button ("Nueva cuenta de cobro" + empty-state CTA) or from an income row action (kind expected/liquid, never lost; rows with an active cuenta show "Ver cuenta de cobro" navigation instead, `?focus=` flashing both ways). The modal unifies with the clients module: `ClientAutocomplete` prefills the editable customer snapshot (razón social, NIT→`NIT`/cédula→`CC`, email, contacto) and supports inline client creation; the income link is MANDATORY via a searchable combobox over expected AND liquid incomes (never lost). The request carries NO `client` param — it asks for the whole eligible ledger once and narrows it on the page, because the endpoint does not paginate and the set is small: that makes every count exact and makes switching a filter cost zero requests, which is what lets the dropdown stay open and the cursor stay in the search box. Two chip groups sit between the label and the input, each option carrying its count: **Alcance** (`Del cliente`, the default once a client is picked and literally only their rows / `Todos`) and **Estado** (`Todos` / `Esperados` / `Líquidos`). Counts are faceted — each group is counted with the other group's filter already applied, so a chip's number is what clicking it shows. The chips narrow the set the concept search then runs over, and both snap back to their defaults whenever the client changes, so no recorte of the previous selection survives; `Del cliente` is disabled until there is one. `Todos` is how the still-unassigned incomes are reached (grouped as "Sin cliente", selectable on purpose since issuing adopts the client onto them — announced under the field before the send, never written early) along with the ones filed under someone else ("De otros clientes", each row naming its owner). Flagged incomes stay listed but blocked, each group declares how many rows it is holding back, an empty combination names itself («Acme Soluciones no tiene ingresos esperados.») and offers "Ver todos (N)" rather than rendering a blank panel that reads as a failed load, the list closes on click-outside or Esc, and picking an income of another client raises an inline warning that blocks the preview (offering to adopt the income's client or drop the income) instead of hitting the backend's 400. The client the income locks in can be released with "Cambiar" from this tab, where the client is a choice rather than the starting point. "Crear ingreso esperado" stacks the income form; the consecutivo is server-suggested per client (`PA-{CODE}-{NNN}`, continuous) and editable (sent only when edited, collision-checked) — the platform `issue` endpoint joins that same per-client series, falling back to the legacy `PA-{year}-{NNNN}` only for documents whose client has no profile. Step 2 previews the REAL email (subject + rendered body) and the attached PDF — produced by the same backend pipeline as the send inside a rolled-back transaction (no rows, no EmailLog, no consecutivo consumed) — before "Confirmar y enviar" issues, emails (PDF with valor en letras, NIT/C.C. types, formatted COP/dates, signature block) and links the document. Paid↔settlement stays synchronized: marking an expected-linked cuenta paid opens the Liquidar modal prefilled (409 on the direct endpoint while pending), and a fully-settled income auto-marks its issued cuenta paid. (Ago 2026) **Plazo de pago admite 0** — pago inmediato contra presentación — with a hint under the field explaining what the zero does, rendered only while the "Días tras emisión" mode is active since a 0 means nothing beside a fecha fija. A zero term issues the cuenta with **no due date**, so neither the PDF nor the client email prints a vencimiento: the whole labelled line goes, and because the PDF's date block is a flow of `field()` calls over a page measured to its content, the neighbours close ranks instead of leaving a gap. Reaching that state took undoing four separate guards that made the zero unexpressible — the input's `min="1"`, a `Number(...) || 8` in the payload builder, `min_value=1` in the panel serializer and a `payment_term_days or PAYMENT_TERM_DAYS` in the create service, the last two of which silently rebilled a legitimate 0 as the 8-day default. Negatives stay rejected (`min="0"` plus `min_value=0`, with typed out-of-range values clamped into 0–120 before the payload), and an emptied field still falls back to 8. (Ago 2026) The step-2 PDF pane probes the served URL before mounting the viewer — spinner while it resolves, the embed once it answers (the PDF endpoints ship `X-Frame-Options: SAMEORIGIN`; the middleware's site-wide DENY default was blanking the frame with the browser's connection-refused page) — and on failure a panel in the app's own words points at Descargar / Abrir PDF, which keep working: the review happens there and "Confirmar y enviar" stays available. Picking a hosting income that records its period pre-fills "Período facturado". (F7, 17-ago-2026) A cuenta raised from a project-linked income lands in the list already showing that project: the draft inherits the income's project — kept in sync by `_sync_project_to_draft_cuentas` when the income's project changes while a draft is open — and the Proyecto column reads the live FK, so no reload is needed for the new row to tell the truth.
+- **Description:** Create a cuenta de cobro from the tab button ("Nueva cuenta de cobro" + empty-state CTA) or from an income row action (kind expected/liquid, never lost; rows with an active cuenta show "Ver cuenta de cobro" navigation instead, `?focus=` flashing both ways). The modal unifies with the clients module: `ClientAutocomplete` prefills the editable customer snapshot (razón social, NIT→`NIT`/cédula→`CC`, email, contacto) and supports inline client creation; the income link is MANDATORY via a searchable combobox over expected AND liquid incomes (never lost). The request carries NO `client` param — it asks for the whole eligible ledger once and narrows it on the page, because the endpoint does not paginate and the set is small: that makes every count exact and makes switching a filter cost zero requests, which is what lets the dropdown stay open and the cursor stay in the search box. Two chip groups sit between the label and the input, each option carrying its count: **Alcance** (`Del cliente`, the default once a client is picked and literally only their rows / `Todos`) and **Estado** (`Todos` / `Esperados` / `Líquidos`). Counts are faceted — each group is counted with the other group's filter already applied, so a chip's number is what clicking it shows. The chips narrow the set the concept search then runs over, and both snap back to their defaults whenever the client changes, so no recorte of the previous selection survives; `Del cliente` is disabled until there is one. `Todos` is how the still-unassigned incomes are reached (grouped as "Sin cliente", selectable on purpose since issuing adopts the client onto them — announced under the field before the send, never written early) along with the ones filed under someone else ("De otros clientes", each row naming its owner). Flagged incomes stay listed but blocked, each group declares how many rows it is holding back, an empty combination names itself («Acme Soluciones no tiene ingresos esperados.») and offers "Ver todos (N)" rather than rendering a blank panel that reads as a failed load, the list closes on click-outside or Esc, and picking an income of another client raises an inline warning that blocks the preview (offering to adopt the income's client or drop the income) instead of hitting the backend's 400. The client the income locks in can be released with "Cambiar" from this tab, where the client is a choice rather than the starting point. "Crear ingreso esperado" stacks the income form; the consecutivo is server-suggested per client (`PA-{CODE}-{NNN}`, continuous) and editable (sent only when edited, collision-checked) — the platform `issue` endpoint joins that same per-client series, falling back to the legacy `PA-{year}-{NNNN}` only for documents whose client has no profile. Step 2 previews the REAL email (subject + rendered body) and the attached PDF — produced by the same backend pipeline as the send inside a rolled-back transaction (no rows, no EmailLog, no consecutivo consumed) — before "Confirmar y enviar" issues, emails (PDF with valor en letras, NIT/C.C. types, formatted COP/dates, signature block) and links the document. Paid↔settlement stays synchronized: marking an expected-linked cuenta paid opens the Liquidar modal prefilled (409 on the direct endpoint while pending), and a fully-settled income auto-marks its issued cuenta paid. (Ago 2026) **Plazo de pago admite 0** — pago inmediato contra presentación — with a hint under the field explaining what the zero does, rendered only while the "Días tras emisión" mode is active since a 0 means nothing beside a fecha fija. A zero term issues the cuenta with **no due date**, so neither the PDF nor the client email prints a vencimiento: the whole labelled line goes, and because the PDF's date block is a flow of `field()` calls over a page measured to its content, the neighbours close ranks instead of leaving a gap. Reaching that state took undoing four separate guards that made the zero unexpressible — the input's `min="1"`, a `Number(...) || 8` in the payload builder, `min_value=1` in the panel serializer and a `payment_term_days or PAYMENT_TERM_DAYS` in the create service, the last two of which silently rebilled a legitimate 0 as the 8-day default. Negatives stay rejected (`min="0"` plus `min_value=0`, with typed out-of-range values clamped into 0–120 before the payload), and an emptied field still falls back to 8. (Ago 2026) The step-2 PDF pane probes the served URL before mounting the viewer — spinner while it resolves, the embed once it answers (the PDF endpoints ship `X-Frame-Options: SAMEORIGIN`; the middleware's site-wide DENY default was blanking the frame with the browser's connection-refused page) — and on failure a panel in the app's own words points at Descargar / Abrir PDF, which keep working: the review happens there and "Confirmar y enviar" stays available. Picking a hosting income that records its period pre-fills "Período facturado". (F7, 17-ago-2026) A cuenta raised from a project-linked income lands in the list already showing that project: the draft inherits the income's project — kept in sync by `_sync_project_to_draft_cuentas` when the income's project changes while a draft is open — and the Proyecto column reads the live FK, so no reload is needed for the new row to tell the truth. (Ago 2026) Si el selector marca **Sin correo**, la previsualización enumera de una vez todos los requisitos pendientes. El mismo modal permite guardar explícitamente el correo canónico del cliente por `PATCH` y continuar sin perder ningún campo ya diligenciado.
 - **Steps:**
   1. Superuser clicks "Nueva cuenta de cobro" (or the income row action, which preselects and locks the income).
-  2. Picks the client (snapshot + suggested consecutivo autofill), then narrows the income list by Alcance/Estado and picks the income from the modal-owned floating listbox, which cannot be clipped by the form panel and owns the only scrollbar while open; adjusts concept/value/terms.
+  2. Picks the client (snapshot + suggested consecutivo autofill; the selector warns before selection when it has no email); if needed, saves the canonical email inline without leaving or resetting the draft. Then narrows the income list by Alcance/Estado and picks the income from the modal-owned floating listbox, which cannot be clipped by the form panel and owns the only scrollbar while open; adjusts concept/value/terms.
   3. "Previsualizar" renders the real email and PDF; "Volver a editar" keeps state.
   4. "Confirmar y enviar" creates+issues+emails; the row appears and the income flags as linked.
-- **Coverage:** ✅ Covered (create-through-preview with payload assertions, floating income list outside the clipping panel, alcance/estado chips with their counts + focus retention + explicit empty state + "Ver todos" widening + click-outside close, Liquidar routing on mark-paid, generate icon opens locked modal, linked row navigates focused)
+- **Coverage:** ✅ Covered (create-through-preview with payload assertions; selector warning for a client without email; complete visible blocker list; invalid inline email; explicit canonical email save preserving the draft; floating income list outside the clipping panel; alcance/estado chips with their counts + focus retention + explicit empty state + "Ver todos" widening + click-outside close; Liquidar routing on mark-paid; generate icon opens locked modal; linked row navigates focused)
 - **E2E Spec:** `e2e/admin/admin-accounting-collections.spec.js`, `e2e/admin/admin-accounting-incomes.spec.js`
 
 ### FLOW: `admin-accounting-hosting-cycles`
@@ -6983,7 +6986,7 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/statuses`
 - **API:** `/api/document-state-groups/`, `/api/document-states/`, `/api/document-states/:id/merge/`, `/api/document-states/:id/retire/`
 - **Descripción:** El catálogo compartido separa grupos exclusivos —el ciclo— de grupos aditivos —las señales—. Muestra cuántos documentos tienen cada estado vigente y cuántos episodios históricos existen. El usuario puede crear grupos y estados, cambiar nombre, color, orden, grupo e incompatibilidades, fusionar duplicados y retirar valores que ya no se usan. Las semillas son editables, pero conservan su clave interna para presets e integraciones.
-- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → guardar → reutilizarlo desde cualquier documento.
+- **Recorrido:** entrar a Documentos → **Administrar estados** → revisar inventario → crear o editar un valor → confirmar nombres similares, fusiones o retiros dentro del panel → guardar → reutilizarlo desde cualquier documento.
 - **Ramas:**
   - [Display] Ciclo y Señales muestran sus semillas y conteos.
   - [Success] Crear, editar y fusionar refresca el catálogo global.
@@ -7000,8 +7003,8 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
 - **Ruta:** `/panel/documents/:id/edit`
 - **API:** `/api/documents/:id/state-episodes/`, `/api/documents/:id/state-history/`, `/api/documents/:id/notes/`
 - **Descripción:** Un documento conserva un episodio por cada período en que tuvo un estado. El ciclo admite uno vigente y puede avanzar o volver; las señales se suman. Abrir, cerrar, quitar, corregir la fecha efectiva y repetir un estado dejan movimientos con fecha/hora y autor. **Cerrar** registra que el trabajo terminó; **quitar** registra que la marca no aplicaba. El historial muestra fecha exacta, tiempo relativo, duración, nota de cierre, autor y observaciones enlazadas.
-- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar con una nota → consultar la línea de tiempo.
-- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver la última observación enlazada ofrece cerrar la señal y mover el ciclo a **Bug atendido**; descartarla ofrece quitar la señal.
+- **Recorrido:** abrir un documento → seleccionar o crear al vuelo un estado → resolver sugerencias de nombres parecidos → registrar fecha real si aplica → cerrar o quitar desde un modal propio con nota opcional → consultar la línea de tiempo.
+- **Observaciones:** crear una observación ofrece abrir **Solucionar bug**. Resolver o descartar la última observación pendiente cierra o quita automáticamente la señal enlazada; eliminar y restaurar se cubren en `admin-document-observation-delete`.
 - **Ramas:**
   - [Display] El encabezado y el historial muestran episodios vigentes e históricos con duración y atribución.
   - [Success] Cambiar el ciclo cierra el episodio anterior; las señales permanecen concurrentes.
@@ -7025,6 +7028,25 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Failure] Un fallo conserva un aviso persistente con opción de reintento.
 - **Cobertura:** ✅ display/success/failure.
 - **E2E:** `e2e/admin/admin-document-state-workflow.spec.js`
+
+### FLOW: `admin-document-observation-delete`
+
+- **Módulo:** admin
+- **Rol:** admin
+- **Prioridad:** P1
+- **Ruta:** `/panel/documents/:id/edit`
+- **API:** `/api/documents/:id/notes/`, `/api/documents/:id/notes/bulk-delete/`, `/api/documents/:id/notes/:note_id/restore/`, `/api/documents/:id/notes/events/`
+- **Descripción:** **Descartar** conserva una observación real y el motivo por el que no se atendió. **Eliminar** limpia una prueba, duplicado o error: la observación desaparece de la lista y de los conteos, pero queda recuperable en la papelera. La confirmación muestra el contenido completo y recuerda que una copia enviada por correo o mensaje no se borra fuera del sistema. La actividad conserva solamente quién eliminó o restauró y cuándo, sin duplicar el contenido.
+- **Recorrido:** abrir un documento → abrir **Notas** → elegir una observación de cualquier estado → **Eliminar** → revisar contenido y advertencia → confirmar → revisar la papelera o restaurar. Para limpieza, seleccionar varias y confirmar una sola operación atómica.
+- **Coherencia:** si la última observación pendiente de un episodio originado por observaciones se elimina, **Solucionar bug** deja de estar activo. Restaurarla reabre o reutiliza el estado compatible; un conflicto cancela toda la restauración.
+- **Ramas:**
+  - [Display] Cancelar conserva la observación; la confirmación explica eliminación, recuperación y copias externas.
+  - [Display] La actividad identifica actor y fecha sin mostrar el contenido eliminado.
+  - [Success] Eliminar la última pendiente limpia la señal originada por observaciones.
+  - [Success] El borrado masivo envía una sola selección atómica y la restauración devuelve una observación desde la papelera.
+  - [Failure] Un fallo mantiene la confirmación y el contenido visibles para reintentar o cancelar.
+- **Cobertura:** ✅ display/success/failure.
+- **E2E:** `e2e/admin/admin-document-observation-delete.spec.js`
 
 
 ## Unsectioned flows
@@ -7066,6 +7088,34 @@ The coherence ticket's rule made executable: cliente y proyecto se registran una
   - [Success — restablecer] El doble clic elimina la preferencia guardada y devuelve Título a 320 px.
 - **Coverage:** ✅ Covered (nombres reales sin espacios, contención geométrica en cinco viewports, recorte condicional, expansión en tabla y galería, orden de metadatos, arrastre persistente, columnas fijas y restablecimiento).
 - **E2E Spec:** `e2e/admin/admin-document-title-column-resize.spec.js`
+
+### FLOW: `admin-outbound-email-history-body`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador expande un correo de Seguridad y acceso y abre **Ver contenido completo**. El cuerpo retenido —incluidos OTP, invitaciones o credenciales— se carga por un endpoint administrativo y se muestra dentro de un iframe sandboxed, tal como advierte Configuración.
+- **Interacciones y outcomes:**
+  1. **display:** navegar al Historial, expandir una fila de Seguridad, abrir el visor y comprobar contenido real devuelto por la API dentro del iframe.
+  2. **success:** n/a; la consulta no muta datos.
+  3. **error:** el permiso se prueba en integración backend; una sesión no administrativa no puede alcanzar el panel.
+  4. **failure:** el error de carga se presenta dentro del modal y se cubre en unidad/store; el E2E focal valida el cuerpo exitoso.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
+
+### FLOW: `admin-outbound-email-history-filter`
+
+- **Module:** admin
+- **Role:** admin
+- **Priority:** P1
+- **Routes:** `/panel/emails?tab=history`
+- **Description:** El administrador llega desde la navegación del panel al Historial universal y acota las salidas por destinatario, familia, estado y rango de fechas; el servidor devuelve la fila principal coincidente sin limitar el resultado al compositor manual.
+- **Interacciones y outcomes:**
+  1. **display:** navegar a Emails, abrir Historial, completar los cuatro tipos de filtro y comprobar tanto los parámetros enviados como los datos reales de la fila resultante.
+  2. **success:** n/a; filtrar no muta datos.
+  3. **error:** n/a; los valores pertenecen a catálogos o controles de fecha y no existe una validación editable independiente.
+  4. **failure:** la falla de carga se cubre en la frontera del store; esta interacción sólo registra la consulta exitosa con datos.
+- **E2E Spec:** `e2e/admin/admin-client-email-copy-settings.spec.js`
 
 ### FLOW: `admin-project-lifecycle-states`
 

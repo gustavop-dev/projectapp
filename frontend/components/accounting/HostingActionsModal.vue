@@ -23,9 +23,11 @@ const actions = computed(() => {
       id: 'send-billing', action: 'send', label: 'Enviar cuenta de cobro',
       event: 'send-billing',
       disabled: !row.billing_email || props.billingBusy,
-      description: row.billing_email
-        ? `Enviar a ${row.billing_email}.`
-        : 'Vincula un cliente con correo o agrega un email de facturación.',
+      description: props.billingBusy
+        ? 'Ya se está enviando una cuenta de cobro. Espera a que termine.'
+        : row.billing_email
+          ? `Enviar a ${row.billing_email}.`
+          : 'Vincula un cliente con correo o agrega un email de facturación.',
     },
     {
       id: 'emails', action: 'email-history', label: 'Ver correos enviados', event: 'emails',
@@ -72,6 +74,7 @@ function run(action) {
               action.disabled ? 'cursor-not-allowed opacity-50' : '',
             ]"
             :disabled="action.disabled"
+            :title="action.disabled ? action.description : undefined"
             :data-testid="`hosting-${action.id}-${record?.id}`"
             @click="run(action)"
           >

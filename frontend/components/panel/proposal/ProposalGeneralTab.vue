@@ -21,7 +21,7 @@
           @keydown.enter.prevent="saveSlug"
         />
       </div>
-      <BaseButton variant="primary" size="sm" :disabled="slugSaving || slugDraft === (proposal.slug || '')" @click="saveSlug">
+      <BaseButton variant="primary" size="sm" :loading="slugSaving" :disabled="slugDraft === (proposal.slug || '')" disabled-reason="Cambia la URL personalizada antes de guardarla." @click="saveSlug">
         {{ slugSaving ? 'Guardando…' : (slugSaved ? 'Guardado' : 'Guardar') }}
       </BaseButton>
       <BaseButton variant="secondary" size="sm" :title="'Regenerar desde el nombre del cliente'" @click="regenerateSlugFromName">
@@ -177,6 +177,7 @@
               <BaseToggle
                 :model-value="form.show_contract_terms"
                 :disabled="form.language !== 'es'"
+                disabled-reason="El contrato y las condiciones solo están disponibles para propuestas en español."
                 size="sm"
                 aria-label="Mostrar contrato y condiciones"
                 data-testid="proposal-contract-terms-toggle"
@@ -494,6 +495,7 @@
             type="button"
             class="text-xs text-primary hover:underline disabled:opacity-50"
             :disabled="form.email_features.length >= MAX_EMAIL_FEATURES"
+            :title="form.email_features.length >= MAX_EMAIL_FEATURES ? `Ya alcanzaste el máximo de ${MAX_EMAIL_FEATURES} ítems.` : undefined"
             data-testid="edit-add-feature"
             @click="addEmailFeature"
           >
@@ -752,6 +754,7 @@
           v-if="nextAction"
           type="button"
           :disabled="nextAction.disabled"
+          :title="nextAction.disabled ? 'El lanzamiento a la plataforma ya está en curso. Espera a que termine.' : undefined"
           :data-testid="'proposal-next-action-' + nextAction.key"
           :class="['px-4 sm:px-5 py-2 rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 w-full sm:w-auto sm:ml-auto', nextAction.colorClass]"
           @click="emit('next-action')"

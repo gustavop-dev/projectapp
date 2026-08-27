@@ -43,7 +43,7 @@ const SCOPE_OPTIONS = [
       class="w-full"
       aria-label="Estado de los documentos"
       :disabled="scopeLocked"
-      :title="scopeLocked ? 'La búsqueda recorre activos y archivados' : undefined"
+      disabled-reason="La búsqueda recorre activos y archivados."
       data-testid="doc-state-filter-mobile"
       @update:model-value="emit('update:scope', $event)"
     />

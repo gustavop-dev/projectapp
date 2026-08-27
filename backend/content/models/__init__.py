@@ -54,7 +54,7 @@ WorkflowState = DocumentState
 WorkflowStateEpisode = DocumentStateEpisode
 WorkflowStateEpisodeEvent = DocumentStateEpisodeEvent
 WorkflowStateGroup = DocumentStateGroup
-from .document_note import DocumentNote
+from .document_note import DocumentNote, DocumentNoteEvent
 from .issuer_profile import IssuerProfile
 from .document_number_sequence import (
     ClientDocumentNumberSequence,
@@ -99,7 +99,10 @@ from .credit_card_statement import (
 )
 from .accounting_settings import AccountingSettings
 from .notification_recipient import NotificationRecipient
-from .client_email_copy_recipient import ClientEmailCopyRecipient
+from .email_copy_recipient import EmailCopyRecipient
+
+# Compatibility alias for code importing the pre-0213 model name.
+ClientEmailCopyRecipient = EmailCopyRecipient
 from .communication import (
     CommunicationAttachment,
     CommunicationMessage,

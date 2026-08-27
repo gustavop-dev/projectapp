@@ -28,6 +28,9 @@ jobs:
       - name: Verify flow-definitions ↔ E2E @flow tags
         run: node frontend/scripts/check-flow-definitions-sync.mjs
 
+      - name: Reject native browser dialogs in the panel
+        run: node frontend/scripts/check-panel-native-dialogs.mjs
+
   # ───────────────────────────────────────────
   # Design tokens — fail PR if it adds new color literals to touched files.
   # Legacy files keep working; only files modified in the PR are checked,
@@ -80,6 +83,10 @@ jobs:
       - name: Verify canonical panel action icons
         working-directory: frontend
         run: node scripts/check-panel-action-icons.mjs
+
+      - name: Verify disabled controls explain themselves
+        working-directory: frontend
+        run: node scripts/check-disabled-controls.mjs --strict
 
       - name: Strict gate on full public scope
         working-directory: frontend

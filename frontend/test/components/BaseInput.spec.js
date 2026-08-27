@@ -46,4 +46,16 @@ describe('BaseInput', () => {
     expect(input.attributes('type')).toBe('email')
     expect(input.attributes('placeholder')).toBe('tu@correo.com')
   })
+
+  it('exposes its disabled reason on the native input', () => {
+    const wrapper = mount(BaseInput, {
+      props: {
+        modelValue: '',
+        disabled: true,
+        disabledReason: 'Selecciona un cliente primero.',
+      },
+    })
+
+    expect(wrapper.get('input').attributes('title')).toBe('Selecciona un cliente primero.')
+  })
 })

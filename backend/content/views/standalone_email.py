@@ -13,13 +13,16 @@ from pathlib import Path
 from django.conf import settings
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
 from content.models import Document, EmailLog
+from content.views.history_pagination import email_body_response
 
 _ALLOWED_EXT = {'.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'}
 _MAX_FILE = 15 * 1024 * 1024  # 15 MB
@@ -350,12 +353,48 @@ def standalone_email_defaults(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def list_standalone_emails(request):
-    """List standalone branded emails (paginated, 20 per page)."""
+    """List email history, with ``scope=all`` for the global delivery log.
+
+    The default remains the historical standalone-only scope for API
+    compatibility. The Emails panel explicitly requests the global scope.
+    """
     logs = EmailLog.objects.filter(
-        proposal__isnull=True,
-        template_key=_TEMPLATE_KEY,
         delivery_role=EmailLog.DeliveryRole.PRIMARY,
-    ).order_by('-sent_at')
+    ).select_related('body').order_by('-sent_at', '-id')
+    if request.query_params.get('scope') != 'all':
+        logs = logs.filter(
+            proposal__isnull=True,
+            template_key=_TEMPLATE_KEY,
+        )
+
+    from content.email_copy_families import EMAIL_COPY_FAMILY_CHOICES
+    from content.services.outbound_email_inventory import (
+        OUTBOUND_EMAIL_CHANNELS,
+        outbound_email_family,
+    )
+
+    family = (request.query_params.get('family') or '').strip()
+    if family:
+        family_keys = [
+            key for key, value in OUTBOUND_EMAIL_CHANNELS.items()
+            if value == family
+        ]
+        logs = logs.filter(template_key__in=family_keys)
+    template_key = (request.query_params.get('template_key') or '').strip()
+    if template_key:
+        logs = logs.filter(template_key=template_key)
+    email_status = (request.query_params.get('status') or '').strip()
+    if email_status in EmailLog.Status.values:
+        logs = logs.filter(status=email_status)
+    recipient = (request.query_params.get('recipient') or '').strip()
+    if recipient:
+        logs = logs.filter(recipient__icontains=recipient)
+    date_from = parse_date(request.query_params.get('date_from') or '')
+    date_to = parse_date(request.query_params.get('date_to') or '')
+    if date_from:
+        logs = logs.filter(sent_at__date__gte=date_from)
+    if date_to:
+        logs = logs.filter(sent_at__date__lte=date_to)
 
     total = logs.count()
     try:
@@ -369,16 +408,29 @@ def list_standalone_emails(request):
         attach_delivery_copies,
         delivery_copy_payloads,
     )
+    from content.serializers.client_emails import ClientEmailLogSerializer
 
     page_logs = attach_delivery_copies(logs[offset:offset + page_size])
+    family_labels = dict(EMAIL_COPY_FAMILY_CHOICES)
     data = [
         {
             'id': log.pk,
+            'template_key': log.template_key,
+            'template_label': ClientEmailLogSerializer().get_template_label(log),
+            'family': outbound_email_family(log.template_key),
+            'family_label': family_labels.get(
+                outbound_email_family(log.template_key),
+                'Sin familia',
+            ),
             'recipient': log.recipient,
             'subject': log.subject,
             'status': log.status,
+            'status_label': log.get_status_display(),
+            'audience': log.audience,
+            'audience_label': log.get_audience_display(),
             'sent_at': log.sent_at.isoformat(),
             'metadata': log.metadata,
+            'has_body': log.body_id is not None,
             'copies': delivery_copy_payloads(log),
         }
         for log in page_logs
@@ -390,3 +442,16 @@ def list_standalone_emails(request):
         'page_size': page_size,
         'has_next': offset + page_size < total,
     }, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def standalone_email_body(request, log_id):
+    """Return the retained body for any primary outbound email."""
+    log = get_object_or_404(
+        EmailLog.objects.select_related('body').filter(
+            delivery_role=EmailLog.DeliveryRole.PRIMARY,
+        ),
+        pk=log_id,
+    )
+    return email_body_response(log)

@@ -1,5 +1,6 @@
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { useConfirmModal } from '~/composables/useConfirmModal';
 import { useDocumentStateStore } from '~/stores/document_states';
 import { formatStateDuration, stateBadgeVariant } from '~/utils/documentState';
 
@@ -7,6 +8,10 @@ const props = defineProps({
   documentId: { type: [Number, String], required: true },
   episodes: { type: Array, default: () => [] },
   disabled: { type: Boolean, default: false },
+  disabledReason: {
+    type: String,
+    default: 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar sus estados.',
+  },
 });
 const emit = defineEmits(['changed', 'history']);
 const stateStore = useDocumentStateStore();
@@ -16,6 +21,8 @@ const openedAt = ref('');
 const newName = ref('');
 const suggestions = ref([]);
 const errorMessage = ref('');
+const finishDialog = reactive({ open: false, episode: null, outcome: 'completed', note: '' });
+const { confirmState, requestConfirm, handleConfirmed, handleCancelled } = useConfirmModal();
 let suggestionTimer;
 
 const activeIds = computed(() => new Set(props.episodes.map((episode) => episode.state?.id)));
@@ -53,19 +60,30 @@ async function addState() {
   emit('changed');
 }
 
-async function finishEpisode(episode, outcome) {
-  const action = outcome === 'removed' ? 'quitar' : 'cerrar';
-  if (!window.confirm(`¿${action === 'quitar' ? 'Quitar' : 'Cerrar'} "${episode.state.name}"?`)) return;
-  const note = window.prompt(
-    outcome === 'removed' ? '¿Por qué sobraba la marca? (opcional)' : '¿Qué se hizo? (opcional)',
-    '',
+function openFinishDialog(episode, outcome) {
+  errorMessage.value = '';
+  Object.assign(finishDialog, { open: true, episode, outcome, note: '' });
+}
+
+function updateFinishOpen(open) {
+  if (!open && stateStore.isUpdating) return;
+  finishDialog.open = open;
+}
+
+async function submitFinish() {
+  if (!finishDialog.episode || stateStore.isUpdating) return;
+  errorMessage.value = '';
+  const result = await stateStore.closeEpisode(
+    props.documentId,
+    finishDialog.episode.id,
+    finishDialog.outcome,
+    finishDialog.note.trim(),
   );
-  if (note === null) return;
-  const result = await stateStore.closeEpisode(props.documentId, episode.id, outcome, note);
   if (!result.success) {
     errorMessage.value = result.message;
     return;
   }
+  finishDialog.open = false;
   emit('changed');
 }
 
@@ -83,7 +101,14 @@ async function createInline(confirmSimilar = false) {
   const result = await stateStore.createState({ name, confirm_similar: confirmSimilar });
   if (result.needsConfirmation) {
     suggestions.value = result.suggestions;
-    if (window.confirm('Hay estados parecidos. ¿Crear uno nuevo de todas formas?')) {
+    const names = result.suggestions.map((item) => item.name).join(', ');
+    const confirmed = await requestConfirm({
+      title: 'Revisar estados parecidos',
+      message: `Ya existen estados parecidos: ${names}. Crear otro puede fragmentar el seguimiento.`,
+      confirmText: 'Crear de todas formas',
+      variant: 'warning',
+    });
+    if (confirmed) {
       await createInline(true);
     }
     return;
@@ -114,8 +139,8 @@ async function createInline(confirmSimilar = false) {
           {{ episode.state.name }} · {{ formatStateDuration(episode.duration_seconds) }}
         </BaseBadge>
         <span class="mr-auto text-xs text-text-subtle">{{ episode.state.group_name }}</span>
-        <BaseButton size="sm" variant="ghost" :data-testid="`document-state-close-${episode.id}`" :disabled="disabled" @click="finishEpisode(episode, 'completed')">Cerrar</BaseButton>
-        <BaseButton size="sm" variant="danger-ghost" :data-testid="`document-state-remove-${episode.id}`" :disabled="disabled" @click="finishEpisode(episode, 'removed')">Quitar</BaseButton>
+        <BaseButton size="sm" variant="ghost" :data-testid="`document-state-close-${episode.id}`" :disabled="disabled" :disabled-reason="disabledReason" @click="openFinishDialog(episode, 'completed')">Cerrar</BaseButton>
+        <BaseButton size="sm" variant="danger-ghost" :data-testid="`document-state-remove-${episode.id}`" :disabled="disabled" :disabled-reason="disabledReason" @click="openFinishDialog(episode, 'removed')">Quitar</BaseButton>
       </div>
     </div>
     <p v-else class="text-xs text-text-muted">Sin estados activos: queda en Por clasificar.</p>
@@ -127,16 +152,24 @@ async function createInline(confirmSimilar = false) {
         data-testid="document-state-add-select"
         class="bg-input-bg rounded-lg border border-input-border px-3 py-2 text-sm"
         :disabled="disabled"
+        :title="disabled ? disabledReason : undefined"
       >
         <option value="">Agregar un estado…</option>
         <optgroup v-for="group in availableGroups" :key="group.id" :label="group.name">
           <option v-for="state in group.states" :key="state.id" :value="state.id">{{ state.name }}</option>
         </optgroup>
       </select>
-      <BaseButton data-testid="document-state-add" variant="primary" size="sm" :disabled="!selectedStateId || disabled" @click="addState">Agregar</BaseButton>
+      <BaseButton
+        data-testid="document-state-add"
+        variant="primary"
+        size="sm"
+        :disabled="!selectedStateId || disabled"
+        :disabled-reason="disabled ? disabledReason : 'Selecciona un estado para agregarlo.'"
+        @click="addState"
+      >Agregar</BaseButton>
     </div>
     <label class="flex items-center gap-2 text-xs text-text-muted">
-      <BaseToggle v-model="useExactTime" size="sm" :disabled="disabled" />
+      <BaseToggle v-model="useExactTime" size="sm" :disabled="disabled" :disabled-reason="disabledReason" />
       Registrar la fecha real de apertura
     </label>
     <input
@@ -150,10 +183,11 @@ async function createInline(confirmSimilar = false) {
     <div class="border-t border-border-muted pt-3">
       <p class="mb-2 text-xs font-medium text-text-muted">Crear al vuelo</p>
       <div class="flex gap-2">
-        <BaseInput v-model="newName" data-testid="document-state-inline-name" placeholder="Nombre del nuevo estado" :disabled="disabled" @keyup.enter="createInline()" />
-        <BaseButton data-testid="document-state-inline-create" variant="secondary" size="sm" :disabled="!newName.trim() || disabled" @click="createInline()">Crear</BaseButton>
+        <BaseInput v-model="newName" data-testid="document-state-inline-name" placeholder="Nombre del nuevo estado" :disabled="disabled" :disabled-reason="disabledReason" @keyup.enter="createInline()" />
+        <BaseButton data-testid="document-state-inline-create" variant="secondary" size="sm" :disabled="!newName.trim() || disabled" :disabled-reason="disabled ? disabledReason : 'Escribe el nombre del nuevo estado.'" @click="createInline()">Crear</BaseButton>
       </div>
       <div v-if="suggestions.length" class="mt-2 flex flex-wrap gap-1.5" data-testid="document-state-suggestions">
+        <!-- design-tokens: allow-raw-button — selectable suggestion chip -->
         <button
           v-for="state in suggestions"
           :key="state.id"
@@ -167,4 +201,52 @@ async function createInline(confirmSimilar = false) {
     </div>
     <BaseAlert v-if="errorMessage" variant="danger" data-testid="document-state-error">{{ errorMessage }}</BaseAlert>
   </section>
+
+  <BaseModal
+    :model-value="finishDialog.open"
+    kind="confirm"
+    padding="none"
+    :close-on-backdrop="!stateStore.isUpdating"
+    :close-on-esc="!stateStore.isUpdating"
+    @update:model-value="updateFinishOpen"
+  >
+    <form @submit.prevent="submitFinish">
+      <div class="border-b border-border-muted px-5 py-4 sm:px-6">
+        <h2 class="text-lg font-semibold text-text-default">
+          {{ finishDialog.outcome === 'removed' ? 'Quitar estado' : 'Cerrar estado' }}
+        </h2>
+        <p class="mt-1 text-sm text-text-subtle">
+          {{ finishDialog.outcome === 'removed'
+            ? `“${finishDialog.episode?.state?.name}” se quitará porque no correspondía.`
+            : `“${finishDialog.episode?.state?.name}” quedará cerrado como trabajo completado.` }}
+        </p>
+      </div>
+      <div class="space-y-4 px-5 py-5 sm:px-6">
+        <BaseFormField
+          :label="finishDialog.outcome === 'removed' ? 'Motivo (opcional)' : 'Detalle del cierre (opcional)'"
+          :hint="finishDialog.outcome === 'removed' ? 'Si lo dejas vacío, quedará registrado sin motivo.' : 'Describe brevemente qué se completó.'"
+        >
+          <BaseTextarea v-model="finishDialog.note" :rows="4" maxlength="500" :disabled="stateStore.isUpdating" data-testid="document-state-finish-note" />
+        </BaseFormField>
+        <BaseAlert v-if="errorMessage" variant="danger">{{ errorMessage }}</BaseAlert>
+      </div>
+      <BaseModalActions>
+        <BaseButton type="button" variant="secondary" :disabled="stateStore.isUpdating" @click="updateFinishOpen(false)">Cancelar</BaseButton>
+        <BaseButton type="submit" :variant="finishDialog.outcome === 'removed' ? 'danger' : 'primary'" :loading="stateStore.isUpdating" data-testid="document-state-finish-confirm">
+          {{ finishDialog.outcome === 'removed' ? 'Quitar estado' : 'Cerrar estado' }}
+        </BaseButton>
+      </BaseModalActions>
+    </form>
+  </BaseModal>
+
+  <ConfirmModal
+    v-model="confirmState.open"
+    :title="confirmState.title"
+    :message="confirmState.message"
+    :confirm-text="confirmState.confirmText"
+    :cancel-text="confirmState.cancelText"
+    :variant="confirmState.variant"
+    @confirm="handleConfirmed"
+    @cancel="handleCancelled"
+  />
 </template>

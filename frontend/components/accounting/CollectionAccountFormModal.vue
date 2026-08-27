@@ -5,6 +5,7 @@ import BaseFloatingListbox from '~/components/base/BaseFloatingListbox.vue';
 import ClientAutocomplete from '~/components/ui/ClientAutocomplete.vue';
 import ClientFormFields from '~/components/clients/ClientFormFields.vue';
 import IncomeFormModal from '~/components/accounting/IncomeFormModal.vue';
+import BaseControlGate from '~/components/base/BaseControlGate.vue';
 import { INPUT_FIELD_BASE, INPUT_FIELD_SIZE } from '~/components/base/inputClasses';
 import { PANEL_BREAKPOINTS } from '~/config/responsive';
 import { useIsMobile } from '~/composables/useIsMobile';
@@ -52,6 +53,10 @@ const suggestedNumber = ref('');
 const numberDirty = ref(false);
 const showInlineClient = ref(false);
 const creatingClient = ref(false);
+const selectedClient = ref(null);
+const clientEmailDraft = ref('');
+const clientEmailError = ref('');
+const savingClientEmail = ref(false);
 // Client resolved from the selected income (PA-24): shown locked.
 const clientFromIncome = ref(null);
 const loadingClient = ref(false);
@@ -147,6 +152,10 @@ watch(
     suggestedNumber.value = '';
     numberDirty.value = false;
     showInlineClient.value = false;
+    selectedClient.value = null;
+    clientEmailDraft.value = '';
+    clientEmailError.value = '';
+    savingClientEmail.value = false;
     showIncomeForm.value = false;
     clientFromIncome.value = null;
     loadingClient.value = false;
@@ -301,6 +310,7 @@ const incomeScopeOptions = computed(() => [
     label: `Del cliente (${scopeCounts.value.client})`,
     testId: 'collection-form-income-scope-client',
     disabled: !clientId.value,
+    disabledReason: 'Selecciona un cliente para filtrar sus ingresos.',
   },
   {
     value: 'all',
@@ -497,6 +507,9 @@ const orphanIncomeSelected = computed(() => (
 function releaseClientFromIncome() {
   clientFromIncome.value = null;
   clientId.value = null;
+  selectedClient.value = null;
+  clientEmailDraft.value = '';
+  clientEmailError.value = '';
 }
 
 /** Resolve towards the income: adopt the client it already belongs to. */
@@ -518,6 +531,15 @@ function clearSelectedIncome() {
 // ── Client selection + snapshot prefill ──
 
 async function onClientSelect(client) {
+  selectedClient.value = client || null;
+  clientEmailError.value = '';
+  clientEmailDraft.value = client?.is_email_placeholder ? '' : (client?.email || '');
+  if (!client) {
+    form.value.customer = defaultForm().customer;
+    suggestedNumber.value = '';
+    form.value.public_number = '';
+    return;
+  }
   form.value.customer = {
     name: client.company || client.name || '',
     identification_type: client.nit ? 'NIT' : (client.cedula ? 'CC' : ''),
@@ -533,6 +555,51 @@ async function onClientSelect(client) {
     form.value.public_number = suggestedNumber.value;
     if (!form.value.city) form.value.city = result.data.issuer_city || '';
   }
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+}
+
+const selectedClientMissingEmail = computed(() => (
+  !!selectedClient.value
+  && (
+    selectedClient.value.is_email_placeholder
+    || !isValidEmail(selectedClient.value.email)
+  )
+));
+
+/** Persist the repair on the canonical profile; the rest of this modal stays local. */
+async function saveClientEmail() {
+  const email = clientEmailDraft.value.trim().toLowerCase();
+  clientEmailError.value = '';
+  if (!isValidEmail(email)) {
+    clientEmailError.value = 'Escribe un correo válido antes de guardarlo.';
+    return;
+  }
+  if (!clientId.value) {
+    clientEmailError.value = 'Selecciona un cliente antes de guardar el correo.';
+    return;
+  }
+
+  savingClientEmail.value = true;
+  const result = await clientsStore.updateClient(clientId.value, { email });
+  savingClientEmail.value = false;
+  if (!result.success) {
+    clientEmailError.value = result.errors?.message
+      || result.errors?.email?.[0]
+      || result.errors?.error
+      || 'No se pudo guardar el correo. Intenta nuevamente.';
+    return;
+  }
+
+  selectedClient.value = result.data;
+  clientEmailDraft.value = result.data.email || email;
+  form.value.customer.email = result.data.email || email;
+  notify.success({
+    title: 'Correo guardado en el cliente',
+    detail: 'También se usará como destinatario de esta cuenta de cobro.',
+  });
 }
 
 function onCreateNewClient(typedName) {
@@ -665,14 +732,26 @@ function onSplitKey(e) {
 
 // ── Preview + confirm ──
 
-const canPreview = computed(() => (
-  !!clientId.value
-  && !loadingClient.value
-  && !!selectedIncome.value?.id
-  && !incomeClientConflict.value
-  && Number(form.value.unit_price) > 0
-  && !!form.value.customer.email
-));
+const previewBlockers = computed(() => {
+  const reasons = [];
+  if (!clientId.value) reasons.push('Selecciona un cliente.');
+  if (clientId.value && loadingClient.value) reasons.push('Espera a que terminen de cargar los datos del cliente.');
+  if (!selectedIncome.value?.id) reasons.push('Selecciona un ingreso vinculado.');
+  if (incomeClientConflict.value) reasons.push('Resuelve el conflicto entre el cliente y el ingreso.');
+  if (!(Number(form.value.unit_price) > 0)) reasons.push('Ingresa un valor mayor a cero.');
+  if (!form.value.billing_concept.trim()) reasons.push('Escribe el concepto del servicio.');
+  if (selectedClientMissingEmail.value) {
+    reasons.push('Agrega y guarda un correo real para el cliente seleccionado.');
+  } else if (clientId.value && !isValidEmail(form.value.customer.email)) {
+    reasons.push('Escribe un correo destinatario válido para esta cuenta.');
+  }
+  if (form.value.term === 'fixed' && !form.value.due_date) {
+    reasons.push('Selecciona la fecha fija de pago.');
+  }
+  return reasons;
+});
+
+const canPreview = computed(() => previewBlockers.value.length === 0);
 
 function buildPayload() {
   const payload = {
@@ -716,6 +795,7 @@ function buildPayload() {
 }
 
 async function goPreview() {
+  if (!canPreview.value || previewing.value) return;
   previewing.value = true;
   const result = await store.previewCollectionAccount(buildPayload());
   previewing.value = false;
@@ -861,6 +941,48 @@ function downloadPdf() {
           @select="onClientSelect"
           @create-new="onCreateNewClient"
         />
+        <div
+          v-if="selectedClientMissingEmail"
+          class="mt-2 rounded-xl border border-warning-strong bg-warning-soft p-3 space-y-2"
+          data-testid="collection-form-client-email-warning"
+        >
+          <div>
+            <p class="text-sm font-medium text-text-default">Este cliente no tiene correo.</p>
+            <p class="text-xs text-text-muted">
+              La cuenta necesita un destinatario. Guárdalo aquí y podrás continuar sin perder lo diligenciado.
+            </p>
+          </div>
+          <div class="flex flex-col gap-2 panel-portrait:flex-row panel-portrait:items-start">
+            <div class="flex-1">
+              <BaseInput
+                v-model="clientEmailDraft"
+                type="email"
+                placeholder="cliente@empresa.com"
+                data-testid="collection-form-client-email-repair"
+                :aria-invalid="Boolean(clientEmailError)"
+                @keydown.enter.prevent="saveClientEmail"
+              />
+              <p
+                v-if="clientEmailError"
+                class="text-xs text-danger-strong mt-1"
+                role="alert"
+                data-testid="collection-form-client-email-error"
+              >
+                {{ clientEmailError }}
+              </p>
+            </div>
+            <BaseButton
+              type="button"
+              variant="primary"
+              size="sm"
+              :loading="savingClientEmail"
+              data-testid="collection-form-client-email-save"
+              @click="saveClientEmail"
+            >
+              {{ savingClientEmail ? 'Guardando...' : 'Guardar y usar' }}
+            </BaseButton>
+          </div>
+        </div>
       </BaseFormField>
 
       <!-- Inline client creation (module de clientes, sin salir del flujo) -->
@@ -936,6 +1058,9 @@ function downloadPdf() {
               />
             </span>
           </div>
+          <p v-if="!clientId" class="mb-2 text-xs text-text-subtle">
+            Selecciona un cliente para habilitar el filtro «Del cliente».
+          </p>
           <div class="relative">
             <input
               ref="incomeInputRef"
@@ -1182,12 +1307,18 @@ function downloadPdf() {
           <BaseFormField label="Nombre / Razón social">
             <BaseInput v-model="form.customer.name" data-testid="collection-form-customer-name" />
           </BaseFormField>
-          <BaseFormField label="Email" required>
+          <BaseFormField
+            label="Correo destinatario de esta cuenta"
+            hint="Se completa con el correo del cliente; si lo cambias aquí, sólo afecta esta cuenta."
+            required
+          >
             <BaseInput
               v-model="form.customer.email"
               type="email"
               data-testid="collection-form-customer-email"
               required
+              :disabled="selectedClientMissingEmail"
+              disabled-reason="Guarda el correo del cliente en el aviso superior para habilitar este campo."
             />
           </BaseFormField>
           <BaseFormField label="Tipo de identificación">
@@ -1227,18 +1358,30 @@ function downloadPdf() {
         />
       </BaseFormField>
 
-      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-center panel-portrait:justify-end">
+      <div class="flex flex-col-reverse items-stretch gap-2 pt-2 panel-portrait:flex-row panel-portrait:items-end panel-portrait:justify-end">
         <BaseButton type="button" variant="secondary" @click="close">
           Cancelar
         </BaseButton>
-        <BaseButton
-          type="submit"
-          variant="primary"
-          :disabled="!canPreview || previewing"
-          data-testid="collection-form-preview"
+        <BaseControlGate
+          :reasons="previewing ? [] : previewBlockers"
+          label="Previsualizar no disponible"
+          align="stretch"
+          reserve-space
+          testid="collection-form-preview-gate"
         >
-          {{ previewing ? 'Generando...' : 'Previsualizar' }}
-        </BaseButton>
+          <template #default="{ describedBy }">
+            <BaseButton
+              type="submit"
+              variant="primary"
+              class="w-full"
+              :disabled="!canPreview || previewing"
+              :aria-describedby="describedBy"
+              data-testid="collection-form-preview"
+            >
+              {{ previewing ? 'Generando...' : 'Previsualizar' }}
+            </BaseButton>
+          </template>
+        </BaseControlGate>
       </div>
     </form>
 

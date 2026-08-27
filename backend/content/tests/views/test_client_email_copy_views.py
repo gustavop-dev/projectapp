@@ -1,21 +1,21 @@
 import pytest
 from django.urls import reverse
 
-from content.email_copy_families import CLIENT_EMAIL_FAMILY_VALUES, PROPOSALS
-from content.models import ClientEmailCopyRecipient
+from content.email_copy_families import EMAIL_COPY_FAMILY_VALUES, PROPOSALS
+from content.models import EmailCopyRecipient
 
 
 pytestmark = pytest.mark.django_db
 
 
 def test_staff_lists_copy_configuration(admin_client):
-    ClientEmailCopyRecipient.objects.create(email='audit@example.com')
+    EmailCopyRecipient.objects.create(email='audit@example.com')
 
     response = admin_client.get(reverse('client-email-copy-recipients'))
 
     assert response.status_code == 200
     assert response.data['results'][0]['email'] == 'audit@example.com'
-    assert len(response.data['families']) == 5
+    assert len(response.data['families']) == 8
     assert response.data['copy_mode'] == 'bcc'
 
 
@@ -34,11 +34,11 @@ def test_create_recipient_defaults_to_every_family(admin_client):
 
     assert response.status_code == 201
     assert response.data['email'] == 'audit@example.com'
-    assert response.data['families'] == list(CLIENT_EMAIL_FAMILY_VALUES)
+    assert response.data['families'] == list(EMAIL_COPY_FAMILY_VALUES)
 
 
 def test_duplicate_recipient_is_rejected_case_insensitively(admin_client):
-    ClientEmailCopyRecipient.objects.create(email='audit@example.com')
+    EmailCopyRecipient.objects.create(email='audit@example.com')
 
     response = admin_client.post(
         reverse('client-email-copy-recipients'),
@@ -62,7 +62,7 @@ def test_active_recipient_rejects_empty_family_list(admin_client):
 
 
 def test_patch_recipient_updates_family_selection(admin_client):
-    recipient = ClientEmailCopyRecipient.objects.create(email='audit@example.com')
+    recipient = EmailCopyRecipient.objects.create(email='audit@example.com')
 
     response = admin_client.patch(
         reverse(
@@ -78,7 +78,7 @@ def test_patch_recipient_updates_family_selection(admin_client):
 
 
 def test_delete_recipient_removes_configuration(admin_client):
-    recipient = ClientEmailCopyRecipient.objects.create(email='audit@example.com')
+    recipient = EmailCopyRecipient.objects.create(email='audit@example.com')
 
     response = admin_client.delete(reverse(
         'client-email-copy-recipient-detail',
@@ -86,4 +86,4 @@ def test_delete_recipient_removes_configuration(admin_client):
     ))
 
     assert response.status_code == 204
-    assert ClientEmailCopyRecipient.objects.count() == 0
+    assert EmailCopyRecipient.objects.count() == 0

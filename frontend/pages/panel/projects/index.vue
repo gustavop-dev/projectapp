@@ -137,6 +137,7 @@
             variant="secondary"
             size="md"
             :disabled="!sortKey"
+            disabled-reason="Elige primero el criterio para ordenar los proyectos."
             :aria-label="sortDir === 'asc' ? 'Orden ascendente' : 'Orden descendente'"
             data-testid="projects-sort-direction"
             @click="toggleMobileSortDirection"

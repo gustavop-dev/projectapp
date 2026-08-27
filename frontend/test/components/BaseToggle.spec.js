@@ -31,6 +31,18 @@ describe('BaseToggle', () => {
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
   })
 
+  it('exposes its disabled reason on the switch', () => {
+    const wrapper = mount(BaseToggle, {
+      props: {
+        modelValue: false,
+        disabled: true,
+        disabledReason: 'Activa primero el calendario.',
+      },
+    })
+
+    expect(wrapper.get('button').attributes('title')).toBe('Activa primero el calendario.')
+  })
+
   it('translates the thumb when on', () => {
     const wrapper = mount(BaseToggle, { props: { modelValue: true } })
     const thumb = wrapper.find('span')

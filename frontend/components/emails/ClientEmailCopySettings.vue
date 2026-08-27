@@ -3,19 +3,23 @@
     <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <div class="flex items-center gap-2">
-          <h4 class="text-sm font-semibold text-text-default">Copias de correos a clientes</h4>
+          <h4 class="text-sm font-semibold text-text-default">Copias de todos los correos</h4>
           <span class="rounded bg-primary-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-brand">
             BCC
           </span>
         </div>
         <p class="mt-1 max-w-2xl text-xs text-text-muted">
-          Cada salida al cliente se copia de forma oculta. La lista es independiente de los avisos internos de Contabilidad.
+          Cada salida registrada se copia de forma oculta. Esta lista es independiente de los destinatarios de avisos internos.
         </p>
       </div>
     </div>
 
     <div class="mt-4 rounded-lg border border-warning-strong/30 bg-warning-soft px-3 py-2 text-xs text-warning-strong">
-      Cada destinatario activo añade hasta un envío por correo al cliente. Con un destinatario, el volumen SMTP y el volumen de esa bandeja pueden duplicarse.
+      Cada destinatario activo añade hasta un envío BCC por correo. Con un destinatario y todas las familias, el volumen SMTP y el volumen de esa bandeja pueden duplicarse.
+    </div>
+
+    <div class="mt-3 rounded-lg border border-danger-strong/30 bg-danger-soft px-3 py-2 text-xs text-danger-strong" data-testid="email-copy-security-warning">
+      La familia Seguridad copia y conserva el contenido completo de códigos de verificación (OTP), enlaces de recuperación e invitaciones con contraseña temporal. Toda persona administradora puede consultar este historial.
     </div>
 
     <p v-if="store.isLoadingCopyRecipients" class="py-5 text-center text-xs text-text-subtle">
@@ -35,19 +39,30 @@
         </BaseFormField>
         <FamilyPicker v-model="newFamilies" :options="store.copyFamilies" test-prefix="client-copy-new" />
         <div class="flex items-center justify-end">
-          <BaseButton
-            type="submit"
-            size="sm"
-            :disabled="!newEmail.trim() || !newFamilies.length || store.isSavingCopyRecipient"
-            data-testid="client-copy-add"
+          <BaseControlGate
+            :reasons="newRecipientBlockReasons"
+            label="Agregar destinatario no disponible"
+            align="end"
           >
-            Agregar destinatario
-          </BaseButton>
+            <template #default="{ describedBy }">
+              <BaseButton
+                type="submit"
+                size="sm"
+                :loading="store.isSavingCopyRecipient"
+                :disabled="Boolean(newRecipientBlockReasons.length)"
+                :disabled-reason="newRecipientBlockReasons.join(' ')"
+                :aria-describedby="describedBy"
+                data-testid="client-copy-add"
+              >
+                Agregar destinatario
+              </BaseButton>
+            </template>
+          </BaseControlGate>
         </div>
       </form>
 
       <p v-if="!store.copyRecipients.length" class="py-6 text-center text-xs text-text-subtle">
-        No hay destinatarios configurados. Los correos siguen saliendo al cliente sin copia interna.
+        No hay destinatarios configurados. Los correos siguen saliendo a sus destinatarios principales sin copia interna.
       </p>
 
       <div v-else class="mt-4 space-y-3">
@@ -97,6 +112,7 @@
                 variant="secondary"
                 size="sm"
                 :disabled="!canSaveFamilies(recipient) || store.isSavingCopyRecipient"
+                :disabled-reason="familySaveBlockReason(recipient)"
                 :data-testid="`client-copy-save-${recipient.id}`"
                 @click="saveFamilies(recipient)"
               >
@@ -111,7 +127,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref, watch } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import FamilyPicker from '~/components/emails/FamilyPicker.vue';
 import { useEmailStore } from '~/stores/emails';
 import { usePanelNotify } from '~/composables/usePanelNotify';
@@ -121,6 +137,11 @@ const notify = usePanelNotify();
 const newEmail = ref('');
 const newFamilies = ref([]);
 const draftFamilies = reactive({});
+
+const newRecipientBlockReasons = computed(() => [
+  !newEmail.value.trim() ? 'Escribe el correo del destinatario.' : '',
+  !newFamilies.value.length ? 'Selecciona al menos una familia de correos.' : '',
+].filter(Boolean));
 
 function hydrateDrafts() {
   for (const recipient of store.copyRecipients) {
@@ -169,6 +190,14 @@ function canSaveFamilies(recipient) {
   const families = draftFamilies[recipient.id] || [];
   if (recipient.is_active && !families.length) return false;
   return JSON.stringify(families) !== JSON.stringify(recipient.families || []);
+}
+
+function familySaveBlockReason(recipient) {
+  const families = draftFamilies[recipient.id] || [];
+  if (recipient.is_active && !families.length) {
+    return 'Selecciona al menos una familia para un destinatario activo.';
+  }
+  return 'Cambia al menos una familia antes de guardar.';
 }
 
 async function saveFamilies(recipient) {

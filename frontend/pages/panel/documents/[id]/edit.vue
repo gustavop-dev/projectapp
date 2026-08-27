@@ -79,7 +79,9 @@
             form="doc-edit-form"
             class="w-full whitespace-nowrap panel-portrait:w-auto"
             data-testid="doc-save"
-            :disabled="documentStore.isUpdating || !hasChanges || lockedCuenta"
+            :loading="documentStore.isUpdating"
+            :disabled="Boolean(saveBlockReasons.length)"
+            :disabled-reason="saveBlockReasons.join(' ')"
           >
             {{ documentStore.isUpdating ? 'Guardando...' : (hasChanges ? 'Guardar cambios' : 'Guardar') }}
           </BaseButton>
@@ -382,7 +384,11 @@
                 <span class="block text-sm font-medium text-text-default">Visible en el portal del cliente</span>
                 <span class="mt-0.5 block text-xs text-text-subtle">Controla la publicación sin mezclarla con el ciclo de trabajo.</span>
               </span>
-              <BaseToggle v-model="form.is_client_visible" :disabled="lockedCuenta" />
+              <BaseToggle
+                v-model="form.is_client_visible"
+                :disabled="lockedCuenta"
+                disabled-reason="Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para cambiar su visibilidad."
+              />
             </label>
             <div>
               <label class="block text-sm font-medium text-text-default mb-1">Carpeta</label>
@@ -458,6 +464,7 @@
               variant="ghost"
               size="sm"
               :disabled="!form.content_markdown.trim()"
+              disabled-reason="Agrega contenido Markdown antes de copiarlo."
               @click="handleCopyContent"
             >
               <BaseActionIcon action="copy" />
@@ -478,7 +485,7 @@
               :options="templateStyleOptions"
               aria-label="Estilo de plantilla"
             />
-            <BaseButton variant="secondary" size="sm" :disabled="!form.content_markdown.trim()" @click="showFullPreview = true">
+            <BaseButton variant="secondary" size="sm" :disabled="!form.content_markdown.trim()" disabled-reason="Agrega contenido Markdown antes de abrir la vista completa." @click="showFullPreview = true">
               <BaseActionIcon action="enter-fullscreen" />
               Vista completa
             </BaseButton>
@@ -744,6 +751,13 @@ const {
   blockedReason: 'Esta cuenta de cobro ya fue emitida y no se puede modificar.',
   reload: reloadDocument,
 });
+
+const saveBlockReasons = computed(() => [
+  lockedCuenta.value
+    ? 'Esta cuenta de cobro ya fue emitida. Anúlala y crea una nueva para modificarla.'
+    : '',
+  !hasChanges.value ? 'No hay cambios por guardar.' : '',
+].filter(Boolean));
 
 const headerClientLabel = computed(() => clientDisplayName.value || legacyClientName.value);
 const isCollectionAccount = computed(

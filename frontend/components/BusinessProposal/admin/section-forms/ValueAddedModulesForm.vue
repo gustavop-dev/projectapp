@@ -107,12 +107,14 @@
                       action="move-up"
                       label="Subir cláusula"
                       :disabled="idx === 0"
+                      disabled-reason="Esta cláusula ya es la primera."
                       @click="moveClause(id, idx, -1)"
                     />
                     <BaseActionButton
                       action="move-down"
                       label="Bajar cláusula"
                       :disabled="idx === getClauses(id).length - 1"
+                      disabled-reason="Esta cláusula ya es la última."
                       @click="moveClause(id, idx, 1)"
                     />
                     <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar cláusula" size="sm" @click="removeClause(id, idx)" />
@@ -183,12 +185,14 @@
             action="move-up"
             label="Subir cláusula general"
             :disabled="idx === 0"
+            disabled-reason="Esta cláusula ya es la primera."
             @click="moveGeneralClause(idx, -1)"
           />
           <BaseActionButton
             action="move-down"
             label="Bajar cláusula general"
             :disabled="idx === generalClauses.length - 1"
+            disabled-reason="Esta cláusula ya es la última."
             @click="moveGeneralClause(idx, 1)"
           />
           <BaseActionButton action="delete" variant="danger-ghost" label="Eliminar cláusula general" size="sm" @click="removeGeneralClause(idx)" />

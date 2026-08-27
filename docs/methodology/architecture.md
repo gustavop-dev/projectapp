@@ -233,8 +233,8 @@ erDiagram
 | **DiagnosticDefaultConfig** | Per-language defaults applied at `WebAppDiagnostic` creation | language (unique), sections_json, payment_initial_pct (60), payment_final_pct (40), default_currency, default_investment_amount, default_duration_label, expiration_days, reminder_days, urgency_reminder_days. `clean()` enforces payment sum = 100. Read by `diagnostic_service.create_diagnostic` and surfaced through `/api/diagnostics/defaults/`. |
 | **ProposalProjectStage** | Internal project execution tracking (Cronograma) — internal-only, gated by `is_admin` in serializer | proposal_fk, stage_key (`design`/`development`), order, start_date, end_date, completed_at, warning_sent_at, last_overdue_reminder_at |
 | **EmailTemplateConfig** | Admin-editable email content | template_key (unique), content_overrides, is_active |
-| **EmailLog** | Email deliverability tracking + composed email history | proposal_fk, template_key, recipient, status, error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy) |
-| **ClientEmailCopyRecipient** | Separate administrable BCC audience for customer communication | email (unique), is_active, families (JSON list), created_at, updated_at |
+| **EmailLog** | Universal outbound trace + composed email history | proposal_fk, template_key, recipient, audience, status (including skipped), error_message, metadata (JSONField), delivery_id, delivery_role (primary/copy) |
+| **EmailCopyRecipient** | Separate administrable BCC audience for every outbound email | email (unique), is_active, families (JSON list), created_at, updated_at |
 | **Contact** | Contact form submissions | email, phone_number, subject, message, budget |
 | **PortfolioWork** | Portfolio case studies | title_en/es, slug, cover_image, project_url, content_json_en/es, SEO fields |
 | **BlogPost** | Blog articles | title_en/es, slug, cover_image, excerpt, content_json/html, category, author, SEO fields |
@@ -299,7 +299,7 @@ flowchart TD
     PES -->|construct messages| EDG["EmailDeliveryGateway"]
     Views -->|other outbound messages| EDG
     EDG -->|primary first; BCC copies after success| SMTP["Django Email Backend"]
-    EDG -->|active recipients by family| CECR["ClientEmailCopyRecipient"]
+    EDG -->|active recipients by family| CECR["EmailCopyRecipient"]
     PES -->|get content| ETR
     PST -->|get_or_create_stage / ensure_stages| Models
     PST -->|send_stage_warning / send_stage_overdue| PES
@@ -326,8 +326,8 @@ flowchart TD
 |---------|-----------|-----------------|
 | **ProposalService** | Very large | Proposal CRUD, section management, default sections, analytics computation, engagement scoring, dashboard aggregation, CSV export, scorecard |
 | **ProposalEmailService** | Very large | All email sending: proposal sent (single + multi-proposal envelope), reminders, urgency, abandonment, revisit alerts, stakeholder alerts, engagement decay, post-expiration, branded + proposal composed emails, stage warning + stage overdue. Shared helpers: `_attach_commercial_pdf(email, proposal)` (used by `send_proposal_to_client`, `send_acceptance_confirmation`, `send_multi_proposal_to_client`), `_build_initial_email_context(proposal)` (per-proposal phase context), `_send_stage_notification`. |
-| **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires an explicit client/internal/security policy, sends the primary envelope first, resolves segmented BCC recipients only after success, isolates copy failures and exposes one delivery trace to `EmailLog`. |
-| **ClientEmailInventory** | Small | Authoritative mapping of every customer-facing template key to one configurable copy family. Unknown client keys fail closed; static tests reject mail calls outside the gateway. |
+| **EmailDeliveryGateway** | Small | The only production owner of Django mail I/O. Requires every key in the universal inventory plus explicit client/internal/security classification, persists baseline history, sends the primary envelope first, resolves segmented BCC recipients only after success, deduplicates original recipients, isolates copy failures and exposes one delivery trace to `EmailLog`. |
+| **OutboundEmailInventory** | Small | Authoritative mapping of all 56 outbound template keys to one of eight configurable copy families. Unknown keys fail closed; static tests reject mail calls outside the gateway. `ClientEmailInventory` remains the exact client-only compatibility subset. |
 | **ProposalStageTracker** | Small | Day-by-day decision logic for project-stage email notifications. Holds the canonical `STAGE_DEFINITIONS` catalog (`design`, `development`), `ensure_stages` / `get_or_create_stage` helpers, `format_remaining_time(days)` (`"hoy"`, `"1 día"`, `"1 semana 5 días"`), and `process(proposal)` decision tree (70%-elapsed warning + every-3-days overdue reminders). |
 | **ProposalPdfService** | Large | PDF generation with ReportLab: all 12 section types rendered to PDF |
 | **ContractPdfService** | Medium | Contract PDF generation with contractor signature block, draft mode (no signature), Helvetica font, clickable TOC |
@@ -350,6 +350,17 @@ flowchart TD
 ### 6.0 Design System
 
 Panel operational actions resolve through a semantic action catalog. Consumers keep handlers, routes, permissions and loading state locally; the catalog owns only the canonical Heroicons 24 Outline glyph and default Spanish label. `BaseActionIcon`, `BaseActionButton` and catalog-backed menus apply that metadata so icon changes remain one-place changes, while the panel action guard blocks local SVG/emoji drift and inaccessible icon-only controls in CI.
+
+Control availability is also a design-system contract. `BaseButton`,
+`BaseActionButton`, `BaseActionMenu`, `BaseSegmented` and
+`BaseSegmentedMulti` accept a specific disabled reason. When the operator can
+remove the block, `BaseControlGate` owns the focusable proxy around the native
+disabled control, deduplicates and exposes every reason through adjacent live
+copy plus hover/focus/touch help, and connects it with `aria-describedby`.
+Busy-only states use `loading`; lifecycle, permission and ordering boundaries
+use the same reason contract without pretending they are form errors. The
+strict `check-disabled-controls.mjs` scan protects all panel routes and reachable
+module components in CI.
 
 Responsive behavior is part of the design-system contract rather than a page-level exception. The canonical device profiles live in frontend configuration and cover 412, 835, 1195, 1440 and 2560 px widths. Shared navigation stays compact through portrait tablet, modal geometry is centralized in `BaseModal`, repeated tables declare business-priority columns, and the admin content column stops growing on large monitors.
 
@@ -880,8 +891,39 @@ local episode event stream is the canonical audit for state changes; generic his
 does not duplicate those movements. Catalog renames preserve stable integration keys,
 and merging retires the source while keeping historical meaning and merge events.
 `document_note_service` owns note linkage and only closes needs-fix after the final
-open linked observation is resolved or discarded. Client visibility is orthogonal and
-never derived from an episode.
+undeleted open linked observation is resolved, discarded or deleted. Client visibility
+is orthogonal and never derived from an episode.
+
+### Observation Decision → Recoverable Trash → State Reconciliation
+
+```mermaid
+flowchart LR
+    Active["Active observation"] --> Choice{"Operator intent"}
+    Choice -->|"real but not addressed"| Discard["Discard + optional reason"]
+    Choice -->|"never should exist"| Confirm["Contextual confirmation"]
+    Confirm --> Atomic["delete_notes() atomic lock"]
+    Atomic --> Trash["deleted_at + deleted_by"]
+    Atomic --> Audit["DELETED event: actor/time only"]
+    Atomic --> Pending{"Last undeleted open note?"}
+    Pending -->|"yes, origin=note"| RemoveState["Close episode as removed"]
+    Pending -->|"manual/shared"| PreserveState["Preserve active state"]
+    Trash --> Restore["restore_note()"]
+    Restore --> Compatible{"State compatible?"}
+    Compatible -->|yes| Reopen["Reopen/reuse episode + RESTORED event"]
+    Compatible -->|no| Rollback["Rollback; remain in trash"]
+```
+
+`DocumentNote.deleted_at/deleted_by` is the recoverable record; default document,
+history and episode serializers exclude it. `DocumentNoteEvent` is append-only and
+deliberately omits content snapshots. REST and the Documents MCP converge on the
+same locked service, including one-document bulk validation and automatic state
+coherence. The note manager renders active, trash and activity panes inside the
+existing `BaseModal`; destructive confirmation is an internal state of that dialog,
+so no nested browser prompt or one-click list deletion exists.
+
+Panel dialog policy is enforced separately from individual consumers: confirmations
+and text capture use `BaseModal`/`ConfirmModal`, errors remain inline/actionable, and
+`check-panel-native-dialogs.mjs` scans every reachable panel page/component in CI.
 
 ### Project State Preview → Consequences → Episode
 
