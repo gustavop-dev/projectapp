@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('content', '0215_merge_email_copy_accounting_lifecycle'),
+        ('content', '0215_merge_accounting_preferences_project_lifecycle'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
